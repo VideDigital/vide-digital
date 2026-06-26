@@ -6,13 +6,37 @@ const slugInput = document.getElementById('slug-input');
 const statusMsg = document.getElementById('status-msg');
 let usuarioAtualUid = null;
 
+// FUNÇÃO AUXILIAR: Gera e exibe o bloco com os links direto na tela do Perfil
+function exibirLinksGerados(slug) {
+    statusMsg.innerHTML = `
+        <div style="margin-top: 20px; padding: 15px; background-color: #161616; border: 1px solid #222; border-left: 4px solid #00bcd4; border-radius: 8px; text-align: left; box-sizing: border-box; width: 100%;">
+            <p style="color: #4caf50; font-weight: bold; margin: 0 0 15px 0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
+                🎉 Loja configurada com sucesso!
+            </p>
+            
+            <div style="margin-bottom: 12px;">
+                <span style="font-size: 11px; color: #888; display: block; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px;">🌐 LINK DA VITRINE (CLIENTES):</span>
+                <a href="https://videdigital.github.io/vide-digital/?loja=${slug}" target="_blank" style="color: #00bcd4; font-size: 13px; text-decoration: none; word-break: break-all; font-weight: 500;">
+                    videdigital.github.io/vide-digital/?loja=${slug}
+                </a>
+            </div>
+            
+            <div>
+                <span style="font-size: 11px; color: #888; display: block; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px;">🔑 LINK ESPECÍFICO DE ADM (GERENCIAMENTO):</span>
+                <a href="https://videdigital.github.io/vide-digital/dashboard.html?loja=${slug}" target="_blank" style="color: #ff9800; font-size: 13px; text-decoration: none; word-break: break-all; font-weight: 500;">
+                    videdigital.github.io/vide-digital/dashboard.html?loja=${slug}
+                </a>
+            </div>
+        </div>
+    `;
+}
+
 // 1. PROTEGER A PÁGINA: Só deixa ficar aqui se estiver logado de verdade
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         usuarioAtualUid = user.uid;
         carregarDadosUsuario(user.uid);
     } else {
-        // Se não estiver logado, chuta de volta para a nova página de login
         window.location.href = 'login.html';
     }
 });
@@ -23,9 +47,10 @@ async function carregarDadosUsuario(uid) {
         const userDoc = await getDoc(doc(db, "usuarios", uid));
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            // Coloca o valor de urlLoja que está salvo no banco dentro do input
+            // Se já tiver uma URL cadastrada, preenche o campo e renderiza os links direto
             if (userData.urlLoja) {
                 slugInput.value = userData.urlLoja;
+                exibirLinksGerados(userData.urlLoja);
             }
         }
     } catch (error) {
@@ -33,7 +58,7 @@ async function carregarDadosUsuario(uid) {
     }
 }
 
-// 3. SALVAR O NOVO SLUG (Botão Aplicar) + ENVIAR TEXTO DE CONCLUÍDO PRO WHATSAPP
+// 3. SALVAR O NOVO SLUG (Botão Aplicar)
 document.getElementById('btn-salvar-slug').addEventListener('click', async () => {
     if (!usuarioAtualUid) return;
 
@@ -42,26 +67,11 @@ document.getElementById('btn-salvar-slug').addEventListener('click', async () =>
     slugInput.value = novoSlug;
 
     if (!novoSlug) {
-        statusMsg.innerText = "Por favor, digite um link válido!";
-        statusMsg.style.color = "#f44336";
+        statusMsg.innerHTML = "<span style='color: #f44336; font-size: 14px;'>Por favor, digite um link válido!</span>";
         return;
     }
 
-    statusMsg.innerText = "Salvando alteração...";
-    statusMsg.style.color = "#ffeb3b";
-
-    // 🚀 TRUQUE ANTI-BLOQUEIO: Abre a aba em branco IMEDIATAMENTE no clique do usuário para o Chrome não barrar
-    const whatsappWindow = window.open('', '_blank');
-    if (whatsappWindow) {
-        whatsappWindow.document.write(`
-            <div style="font-family: 'Segoe UI', sans-serif; text-align: center; margin-top: 80px; color: #ffffff; background-color: #121212; position: fixed; top:0; left:0; width:100%; height:100%; padding-top:50px;">
-                <h2 style="color: #00bcd4; margin-bottom: 5px;">Vide Digital</h2>
-                <p style="color: #aaa; font-size: 14px;">Configurando sua vitrine virtual e gerando convite...</p>
-                <div style="margin: 30px auto; width: 40px; height: 40px; border: 4px solid #222; border-top: 4px solid #25d366; border-radius: 50%; animation: spin 1s linear infinite;"></div>
-                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-            </div>
-        `);
-    }
+    statusMsg.innerHTML = "<span style='color: #ffeb3b; font-size: 14px;'>Salvando alteração na nuvem...</span>";
 
     try {
         // Atualiza especificamente o campo urlLoja no Firestore
@@ -69,43 +79,33 @@ document.getElementById('btn-salvar-slug').addEventListener('click', async () =>
             urlLoja: novoSlug
         });
 
-        // Altera o texto na tela principal do painel
-        statusMsg.innerHTML = "Link atualizado com sucesso! 🎉<br><small style='color: #25d366; font-size: 12px;'>Mensagem de lançamento gerada na outra aba aberta!</small>";
-        statusMsg.style.color = "#4caf50";
-
-        // MENSAGEM COPIÁVEL DE ALTO IMPACTO PARA O DONO DA LOJA USAR
-        const mensagemPronta = `🚀 *Sua vitrine virtual está concluída!*\n\nOlá! É com muita alegria que anuncio que a minha nova loja virtual na *Vide Digital* já está oficialmente no ar. Agora ficou muito mais fácil e rápido conferir todos os produtos e fazer seus pedidos diretamente por lá! 🛍️\n\n👉 *Acesse e confira todas as novidades por aqui:* \nhttps://videdigital.github.io/vide-digital/?loja=${novoSlug}\n\nBoas compras! Aguardo o seu pedido! 🎉`;
-
-        // Transforma o texto em um link válido para o WhatsApp
-        const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemPronta)}`;
-
-        // Modifica o endereço da aba que já estava aberta com o link do WhatsApp (O navegador aceita 100% das vezes)
-        if (whatsappWindow) {
-            whatsappWindow.location.href = urlWhatsApp;
-        }
+        // Atualiza a interface com os novos links gerados em tempo real
+        exibirLinksGerados(novoSlug);
 
     } catch (error) {
-        // Se der algum erro no banco de dados, fecha a aba intrusa para não confundir o cliente
-        if (whatsappWindow) whatsappWindow.close();
-        
-        statusMsg.innerText = "Erro ao salvar: " + error.message;
-        statusMsg.style.color = "#f44336";
+        statusMsg.innerHTML = `<span style='color: #f44336; font-size: 14px;'>Erro ao salvar: ${error.message}</span>`;
     }
 });
 
-// 4. COPIAR O LINK PARA A ÁREA DE TRANSFERÊNCIA
+// 4. COPIAR O LINK PARA A ÁREA DE TRANSFERÊNCIA (Botão Copiar Original)
 document.getElementById('btn-copiar-url').addEventListener('click', () => {
     const linkCompleto = `videdigital.github.io/vide-digital/?loja=${slugInput.value}`;
     navigator.clipboard.writeText(linkCompleto);
     
-    statusMsg.innerText = "Link completo copiado para a área de transferência! 📋";
-    statusMsg.style.color = "#00bcd4";
+    // Alerta temporário por cima do bloco de links para avisar que copiou
+    const avisoCopiado = document.createElement('div');
+    avisoCopiado.innerText = "Link de cliente copiado! 📋";
+    avisoCopiado.style.color = "#00bcd4";
+    avisoCopiado.style.fontSize = "13px";
+    avisoCopiado.style.marginTop = "8px";
+    statusMsg.appendChild(avisoCopiado);
+    
+    setTimeout(() => avisoCopiado.remove(), 2500);
 });
 
 // 5. BOTÃO DE LOGOUT (SAIR)
 document.getElementById('btn-logout').addEventListener('click', () => {
     signOut(auth).then(() => {
-        // Quando deslogar, vai direto para a tela de login correta
         window.location.href = 'login.html';
     });
 });
