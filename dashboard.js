@@ -2,12 +2,26 @@ import { auth, db } from "./firebase-init.js";
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 import { collection, query, where, getDocs, addDoc, doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-// --- VERIFICAÇÃO DE SEGURANÇA ATIVA ---
-onAuthStateChanged(auth, (user) => {
+// --- VERIFICAÇÃO ATIVA DE SEGURANÇA E STATUS ---
+onAuthStateChanged(auth, async (user) => {
   if (!user) {
     window.location.href = "login.html";
   } else {
-    inicializarPainel(user.uid);
+    // Valida se o usuário continua ativo diretamente no Firestore antes de renderizar as abas
+    try {
+      const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+      if (userDoc.exists() && userDoc.data().status === "aprovado") {
+         inicializarPainel(user.uid);
+      } else {
+         // Se o admin removeu a aprovação no painel do Firebase
+         await signOut(auth);
+         window.location.href = "login.html";
+      }
+    } catch (e) {
+      console.error(e);
+      await signOut(auth);
+      window.location.href = "login.html";
+    }
   }
 });
 
@@ -17,7 +31,7 @@ function inicializarPainel(userId) {
   configurarEventosInterface(userId);
 }
 
-// --- FLUXO DE ABAS ---
+// Configuração das Trocas de Aba e cliques na tela
 function configurarEventosInterface(userId) {
   const tabs = document.querySelectorAll(".tab-btn");
   const contents = document.querySelectorAll(".tab-content");
@@ -35,40 +49,38 @@ function configurarEventosInterface(userId) {
     });
   });
 
-  // CONTROLE DO MODAL DE PRODUTOS
+  // Modal de Produtos
   const modal = document.getElementById("modal-produto");
   document.getElementById("open-modal-produto").addEventListener("click", () => modal.classList.remove("hidden"));
   document.getElementById("close-modal-produto").addEventListener("click", () => modal.classList.add("hidden"));
 
-  // LOGOUT
+  // Ação de Sair do Sistema
   document.getElementById("btn-logout").addEventListener("click", () => {
     signOut(auth).then(() => window.location.href = "login.html");
   });
 
-  // LISTENER DO CADASTRO DE PRODUTO
+  // Submissão do Novo Produto
   document.getElementById("form-produto").addEventListener("submit", async (e) => {
     e.preventDefault();
     await cadastrarProduto(userId);
   });
 
-  // LISTENER DO SALVAMENTO DE TRACKING
+  // Salvar Tracking e Pixels
   document.getElementById("btn-salvar-tracking").addEventListener("click", async () => {
     await salvarTracking(userId);
   });
 
-  // LISTENER DO SALVAMENTO DE PERFIL
+  // Salvar Customização do Perfil da Loja
   document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
     await salvarPerfil(userId);
   });
 }
 
-// --- OPERAÇÕES DO FIRESTORE (TOTALMENTE MULTI-TENANT) ---
+// --- FUNÇÕES DE INTERAÇÃO COM BANCO DE DADOS (MULTI-TENANT) ---
 
 async function carregarProdutos(userId) {
   const container = document.getElementById("lista-produtos");
   if (!container) return;
-
-  container.innerHTML = `<p class="text-sm text-gray-500 animate-pulse">Buscando seus produtos...</p>`;
 
   try {
     const q = query(collection(db, "produtos"), where("userId", "==", userId));
@@ -76,7 +88,7 @@ async function carregarProdutos(userId) {
     container.innerHTML = "";
 
     if (querySnapshot.empty) {
-      container.innerHTML = `<p class="text-sm text-gray-500 col-span-full">Nenhum produto cadastrado por você ainda.</p>`;
+      container.innerHTML = `<p class="text-sm text-gray-500 col-span-full">Nenhum produto cadastrado até agora.</p>`;
       return;
     }
 
@@ -88,7 +100,7 @@ async function carregarProdutos(userId) {
         <div class="bg-[#121214] border border-[#27272a] rounded-2xl p-5 flex flex-col justify-between space-y-4">
           <div>
             <h4 class="text-lg font-bold text-[#00f2fe]">${p.nome}</h4>
-            <p class="text-xs text-gray-400 mt-1 line-clamp-3">${p.descricao || 'Sem descrição inserida.'}</p>
+            <p class="text-xs text-gray-400 mt-1 line-clamp-3">${p.descricao || 'Sem descrição cadastrada.'}</p>
             <p class="text-lg font-black mt-2">R$ ${p.preco}</p>
           </div>
           <button onclick="window.open('${p.linkCheckout}', '_blank')" class="w-full py-2.5 bg-[#18181b] hover:bg-[#27272a] border border-[#27272a] text-white rounded-xl text-xs font-semibold transition">
@@ -99,7 +111,6 @@ async function carregarProdutos(userId) {
     });
   } catch (error) {
     console.error(error);
-    container.innerHTML = `<p class="text-sm text-red-400 col-span-full">Erro ao processar catálogo.</p>`;
   }
 }
 
@@ -125,7 +136,6 @@ async function cadastrarProduto(userId) {
     carregarProdutos(userId);
   } catch (error) {
     console.error(error);
-    alert("Houve um erro salvando a oferta.");
   }
 }
 
@@ -155,7 +165,7 @@ async function carregarPerfil(userId) {
       if(document.getElementById("cor-texto")) document.getElementById("cor-texto").value = d.corTextoLoja || "#ffffff";
     }
   } catch (error) {
-    console.error("Erro carregando configurações:", error);
+    console.error("Erro ao puxar dados de perfil:", error);
   }
 }
 
@@ -180,11 +190,10 @@ async function salvarPerfil(userId) {
 
   try {
     await updateDoc(doc(db, "usuarios", userId), dadosAtualizados);
-    alert("Perfil e personalizações salvas com sucesso!");
+    alert("Configurações atualizadas!");
     document.getElementById("perfil-slug").value = slugLimpa;
   } catch (error) {
     console.error(error);
-    alert("Erro ao gravar dados de estilização.");
   }
 }
 
@@ -195,9 +204,8 @@ async function salvarTracking(userId) {
       googleAnalytics: document.getElementById("pixel-google").value.trim(),
       dominioPersonalizado: document.getElementById("dominio-custom").value.trim().toLowerCase()
     });
-    alert("Scripts de conversão e domínio salvos!");
+    alert("Rastreamento atualizado com sucesso!");
   } catch (error) {
     console.error(error);
-    alert("Falha ao salvar rastreamento.");
   }
 }
