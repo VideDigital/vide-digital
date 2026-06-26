@@ -12,8 +12,8 @@ onAuthStateChanged(auth, async (user) => {
         usuarioAtualUid = user.uid;
         carregarDadosUsuario(user.uid);
     } else {
-        // Se não estiver logado, chuta de volta pro login
-        window.location.href = 'index.html';
+        // Se não estiver logado, chuta de volta para a nova página de login
+        window.location.href = 'login.html';
     }
 });
 
@@ -76,6 +76,7 @@ document.getElementById('btn-copiar-url').addEventListener('click', () => {
 // 5. BOTÃO DE LOGOUT (SAIR)
 document.getElementById('btn-logout').addEventListener('click', () => {
     signOut(auth).then(() => {
-        window.location.href = 'index.html';
+        // Quando deslogar, vai direto para a tela de login correta
+        window.location.href = 'login.html';
     });
 });
