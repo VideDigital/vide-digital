@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vide Digital - Sistema de Lojas</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #0b0b0b; color: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .container { background: #121212; padding: 40px; border-radius: 12px; width: 340px; box-shadow: 0 8px 24px rgba(0,0,0,0.5); text-align: center; border: 1px solid #222; }
+        h2 { margin-bottom: 24px; font-weight: 600; letter-spacing: 0.5px; }
+        input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #2a2a2a; background: #1a1a1a; color: #fff; border-radius: 6px; box-sizing: border-box; font-size: 14px; }
+        input:focus { border-color: #00bcd4; outline: none; }
+        button { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 14px; transition: 0.2s; }
+        .btn-primary { background: #00bcd4; color: #fff; }
+        .btn-primary:hover { background: #00acc1; }
+        .btn-secondary { background: #222; color: #aaa; border: 1px solid #333; }
+        .btn-secondary:hover { background: #2a2a2a; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>VIDE DIGITAL</h2>
+        <input type="email" id="email" placeholder="Seu e-mail">
+        <input type="password" id="senha" placeholder="Sua senha">
+        
+        <button class="btn-primary" id="btn-login">Entrar no Dashboard</button>
+        <button class="btn-secondary" id="btn-cadastro">Solicitar Cadastro da Loja</button>
+    </div>
+
+    <!-- O type="module" faz o HTML entender as importações do Firebase -->
+    <script type="module" src="app.js"></script>
+</body>
+</html>
