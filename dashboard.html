@@ -5,35 +5,88 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vide Digital - Dashboard</title>
     <style>
-        body {
-            background-color: #0d1117;
-            color: #ffffff;
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            text-align: center;
-            padding: 30px;
-            background-color: #161b22;
-            border-radius: 10px;
-            border: 1px solid #30363d;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.3);
-        }
-        h1 { color: #00bcd4; }
-        p { color: #8b949e; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: #0b0b0b; color: #fff; margin: 0; display: flex; height: 100vh; overflow: hidden; }
+        
+        /* Menu Lateral (Sidebar) */
+        .sidebar { width: 240px; background-color: #121212; border-right: 1px solid #222; display: flex; flex-direction: column; padding: 20px; justify-content: space-between; box-sizing: border-box; }
+        .logo { font-size: 18px; font-weight: bold; letter-spacing: 1px; margin-bottom: 30px; display: flex; align-items: center; gap: 8px; }
+        .menu-items { display: flex; flex-direction: column; gap: 8px; flex-grow: 1; }
+        .menu-item { padding: 12px 16px; border-radius: 8px; color: #aaa; text-decoration: none; font-size: 14px; font-weight: 500; transition: 0.2s; display: flex; align-items: center; gap: 10px; }
+        .menu-item:hover, .menu-item.active { background-color: #1a1a1a; color: #00bcd4; }
+        .btn-sair { padding: 12px 16px; color: #f44336; text-decoration: none; font-size: 14px; font-weight: 500; cursor: pointer; }
+
+        /* Área de Conteúdo Principal */
+        .main-content { flex-grow: 1; padding: 40px; overflow-y: auto; background-color: #0b0b0b; box-sizing: border-box; }
+        .header-title { margin-bottom: 30px; }
+        .header-title h1 { margin: 0; font-size: 28px; font-weight: 600; }
+        .header-title p { margin: 5px 0 0; color: #666; font-size: 14px; }
+
+        /* Painel de Configuração do Link */
+        .card { background-color: #121212; border: 1px solid #222; border-radius: 12px; padding: 24px; max-width: 600px; box-shadow: 0 4px 12px rgba(0,0,0,0.5); }
+        .card h3 { margin-top: 0; margin-bottom: 8px; font-size: 16px; font-weight: 600; }
+        .card p { font-size: 13px; color: #aaa; margin-bottom: 16px; }
+        
+        /* Box do Input do Link */
+        .url-box { display: flex; align-items: center; background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 4px 12px; margin-bottom: 16px; }
+        .url-prefix { color: #666; font-size: 14px; user-select: none; padding-right: 2px; }
+        .url-input { background: transparent; border: none; color: #fff; font-size: 14px; width: 100%; padding: 8px 0; font-family: inherit; }
+        .url-input:focus { outline: none; color: #00bcd4; }
+        
+        /* Botões de Ação */
+        .btn-group { display: flex; gap: 10px; }
+        button { padding: 10px 20px; border-radius: 6px; border: none; font-size: 13px; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        .btn-apply { background-color: #00bcd4; color: #fff; }
+        .btn-apply:hover { background-color: #00acc1; }
+        .btn-copy { background-color: #222; color: #aaa; border: 1px solid #333; }
+        .btn-copy:hover { background-color: #2a2a2a; color: #fff; }
+
+        #status-msg { font-size: 13px; margin-top: 12px; font-weight: 500; }
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>Bem-vindo ao Vide Digital! 🚀</h1>
-        <p>Seu login foi validado pelo Firebase e o painel está pronto para ser construído.</p>
+    <!-- Menu Lateral baseado no seu modelo -->
+    <div class="sidebar">
+        <div>
+            <div class="logo">🧬 MinhaVitrine</div>
+            <div class="menu-items">
+                <a href="#" class="menu-item active">👤 Perfil</a>
+                <a href="#" class="menu-item">📊 Dashboard</a>
+                <a href="#" class="menu-item">🌐 Domínio/Pixel/Tag</a>
+                <a href="#" class="menu-item">👥 Leads (Capturas)</a>
+                <a href="#" class="menu-item">🏪 Minha Loja</a>
+            </div>
+        </div>
+        <div class="btn-sair" id="btn-logout">🚪 Sair</div>
     </div>
 
+    <!-- Área de Configuração Principal -->
+    <div class="main-content">
+        <div class="header-title">
+            <h1>Perfil</h1>
+            <p>Gerencie seu perfil e aparência da loja.</p>
+        </div>
+
+        <!-- Seção do Link/Slug solicitado -->
+        <div class="card">
+            <h3>Slug/Usuário (SEU LINK) - você pode alterar seu link abaixo!</h3>
+            <p>Defina o endereço único que os seus clientes vão usar para acessar a sua vitrine.</p>
+            
+            <div class="url-box">
+                <span class="url-prefix">videdigital.github.io/vide-digital/?loja=</span>
+                <input type="text" id="slug-input" class="url-input" placeholder="nomedasualoja">
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-apply" id="btn-salvar-slug">APLICAR</button>
+                <button class="btn-copy" id="btn-copiar-url">COPIAR URL</button>
+            </div>
+
+            <div id="status-msg"></div>
+        </div>
+    </div>
+
+    <!-- Scripts de inicialização e controle -->
+    <script type="module" src="dashboard.js"></script>
 </body>
 </html>
