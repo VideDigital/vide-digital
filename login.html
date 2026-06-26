@@ -1,130 +1,147 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vide Digital | Login Premium</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght=400;500;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="login.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideDigital - Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="login.css">
 </head>
-<body>
+<body class="bg-[#09090b] text-white flex min-h-screen items-center justify-center p-4">
 
-    <div class="bg-glow"></div>
-
-    <!-- Notificação interna na própria página -->
-    <div id="toast-notification" class="toast hidden">
-        <i id="toast-icon" class="fa-solid"></i>
-        <span id="toast-message"></span>
+  <div class="w-full max-w-md bg-[#121214] border border-[#27272a] rounded-2xl p-8 shadow-2xl space-y-6">
+    <div class="text-center space-y-2">
+      <h2 id="auth-title" class="text-3xl font-bold tracking-tight text-[#00f2fe]">VideDigital</h2>
+      <p id="auth-subtitle" class="text-sm text-gray-400">Insira suas credenciais para acessar o painel</p>
     </div>
 
-    <div class="login-wrapper">
-        <main class="login-card">
-            
-            <header class="login-header">
-                <div class="logo-area">
-                    <i class="fa-solid fa-dna logo-icon"></i>
-                    <span class="logo-text">Vide<strong class="accent">Digital</strong></span>
-                </div>
-                <p class="subtitle">Insira suas credenciais para acessar o painel</p>
-            </header>
+    <form class="space-y-4">
+      <div id="container-nome" class="hidden">
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nome da Loja / Seu Nome</label>
+        <input type="text" id="auth-nome" class="w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white focus:outline-none focus:border-[#00f2fe]" placeholder="Ex: Minha Vitrine Maravilhosa">
+      </div>
 
-            <form class="login-form" id="form-login-auth">
-                
-                <div class="input-group">
-                    <label for="email">E-mail</label>
-                    <div class="input-field-wrapper">
-                        <i class="fa-regular fa-envelope input-icon"></i>
-                        <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email">
-                    </div>
-                </div>
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">E-mail</label>
+        <input type="email" id="auth-email" required class="w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white focus:outline-none focus:border-[#00f2fe]" placeholder="seu@email.com">
+      </div>
 
-                <div class="input-group">
-                    <div class="label-row">
-                        <label for="password">Senha</label>
-                        <a href="#" class="forgot-link" id="btn-forgot">Esqueceu a senha?</a>
-                    </div>
-                    <div class="input-field-wrapper">
-                        <i class="fa-solid fa-lock input-icon"></i>
-                        <input type="password" id="password" placeholder="••••••••" required>
-                    </div>
-                </div>
+      <div>
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Senha</label>
+          <a href="#" class="text-xs text-[#00f2fe] hover:underline">Esqueceu a senha?</a>
+        </div>
+        <input type="password" id="auth-senha" required class="w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white focus:outline-none focus:border-[#00f2fe]" placeholder="••••••••">
+      </div>
 
-                <div class="form-options">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="remember-me" checked>
-                        <span class="checkmark"></span>
-                        Manter conectado
-                    </label>
-                </div>
+      <div class="flex items-center space-x-2 py-1">
+        <input type="checkbox" id="manter-conectado" checked class="w-4 h-4 rounded bg-[#18181b] border-[#27272a] text-[#00f2fe] focus:ring-0">
+        <label for="manter-conectado" class="text-xs text-gray-400 select-none">Manter conectado</label>
+      </div>
 
-                <div class="action-buttons">
-                    <button type="submit" class="btn-primary" id="btn-submit">
-                        <span id="label-btn">Entrar no Dashboard</span>
-                        <i class="fa-solid fa-arrow-right-to-bracket" id="icon-btn"></i>
-                    </button>
-                    
-                    <button type="button" class="btn-secondary" id="btn-cadastro">
-                        Solicitar Cadastro
-                    </button>
-                </div>
+      <button type="submit" id="btn-principal" class="w-full bg-[#00f2fe] hover:bg-[#00d8e4] text-black font-bold p-3.5 rounded-xl transition shadow-lg shadow-[#00f2fe]/10">
+        Entrar no Painel
+      </button>
 
-            </form>
-        </main>
-    </div>
+      <button type="button" id="btn-alternar" class="w-full bg-transparent border border-[#27272a] hover:bg-[#18181b] text-white font-medium p-3.5 rounded-xl transition text-sm">
+        Solicitar Cadastro
+      </button>
+    </form>
+  </div>
 
-    <script>
-        document.getElementById('form-login-auth').addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
-            const labelBtn = document.getElementById('label-btn');
-            const iconBtn = document.getElementById('icon-btn');
-            
-            labelBtn.textContent = "Autenticando...";
-            iconBtn.className = "fa-solid fa-circle-notch fa-spin";
-            
-            setTimeout(() => {
-                if(email.trim() !== "" && password.length >= 4) {
-                    showToast("Acesso autorizado! Redirecionando...", "success");
-                    setTimeout(() => {
-                        window.location.href = "dashboard.html"; 
-                    }, 1000);
-                } else {
-                    showToast("Credenciais inválidas.", "error");
-                    labelBtn.textContent = "Entrar no Dashboard";
-                    iconBtn.className = "fa-solid fa-arrow-right-to-bracket";
-                }
-            }, 800);
-        });
+  <script type="module">
+    import { auth, db } from "./firebase-init.js";
+    import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { doc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
-        document.getElementById('btn-forgot').addEventListener('click', (e) => {
-            e.preventDefault();
-            showToast("Link de recuperação enviado para o e-mail.", "success");
-        });
+    const form = document.querySelector("form");
+    const title = document.getElementById("auth-title");
+    const subtitle = document.getElementById("auth-subtitle");
+    const containerNome = document.getElementById("container-nome");
+    const nomeInput = document.getElementById("auth-nome");
+    const emailInput = document.getElementById("auth-email");
+    const senhaInput = document.getElementById("auth-senha");
+    const btnPrincipal = document.getElementById("btn-principal");
+    const btnAlternar = document.getElementById("btn-alternar");
 
-        document.getElementById('btn-cadastro').addEventListener('click', () => {
-            showToast("Solicitação de cadastro enviada!", "info");
-        });
+    let modoLogin = true;
 
-        function showToast(message, type) {
-            const toast = document.getElementById('toast-notification');
-            const icon = document.getElementById('toast-icon');
-            const msgSpan = document.getElementById('toast-message');
-            
-            toast.className = `toast ${type}`;
-            msgSpan.textContent = message;
-            
-            if(type === 'success') icon.className = "fa-solid fa-circle-check";
-            if(type === 'error') icon.className = "fa-solid fa-circle-exclamation";
-            if(type === 'info') icon.className = "fa-solid fa-circle-info";
-            
-            toast.classList.remove('hidden');
-            setTimeout(() => { toast.classList.add('hidden'); }, 3000);
+    btnAlternar.addEventListener("click", () => {
+      modoLogin = !modoLogin;
+      if (!modoLogin) {
+        title.innerText = "Criar Conta";
+        subtitle.innerText = "Preencha os dados abaixo para solicitar seu cadastro";
+        containerNome.classList.remove("hidden");
+        btnPrincipal.innerText = "Cadastrar Conta";
+        btnAlternar.innerText = "Já tenho uma conta (Fazer Login)";
+      } else {
+        title.innerText = "VideDigital";
+        subtitle.innerText = "Insira suas credenciais para acessar o painel";
+        containerNome.classList.add("hidden");
+        btnPrincipal.innerText = "Entrar no Painel";
+        btnAlternar.innerText = "Solicitar Cadastro";
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const password = senhaInput.value;
+      const nomeLoja = nomeInput.value.trim();
+
+      if (modoLogin) {
+        try {
+          btnPrincipal.innerText = "Autenticando...";
+          btnPrincipal.disabled = true;
+          await signInWithEmailAndPassword(auth, email, password);
+          window.location.href = "dashboard.html";
+        } catch (error) {
+          console.error(error);
+          alert("Erro na autenticação. Verifique seu e-mail e senha.");
+          btnPrincipal.innerText = "Entrar no Painel";
+          btnPrincipal.disabled = false;
         }
-    </script>
+      } else {
+        try {
+          btnPrincipal.innerText = "Criando Conta...";
+          btnPrincipal.disabled = true;
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          const baseSlug = nomeLoja ? nomeLoja.toLowerCase().replace(/[^a-z0-9]/g, "-") : "loja";
+          const randomId = Math.floor(1000 + Math.random() * 9000);
+          const finalSlug = `${baseSlug}-${randomId}`;
+
+          await setDoc(doc(db, "usuarios", user.uid), {
+            uid: user.uid,
+            email: email,
+            nomeLoja: nomeLoja || "Minha Vitrine",
+            slug: finalSlug,
+            pixelFacebook: "",
+            googleAnalytics: "",
+            dominioPersonalizado: "",
+            tema: "Ultra Dark",
+            corFundo: "#09090b",
+            corDestaque: "#00f2fe",
+            corCards: "#121214",
+            corTextoLoja: "#ffffff",
+            whatsapp: "",
+            instagram: "",
+            tiktok: "",
+            youtube: "",
+            facebook: ""
+          });
+
+          alert("Cadastro realizado e configurado com sucesso!");
+          window.location.href = "dashboard.html";
+        } catch (error) {
+          console.error(error);
+          alert("Erro ao realizar cadastro: " + error.message);
+          btnPrincipal.innerText = "Cadastrar Conta";
+          btnPrincipal.disabled = false;
+        }
+      }
+    });
+  </script>
 </body>
 </html>
