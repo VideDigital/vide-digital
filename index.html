@@ -15,6 +15,9 @@
         .btn-primary:hover { background: #00acc1; }
         .btn-secondary { background: #222; color: #aaa; border: 1px solid #333; }
         .btn-secondary:hover { background: #2a2a2a; color: #fff; }
+        
+        /* Nova área de estilo para as mensagens dentro do login */
+        #mensagem { margin-top: 20px; font-size: 14px; min-height: 20px; font-weight: 500; transition: 0.3s; }
     </style>
 </head>
 <body>
@@ -25,9 +28,11 @@
         
         <button class="btn-primary" id="btn-login">Entrar no Dashboard</button>
         <button class="btn-secondary" id="btn-cadastro">Solicitar Cadastro da Loja</button>
+        
+        <!-- Onde o texto vai aparecer dinamicamente -->
+        <div id="mensagem"></div>
     </div>
 
-    <!-- O type="module" faz o HTML entender as importações do Firebase -->
     <script type="module" src="app.js"></script>
 </body>
 </html>
