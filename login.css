@@ -1,297 +1,45 @@
-:root {
-    --bg-universe: #060608;
-    --card-glass: rgba(14, 14, 18, 0.65);
-    --border-glass: rgba(255, 255, 255, 0.07);
-    --input-bg: rgba(255, 255, 255, 0.03);
-    --input-border: rgba(255, 255, 255, 0.1);
-    
-    /* Cores da marca */
-    --cyan-primary: #00D2DF;
-    --cyan-glow: rgba(0, 210, 223, 0.35);
-    
-    --text-main: #FFFFFF;
-    --text-muted: #8E9AA8;
-    --font-premium: 'Plus Jakarta Sans', sans-serif;
-}
-
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: var(--font-premium);
-    -webkit-font-smoothing: antialiased;
-}
-
-body {
-    background-color: var(--bg-universe);
-    color: var(--text-main);
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    position: relative;
-    overflow: hidden;
-}
-
-/* Efeito de iluminação premium no fundo de tela */
-.bg-glow {
-    position: absolute;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, var(--cyan-glow) 0%, rgba(0,0,0,0) 70%);
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    z-index: 1;
-    pointer-events: none;
-    opacity: 0.6;
-}
-
-.login-wrapper {
-    position: relative;
-    z-index: 2;
-    padding: 20px;
-    width: 100%;
-    max-width: 440px;
-}
-
-/* Card Glassmorphism Refinado */
-.login-card {
-    background: var(--card-glass);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border-glass);
-    border-radius: 24px;
-    padding: 40px 32px;
-    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 
-                inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-/* Header do Painel */
-.login-header {
-    text-align: center;
-    margin-bottom: 32px;
-}
-
-.logo-area {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 10px;
-}
-
-.logo-icon {
-    font-size: 1.5rem;
-    color: #FF5A79;
-    background: linear-gradient(135deg, #FF5A79, var(--cyan-primary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.logo-text {
-    font-size: 1.6rem;
-    font-weight: 600;
-    letter-spacing: -0.5px;
-}
-
-.logo-text .accent {
-    color: var(--cyan-primary);
-    font-weight: 700;
-}
-
-.subtitle {
-    font-size: 0.85rem;
-    color: var(--text-muted);
-}
-
-/* Estrutura de Inputs */
-.login-form {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.input-group {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-}
-
-.input-group label {
-    font-size: 0.85rem;
-    font-weight: 500;
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.label-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.forgot-link {
-    font-size: 0.75rem;
-    color: var(--cyan-primary);
-    text-decoration: none;
-    transition: opacity 0.2s;
-}
-
-.forgot-link:hover {
-    opacity: 0.8;
-    text-decoration: underline;
-}
-
-/* Caixa moderna ao redor do input + ícone */
-.input-field-wrapper {
-    position: relative;
-    display: flex;
-    align-items: center;
-}
-
-.input-icon {
-    position: absolute;
-    left: 16px;
-    color: var(--text-muted);
-    font-size: 1rem;
-    transition: color 0.2s;
-    pointer-events: none;
-}
-
-.input-field-wrapper input {
-    width: 100%;
-    background-color: var(--input-bg);
-    border: 1px solid var(--input-border);
-    padding: 14px 16px 14px 44px;
+/* Notificações Toast Flutuantes e Profissionais */
+.toast {
+    position: fixed;
+    top: 24px;
+    right: 24px;
+    padding: 16px 24px;
     border-radius: 12px;
-    color: var(--text-main);
-    font-size: 0.95rem;
-    outline: none;
-    transition: all 0.2s ease;
-}
-
-/* Foco Interativo do Input (Efeito Neon) */
-.input-field-wrapper input:focus {
-    border-color: var(--cyan-primary);
-    background-color: rgba(0, 210, 223, 0.02);
-    box-shadow: 0 0 0 4px rgba(0, 210, 223, 0.15);
-}
-
-.input-field-wrapper input:focus ~ .input-icon {
-    color: var(--cyan-primary);
-}
-
-/* Checkbox Customizado */
-.form-options {
-    margin-top: -4px;
-    margin-bottom: 8px;
-}
-
-.checkbox-container {
     display: flex;
     align-items: center;
-    position: relative;
-    padding-left: 26px;
-    cursor: pointer;
-    font-size: 0.8rem;
-    color: var(--text-muted);
-    user-select: none;
-}
-
-.checkbox-container input {
-    position: absolute;
-    opacity: 0;
-    cursor: pointer;
-    height: 0;
-    width: 0;
-}
-
-.checkmark {
-    position: absolute;
-    top: 50%;
-    left: 0;
-    transform: translateY(-50%);
-    height: 16px;
-    width: 16px;
-    background-color: var(--input-bg);
-    border: 1px solid var(--input-border);
-    border-radius: 4px;
-    transition: all 0.2s;
-}
-
-.checkbox-container input:checked ~ .checkmark {
-    background-color: var(--cyan-primary);
-    border-color: var(--cyan-primary);
-}
-
-.checkmark:after {
-    content: "";
-    position: absolute;
-    display: none;
-    left: 5px;
-    top: 2px;
-    width: 4px;
-    height: 8px;
-    border: solid #000;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
-}
-
-.checkbox-container input:checked ~ .checkmark:after {
-    display: block;
-}
-
-/* Botões de Ação com Micro-interações */
-.action-buttons {
-    display: flex;
-    flex-direction: column;
     gap: 12px;
-    margin-top: 8px;
-}
-
-.btn-primary {
-    width: 100%;
-    background-color: var(--cyan-primary);
-    color: #000000;
-    border: none;
-    padding: 14px;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: all 0.2s ease;
-    box-shadow: 0 4px 20px rgba(0, 210, 223, 0.25);
-}
-
-.btn-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 6px 24px rgba(0, 210, 223, 0.4);
-    background-color: #00f0ff;
-}
-
-.btn-primary:active {
-    transform: translateY(0);
-}
-
-.btn-secondary {
-    width: 100%;
-    background-color: transparent;
-    color: rgba(255, 255, 255, 0.7);
-    border: 1px solid var(--input-border);
-    padding: 14px;
-    border-radius: 12px;
+    font-size: 0.9rem;
     font-weight: 600;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: all 0.2s ease;
+    z-index: 10000;
+    box-shadow: 0 16px 32px rgba(0,0,0,0.5);
+    animation: slideIn 0.3s ease forwards;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
 }
 
-.btn-secondary:hover {
-    background-color: rgba(255, 255, 255, 0.04);
-    color: #FFFFFF;
-    border-color: rgba(255, 255, 255, 0.25);
+.toast.success {
+    background-color: rgba(16, 185, 129, 0.15);
+    border: 1px solid rgba(16, 185, 129, 0.3);
+    color: #10B981;
+}
+
+.toast.error {
+    background-color: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #EF4444;
+}
+
+.toast.info {
+    background-color: rgba(0, 210, 223, 0.15);
+    border: 1px solid rgba(0, 210, 223, 0.3);
+    color: #00D2DF;
+}
+
+@keyframes slideIn {
+    from { transform: translateY(-20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+.hidden {
+    display: none !important;
 }
