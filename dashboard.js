@@ -4,23 +4,80 @@ import { doc, getDoc, updateDoc, collection, addDoc, getDocs, query, where, dele
 
 let usuarioAtualUid = null;
 let fotoBase64Armazenada = ""; 
+let filtroNichoAtual = "todos";
 const urlParams = new URLSearchParams(window.location.search);
 const lojaParamAtual = urlParams.get('loja');
 
-// Escuta upload local de foto e transforma em string Base64 compacta
+// Trava e Máscara Monetária Automática nos inputs de preço
+document.querySelectorAll('.numeric-mask').forEach(input => {
+    input.addEventListener('input', function(e) {
+        let value = e.target.value.replace(/\D/g, "");
+        if (value === "") { e.target.value = ""; return; }
+        value = (parseInt(value) / 100).toFixed(2);
+        e.target.value = value.replace(".", ",");
+    });
+});
+
+// Listener do Seletor de Parcelas
+document.getElementById('prod-parc-select')?.addEventListener('change', function(e) {
+    const container = document.getElementById('parc-custom-val-container');
+    const input = document.getElementById('prod-parcelamento');
+    if (e.target.value === "custom" || e.target.value.includes("x")) {
+        container.style.display = "block";
+        if (e.target.value !== "custom") {
+            input.placeholder = `Ex: ${e.target.value} de R$ 9,90`;
+        }
+    } else {
+        container.style.display = "none";
+        input.value = "";
+    }
+});
+
+// Controladores dos botões de CTA (Estilo image_2829bb.png)
+document.querySelectorAll('.btn-cta-toggle').forEach(btn => {
+    btn.addEventListener('click', function() {
+        document.querySelectorAll('.btn-cta-toggle').forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const tipo = this.getAttribute('data-type');
+        document.getElementById('prod-tipo-botao').value = tipo;
+        
+        const label = document.getElementById('label-link-dinamico');
+        const input = document.getElementById('prod-link');
+        if (tipo === "whatsapp") {
+            label.innerText = "Número do WhatsApp do Suporte (Com DDD)";
+            input.placeholder = "Ex: 11999999999";
+        } else {
+            label.innerText = "Link Principal de Destino (Checkout / Página)";
+            input.placeholder = "https://checkout.kiwify.com.br/...";
+        }
+    });
+});
+
+// Atualização de feedback visual para upload local de arquivos
 document.getElementById('prod-file-upload')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
+    const textLabel = document.getElementById('upload-filename-text');
     if (file) {
+        if (textLabel) textLabel.innerText = file.name;
         const reader = new FileReader();
         reader.onloadend = function() {
             fotoBase64Armazenada = reader.result;
-            console.log("[Painel Vide] Imagem local carregada com sucesso.");
         }
         reader.readAsDataURL(file);
     }
 });
 
-// Sistema SPA de Abas
+// Filtro de Nichos em tempo real (Estilo image_282c9f.png)
+document.querySelectorAll('.niche-tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+        document.querySelectorAll('.niche-tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+        filtroNichoAtual = this.getAttribute('data-niche');
+        if (usuarioAtualUid) carregarProdutosDoBanco(usuarioAtualUid);
+    });
+});
+
+// Sistema SPA de Abas Laterais
 function gerenciarAbasPainel() {
     const menuItems = document.querySelectorAll('.menu-item');
     const sections = document.querySelectorAll('.app-section');
@@ -49,50 +106,56 @@ function exibirLinksGeradosNoPerfil(slug) {
                     https://videdigital.github.io/vide-digital/?loja=${slug}
                 </a>
             </div>
-            <div>
-                <span style="font-size:11px; color:#888; display:block; font-weight:bold;">🔑 LINK INTERNO ADMINISTRATIVO:</span>
-                <a href="https://videdigital.github.io/vide-digital/dashboard.html?loja=${slug}" target="_blank" style="color:#ff9800; font-size:13px; text-decoration:none;">
-                    https://videdigital.github.io/vide-digital/dashboard.html?loja=${slug}
-                </a>
-            </div>
         </div>
     `;
 }
 
-// Carregar e Listar com Ações CRUD
 async function carregarProdutosDoBanco(uid) {
     const container = document.getElementById('container-produtos-lista');
     const contador = document.getElementById('dash-qtd-produtos');
     if (!container) return;
 
     try {
-        const q = query(collection(db, "produtos"), where("userId", "==", uid));
-        const snap = await getDocs(q);
+        let q = query(collection(db, "produtos"), where("userId", "==", uid));
+        if (filtroNichoAtual !== "todos") {
+            q = query(collection(db, "produtos"), where("userId", "==", uid), where("nicho", "==", filtroNichoAtual));
+        }
         
+        const snap = await getDocs(q);
         if (snap.empty) {
-            container.innerHTML = `<div style="color:#666; font-size:14px; padding:20px 0;">Nenhum produto cadastrado nesta loja ainda.</div>`;
-            if (contador) contador.innerText = "0";
+            container.innerHTML = `<div style="color:#666; font-size:14px; padding:20px 0;">Nenhum produto encontrado nesta categoria.</div>`;
+            if (contador && filtroNichoAtual === "todos") contador.innerText = "0";
             return;
         }
 
-        if (contador) contador.innerText = snap.size;
+        if (contador && filtroNichoAtual === "todos") contador.innerText = snap.size;
 
         let html = `<div class="products-grid">`;
         snap.forEach((doc) => {
             const p = doc.data();
             const id = doc.id;
             const img = p.imagem || 'https://via.placeholder.com/150';
-            const parc = p.parcelamento || '';
+            const badgeClass = p.nicho === 'fisico' ? 'badge fisico' : 'badge digital';
+            const badgeLabel = p.nicho === 'fisico' ? '📦 Físico' : '⚡ Digital';
+            
+            // Tratamento exibição parcelas
+            let exibirParc = "";
+            if (p.parcelamento) {
+                exibirParc = p.parcelamento;
+            } else if (p.condicaoParcelas && p.condicaoParcelas !== "Sem parcelamento") {
+                exibirParc = p.condicaoParcelas;
+            }
 
             html += `
                 <div class="product-item-card">
                     <img src="${img}">
+                    <span class="${badgeClass}">${badgeLabel}</span>
                     <h4>${p.nome}</h4>
                     <p class="price">R$ ${p.preco}</p>
-                    <p class="installment">${parc}</p>
+                    <p style="color:#666; font-size:11px; margin-bottom:12px;">${exibirParc}</p>
                     <div class="product-actions">
-                        <button class="btn-edit" data-id="${id}">Editar</button>
-                        <button class="btn-delete" data-id="${id}">Excluir</button>
+                        <button class="btn-edit" data-id="${id}">📝 Gerenciar Oferta</button>
+                        <button class="btn-delete" data-id="${id}">🗑️</button>
                     </div>
                 </div>
             `;
@@ -100,34 +163,22 @@ async function carregarProdutosDoBanco(uid) {
         html += `</div>`;
         container.innerHTML = html;
 
-        // Injeta os gatilhos dos botões dinâmicos de Editar e Deletar
-         VincularAcoesProdutos();
+        document.querySelectorAll('.btn-edit').forEach(btn => {
+            btn.addEventListener('click', () => abrirModalParaEdicao(btn.getAttribute('data-id')));
+        });
 
-    } catch (e) {
-        console.error(e);
-    }
+        document.querySelectorAll('.btn-delete').forEach(btn => {
+            btn.addEventListener('click', async () => {
+                if (confirm("Remover este produto permanentemente?")) {
+                    await deleteDoc(doc(db, "produtos", btn.getAttribute('data-id')));
+                    carregarProdutosDoBanco(usuarioAtualUid);
+                }
+            });
+        });
+
+    } catch (e) { console.error(e); }
 }
 
-function VincularAcoesProdutos() {
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const id = btn.getAttribute('data-id');
-            abrirModalParaEdicao(id);
-        });
-    });
-
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            if (confirm("Tem certeza que deseja apagar permanentemente este produto?")) {
-                const id = btn.getAttribute('data-id');
-                await deleteDoc(doc(db, "produtos", id));
-                carregarProdutosDoBanco(usuarioAtualUid);
-            }
-        });
-    });
-}
-
-// Abrir Modal em Modo Edição
 async function abrirModalParaEdicao(id) {
     const modal = document.getElementById('modal-produto');
     try {
@@ -136,21 +187,39 @@ async function abrirModalParaEdicao(id) {
             const p = snap.data();
             document.getElementById('modal-titulo').innerText = "📝 Editar Produto";
             document.getElementById('prod-id-edicao').value = id;
+            document.getElementById('prod-niche-type').value = p.nicho || "digital";
             document.getElementById('prod-nome').value = p.nome || "";
+            document.getElementById('prod-preco-de').value = p.precoDe || "";
             document.getElementById('prod-preco').value = p.preco || "";
-            document.getElementById('prod-parcelamento').value = p.parcelamento || "";
+            
+            const condParc = p.condicaoParcelas || "Sem parcelamento";
+            document.getElementById('prod-parc-select').value = condParc;
+            if(condParc !== "Sem parcelamento") {
+                document.getElementById('parc-custom-val-container').style.display = "block";
+                document.getElementById('prod-parcelamento').value = p.parcelamento || "";
+            } else {
+                document.getElementById('parc-custom-val-container').style.display = "none";
+            }
+
             document.getElementById('prod-descricao').value = p.descricao || "";
             document.getElementById('prod-img').value = p.imagem && !p.imagem.startsWith("data:") ? p.imagem : "";
-            document.getElementById('prod-tipo-botao').value = p.tipoBotao || "checkout";
-            document.getElementById('prod-link').value = p.linkCompra || "";
             
+            // Toggle do CTA
+            const tBotao = p.tipoBotao || "checkout";
+            document.getElementById('prod-tipo-botao').value = tBotao;
+            document.querySelectorAll('.btn-cta-toggle').forEach(b => {
+                b.classList.toggle('active', b.getAttribute('data-type') === tBotao);
+            });
+
+            document.getElementById('prod-link').value = p.linkCompra || "";
+            document.getElementById('upload-filename-text').innerText = p.imagem && p.imagem.startsWith("data:") ? "Imagem local salva" : "Nenhum arquivo selecionado";
             fotoBase64Armazenada = p.imagem && p.imagem.startsWith("data:") ? p.imagem : "";
+            
             modal.style.display = 'flex';
         }
     } catch (e) { console.error(e); }
 }
 
-// Gerenciamento e Escrita do Form de Produtos (Criar / Atualizar)
 function gerenciarModalProduto() {
     const modal = document.getElementById('modal-produto');
     
@@ -158,11 +227,15 @@ function gerenciarModalProduto() {
         document.getElementById('modal-titulo').innerText = "📦 Cadastrar Novo Produto";
         document.getElementById('prod-id-edicao').value = "";
         document.getElementById('prod-nome').value = "";
+        document.getElementById('prod-preco-de').value = "";
         document.getElementById('prod-preco').value = "";
+        document.getElementById('prod-parc-select').value = "Sem parcelamento";
+        document.getElementById('parc-custom-val-container').style.display = "none";
         document.getElementById('prod-parcelamento').value = "";
         document.getElementById('prod-descricao').value = "";
         document.getElementById('prod-img').value = "";
         document.getElementById('prod-link').value = "";
+        document.getElementById('upload-filename-text').innerText = "Nenhum arquivo selecionado";
         fotoBase64Armazenada = "";
         modal.style.display = 'flex';
     });
@@ -171,56 +244,52 @@ function gerenciarModalProduto() {
 
     document.getElementById('btn-salvar-prod-db')?.addEventListener('click', async () => {
         const idEdicao = document.getElementById('prod-id-edicao').value;
+        const nicho = document.getElementById('prod-niche-type').value;
         const nome = document.getElementById('prod-nome').value.trim();
+        const precoDe = document.getElementById('prod-preco-de').value.trim();
         const preco = document.getElementById('prod-preco').value.trim();
+        const condicaoParcelas = document.getElementById('prod-parc-select').value;
         const parcelamento = document.getElementById('prod-parcelamento').value.trim();
         const descricao = document.getElementById('prod-descricao').value.trim();
         const urlImg = document.getElementById('prod-img').value.trim();
         const tipoBotao = document.getElementById('prod-tipo-botao').value;
         const linkCompra = document.getElementById('prod-link').value.trim();
 
-        if (!nome || !preco) { alert("Nome e Preço são campos obrigatórios."); return; }
-
-        // Decide se usa a foto que subiu do PC ou a URL digitada
-        const imagemFinal = fotoBase64Armazenada || urlImg;
+        if (!nome || !preco) { alert("Nome e Preço Atual são campos obrigatórios."); return; }
 
         const dadosProduto = {
             userId: usuarioAtualUid,
-            nome, preco, parcelamento, descricao, tipoBotao, linkCompra,
-            imagem: imagemFinal,
+            nicho, nome, precoDe, preco, condicaoParcelas, parcelamento, descricao, tipoBotao, linkCompra,
+            imagem: fotoBase64Armazenada || urlImg,
             dataAlteracao: new Date().toISOString()
         };
 
         try {
             if (idEdicao) {
-                // Modo Atualizar Existente
                 await updateDoc(doc(db, "produtos", idEdicao), dadosProduto);
             } else {
-                // Modo Cadastrar Novo
                 await addDoc(collection(db, "produtos"), dadosProduto);
             }
             modal.style.display = 'none';
             carregarProdutosDoBanco(usuarioAtualUid);
-        } catch (e) { alert("Erro ao processar dados: " + e.message); }
+        } catch (e) { alert("Erro: " + e.message); }
     });
 }
 
-// Escuta de Ações Adicionais (Pixels e Slugs)
 function configurarAcoesAdicionais() {
     document.getElementById('btn-salvar-pixels')?.addEventListener('click', async () => {
-        const fb = document.getElementById('input-pixel-facebook').value.trim();
-        const gg = document.getElementById('input-tag-google').value.trim();
-        await updateDoc(doc(db, "usuarios", usuarioAtualUid), { pixelFacebook: fb, tagGoogle: gg });
-        alert("Configurações de Pixel salvas!");
+        await updateDoc(doc(db, "usuarios", usuarioAtualUid), {
+            pixelFacebook: document.getElementById('input-pixel-facebook').value.trim(),
+            tagGoogle: document.getElementById('input-tag-google').value.trim()
+        });
+        alert("Configurações salvas!");
     });
 
     document.getElementById('btn-salvar-slug')?.addEventListener('click', async () => {
-        const input = document.getElementById('slug-input');
-        const novoSlug = input.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
-        if (!novoSlug) return;
+        const novoSlug = document.getElementById('slug-input').value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
         await updateDoc(doc(db, "usuarios", usuarioAtualUid), { urlLoja: novoSlug });
         exibirLinksGeradosNoPerfil(novoSlug);
-        alert("Link comercial atualizado com sucesso!");
+        alert("Link comercial atualizado!");
     });
 
     document.getElementById('btn-logout')?.addEventListener('click', () => {
@@ -251,7 +320,5 @@ onAuthStateChanged(auth, async (user) => {
             exibirLinksGeradosNoPerfil(slug);
             carregarProdutosDoBanco(user.uid);
         }
-    } else {
-        window.location.href = 'login.html';
-    }
+    } else { window.location.href = 'login.html'; }
 });
