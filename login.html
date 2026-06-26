@@ -1,43 +1,121 @@
-<style>
-    .btn-loading { opacity: 0.7; pointer-events: none; }
-    .spinner {
-        display: inline-block;
-        width: 1rem;
-        height: 1rem;
-        border: 2px solid rgba(255,255,255,0.3);
-        border-radius: 50%;
-        border-top-color: #fff;
-        animation: spin 0.8s linear infinite;
-        margin-right: 8px;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-</style>
-
-<script type="module">
-    // ... (suas importações)
-
-    const btn = document.getElementById("btn-principal"); // ID do seu botão de login
-
-    async function fazerLogin() {
-        const email = document.getElementById("auth-email").value;
-        const senha = document.getElementById("auth-senha").value;
-
-        // Iniciar animação de carregamento
-        btn.classList.add('btn-loading');
-        btn.innerHTML = '<span class="spinner"></span> Autenticando...';
-
-        try {
-            await signInWithEmailAndPassword(auth, email, senha);
-            // Se der certo, redireciona
-            window.location.href = "dashboard.html";
-        } catch (error) {
-            // Se der erro, tira o loading e avisa de forma elegante (pode ser uma div que aparece e some)
-            btn.classList.remove('btn-loading');
-            btn.innerText = "Entrar no Dashboard";
-            
-            // Substitua o alert por uma notificação customizada ou console.log
-            console.error("Erro no login:", error.message);
-            alert("Erro na autenticação: Verifique se o e-mail e a senha estão corretos.");
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideDigital - Login</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Spinner de carregamento */
+        .spinner {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: #fff;
+            animation: spin 0.8s linear infinite;
+            margin-right: 8px;
         }
-    }
-</script>
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Notificações flutuantes (Toast) */
+        .toast-container { position: fixed; top: 20px; right: 20px; z-index: 1000; }
+        .toast { background: #18181b; color: white; padding: 12px 24px; border-radius: 8px; border-left: 4px solid #00f2fe; margin-bottom: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.3); animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateX(100%); } to { transform: translateX(0); } }
+    </style>
+</head>
+<body class="bg-[#09090b] text-white flex items-center justify-center min-h-screen">
+
+    <div id="toast-container" class="toast-container"></div>
+
+    <div class="w-full max-w-sm bg-[#121214] p-8 rounded-2xl border border-[#27272a]">
+        <h1 id="titulo" class="text-2xl font-bold mb-6 text-[#00f2fe]">Login VideDigital</h1>
+        
+        <form id="auth-form" class="space-y-4">
+            <div id="div-nome" class="hidden">
+                <label class="text-xs text-gray-400">Nome da Loja</label>
+                <input type="text" id="input-nome" class="w-full bg-[#18181b] p-3 rounded-xl border border-[#27272a] focus:outline-none focus:border-[#00f2fe]">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">E-mail</label>
+                <input type="email" id="input-email" required class="w-full bg-[#18181b] p-3 rounded-xl border border-[#27272a] focus:outline-none focus:border-[#00f2fe]">
+            </div>
+            <div>
+                <label class="text-xs text-gray-400">Senha</label>
+                <input type="password" id="input-senha" required class="w-full bg-[#18181b] p-3 rounded-xl border border-[#27272a] focus:outline-none focus:border-[#00f2fe]">
+            </div>
+            <button id="btn-principal" class="w-full bg-[#00f2fe] text-black font-bold p-3 rounded-xl transition">
+                Entrar no Painel
+            </button>
+            <button type="button" id="btn-toggle" class="w-full text-gray-400 text-sm hover:text-white transition">
+                Solicitar Cadastro
+            </button>
+        </form>
+    </div>
+
+    <script type="module">
+        import { auth, db } from "./firebase-init.js";
+        import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        const btnPrincipal = document.getElementById("btn-principal");
+        const btnToggle = document.getElementById("btn-toggle");
+        const form = document.getElementById("auth-form");
+        const toastContainer = document.getElementById("toast-container");
+        
+        let modoLogin = true;
+
+        function showToast(msg) {
+            const div = document.createElement("div");
+            div.className = "toast";
+            div.textContent = msg;
+            toastContainer.appendChild(div);
+            setTimeout(() => div.remove(), 4000);
+        }
+
+        btnToggle.addEventListener("click", () => {
+            modoLogin = !modoLogin;
+            document.getElementById("div-nome").classList.toggle("hidden", modoLogin);
+            document.getElementById("titulo").textContent = modoLogin ? "Login VideDigital" : "Cadastro VideDigital";
+            btnPrincipal.textContent = modoLogin ? "Entrar no Painel" : "Enviar Solicitação";
+            btnToggle.textContent = modoLogin ? "Solicitar Cadastro" : "Já tenho conta";
+        });
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("input-email").value;
+            const senha = document.getElementById("input-senha").value;
+            const nomeLoja = document.getElementById("input-nome").value;
+
+            // Bloqueia botão e coloca spinner
+            btnPrincipal.disabled = true;
+            btnPrincipal.innerHTML = '<span class="spinner"></span> Carregando...';
+
+            try {
+                if (modoLogin) {
+                    const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+                    const userDoc = await getDoc(doc(db, "usuarios", userCredential.user.uid));
+                    
+                    if (userDoc.exists() && userDoc.data().status === "aprovado") {
+                        window.location.href = "dashboard.html";
+                    } else {
+                        showToast("Conta pendente de aprovação ou não encontrada.");
+                        throw new Error("Não aprovado");
+                    }
+                } else {
+                    const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+                    await setDoc(doc(db, "usuarios", userCredential.user.uid), {
+                        email, nomeLoja, status: "pendente", criadoEm: new Date()
+                    });
+                    showToast("Solicitação enviada! Aguarde a aprovação.");
+                }
+            } catch (err) {
+                console.error(err);
+                btnPrincipal.disabled = false;
+                btnPrincipal.textContent = modoLogin ? "Entrar no Painel" : "Enviar Solicitação";
+            }
+        });
+    </script>
+</body>
+</html>
