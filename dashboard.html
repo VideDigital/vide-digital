@@ -8,6 +8,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { display: flex; background-color: #0b0b0b; color: #fff; min-height: 100vh; overflow-x: hidden; }
         
+        /* Ocultar scrollbars globais e de modais para manter design limpo */
+        ::-webkit-scrollbar { display: none; }
+        * { scrollbar-width: none; }
+
         /* Sidebar Premium */
         .sidebar { width: 260px; background-color: #121212; border-right: 1px solid #222; display: flex; flex-direction: column; padding: 20px; position: fixed; height: 100vh; z-index: 100; }
         .logo-container { font-size: 20px; font-weight: bold; padding-bottom: 30px; border-bottom: 1px solid #222; margin-bottom: 20px; letter-spacing: 0.5px; }
@@ -32,32 +36,56 @@
         .mini-card h4 { font-size: 11px; color: #888; text-transform: uppercase; margin-bottom: 8px; font-weight: bold; }
         .mini-card p { font-size: 26px; font-weight: bold; color: #fff; }
 
-        /* Inputs e Form */
+        /* Componente de Abas de Produtos (Físicos vs Digitais) - Estilo image_282c9f.png */
+        .niche-tabs-container { background-color: #161616; border: 1px solid #222; border-radius: 12px; padding: 6px; display: inline-flex; gap: 4px; margin-bottom: 25px; }
+        .niche-tab { background: transparent; border: none; color: #888; font-size: 14px; font-weight: 600; padding: 10px 20px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; gap: 8px; transition: all 0.2s; }
+        .niche-tab.active { background-color: #121212; color: #00bcd4; border: 1px solid rgba(0, 188, 212, 0.2); }
+
+        /* Form & Inputs */
         label { display: block; font-size: 11px; color: #888; font-weight: bold; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
-        .input-group { background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px; display: flex; align-items: center; margin-bottom: 18px; }
+        .input-group { background-color: #161616; border: 1px solid #252525; border-radius: 8px; padding: 12px; display: flex; align-items: center; margin-bottom: 18px; }
         .input-group input, .input-group textarea, .input-group select { background: transparent; border: none; color: #fff; font-size: 14px; width: 100%; outline: none; }
-        .input-group textarea { height: 70px; resize: none; }
-        .input-group select option { background-color: #121212; color: #fff; }
+        .input-group textarea { height: 80px; resize: none; }
+
+        .flex-inputs { display: flex; gap: 15px; }
+        .flex-inputs > div { flex: 1; }
 
         /* Botões */
         .btn-primary { background-color: #00bcd4; color: #fff; border: none; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; transition: background 0.2s; }
         .btn-primary:hover { background-color: #0097a7; }
-        .btn-secondary { background-color: #222; color: #fff; border: 1px solid #333; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
+        .btn-secondary { background-color: #1c1c1c; color: #fff; border: 1px solid #333; padding: 12px 24px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; }
         
-        /* Grid de Produtos Editável */
+        /* Botão Customizado de Upload - Estilo image_28299b.png */
+        .upload-wrapper { display: flex; align-items: center; gap: 15px; background: #1c1c1c; border: 1px dashed #333; padding: 12px; border-radius: 8px; margin-bottom: 18px; }
+        .btn-custom-upload { background-color: #252525; border: 1px solid #3a3a3a; color: #fff; padding: 8px 16px; border-radius: 6px; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+        .btn-custom-upload:hover { background-color: #303030; }
+        .upload-filename { font-size: 13px; color: #aaa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 200px; }
+
+        /* Seletores de CTA Customizados - Estilo image_2829bb.png */
+        .cta-toggle-container { display: flex; gap: 10px; margin-bottom: 18px; }
+        .btn-cta-toggle { flex: 1; padding: 12px; border-radius: 8px; font-size: 14px; font-weight: bold; cursor: pointer; border: 1px solid #252525; background: #161616; color: #888; text-align: center; }
+        .btn-cta-toggle.active[data-type="checkout"] { border-color: #00bcd4; color: #00bcd4; background: rgba(0, 188, 212, 0.05); }
+        .btn-cta-toggle.active[data-type="whatsapp"] { border-color: #25d366; color: #25d366; background: rgba(37, 211, 102, 0.05); }
+
+        /* Grid de Exibição */
         .products-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 20px; margin-top: 20px; }
         .product-item-card { background-color: #161616; border: 1px solid #252525; padding: 15px; border-radius: 10px; display: flex; flex-direction: column; }
         .product-item-card img { width: 100%; height: 140px; object-fit: cover; border-radius: 6px; margin-bottom: 12px; background: #222; }
         .product-item-card h4 { font-size: 14px; color: #fff; margin-bottom: 4px; font-weight: 600; }
         .product-item-card .price { color: #00bcd4; font-weight: bold; font-size: 16px; margin-bottom: 2px; }
-        .product-item-card .installment { color: #888; font-size: 12px; margin-bottom: 12px; }
+        .product-item-card .badge { display: inline-block; font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; margin-bottom: 8px; align-self: flex-start; }
+        .product-item-card .badge.fisico { background: rgba(0, 188, 212, 0.15); color: #00bcd4; }
+        .product-item-card .badge.digital { background: rgba(156, 39, 176, 0.15); color: #e040fb; }
         .product-actions { display: flex; gap: 8px; margin-top: auto; }
-        .btn-edit { flex: 1; padding: 8px; background: #222; border: 1px solid #333; color: #ffb74d; border-radius: 6px; font-size: 12px; font-weight: bold; cursor: pointer; }
-        .btn-delete { padding: 8px; background: rgba(244,67,54,0.1); border: 1px solid rgba(244,67,54,0.3); color: #f44336; border-radius: 6px; font-size: 12px; cursor: pointer; }
+        
+        /* Botão Estilo image_2829d4.png */
+        .btn-edit { flex: 1; padding: 10px; background: #1c1c1c; border: 1px solid #333; color: #fff; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-edit:hover { background: #252525; }
+        .btn-delete { padding: 10px; background: rgba(244,67,54,0.05); border: 1px solid rgba(244,67,54,0.2); color: #f44336; border-radius: 8px; cursor: pointer; }
 
-        /* Modal Overlay */
+        /* Modal Estruturado Sem Barra Lateral Branca */
         .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0, 0, 0, 0.85); z-index: 2000; justify-content: center; align-items: center; padding: 20px; }
-        .modal-content { background-color: #121212; border: 1px solid #222; padding: 30px; border-radius: 14px; width: 100%; max-width: 500px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
+        .modal-content { background-color: #121212; border: 1px solid #222; padding: 30px; border-radius: 14px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 10px 30px rgba(0,0,0,0.7); }
     </style>
 </head>
 <body>
@@ -73,16 +101,26 @@
     </div>
 
     <div class="main-content">
+        <!-- ABA: VISÃO GERAL -->
         <div id="sec-dashboard" class="app-section active">
             <h2>📊 Visão Geral do Catálogo</h2>
+            
             <div class="grid-3">
                 <div class="mini-card"><h4>Produtos Ativos</h4><p id="dash-qtd-produtos">0</p></div>
                 <div class="mini-card"><h4>Total de Leads</h4><p id="dash-qtd-leads">0</p></div>
                 <div class="mini-card"><h4>Cliques na Loja</h4><p>--</p></div>
             </div>
+
+            <!-- Seleção de Nicho Estilo Premium (image_282c9f.png) -->
+            <div class="niche-tabs-container">
+                <button class="niche-tab active" data-niche="todos">📂 Todos</button>
+                <button class="niche-tab" data-niche="fisico">📦 Produtos Físicos</button>
+                <button class="niche-tab" data-niche="digital">⚡ Produtos Digitais</button>
+            </div>
+
             <div class="card">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h3 style="font-size: 17px;">Produtos Cadastrados</h3>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="font-size: 17px; font-weight: 600;">Produtos Cadastrados</h3>
                     <button class="btn-primary" id="btn-abrir-modal-prod">+ Adicionar Novo Produto</button>
                 </div>
                 <div id="container-produtos-lista">
@@ -91,13 +129,13 @@
             </div>
         </div>
 
+        <!-- ABA: LEADS -->
         <div id="sec-leads" class="app-section">
             <h2>👥 Leads Encontrados</h2>
-            <div class="card">
-                <p style="color: #666; font-size: 14px; text-align: center; padding: 30px 0;">Nenhum lead capturado até o momento.</p>
-            </div>
+            <div class="card"><p style="color: #666; font-size: 14px; text-align: center; padding: 30px 0;">Nenhum lead capturado até o momento.</p></div>
         </div>
 
+        <!-- ABA: CONFIGURAÇÃO DE PIXELS -->
         <div id="sec-dominios" class="app-section">
             <h2>🌐 Integrações de Tráfego</h2>
             <div class="card">
@@ -109,6 +147,7 @@
             </div>
         </div>
 
+        <!-- ABA: PERFIL -->
         <div id="sec-perfil" class="app-section">
             <h2>👤 Configurações do Link</h2>
             <div class="card">
@@ -124,41 +163,82 @@
         </div>
     </div>
 
+    <!-- MODAL PREMIUM REDESENHADO -->
     <div class="modal-overlay" id="modal-produto">
         <div class="modal-content">
-            <h3 id="modal-titulo" style="color: #fff; margin-bottom: 20px; font-size: 18px;">📦 Cadastrar Novo Produto</h3>
-            <input type="hidden" id="prod-id-edicao"> <label>Nome do Produto</label>
-            <div class="input-group"><input type="text" id="prod-nome" placeholder="Ex: Curso Completo de Barbearia"></div>
+            <h3 id="modal-titulo" style="color: #fff; margin-bottom: 25px; font-size: 18px; font-weight: 600;">📦 Cadastrar Novo Produto</h3>
+            <input type="hidden" id="prod-id-edicao">
             
-            <label>Preço de Venda (R$)</label>
-            <div class="input-group"><input type="text" id="prod-preco" placeholder="Ex: 97,90"></div>
+            <!-- Seleção do tipo de Nicho do Produto -->
+            <label>Nicho do Produto</label>
+            <div class="input-group" style="margin-bottom: 18px;">
+                <select id="prod-niche-type">
+                    <option value="digital">⚡ Produto Digital (Curso, PLR, Mentoria, Ebook)</option>
+                    <option value="fisico">📦 Produto Físico (Capsular, Drop, Cosméticos)</option>
+                </select>
+            </div>
 
-            <label>Texto de Parcelamento Opcional</label>
-            <div class="input-group"><input type="text" id="prod-parcelamento" placeholder="Ex: Ou em até 12x de R$ 9,74"></div>
-
-            <label>Descrição Curta do Produto</label>
-            <div class="input-group"><textarea id="prod-descricao" placeholder="Descreva os benefícios do produto..."></textarea></div>
+            <label>Nome do Produto</label>
+            <div class="input-group"><input type="text" id="prod-nome" placeholder="Ex: Pulverizador Snow Foam 3 em 1"></div>
             
-            <label>Foto do Produto (Upload do Computador)</label>
-            <div class="input-group"><input type="file" id="prod-file-upload" accept="image/*"></div>
+            <div class="flex-inputs">
+                <div>
+                    <label>Preço Original (De)</label>
+                    <div class="input-group"><input type="text" id="prod-preco-de" placeholder="R$ 99,99" class="numeric-mask"></div>
+                </div>
+                <div>
+                    <label>Preço Atual (Por)</label>
+                    <div class="input-group"><input type="text" id="prod-preco" placeholder="R$ 76,62" class="numeric-mask"></div>
+                </div>
+            </div>
+
+            <!-- Opções de Parcelamento Estilo image_28299b.png -->
+            <div class="flex-inputs">
+                <div>
+                    <label>Condição de Parcelamento</label>
+                    <div class="input-group">
+                        <select id="prod-parc-select">
+                            <option value="Sem parcelamento">Sem parcelamento</option>
+                            <option value="12x">Em até 12x</option>
+                            <option value="6x">Em até 6x</option>
+                            <option value="custom">Texto Customizado</option>
+                        </select>
+                    </div>
+                </div>
+                <div id="parc-custom-val-container" style="display: none;">
+                    <label>Valor da Parcela / Texto</label>
+                    <div class="input-group"><input type="text" id="prod-parcelamento" placeholder="Ex: 12x de R$ 9,74"></div>
+                </div>
+            </div>
+
+            <label>Descrição Personalizada</label>
+            <div class="input-group"><textarea id="prod-descricao" placeholder="Descrição do produto..."></textarea></div>
+            
+            <!-- Upload Avançado Customizado Estilo image_28299b.png -->
+            <label>Imagem do Produto</label>
+            <div class="upload-wrapper">
+                <label for="prod-file-upload" class="btn-custom-upload">🖼️ Personalizar imagem</label>
+                <input type="file" id="prod-file-upload" accept="image/*" style="display: none;">
+                <span class="upload-filename" id="upload-filename-text">Nenhum arquivo selecionado</span>
+            </div>
             
             <label>Ou URL Externa da Imagem (Opcional)</label>
             <div class="input-group"><input type="text" id="prod-img" placeholder="https://site.com/foto.jpg"></div>
 
-            <label>Ação do Botão de Compra</label>
-            <div class="input-group">
-                <select id="prod-tipo-botao">
-                    <option value="checkout">Ir para Link de Checkout (Kiwify, Hotmart...)</option>
-                    <option value="whatsapp">Chamar direto no WhatsApp</option>
-                </select>
+            <!-- Tipo de CTA Estilizado Estilo image_2829bb.png -->
+            <label>Tipo de Botão (CTA)</label>
+            <input type="hidden" id="prod-tipo-botao" value="checkout">
+            <div class="cta-toggle-container">
+                <button type="button" class="btn-cta-toggle active" data-type="checkout">🛒 Comprar Agora</button>
+                <button type="button" class="btn-cta-toggle" data-type="whatsapp">💬 Fale Conosco</button>
             </div>
 
-            <label id="label-link-dinamico">Link de Destino / Número do Whats com DDD</label>
-            <div class="input-group"><input type="text" id="prod-link" placeholder="Cole o link ou digite o WhatsApp completo"></div>
+            <label id="label-link-dinamico">Link Principal de Destino</label>
+            <div class="input-group"><input type="text" id="prod-link" placeholder="https://linkdecheckout.com ou WhatsApp com DDD"></div>
             
-            <div style="display: flex; gap: 12px; margin-top: 20px; justify-content: flex-end;">
-                <button id="btn-cancelar-prod" class="btn-secondary" style="padding: 10px 20px;">Cancelar</button>
-                <button id="btn-salvar-prod-db" class="btn-primary" style="padding: 10px 20px;">Salvar Alterações</button>
+            <div style="display: flex; gap: 12px; margin-top: 25px; justify-content: flex-end;">
+                <button id="btn-cancelar-prod" class="btn-secondary">Cancelar</button>
+                <button id="btn-salvar-prod-db" class="btn-primary">Salvar Alterações</button>
             </div>
         </div>
     </div>
