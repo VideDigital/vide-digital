@@ -2,30 +2,32 @@ import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
+console.log("[VideDigital] Script dashboard.js carregado com sucesso!");
+
 const slugInput = document.getElementById('slug-input');
 const statusMsg = document.getElementById('status-msg');
 let usuarioAtualUid = null;
 
-// Captura parâmetros da URL atual
 const urlParams = new URLSearchParams(window.location.search);
 const lojaParamAtual = urlParams.get('loja');
 
-// EXIBIDOR DE LINKS NA ABA DE PERFIL
+// FUNÇÃO AUXILIAR: Desenha os links na aba Perfil
 function exibirLinksGerados(slug) {
-    if (!statusMsg) return;
+    if (!statusMsg) {
+        console.warn("[VideDigital] Elemento 'status-msg' não encontrado para renderizar os links.");
+        return;
+    }
     statusMsg.innerHTML = `
         <div style="margin-top: 20px; padding: 15px; background-color: #161616; border: 1px solid #222; border-left: 4px solid #00bcd4; border-radius: 8px; text-align: left; box-sizing: border-box; width: 100%;">
             <p style="color: #4caf50; font-weight: bold; margin: 0 0 15px 0; font-size: 14px; display: flex; align-items: center; gap: 6px;">
                 🎉 Loja configurada com sucesso!
             </p>
-            
             <div style="margin-bottom: 12px;">
                 <span style="font-size: 11px; color: #888; display: block; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px;">🌐 LINK DA VITRINE (CLIENTES):</span>
                 <a href="https://videdigital.github.io/vide-digital/?loja=${slug}" target="_blank" style="color: #00bcd4; font-size: 13px; text-decoration: none; word-break: break-all; font-weight: 500;">
                     videdigital.github.io/vide-digital/?loja=${slug}
                 </a>
             </div>
-            
             <div>
                 <span style="font-size: 11px; color: #888; display: block; font-weight: bold; letter-spacing: 0.5px; margin-bottom: 4px;">🔑 LINK ESPECÍFICO DE ADM (GERENCIAMENTO):</span>
                 <a href="https://videdigital.github.io/vide-digital/dashboard.html?loja=${slug}" target="_blank" style="color: #ff9800; font-size: 13px; text-decoration: none; word-break: break-all; font-weight: 500;">
@@ -36,8 +38,9 @@ function exibirLinksGerados(slug) {
     `;
 }
 
-// ETAPA 2: MAGO DE CONFIGURAÇÃO DE SLUG (BLOQUEIA O VISUAL ATÉ DEFINIR O LINK)
+// ETAPA 2: MAGO DE CONFIGURAÇÃO DE SLUG
 function abrirMagoOnboarding() {
+    console.log("[VideDigital] Abrindo o Mago de Onboarding para criar o link...");
     const overlayExistente = document.getElementById('onboarding-screen');
     if (overlayExistente) return;
 
@@ -63,12 +66,11 @@ function abrirMagoOnboarding() {
                 <small id="onboarding-erro" style="color: #f44336; font-size: 12px; display: block; margin-top: 8px; font-weight: 500;"></small>
             </div>
             
-            <button id="btn-ativar-loja" style="width: 100%; padding: 13px; border-radius: 8px; border: none; background-color: #00bcd4; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer; transition: 0.2s;">Ativar Minha Loja e Abrir Painel</button>
+            <button id="btn-ativar-loja" style="width: 100%; padding: 13px; border-radius: 8px; border: none; background-color: #00bcd4; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer;">Ativar Minha Loja e Abrir Painel</button>
         </div>
     `;
     document.body.appendChild(overlay);
 
-    // Evento de Gravação do Slug Inicial no clique do Mago
     document.getElementById('btn-ativar-loja').addEventListener('click', async () => {
         const input = document.getElementById('onboarding-slug-input');
         const erroMsg = document.getElementById('onboarding-erro');
@@ -78,120 +80,105 @@ function abrirMagoOnboarding() {
 
         if (!slugNova) {
             erroMsg.innerText = "Por favor, defina um nome válido para seu link!";
-            erroMsg.style.color = "#f44336";
             return;
         }
 
-        erroMsg.innerText = "Montando infraestrutura da sua loja...";
+        erroMsg.innerText = "Gravando link no banco de dados...";
         erroMsg.style.color = "#ffeb3b";
+        console.log(`[VideDigital] Tentando salvar o slug '${slugNova}' para o UID: ${usuarioAtualUid}`);
 
         try {
-            // Salva de forma definitiva o link escolhido no banco
             await updateDoc(doc(db, "usuarios", usuarioAtualUid), {
                 urlLoja: slugNova
             });
-
-            // Destrói a tela de bloqueio e manda o usuário para o dashboard final com a URL parametrizada
+            console.log("[VideDigital] Slug salvo com sucesso no Firestore! Redirecionando...");
             overlay.remove();
             window.location.href = `dashboard.html?loja=${slugNova}`;
 
         } catch (err) {
-            erroMsg.innerText = "Erro ao configurar link: " + err.message;
+            console.error("[VideDigital] Erro crítico ao salvar slug no Firestore:", err);
+            erroMsg.innerText = "Erro ao salvar: " + err.message;
             erroMsg.style.color = "#f44336";
         }
     });
 }
 
-// 1. PROTEGER A PÁGINA: Verifica login ativo do lojista
+// 1. MONITORAMENTO DE AUTENTICAÇÃO
 onAuthStateChanged(auth, async (user) => {
     if (user) {
+        console.log("[VideDigital] Usuário detectado logado. UID:", user.uid);
         usuarioAtualUid = user.uid;
         carregarDadosUsuario(user.uid);
     } else {
+        console.log("[VideDigital] Nenhum usuário logado. Voltando para login.html");
         window.location.href = 'login.html';
     }
 });
 
-// 2. AVALIAÇÃO DE SEGURANÇA E PARAMETRIZAÇÃO MULTILOJAS
+// 2. VERIFICAÇÃO DE DADOS E CORREÇÃO DE PARAMETRIZAÇÃO
 async function carregarDadosUsuario(uid) {
     try {
+        console.log("[VideDigital] Buscando documento do usuário no Firestore...");
         const userDoc = await getDoc(doc(db, "usuarios", uid));
+        
         if (userDoc.exists()) {
             const userData = userDoc.data();
+            console.log("[VideDigital] Dados carregados do Firestore:", userData);
+            
             const slugSalvo = userData.urlLoja || "";
 
-            // Se o usuário está aprovado mas NÃO possui link criado, aciona o Mago imediatamente
+            // Caso aprovado mas sem link configurado ainda
             if (!slugSalvo) {
+                console.log("[VideDigital] Usuário aprovado, mas sem link cadastrado. Iniciando onboarding.");
                 abrirMagoOnboarding();
                 return;
             }
 
-            // Se ele já tem um link mas tentou entrar pela URL geral (/dashboard.html) sem parâmetro, corrige
+            // Caso tenha link mas acessou a URL crua sem o ?loja=slug
             if (slugSalvo && lojaParamAtual !== slugSalvo) {
+                console.log(`[VideDigital] Redirecionando para rota parametrizada correta: ?loja=${slugSalvo}`);
                 window.location.href = `dashboard.html?loja=${slugSalvo}`;
                 return;
             }
 
-            // Preenche e exibe os dados salvos normais na aba de perfil interna
+            console.log("[VideDigital] Tudo certo! Usuário na rota correta da sua loja.");
             if (slugInput) slugInput.value = slugSalvo;
             exibirLinksGerados(slugSalvo);
+        } else {
+            console.warn("[VideDigital] Documento do usuário não existe na coleção 'usuarios'.");
         }
     } catch (error) {
-        console.error("Erro no carregamento do painel:", error);
+        console.error("[VideDigital] Erro ao ler Firestore em carregarDadosUsuario:", error);
     }
 }
 
-// 3. ALTERAÇÃO FUTURA DO SLUG (Dentro do perfil se ele quiser mudar)
-if (slugInput) {
-    document.getElementById('btn-salvar-slug')?.addEventListener('click', async () => {
-        if (!usuarioAtualUid) return;
+// 3. ATUALIZAR LINK DENTRO DO PERFIL (SE JÁ EXISTIR O BOTÃO)
+document.getElementById('btn-salvar-slug')?.addEventListener('click', async () => {
+    if (!usuarioAtualUid || !slugInput) return;
+    const novoSlug = slugInput.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
+    slugInput.value = novoSlug;
 
-        const novoSlug = slugInput.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
-        slugInput.value = novoSlug;
+    if (!novoSlug) return;
 
-        if (!novoSlug) {
-            if (statusMsg) statusMsg.innerHTML = "<span style='color: #f44336; font-size: 14px;'>Por favor, digite um link válido!</span>";
-            return;
-        }
+    try {
+        await updateDoc(doc(db, "usuarios", usuarioAtualUid), { urlLoja: novoSlug });
+        const novaUrlAdmin = window.location.protocol + "//" + window.location.host + window.location.pathname + `?loja=${novoSlug}`;
+        window.history.pushState({ path: novaUrlAdmin }, '', novaUrlAdmin);
+        exibirLinksGerados(novoSlug);
+    } catch (error) {
+        console.error("[VideDigital] Erro ao editar slug no painel:", error);
+    }
+});
 
-        if (statusMsg) statusMsg.innerHTML = "<span style='color: #ffeb3b; font-size: 14px;'>Salvando alteração na nuvem...</span>";
-
-        try {
-            await updateDoc(doc(db, "usuarios", usuarioAtualUid), {
-                urlLoja: novoSlug
-            });
-
-            // Atualiza a URL do painel dinamicamente para o novo slug sem dar reload completo
-            const novaUrlAdmin = window.location.protocol + "//" + window.location.host + window.location.pathname + `?loja=${novoSlug}`;
-            window.history.pushState({ path: novaUrlAdmin }, '', novaUrlAdmin);
-
-            exibirLinksGerados(novoSlug);
-
-        } catch (error) {
-            if (statusMsg) statusMsg.innerHTML = `<span style='color: #f44336; font-size: 14px;'>Erro ao salvar: ${error.message}</span>`;
-        }
-    });
-}
-
-// 4. COPIAR LINK DA VITRINE
+// 4. COPIAR LINK
 document.getElementById('btn-copiar-url')?.addEventListener('click', () => {
     if (!slugInput) return;
     const linkCompleto = `videdigital.github.io/vide-digital/?loja=${slugInput.value}`;
     navigator.clipboard.writeText(linkCompleto);
-    
-    const avisoCopiado = document.createElement('div');
-    avisoCopiado.innerText = "Link de cliente copiado! 📋";
-    avisoCopiado.style.color = "#00bcd4";
-    avisoCopiado.style.fontSize = "13px";
-    avisoCopiado.style.marginTop = "8px";
-    statusMsg?.appendChild(avisoCopiado);
-    
-    setTimeout(() => avisoCopiado.remove(), 2500);
+    alert("Link copiado!");
 });
 
-// 5. BOTÃO DE LOGOUT
+// 5. LOGOUT
 document.getElementById('btn-logout')?.addEventListener('click', () => {
-    signOut(auth).then(() => {
-        window.location.href = 'login.html';
-    });
+    signOut(auth).then(() => { window.location.href = 'login.html'; });
 });
