@@ -4,14 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Carregando Vitrine...</title>
+    <!-- Fonte Premium -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Ícones das Redes Sociais -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
+    <!-- Tela de Carregamento -->
     <div id="loading-screen" class="loading-overlay">
         <div class="loader-content">
             <div class="spinner"></div>
@@ -19,37 +22,44 @@
         </div>
     </div>
 
+    <!-- Interface da Loja -->
     <div id="store-wrapper" class="hidden animate-fade-in">
         
+        <!-- Cabeçalho de Identidade -->
         <header class="store-header">
             <div class="avatar-container" id="store-avatar-wrapper">
                 <img id="store-logo" src="" alt="Logo da Loja" class="store-avatar">
             </div>
-            <h1 id="store-title">Nome da Loja</h1>
-            <p id="store-subtitle">Sua descrição personalizada aparecerá aqui.</p>
+            <h1 id="store-title">Carregando...</h1>
+            <p id="store-subtitle">Carregando descrição...</p>
             
+            <!-- Redes Sociais -->
             <div id="social-links" class="social-grid"></div>
         </header>
 
+        <!-- Seleção de Abas -->
         <section class="tabs-section">
             <div class="tabs-container">
-                <button id="btn-fisicos" class="tab-button active"><i class="fa-solid fa-box"></i> Produtos Físicos</button>
-                <button id="btn-digitais" class="tab-button"><i class="fa-solid fa-bolt"></i> Produtos Digitais</button>
+                <button id="btn-digitais" class="tab-button active"><i class="fa-solid fa-bolt"></i> Produtos Digitais</button>
+                <button id="btn-fisicos" class="tab-button"><i class="fa-solid fa-box"></i> Produtos Físicos</button>
             </div>
         </section>
 
+        <!-- Grid Principal de Produtos -->
         <main class="store-container">
-            <div id="products-grid" class="products-grid">
-                </div>
+            <div id="products-grid" class="products-grid"></div>
+            
+            <!-- Estado Vazio -->
             <div id="empty-state" class="empty-state hidden">
                 <i class="fa-solid fa-bag-shopping"></i>
-                <h3>Nenhum produto disponível no momento</h3>
-                <p>Volte mais tarde para conferir as novidades da nossa vitrine.</p>
+                <h3>Nenhum produto disponível nesta categoria</h3>
+                <p>Selecione outra aba para conferir nossos treinamentos.</p>
             </div>
         </main>
 
+        <!-- Rodapé -->
         <footer class="store-footer">
-            <p>&copy; <span id="year-copy"></span> <strong id="footer-store-name">Sua Vitrine</strong> - Todos os direitos reservados.</p>
+            <p>&copy; <span id="year-copy"></span> <strong id="footer-store-name">Vide Digital</strong> - Todos os direitos reservados.</p>
             <span class="powered-by">Tecnologia por Vide Digital</span>
         </footer>
     </div>
