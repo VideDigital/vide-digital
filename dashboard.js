@@ -50,14 +50,27 @@ document.getElementById('btn-salvar-slug').addEventListener('click', async () =>
     statusMsg.innerText = "Salvando alteração...";
     statusMsg.style.color = "#ffeb3b";
 
+    // 🚀 TRUQUE ANTI-BLOQUEIO: Abre a aba em branco IMEDIATAMENTE no clique do usuário para o Chrome não barrar
+    const whatsappWindow = window.open('', '_blank');
+    if (whatsappWindow) {
+        whatsappWindow.document.write(`
+            <div style="font-family: 'Segoe UI', sans-serif; text-align: center; margin-top: 80px; color: #ffffff; background-color: #121212; position: fixed; top:0; left:0; width:100%; height:100%; padding-top:50px;">
+                <h2 style="color: #00bcd4; margin-bottom: 5px;">Vide Digital</h2>
+                <p style="color: #aaa; font-size: 14px;">Configurando sua vitrine virtual e gerando convite...</p>
+                <div style="margin: 30px auto; width: 40px; height: 40px; border: 4px solid #222; border-top: 4px solid #25d366; border-radius: 50%; animation: spin 1s linear infinite;"></div>
+                <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+            </div>
+        `);
+    }
+
     try {
         // Atualiza especificamente o campo urlLoja no Firestore
         await updateDoc(doc(db, "usuarios", usuarioAtualUid), {
             urlLoja: novoSlug
         });
 
-        // Altera o texto na tela avisando que a automação está abrindo o WhatsApp
-        statusMsg.innerHTML = "Link atualizado com sucesso! 🎉<br><small style='color: #25d366; font-size: 12px;'>Abrindo WhatsApp com a mensagem de lançamento da loja...</small>";
+        // Altera o texto na tela principal do painel
+        statusMsg.innerHTML = "Link atualizado com sucesso! 🎉<br><small style='color: #25d366; font-size: 12px;'>Mensagem de lançamento gerada na outra aba aberta!</small>";
         statusMsg.style.color = "#4caf50";
 
         // MENSAGEM COPIÁVEL DE ALTO IMPACTO PARA O DONO DA LOJA USAR
@@ -66,12 +79,15 @@ document.getElementById('btn-salvar-slug').addEventListener('click', async () =>
         // Transforma o texto em um link válido para o WhatsApp
         const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemPronta)}`;
 
-        // Aguarda 1.5 segundos para o usuário ler o sucesso e abre o WhatsApp automaticamente
-        setTimeout(() => {
-            window.open(urlWhatsApp, '_blank');
-        }, 1500);
+        // Modifica o endereço da aba que já estava aberta com o link do WhatsApp (O navegador aceita 100% das vezes)
+        if (whatsappWindow) {
+            whatsappWindow.location.href = urlWhatsApp;
+        }
 
     } catch (error) {
+        // Se der algum erro no banco de dados, fecha a aba intrusa para não confundir o cliente
+        if (whatsappWindow) whatsappWindow.close();
+        
         statusMsg.innerText = "Erro ao salvar: " + error.message;
         statusMsg.style.color = "#f44336";
     }
