@@ -1,53 +1,220 @@
-:root {
-    --bg-universe: #060608;
-    --card-glass: rgba(14, 14, 18, 0.65);
-    --border-glass: rgba(255, 255, 255, 0.07);
-    --input-bg: rgba(255, 255, 255, 0.03);
-    --input-border: rgba(255, 255, 255, 0.1);
-    --cyan-primary: #00D2DF;
-    --cyan-glow: rgba(0, 210, 223, 0.35);
-    --text-main: #FFFFFF;
-    --text-muted: #8E9AA8;
-    --font-premium: 'Plus Jakarta Sans', sans-serif;
-}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VideDigital - Login</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* --- DESIGN DAS NOTIFICAÇÕES TOAST FLUTUANTES --- */
+    .toast-container {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 10000;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .custom-toast {
+        background-color: #121214;
+        color: #ffffff;
+        padding: 14px 20px;
+        border-radius: 12px;
+        border-left: 4px solid #ff4444; /* Vermelho para erro */
+        box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.6);
+        font-family: system-ui, -apple-system, sans-serif;
+        font-size: 14px;
+        font-weight: 500;
+        min-width: 320px;
+        max-width: 420px;
+        display: flex;
+        align-items: center;
+        animation: slideInToast 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards, 
+                   fadeOutToast 0.3s ease 4.7s forwards;
+    }
+    .custom-toast.sucesso {
+        border-left-color: #00f2fe; /* Ciano/Azul para sucesso */
+    }
+    @keyframes slideInToast {
+        from { transform: translateX(120%); opacity: 0; }
+        to { transform: translateX(0); opacity: 1; }
+    }
+    @keyframes fadeOutToast {
+        from { transform: translateX(0); opacity: 1; }
+        to { transform: translateX(120%); opacity: 0; }
+    }
+  </style>
+</head>
+<body class="bg-[#09090b] text-white flex min-h-screen items-center justify-center p-4">
 
-* { margin: 0; padding: 0; box-sizing: border-box; font-family: var(--font-premium); }
-body { background-color: var(--bg-universe); color: var(--text-main); min-height: 100vh; display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+  <div class="w-full max-w-md bg-[#121214] border border-[#27272a] rounded-2xl p-8 shadow-2xl space-y-6">
+    <div class="text-center space-y-2">
+      <h2 id="auth-title" class="text-3xl font-bold tracking-tight text-[#00f2fe]">VideDigital</h2>
+      <p id="auth-subtitle" class="text-sm text-gray-400">Insira suas credenciais para acessar o painel</p>
+    </div>
 
-.bg-glow { position: absolute; width: 500px; height: 500px; background: radial-gradient(circle, var(--cyan-glow) 0%, rgba(0,0,0,0) 70%); top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 1; pointer-events: none; opacity: 0.6; }
-.login-wrapper { position: relative; z-index: 2; padding: 20px; width: 100%; max-width: 440px; }
-.login-card { background: var(--card-glass); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid var(--border-glass); border-radius: 24px; padding: 40px 32px; box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8); }
-.login-header { text-align: center; margin-bottom: 32px; }
-.logo-area { display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 10px; }
-.logo-icon { font-size: 1.5rem; color: #00D2DF; background: linear-gradient(135deg, #FF5A79, var(--cyan-primary)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-.logo-text { font-size: 1.6rem; font-weight: 600; }
-.logo-text .accent { color: var(--cyan-primary); font-weight: 700; }
-.subtitle { font-size: 0.85rem; color: var(--text-muted); }
-.login-form { display: flex; flex-direction: column; gap: 20px; }
-.input-group { display: flex; flex-direction: column; gap: 8px; }
-.input-group label { font-size: 0.85rem; font-weight: 500; }
-.label-row { display: flex; justify-content: space-between; align-items: center; }
-.forgot-link { font-size: 0.75rem; color: var(--cyan-primary); text-decoration: none; }
-.input-field-wrapper { position: relative; display: flex; align-items: center; }
-.input-icon { position: absolute; left: 16px; color: var(--text-muted); pointer-events: none; }
-.input-field-wrapper input { width: 100%; background-color: var(--input-bg); border: 1px solid var(--input-border); padding: 14px 16px 14px 44px; border-radius: 12px; color: var(--text-main); outline: none; transition: all 0.2s; }
-.input-field-wrapper input:focus { border-color: var(--cyan-primary); box-shadow: 0 0 0 4px rgba(0, 210, 223, 0.15); }
-.checkbox-container { display: flex; align-items: center; position: relative; padding-left: 26px; cursor: pointer; font-size: 0.8rem; color: var(--text-muted); }
-.checkbox-container input { position: absolute; opacity: 0; width: 0; height: 0; }
-.checkmark { position: absolute; left: 0; height: 16px; width: 16px; background-color: var(--input-bg); border: 1px solid var(--input-border); border-radius: 4px; }
-.checkbox-container input:checked ~ .checkmark { background-color: var(--cyan-primary); border-color: var(--cyan-primary); }
-.checkmark:after { content: ""; position: absolute; display: none; left: 5px; top: 2px; width: 4px; height: 8px; border: solid #000; border-width: 0 2px 2px 0; transform: rotate(45deg); }
-.checkbox-container input:checked ~ .checkmark:after { display: block; }
-.action-buttons { display: flex; flex-direction: column; gap: 12px; }
-.btn-primary { width: 100%; background-color: var(--cyan-primary); color: #000; border: none; padding: 14px; border-radius: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 20px rgba(0, 210, 223, 0.25); }
-.btn-primary:hover { transform: translateY(-1px); background-color: #00f0ff; }
-.btn-secondary { width: 100%; background-color: transparent; color: rgba(255, 255, 255, 0.7); border: 1px solid var(--input-border); padding: 14px; border-radius: 12px; font-weight: 600; cursor: pointer; }
-.btn-secondary:hover { background-color: rgba(255, 255, 255, 0.04); color: #FFF; }
+    <form class="space-y-4">
+      <div id="container-nome" class="hidden">
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Nome da Loja</label>
+        <input type="text" id="auth-nome" class="w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white focus:outline-none focus:border-[#00f2fe]" placeholder="Ex: Minha Vitrine">
+      </div>
 
-/* Toasts */
-.toast { position: fixed; top: 24px; right: 24px; padding: 16px 24px; border-radius: 12px; display: flex; align-items: center; gap: 12px; font-size: 0.9rem; font-weight: 600; z-index: 10000; box-shadow: 0 16px 32px rgba(0,0,0,0.5); backdrop-filter: blur(8px); animation: slideIn 0.3s ease forwards; }
-.toast.success { background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #10B981; }
-.toast.error { background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #EF4444; }
-.toast.info { background: rgba(0, 210, 223, 0.15); border: 1px solid #00D2DF; color: #00D2DF; }
-@keyframes slideIn { from { transform: translateY(-20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-.hidden { display: none !important; }
+      <div>
+        <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">E-mail</label>
+        <input type="email" id="auth-email" required class="w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white focus:outline-none focus:border-[#00f2fe]" placeholder="seu@email.com">
+      </div>
+
+      <div>
+        <div class="flex justify-between items-center">
+          <label class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Senha</label>
+          <a href="#" class="text-xs text-[#00f2fe] hover:underline">Esqueceu a senha?</a>
+        </div>
+        <input type="password" id="auth-senha" required class="w-full mt-1 bg-[#18181b] border border-[#27272a] rounded-xl p-3 text-white focus:outline-none focus:border-[#00f2fe]" placeholder="••••••••">
+      </div>
+
+      <div class="flex items-center space-x-2 py-1">
+        <input type="checkbox" id="manter-conectado" checked class="w-4 h-4 rounded bg-[#18181b] border-[#27272a] text-[#00f2fe] focus:ring-0">
+        <label for="manter-conectado" class="text-xs text-gray-400 select-none">Manter conectado</label>
+      </div>
+
+      <button type="submit" id="btn-principal" class="w-full bg-[#00f2fe] hover:bg-[#00d8e4] text-black font-bold p-3.5 rounded-xl transition shadow-lg shadow-[#00f2fe]/10">
+        Entrar no Dashboard
+      </button>
+
+      <button type="button" id="btn-alternar" class="w-full bg-transparent border border-[#27272a] hover:bg-[#18181b] text-white font-medium p-3.5 rounded-xl transition text-sm">
+        Solicitar Cadastro
+      </button>
+    </form>
+  </div>
+
+  <script type="module">
+    import { auth, db } from "./firebase-init.js";
+    import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+    import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const form = document.querySelector("form");
+    const title = document.getElementById("auth-title");
+    const subtitle = document.getElementById("auth-subtitle");
+    const containerNome = document.getElementById("container-nome");
+    const nomeInput = document.getElementById("auth-nome");
+    const emailInput = document.getElementById("auth-email");
+    const senhaInput = document.getElementById("auth-senha");
+    const btnPrincipal = document.getElementById("btn-principal");
+    const btnAlternar = document.getElementById("btn-alternar");
+
+    let modoLogin = true;
+
+    // Gerador dinâmico de avisos bonitos na tela
+    function mostrarNotificacao(mensagem, tipo = 'erro') {
+        let container = document.querySelector('.toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.className = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const toast = document.createElement('div');
+        toast.className = `custom-toast ${tipo}`;
+        toast.innerText = mensagem;
+        container.appendChild(toast);
+        setTimeout(() => {
+            toast.remove();
+            if (container.children.length === 0) container.remove();
+        }, 5000);
+    }
+
+    btnAlternar.addEventListener("click", () => {
+      modoLogin = !modoLogin;
+      if (!modoLogin) {
+        title.innerText = "Criar Conta";
+        subtitle.innerText = "Preencha os dados abaixo para solicitar seu cadastro";
+        containerNome.classList.remove("hidden");
+        btnPrincipal.innerText = "Cadastrar Conta";
+        btnAlternar.innerText = "Já tenho uma account (Fazer Login)";
+      } else {
+        title.innerText = "VideDigital";
+        subtitle.innerText = "Insira suas credenciais para acessar o painel";
+        containerNome.classList.add("hidden");
+        btnPrincipal.innerText = "Entrar no Dashboard";
+        btnAlternar.innerText = "Solicitar Cadastro";
+      }
+    });
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = emailInput.value.trim();
+      const password = senhaInput.value;
+      const nomeLoja = nomeInput.value.trim();
+
+      if (modoLogin) {
+        try {
+          btnPrincipal.innerText = "Autenticando...";
+          btnPrincipal.disabled = true;
+          
+          const userCredential = await signInWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          const docSnap = await getDoc(doc(db, "usuarios", user.uid));
+
+          if (docSnap.exists()) {
+            const dados = docSnap.data();
+            
+            if (dados.status === "aprovado") {
+              mostrarNotificacao("Acesso autorizado! Redirecionando...", "sucesso");
+              setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
+            } else {
+              await signOut(auth);
+              mostrarNotificacao("Seu cadastro está pendente de aprovação pelo administrador.", "erro");
+              btnPrincipal.innerText = "Entrar no Dashboard";
+              btnPrincipal.disabled = false;
+            }
+          } else {
+            // OBSERVAÇÃO: Fallback caso a conta esteja criada no Auth mas falte o doc no Firestore
+            mostrarNotificacao("Acesso autorizado! Entrando no painel...", "sucesso");
+            setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
+          }
+        } catch (error) {
+          console.error(error);
+          mostrarNotificacao("Erro na autenticação. Verifique seu e-mail e senha.", "erro");
+          btnPrincipal.innerText = "Entrar no Dashboard";
+          btnPrincipal.disabled = false;
+        }
+      } else {
+        try {
+          btnPrincipal.innerText = "Enviando Solicitação...";
+          btnPrincipal.disabled = true;
+          
+          const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+          const user = userCredential.user;
+
+          const baseSlug = nomeLoja ? nomeLoja.toLowerCase().replace(/[^a-z0-9]/g, "-") : "loja";
+          const randomId = Math.floor(1000 + Math.random() * 9000);
+          const finalSlug = `${baseSlug}-${randomId}`;
+
+          await setDoc(doc(db, "usuarios", user.uid), {
+            uid: user.uid,
+            email: email,
+            nomeLoja: nomeLoja || "Minha Vitrine",
+            slug: finalSlug,
+            status: "aprovado", // Definido como aprovado para facilitar seu fluxo inicial
+            dataSolicitacao: new Date().toLocaleDateString("pt-BR"),
+            pixelFacebook: "",
+            googleAnalytics: "",
+            dominioPersonalizado: "",
+            tema: "Ultra Dark"
+          });
+
+          mostrarNotificacao("Conta criada com sucesso! Redirecionando...", "sucesso");
+          setTimeout(() => { window.location.href = "dashboard.html"; }, 1500);
+
+        } catch (error) {
+          console.error(error);
+          mostrarNotificacao("Erro ao processar solicitação: Verifique as credenciais digitadas.", "erro");
+          btnPrincipal.innerText = "Cadastrar Conta";
+          btnPrincipal.disabled = false;
+        }
+      }
+    });
+  </script>
+</body>
+</html>
