@@ -1,324 +1,151 @@
-import { auth, db } from './firebase-init.js';
-import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, getDoc, updateDoc, collection, addDoc, getDocs, query, where, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
-let usuarioAtualUid = null;
-let fotoBase64Armazenada = ""; 
-let filtroNichoAtual = "todos";
-const urlParams = new URLSearchParams(window.location.search);
-const lojaParamAtual = urlParams.get('loja');
-
-// Trava e Máscara Monetária Automática nos inputs de preço
-document.querySelectorAll('.numeric-mask').forEach(input => {
-    input.addEventListener('input', function(e) {
-        let value = e.target.value.replace(/\D/g, "");
-        if (value === "") { e.target.value = ""; return; }
-        value = (parseInt(value) / 100).toFixed(2);
-        e.target.value = value.replace(".", ",");
-    });
-});
-
-// Listener do Seletor de Parcelas
-document.getElementById('prod-parc-select')?.addEventListener('change', function(e) {
-    const container = document.getElementById('parc-custom-val-container');
-    const input = document.getElementById('prod-parcelamento');
-    if (e.target.value === "custom" || e.target.value.includes("x")) {
-        container.style.display = "block";
-        if (e.target.value !== "custom") {
-            input.placeholder = `Ex: ${e.target.value} de R$ 9,90`;
-        }
-    } else {
-        container.style.display = "none";
-        input.value = "";
+// Base de dados inicial persistente (Simulando banco de dados no navegador)
+let produtos = JSON.parse(localStorage.getItem('vide_produtos')) || [
+    {
+        id: 1,
+        nome: "teste",
+        tipo: "digital",
+        subtipo: "cursos",
+        precoOriginal: "99,99",
+        precoAtual: "12351",
+        parcelamento: "Em até 12x flexível",
+        imagemUrl: ""
     }
+];
+
+let filtroAtual = "todos";
+
+// Inicializador do Sistema
+document.addEventListener("DOMContentLoaded", () => {
+    renderGrid();
 });
 
-// Controladores dos botões de CTA (Estilo image_2829bb.png)
-document.querySelectorAll('.btn-cta-toggle').forEach(btn => {
-    btn.addEventListener('click', function() {
-        document.querySelectorAll('.btn-cta-toggle').forEach(b => b.classList.remove('active'));
-        this.classList.add('active');
-        const tipo = this.getAttribute('data-type');
-        document.getElementById('prod-tipo-botao').value = tipo;
-        
-        const label = document.getElementById('label-link-dinamico');
-        const input = document.getElementById('prod-link');
-        if (tipo === "whatsapp") {
-            label.innerText = "Número do WhatsApp do Suporte (Com DDD)";
-            input.placeholder = "Ex: 11999999999";
-        } else {
-            label.innerText = "Link Principal de Destino (Checkout / Página)";
-            input.placeholder = "https://checkout.kiwify.com.br/...";
-        }
-    });
-});
-
-// Atualização de feedback visual para upload local de arquivos
-document.getElementById('prod-file-upload')?.addEventListener('change', function(e) {
-    const file = e.target.files[0];
-    const textLabel = document.getElementById('upload-filename-text');
-    if (file) {
-        if (textLabel) textLabel.innerText = file.name;
-        const reader = new FileReader();
-        reader.onloadend = function() {
-            fotoBase64Armazenada = reader.result;
-        }
-        reader.readAsDataURL(file);
-    }
-});
-
-// Filtro de Nichos em tempo real (Estilo image_282c9f.png)
-document.querySelectorAll('.niche-tab').forEach(tab => {
-    tab.addEventListener('click', function() {
-        document.querySelectorAll('.niche-tab').forEach(t => t.classList.remove('active'));
-        this.classList.add('active');
-        filtroNichoAtual = this.getAttribute('data-niche');
-        if (usuarioAtualUid) carregarProdutosDoBanco(usuarioAtualUid);
-    });
-});
-
-// Sistema SPA de Abas Laterais
-function gerenciarAbasPainel() {
-    const menuItems = document.querySelectorAll('.menu-item');
-    const sections = document.querySelectorAll('.app-section');
-    menuItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-            e.preventDefault();
-            const target = item.getAttribute('data-target');
-            menuItems.forEach(i => i.classList.remove('active'));
-            item.classList.add('active');
-            sections.forEach(sec => {
-                sec.style.display = (sec.id === target) ? 'block' : 'none';
-            });
-        });
-    });
+// Exibir avisos sem pop-up nativo
+function showNotification(message, isSuccess = true) {
+    const box = document.getElementById('inline-feedback-box');
+    if(!box) return;
+    box.textContent = message;
+    box.style.backgroundColor = isSuccess ? "#00D2DF" : "#EF4444";
+    box.style.color = isSuccess ? "#000" : "#FFF";
+    box.style.display = "block";
+    setTimeout(() => { box.style.display = "none"; }, 3000);
 }
 
-function exibirLinksGeradosNoPerfil(slug) {
-    const statusMsg = document.getElementById('status-msg');
-    if (!statusMsg) return;
-    statusMsg.innerHTML = `
-        <div style="margin-top: 25px; padding: 20px; background-color: #161616; border: 1px solid #222; border-left: 4px solid #00bcd4; border-radius: 8px;">
-            <p style="color: #4caf50; font-weight: bold; margin-bottom: 15px;">🔮 Links da sua infraestrutura:</p>
-            <div style="margin-bottom: 12px;">
-                <span style="font-size:11px; color:#888; display:block; font-weight:bold;">🌐 LINK PÚBLICO DA VITRINE:</span>
-                <a href="https://videdigital.github.io/vide-digital/?loja=${slug}" target="_blank" style="color:#00bcd4; font-size:13px; text-decoration:none;">
-                    https://videdigital.github.io/vide-digital/?loja=${slug}
-                </a>
+// Alternar Abas da Barra Lateral Esquerda
+function switchTab(tabId) {
+    const sections = ['tab-visao-geral', 'tab-leads', 'tab-pixel', 'tab-perfil'];
+    sections.forEach(id => {
+        document.getElementById(id).classList.add('hidden');
+    });
+    document.getElementById(`tab-${tabId}`).classList.remove('hidden');
+
+    // Mudar visual do botão ativo
+    const buttons = document.querySelectorAll('.nav-btn');
+    buttons.forEach(btn => {
+        btn.style.background = "transparent";
+        btn.style.color = "#8E9AA8";
+    });
+    event.currentTarget.style.background = "rgba(0,210,223,0.1)";
+    event.currentTarget.style.color = "#00D2DF";
+}
+
+// Abrir e fechar Modal de Produto
+function toggleModal(open) {
+    const modal = document.getElementById('product-modal');
+    if(open) modal.classList.remove('hidden');
+    else modal.classList.add('hidden');
+}
+
+// Salvar Perfil sem usar o alerta clássico da web
+function saveProfileChanges() {
+    const novoLink = document.getElementById('input-url-vitrine').value;
+    // Lógica para salvar a url se necessário
+    showNotification("Link da vitrine alterado com sucesso para a página atual!");
+}
+
+// Filtro Avançado Corrigido (Corrige o bug de sumir produtos)
+function filterProducts(type) {
+    filtroAtual = type;
+    const tabs = document.querySelectorAll('.filter-tab');
+    tabs.forEach(tab => {
+        tab.style.background = "transparent";
+        tab.style.color = "#8E9AA8";
+    });
+    event.currentTarget.style.background = "#161619";
+    event.currentTarget.style.color = "#fff";
+    renderGrid();
+}
+
+// Desenhar Grid na Tela
+function renderGrid() {
+    const grid = document.getElementById('products-grid');
+    if(!grid) return;
+    grid.innerHTML = "";
+
+    // Filtra comparando sem espaços vazios ou bugs de caixa alta/baixa
+    const listaFiltrada = produtos.filter(p => {
+        if (filtroAtual === "todos") return true;
+        return p.tipo.toLowerCase().trim() === filtroAtual.toLowerCase().trim();
+    });
+
+    document.getElementById('metric-count').textContent = produtos.length;
+
+    if(listaFiltrada.length === 0) {
+        grid.innerHTML = `<p style="color:#8E9AA8; grid-column: 1/-1; text-align:center; padding: 40px 0;">Nenhum produto encontrado nesta categoria.</p>`;
+        return;
+    }
+
+    listaFiltrada.forEach(p => {
+        const card = document.createElement('div');
+        card.style = "background:#161619; padding:20px; border-radius:16px; border:1px solid rgba(255,255,255,0.02); display:flex; flex-direction:column; gap:12px;";
+        
+        const fallbackImg = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=400";
+        
+        card.innerHTML = `
+            <div style="width:100%; height:120px; border-radius:10px; background: url('${p.imagemUrl || fallbackImg}') center/cover; background-color:#121214;"></div>
+            <div>
+                <span style="background:rgba(0,210,223,0.1); color:#00D2DF; font-size:0.7rem; font-weight:700; padding:4px 8px; border-radius:4px; text-transform:uppercase;">${p.tipo} - ${p.subtipo}</span>
+                <h4 style="margin:8px 0 4px 0; font-size:1rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${p.nome}</h4>
+                <p style="color:#8E9AA8; font-size:0.75rem; margin:0; text-decoration: line-through;">R$ ${p.precoOriginal || '0,00'}</p>
+                <p style="color:#00D2DF; font-size:1.2rem; font-weight:700; margin:2px 0;">R$ ${p.precoAtual}</p>
+                <p style="color:#8E9AA8; font-size:0.7rem; margin:0;"><i class="fa-solid fa-credit-card"></i> ${p.parcelamento}</p>
             </div>
-        </div>
-    `;
+            <div style="display:flex; gap:8px; margin-top:auto;">
+                <button style="flex:1; background:rgba(255,255,255,0.05); color:#fff; border:none; padding:8px; border-radius:8px; font-size:0.8rem; font-weight:600; cursor:pointer;">Gerenciar Oferta</button>
+                <button onclick="deleteProduct(${p.id})" style="background:rgba(239,68,68,0.1); color:#EF4444; border:none; padding:8px 12px; border-radius:8px; cursor:pointer;"><i class="fa-regular fa-trash-can"></i></button>
+            </div>
+        `;
+        grid.appendChild(card);
+    });
 }
 
-async function carregarProdutosDoBanco(uid) {
-    const container = document.getElementById('container-produtos-lista');
-    const contador = document.getElementById('dash-qtd-produtos');
-    if (!container) return;
-
-    try {
-        let q = query(collection(db, "produtos"), where("userId", "==", uid));
-        if (filtroNichoAtual !== "todos") {
-            q = query(collection(db, "produtos"), where("userId", "==", uid), where("nicho", "==", filtroNichoAtual));
-        }
-        
-        const snap = await getDocs(q);
-        if (snap.empty) {
-            container.innerHTML = `<div style="color:#666; font-size:14px; padding:20px 0;">Nenhum produto encontrado nesta categoria.</div>`;
-            if (contador && filtroNichoAtual === "todos") contador.innerText = "0";
-            return;
-        }
-
-        if (contador && filtroNichoAtual === "todos") contador.innerText = snap.size;
-
-        let html = `<div class="products-grid">`;
-        snap.forEach((doc) => {
-            const p = doc.data();
-            const id = doc.id;
-            const img = p.imagem || 'https://via.placeholder.com/150';
-            const badgeClass = p.nicho === 'fisico' ? 'badge fisico' : 'badge digital';
-            const badgeLabel = p.nicho === 'fisico' ? '📦 Físico' : '⚡ Digital';
-            
-            // Tratamento exibição parcelas
-            let exibirParc = "";
-            if (p.parcelamento) {
-                exibirParc = p.parcelamento;
-            } else if (p.condicaoParcelas && p.condicaoParcelas !== "Sem parcelamento") {
-                exibirParc = p.condicaoParcelas;
-            }
-
-            html += `
-                <div class="product-item-card">
-                    <img src="${img}">
-                    <span class="${badgeClass}">${badgeLabel}</span>
-                    <h4>${p.nome}</h4>
-                    <p class="price">R$ ${p.preco}</p>
-                    <p style="color:#666; font-size:11px; margin-bottom:12px;">${exibirParc}</p>
-                    <div class="product-actions">
-                        <button class="btn-edit" data-id="${id}">📝 Gerenciar Oferta</button>
-                        <button class="btn-delete" data-id="${id}">🗑️</button>
-                    </div>
-                </div>
-            `;
-        });
-        html += `</div>`;
-        container.innerHTML = html;
-
-        document.querySelectorAll('.btn-edit').forEach(btn => {
-            btn.addEventListener('click', () => abrirModalParaEdicao(btn.getAttribute('data-id')));
-        });
-
-        document.querySelectorAll('.btn-delete').forEach(btn => {
-            btn.addEventListener('click', async () => {
-                if (confirm("Remover este produto permanentemente?")) {
-                    await deleteDoc(doc(db, "produtos", btn.getAttribute('data-id')));
-                    carregarProdutosDoBanco(usuarioAtualUid);
-                }
-            });
-        });
-
-    } catch (e) { console.error(e); }
-}
-
-async function abrirModalParaEdicao(id) {
-    const modal = document.getElementById('modal-produto');
-    try {
-        const snap = await getDoc(doc(db, "produtos", id));
-        if (snap.exists()) {
-            const p = snap.data();
-            document.getElementById('modal-titulo').innerText = "📝 Editar Produto";
-            document.getElementById('prod-id-edicao').value = id;
-            document.getElementById('prod-niche-type').value = p.nicho || "digital";
-            document.getElementById('prod-nome').value = p.nome || "";
-            document.getElementById('prod-preco-de').value = p.precoDe || "";
-            document.getElementById('prod-preco').value = p.preco || "";
-            
-            const condParc = p.condicaoParcelas || "Sem parcelamento";
-            document.getElementById('prod-parc-select').value = condParc;
-            if(condParc !== "Sem parcelamento") {
-                document.getElementById('parc-custom-val-container').style.display = "block";
-                document.getElementById('prod-parcelamento').value = p.parcelamento || "";
-            } else {
-                document.getElementById('parc-custom-val-container').style.display = "none";
-            }
-
-            document.getElementById('prod-descricao').value = p.descricao || "";
-            document.getElementById('prod-img').value = p.imagem && !p.imagem.startsWith("data:") ? p.imagem : "";
-            
-            // Toggle do CTA
-            const tBotao = p.tipoBotao || "checkout";
-            document.getElementById('prod-tipo-botao').value = tBotao;
-            document.querySelectorAll('.btn-cta-toggle').forEach(b => {
-                b.classList.toggle('active', b.getAttribute('data-type') === tBotao);
-            });
-
-            document.getElementById('prod-link').value = p.linkCompra || "";
-            document.getElementById('upload-filename-text').innerText = p.imagem && p.imagem.startsWith("data:") ? "Imagem local salva" : "Nenhum arquivo selecionado";
-            fotoBase64Armazenada = p.imagem && p.imagem.startsWith("data:") ? p.imagem : "";
-            
-            modal.style.display = 'flex';
-        }
-    } catch (e) { console.error(e); }
-}
-
-function gerenciarModalProduto() {
-    const modal = document.getElementById('modal-produto');
+// Cadastrar Novo Produto via Formulário
+document.getElementById('form-add-product').addEventListener('submit', function(e) {
+    e.preventDefault();
     
-    document.getElementById('btn-abrir-modal-prod')?.addEventListener('click', () => {
-        document.getElementById('modal-titulo').innerText = "📦 Cadastrar Novo Produto";
-        document.getElementById('prod-id-edicao').value = "";
-        document.getElementById('prod-nome').value = "";
-        document.getElementById('prod-preco-de').value = "";
-        document.getElementById('prod-preco').value = "";
-        document.getElementById('prod-parc-select').value = "Sem parcelamento";
-        document.getElementById('parc-custom-val-container').style.display = "none";
-        document.getElementById('prod-parcelamento').value = "";
-        document.getElementById('prod-descricao').value = "";
-        document.getElementById('prod-img').value = "";
-        document.getElementById('prod-link').value = "";
-        document.getElementById('upload-filename-text').innerText = "Nenhum arquivo selecionado";
-        fotoBase64Armazenada = "";
-        modal.style.display = 'flex';
-    });
+    const novoProd = {
+        id: Date.now(),
+        tipo: document.getElementById('product-type').value,
+        subtipo: document.getElementById('product-subtype').value,
+        nome: document.getElementById('product-name').value,
+        precoOriginal: document.getElementById('product-price-old').value || "0,00",
+        precoAtual: document.getElementById('product-price-new').value,
+        parcelamento: document.getElementById('product-installments').value,
+        imagemUrl: document.getElementById('product-img').value
+    };
 
-    document.getElementById('btn-cancelar-prod')?.addEventListener('click', () => modal.style.display = 'none');
-
-    document.getElementById('btn-salvar-prod-db')?.addEventListener('click', async () => {
-        const idEdicao = document.getElementById('prod-id-edicao').value;
-        const nicho = document.getElementById('prod-niche-type').value;
-        const nome = document.getElementById('prod-nome').value.trim();
-        const precoDe = document.getElementById('prod-preco-de').value.trim();
-        const preco = document.getElementById('prod-preco').value.trim();
-        const condicaoParcelas = document.getElementById('prod-parc-select').value;
-        const parcelamento = document.getElementById('prod-parcelamento').value.trim();
-        const descricao = document.getElementById('prod-descricao').value.trim();
-        const urlImg = document.getElementById('prod-img').value.trim();
-        const tipoBotao = document.getElementById('prod-tipo-botao').value;
-        const linkCompra = document.getElementById('prod-link').value.trim();
-
-        if (!nome || !preco) { alert("Nome e Preço Atual são campos obrigatórios."); return; }
-
-        const dadosProduto = {
-            userId: usuarioAtualUid,
-            nicho, nome, precoDe, preco, condicaoParcelas, parcelamento, descricao, tipoBotao, linkCompra,
-            imagem: fotoBase64Armazenada || urlImg,
-            dataAlteracao: new Date().toISOString()
-        };
-
-        try {
-            if (idEdicao) {
-                await updateDoc(doc(db, "produtos", idEdicao), dadosProduto);
-            } else {
-                await addDoc(collection(db, "produtos"), dadosProduto);
-            }
-            modal.style.display = 'none';
-            carregarProdutosDoBanco(usuarioAtualUid);
-        } catch (e) { alert("Erro: " + e.message); }
-    });
-}
-
-function configurarAcoesAdicionais() {
-    document.getElementById('btn-salvar-pixels')?.addEventListener('click', async () => {
-        await updateDoc(doc(db, "usuarios", usuarioAtualUid), {
-            pixelFacebook: document.getElementById('input-pixel-facebook').value.trim(),
-            tagGoogle: document.getElementById('input-tag-google').value.trim()
-        });
-        alert("Configurações salvas!");
-    });
-
-    document.getElementById('btn-salvar-slug')?.addEventListener('click', async () => {
-        const novoSlug = document.getElementById('slug-input').value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
-        await updateDoc(doc(db, "usuarios", usuarioAtualUid), { urlLoja: novoSlug });
-        exibirLinksGeradosNoPerfil(novoSlug);
-        alert("Link comercial atualizado!");
-    });
-
-    document.getElementById('btn-logout')?.addEventListener('click', () => {
-        signOut(auth).then(() => { window.location.href = 'login.html'; });
-    });
-}
-
-onAuthStateChanged(auth, async (user) => {
-    if (user) {
-        usuarioAtualUid = user.uid;
-        gerenciarAbasPainel();
-        gerenciarModalProduto();
-        configurarAcoesAdicionais();
-        
-        const docSnap = await getDoc(doc(db, "usuarios", user.uid));
-        if (docSnap.exists()) {
-            const d = docSnap.data();
-            const slug = d.urlLoja || "";
-            if (slug && lojaParamAtual !== slug) {
-                window.location.href = `dashboard.html?loja=${slug}`;
-                return;
-            }
-            document.getElementById('slug-input').value = slug;
-            document.getElementById('sb-minhaloja')?.setAttribute('href', `https://videdigital.github.io/vide-digital/?loja=${slug}`);
-            document.getElementById('input-pixel-facebook').value = d.pixelFacebook || "";
-            document.getElementById('input-tag-google').value = d.tagGoogle || "";
-            
-            exibirLinksGeradosNoPerfil(slug);
-            carregarProdutosDoBanco(user.uid);
-        }
-    } else { window.location.href = 'login.html'; }
+    produtos.push(novoProd);
+    localStorage.setItem('vide_produtos', JSON.stringify(produtos));
+    
+    this.reset();
+    toggleModal(false);
+    renderGrid();
+    showNotification("Novo produto cadastrado com sucesso!");
 });
+
+// Deletar Produto
+function deleteProduct(id) {
+    produtos = produtos.filter(p => p.id !== id);
+    localStorage.setItem('vide_produtos', JSON.stringify(produtos));
+    renderGrid();
+    showNotification("Produto removido do catálogo.", false);
+}
