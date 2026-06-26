@@ -33,7 +33,7 @@ async function carregarDadosUsuario(uid) {
     }
 }
 
-// 3. SALVAR O NOVO SLUG (Botão Aplicar)
+// 3. SALVAR O NOVO SLUG (Botão Aplicar) + ENVIAR TEXTO DE CONCLUÍDO PRO WHATSAPP
 document.getElementById('btn-salvar-slug').addEventListener('click', async () => {
     if (!usuarioAtualUid) return;
 
@@ -56,8 +56,21 @@ document.getElementById('btn-salvar-slug').addEventListener('click', async () =>
             urlLoja: novoSlug
         });
 
-        statusMsg.innerText = "Link atualizado com sucesso! 🎉";
+        // Altera o texto na tela avisando que a automação está abrindo o WhatsApp
+        statusMsg.innerHTML = "Link atualizado com sucesso! 🎉<br><small style='color: #25d366; font-size: 12px;'>Abrindo WhatsApp com a mensagem de lançamento da loja...</small>";
         statusMsg.style.color = "#4caf50";
+
+        // MENSAGEM COPIÁVEL DE ALTO IMPACTO PARA O DONO DA LOJA USAR
+        const mensagemPronta = `🚀 *Sua vitrine virtual está concluída!*\n\nOlá! É com muita alegria que anuncio que a minha nova loja virtual na *Vide Digital* já está oficialmente no ar. Agora ficou muito mais fácil e rápido conferir todos os produtos e fazer seus pedidos diretamente por lá! 🛍️\n\n👉 *Acesse e confira todas as novidades por aqui:* \nhttps://videdigital.github.io/vide-digital/?loja=${novoSlug}\n\nBoas compras! Aguardo o seu pedido! 🎉`;
+
+        // Transforma o texto em um link válido para o WhatsApp
+        const urlWhatsApp = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagemPronta)}`;
+
+        // Aguarda 1.5 segundos para o usuário ler o sucesso e abre o WhatsApp automaticamente
+        setTimeout(() => {
+            window.open(urlWhatsApp, '_blank');
+        }, 1500);
+
     } catch (error) {
         statusMsg.innerText = "Erro ao salvar: " + error.message;
         statusMsg.style.color = "#f44336";
