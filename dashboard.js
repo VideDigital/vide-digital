@@ -1,8 +1,8 @@
 import { auth, db } from './firebase-init.js';
 import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { doc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { doc, getDoc, updateDoc, collection, addDoc, getDocs, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-console.log("[Minha Loja Vide] Inicializando painel SPA unificado.");
+console.log("[Minha Loja Vide] Inicializando painel SPA com sistema de produtos.");
 
 let usuarioAtualUid = null;
 const urlParams = new URLSearchParams(window.location.search);
@@ -31,6 +31,117 @@ function exibirLinksGeradosNoPerfil(slug) {
     `;
 }
 
+// CARREGA E RENDERIZA OS PRODUTOS DO LOJISTA
+async function carregarProdutosDoBanco(uid) {
+    const container = document.getElementById('container-produtos-lista');
+    const contadorProdutos = document.getElementById('dash-qtd-produtos');
+    if (!container) return;
+
+    try {
+        const q = query(collection(db, "produtos"), where("userId", "==", uid));
+        const querySnapshot = await getDocs(q);
+        
+        if (querySnapshot.empty) {
+            container.innerHTML = "Nenhum produto cadastrado nesta loja ainda.";
+            if (contadorProdutos) contadorProdutos.innerText = "0";
+            return;
+        }
+
+        if (contadorProdutos) contadorProdutos.innerText = querySnapshot.size;
+
+        let htmlProdutos = `<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; width: 100%;">`;
+        
+        querySnapshot.forEach((doc) => {
+            const prod = doc.data();
+            htmlProdutos += `
+                <div style="background-color: #161616; border: 1px solid #252525; padding: 15px; border-radius: 8px; text-align: center;">
+                    <img src="${prod.imagem || 'https://via.placeholder.com/150'}" style="width: 100%; height: 120px; object-fit: cover; border-radius: 6px; margin-bottom: 10px; background-color: #222;">
+                    <h4 style="font-size: 14px; margin-bottom: 5px; color: #fff; text-align: left;">${prod.nome}</h4>
+                    <p style="color: #00bcd4; font-weight: bold; font-size: 15px; text-align: left;">R$ ${prod.preco}</p>
+                </div>
+            `;
+        });
+
+        htmlProdutos += `</div>`;
+        container.innerHTML = htmlProdutos;
+
+    } catch (error) {
+        console.error("Erro ao carregar produtos:", error);
+        container.innerHTML = "Erro ao carregar lista de produtos.";
+    }
+}
+
+// JANELA MODAL FLUTUANTE PARA CADASTRO DE PRODUTOS
+function abrirModalNovoProduto() {
+    let modal = document.getElementById('modal-produto');
+    if (modal) { modal.style.display = 'flex'; return; }
+
+    modal = document.createElement('div');
+    modal.id = 'modal-produto';
+    modal.style = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: rgba(0,0,0,0.85); z-index: 10000; display: flex; justify-content: center; align-items: center; padding: 20px; box-sizing: border-box;";
+    modal.innerHTML = `
+        <div style="background-color: #121212; border: 1px solid #222; padding: 30px; border-radius: 12px; width: 100%; max-width: 450px; box-sizing: border-box;">
+            <h3 style="color: #fff; margin: 0 0 20px 0; font-size: 18px; font-weight: 600;">📦 Cadastrar Novo Produto</h3>
+            
+            <label>Nome do Produto</label>
+            <div class="input-group"><input type="text" id="prod-nome" placeholder="Ex: Curso de Confeitaria"></div>
+            
+            <label>Preço (R$)</label>
+            <div class="input-group"><input type="text" id="prod-preco" placeholder="Ex: 97,90"></div>
+            
+            <label>URL da Imagem do Produto</label>
+            <div class="input-group"><input type="text" id="prod-img" placeholder="https://linkdafoto.com/imagem.jpg"></div>
+
+            <label>Link de Checkout / Compra</label>
+            <div class="input-group"><input type="text" id="prod-link" placeholder="Link da Kiwify, Hotmart, etc."></div>
+            
+            <div style="display: flex; gap: 10px; margin-top: 10px;">
+                <button id="btn-cancelar-prod" style="width: 50%; padding: 12px; border-radius: 8px; border: 1px solid #333; background: #222; color: #fff; font-weight: bold; cursor: pointer;">Cancelar</button>
+                <button id="btn-salvar-prod-db" style="width: 50%; padding: 12px; border-radius: 8px; border: none; background: #00bcd4; color: #fff; font-weight: bold; cursor: pointer;">Salvar Produto</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlayInputsCSS(modal));
+
+    // Ações do Modal
+    document.getElementById('btn-cancelar-prod').addEventListener('click', () => modal.style.display = 'none');
+    document.getElementById('btn-salvar-prod-db').addEventListener('click', async () => {
+        const nome = document.getElementById('prod-nome').value.trim();
+        const preco = document.getElementById('prod-preco').value.trim();
+        const imagem = document.getElementById('prod-img').value.trim();
+        const linkCompra = document.getElementById('prod-link').value.trim();
+
+        if (!nome || !preco) { alert("Nome e Preço são obrigatórios!"); return; }
+
+        try {
+            await addDoc(collection(db, "produtos"), {
+                userId: usuarioAtualUid,
+                nome: nome,
+                preco: preco,
+                imagem: imagem,
+                linkCompra: linkCompra,
+                dataCadastro: new Date().toISOString()
+            });
+            
+            modal.style.display = 'none';
+            // Limpa os campos
+            document.getElementById('prod-nome').value = '';
+            document.getElementById('prod-preco').value = '';
+            document.getElementById('prod-img').value = '';
+            document.getElementById('prod-link').value = '';
+
+            carregarProdutosDoBanco(usuarioAtualUid);
+        } catch (error) {
+            alert("Erro ao salvar produto: " + error.message);
+        }
+    });
+}
+
+// Injeta estilos temporários caso os inputs dentro do modal precisem herdar a folha global do app
+def overlayInputsCSS(el) {
+    return el;
+}
+
 // EXECUTA APÓS O CARREGAMENTO DA PÁGINA PARA TRAVAR OS BOTÕES
 function inicializarNavegacaoEAbas() {
     console.log("[Minha Loja Vide] Ativando cliques do menu lateral...");
@@ -40,22 +151,22 @@ function inicializarNavegacaoEAbas() {
     menuItems.forEach(item => {
         item.addEventListener('click', () => {
             const targetSectionId = item.getAttribute('data-target');
-            console.log(`[Minha Loja Vide] Mudando para a aba: ${targetSectionId}`);
 
-            // Remove classe ativa de todos os botões e adiciona no clicado
             menuItems.forEach(i => i.classList.remove('active'));
             item.classList.add('active');
 
-            // Oculta todas as seções e mostra apenas a selecionada
             sections.forEach(sec => {
-                if (sec.id === targetSectionId) {
-                    sec.classList.add('active');
-                } else {
-                    sec.classList.remove('active');
-                }
+                if (sec.id === targetSectionId) { sec.classList.add('active'); } 
+                else { sec.classList.remove('active'); }
             });
         });
     });
+
+    // Ouvinte do Botão Adicionar Produto (Visão Geral)
+    const btnAddProd = document.querySelector('.btn-primary');
+    if (btnAddProd && btnAddProd.innerText.includes("Adicionar Novo Produto")) {
+        btnAddProd.addEventListener('click', abrirModalNovoProduto);
+    }
 
     // Configuração dos botões de ação adicionais
     document.getElementById('btn-salvar-pixels')?.addEventListener('click', async () => {
@@ -65,9 +176,7 @@ function inicializarNavegacaoEAbas() {
         try {
             await updateDoc(doc(db, "usuarios", usuarioAtualUid), { pixelFacebook: fb, tagGoogle: gg });
             alert("Configurações de Pixel atualizadas com sucesso!");
-        } catch (error) {
-            alert("Erro ao salvar pixels: " + error.message);
-        }
+        } catch (error) { alert("Erro ao salvar pixels: " + error.message); }
     });
 
     document.getElementById('btn-salvar-slug')?.addEventListener('click', async () => {
@@ -75,7 +184,6 @@ function inicializarNavegacaoEAbas() {
         if (!usuarioAtualUid || !slugInput) return;
         const novoSlug = slugInput.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
         slugInput.value = novoSlug;
-
         if (!novoSlug) return;
 
         try {
@@ -88,9 +196,7 @@ function inicializarNavegacaoEAbas() {
             
             exibirLinksGeradosNoPerfil(novoSlug);
             alert("Link comercial atualizado com sucesso!");
-        } catch (error) {
-            console.error("Erro ao alterar link:", error);
-        }
+        } catch (error) { console.error("Erro ao alterar link:", error); }
     });
 
     document.getElementById('btn-copiar-url')?.addEventListener('click', () => {
@@ -106,58 +212,10 @@ function inicializarNavegacaoEAbas() {
     });
 }
 
-// MAGO ONBOARDING (PRIMEIRA ATIVAÇÃO)
-function abrirMagoOnboarding() {
-    const overlayExistente = document.getElementById('onboarding-screen');
-    if (overlayExistente) return;
-
-    const overlay = document.createElement('div');
-    overlay.id = 'onboarding-screen';
-    overlay.style = "position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background-color: #0b0b0b; z-index: 99999; display: flex; justify-content: center; align-items: center;";
-    overlay.innerHTML = `
-        <div style="background-color: #121212; border: 1px solid #222; padding: 40px; border-radius: 12px; width: 100%; max-width: 450px; text-align: center; box-sizing: border-box;">
-            <div style="font-size: 24px; font-weight: bold; margin-bottom: 15px; color: #fff;">Minha Loja <span style="color: #00bcd4;">Vide</span></div>
-            <h3 style="color: #4caf50; margin: 0 0 10px 0; font-size: 18px;">Seu acesso foi Aprovado! 🎉</h3>
-            <p style="color: #aaa; font-size: 14px; margin-bottom: 25px; line-height: 1.5;">Defina abaixo a URL exclusiva para os seus clientes acessarem a sua loja:</p>
-            <div style="text-align: left; margin-bottom: 25px;">
-                <label style="display: block; font-size: 11px; color: #888; margin-bottom: 8px; font-weight: bold;">NOME DO LINK COMERCIAL:</label>
-                <div style="display: flex; align-items: center; background-color: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; padding: 12px;">
-                    <span style="color: #555; font-size: 14px; padding-right: 2px;">loja=</span>
-                    <input type="text" id="onboarding-slug-input" placeholder="nomedasualoja" style="background: transparent; border: none; color: #fff; font-size: 14px; width: 100%; outline: none;">
-                </div>
-                <small id="onboarding-erro" style="color: #f44336; font-size: 12px; display: block; margin-top: 8px;"></small>
-            </div>
-            <button id="btn-ativar-loja" style="width: 100%; padding: 13px; border-radius: 8px; border: none; background-color: #00bcd4; color: #fff; font-size: 14px; font-weight: bold; cursor: pointer;">Criar Link e Liberar Painel</button>
-        </div>
-    `;
-    document.body.appendChild(overlay);
-
-    document.getElementById('btn-ativar-loja').addEventListener('click', async () => {
-        const input = document.getElementById('onboarding-slug-input');
-        const erroMsg = document.getElementById('onboarding-erro');
-        const slugNova = input.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, '');
-
-        if (!slugNova) {
-            erroMsg.innerText = "Insira um nome válido (apenas letras e números)!";
-            return;
-        }
-
-        try {
-            await updateDoc(doc(db, "usuarios", usuarioAtualUid), { urlLoja: slugNova });
-            overlay.remove();
-            window.location.href = `dashboard.html?loja=${slugNova}`;
-        } catch (err) {
-            erroMsg.innerText = "Erro ao registrar: " + err.message;
-        }
-    });
-}
-
 // MONITORAMENTO DA SESSÃO DO FIREBASE
 onAuthStateChanged(auth, async (user) => {
     if (user) {
         usuarioAtualUid = user.uid;
-        
-        // Garante que os botões só comecem a escutar cliques após o HTML estar pronto
         if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", () => {
                 inicializarNavegacaoEAbas();
@@ -179,11 +237,6 @@ async function verificarEAutenticarRota(uid) {
             const userData = userDoc.data();
             const slugSalvo = userData.urlLoja || "";
 
-            if (!slugSalvo) {
-                abrirMagoOnboarding();
-                return;
-            }
-
             if (slugSalvo && lojaParamAtual !== slugSalvo) {
                 window.location.href = `dashboard.html?loja=${slugSalvo}`;
                 return;
@@ -196,6 +249,7 @@ async function verificarEAutenticarRota(uid) {
             if (slugInput) slugInput.value = slugSalvo;
             
             exibirLinksGeradosNoPerfil(slugSalvo);
+            carregarProdutosDoBanco(uid);
 
             if (document.getElementById('input-pixel-facebook')) {
                 document.getElementById('input-pixel-facebook').value = userData.pixelFacebook || "";
@@ -204,7 +258,5 @@ async function verificarEAutenticarRota(uid) {
                 document.getElementById('input-tag-google').value = userData.tagGoogle || "";
             }
         }
-    } catch (error) {
-        console.error("Erro ao ler dados da sessão segura:", error);
-    }
+    } catch (error) { console.error("Erro ao ler dados da sessão segura:", error); }
 }
