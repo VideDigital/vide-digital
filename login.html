@@ -14,6 +14,7 @@
 
     <div class="bg-glow"></div>
 
+    <!-- Notificação interna na própria página -->
     <div id="toast-notification" class="toast hidden">
         <i id="toast-icon" class="fa-solid"></i>
         <span id="toast-message"></span>
@@ -27,13 +28,13 @@
                     <i class="fa-solid fa-dna logo-icon"></i>
                     <span class="logo-text">Vide<strong class="accent">Digital</strong></span>
                 </div>
-                <p class="subtitle">Insira suas credenciais para acessar o painel administrativo</p>
+                <p class="subtitle">Insira suas credenciais para acessar o painel</p>
             </header>
 
             <form class="login-form" id="form-login-auth">
                 
                 <div class="input-group">
-                    <label for="email">E-mail Corporativo</label>
+                    <label for="email">E-mail</label>
                     <div class="input-field-wrapper">
                         <i class="fa-regular fa-envelope input-icon"></i>
                         <input type="email" id="email" placeholder="seu@email.com" required autocomplete="email">
@@ -42,7 +43,7 @@
 
                 <div class="input-group">
                     <div class="label-row">
-                        <label for="password">Chave de Acesso</label>
+                        <label for="password">Senha</label>
                         <a href="#" class="forgot-link" id="btn-forgot">Esqueceu a senha?</a>
                     </div>
                     <div class="input-field-wrapper">
@@ -55,18 +56,18 @@
                     <label class="checkbox-container">
                         <input type="checkbox" id="remember-me" checked>
                         <span class="checkmark"></span>
-                        Manter conectado neste dispositivo
+                        Manter conectado
                     </label>
                 </div>
 
                 <div class="action-buttons">
-                    <button type="submit" class="btn-primary" id="btn-submit-text">
+                    <button type="submit" class="btn-primary" id="btn-submit">
                         <span id="label-btn">Entrar no Dashboard</span>
                         <i class="fa-solid fa-arrow-right-to-bracket" id="icon-btn"></i>
                     </button>
                     
                     <button type="button" class="btn-secondary" id="btn-cadastro">
-                        Solicitar Novo Acesso
+                        Solicitar Cadastro
                     </button>
                 </div>
 
@@ -83,35 +84,30 @@
             const labelBtn = document.getElementById('label-btn');
             const iconBtn = document.getElementById('icon-btn');
             
-            // Efeito visual de carregamento avançado
-            labelBtn.textContent = "Autenticando infraestrutura...";
+            labelBtn.textContent = "Autenticando...";
             iconBtn.className = "fa-solid fa-circle-notch fa-spin";
             
             setTimeout(() => {
-                // Validação Simples Local (Substitua pelas suas credenciais se necessário)
                 if(email.trim() !== "" && password.length >= 4) {
                     showToast("Acesso autorizado! Redirecionando...", "success");
-                    
                     setTimeout(() => {
-                        // Altere para o nome do arquivo correto do seu painel (ex: index.html ou painel.html)
-                        window.location.href = "index.html"; 
-                    }, 1200);
+                        window.location.href = "dashboard.html"; 
+                    }, 1000);
                 } else {
-                    showToast("Credenciais incorretas ou inválidas.", "error");
+                    showToast("Credenciais inválidas.", "error");
                     labelBtn.textContent = "Entrar no Dashboard";
                     iconBtn.className = "fa-solid fa-arrow-right-to-bracket";
                 }
-            }, 1000);
+            }, 800);
         });
 
-        // Eventos adicionais sem usar pop-ups chatos do navegador
         document.getElementById('btn-forgot').addEventListener('click', (e) => {
             e.preventDefault();
-            showToast("Link de recuperação enviado para o e-mail cadastrado.", "success");
+            showToast("Link de recuperação enviado para o e-mail.", "success");
         });
 
         document.getElementById('btn-cadastro').addEventListener('click', () => {
-            showToast("Solicitação enviada. Aguarde aprovação do administrador.", "info");
+            showToast("Solicitação de cadastro enviada!", "info");
         });
 
         function showToast(message, type) {
@@ -127,10 +123,7 @@
             if(type === 'info') icon.className = "fa-solid fa-circle-info";
             
             toast.classList.remove('hidden');
-            
-            setTimeout(() => {
-                toast.classList.add('hidden');
-            }, 3500);
+            setTimeout(() => { toast.classList.add('hidden'); }, 3000);
         }
     </script>
 </body>
