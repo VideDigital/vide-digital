@@ -10,6 +10,7 @@
         .glass-card { background: rgba(13, 13, 17, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.04); }
         .spinner { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #00f2fe; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        .tab-active { background-color: rgba(255, 255, 255, 0.1); border-color: #00f2fe; text-color: #white; }
     </style>
 </head>
 <body class="h-full text-gray-200 font-sans flex">
@@ -17,13 +18,11 @@
     <!-- BARRA LATERAL (SIDEBAR) -->
     <aside class="w-64 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0">
         <div class="space-y-8">
-            <!-- Logo -->
             <div class="flex items-center gap-2">
                 <div class="h-5 w-5 rounded-md bg-gradient-to-tr from-[#00f2fe] to-[#4facfe]"></div>
                 <h2 class="text-xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
             </div>
 
-            <!-- Navegação -->
             <nav class="space-y-1">
                 <a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-white/5 rounded-xl transition-all">
                     <span>📊</span> Visão Geral
@@ -41,16 +40,15 @@
 
             <hr class="border-white/5">
 
-            <!-- LINK DA LOJA (VISÃO DO CLIENTE) -->
+            <!-- BOTÃO MINHA LOJA: VISÃO DO CLIENTE -->
             <div class="px-2">
-                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-[#00f2fe]/5 border border-[#00f2fe]/20 hover:bg-[#00f2fe]/10 text-[#00f2fe] text-xs font-bold uppercase tracking-wider rounded-xl transition-all">
-                    <span>🔗 Minha Loja (Cliente)</span>
-                    <span>↗️</span>
+                <a id="link-minha-loja" href="loja.html" target="_blank" class="w-full flex flex-col items-start gap-1 px-3 py-2.5 bg-[#00f2fe]/5 border border-[#00f2fe]/20 hover:bg-[#00f2fe]/10 text-[#00f2fe] rounded-xl transition-all">
+                    <span class="text-[10px] font-bold uppercase tracking-wider block">Minha Loja : Visão do Cliente</span>
+                    <span class="text-[11px] text-gray-400 font-normal truncate max-w-full" id="url-loja-preview">Carregando link...</span>
                 </a>
             </div>
         </div>
 
-        <!-- Botão Sair -->
         <div>
             <button id="btn-logout" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400/80 hover:text-red-400 transition-all w-full text-left">
                 <span>🚪</span> Sair
@@ -62,7 +60,6 @@
     <main class="flex-1 p-10 overflow-y-auto">
         <div class="max-w-6xl mx-auto">
             
-            <!-- Cabeçalho de Ações -->
             <div class="flex justify-between items-center mb-10">
                 <div>
                     <h1 class="text-3xl font-bold tracking-tight text-white">Produtos</h1>
@@ -73,16 +70,14 @@
                 </button>
             </div>
 
-            <!-- Grade de Listagem de Produtos -->
             <div id="produtos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <!-- Os produtos salvos no banco serão renderizados aqui dinamicamente -->
                 <div class="animate-pulse bg-white/5 h-40 rounded-2xl"></div>
             </div>
 
         </div>
     </main>
 
-    <!-- MODAL DINÂMICO (USADO PARA CRIAÇÃO E EDIÇÃO - EVITA REDIRECIONAR / ERRO 404) -->
+    <!-- MODAL DINÂMICO DE CONFIGURAÇÃO DE OFERTA -->
     <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
         <div class="glass-card w-full max-w-2xl p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
             <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
@@ -95,7 +90,7 @@
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Produto / Curso</label>
-                        <input type="text" id="prod-nome" required class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: Curso de Macarons do Zero ao Pro">
+                        <input type="text" id="prod-nome" required class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: Curso de Macarons">
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço da Oferta (R$)</label>
@@ -108,28 +103,53 @@
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tipo de Produto</label>
                         <select id="prod-tipo" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none text-sm transition-all">
                             <option value="digital">Digital (Curso / Infoproduto / E-book)</option>
-                            <option value="fisico">Físico (Suplementos / Encapsulados / Ferramentas)</option>
+                            <option value="fisico">Físico (Suplementos / Equipamentos)</option>
                         </select>
                     </div>
                     <div class="space-y-2">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho / Categoria</label>
-                        <input type="text" id="prod-subnicho" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: Confeitaria, Barbearia, Estética, Unhas">
+                        <select id="prod-subnicho" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none text-sm transition-all">
+                            <option value="Confeitaria">Confeitaria</option>
+                            <option value="Barbearia">Barbearia</option>
+                            <option value="Estética e Unhas">Estética e Unhas</option>
+                            <option value="Pintura e Artesanato">Pintura e Artesanato</option>
+                            <option value="Outro">Outro</option>
+                        </select>
                     </div>
                 </div>
 
+                <!-- CAMPO DE IMPORTAÇÃO DE IMAGEM DO COMPUTADOR -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL da Imagem do Produto (Capa)</label>
-                    <input type="url" id="prod-imagem" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="https://exemplo.com/foto.jpg">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Imagem de Capa (Do Computador)</label>
+                    <input type="file" id="prod-imagem-file" accept="image/png, image/jpeg, image/jpg" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-2.5 text-gray-400 text-sm focus:border-[#00f2fe] outline-none transition-all">
+                    <p class="text-[11px] text-gray-500 mt-1">Dica: A imagem idealmente precisa ter as dimensões 326x244px e ser no formato PNG, JPG ou JPEG (Opcional).</p>
+                    <input type="hidden" id="prod-imagem-base64">
                 </div>
 
+                <!-- SELETOR DE DESTINO DA CONVERSÃO (CHECKOUT VS WHATSAPP) -->
                 <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link de Checkout / Destino da Campanha</label>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Destino da Conversão</label>
+                    <div class="grid grid-cols-2 gap-2 bg-[#09090b] p-1 rounded-xl border border-white/5">
+                        <button type="button" id="tab-checkout" class="py-2 text-xs font-semibold rounded-lg border border-transparent text-gray-400 transition-all tab-active">Link de Checkout</button>
+                        <button type="button" id="tab-whatsapp" class="py-2 text-xs font-semibold rounded-lg border border-transparent text-gray-400 transition-all">WhatsApp</button>
+                    </div>
+                </div>
+
+                <!-- INPUT DO LINK DE CHECKOUT -->
+                <div id="wrapper-checkout" class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link de Checkout / Página de Vendas</label>
                     <input type="url" id="prod-checkout" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="https://pay.kiwify.com.br/...">
                 </div>
 
+                <!-- INPUT DO WHATSAPP -->
+                <div id="wrapper-whatsapp" class="space-y-2 hidden">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Número do WhatsApp (Apenas Números com DDD)</label>
+                    <input type="text" id="prod-whatsapp" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: 11999999999" maxlength="11">
+                </div>
+
                 <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Descrição Breve comercial (Foco em Tráfego)</label>
-                    <textarea id="prod-descricao" rows="3" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all resize-none" placeholder="Insira os principais gatilhos da copy do produto..."></textarea>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Descrição Breve Comercial</label>
+                    <textarea id="prod-descricao" rows="3" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all resize-none" placeholder="Gatilhos e benefícios da oferta..."></textarea>
                 </div>
 
                 <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
@@ -141,46 +161,96 @@
         </div>
     </div>
 
-    <!-- LOGICA FIREBASE E INTERRUPÇÃO DE LINKS -->
     <script type="module">
         import { auth, db } from "./firebase-init.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let usuarioEmail = "";
-        let urlLojaCliente = "";
+        let tipoDestino = "checkout"; // Padrão
 
-        // Componentes UI
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
         const form = document.getElementById("produto-form");
         const modalTitulo = document.getElementById("modal-titulo");
         const btnDeletar = document.getElementById("btn-deletar-produto");
 
-        // Monitor de Autenticação
+        // Elementos de conversão e Tabs
+        const tabCheckout = document.getElementById("tab-checkout");
+        const tabWhatsapp = document.getElementById("tab-whatsapp");
+        const wrapperCheckout = document.getElementById("wrapper-checkout");
+        const wrapperWhatsapp = document.getElementById("wrapper-whatsapp");
+        const inputCheckout = document.getElementById("prod-checkout");
+        const inputWhatsapp = document.getElementById("prod-whatsapp");
+
+        // Tratamento da Imagem Local para Base64
+        const inputImagemFile = document.getElementById("prod-imagem-file");
+        const inputImagemBase64 = document.getElementById("prod-imagem-base64");
+
+        inputImagemFile.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    inputImagemBase64.value = reader.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Garantir apenas números no campo WhatsApp
+        inputWhatsapp.addEventListener("input", (e) => {
+            e.target.value = e.target.value.replace(/\D/g, "");
+        });
+
+        // Lógica de Troca de Abas
+        tabCheckout.addEventListener("click", () => alternarDestino("checkout"));
+        tabWhatsapp.addEventListener("click", () => alternarDestino("whatsapp"));
+
+        function alternarDestino(destino) {
+            tipoDestino = destino;
+            if(destino === "checkout") {
+                tabCheckout.classList.add("tab-active", "text-white");
+                tabWhatsapp.classList.remove("tab-active", "text-white");
+                wrapperCheckout.classList.remove("hidden");
+                wrapperWhatsapp.classList.add("hidden");
+                inputCheckout.required = true;
+                inputWhatsapp.required = false;
+            } else {
+                tabWhatsapp.classList.add("tab-active", "text-white");
+                tabCheckout.classList.remove("tab-active", "text-white");
+                wrapperWhatsapp.classList.remove("hidden");
+                wrapperCheckout.classList.add("hidden");
+                inputWhatsapp.required = true;
+                inputCheckout.required = false;
+            }
+        }
+
+        // Monitor do Firebase Auth e Link Ajustado
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 usuarioEmail = user.email.toLowerCase();
                 
-                // Mapeia e define dinamicamente a URL da loja para o link "Minha Loja"
                 const userSnap = await getDoc(doc(db, "usuarios", usuarioEmail));
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
-                    urlLojaCliente = dados.urlLoja ? `../loja/${dados.urlLoja}` : `../loja/vitrine-${dados.nomeLoja.toLowerCase().replace(/\s+/g, '-')}`;
-                    document.getElementById("link-minha-loja").href = urlLojaCliente;
+                    // Ajuste da URL para apontar para o arquivo correto da vitrine pública
+                    const slugLoja = dados.nomeLoja ? dados.nomeLoja.toLowerCase().replace(/\s+/g, '-') : 'vitrine';
+                    const linkCompleto = `loja.html?loja=${slugLoja}`;
+                    
+                    document.getElementById("link-minha-loja").href = linkCompleto;
+                    document.getElementById("url-loja-preview").innerText = `vide.digital/${slugLoja}`;
                 }
-
                 carregarProdutos();
             } else {
                 window.location.href = "login.html";
             }
         });
 
-        // Buscar produtos do lojista
+        // Carregar Listagem
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
             try {
-                // Filtra os produtos criados por esse gestor específico
                 const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioEmail));
                 const querySnapshot = await getDocs(q);
 
@@ -201,38 +271,42 @@
                     card.className = "glass-card p-6 rounded-2xl flex flex-col justify-between space-y-4 hover:border-white/10 transition-all";
                     card.innerHTML = `
                         <div>
-                            <span class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider bg-[#00f2fe]/10 px-2.5 py-1 rounded-md inline-block mb-3">${prod.subnicho || 'Geral'}</span>
+                            <div class="flex items-center justify-between mb-2">
+                                <span class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider bg-[#00f2fe]/10 px-2.5 py-1 rounded-md inline-block">${prod.subnicho || 'Geral'}</span>
+                                <span class="text-[10px] text-gray-500 uppercase">${prod.tipoDestino === 'whatsapp' ? '📱 WhatsApp' : '🛒 Checkout'}</span>
+                            </div>
                             <h4 class="text-lg font-bold text-white tracking-tight truncate">${prod.nome}</h4>
                             <p class="text-2xl font-black text-white mt-2">${precoFormatado}</p>
-                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">${prod.descricao || 'Sem descrição comercial inserida.'}</p>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">${prod.descricao || 'Sem descrição inserida.'}</p>
                         </div>
-                        <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 text-white text-sm font-medium py-2.5 rounded-xl transition-all cursor-pointer" data-id="${id}">
+                        <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 text-white text-sm font-medium py-2.5 rounded-xl transition-all" data-id="${id}">
                             Gerenciar Oferta
                         </button>
                     `;
                     produtosContainer.appendChild(card);
                 });
 
-                // Adiciona os gatilhos nos botões para abrir na mesma tela sem 404
                 document.querySelectorAll(".btn-gerenciar").forEach(btn => {
                     btn.addEventListener("click", (e) => abrirModalEdicao(e.target.getAttribute("data-id")));
                 });
 
             } catch (err) {
-                console.error("Erro ao carregar produtos:", err);
+                console.error(err);
             }
         }
 
-        // Abrir Modal para Novo Produto
+        // Abrir para Criação
         document.getElementById("btn-abrir-criacao").addEventListener("click", () => {
             form.reset();
             document.getElementById("form-id-produto").value = "";
+            inputImagemBase64.value = "";
+            alternarDestino("checkout");
             modalTitulo.innerText = "Cadastrar Novo Produto";
             btnDeletar.classList.add("hidden");
             modal.classList.remove("hidden");
         });
 
-        // Abrir Modal para Edição (Puxa os dados atuais do Firestore na mesma tela)
+        // Abrir para Edição
         async function abrirModalEdicao(id) {
             try {
                 const docSnap = await getDoc(doc(db, "produtos", id));
@@ -242,10 +316,17 @@
                     document.getElementById("prod-nome").value = data.nome;
                     document.getElementById("prod-preco").value = data.preco;
                     document.getElementById("prod-tipo").value = data.tipo || "digital";
-                    document.getElementById("prod-subnicho").value = data.subnicho || "";
-                    document.getElementById("prod-imagem").value = data.imagem || "";
-                    document.getElementById("prod-checkout").value = data.checkout || "";
+                    document.getElementById("prod-subnicho").value = data.subnicho || "Outro";
                     document.getElementById("prod-descricao").value = data.descricao || "";
+                    inputImagemBase64.value = data.imagemB64 || "";
+
+                    if(data.tipoDestino === "whatsapp") {
+                        alternarDestino("whatsapp");
+                        inputWhatsapp.value = data.destinoValue;
+                    } else {
+                        alternarDestino("checkout");
+                        inputCheckout.value = data.destinoValue;
+                    }
                     
                     modalTitulo.innerText = "Gerenciar Oferta";
                     btnDeletar.classList.remove("hidden");
@@ -256,39 +337,40 @@
             }
         }
 
-        // Salvar ou Atualizar Produto
+        // Salvar
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             const id = document.getElementById("form-id-produto").value;
             
+            const destinoFinalValue = (tipoDestino === "whatsapp") ? inputWhatsapp.value.trim() : inputCheckout.value.trim();
+
             const produtoPayload = {
                 nome: document.getElementById("prod-nome").value.trim(),
                 preco: parseFloat(document.getElementById("prod-preco").value),
                 tipo: document.getElementById("prod-tipo").value,
-                subnicho: document.getElementById("prod-subnicho").value.trim(),
-                imagem: document.getElementById("prod-imagem").value.trim(),
-                checkout: document.getElementById("prod-checkout").value.trim(),
+                subnicho: document.getElementById("prod-subnicho").value,
+                imagemB64: inputImagemBase64.value, 
+                tipoDestino: tipoDestino,
+                destinoValue: destinoFinalValue,
                 descricao: document.getElementById("prod-descricao").value.trim(),
                 criadoPor: usuarioEmail,
                 atualizadoEm: new Date().toISOString()
             };
 
             try {
-                // Se não tem ID, cria um novo gerando um ID limpo por timestamp/slug
                 const docId = id || `prod_${Date.now()}`;
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
-                
                 modal.classList.add("hidden");
                 carregarProdutos();
             } catch (err) {
-                console.error("Erro ao salvar oferta:", err);
+                console.error(err);
             }
         });
 
-        // Deletar Produto
+        // Deletar
         btnDeletar.addEventListener("click", async () => {
             const id = document.getElementById("form-id-produto").value;
-            if (id && confirm("Tem certeza que deseja remover esta oferta da sua vitrine?")) {
+            if (id && confirm("Deseja remover esta oferta definitivamente?")) {
                 try {
                     await deleteDoc(doc(db, "produtos", id));
                     modal.classList.add("hidden");
@@ -299,14 +381,9 @@
             }
         });
 
-        // Controles de fechamento do Modal
         document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
-
-        // Logout
-        document.getElementById("btn-logout").addEventListener("click", () => {
-            signOut(auth).then(() => window.location.href = "login.html");
-        });
+        document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "login.html"));
     </script>
 </body>
 </html>
