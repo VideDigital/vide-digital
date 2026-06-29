@@ -165,16 +165,16 @@
                 const userCredential = await signInWithEmailAndPassword(auth, email, senha);
                 const user = userCredential.user;
 
-                // Força validação imediata com o servidor. Se deletado, gera exceção na hora.
+                // Força validação imediata com o servidor.
                 await user.getIdToken(true);
 
                 emitInlineFeedback("Autenticado com sucesso! Entrando...", "success");
-                setTimeout(() => { window.location.href = "index.html"; }, 800);
+                setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
 
             } catch (error) {
                 if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/user-disabled') {
                     emitInlineFeedback("Esta conta não existe ou foi revogada do ecossistema.", "error");
-                    await signOut(auth); // Garante a limpeza do cache local do navegador
+                    await signOut(auth);
                 } else {
                     emitInlineFeedback("Falha na autenticação. Verifique seus dados.", "error");
                 }
@@ -191,7 +191,7 @@
             try {
                 await createUserWithEmailAndPassword(auth, email, senha);
                 emitInlineFeedback("Conta criada com sucesso!", "success");
-                setTimeout(() => { window.location.href = "index.html"; }, 1000);
+                setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
             } catch (error) {
                 if (error.code === 'auth/email-already-in-use') {
                     emitInlineFeedback("Este e-mail já está cadastrado.", "error");
