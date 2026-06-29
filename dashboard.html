@@ -3,117 +3,277 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideDigital | Premium Command Center</title>
+    <title>VideDigital | Premium Enterprise Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass-sidebar { background: rgba(8, 8, 11, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255, 255, 255, 0.03); }
-        .glass-card { background: rgba(13, 13, 18, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.04); }
-        .glass-input { background: rgba(5, 5, 8, 0.8); border: 1px solid rgba(255, 255, 255, 0.06); transition: all 0.2s ease-in-out; }
-        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 15px rgba(0, 242, 254, 0.15); }
-        .glow-button { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); transition: all 0.3s ease; }
-        .glow-button:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0, 242, 254, 0.3); }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 6px; }
-        ::-webkit-scrollbar-track { background: #030712; }
-        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+        .glass-sidebar { background: rgba(8, 8, 12, 0.7); backdrop-filter: blur(32px); border-right: 1px solid rgba(255, 255, 255, 0.02); }
+        .glass-card { background: rgba(13, 13, 22, 0.4); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .glass-card:hover { border-color: rgba(0, 242, 254, 0.2); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }
+        .glass-input { background: rgba(6, 6, 10, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
+        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.1); }
+        .neon-glow { text-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
+        .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #00f2fe; }
+        .view-section { display: none; }
+        .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="h-full text-gray-200 bg-[#030712] flex overflow-hidden">
+<body class="h-full text-gray-200 bg-[#030712] flex">
 
-    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+    <!-- NOTIFICAÇÕES PREMIUM TOAST -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
 
-    <aside class="w-68 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0 z-40">
-        <div class="space-y-7">
+    <!-- SIDEBAR FIXA -->
+    <aside class="w-72 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0 z-40">
+        <div class="space-y-8">
+            <!-- Brand Hub -->
             <div class="flex items-center gap-3 px-2">
-                <div class="h-6 w-6 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_15px_rgba(0,242,254,0.3)]">
-                    <span class="text-black font-black text-xs">V</span>
+                <div class="h-7 w-7 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
+                    <span class="text-black font-extrabold text-xs">V</span>
                 </div>
-                <h2 class="text-lg font-extrabold tracking-tight text-white">Vide<span class="text-[#00f2fe] bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Digital</span></h2>
+                <h2 class="text-lg font-black tracking-tight text-white">Minha<span class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Vitrine</span></h2>
             </div>
 
-            <nav class="space-y-1">
-                <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border border-white/5 rounded-xl transition-all">
-                    <span class="text-base">📊</span> Visão Geral
-                </a>
-                <a href="leads.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
-                    <span class="text-base">👥</span> Leads (Capturas)
-                </a>
-                <a href="tracking.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
-                    <span class="text-base">⚙️</span> Domínio / Pixel
-                </a>
-                <a href="perfil.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
-                    <span class="text-base">👤</span> Perfil
-                </a>
+            <!-- Navegacão SPA Sem Reloads -->
+            <nav class="space-y-1.5" id="sidebar-nav">
+                <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left">
+                    <span>📊</span> Dashboard
+                </button>
+                <button data-target="view-perfil" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
+                    <span>👤</span> Perfil / Aparência
+                </button>
+                <button data-target="view-dominios" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
+                    <span>🌐</span> Domínio / Pixel / Tag
+                </button>
+                <button data-target="view-leads" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
+                    <span>👥</span> Leads (Capturas)
+                </button>
             </nav>
 
             <div class="h-[1px] bg-white/5 mx-2"></div>
 
+            <!-- Atalho da Loja -->
             <div class="space-y-3 px-1">
-                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1.5 p-3 bg-white/[0.02] border border-white/5 hover:border-[#00f2fe]/30 rounded-xl transition-all group">
+                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1.5 p-3.5 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-[#00f2fe]/40 rounded-2xl transition-all group">
                     <div class="flex items-center justify-between w-full">
-                        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-[#00f2fe] transition-colors">Visão do Cliente</span>
-                        <span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] shadow-[0_0_8px_#00f2fe]"></span>
+                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-[#00f2fe] transition-colors">Visualizar Minha Loja</span>
+                        <span class="h-2 w-2 rounded-full bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]"></span>
                     </div>
-                    <span class="text-xs text-white font-medium truncate max-w-full" id="url-loja-preview">Buscando vitrine...</span>
+                    <span class="text-xs text-white font-medium truncate max-w-full" id="url-loja-preview">Carregando endereço...</span>
                 </a>
-
-                <div class="bg-[#09090f]/90 border border-white/5 p-3.5 rounded-xl space-y-2.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Endereço da sua Loja</label>
-                    <div class="relative flex items-center">
-                        <input type="text" id="input-slug-loja" class="w-full bg-[#030712] border border-white/10 rounded-lg py-2 pl-3 pr-10 text-xs text-white placeholder-gray-700 outline-none focus:border-[#00f2fe] transition-all" placeholder="nome-da-loja">
-                        <button id="btn-salvar-url" class="absolute right-1.5 bg-white hover:bg-gray-200 text-black font-bold p-1.5 rounded-md transition-all shadow-md" title="Salvar Endereço">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" documentation="M5 13l4 4L19 7" d="M5 13l4 4L19 7"/></svg>
-                        </button>
-                    </div>
-                </div>
             </div>
         </div>
 
         <div class="px-2">
             <button id="btn-logout" class="flex items-center gap-3 py-3 text-sm font-medium text-gray-500 hover:text-red-400 transition-colors w-full text-left group">
-                <span class="transition-transform group-hover:translate-x-0.5">🚪</span> Sair da Operação
+                <span class="transition-transform group-hover:translate-x-1">🚪</span> Sair da Conta
             </button>
         </div>
     </aside>
 
-    <main class="flex-1 p-8 lg:p-12 overflow-y-auto z-10 relative">
-        <div class="max-w-6xl mx-auto space-y-10">
-            
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-8">
+    <!-- ÁREA DE CONTEÚDO PRINCIPAL (SCROLL INDEPENDENTE) -->
+    <main class="flex-1 h-full overflow-y-auto p-8 lg:p-12 relative z-10">
+        
+        <!-- SECTION 1: DASHBOARD (PRODUTOS) -->
+        <section id="view-dashboard" class="view-section active space-y-8">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
-                    <h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-white">Seu Ecossistema de Produtos</h1>
-                    <p class="text-gray-400 text-sm mt-1">Desenvolva, gerencie e otimize as ofertas da sua vitrine altamente conversiva.</p>
+                    <h1 class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
+                    <p class="text-gray-400 text-xs mt-1">Bem-vindo de volta, <span class="text-white font-semibold">Vide Digital</span></p>
                 </div>
-                <button id="btn-abrir-criacao" class="glow-button text-black font-bold px-5 py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg shrink-0">
-                    + Adicionar Novo Produto
+                <button id="btn-abrir-criacao" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-extrabold px-6 py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.02] transition-all shrink-0">
+                    + Criar Produto
                 </button>
             </div>
 
-            <div id="produtos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="animate-pulse bg-white/5 h-64 rounded-2xl"></div>
-                <div class="animate-pulse bg-white/5 h-64 rounded-2xl"></div>
-                <div class="animate-pulse bg-white/5 h-64 rounded-2xl"></div>
+            <!-- Sub-filtros baseados no print original -->
+            <div class="flex flex-wrap items-center justify-between gap-4 bg-[#090911] p-2 rounded-xl border border-white/5">
+                <div class="flex gap-1">
+                    <button id="filtro-todos" class="tab-btn active text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">Todos</button>
+                    <button id="filtro-fisicos" class="tab-btn text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">📦 Físicos</button>
+                    <button id="filtro-digitais" class="tab-btn text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">⚡ Digitais</button>
+                </div>
+                <span class="text-xs text-gray-500 font-medium px-3" id="contador-produtos">0 Ativos</span>
             </div>
 
-        </div>
+            <div id="produtos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Cards renderizados dinamicamente via JS -->
+            </div>
+        </section>
+
+        <!-- SECTION 2: PERFIL & APARÊNCIA AVANÇADA -->
+        <section id="view-perfil" class="view-section space-y-8">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Configurações da Vitrine</h1>
+                <p class="text-gray-400 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Coluna da Esquerda (Formulários) -->
+                <div class="lg:col-span-2 space-y-6">
+                    <!-- Identidade -->
+                    <div class="glass-card p-6 rounded-2xl space-y-5">
+                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3 flex items-center gap-2"><span>🏪</span> Identidade Primária</h3>
+                        
+                        <div class="flex items-center gap-5 bg-white/[0.01] p-4 rounded-xl border border-white/5">
+                            <div class="relative h-20 w-20 rounded-full border border-white/10 overflow-hidden bg-black flex items-center justify-center group">
+                                <img id="preview-foto-perfil" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%23111'/></svg>" class="h-full w-full object-cover">
+                                <label class="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-bold text-[#00f2fe]">MUDAR</label>
+                                <input type="file" id="input-foto-perfil" accept="image/*" class="hidden">
+                            </div>
+                            <div>
+                                <h4 class="text-sm font-bold text-white">Logomarca / Foto de Perfil</h4>
+                                <p class="text-xs text-gray-400 mt-1">Formatos suportados: PNG, JPG ou WebP. Dimensões sugeridas: 500x500px.</p>
+                                <input type="hidden" id="perfil-foto-base64">
+                            </div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Público da Loja</label>
+                                    <input type="text" id="perf-nome-loja" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Vide Digital">
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Slug Personalizado (Seu Link)</label>
+                                    <input type="text" id="perf-slug" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="ex: videdigital">
+                                </div>
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título Principal (Hero)</label>
+                                <input type="text" id="perf-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Bem-vindo à Loja...">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo da Vitrine</label>
+                                <textarea id="perf-subtitulo" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none resize-none" placeholder="Ex: Encontre as melhores ofertas selecionadas..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Redes Sociais e Contatos -->
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">📱 Conexões e Redes Sociais</h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp Central (Com DDD)</label>
+                                <input type="text" id="perf-social-whatsapp" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: 11992960466">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Instagram (Username sem @)</label>
+                                <input type="text" id="perf-social-instagram" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: academyvide">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">TikTok (Username)</label>
+                                <input type="text" id="perf-social-tiktok" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: vlz__in">
+                            </div>
+                            <div class="space-y-1.5">
+                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">YouTube Canal (URL completa)</label>
+                                <input type="text" id="perf-social-youtube" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: youtube.com/@canal">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Links Adicionais Opcionais -->
+                    <div class="glass-card p-6 rounded-2xl space-y-4">
+                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🔗 Links Adicionais de Suporte <span class="text-gray-500 font-normal">(Opcionais)</span></h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <!-- Link 1 -->
+                            <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2">
+                                <span class="text-[10px] font-bold text-[#00f2fe]">LINK EXTRA 1</span>
+                                <input type="text" id="perf-link1-titulo" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="Título (Ex: Grupo VIP)">
+                                <input type="url" id="perf-link1-url" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="URL de Destino">
+                            </div>
+                            <!-- Link 2 -->
+                            <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2">
+                                <span class="text-[10px] font-bold text-[#00f2fe]">LINK EXTRA 2</span>
+                                <input type="text" id="perf-link2-titulo" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="Título (Ex: Suporte Mentoria)">
+                                <input type="url" id="perf-link2-url" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="URL de Destino">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Coluna da Direita (Customização Estética de Cores / Temas) -->
+                <div class="space-y-6">
+                    <div class="glass-card p-6 rounded-2xl space-y-5 sticky top-6">
+                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🎨 Aparência Avançada</h3>
+                        
+                        <!-- Opção de Organização de Abas Prontas -->
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
+                            <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+                                <option value="fisicos">Mostrar Produtos Físicos Primeiro</option>
+                                <option value="digitais">Mostrar Produtos Digitais Primeiro</option>
+                            </select>
+                        </div>
+
+                        <!-- Paleta de Cores Dinâmicas -->
+                        <div class="space-y-3 pt-2">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Paleta de Cores Customizada</label>
+                            
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Tom de Destaque (Brand)</span>
+                                <input type="color" id="perf-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
+                            </div>
+
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Fundo da Vitrine</span>
+                                <input type="color" id="perf-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
+                            </div>
+
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Cor do Card do Produto</span>
+                                <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
+                            </div>
+                        </div>
+
+                        <button id="btn-salvar-perfil" class="w-full bg-white hover:bg-gray-200 text-black text-xs uppercase tracking-widest font-black py-4 rounded-xl transition-all shadow-xl">
+                            Salvar Alterações
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- SECTION 3: DOMÍNIOS / PIXEL / TAG -->
+        <section id="view-dominios" class="view-section space-y-6">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Domínio & Rastreamento</h1>
+                <p class="text-gray-400 text-xs mt-1">Configure pixels do Meta Ads, Google Analytics e TikTok para otimizar suas campanhas de tráfego pago.</p>
+            </div>
+            <div class="glass-card p-6 rounded-2xl max-w-2xl text-center py-12 text-gray-400 text-xs">
+                ⚙️ Módulo de Tags em sincronização com o banco. Insira suas chaves de tracking de maneira centralizada nas próximas atualizações.
+            </div>
+        </section>
+
+        <!-- SECTION 4: LEADS CAPTURAS -->
+        <section id="view-leads" class="view-section space-y-6">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Métricas de Leads</h1>
+                <p class="text-gray-400 text-xs mt-1">Monitore em tempo real as intenções de clique e capturas de WhatsApp da sua vitrine.</p>
+            </div>
+            <div class="glass-card p-6 rounded-2xl max-w-2xl text-center py-12 text-gray-400 text-xs">
+                👥 Lista de contatos integrados em processamento automático.
+            </div>
+        </section>
     </main>
 
+    <!-- MODAL DE CADASTRO/EDIÇÃO DE PRODUTO -->
     <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-2xl p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl border border-white/10">
-            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light transition-colors">&times;</button>
+        <div class="glass-card w-full max-w-2xl p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
+            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
             
-            <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-1">Configurar Oferta do Produto</h3>
-            <p class="text-xs text-gray-400 mb-6">Preencha os dados estratégicos abaixo para renderizar seu produto automaticamente.</p>
+            <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-6">Configurar Oferta do Produto</h3>
             
             <form id="produto-form" class="space-y-5">
                 <input type="hidden" id="form-id-produto">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Comercial</label>
-                        <input type="text" id="prod-nome" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: Método Barbearia do Zero ao Pro">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Produto / Oferta</label>
+                        <input type="text" id="prod-nome" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: Pulverizador Snow Foam">
                     </div>
                     <div class="space-y-1.5">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço de Venda (R$)</label>
@@ -121,79 +281,82 @@
                     </div>
                 </div>
 
+                <!-- Novos campos profissionais baseados nos inputs avançados opcionais -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/[0.01] p-4 rounded-xl border border-white/5">
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">Preço Riscado (De) <span class="text-gray-500 font-normal">(Opcional)</span></label>
-                        <input type="number" step="0.01" id="prod-preco-de" class="w-full glass-input rounded-xl p-2.5 text-white placeholder-gray-700 outline-none text-xs" placeholder="Ex: 297.00">
+                        <label class="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">Preço Riscado (De) <span class="text-gray-600 font-normal">(Opcional)</span></label>
+                        <input type="number" step="0.01" id="prod-preco-de" class="w-full glass-input rounded-xl p-2.5 text-xs text-white placeholder-gray-700 outline-none" placeholder="Ex: 197.00">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Aviso de Vagas <span class="text-gray-500 font-normal">(Opcional)</span></label>
-                        <input type="text" id="prod-vagas-tag" class="w-full glass-input rounded-xl p-2.5 text-white placeholder-gray-700 outline-none text-xs" placeholder="Ex: Apenas 4 vagas restantes">
+                        <label class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Urgência Vagas <span class="text-gray-600 font-normal">(Opcional)</span></label>
+                        <input type="text" id="prod-vagas-tag" class="w-full glass-input rounded-xl p-2.5 text-xs text-white placeholder-gray-700 outline-none" placeholder="Ex: Restam 5 unidades">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">Badge Customizada <span class="text-gray-500 font-normal">(Opcional)</span></label>
-                        <input type="text" id="prod-badge-custom" class="w-full glass-input rounded-xl p-2.5 text-white placeholder-gray-700 outline-none text-xs" placeholder="Ex: Campeão de Vendas">
+                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">Selo / Badge <span class="text-gray-600 font-normal">(Opcional)</span></label>
+                        <input type="text" id="prod-badge-custom" class="w-full glass-input rounded-xl p-2.5 text-xs text-white placeholder-gray-700 outline-none" placeholder="Ex: Mais Vendido">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tipo de Produto</label>
-                        <select id="prod-tipo" class="w-full glass-input rounded-xl p-3 text-white outline-none text-sm">
-                            <option value="digital">Digital (Curso / Infoproduto / E-book)</option>
-                            <option value="fisico">Físico (Suplementos / Equipamentos)</option>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Formato logístico do Produto</label>
+                        <select id="prod-tipo" class="w-full glass-input rounded-xl p-3 text-white text-sm outline-none">
+                            <option value="fisico">📦 Produto Físico</option>
+                            <option value="digital">⚡ Infoproduto / Curso Digital</option>
                         </select>
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho / Mercado</label>
-                        <select id="prod-subnicho" class="w-full glass-input rounded-xl p-3 text-white outline-none text-sm">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho de Mercado</label>
+                        <select id="prod-subnicho" class="w-full glass-input rounded-xl p-3 text-white text-sm outline-none">
+                            <option value="Automotivo">Automotivo</option>
+                            <option value="Utilidades">Utilidades Domésticas</option>
                             <option value="Confeitaria">Confeitaria</option>
                             <option value="Barbearia">Barbearia</option>
-                            <option value="Estética e Unhas">Estética e Unhas</option>
-                            <option value="Pintura e Artesanato">Pintura e Artesanato</option>
-                            <option value="Outro">Outro</option>
+                            <option value="Estética">Estética e Beleza</option>
+                            <option value="Outro">Outros Nichos</option>
                         </select>
                     </div>
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mídia do Produto (Imagem de Capa)</label>
-                    <input type="file" id="prod-imagem-file" accept="image/*" class="w-full glass-input rounded-xl p-2.5 text-gray-400 text-xs outline-none">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Carregar Foto do Produto</label>
+                    <input type="file" id="prod-imagem-file" accept="image/*" class="w-full glass-input rounded-xl p-2.5 text-xs text-gray-400 outline-none">
                     <input type="hidden" id="prod-imagem-base64">
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Destino da Conversão</label>
-                    <div class="grid grid-cols-2 gap-2 bg-[#09090b] p-1 rounded-xl border border-white/5">
-                        <button type="button" id="tab-checkout" class="py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all tab-active bg-white/10 text-white">Link de Checkout</button>
-                        <button type="button" id="tab-whatsapp" class="py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all">Direct WhatsApp</button>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Estratégia de Destino</label>
+                    <div class="grid grid-cols-2 gap-2 bg-[#09090f] p-1 rounded-xl border border-white/5">
+                        <button type="button" id="tab-checkout" class="py-2.5 text-xs font-semibold rounded-lg text-white bg-white/10 transition-all">Link de Checkout</button>
+                        <button type="button" id="tab-whatsapp" class="py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all">WhatsApp Direct</button>
                     </div>
                 </div>
 
                 <div id="wrapper-checkout" class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link Seguro da sua Hotmart/Kiwify</label>
-                    <input type="url" id="prod-checkout" class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="https://pay.kiwify.com.br/...">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL de Checkout Seguro (Kiwify, Hotmart, etc.)</label>
+                    <input type="url" id="prod-checkout" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none" placeholder="https://pay.kiwify.com.br/...">
                 </div>
 
                 <div id="wrapper-whatsapp" class="space-y-1.5 hidden">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp para fechamento (Com DDD, apenas números)</label>
-                    <input type="text" id="prod-whatsapp" class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: 11999999999" maxlength="11">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp para Fechamento de Venda (Com DDD, apenas números)</label>
+                    <input type="text" id="prod-whatsapp" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none" placeholder="Ex: 11992960466" maxlength="11">
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Apresentação / Descrição Comercial</label>
-                    <textarea id="prod-descricao" rows="3" class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm resize-none" placeholder="Insira os principais diferenciais da oferta..."></textarea>
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Copywriting de Oferta (Descrição Comercial)</label>
+                    <textarea id="prod-descricao" rows="3" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none resize-none" placeholder="Insira os principais benefícios do produto..."></textarea>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-5 border-t border-white/5">
-                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-500/10 hover:bg-red-500/20 text-red-400 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all mr-auto">Excluir Produto</button>
+                <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-500/10 hover:bg-red-500/20 text-red-400 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all mr-auto">Remover Produto</button>
                     <button type="button" id="modal-cancelar" class="bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
-                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-200 text-black font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Estrutura</button>
+                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-100 text-black font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Produto</button>
                 </div>
             </form>
         </div>
     </div>
 
+    <!-- NÚCLEO LÓGICO DE ARQUITETURA SPA E FIREBASE -->
     <script type="module">
         import { auth, db } from "./firebase-init.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
@@ -201,6 +364,7 @@
 
         let usuarioEmail = "";
         let tipoDestino = "checkout";
+        let filtroLogistico = "todos";
 
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
@@ -218,27 +382,37 @@
         const inputImagemFile = document.getElementById("prod-imagem-file");
         const inputImagemBase64 = document.getElementById("prod-imagem-base64");
 
-        const inputSlugLoja = document.getElementById("input-slug-loja");
-        const btnSalvarUrl = document.getElementById("btn-salvar-url");
+        // GESTOR DE ABAS SPA REATIVAS
+        document.querySelectorAll("#sidebar-nav button").forEach(button => {
+            button.addEventListener("click", () => {
+                document.querySelectorAll("#sidebar-nav button").forEach(b => {
+                    b.className = "nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left";
+                });
+                button.className = "nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left";
+                
+                const targetId = button.getAttribute("data-target");
+                document.querySelectorAll(".view-section").forEach(section => section.classList.remove("active"));
+                document.getElementById(targetId).classList.add("active");
+            });
+        });
 
-        // CUSTOM LIVE TOAST COMPONENT
+        // TOAST ENGINE DE ALTA PERFORMANCE
         function showToast(message, type = "success") {
             const container = document.getElementById("toast-container");
             const toast = document.createElement("div");
             toast.className = `p-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-3 backdrop-blur-md transform translate-x-10 opacity-0 transition-all duration-300 pointer-events-auto ${
-                type === 'success' ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/20' : 'bg-red-950/80 text-red-400 border-red-500/20'
+                type === 'success' ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/20' : 'bg-red-950/90 text-red-400 border-red-500/20'
             }`;
             toast.innerHTML = `<span>${type === 'success' ? '✨' : '⚠️'}</span> <span>${message}</span>`;
             container.appendChild(toast);
-            
-            setTimeout(() => { toast.classList.remove("translate-x-10", "opacity-0"); }, 10);
+            setTimeout(() => toast.classList.remove("translate-x-10", "opacity-0"), 10);
             setTimeout(() => {
                 toast.classList.add("translate-x-10", "opacity-0");
                 setTimeout(() => toast.remove(), 300);
-            }, 3500);
+            }, 3000);
         }
 
-        // BASE64 HANDLER FOR FILE ASSETS
+        // CONTROLADOR DE INPUTS DE MÍDIA
         inputImagemFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -248,7 +422,17 @@
             }
         });
 
-        inputWhatsapp.addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
+        document.getElementById("input-foto-perfil").addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onloadend = () => {
+                    document.getElementById("preview-foto-perfil").src = reader.result;
+                    document.getElementById("perfil-foto-base64").value = reader.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
 
         tabCheckout.addEventListener("click", () => alternarDestino("checkout"));
         tabWhatsapp.addEventListener("click", () => alternarDestino("whatsapp"));
@@ -256,14 +440,14 @@
         function alternarDestino(destino) {
             tipoDestino = destino;
             if(destino === "checkout") {
-                tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg bg-white/10 text-white transition-all";
+                tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg text-white bg-white/10 transition-all";
                 tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all";
                 wrapperCheckout.classList.remove("hidden");
                 wrapperWhatsapp.classList.add("hidden");
                 inputCheckout.required = true;
                 inputWhatsapp.required = false;
             } else {
-                tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg bg-white/10 text-white transition-all";
+                tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg text-white bg-white/10 transition-all";
                 tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all";
                 wrapperWhatsapp.classList.remove("hidden");
                 wrapperCheckout.classList.add("hidden");
@@ -272,7 +456,7 @@
             }
         }
 
-        // SECURITY MONITOR & PATH SYNCHRONIZATION
+        // SEGURANÇA E MAPEAÇÃO DOS DADOS DO USUÁRIO
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 usuarioEmail = user.email.toLowerCase();
@@ -280,12 +464,31 @@
                 const userSnap = await getDoc(doc(db, "usuarios", usuarioEmail));
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
-                    const slugAtual = dados.urlLoja || "vitrine";
-                    inputSlugLoja.value = slugAtual;
+                    
+                    document.getElementById("perf-nome-loja").value = dados.nomeLoja || "";
+                    document.getElementById("perf-slug").value = dados.urlLoja || "";
+                    document.getElementById("perf-titulo").value = dados.tituloHero || "";
+                    document.getElementById("perf-subtitulo").value = dados.subtituloHero || "";
+                    document.getElementById("perf-social-whatsapp").value = dados.whatsappCentral || "";
+                    document.getElementById("perf-social-instagram").value = dados.instagramUser || "";
+                    document.getElementById("perf-social-tiktok").value = dados.tiktokUser || "";
+                    document.getElementById("perf-social-youtube").value = dados.youtubeUrl || "";
+                    document.getElementById("perf-link1-titulo").value = dados.link1Titulo || "";
+                    document.getElementById("perf-link1-url").value = dados.link1Url || "";
+                    document.getElementById("perf-link2-titulo").value = dados.link2Titulo || "";
+                    document.getElementById("perf-link2-url").value = dados.link2Url || "";
+                    document.getElementById("perf-aba-padrao").value = dados.abaPadrao || "fisicos";
+                    document.getElementById("perf-cor-destaque").value = dados.corDestaque || "#00f2fe";
+                    document.getElementById("perf-cor-fundo").value = dados.corFundo || "#030712";
+                    document.getElementById("perf-cor-card").value = dados.corCard || "#0c0c14";
+                    
+                    if (dados.fotoPerfilB64) {
+                        document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
+                        document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
+                    }
 
-                    // Criando rota resiliente a ambientes GitHub Pages
-                    const linkCompleto = `loja.html?loja=${slugAtual}`;
-                    document.getElementById("link-minha-loja").href = linkCompleto;
+                    const slugAtual = dados.urlLoja || "vitrine";
+                    document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtual}`;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
                 }
                 carregarProdutos();
@@ -294,69 +497,105 @@
             }
         });
 
-        // PERSISTENCE FOR VITRINE ENDPOINT
-        btnSalvarUrl.addEventListener("click", async () => {
-            const novaUrl = inputSlugLoja.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-            if(!novaUrl) return showToast("Digite um slug válido para a URL.", "error");
+        // PERSISTIR DADOS DE APARÊNCIA E CONFIGURAÇÃO DO PERFIL
+        document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
+            const novoSlug = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+            if (!novoSlug) return showToast("Slug inválido.", "error");
 
             try {
-                await updateDoc(doc(db, "usuarios", usuarioEmail), { urlLoja: novaUrl });
-                
-                const linkCompleto = `loja.html?loja=${novaUrl}`;
-                document.getElementById("link-minha-loja").href = linkCompleto;
-                document.getElementById("url-loja-preview").innerText = `vide.digital/${novaUrl}`;
-                
-                showToast("Endereço da vitrine atualizado com sucesso!");
+                const payloadPerfil = {
+                    nomeLoja: document.getElementById("perf-nome-loja").value.trim(),
+                    urlLoja: novoSlug,
+                    tituloHero: document.getElementById("perf-titulo").value.trim(),
+                    subtituloHero: document.getElementById("perf-subtitulo").value.trim(),
+                    whatsappCentral: document.getElementById("perf-social-whatsapp").value.trim(),
+                    instagramUser: document.getElementById("perf-social-instagram").value.trim(),
+                    tiktokUser: document.getElementById("perf-social-tiktok").value.trim(),
+                    youtubeUrl: document.getElementById("perf-social-youtube").value.trim(),
+                    link1Titulo: document.getElementById("perf-link1-titulo").value.trim(),
+                    link1Url: document.getElementById("perf-link1-url").value.trim(),
+                    link2Titulo: document.getElementById("perf-link2-titulo").value.trim(),
+                    link2Url: document.getElementById("perf-link2-url").value.trim(),
+                    abaPadrao: document.getElementById("perf-aba-padrao").value,
+                    corDestaque: document.getElementById("perf-cor-destaque").value,
+                    corFundo: document.getElementById("perf-cor-fundo").value,
+                    corCard: document.getElementById("perf-cor-card").value,
+                    fotoPerfilB64: document.getElementById("perfil-foto-base64").value
+                };
+
+                await updateDoc(doc(db, "usuarios", usuarioEmail), payloadPerfil);
+                document.getElementById("link-minha-loja").href = `loja.html?loja=${novoSlug}`;
+                document.getElementById("url-loja-preview").innerText = `vide.digital/${novoSlug}`;
+                showToast("Layout e configurações atualizados com sucesso!");
             } catch (err) {
                 console.error(err);
-                showToast("Erro ao processar alteração da rota.", "error");
+                showToast("Erro ao salvar perfil.", "error");
             }
         });
 
-        // DYNAMIC RENDERING CAPABILITY (IMAGEM AGORA FICA VISÍVEL NO CARD)
+        // FILTROS DE PRODUTOS DINÂMICOS
+        document.getElementById("filtro-todos").addEventListener("click", () => aplicarFiltro("todos", "filtro-todos"));
+        document.getElementById("filtro-fisicos").addEventListener("click", () => aplicarFiltro("fisico", "filtro-fisicos"));
+        document.getElementById("filtro-digitais").addEventListener("click", () => aplicarFiltro("digital", "filtro-digitais"));
+
+        function aplicarFiltro(tipo, elementId) {
+            filtroLogistico = tipo;
+            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
+            document.getElementById(elementId).classList.add("active");
+            carregarProdutos();
+        }
+
+        // RENDERIZADOR DOS CARDS COM FOTO EXIBIDA EM TEMPO REAL
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
             try {
                 const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioEmail));
                 const querySnapshot = await getDocs(q);
 
-                if (querySnapshot.empty) {
+                let produtosFiltrados = [];
+                querySnapshot.forEach(docSnap => {
+                    const data = docSnap.data();
+                    data.id = docSnap.id;
+                    if (filtroLogistico === "todos" || data.tipo === filtroLogistico) {
+                        produtosFiltrados.push(data);
+                    }
+                });
+
+                document.getElementById("contador-produtos").innerText = `${produtosFiltrados.length} Ativo(s)`;
+
+                if (produtosFiltrados.length === 0) {
                     produtosContainer.innerHTML = `
                         <div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl">
-                            <p class="text-gray-500 text-sm">Nenhum produto cadastrado na sua vitrine ainda.</p>
+                            <p class="text-gray-500 text-xs">Nenhum produto encontrado nesta categoria.</p>
                         </div>`;
                     return;
                 }
 
-                querySnapshot.forEach((docSnap) => {
-                    const prod = docSnap.data();
-                    const id = docSnap.id;
+                produtosFiltrados.forEach((prod) => {
                     const precoFormatado = parseFloat(prod.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    
-                    // Fallback se não possuir foto cadastrada
-                    const imagemSrc = prod.imagemB64 ? prod.imagemB64 : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%230c0c12"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23222" font-size="12">Sem Imagem</text></svg>';
+                    const imagemSrc = prod.imagemB64 ? prod.imagemB64 : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%2309090f"/></svg>';
 
                     const card = document.createElement("div");
-                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 hover:border-white/10 transition-all group";
+                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 relative group";
                     card.innerHTML = `
-                        <div class="relative h-44 w-full bg-[#07070b] overflow-hidden border-b border-white/5 flex items-center justify-center">
+                        <div class="relative h-44 w-full bg-black/50 overflow-hidden flex items-center justify-center border-b border-white/5">
                             <img src="${imagemSrc}" alt="${prod.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
                             <div class="absolute top-3 left-3 flex flex-wrap gap-1">
-                                <span class="text-[9px] font-bold text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 px-2.5 py-0.5 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
-                                ${prod.badgeCustom ? `<span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-md uppercase tracking-wider">${prod.badgeCustom}</span>` : ''}
+                                <span class="text-[9px] font-bold text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 px-2 py-0.5 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
+                                ${prod.badgeCustom ? `<span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2 py-0.5 rounded-md uppercase tracking-wider">${prod.badgeCustom}</span>` : ''}
                             </div>
                         </div>
-                        <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
                             <div>
-                                <h4 class="text-base font-bold text-white tracking-tight truncate">${prod.nome}</h4>
-                                <p class="text-xs text-gray-400 mt-1.5 line-clamp-2">${prod.descricao || 'Sem descrição inserida.'}</p>
+                                <h4 class="text-sm font-bold text-white tracking-tight truncate">${prod.nome}</h4>
+                                <p class="text-[11px] text-gray-500 mt-1.5 line-clamp-2">${prod.descricao || 'Sem descrição cadastrada.'}</p>
                             </div>
                             <div>
                                 <div class="flex items-baseline gap-2">
-                                    <p class="text-xl font-extrabold text-white">${precoFormatado}</p>
+                                    <p class="text-lg font-extrabold text-white">${precoFormatado}</p>
                                     ${prod.precoDe ? `<p class="text-xs text-gray-600 line-through">R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : ''}
                                 </div>
-                                <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 border border-white/5 text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition-all mt-4" data-id="${id}">
+                                <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 border border-white/5 text-white text-[11px] font-bold uppercase tracking-wider py-3 rounded-xl transition-all mt-3" data-id="${prod.id}">
                                     Gerenciar Oferta
                                 </button>
                             </div>
@@ -371,7 +610,7 @@
 
             } catch (err) {
                 console.error(err);
-                showToast("Erro crítico ao obter banco de produtos.", "error");
+                showToast("Erro ao obter lista de produtos.", "error");
             }
         }
 
@@ -380,7 +619,7 @@
             document.getElementById("form-id-produto").value = "";
             inputImagemBase64.value = "";
             alternarDestino("checkout");
-            modalTitulo.innerText = "Cadastrar Novo Produto";
+            modalTitulo.innerText = "Criar Novo Produto";
             btnDeletar.classList.add("hidden");
             modal.classList.remove("hidden");
         });
@@ -396,7 +635,7 @@
                     document.getElementById("prod-preco-de").value = data.precoDe || "";
                     document.getElementById("prod-vagas-tag").value = data.vagasTag || "";
                     document.getElementById("prod-badge-custom").value = data.badgeCustom || "";
-                    document.getElementById("prod-tipo").value = data.tipo || "digital";
+                    document.getElementById("prod-tipo").value = data.tipo || "fisico";
                     document.getElementById("prod-subnicho").value = data.subnicho || "Outro";
                     document.getElementById("prod-descricao").value = data.descricao || "";
                     inputImagemBase64.value = data.imagemB64 || "";
@@ -444,7 +683,7 @@
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
                 modal.classList.add("hidden");
                 carregarProdutos();
-                showToast(id ? "Oferta modificada com sucesso!" : "Novo produto integrado ao banco!");
+                showToast(id ? "Produto editado com sucesso!" : "Novo produto cadastrado!");
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao salvar produto.", "error");
@@ -453,12 +692,12 @@
 
         btnDeletar.addEventListener("click", async () => {
             const id = document.getElementById("form-id-produto").value;
-            if (id && confirm("Deseja remover esta oferta definitivamente?")) {
+            if (id && confirm("Deseja remover este produto?")) {
                 try {
                     await deleteDoc(doc(db, "produtos", id));
                     modal.classList.add("hidden");
                     carregarProdutos();
-                    showToast("Produto deletado do sistema.");
+                    showToast("Produto excluído do catálogo.");
                 } catch(err) {
                     console.error(err);
                 }
