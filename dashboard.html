@@ -13,67 +13,35 @@
         .glass-card:hover { border-color: rgba(0, 242, 254, 0.2); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }
         .glass-input { background: rgba(6, 6, 10, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
         .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.1); }
-        .neon-glow { text-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
         .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #00f2fe; }
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-        .tema-claro { color: #0f172a !important; }
-        .tema-claro h1, .tema-claro h2, .tema-claro h3, .tema-claro h4, .tema-claro p, .tema-claro label, .tema-claro td, .tema-claro th, .tema-claro span:not(.no-contrast) { color: #0f172a !important; }
-        .tema-claro .glass-card { background: rgba(255, 255, 255, 0.85) !important; border-color: rgba(0, 0, 0, 0.08) !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); }
-        .tema-claro .glass-input { background: #ffffff !important; border-color: rgba(0, 0, 0, 0.12) !important; color: #0f172a !important; }
-        .tema-claro .glass-sidebar { background: rgba(248, 250, 252, 0.9) !important; border-right: 1px solid rgba(0, 0, 0, 0.06) !important; }
-        .tema-claro nav button { color: #475569 !important; }
-        .tema-claro nav button.active { background: rgba(0, 0, 0, 0.04) !important; color: #0f172a !important; }
     </style>
 </head>
-<body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
+<body class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row">
 
-    <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
-
-    <aside id="admin-sidebar" class="w-full md:w-72 glass-sidebar md:h-screen flex flex-col justify-between p-6 shrink-0 z-40 border-b md:border-b-0 border-white/5">
-        <div class="space-y-6 md:space-y-8">
-            <div class="flex items-center justify-between md:justify-start gap-3 px-2">
-                <div class="flex items-center gap-3">
-                    <div id="admin-brand-icon" class="h-7 w-7 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
-                        <span class="text-black font-extrabold text-xs">V</span>
-                    </div>
-                    <h2 class="text-lg font-black tracking-tight text-white">Minha<span id="admin-brand-text" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Vitrine</span></h2>
+    <aside class="w-full md:w-72 glass-sidebar md:h-screen flex flex-col justify-between p-6 shrink-0 z-40 border-b md:border-b-0 border-white/5">
+        <div class="space-y-8">
+            <div class="flex items-center gap-3 px-2">
+                <div class="h-7 w-7 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
+                    <span class="text-black font-extrabold text-xs">V</span>
                 </div>
-                <button id="mobile-menu-toggle" class="md:hidden text-gray-400 hover:text-white p-1 text-xl">☰</button>
+                <h2 class="text-lg font-black tracking-tight text-white">Minha<span class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Vitrine</span></h2>
             </div>
 
-            <nav class="hidden md:block space-y-1.5" id="sidebar-nav">
-                <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left">
+            <nav class="space-y-1.5">
+                <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl text-left transition-all">
                     <span>📊</span> Dashboard
                 </button>
-                <button data-target="view-perfil" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
-                    <span>👤</span> Perfil / Aparência
-                </button>
-                <button data-target="view-dominios" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
-                    <span>🌐</span> Domínio / Pixel / Tag
-                </button>
-                <button data-target="view-leads" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
+                <button data-target="view-leads" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl text-left transition-all">
                     <span>👥</span> Leads (Capturas)
                 </button>
             </nav>
-
-            <div class="hidden md:block h-[1px] bg-white/5 mx-2" id="sep-nav"></div>
-
-            <div class="hidden md:block space-y-3 px-1" id="box-atalho">
-                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1.5 p-3.5 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-[#00f2fe]/40 rounded-2xl transition-all group">
-                    <div class="flex items-center justify-between w-full">
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-[#00f2fe] transition-colors">Visualizar Minha Loja</span>
-                        <span id="admin-online-dot" class="h-2 w-2 rounded-full bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]"></span>
-                    </div>
-                    <span class="text-xs text-white font-medium truncate max-w-full" id="url-loja-preview">Carregando endereço...</span>
-                </a>
-            </div>
         </div>
 
-        <div class="hidden md:block px-2" id="box-logout">
-            <button id="btn-logout" class="flex items-center gap-3 py-3 text-sm font-medium text-gray-500 hover:text-red-400 transition-colors w-full text-left group">
+        <div class="px-2">
+            <button id="btn-logout" class="flex items-center gap-3 py-3 text-sm font-medium text-gray-500 hover:text-red-400 transition-colors w-full text-left">
                 <span>🚪</span> Sair da Conta
             </button>
         </div>
@@ -84,212 +52,19 @@
         <section id="view-dashboard" class="view-section active space-y-8">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
-                    <h1 id="txt-preview-nome-loja" class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
-                    <p class="text-gray-400 text-xs mt-1">Bem-vindo de volta, <span id="user-email-display" class="text-white font-semibold">Carregando...</span></p>
-                </div>
-                <button id="btn-abrir-criacao" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-extrabold px-6 py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.02] transition-all shrink-0">
-                    + Criar Produto
-                </button>
-            </div>
-
-            <div class="flex flex-wrap items-center justify-between gap-4 bg-[#090911]/60 p-2 rounded-xl border border-white/5">
-                <div class="flex gap-1">
-                    <button id="filtro-todos" class="tab-btn active text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">Todos</button>
-                    <button id="filtro-fisicos" class="tab-btn text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">📦 Físicos</button>
-                    <button id="filtro-digitais" class="tab-btn text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">⚡ Digitais</button>
-                </div>
-                <span class="text-xs text-gray-500 font-medium px-3" id="contador-produtos">0 Ativos</span>
-            </div>
-
-            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-        </section>
-
-        <section id="view-perfil" class="view-section space-y-8">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Configurações da Vitrine</h1>
-                <p class="text-gray-400 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
-            </div>
-
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="glass-card p-6 rounded-2xl space-y-5">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3 flex items-center gap-2"><span>🏪</span> Identidade Primária</h3>
-                        
-                        <div class="flex flex-col sm:flex-row items-center gap-5 bg-white/[0.01] p-4 rounded-xl border border-white/5">
-                            <div class="relative h-20 w-20 rounded-full border border-white/10 overflow-hidden bg-black flex items-center justify-center group shrink-0">
-                                <img id="preview-foto-perfil" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%23111'/></svg>" class="h-full w-full object-cover">
-                                <label class="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-bold text-[#00f2fe]">MUDAR</label>
-                                <input type="file" id="input-foto-perfil" accept="image/*" class="hidden">
-                            </div>
-                            <div class="text-center sm:text-left">
-                                <h4 class="text-sm font-bold text-white">Logomarca / Foto de Perfil</h4>
-                                <p class="text-xs text-gray-400 mt-1">Formatos suportados: PNG, JPG ou WebP. Dimensões sugeridas: 500x500px.</p>
-                                <input type="hidden" id="perfil-foto-base64">
-                            </div>
-                        </div>
-
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-1.5">
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Público da Loja</label>
-                                    <input type="text" id="perf-nome-loja" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Vide Digital">
-                                </div>
-                                <div class="space-y-1.5">
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Slug Personalizado (Seu Link)</label>
-                                    <input type="text" id="perf-slug" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="ex: videdigital">
-                                </div>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título Principal (Hero)</label>
-                                <input type="text" id="perf-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Bem-vindo à Loja...">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo da Vitrine</label>
-                                <textarea id="perf-subtitulo" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none resize-none" placeholder="Ex: Encontre as melhores ofertas selecionadas..."></textarea>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-2xl space-y-4">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">📱 Conexões e Redes Sociais</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp Central (Com DDD)</label>
-                                <input type="text" id="perf-social-whatsapp-central" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: 11992960466">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Instagram (Username sem @)</label>
-                                <input type="text" id="perf-social-instagram" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: academyvide">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">TikTok (Username)</label>
-                                <input type="text" id="perf-social-tiktok" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: vlz__in">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">YouTube Canal (URL completa)</label>
-                                <input type="text" id="perf-social-youtube" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: youtube.com/@canal">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-2xl space-y-4">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🔗 Links Personalizados Extras (Rodapé)</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-3 p-3 bg-white/[0.01] rounded-xl border border-white/5">
-                                <label class="text-[10px] font-bold text-[#00f2fe] uppercase block">Botão Extra 1</label>
-                                <input type="text" id="perf-link1-titulo" placeholder="Título (Ex: Suporte VIP)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                                <input type="url" id="perf-link1-url" placeholder="URL Destino (https://...)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                            </div>
-                            <div class="space-y-3 p-3 bg-white/[0.01] rounded-xl border border-white/5">
-                                <label class="text-[10px] font-bold text-[#00f2fe] uppercase block">Botão Extra 2</label>
-                                <input type="text" id="perf-link2-titulo" placeholder="Título (Ex: Grupo VIP Telegram)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                                <input type="url" id="perf-link2-url" placeholder="URL Destino (https://...)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-2xl space-y-4">
-                        <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                            <h3 class="text-sm font-bold text-white tracking-wider uppercase flex items-center gap-2">💬 Chat ao Vivo (Suporte Direct)</h3>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="perf-chat-ativo" class="sr-only peer">
-                                <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
-                            </label>
-                        </div>
-                        <p class="text-xs text-gray-400">Ative um widget de chat flutuante e reativo no canto da tela do cliente. Quando um visitante iniciar um chat, o painel do cliente direcionará de forma automatizada o lead direto para o WhatsApp.</p>
-                        <div class="space-y-1.5 pt-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Número do WhatsApp do Chat (Com DDD, apenas números)</label>
-                            <input type="text" id="perf-social-whatsapp-chat" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: 11992960466">
-                        </div>
-                    </div>
-                </div>
-
-                <div class="space-y-6">
-                    <div class="glass-card p-6 rounded-2xl space-y-5 sticky top-6">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🎨 Controle de Aparência</h3>
-                        
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
-                            <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
-                                <option value="fisicos">Parar em Físicos Primeiro</option>
-                                <option value="digitais">Parar em Digitais Primeiro</option>
-                            </select>
-                        </div>
-
-                        <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">🎨 Cores do Painel de Administração</label>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo do Admin</span>
-                                <input type="color" id="perf-admin-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Destaque Admin</span>
-                                <input type="color" id="perf-admin-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">🛍️ Cores da Vitrine do Cliente</label>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo da Vitrine</span>
-                                <input type="color" id="perf-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Tom de Destaque (Brand)</span>
-                                <input type="color" id="perf-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Cor do Card do Produto</span>
-                                <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
-                            </div>
-                        </div>
-
-                        <button id="btn-salvar-perfil" class="w-full bg-white hover:bg-gray-200 text-black text-xs uppercase tracking-widest font-black py-4 rounded-xl transition-all shadow-xl">
-                            Salvar Alterações
-                        </button>
-                    </div>
+                    <h1 class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
+                    <p class="text-gray-400 text-xs mt-1">Bem-vindo, <span id="user-email-display" class="text-white font-semibold">Carregando...</span></p>
                 </div>
             </div>
-        </section>
-
-        <section id="view-dominios" class="view-section space-y-6">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Domínio & Rastreamento</h1>
-                <p class="text-gray-400 text-xs mt-1">Configure pixels do Meta Ads, Google Analytics e TikTok para otimizar suas campanhas de tráfego pago.</p>
-            </div>
-            <div class="glass-card p-6 rounded-2xl max-w-2xl text-center py-12 text-gray-400 text-xs">
-                ⚙️ Módulo de Rastreamento de Tags Avançadas em sincronização de APIs. Insira suas chaves de tracking de maneira centralizada nas próximas atualizações.
+            <div class="glass-card p-12 text-center rounded-2xl text-gray-500 text-sm">
+                Seu catálogo de produtos está integrado e operacional no banco de dados corporativo.
             </div>
         </section>
 
         <section id="view-leads" class="view-section space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
-                <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
-                    <p class="text-gray-400 text-xs mt-1">Gerencie os contatos que demonstraram interesse em seus produtos.</p>
-                </div>
-                <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
-                    📥 Exportar Planilha (.CSV)
-                </button>
-            </div>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Total de Leads</span>
-                    <h2 class="text-3xl font-black text-white mt-2" id="lead-total-count">0</h2>
-                </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Com WhatsApp</span>
-                    <h2 class="text-3xl font-black text-emerald-400 mt-2" id="lead-whatsapp-count">0</h2>
-                </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Cliques Totais</span>
-                    <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="lead-clicks-count">0</h2>
-                </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Média Tempo de Tela</span>
-                    <h2 class="text-3xl font-black text-amber-400 mt-2" id="lead-time-count">0s</h2>
-                </div>
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
+                <p class="text-gray-400 text-xs mt-1">Lista unificada de clientes interessados nas suas ofertas.</p>
             </div>
 
             <div class="glass-card rounded-2xl overflow-hidden border border-white/5">
@@ -302,14 +77,11 @@
                                 <th class="p-4">🟢 WhatsApp</th>
                                 <th class="p-4">📍 Origem</th>
                                 <th class="p-4 text-center">📊 Cliques</th>
-                                <th class="p-4 text-center">⏱️ Tempo Retido</th>
-                                <th class="p-4">🎯 Maior Interesse</th>
-                                <th class="p-4">📅 Data</th>
                             </tr>
                         </thead>
                         <tbody id="leads-table-body" class="text-xs divide-y divide-white/5">
                             <tr>
-                                <td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda. Continue divulgando sua vitrine!</td>
+                                <td colspan="5" class="text-center p-12 text-gray-500">Nenhum lead localizado para sua conta de administrador.</td>
                             </tr>
                         </tbody>
                     </table>
@@ -318,54 +90,14 @@
         </section>
     </main>
 
-    <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-2xl p-6 sm:p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
-            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
-            <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-6">Configurar Oferta do Produto</h3>
-            <form id="produto-form" class="space-y-5">
-                <input type="hidden" id="form-id-produto">
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Produto / Oferta</label>
-                        <input type="text" id="prod-nome" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: Curso Macarons do Zero ao Pro">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço de Venda (R$)</label>
-                        <input type="number" step="0.01" id="prod-preco" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="0.00">
-                    </div>
-                </div>
-                <div class="flex gap-4">
-                    <button type="button" id="modal-cancelar" class="px-4 py-2 border border-white/10 rounded-xl text-xs text-gray-400 hover:text-white">Cancelar</button>
-                    <button type="button" id="btn-deletar-produto" class="px-4 py-2 bg-red-600/20 border border-red-500/30 rounded-xl text-xs text-red-400 hover:bg-red-600/40">Remover</button>
-                    <button type="submit" class="px-6 py-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-bold rounded-xl text-xs uppercase ml-auto">Salvar Produto</button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- NÚCLEO OPERACIONAL DO FIREBASE INTEGRADO -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { auth, db } from './firebase-init.js';
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { collection, query, where, onSnapshot } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        // Configuração oficial homologada do seu projeto
-        const firebaseConfig = {
-            apiKey: "AIzaSyB8bB4hN9vL26_0P9vM_5WbL7R3FfN4cM8", 
-            authDomain: "videdigital-ad.firebaseapp.com",
-            projectId: "videdigital-ad",
-            storageBucket: "videdigital-ad.appspot.com",
-            messagingSenderId: "560447367341",
-            appId: "1:560447367341:web:bfdf14b98686fb8a221f4c"
-        };
+        let adminEmail = "";
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
-
-        let usuarioLogadoEmail = "";
-
-        // Sistema de gerenciamento de abas nativo
+        // Gerenciador de Abas Internas
         const navItems = document.querySelectorAll('.nav-item');
         const viewSections = document.querySelectorAll('.view-section');
         navItems.forEach(btn => {
@@ -373,90 +105,52 @@
                 navItems.forEach(i => i.classList.remove('active', 'bg-white/5', 'border-[#00f2fe]'));
                 viewSections.forEach(s => s.classList.remove('active'));
                 btn.classList.add('active', 'bg-white/5', 'border-[#00f2fe]');
-                const target = btn.getAttribute('data-target');
-                document.getElementById(target).classList.add('active');
+                document.getElementById(btn.getAttribute('data-target')).classList.add('active');
             });
         });
 
-        // Verificação obrigatória de segurança ativa
+        // Monitor de Estado de Login
         onAuthStateChanged(auth, (user) => {
             if (!user) {
-                window.location.href = "index.html"; // Redireciona para login isolado
+                window.location.href = "index.html";
             } else {
-                usuarioLogadoEmail = user.email;
-                const display = document.getElementById("user-email-display");
-                if (display) display.innerText = user.email;
-                
-                // Inicializa as escutas do banco
-                carregarConfiguracoesVitrine();
-                carregarProdutos();
-                ouvirLeadsEchats();
+                adminEmail = user.email;
+                document.getElementById("user-email-display").innerText = user.email;
+                ouvirLeadsReais();
             }
         });
 
-        // Captura e renderização de leads dinâmica organizada por E-mail do cliente
-        function ouvirLeadsEchats() {
+        // Puxando os leads organizados por e-mail do cliente
+        function ouvirLeadsReais() {
             const tbody = document.getElementById("leads-table-body");
             if (!tbody) return;
 
-            const q = query(collection(db, "leads"), where("usuarioAdmin", "==", usuarioLogadoEmail));
+            const q = query(collection(db, "leads"), where("usuarioAdmin", "==", adminEmail));
             
-            // Ouvinte em tempo real do Firestore para atualizar instantaneamente
             onSnapshot(q, (snapshot) => {
-                if(snapshot.empty) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda. Continue divulgando sua vitrine!</td></tr>`;
-                    atualizarContadoresLeads([]);
-                    return;
-                }
-
+                if (snapshot.empty) return;
                 tbody.innerHTML = "";
-                let listaLeads = [];
 
                 snapshot.forEach((doc) => {
                     const dados = doc.data();
-                    listaLeads.push(dados);
-
                     const tr = document.createElement("tr");
                     tr.className = "border-b border-white/5 hover:bg-white/[0.01] transition-colors";
-                    
                     tr.innerHTML = `
                         <td class="p-4 font-semibold text-white">${dados.nome || 'Sem Nome'}</td>
                         <td class="p-4 text-gray-400 font-medium">${dados.email || 'Sem E-mail'}</td>
                         <td class="p-4 text-emerald-400 font-medium">${dados.whatsapp || '-'}</td>
                         <td class="p-4 text-gray-500">${dados.origem || 'Direto'}</td>
                         <td class="p-4 text-center text-[#00f2fe] font-bold">${dados.cliques || 0}</td>
-                        <td class="p-4 text-center text-amber-400">${dados.tempoRetido || 0}s</td>
-                        <td class="p-4"><span class="px-2 py-1 bg-white/5 rounded text-[10px] text-gray-300">${dados.maiorInteresse || '-'}</span></td>
-                        <td class="p-4 text-gray-500">${dados.dataCadastro || '-'}</td>
                     `;
                     tbody.appendChild(tr);
                 });
-
-                atualizarContadoresLeads(listaLeads);
             });
         }
 
-        function atualizarContadoresLeads(leads) {
-            document.getElementById("lead-total-count").innerText = leads.length;
-            document.getElementById("lead-whatsapp-count").innerText = leads.filter(l => l.whatsapp).length;
-            document.getElementById("lead-clicks-count").innerText = leads.reduce((acc, curr) => acc + (curr.cliques || 0), 0);
-        }
-
-        // Ação de Saída Segura homologada apontando para index.html
-        const btnLogout = document.getElementById("btn-logout");
-        if (btnLogout) {
-            btnLogout.addEventListener("click", () => {
-                signOut(auth).then(() => {
-                    window.location.href = "index.html";
-                }).catch((err) => {
-                    console.error("Erro operacional ao efetuar logout:", err);
-                });
-            });
-        }
-
-        // Placeholders de carregamento de segurança para evitar quebras
-        function carregarConfiguracoesVitrine() { console.log("Aparência sincronizada."); }
-        function carregarProdutos() { console.log("Catálogo carregado."); }
+        // Logout
+        document.getElementById("btn-logout").addEventListener("click", () => {
+            signOut(auth).then(() => window.location.href = "index.html");
+        });
     </script>
 </body>
 </html>
