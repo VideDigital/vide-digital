@@ -3,114 +3,150 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Painel | VideDigital</title>
+    <title>VideDigital | Premium Command Center</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        .glass-sidebar { background: rgba(8, 8, 10, 0.8); backdrop-filter: blur(16px); border-r: 1px solid rgba(255, 255, 255, 0.03); }
-        .glass-card { background: rgba(13, 13, 17, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.04); }
-        .tab-active { background-color: rgba(255, 255, 255, 0.1); border-color: #00f2fe; text-color: white; }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-sidebar { background: rgba(8, 8, 11, 0.6); backdrop-filter: blur(24px); border-right: 1px solid rgba(255, 255, 255, 0.03); }
+        .glass-card { background: rgba(13, 13, 18, 0.4); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.04); }
+        .glass-input { background: rgba(5, 5, 8, 0.8); border: 1px solid rgba(255, 255, 255, 0.06); transition: all 0.2s ease-in-out; }
+        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 15px rgba(0, 242, 254, 0.15); }
+        .glow-button { background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%); transition: all 0.3s ease; }
+        .glow-button:hover { transform: translateY(-1px); box-shadow: 0 4px 20px rgba(0, 242, 254, 0.3); }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: #030712; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 10px; }
     </style>
 </head>
-<body class="h-full text-gray-200 font-sans flex">
+<body class="h-full text-gray-200 bg-[#030712] flex overflow-hidden">
 
-    <aside class="w-64 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0">
-        <div class="space-y-6">
-            <div class="flex items-center gap-2">
-                <div class="h-5 w-5 rounded-md bg-gradient-to-tr from-[#00f2fe] to-[#4facfe]"></div>
-                <h2 class="text-xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
+    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-3 pointer-events-none"></div>
+
+    <aside class="w-68 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0 z-40">
+        <div class="space-y-7">
+            <div class="flex items-center gap-3 px-2">
+                <div class="h-6 w-6 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_15px_rgba(0,242,254,0.3)]">
+                    <span class="text-black font-black text-xs">V</span>
+                </div>
+                <h2 class="text-lg font-extrabold tracking-tight text-white">Vide<span class="text-[#00f2fe] bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Digital</span></h2>
             </div>
 
             <nav class="space-y-1">
-                <a href="./dashboard.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-white/5 rounded-xl transition-all">
-                    <span>📊</span> Visão Geral
+                <a href="dashboard.html" class="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border border-white/5 rounded-xl transition-all">
+                    <span class="text-base">📊</span> Visão Geral
                 </a>
-                <a href="./leads.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
-                    <span>👥</span> Leads (Capturas)
+                <a href="leads.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
+                    <span class="text-base">👥</span> Leads (Capturas)
                 </a>
-                <a href="./tracking.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
-                    <span>⚙️</span> Domínio / Pixel
+                <a href="tracking.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
+                    <span class="text-base">⚙️</span> Domínio / Pixel
                 </a>
-                <a href="./perfil.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
-                    <span>👤</span> Perfil
+                <a href="perfil.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
+                    <span class="text-base">👤</span> Perfil
                 </a>
             </nav>
 
-            <hr class="border-white/5">
+            <div class="h-[1px] bg-white/5 mx-2"></div>
 
-            <div class="space-y-3">
-                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1 px-3 py-2.5 bg-[#00f2fe]/5 border border-[#00f2fe]/20 hover:bg-[#00f2fe]/10 text-[#00f2fe] rounded-xl transition-all">
-                    <span class="text-[10px] font-bold uppercase tracking-wider block">Minha Loja : Visão do Cliente</span>
-                    <span class="text-[11px] text-gray-400 font-normal truncate max-w-full" id="url-loja-preview">Carregando link...</span>
+            <div class="space-y-3 px-1">
+                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1.5 p-3 bg-white/[0.02] border border-white/5 hover:border-[#00f2fe]/30 rounded-xl transition-all group">
+                    <div class="flex items-center justify-between w-full">
+                        <span class="text-[10px] font-bold uppercase tracking-wider text-gray-400 group-hover:text-[#00f2fe] transition-colors">Visão do Cliente</span>
+                        <span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] shadow-[0_0_8px_#00f2fe]"></span>
+                    </div>
+                    <span class="text-xs text-white font-medium truncate max-w-full" id="url-loja-preview">Buscando vitrine...</span>
                 </a>
 
-                <div class="bg-white/[0.02] p-3 rounded-xl border border-white/5 space-y-2">
-                    <label class="text-[9px] font-bold text-gray-400 uppercase tracking-wider block">Configurar URL da Loja</label>
-                    <div class="flex gap-1.5">
-                        <input type="text" id="input-slug-loja" class="w-full bg-[#09090b] border border-white/10 rounded-lg p-1.5 text-xs text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none transition-all" placeholder="ex: meucurso">
-                        <button id="btn-salvar-url" class="bg-[#00f2fe] text-black font-bold text-xs px-2.5 rounded-lg hover:bg-[#00d8e4] transition-all">✓</button>
+                <div class="bg-[#09090f]/90 border border-white/5 p-3.5 rounded-xl space-y-2.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Endereço da sua Loja</label>
+                    <div class="relative flex items-center">
+                        <input type="text" id="input-slug-loja" class="w-full bg-[#030712] border border-white/10 rounded-lg py-2 pl-3 pr-10 text-xs text-white placeholder-gray-700 outline-none focus:border-[#00f2fe] transition-all" placeholder="nome-da-loja">
+                        <button id="btn-salvar-url" class="absolute right-1.5 bg-white hover:bg-gray-200 text-black font-bold p-1.5 rounded-md transition-all shadow-md" title="Salvar Endereço">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5"><path stroke-linecap="round" stroke-linejoin="round" documentation="M5 13l4 4L19 7" d="M5 13l4 4L19 7"/></svg>
+                        </button>
                     </div>
                 </div>
             </div>
         </div>
 
-        <div>
-            <button id="btn-logout" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400/80 hover:text-red-400 transition-all w-full text-left">
-                <span>🚪</span> Sair do Painel
+        <div class="px-2">
+            <button id="btn-logout" class="flex items-center gap-3 py-3 text-sm font-medium text-gray-500 hover:text-red-400 transition-colors w-full text-left group">
+                <span class="transition-transform group-hover:translate-x-0.5">🚪</span> Sair da Operação
             </button>
         </div>
     </aside>
 
-    <main class="flex-1 p-10 overflow-y-auto">
-        <div class="max-w-6xl mx-auto">
+    <main class="flex-1 p-8 lg:p-12 overflow-y-auto z-10 relative">
+        <div class="max-w-6xl mx-auto space-y-10">
             
-            <div class="flex justify-between items-center mb-10">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-8">
                 <div>
-                    <h1 class="text-3xl font-bold tracking-tight text-white">Produtos Cadastrados</h1>
-                    <p class="text-gray-400 text-sm mt-1">Gerencie as ofertas exibidas na sua vitrine virtual.</p>
+                    <h1 class="text-2xl lg:text-3xl font-extrabold tracking-tight text-white">Seu Ecossistema de Produtos</h1>
+                    <p class="text-gray-400 text-sm mt-1">Desenvolva, gerencie e otimize as ofertas da sua vitrine altamente conversiva.</p>
                 </div>
-                <button id="btn-abrir-criacao" class="bg-[#00f2fe] hover:bg-[#00d8e4] text-black font-semibold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_4px_20px_rgba(0,242,254,0.15)]">
+                <button id="btn-abrir-criacao" class="glow-button text-black font-bold px-5 py-3 rounded-xl text-xs uppercase tracking-wider shadow-lg shrink-0">
                     + Adicionar Novo Produto
                 </button>
             </div>
 
             <div id="produtos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <div class="animate-pulse bg-white/5 h-40 rounded-2xl"></div>
+                <div class="animate-pulse bg-white/5 h-64 rounded-2xl"></div>
+                <div class="animate-pulse bg-white/5 h-64 rounded-2xl"></div>
+                <div class="animate-pulse bg-white/5 h-64 rounded-2xl"></div>
             </div>
 
         </div>
     </main>
 
-    <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
-        <div class="glass-card w-full max-w-2xl p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
-            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
+    <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-2xl p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl border border-white/10">
+            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light transition-colors">&times;</button>
             
-            <h3 id="modal-titulo" class="text-xl font-bold text-white mb-6">Configurar Oferta do Produto</h3>
+            <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-1">Configurar Oferta do Produto</h3>
+            <p class="text-xs text-gray-400 mb-6">Preencha os dados estratégicos abaixo para renderizar seu produto automaticamente.</p>
             
             <form id="produto-form" class="space-y-5">
                 <input type="hidden" id="form-id-produto">
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Produto / Curso</label>
-                        <input type="text" id="prod-nome" required class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: Curso de Macarons">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Comercial</label>
+                        <input type="text" id="prod-nome" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: Método Barbearia do Zero ao Pro">
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço da Oferta (R$)</label>
-                        <input type="number" step="0.01" id="prod-preco" required class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="0.00">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço de Venda (R$)</label>
+                        <input type="number" step="0.01" id="prod-preco" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/[0.01] p-4 rounded-xl border border-white/5">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">Preço Riscado (De) <span class="text-gray-500 font-normal">(Opcional)</span></label>
+                        <input type="number" step="0.01" id="prod-preco-de" class="w-full glass-input rounded-xl p-2.5 text-white placeholder-gray-700 outline-none text-xs" placeholder="Ex: 297.00">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Aviso de Vagas <span class="text-gray-500 font-normal">(Opcional)</span></label>
+                        <input type="text" id="prod-vagas-tag" class="w-full glass-input rounded-xl p-2.5 text-white placeholder-gray-700 outline-none text-xs" placeholder="Ex: Apenas 4 vagas restantes">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">Badge Customizada <span class="text-gray-500 font-normal">(Opcional)</span></label>
+                        <input type="text" id="prod-badge-custom" class="w-full glass-input rounded-xl p-2.5 text-white placeholder-gray-700 outline-none text-xs" placeholder="Ex: Campeão de Vendas">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div class="space-y-2">
+                    <div class="space-y-1.5">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tipo de Produto</label>
-                        <select id="prod-tipo" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none text-sm transition-all">
+                        <select id="prod-tipo" class="w-full glass-input rounded-xl p-3 text-white outline-none text-sm">
                             <option value="digital">Digital (Curso / Infoproduto / E-book)</option>
                             <option value="fisico">Físico (Suplementos / Equipamentos)</option>
                         </select>
                     </div>
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho / Categoria</label>
-                        <select id="prod-subnicho" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none text-sm transition-all">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho / Mercado</label>
+                        <select id="prod-subnicho" class="w-full glass-input rounded-xl p-3 text-white outline-none text-sm">
                             <option value="Confeitaria">Confeitaria</option>
                             <option value="Barbearia">Barbearia</option>
                             <option value="Estética e Unhas">Estética e Unhas</option>
@@ -120,40 +156,39 @@
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Imagem de Capa (Do Computador)</label>
-                    <input type="file" id="prod-imagem-file" accept="image/png, image/jpeg, image/jpg" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-2.5 text-gray-400 text-sm focus:border-[#00f2fe] outline-none transition-all">
-                    <p class="text-[11px] text-gray-500 mt-1">Dica: A imagem idealmente precisa ter as dimensões 326x244px e ser no formato PNG, JPG ou JPEG (Opcional).</p>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mídia do Produto (Imagem de Capa)</label>
+                    <input type="file" id="prod-imagem-file" accept="image/*" class="w-full glass-input rounded-xl p-2.5 text-gray-400 text-xs outline-none">
                     <input type="hidden" id="prod-imagem-base64">
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Destino da Conversão</label>
                     <div class="grid grid-cols-2 gap-2 bg-[#09090b] p-1 rounded-xl border border-white/5">
-                        <button type="button" id="tab-checkout" class="py-2 text-xs font-semibold rounded-lg border border-transparent text-gray-400 transition-all tab-active">Link de Checkout</button>
-                        <button type="button" id="tab-whatsapp" class="py-2 text-xs font-semibold rounded-lg border border-transparent text-gray-400 transition-all">WhatsApp</button>
+                        <button type="button" id="tab-checkout" class="py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all tab-active bg-white/10 text-white">Link de Checkout</button>
+                        <button type="button" id="tab-whatsapp" class="py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all">Direct WhatsApp</button>
                     </div>
                 </div>
 
-                <div id="wrapper-checkout" class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link de Checkout / Página de Vendas</label>
-                    <input type="url" id="prod-checkout" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="https://pay.kiwify.com.br/...">
+                <div id="wrapper-checkout" class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link Seguro da sua Hotmart/Kiwify</label>
+                    <input type="url" id="prod-checkout" class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="https://pay.kiwify.com.br/...">
                 </div>
 
-                <div id="wrapper-whatsapp" class="space-y-2 hidden">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Número do WhatsApp (Apenas Números com DDD)</label>
-                    <input type="text" id="prod-whatsapp" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: 11999999999" maxlength="11">
+                <div id="wrapper-whatsapp" class="space-y-1.5 hidden">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp para fechamento (Com DDD, apenas números)</label>
+                    <input type="text" id="prod-whatsapp" class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: 11999999999" maxlength="11">
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Descrição Breve Comercial</label>
-                    <textarea id="prod-descricao" rows="3" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all resize-none" placeholder="Gatilhos e benefícios da oferta..."></textarea>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Apresentação / Descrição Comercial</label>
+                    <textarea id="prod-descricao" rows="3" class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm resize-none" placeholder="Insira os principais diferenciais da oferta..."></textarea>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
-                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-600/10 hover:bg-red-600/20 text-red-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all mr-auto">Excluir Oferta</button>
-                    <button type="button" id="modal-cancelar" class="bg-white/5 hover:bg-white/10 text-white px-5 py-2.5 rounded-xl text-sm transition-all">Cancelar</button>
-                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-100 text-black font-semibold px-6 py-2.5 rounded-xl text-sm transition-all">Salvar Alterações</button>
+                <div class="flex justify-end gap-3 pt-5 border-t border-white/5">
+                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-500/10 hover:bg-red-500/20 text-red-400 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all mr-auto">Excluir Produto</button>
+                    <button type="button" id="modal-cancelar" class="bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
+                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-200 text-black font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Estrutura</button>
                 </div>
             </form>
         </div>
@@ -186,6 +221,24 @@
         const inputSlugLoja = document.getElementById("input-slug-loja");
         const btnSalvarUrl = document.getElementById("btn-salvar-url");
 
+        // CUSTOM LIVE TOAST COMPONENT
+        function showToast(message, type = "success") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `p-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-3 backdrop-blur-md transform translate-x-10 opacity-0 transition-all duration-300 pointer-events-auto ${
+                type === 'success' ? 'bg-emerald-950/80 text-emerald-400 border-emerald-500/20' : 'bg-red-950/80 text-red-400 border-red-500/20'
+            }`;
+            toast.innerHTML = `<span>${type === 'success' ? '✨' : '⚠️'}</span> <span>${message}</span>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => { toast.classList.remove("translate-x-10", "opacity-0"); }, 10);
+            setTimeout(() => {
+                toast.classList.add("translate-x-10", "opacity-0");
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
+
+        // BASE64 HANDLER FOR FILE ASSETS
         inputImagemFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
             if (file) {
@@ -195,9 +248,7 @@
             }
         });
 
-        inputWhatsapp.addEventListener("input", (e) => {
-            e.target.value = e.target.value.replace(/\D/g, "");
-        });
+        inputWhatsapp.addEventListener("input", (e) => { e.target.value = e.target.value.replace(/\D/g, ""); });
 
         tabCheckout.addEventListener("click", () => alternarDestino("checkout"));
         tabWhatsapp.addEventListener("click", () => alternarDestino("whatsapp"));
@@ -205,15 +256,15 @@
         function alternarDestino(destino) {
             tipoDestino = destino;
             if(destino === "checkout") {
-                tabCheckout.classList.add("tab-active", "text-white");
-                tabWhatsapp.classList.remove("tab-active", "text-white");
+                tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg bg-white/10 text-white transition-all";
+                tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all";
                 wrapperCheckout.classList.remove("hidden");
                 wrapperWhatsapp.classList.add("hidden");
                 inputCheckout.required = true;
                 inputWhatsapp.required = false;
             } else {
-                tabWhatsapp.classList.add("tab-active", "text-white");
-                tabCheckout.classList.remove("tab-active", "text-white");
+                tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg bg-white/10 text-white transition-all";
+                tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all";
                 wrapperWhatsapp.classList.remove("hidden");
                 wrapperCheckout.classList.add("hidden");
                 inputWhatsapp.required = true;
@@ -221,7 +272,7 @@
             }
         }
 
-        // MONITOR DE AUTENTICAÇÃO ATUALIZADO
+        // SECURITY MONITOR & PATH SYNCHRONIZATION
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 usuarioEmail = user.email.toLowerCase();
@@ -229,48 +280,40 @@
                 const userSnap = await getDoc(doc(db, "usuarios", usuarioEmail));
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
-                    
-                    // Pega o campo urlLoja vindo do banco conforme seu print
                     const slugAtual = dados.urlLoja || "vitrine";
                     inputSlugLoja.value = slugAtual;
 
-                    // Monta a URL respeitando a subpasta do GitHub Pages
-                    const linkCompleto = `./loja.html?loja=${slugAtual}`;
+                    // Criando rota resiliente a ambientes GitHub Pages
+                    const linkCompleto = `loja.html?loja=${slugAtual}`;
                     document.getElementById("link-minha-loja").href = linkCompleto;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
                 }
                 carregarProdutos();
             } else {
-                window.location.href = "./login.html";
+                window.location.href = "login.html";
             }
         });
 
-        // SALVAR NOVA URL PERSONALIZADA DA LOJA
+        // PERSISTENCE FOR VITRINE ENDPOINT
         btnSalvarUrl.addEventListener("click", async () => {
             const novaUrl = inputSlugLoja.value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-            if(!novaUrl) return alert("Digite um termo válido para sua URL.");
+            if(!novaUrl) return showToast("Digite um slug válido para a URL.", "error");
 
             try {
-                btnSalvarUrl.innerText = "...";
-                await updateDoc(doc(db, "usuarios", usuarioEmail), {
-                    urlLoja: novaUrl
-                });
+                await updateDoc(doc(db, "usuarios", usuarioEmail), { urlLoja: novaUrl });
                 
-                const linkCompleto = `./loja.html?loja=${novaUrl}`;
+                const linkCompleto = `loja.html?loja=${novaUrl}`;
                 document.getElementById("link-minha-loja").href = linkCompleto;
                 document.getElementById("url-loja-preview").innerText = `vide.digital/${novaUrl}`;
                 
-                btnSalvarUrl.innerText = "✓";
-                alert("URL da Loja atualizada com sucesso!");
-                setTimeout(() => btnSalvarUrl.innerText = "✓", 2000);
+                showToast("Endereço da vitrine atualizado com sucesso!");
             } catch (err) {
                 console.error(err);
-                alert("Erro ao salvar nova URL.");
-                btnSalvarUrl.innerText = "✓";
+                showToast("Erro ao processar alteração da rota.", "error");
             }
         });
 
-        // LISTAR PRODUTOS DO BANCO
+        // DYNAMIC RENDERING CAPABILITY (IMAGEM AGORA FICA VISÍVEL NO CARD)
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
             try {
@@ -290,21 +333,34 @@
                     const id = docSnap.id;
                     const precoFormatado = parseFloat(prod.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                     
+                    // Fallback se não possuir foto cadastrada
+                    const imagemSrc = prod.imagemB64 ? prod.imagemB64 : 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%230c0c12"/><text x="50%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="%23222" font-size="12">Sem Imagem</text></svg>';
+
                     const card = document.createElement("div");
-                    card.className = "glass-card p-6 rounded-2xl flex flex-col justify-between space-y-4 hover:border-white/10 transition-all";
+                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 hover:border-white/10 transition-all group";
                     card.innerHTML = `
-                        <div>
-                            <div class="flex items-center justify-between mb-2">
-                                <span class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider bg-[#00f2fe]/10 px-2.5 py-1 rounded-md inline-block">${prod.subnicho || 'Geral'}</span>
-                                <span class="text-[10px] text-gray-500 uppercase">${prod.tipoDestino === 'whatsapp' ? '📱 WhatsApp' : '🛒 Checkout'}</span>
+                        <div class="relative h-44 w-full bg-[#07070b] overflow-hidden border-b border-white/5 flex items-center justify-center">
+                            <img src="${imagemSrc}" alt="${prod.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <div class="absolute top-3 left-3 flex flex-wrap gap-1">
+                                <span class="text-[9px] font-bold text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 px-2.5 py-0.5 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
+                                ${prod.badgeCustom ? `<span class="text-[9px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/20 px-2.5 py-0.5 rounded-md uppercase tracking-wider">${prod.badgeCustom}</span>` : ''}
                             </div>
-                            <h4 class="text-lg font-bold text-white tracking-tight truncate">${prod.nome}</h4>
-                            <p class="text-2xl font-black text-white mt-2">${precoFormatado}</p>
-                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">${prod.descricao || 'Sem descrição inserida.'}</p>
                         </div>
-                        <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 text-white text-sm font-medium py-2.5 rounded-xl transition-all" data-id="${id}">
-                            Gerenciar Oferta
-                        </button>
+                        <div class="p-6 flex-1 flex flex-col justify-between space-y-4">
+                            <div>
+                                <h4 class="text-base font-bold text-white tracking-tight truncate">${prod.nome}</h4>
+                                <p class="text-xs text-gray-400 mt-1.5 line-clamp-2">${prod.descricao || 'Sem descrição inserida.'}</p>
+                            </div>
+                            <div>
+                                <div class="flex items-baseline gap-2">
+                                    <p class="text-xl font-extrabold text-white">${precoFormatado}</p>
+                                    ${prod.precoDe ? `<p class="text-xs text-gray-600 line-through">R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : ''}
+                                </div>
+                                <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 border border-white/5 text-white text-xs font-bold uppercase tracking-wider py-3 rounded-xl transition-all mt-4" data-id="${id}">
+                                    Gerenciar Oferta
+                                </button>
+                            </div>
+                        </div>
                     `;
                     produtosContainer.appendChild(card);
                 });
@@ -315,6 +371,7 @@
 
             } catch (err) {
                 console.error(err);
+                showToast("Erro crítico ao obter banco de produtos.", "error");
             }
         }
 
@@ -336,6 +393,9 @@
                     document.getElementById("form-id-produto").value = id;
                     document.getElementById("prod-nome").value = data.nome;
                     document.getElementById("prod-preco").value = data.preco;
+                    document.getElementById("prod-preco-de").value = data.precoDe || "";
+                    document.getElementById("prod-vagas-tag").value = data.vagasTag || "";
+                    document.getElementById("prod-badge-custom").value = data.badgeCustom || "";
                     document.getElementById("prod-tipo").value = data.tipo || "digital";
                     document.getElementById("prod-subnicho").value = data.subnicho || "Outro";
                     document.getElementById("prod-descricao").value = data.descricao || "";
@@ -349,7 +409,7 @@
                         inputCheckout.value = data.destinoValue;
                     }
                     
-                    modalTitulo.innerText = "Gerenciar Oferta";
+                    modalTitulo.innerText = "Gerenciar Oferta Ativa";
                     btnDeletar.classList.remove("hidden");
                     modal.classList.remove("hidden");
                 }
@@ -366,6 +426,9 @@
             const produtoPayload = {
                 nome: document.getElementById("prod-nome").value.trim(),
                 preco: parseFloat(document.getElementById("prod-preco").value),
+                precoDe: document.getElementById("prod-preco-de").value ? parseFloat(document.getElementById("prod-preco-de").value) : "",
+                vagasTag: document.getElementById("prod-vagas-tag").value.trim(),
+                badgeCustom: document.getElementById("prod-badge-custom").value.trim(),
                 tipo: document.getElementById("prod-tipo").value,
                 subnicho: document.getElementById("prod-subnicho").value,
                 imagemB64: inputImagemBase64.value, 
@@ -381,8 +444,10 @@
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
                 modal.classList.add("hidden");
                 carregarProdutos();
+                showToast(id ? "Oferta modificada com sucesso!" : "Novo produto integrado ao banco!");
             } catch (err) {
                 console.error(err);
+                showToast("Erro ao salvar produto.", "error");
             }
         });
 
@@ -393,6 +458,7 @@
                     await deleteDoc(doc(db, "produtos", id));
                     modal.classList.add("hidden");
                     carregarProdutos();
+                    showToast("Produto deletado do sistema.");
                 } catch(err) {
                     console.error(err);
                 }
@@ -401,7 +467,7 @@
 
         document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
-        document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "./login.html"));
+        document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "login.html"));
     </script>
 </body>
 </html>
