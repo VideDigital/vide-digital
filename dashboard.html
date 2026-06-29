@@ -1,81 +1,312 @@
 <!DOCTYPE html>
-<html lang="pt-BR" class="h-full">
+<html lang="pt-br" class="h-full bg-[#030712]">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>VideDigital | Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel | VideDigital</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .glass-sidebar { background: rgba(8, 8, 10, 0.8); backdrop-filter: blur(16px); border-r: 1px solid rgba(255, 255, 255, 0.03); }
+        .glass-card { background: rgba(13, 13, 17, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.04); }
+        .spinner { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #00f2fe; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+    </style>
 </head>
-<body class="bg-[#09090b] text-white flex min-h-screen">
+<body class="h-full text-gray-200 font-sans flex">
 
-  <!-- MENU LATERAL -->
-  <aside class="w-64 bg-[#0c0c0e] border-r border-[#1f1f23] flex flex-col justify-between p-6 shrink-0 sticky top-0 h-screen">
-    <div class="space-y-8">
-      <div class="px-2">
-        <h1 class="text-xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h1>
-      </div>
-      <nav class="flex flex-col space-y-1">
-        <button data-tab="visao-geral" class="tab-btn flex items-center space-x-3 w-full p-3 rounded-xl bg-[#18181b] text-white font-medium transition text-left shadow-sm">
-          <span>📊</span> <span>Visão Geral</span>
-        </button>
-        <button data-tab="leads" class="tab-btn flex items-center space-x-3 w-full p-3 rounded-xl text-gray-400 hover:bg-[#121214] hover:text-white transition text-left">
-          <span>👥</span> <span>Leads</span>
-        </button>
-        <button data-tab="dominio-pixel" class="tab-btn flex items-center space-x-3 w-full p-3 rounded-xl text-gray-400 hover:bg-[#121214] hover:text-white transition text-left">
-          <span>⚙️</span> <span>Tracking</span>
-        </button>
-        <button data-tab="perfil" class="tab-btn flex items-center space-x-3 w-full p-3 rounded-xl text-gray-400 hover:bg-[#121214] hover:text-white transition text-left">
-          <span>👤</span> <span>Perfil</span>
-        </button>
-      </nav>
-    </div>
-    <button id="btn-logout" class="flex items-center space-x-3 text-red-400/80 hover:text-red-400 p-3 rounded-xl transition text-left w-full hover:bg-red-950/20">
-      <span>🚪</span> <span>Sair</span>
-    </button>
-  </aside>
+    <!-- BARRA LATERAL (SIDEBAR) -->
+    <aside class="w-64 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0">
+        <div class="space-y-8">
+            <!-- Logo -->
+            <div class="flex items-center gap-2">
+                <div class="h-5 w-5 rounded-md bg-gradient-to-tr from-[#00f2fe] to-[#4facfe]"></div>
+                <h2 class="text-xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
+            </div>
 
-  <!-- CONTEÚDO PRINCIPAL -->
-  <main class="flex-1 p-10 overflow-y-auto w-full">
-    <section id="tab-visao-geral" class="tab-content max-w-5xl mx-auto space-y-8">
-      <div class="flex items-center justify-between">
+            <!-- Navegação -->
+            <nav class="space-y-1">
+                <a href="#" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-white bg-white/5 rounded-xl transition-all">
+                    <span>📊</span> Visão Geral
+                </a>
+                <a href="leads.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
+                    <span>👥</span> Leads
+                </a>
+                <a href="tracking.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
+                    <span>⚙️</span> Tracking
+                </a>
+                <a href="perfil.html" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-xl transition-all">
+                    <span>👤</span> Perfil
+                </a>
+            </nav>
+
+            <hr class="border-white/5">
+
+            <!-- LINK DA LOJA (VISÃO DO CLIENTE) -->
+            <div class="px-2">
+                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex items-center justify-between gap-2 px-3 py-2.5 bg-[#00f2fe]/5 border border-[#00f2fe]/20 hover:bg-[#00f2fe]/10 text-[#00f2fe] text-xs font-bold uppercase tracking-wider rounded-xl transition-all">
+                    <span>🔗 Minha Loja (Cliente)</span>
+                    <span>↗️</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Botão Sair -->
         <div>
-          <h2 class="text-2xl font-bold">Produtos</h2>
-          <p class="text-sm text-gray-400">Gerencie as ofertas da sua vitrine.</p>
+            <button id="btn-logout" class="flex items-center gap-3 px-4 py-3 text-sm font-medium text-red-400/80 hover:text-red-400 transition-all w-full text-left">
+                <span>🚪</span> Sair
+            </button>
         </div>
-        <button id="open-modal-produto" class="bg-[#00f2fe] hover:bg-[#00d8e4] text-black font-bold px-5 py-2.5 rounded-xl transition text-sm shadow-[0_0_15px_rgba(0,242,254,0.2)]">
-          + Novo Produto
-        </button>
-      </div>
-      <div id="lista-produtos" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-    </section>
+    </aside>
 
-    <!-- (Outras seções ocultas por padrão) -->
-    <section id="tab-leads" class="tab-content hidden max-w-5xl mx-auto text-center py-20">
-       <p class="text-gray-500">Nenhum lead capturado ainda.</p>
-    </section>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="flex-1 p-10 overflow-y-auto">
+        <div class="max-w-6xl mx-auto">
+            
+            <!-- Cabeçalho de Ações -->
+            <div class="flex justify-between items-center mb-10">
+                <div>
+                    <h1 class="text-3xl font-bold tracking-tight text-white">Produtos</h1>
+                    <p class="text-gray-400 text-sm mt-1">Gerencie as ofertas da sua vitrine.</p>
+                </div>
+                <button id="btn-abrir-criacao" class="bg-[#00f2fe] hover:bg-[#00d8e4] text-black font-semibold px-5 py-2.5 rounded-xl text-sm transition-all shadow-[0_4px_20px_rgba(0,242,254,0.15)]">
+                    + Novo Produto
+                </button>
+            </div>
 
-    <!-- ... Seções de Domínio e Perfil mantêm a estrutura que você já possui ... -->
-  </main>
+            <!-- Grade de Listagem de Produtos -->
+            <div id="produtos-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Os produtos salvos no banco serão renderizados aqui dinamicamente -->
+                <div class="animate-pulse bg-white/5 h-40 rounded-2xl"></div>
+            </div>
 
-  <!-- MODAL -->
-  <div id="modal-produto" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
-    <div class="w-full max-w-lg bg-[#121214] border border-[#27272a] rounded-2xl p-8 shadow-2xl">
-      <h3 class="text-xl font-bold mb-6">Adicionar Produto</h3>
-      <form id="form-produto" class="space-y-4">
-        <input type="text" id="prod-nome" required class="w-full bg-[#09090b] border border-[#27272a] rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none" placeholder="Nome do Produto">
-        <textarea id="prod-descricao" required class="w-full bg-[#09090b] border border-[#27272a] rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none" placeholder="Descrição..."></textarea>
-        <div class="grid grid-cols-2 gap-4">
-           <input type="text" id="prod-preco" required class="bg-[#09090b] border border-[#27272a] rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none" placeholder="Preço (R$)">
-           <input type="url" id="prod-checkout" required class="bg-[#09090b] border border-[#27272a] rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none" placeholder="URL Checkout">
         </div>
-        <div class="flex gap-3 pt-4">
-          <button type="button" id="close-modal-produto" class="flex-1 p-3 rounded-xl bg-[#18181b] text-gray-400">Cancelar</button>
-          <button type="submit" class="flex-1 p-3 rounded-xl bg-[#00f2fe] text-black font-bold">Salvar</button>
+    </main>
+
+    <!-- MODAL DINÂMICO (USADO PARA CRIAÇÃO E EDIÇÃO - EVITA REDIRECIONAR / ERRO 404) -->
+    <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md">
+        <div class="glass-card w-full max-w-2xl p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative shadow-2xl">
+            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
+            
+            <h3 id="modal-titulo" class="text-xl font-bold text-white mb-6">Configurar Oferta do Produto</h3>
+            
+            <form id="produto-form" class="space-y-5">
+                <input type="hidden" id="form-id-produto">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Produto / Curso</label>
+                        <input type="text" id="prod-nome" required class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: Curso de Macarons do Zero ao Pro">
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço da Oferta (R$)</label>
+                        <input type="number" step="0.01" id="prod-preco" required class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="0.00">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tipo de Produto</label>
+                        <select id="prod-tipo" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white focus:border-[#00f2fe] outline-none text-sm transition-all">
+                            <option value="digital">Digital (Curso / Infoproduto / E-book)</option>
+                            <option value="fisico">Físico (Suplementos / Encapsulados / Ferramentas)</option>
+                        </select>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho / Categoria</label>
+                        <input type="text" id="prod-subnicho" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="Ex: Confeitaria, Barbearia, Estética, Unhas">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL da Imagem do Produto (Capa)</label>
+                    <input type="url" id="prod-imagem" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="https://exemplo.com/foto.jpg">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link de Checkout / Destino da Campanha</label>
+                    <input type="url" id="prod-checkout" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all" placeholder="https://pay.kiwify.com.br/...">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Descrição Breve comercial (Foco em Tráfego)</label>
+                    <textarea id="prod-descricao" rows="3" class="w-full bg-[#09090b] border border-white/5 rounded-xl p-3 text-white placeholder-gray-600 focus:border-[#00f2fe] outline-none text-sm transition-all resize-none" placeholder="Insira os principais gatilhos da copy do produto..."></textarea>
+                </div>
+
+                <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
+                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-600/10 hover:bg-red-600/20 text-red-400 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all mr-auto">Excluir Oferta</button>
+                    <button type="button" id="modal-cancelar" class="bg-white/5 hover:bg-white/10 text-white px-5 py-2.5 rounded-xl text-sm transition-all">Cancelar</button>
+                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-100 text-black font-semibold px-6 py-2.5 rounded-xl text-sm transition-all">Salvar Alterações</button>
+                </div>
+            </form>
         </div>
-      </form>
     </div>
-  </div>
 
-  <script type="module" src="dashboard.js"></script>
+    <!-- LOGICA FIREBASE E INTERRUPÇÃO DE LINKS -->
+    <script type="module">
+        import { auth, db } from "./firebase-init.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+        let usuarioEmail = "";
+        let urlLojaCliente = "";
+
+        // Componentes UI
+        const produtosContainer = document.getElementById("produtos-container");
+        const modal = document.getElementById("produto-modal");
+        const form = document.getElementById("produto-form");
+        const modalTitulo = document.getElementById("modal-titulo");
+        const btnDeletar = document.getElementById("btn-deletar-produto");
+
+        // Monitor de Autenticação
+        onAuthStateChanged(auth, async (user) => {
+            if (user) {
+                usuarioEmail = user.email.toLowerCase();
+                
+                // Mapeia e define dinamicamente a URL da loja para o link "Minha Loja"
+                const userSnap = await getDoc(doc(db, "usuarios", usuarioEmail));
+                if (userSnap.exists()) {
+                    const dados = userSnap.data();
+                    urlLojaCliente = dados.urlLoja ? `../loja/${dados.urlLoja}` : `../loja/vitrine-${dados.nomeLoja.toLowerCase().replace(/\s+/g, '-')}`;
+                    document.getElementById("link-minha-loja").href = urlLojaCliente;
+                }
+
+                carregarProdutos();
+            } else {
+                window.location.href = "login.html";
+            }
+        });
+
+        // Buscar produtos do lojista
+        async function carregarProdutos() {
+            produtosContainer.innerHTML = "";
+            try {
+                // Filtra os produtos criados por esse gestor específico
+                const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioEmail));
+                const querySnapshot = await getDocs(q);
+
+                if (querySnapshot.empty) {
+                    produtosContainer.innerHTML = `
+                        <div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl">
+                            <p class="text-gray-500 text-sm">Nenhum produto cadastrado na sua vitrine ainda.</p>
+                        </div>`;
+                    return;
+                }
+
+                querySnapshot.forEach((docSnap) => {
+                    const prod = docSnap.data();
+                    const id = docSnap.id;
+                    const precoFormatado = parseFloat(prod.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                    
+                    const card = document.createElement("div");
+                    card.className = "glass-card p-6 rounded-2xl flex flex-col justify-between space-y-4 hover:border-white/10 transition-all";
+                    card.innerHTML = `
+                        <div>
+                            <span class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider bg-[#00f2fe]/10 px-2.5 py-1 rounded-md inline-block mb-3">${prod.subnicho || 'Geral'}</span>
+                            <h4 class="text-lg font-bold text-white tracking-tight truncate">${prod.nome}</h4>
+                            <p class="text-2xl font-black text-white mt-2">${precoFormatado}</p>
+                            <p class="text-xs text-gray-500 mt-1 line-clamp-2">${prod.descricao || 'Sem descrição comercial inserida.'}</p>
+                        </div>
+                        <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 text-white text-sm font-medium py-2.5 rounded-xl transition-all cursor-pointer" data-id="${id}">
+                            Gerenciar Oferta
+                        </button>
+                    `;
+                    produtosContainer.appendChild(card);
+                });
+
+                // Adiciona os gatilhos nos botões para abrir na mesma tela sem 404
+                document.querySelectorAll(".btn-gerenciar").forEach(btn => {
+                    btn.addEventListener("click", (e) => abrirModalEdicao(e.target.getAttribute("data-id")));
+                });
+
+            } catch (err) {
+                console.error("Erro ao carregar produtos:", err);
+            }
+        }
+
+        // Abrir Modal para Novo Produto
+        document.getElementById("btn-abrir-criacao").addEventListener("click", () => {
+            form.reset();
+            document.getElementById("form-id-produto").value = "";
+            modalTitulo.innerText = "Cadastrar Novo Produto";
+            btnDeletar.classList.add("hidden");
+            modal.classList.remove("hidden");
+        });
+
+        // Abrir Modal para Edição (Puxa os dados atuais do Firestore na mesma tela)
+        async function abrirModalEdicao(id) {
+            try {
+                const docSnap = await getDoc(doc(db, "produtos", id));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById("form-id-produto").value = id;
+                    document.getElementById("prod-nome").value = data.nome;
+                    document.getElementById("prod-preco").value = data.preco;
+                    document.getElementById("prod-tipo").value = data.tipo || "digital";
+                    document.getElementById("prod-subnicho").value = data.subnicho || "";
+                    document.getElementById("prod-imagem").value = data.imagem || "";
+                    document.getElementById("prod-checkout").value = data.checkout || "";
+                    document.getElementById("prod-descricao").value = data.descricao || "";
+                    
+                    modalTitulo.innerText = "Gerenciar Oferta";
+                    btnDeletar.classList.remove("hidden");
+                    modal.classList.remove("hidden");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        // Salvar ou Atualizar Produto
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const id = document.getElementById("form-id-produto").value;
+            
+            const produtoPayload = {
+                nome: document.getElementById("prod-nome").value.trim(),
+                preco: parseFloat(document.getElementById("prod-preco").value),
+                tipo: document.getElementById("prod-tipo").value,
+                subnicho: document.getElementById("prod-subnicho").value.trim(),
+                imagem: document.getElementById("prod-imagem").value.trim(),
+                checkout: document.getElementById("prod-checkout").value.trim(),
+                descricao: document.getElementById("prod-descricao").value.trim(),
+                criadoPor: usuarioEmail,
+                atualizadoEm: new Date().toISOString()
+            };
+
+            try {
+                // Se não tem ID, cria um novo gerando um ID limpo por timestamp/slug
+                const docId = id || `prod_${Date.now()}`;
+                await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
+                
+                modal.classList.add("hidden");
+                carregarProdutos();
+            } catch (err) {
+                console.error("Erro ao salvar oferta:", err);
+            }
+        });
+
+        // Deletar Produto
+        btnDeletar.addEventListener("click", async () => {
+            const id = document.getElementById("form-id-produto").value;
+            if (id && confirm("Tem certeza que deseja remover esta oferta da sua vitrine?")) {
+                try {
+                    await deleteDoc(doc(db, "produtos", id));
+                    modal.classList.add("hidden");
+                    carregarProdutos();
+                } catch(err) {
+                    console.error(err);
+                }
+            }
+        });
+
+        // Controles de fechamento do Modal
+        document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
+        document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
+
+        // Logout
+        document.getElementById("btn-logout").addEventListener("click", () => {
+            signOut(auth).then(() => window.location.href = "login.html");
+        });
+    </script>
 </body>
 </html>
