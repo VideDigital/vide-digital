@@ -13,7 +13,7 @@
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="h-full mesh-gradient text-gray-200 font-sans">
+<body class="h-full mesh-gradient text-gray-200 font-sans relative">
 
     <div class="h-full flex">
         <div class="hidden lg:flex flex-col justify-between w-1/2 p-16 relative overflow-hidden border-r border-white/[0.02]">
@@ -42,8 +42,8 @@
             <div class="relative z-10 flex items-center justify-between text-xs text-gray-500">
                 <div>© 2026 VideDigital Systems Inc.</div>
                 <div class="flex gap-4">
-                    <a href="#" class="hover:text-white transition-colors">Termos</a>
-                    <a href="#" class="hover:text-white transition-colors">Privacidade</a>
+                    <button id="btn-termos" class="hover:text-white transition-colors cursor-pointer">Termos</button>
+                    <button id="btn-privacidade" class="hover:text-white transition-colors cursor-pointer">Privacidade</button>
                 </div>
             </div>
         </div>
@@ -79,7 +79,7 @@
                     <div class="space-y-2">
                         <div class="flex justify-between items-center">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Senha de Acesso</label>
-                            <a href="#" id="link-forgot" class="text-[11px] text-[#00f2fe]/80 hover:text-[#00f2fe] tracking-wide transition-colors">Esqueceu a senha?</a>
+                            <button type="button" id="link-forgot" class="text-[11px] text-[#00f2fe]/80 hover:text-[#00f2fe] tracking-wide transition-colors bg-transparent border-none cursor-pointer">Esqueceu a senha?</button>
                         </div>
                         <input type="password" id="input-senha" required class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="••••••••">
                     </div>
@@ -98,23 +98,37 @@
         </div>
     </div>
 
+    <div id="modal-container" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
+        <div class="glass-card w-full max-w-lg p-8 rounded-2xl max-h-[80vh] overflow-y-auto relative shadow-2xl">
+            <button id="modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl font-bold">&times;</button>
+            <h3 id="modal-title" class="text-xl font-bold text-white mb-4">Título do Conteúdo</h3>
+            <div id="modal-text" class="text-gray-400 text-sm space-y-3 leading-relaxed"></div>
+        </div>
+    </div>
+
     <script type="module">
         import { auth, db } from "./firebase-init.js";
-        import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
+        import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         const form = document.getElementById("auth-form");
         const btnSubmit = document.getElementById("btn-submit");
         const btnText = document.getElementById("btn-text");
         const btnToggle = document.getElementById("btn-toggle");
+        const btnForgot = document.getElementById("link-forgot");
         const errorContainer = document.getElementById("error-container");
         const errorText = document.getElementById("error-text");
         const uiSubtitle = document.getElementById("ui-subtitle");
+
+        // Modais
+        const modalContainer = document.getElementById("modal-container");
+        const modalTitle = document.getElementById("modal-title");
+        const modalText = document.getElementById("modal-text");
+        document.getElementById("modal-close").addEventListener("click", () => modalContainer.classList.add("hidden"));
+
         let isLogin = true;
 
-        // --- SOLUÇÃO DO BUG DO BOTÃO VOLTAR (RESET SESSÃO/UI) ---
         window.addEventListener("pageshow", (event) => {
-            // Se vier do cache do histórico do navegador, força o reset da interface
             if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
                 resetSubmitButton();
             }
@@ -125,17 +139,53 @@
             btnText.innerText = isLogin ? "Entrar no Painel" : "Solicitar Acesso";
         }
 
-        function showError(msg) {
+        function showError(msg, isSuccess = false) {
             errorText.innerText = msg;
+            if(isSuccess) {
+                errorContainer.classList.remove("border-red-500/20", "bg-red-950/20", "text-red-400");
+                errorContainer.classList.add("border-emerald-500/20", "bg-emerald-950/20", "text-emerald-400");
+            } else {
+                errorContainer.classList.remove("border-emerald-500/20", "bg-emerald-950/20", "text-emerald-400");
+                errorContainer.classList.add("border-red-500/20", "bg-red-950/20", "text-red-400");
+            }
             errorContainer.classList.remove("hidden");
             resetSubmitButton();
         }
+
+        // --- ENVIAR E-MAIL DE RECUPERAÇÃO ---
+        btnForgot.addEventListener("click", async () => {
+            const emailInput = document.getElementById("input-email").value.trim();
+            const email = emailInput || prompt("Por favor, digite seu e-mail de acesso corporativo:");
+            
+            if (!email) return;
+
+            try {
+                await sendPasswordResetEmail(auth, email);
+                showError("Link de redefinição enviado para o seu e-mail com sucesso!", true);
+            } catch (err) {
+                console.error(err);
+                showError("Não foi possível enviar o e-mail de recuperação. Verifique o endereço digitado.");
+            }
+        });
+
+        // --- COMPORTAMENTO DOS MODAIS ---
+        document.getElementById("btn-termos").addEventListener("click", () => {
+            modalTitle.innerText = "Termos de Uso da Plataforma";
+            modalText.innerHTML = `<p>Ao acessar e utilizar o ecossistema VideDigital, você concorda com o monitoramento de tráfego, auditorias de segurança e conformidade de criadores de conteúdo.</p><p>As ferramentas disponibilizadas devem ser operadas estritamente sob as diretrizes de tráfego orgânico e pago de cada rede de anúncios parceira.</p>`;
+            modalContainer.classList.remove("hidden");
+        });
+
+        document.getElementById("btn-privacidade").addEventListener("click", () => {
+            modalTitle.innerText = "Diretrizes de Privacidade";
+            modalText.innerHTML = `<p>Seus tokens de autenticação, dados de faturamento e chaves do ecossistema Firebase/Meta são processados por criptografia de ponta e nunca salvos de maneira aberta.</p><p>A conformidade LGPD é assegurada para todos os leads coletados na infraestrutura do seu SaaS.</p>`;
+            modalContainer.classList.remove("hidden");
+        });
 
         btnToggle.addEventListener("click", () => {
             isLogin = !isLogin;
             errorContainer.classList.add("hidden");
             document.getElementById("field-nome").classList.toggle("hidden", isLogin);
-            document.getElementById("link-forgot").classList.toggle("invisible", !isLogin);
+            btnForgot.classList.toggle("invisible", !isLogin);
             
             document.getElementById("ui-title").innerText = isLogin ? 'Acessar Painel' : 'Criar Nova Conta';
             uiSubtitle.innerText = isLogin ? 'Bem-vindo de volta ao seu centro de comando.' : 'Preencha os dados estruturais para solicitar sua credencial.';
@@ -150,14 +200,15 @@
             btnSubmit.disabled = true;
             btnText.innerHTML = '<div class="spinner"></div>';
 
-            const email = document.getElementById("input-email").value.trim();
+            const email = document.getElementById("input-email").value.trim().toLowerCase();
             const senha = document.getElementById("input-senha").value;
             const nomeLoja = document.getElementById("input-nome").value.trim();
 
             try {
                 if (isLogin) {
                     const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-                    const userSnap = await getDoc(doc(db, "usuarios", userCredential.user.uid));
+                    // Buscando o documento usando o e-mail como chave primária
+                    const userSnap = await getDoc(doc(db, "usuarios", email));
                     
                     if (userSnap.exists() && userSnap.data().status === "aprovado") {
                         window.location.href = "dashboard.html";
@@ -166,13 +217,16 @@
                     }
                 } else {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-                    await setDoc(doc(db, "usuarios", userCredential.user.uid), {
-                        email, 
+                    
+                    // SOLUÇÃO: Salvando no Firestore usando o E-MAIL como chave do documento
+                    await setDoc(doc(db, "usuarios", email), {
+                        uid: userCredential.user.uid,
+                        email: email, 
                         nomeLoja: nomeLoja || "Minha Vitrine", 
                         status: "pendente", 
                         criadoEm: new Date().toISOString()
                     });
-                    showError("Solicitação enviada com sucesso! Aguarde a liberação administrativa.");
+                    showError("Solicitação enviada com sucesso! Aguarde a liberação administrativa.", true);
                 }
             } catch (err) {
                 console.error(err);
