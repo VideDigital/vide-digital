@@ -139,14 +139,24 @@
         import { db } from "./firebase-init.js";
         import { collection, doc, query, where, onSnapshot, getDoc, setDoc, orderBy, addDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
+        // Tenta buscar o e-mail logado. Se não encontrar, pede na tela para evitar o erro do print image_cabfc6.png
         let adminEmail = localStorage.getItem("adminEmail");
         let salaAtivaId = null;
         let unsubscribeMensagensAtivas = null;
 
         if(!adminEmail) {
-            alert("Acesso restrito. Faça login primeiro.");
-            window.location.href = "login.html";
-        } else {
+            let emailInformado = prompt("E-mail administrador não detectado. Por favor, digite seu e-mail cadastrado para sincronizar as métricas:");
+            if(emailInformado && emailInformado.trim() !== "") {
+                adminEmail = emailInformado.trim();
+                localStorage.setItem("adminEmail", adminEmail);
+            } else {
+                // Caso cancele, redireciona de volta ao login padrão
+                window.location.href = "login.html";
+            }
+        }
+
+        // Se chegamos aqui, temos um e-mail válido para carregar as informações
+        if(adminEmail) {
             document.getElementById("user-display-email").innerText = adminEmail;
             inicializarPainelControle();
         }
