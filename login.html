@@ -8,65 +8,89 @@
     <style>
         @keyframes gradient-move { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
         .mesh-gradient { background: radial-gradient(circle at 50% 50%, #061e2a 0%, #020617 50%, #000 100%); background-size: 200% 200%; animation: gradient-move 15s ease infinite; }
-        .glass-card { background: rgba(18, 18, 20, 0.7); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.05); }
-        .spinner { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #00f2fe; border-radius: 50%; width: 20px; height: 20px; animation: spin 0.8s linear infinite; }
+        .glass-card { background: rgba(10, 10, 12, 0.65); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); }
+        .spinner { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #00f2fe; border-radius: 50%; width: 22px; height: 22px; animation: spin 0.8s linear infinite; }
         @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
     </style>
 </head>
-<body class="h-full mesh-gradient text-gray-200">
+<body class="h-full mesh-gradient text-gray-200 font-sans">
 
     <div class="h-full flex">
-        <!-- Coluna Esquerda: Branding & Valor -->
-        <div class="hidden lg:flex flex-col justify-between w-1/2 p-12 relative overflow-hidden">
-            <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-20"></div>
+        <div class="hidden lg:flex flex-col justify-between w-1/2 p-16 relative overflow-hidden border-r border-white/[0.02]">
+            <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] pointer-events-none"></div>
+            
             <div class="relative z-10">
-                <h2 class="text-4xl font-bold tracking-tighter text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
+                <div class="flex items-center gap-2">
+                    <div class="h-6 w-6 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] shadow-[0_0_20px_rgba(0,242,254,0.4)]"></div>
+                    <h2 class="text-2xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
+                </div>
             </div>
-            <div class="relative z-10 space-y-4">
-                <h1 class="text-6xl font-bold leading-tight">Domine a gestão do seu <br><span class="text-[#00f2fe]">ecossistema digital.</span></h1>
-                <p class="text-gray-400 text-lg max-w-lg">Plataforma de alta performance para gestores de tráfego e criadores. Autenticação segura, integração total com seus ativos.</p>
+            
+            <div class="relative z-10 space-y-6 max-w-xl">
+                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#00f2fe] bg-[#00f2fe]/10 rounded-full border border-[#00f2fe]/20">
+                    <span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] animate-pulse"></span> Sistema Ativo v2.4
+                </span>
+                <h1 class="text-5xl font-black tracking-tight leading-[1.15] text-white">
+                    Domine a gestão do seu <br>
+                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#00f2fe] to-[#4facfe]">ecossistema digital.</span>
+                </h1>
+                <p class="text-gray-400 text-base leading-relaxed">
+                    A infraestrutura definitiva de alta performance para gestores de tráfego e criadores. Autenticação criptografada, monitoramento em tempo real e estabilidade operacional absoluta para sua escala.
+                </p>
             </div>
-            <div class="relative z-10 text-sm text-gray-500">© 2026 VideDigital Systems Inc.</div>
+            
+            <div class="relative z-10 flex items-center justify-between text-xs text-gray-500">
+                <div>© 2026 VideDigital Systems Inc.</div>
+                <div class="flex gap-4">
+                    <a href="#" class="hover:text-white transition-colors">Termos</a>
+                    <a href="#" class="hover:text-white transition-colors">Privacidade</a>
+                </div>
+            </div>
         </div>
 
-        <!-- Coluna Direita: Painel de Acesso -->
-        <div class="w-full lg:w-1/2 flex items-center justify-center p-6">
-            <div class="glass-card w-full max-w-[440px] p-10 rounded-3xl shadow-[0_0_80px_rgba(0,0,0,0.5)]">
+        <div class="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12">
+            <div class="glass-card w-full max-w-[460px] p-8 md:p-10 rounded-[2rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.7)] transition-all duration-300">
                 
                 <div class="mb-8">
-                    <h2 id="ui-title" class="text-2xl font-bold text-white">Acessar Painel</h2>
-                    <p class="text-gray-500 text-sm mt-1">Bem-vindo de volta ao seu centro de comando.</p>
+                    <div class="lg:hidden flex items-center gap-2 mb-6">
+                        <div class="h-5 w-5 rounded-md bg-gradient-to-tr from-[#00f2fe] to-[#4facfe]"></div>
+                        <h2 class="text-xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
+                    </div>
+                    <h2 id="ui-title" class="text-2xl font-bold tracking-tight text-white">Acessar Painel</h2>
+                    <p id="ui-subtitle" class="text-gray-400 text-sm mt-1.5">Bem-vindo de volta ao seu centro de comando.</p>
                 </div>
 
-                <div id="error-container" class="hidden mb-6 p-4 rounded-xl border border-red-500/20 bg-red-950/20 text-red-400 text-sm">
-                    <span id="error-text"></span>
+                <div id="error-container" class="hidden mb-6 p-4 rounded-xl border border-red-500/20 bg-red-950/20 text-red-400 text-sm flex items-start gap-2.5">
+                    <span class="mt-0.5">⚠️</span>
+                    <span id="error-text" class="font-medium"></span>
                 </div>
 
-                <form id="auth-form" class="space-y-4">
-                    <div id="field-nome" class="hidden space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Nome do Projeto</label>
-                        <input type="text" id="input-nome" class="w-full bg-[#09090b] border border-white/5 rounded-lg p-3 text-white focus:border-[#00f2fe] outline-none transition-all">
+                <form id="auth-form" class="space-y-5">
+                    <div id="field-nome" class="hidden space-y-2 transition-all">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome da Operação / Loja</label>
+                        <input type="text" id="input-nome" class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="Ex: Minha Vitrine">
                     </div>
                     
                     <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">E-mail Corporativo</label>
-                        <input type="email" id="input-email" required class="w-full bg-[#09090b] border border-white/5 rounded-lg p-3 text-white focus:border-[#00f2fe] outline-none transition-all" placeholder="nome@empresa.com">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail Corporativo</label>
+                        <input type="email" id="input-email" required class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="nome@empresa.com">
                     </div>
 
                     <div class="space-y-2">
-                        <div class="flex justify-between">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Senha</label>
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Senha de Acesso</label>
+                            <a href="#" id="link-forgot" class="text-[11px] text-[#00f2fe]/80 hover:text-[#00f2fe] tracking-wide transition-colors">Esqueceu a senha?</a>
                         </div>
-                        <input type="password" id="input-senha" required class="w-full bg-[#09090b] border border-white/5 rounded-lg p-3 text-white focus:border-[#00f2fe] outline-none transition-all" placeholder="••••••••">
+                        <input type="password" id="input-senha" required class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="••••••••">
                     </div>
 
-                    <button type="submit" id="btn-submit" class="w-full bg-white hover:bg-gray-100 text-black font-bold py-3.5 rounded-lg transition-all transform hover:scale-[1.01] active:scale-95 flex items-center justify-center gap-2">
-                        <span id="btn-text">Entrar no Sistema</span>
+                    <button type="submit" id="btn-submit" class="w-full mt-2 bg-white hover:bg-gray-100 text-black font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-[0_4px_20px_rgba(255,255,255,0.05)] flex items-center justify-center gap-2">
+                        <span id="btn-text">Entrar no Painel</span>
                     </button>
                 </form>
 
-                <div class="mt-8 text-center border-t border-white/5 pt-6">
-                    <button type="button" id="btn-toggle" class="text-gray-500 hover:text-[#00f2fe] text-xs font-medium uppercase tracking-widest transition-colors">
+                <div class="mt-8 text-center border-t border-white/[0.04] pt-6">
+                    <button type="button" id="btn-toggle" class="text-gray-400 hover:text-[#00f2fe] text-xs font-bold uppercase tracking-widest transition-colors duration-200">
                         Solicitar acesso a nova conta
                     </button>
                 </div>
@@ -75,7 +99,6 @@
     </div>
 
     <script type="module">
-        // [A lógica Firebase permanece a mesma, apenas ajustada para o novo DOM]
         import { auth, db } from "./firebase-init.js";
         import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
         import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
@@ -86,22 +109,39 @@
         const btnToggle = document.getElementById("btn-toggle");
         const errorContainer = document.getElementById("error-container");
         const errorText = document.getElementById("error-text");
+        const uiSubtitle = document.getElementById("ui-subtitle");
         let isLogin = true;
+
+        // --- SOLUÇÃO DO BUG DO BOTÃO VOLTAR (RESET SESSÃO/UI) ---
+        window.addEventListener("pageshow", (event) => {
+            // Se vier do cache do histórico do navegador, força o reset da interface
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                resetSubmitButton();
+            }
+        });
+
+        function resetSubmitButton() {
+            btnSubmit.disabled = false;
+            btnText.innerText = isLogin ? "Entrar no Painel" : "Solicitar Acesso";
+        }
 
         function showError(msg) {
             errorText.innerText = msg;
             errorContainer.classList.remove("hidden");
-            btnSubmit.disabled = false;
-            btnText.innerText = isLogin ? "Entrar no Sistema" : "Solicitar Acesso";
+            resetSubmitButton();
         }
 
         btnToggle.addEventListener("click", () => {
             isLogin = !isLogin;
             errorContainer.classList.add("hidden");
             document.getElementById("field-nome").classList.toggle("hidden", isLogin);
+            document.getElementById("link-forgot").classList.toggle("invisible", !isLogin);
+            
             document.getElementById("ui-title").innerText = isLogin ? 'Acessar Painel' : 'Criar Nova Conta';
-            btnText.innerText = isLogin ? "Entrar no Sistema" : "Solicitar Acesso";
-            btnToggle.innerText = isLogin ? "Solicitar acesso a nova conta" : "Já tenho uma conta";
+            uiSubtitle.innerText = isLogin ? 'Bem-vindo de volta ao seu centro de comando.' : 'Preencha os dados estruturais para solicitar sua credencial.';
+            
+            btnText.innerText = isLogin ? "Entrar no Painel" : "Solicitar Acesso";
+            btnToggle.innerText = isLogin ? "Solicitar acesso a nova conta" : "Voltar para o Login";
         });
 
         form.addEventListener("submit", async (e) => {
@@ -110,28 +150,39 @@
             btnSubmit.disabled = true;
             btnText.innerHTML = '<div class="spinner"></div>';
 
-            const email = document.getElementById("input-email").value;
+            const email = document.getElementById("input-email").value.trim();
             const senha = document.getElementById("input-senha").value;
-            const nomeLoja = document.getElementById("input-nome").value;
+            const nomeLoja = document.getElementById("input-nome").value.trim();
 
             try {
                 if (isLogin) {
                     const userCredential = await signInWithEmailAndPassword(auth, email, senha);
                     const userSnap = await getDoc(doc(db, "usuarios", userCredential.user.uid));
+                    
                     if (userSnap.exists() && userSnap.data().status === "aprovado") {
                         window.location.href = "dashboard.html";
                     } else {
-                        showError("Acesso pendente: Aguarde liberação do administrador.");
+                        showError("Acesso pendente: Sua conta está em fase de análise operacional.");
                     }
                 } else {
                     const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
                     await setDoc(doc(db, "usuarios", userCredential.user.uid), {
-                        email, nomeLoja, status: "pendente", criadoEm: new Date().toISOString()
+                        email, 
+                        nomeLoja: nomeLoja || "Minha Vitrine", 
+                        status: "pendente", 
+                        criadoEm: new Date().toISOString()
                     });
-                    showError("Solicitação enviada! Aguarde a aprovação.");
+                    showError("Solicitação enviada com sucesso! Aguarde a liberação administrativa.");
                 }
             } catch (err) {
-                showError("Erro: Verifique suas credenciais.");
+                console.error(err);
+                if(err.code === "auth/wrong-password" || err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
+                    showError("Erro operacional: Credenciais inválidas ou incorretas.");
+                } else if (err.code === "auth/email-already-in-use") {
+                    showError("Erro: Este e-mail corporativo já está associado a uma conta.");
+                } else {
+                    showError("Erro de comunicação: Falha na conexão com a central de segurança.");
+                }
             }
         });
     </script>
