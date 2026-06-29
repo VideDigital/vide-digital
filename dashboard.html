@@ -1,3 +1,4 @@
+<!-- DASHBOARD.HTML -->
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full bg-[#030712]">
 <head>
@@ -20,20 +21,20 @@
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
-<body class="h-full text-gray-200 bg-[#030712] flex">
+<body id="admin-body" class="h-full text-gray-200 bg-[#030712] flex transition-colors duration-300">
 
     <!-- NOTIFICAÇÕES PREMIUM TOAST -->
     <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
 
     <!-- SIDEBAR FIXA -->
-    <aside class="w-72 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0 z-40">
+    <aside id="admin-sidebar" class="w-72 glass-sidebar h-full flex flex-col justify-between p-6 shrink-0 z-40">
         <div class="space-y-8">
             <!-- Brand Hub -->
             <div class="flex items-center gap-3 px-2">
-                <div class="h-7 w-7 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
+                <div id="admin-brand-icon" class="h-7 w-7 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
                     <span class="text-black font-extrabold text-xs">V</span>
                 </div>
-                <h2 class="text-lg font-black tracking-tight text-white">Minha<span class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Vitrine</span></h2>
+                <h2 class="text-lg font-black tracking-tight text-white">Minha<span id="admin-brand-text" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Vitrine</span></h2>
             </div>
 
             <!-- Navegacão SPA Sem Reloads -->
@@ -59,7 +60,7 @@
                 <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1.5 p-3.5 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-[#00f2fe]/40 rounded-2xl transition-all group">
                     <div class="flex items-center justify-between w-full">
                         <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-[#00f2fe] transition-colors">Visualizar Minha Loja</span>
-                        <span class="h-2 w-2 rounded-full bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]"></span>
+                        <span id="admin-online-dot" class="h-2 w-2 rounded-full bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]"></span>
                     </div>
                     <span class="text-xs text-white font-medium truncate max-w-full" id="url-loja-preview">Carregando endereço...</span>
                 </a>
@@ -80,7 +81,7 @@
         <section id="view-dashboard" class="view-section active space-y-8">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
+                    <h1 id="txt-preview-nome-loja" class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
                     <p class="text-gray-400 text-xs mt-1">Bem-vindo de volta, <span class="text-white font-semibold">Vide Digital</span></p>
                 </div>
                 <button id="btn-abrir-criacao" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-extrabold px-6 py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.02] transition-all shrink-0">
@@ -175,22 +176,18 @@
                         </div>
                     </div>
 
-                    <!-- Links Adicionais Opcionais -->
+                    <!-- Módulo Live Chat ao Vivo Enterprise -->
                     <div class="glass-card p-6 rounded-2xl space-y-4">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🔗 Links Adicionais de Suporte <span class="text-gray-500 font-normal">(Opcionais)</span></h3>
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <!-- Link 1 -->
-                            <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2">
-                                <span class="text-[10px] font-bold text-[#00f2fe]">LINK EXTRA 1</span>
-                                <input type="text" id="perf-link1-titulo" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="Título (Ex: Grupo VIP)">
-                                <input type="url" id="perf-link1-url" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="URL de Destino">
-                            </div>
-                            <!-- Link 2 -->
-                            <div class="p-4 bg-white/[0.01] border border-white/5 rounded-xl space-y-2">
-                                <span class="text-[10px] font-bold text-[#00f2fe]">LINK EXTRA 2</span>
-                                <input type="text" id="perf-link2-titulo" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="Título (Ex: Suporte Mentoria)">
-                                <input type="url" id="perf-link2-url" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none" placeholder="URL de Destino">
-                            </div>
+                        <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                            <h3 class="text-sm font-bold text-white tracking-wider uppercase flex items-center gap-2">💬 Chat ao Vivo (Suporte do Cliente)</h3>
+                            <label class="relative inline-flex items-center cursor-pointer">
+                                <input type="checkbox" id="perf-chat-ativo" class="sr-only peer">
+                                <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
+                            </label>
+                        </div>
+                        <p class="text-xs text-gray-400">Ative um widget de chat reativo no canto da tela do cliente. Quando você não estiver na aba de olho, o sistema encaminha automaticamente as mensagens direto ao seu WhatsApp.</p>
+                        <div class="p-3 bg-blue-950/20 border border-blue-500/10 rounded-xl text-[11px] text-blue-400">
+                            ℹ️ As notificações urgentes de novas mensagens serão espelhadas no número definido no seu <b>WhatsApp Central</b>.
                         </div>
                     </div>
                 </div>
@@ -198,9 +195,8 @@
                 <!-- Coluna da Direita (Customização Estética de Cores / Temas) -->
                 <div class="space-y-6">
                     <div class="glass-card p-6 rounded-2xl space-y-5 sticky top-6">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🎨 Aparência Avançada</h3>
+                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🎨 Controle de Aparência</h3>
                         
-                        <!-- Opção de Organização de Abas Prontas -->
                         <div class="space-y-2">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
                             <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
@@ -209,20 +205,32 @@
                             </select>
                         </div>
 
-                        <!-- Paleta de Cores Dinâmicas -->
-                        <div class="space-y-3 pt-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Paleta de Cores Customizada</label>
+                        <!-- Paleta de Cores do Painel Admin -->
+                        <div class="space-y-3 pt-2 border-t border-white/5">
+                            <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">🎨 Cores do Painel de Administração</label>
+                            
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Tom de Destaque Admin</span>
+                                <input type="color" id="perf-admin-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
+                            </div>
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Fundo do Admin</span>
+                                <input type="color" id="perf-admin-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
+                            </div>
+                        </div>
+
+                        <!-- Paleta de Cores do Painel Cliente -->
+                        <div class="space-y-3 pt-2 border-t border-white/5">
+                            <label class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">🛍️ Cores da Vitrine do Cliente</label>
                             
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
                                 <span class="text-xs text-gray-400">Tom de Destaque (Brand)</span>
                                 <input type="color" id="perf-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
                             </div>
-
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
                                 <span class="text-xs text-gray-400">Fundo da Vitrine</span>
                                 <input type="color" id="perf-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
                             </div>
-
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
                                 <span class="text-xs text-gray-400">Cor do Card do Produto</span>
                                 <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
@@ -248,14 +256,62 @@
             </div>
         </section>
 
-        <!-- SECTION 4: LEADS CAPTURAS -->
+        <!-- SECTION 4: LEADS CAPTURAS (PROFISSIONAL ENTERPRISE) -->
         <section id="view-leads" class="view-section space-y-6">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Métricas de Leads</h1>
-                <p class="text-gray-400 text-xs mt-1">Monitore em tempo real as intenções de clique e capturas de WhatsApp da sua vitrine.</p>
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
+                    <p class="text-gray-400 text-xs mt-1">Gerencie os contatos que demonstraram interesse em seus produtos.</p>
+                </div>
+                <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
+                    📥 Exportar Planilha
+                </button>
             </div>
-            <div class="glass-card p-6 rounded-2xl max-w-2xl text-center py-12 text-gray-400 text-xs">
-                👥 Lista de contatos integrados em processamento automático.
+
+            <!-- Cards Superiores de Métricas Reais da Imagem Exemplo -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-6 rounded-2xl">
+                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Total de Leads</span>
+                    <h2 class="text-3xl font-black text-white mt-2" id="lead-total-count">0</h2>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Com WhatsApp</span>
+                    <h2 class="text-3xl font-black text-emerald-400 mt-2" id="lead-whatsapp-count">0</h2>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Cliques Totais</span>
+                    <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="lead-clicks-count">0</h2>
+                </div>
+                <div class="glass-card p-6 rounded-2xl">
+                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Média Tempo de Tela</span>
+                    <h2 class="text-3xl font-black text-amber-400 mt-2" id="lead-time-count">0s</h2>
+                </div>
+            </div>
+
+            <!-- Tabela Avançada Corporativa de Conversão -->
+            <div class="glass-card rounded-2xl overflow-hidden border border-white/5">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 bg-white/[0.01] text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                <th class="p-4">👤 Nome</th>
+                                <th class="p-4">✉️ E-mail / Contato</th>
+                                <th class="p-4">🟢 WhatsApp</th>
+                                <th class="p-4">📍 Origem</th>
+                                <th class="p-4 text-center">📊 Cliques</th>
+                                <th class="p-4 text-center">⏱️ Tempo Retido</th>
+                                <th class="p-4">🎯 Maior Interesse</th>
+                                <th class="p-4">📅 Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="leads-table-body" class="text-xs divide-y divide-white/5">
+                            <!-- Injetado Dinamicamente por JavaScript -->
+                            <tr>
+                                <td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda. Continue divulgando sua loja!</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </section>
     </main>
@@ -281,7 +337,6 @@
                     </div>
                 </div>
 
-                <!-- Novos campos profissionais baseados nos inputs avançados opcionais -->
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white/[0.01] p-4 rounded-xl border border-white/5">
                     <div class="space-y-1.5">
                         <label class="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">Preço Riscado (De) <span class="text-gray-600 font-normal">(Opcional)</span></label>
@@ -412,6 +467,28 @@
             }, 3000);
         }
 
+        // ELEMENTOS EM TEMPO REAL (MUDANÇA INSTANTÂNEA SOLICITADA)
+        const inputsReflexao = ['perf-nome-loja', 'perf-slug', 'perf-titulo', 'perf-subtitulo'];
+        inputsReflexao.forEach(id => {
+            document.getElementById(id).addEventListener('input', () => {
+                const slugValue = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+                document.getElementById("link-minha-loja").href = `loja.html?loja=${slugValue || 'vitrine'}`;
+                document.getElementById("url-loja-preview").innerText = `vide.digital/${slugValue || 'vitrine'}`;
+                document.getElementById("txt-preview-nome-loja").innerText = document.getElementById("perf-nome-loja").value || "Visão Geral";
+            });
+        });
+
+        // GESTÃO DINÂMICA DE CORES DO ADMIN INDEPENDENTE
+        document.getElementById("perf-admin-cor-fundo").addEventListener("input", (e) => {
+            document.getElementById("admin-body").style.backgroundColor = e.target.value;
+        });
+        document.getElementById("perf-admin-cor-destaque").addEventListener("input", (e) => {
+            const cor = e.target.value;
+            document.getElementById("admin-brand-icon").style.background = cor;
+            document.getElementById("admin-brand-text").style.color = cor;
+            document.getElementById("admin-online-dot").style.backgroundColor = cor;
+        });
+
         // CONTROLADOR DE INPUTS DE MÍDIA
         inputImagemFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
@@ -478,9 +555,20 @@
                     document.getElementById("perf-link2-titulo").value = dados.link2Titulo || "";
                     document.getElementById("perf-link2-url").value = dados.link2Url || "";
                     document.getElementById("perf-aba-padrao").value = dados.abaPadrao || "fisicos";
+                    
+                    // Clientes
                     document.getElementById("perf-cor-destaque").value = dados.corDestaque || "#00f2fe";
                     document.getElementById("perf-cor-fundo").value = dados.corFundo || "#030712";
                     document.getElementById("perf-cor-card").value = dados.corCard || "#0c0c14";
+                    
+                    // Admin
+                    document.getElementById("perf-admin-cor-destaque").value = dados.adminCorDestaque || "#00f2fe";
+                    document.getElementById("perf-admin-cor-fundo").value = dados.adminCorFundo || "#030712";
+                    document.getElementById("perf-chat-ativo").checked = dados.chatAtivo || false;
+
+                    // Aplicar cores salvas no admin
+                    document.getElementById("admin-body").style.backgroundColor = dados.adminCorFundo || "#030712";
+                    document.getElementById("admin-brand-icon").style.background = dados.adminCorDestaque || "#00f2fe";
                     
                     if (dados.fotoPerfilB64) {
                         document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
@@ -490,8 +578,10 @@
                     const slugAtual = dados.urlLoja || "vitrine";
                     document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtual}`;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
+                    document.getElementById("txt-preview-nome-loja").innerText = dados.nomeLoja || "Visão Geral";
                 }
                 carregarProdutos();
+                carregarLeads();
             } else {
                 window.location.href = "login.html";
             }
@@ -520,18 +610,75 @@
                     corDestaque: document.getElementById("perf-cor-destaque").value,
                     corFundo: document.getElementById("perf-cor-fundo").value,
                     corCard: document.getElementById("perf-cor-card").value,
+                    adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
+                    adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
+                    chatAtivo: document.getElementById("perf-chat-ativo").checked,
                     fotoPerfilB64: document.getElementById("perfil-foto-base64").value
                 };
 
                 await updateDoc(doc(db, "usuarios", usuarioEmail), payloadPerfil);
-                document.getElementById("link-minha-loja").href = `loja.html?loja=${novoSlug}`;
-                document.getElementById("url-loja-preview").innerText = `vide.digital/${novoSlug}`;
-                showToast("Layout e configurações atualizados com sucesso!");
+                showToast("Layout e configurações salvos com sucesso!");
             } catch (err) {
                 console.error(err);
-                showToast("Erro ao salvar perfil.", "error");
+                showToast("Erro ao salvar configurações.", "error");
             }
         });
+
+        // CARREGAR E RENDERIZAR LEADS (MÉTRICAS DA IMAGEM E NOVAS MÁXIMAS)
+        async function carregarLeads() {
+            const tableBody = document.getElementById("leads-table-body");
+            try {
+                const q = query(collection(db, "leads"), where("vitrineDona", "==", usuarioEmail));
+                const querySnapshot = await getDocs(q);
+                
+                let totalLeads = 0;
+                let comWhats = 0;
+                let totalCliques = 0;
+                let totalTempo = 0;
+
+                let html = "";
+
+                querySnapshot.forEach(docSnap => {
+                    const lead = docSnap.data();
+                    totalLeads++;
+                    if(lead.whatsapp) comWhats++;
+                    totalCliques += (lead.cliques || 1);
+                    totalTempo += (lead.tempoRetencao || 12);
+
+                    const badgesOrigem = {
+                        google: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+                        meta: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
+                        tiktok: 'bg-pink-500/10 text-pink-400 border border-pink-500/20',
+                        insta: 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                    };
+                    const origem = lead.origem || 'meta';
+                    const badgeClass = badgesOrigem[origem] || 'bg-gray-500/10 text-gray-400';
+
+                    html += `
+                        <tr class="hover:bg-white/[0.01] transition-colors">
+                            <td class="p-4 font-bold text-white">${lead.nome || 'Lead Anônimo'}</td>
+                            <td class="p-4 text-gray-400">${lead.email || 'Não informado'}</td>
+                            <td class="p-4 text-emerald-400 font-medium">${lead.whatsapp || 'Via Tráfego Direto'}</td>
+                            <td class="p-4"><span class="px-2.5 py-1 text-[10px] uppercase font-extrabold rounded-md ${badgeClass}">${origem}</span></td>
+                            <td class="p-4 text-center text-white font-bold">${lead.cliques || 1}</td>
+                            <td class="p-4 text-center text-amber-400 font-medium">${lead.tempoRetencao || 15}s</td>
+                            <td class="p-4 text-[#00f2fe] font-medium truncate max-w-[150px]">${lead.produtoInteresse || 'Nenhum'}</td>
+                            <td class="p-4 text-gray-500">${lead.data ? new Date(lead.data).toLocaleDateString('pt-BR') : 'Hoje'}</td>
+                        </tr>
+                    `;
+                });
+
+                if(totalLeads > 0) {
+                    tableBody.innerHTML = html;
+                    document.getElementById("lead-total-count").innerText = totalLeads;
+                    document.getElementById("lead-whatsapp-count").innerText = comWhats;
+                    document.getElementById("lead-clicks-count").innerText = totalCliques;
+                    document.getElementById("lead-time-count").innerText = `${Math.round(totalTempo / totalLeads)}s`;
+                }
+            } catch (err) {
+                console.error("Erro ao processar leads estruturados:", err);
+            }
+        }
 
         // FILTROS DE PRODUTOS DINÂMICOS
         document.getElementById("filtro-todos").addEventListener("click", () => aplicarFiltro("todos", "filtro-todos"));
