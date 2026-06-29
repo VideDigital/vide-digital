@@ -37,10 +37,8 @@
                 <input type="password" required id="login-senha" class="w-full bg-[#06060a]/80 border border-white/5 rounded-xl p-3.5 text-sm text-white outline-none focus:border-[#00f2fe] focus:shadow-[0_0_20px_rgba(0,242,254,0.1)] transition-all" placeholder="••••••••">
             </div>
 
-            <div id="mensagem-erro" class="text-red-400 text-xs text-center font-medium hidden bg-red-500/10 border border-red-500/20 py-2.5 rounded-xl"></div>
-
-            <button type="submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
-                Autenticar Entrada
+            <button type="submit" id="btn-entrar-submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
+                Entrar no Dashboard
             </button>
         </form>
 
@@ -48,29 +46,75 @@
     </div>
 
     <script type="module">
-        import { auth } from './firebase-init.js?v=2';
-        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        // Chave de produção do seu projeto ativo: vide-digital-saas
+        const firebaseConfig = {
+            apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
+            authDomain: "vide-digital-saas.firebaseapp.com",
+            projectId: "vide-digital-saas",
+            storageBucket: "vide-digital-saas.firebasestorage.app",
+            messagingSenderId: "891590456336",
+            appId: "1:891590456336:web:bd51ac50399465b886c695"
+        };
+
+        // Força inicialização limpa sem cache externo
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        // Feedback visual customizado enviado por você
+        function emitInlineFeedback(message, status = 'success') {
+            let feedbackBox = document.getElementById('global-inline-feedback');
+            if (!feedbackBox) {
+                feedbackBox = document.createElement('div');
+                feedbackBox.id = 'global-inline-feedback';
+                Object.assign(feedbackBox.style, {
+                    position: 'fixed',
+                    bottom: '24px',
+                    left: '24px',
+                    padding: '14px 20px',
+                    borderRadius: '10px',
+                    color: '#FFF',
+                    fontWeight: '600',
+                    fontSize: '0.9rem',
+                    zIndex: '99999',
+                    transition: 'all 0.3s ease',
+                    boxShadow: '0 10px 25px rgba(0,0,0,0.4)'
+                });
+                document.body.appendChild(feedbackBox);
+            }
+            
+            feedbackBox.style.backgroundColor = status === 'success' ? '#00D2DF' : '#EF4444';
+            feedbackBox.style.color = status === 'success' ? '#000' : '#FFF';
+            feedbackBox.textContent = message;
+            feedbackBox.style.display = 'block';
+            
+            setTimeout(() => { feedbackBox.style.display = 'none'; }, 3000);
+        }
 
         const form = document.getElementById("login-form");
-        const errorDiv = document.getElementById("mensagem-erro");
+        if (form) {
+            form.addEventListener("submit", async (e) => {
+                e.preventDefault();
 
-        form.addEventListener("submit", async (e) => {
-            e.preventDefault();
-            errorDiv.classList.add("hidden");
+                const email = document.getElementById("login-email").value;
+                const senha = document.getElementById("login-senha").value;
 
-            const email = document.getElementById("login-email").value;
-            const senha = document.getElementById("login-senha").value;
+                try {
+                    await signInWithEmailAndPassword(auth, email, senha);
+                    emitInlineFeedback("Autenticado com sucesso! Entrando...", "success");
+                    
+                    setTimeout(() => {
+                        window.location.href = "dashboard.html";
+                    }, 800);
 
-            try {
-                await signInWithEmailAndPassword(auth, email, senha);
-                // Direciona direto para o painel após o sucesso
-                window.location.href = "dashboard.html";
-            } catch (error) {
-                errorDiv.innerText = "Falha na autenticação. Verifique seus dados de acesso.";
-                errorDiv.classList.remove("hidden");
-                console.error("Erro Firebase Auth:", error.message);
-            }
-        });
+                } catch (error) {
+                    emitInlineFeedback("Falha na autenticação. Chave ou dados incorretos.", "error");
+                    console.error("Erro interno do Firebase Auth:", error.code, error.message);
+                }
+            });
+        }
     </script>
 </body>
 </html>
