@@ -91,8 +91,8 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
@@ -159,27 +159,37 @@
         setupToggleSenha("login-senha", "toggle-senha-login");
         setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
 
-        // --- LÓGICA DE LOGIN ---
+        // --- LÓGICA DE LOGIN CORRIGIDA ---
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const email = document.getElementById("login-email").value;
             const senha = document.getElementById("login-senha").value;
 
             try {
+                // 1. Autentica o utilizador no Firebase Auth
                 const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-                const user = userCredential.user;
+                
+                // Importamos dinamicamente as funções de query se não estiverem no topo
+                // Se já importou 'collection', 'query', 'where' e 'getDocs' no topo, pode ignorar esta linha
+                const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
 
-                const userDocRef = doc(db, "usuarios", user.uid);
-                const userDoc = await getDoc(userDocRef);
+                // 2. Procura na coleção 'usuarios' onde o campo email é igual ao digitado
+                const usuariosRef = collection(db, "usuarios");
+                const q = query(usuariosRef, where("email", "==", email));
+                const querySnapshot = await getDocs(q);
 
-                if (userDoc.exists()) {
+                if (!querySnapshot.empty) {
+                    // Obtém os dados do primeiro documento encontrado
+                    const userDoc = querySnapshot.docs[0];
                     const dadosUsuario = userDoc.data();
+
                     if (dadosUsuario.status !== "aprovado") {
                         emitInlineFeedback("Sua conta está em análise. Aguarde a aprovação do administrador.", "error");
                         await signOut(auth);
                         return;
                     }
                 } else {
+                    // Se não encontrar o documento nem pelo UID nem pelo campo email
                     emitInlineFeedback("Conta pendente de configuração de perfil.", "error");
                     await signOut(auth);
                     return;
