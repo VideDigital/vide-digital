@@ -102,8 +102,7 @@
                 <span class="text-xs text-gray-500 font-medium px-3" id="contador-produtos">0 Ativos</span>
             </div>
 
-            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                </div>
+            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
         </section>
 
         <section id="view-perfil" class="view-section space-y-8">
@@ -326,218 +325,225 @@
     <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-2xl p-6 sm:p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
             <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
-            
             <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-6">Configurar Oferta do Produto</h3>
             
             <form id="produto-form" class="space-y-5">
                 <input type="hidden" id="form-id-produto">
-
+                
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Produto / Oferta</label>
-                        <input type="text" id="prod-nome" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="Ex: Curso Macarons do Zero ao Pro">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Título da Oferta</label>
+                        <input type="text" id="form-titulo-produto" required class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Curso Avançado de Tráfego">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Preço de Venda (R$)</label>
-                        <input type="number" step="0.01" id="prod-preco" required class="w-full glass-input rounded-xl p-3 text-white placeholder-gray-700 outline-none text-sm" placeholder="0.00">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 bg-white/[0.01] p-4 rounded-xl border border-white/5">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-teal-400 uppercase tracking-wider block">Preço Riscado (De)</label>
-                        <input type="number" step="0.01" id="prod-preco-de" class="w-full glass-input rounded-xl p-2.5 text-xs text-white placeholder-gray-700 outline-none" placeholder="Ex: 197.00">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-amber-400 uppercase tracking-wider block">Urgência Vagas</label>
-                        <input type="text" id="prod-vagas-tag" class="w-full glass-input rounded-xl p-2.5 text-xs text-white placeholder-gray-700 outline-none" placeholder="Ex: Restam 5 vagas">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">Selo / Badge</label>
-                        <input type="text" id="prod-badge-custom" class="w-full glass-input rounded-xl p-2.5 text-xs text-white placeholder-gray-700 outline-none" placeholder="Ex: Exclusivo">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Formato logístico</label>
-                        <select id="prod-tipo" class="w-full glass-input rounded-xl p-3 text-white text-sm outline-none">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Categoria / Tipo</label>
+                        <select id="form-tipo-produto" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
+                            <option value="digital">⚡ Produto Digital</option>
                             <option value="fisico">📦 Produto Físico</option>
-                            <option value="digital">⚡ Infoproduto / Curso Digital</option>
                         </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Preço Original (De)</label>
+                        <input type="text" id="form-preco-de" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: 297,00">
                     </div>
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subnicho de Mercado</label>
-                        <select id="prod-subnicho" class="w-full glass-input rounded-xl p-3 text-white text-sm outline-none">
-                            <option value="Confeitaria">Confeitaria / Doces</option>
-                            <option value="Barbearia">Barbearia</option>
-                            <option value="Estética">Estética e Beleza</option>
-                            <option value="Automotivo">Automotivo</option>
-                            <option value="Outro">Outros Nichos</option>
-                        </select>
+                        <label class="text-[10px] font-bold text-emerald-400 uppercase tracking-wider">Preço Promocional (Por)</label>
+                        <input type="text" id="form-preco-por" required class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: 97,00">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Parcelas Máximas</label>
+                        <input type="text" id="form-parcelas" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: 12x de 9,74">
                     </div>
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Carregar Foto do Produto</label>
-                    <input type="file" id="prod-imagem-file" accept="image/*" class="w-full glass-input rounded-xl p-2.5 text-xs text-gray-400 outline-none">
-                    <input type="hidden" id="prod-imagem-base64">
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Estratégia de Destino</label>
-                    <div class="grid grid-cols-2 gap-2 bg-[#09090f] p-1 rounded-xl border border-white/5">
-                        <button type="button" id="tab-checkout" class="py-2.5 text-xs font-semibold rounded-lg text-white bg-white/10 transition-all">Link de Checkout</button>
-                        <button type="button" id="tab-whatsapp" class="py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all">WhatsApp Direct</button>
-                    </div>
-                </div>
-
-                <div id="wrapper-checkout" class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL de Checkout Seguro (Kiwify, Hotmart, etc.)</label>
-                    <input type="url" id="prod-checkout" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none" placeholder="https://pay.kiwify.com.br/...">
-                </div>
-
-                <div id="wrapper-whatsapp" class="space-y-1.5 hidden">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp para Fechamento (Com DDD, apenas números)</label>
-                    <input type="text" id="prod-whatsapp" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none" placeholder="Ex: 11992960466" maxlength="11">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Descrição Curta / Headline do Card</label>
+                    <textarea id="form-desc-produto" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none resize-none" placeholder="Destaque o principal benefício de forma matadora..."></textarea>
                 </div>
 
                 <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Copywriting de Oferta (Descrição Comercial)</label>
-                    <textarea id="prod-descricao" rows="3" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none resize-none" placeholder="Insira os principais benefícios do produto..."></textarea>
+                    <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider">Link de Checkout / Destino de Compra</label>
+                    <input type="url" id="form-link-produto" required class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="https://pay.kiwify.com.br/... ou link do WhatsApp">
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
-                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-500/10 hover:bg-red-500/20 text-red-400 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all mr-auto">Remover Produto</button>
-                    <button type="button" id="modal-cancelar" class="bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
-                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-100 text-black font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Produto</button>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Link da Imagem do Produto (URL)</label>
+                    <input type="url" id="form-imagem-url" required class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="https://suaimagem.com/foto.jpg ou link do Imgur/Firebase">
+                </div>
+
+                <div class="flex items-center justify-between gap-3 pt-4 border-t border-white/5">
+                    <button type="button" id="btn-deletar-produto" class="hidden text-xs font-bold text-red-400 hover:text-red-300 transition-colors px-2">
+                        🗑️ Excluir Produto
+                    </button>
+                    <div class="flex gap-3 ml-auto">
+                        <button type="button" id="modal-cancelar" class="px-5 py-3 rounded-xl text-xs font-bold text-gray-400 hover:text-white transition-colors">Cancelar</button>
+                        <button type="submit" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-extrabold px-6 py-3 rounded-xl text-xs uppercase tracking-wider">Salvar Produto</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
     <script type="module">
-        import { auth, db } from "./firebase-init.js";
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        let usuarioEmail = "";
-        let tipoDestino = "checkout";
-        let filtroLogistico = "todos";
+        // Configuração Firebase (Sua SDK ativa)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAs8...", 
+            authDomain: "videdigital-ad.firebaseapp.com",
+            projectId: "videdigital-ad",
+            storageBucket: "videdigital-ad.appspot.com",
+            messagingSenderId: "9823749283",
+            appId: "1:9823749283:web:abcd1234"
+        };
 
-        const produtosContainer = document.getElementById("produtos-container");
-        const modal = document.getElementById("produto-modal");
-        const form = document.getElementById("produto-form");
-        const modalTitulo = document.getElementById("modal-titulo");
-        const btnDeletar = document.getElementById("btn-deletar-produto");
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
 
-        const tabCheckout = document.getElementById("tab-checkout");
-        const tabWhatsapp = document.getElementById("tab-whatsapp");
-        const wrapperCheckout = document.getElementById("wrapper-checkout");
-        const wrapperWhatsapp = document.getElementById("wrapper-whatsapp");
-        const inputCheckout = document.getElementById("prod-checkout");
-        const inputWhatsapp = document.getElementById("prod-whatsapp");
-        const inputImagemFile = document.getElementById("prod-imagem-file");
-        const inputImagemBase64 = document.getElementById("prod-imagem-base64");
+        let fornecedorEmail = "";
+        let globalProdutos = [];
 
-        // ENGINE INTELIGENTE DE DETECÇÃO DE CONTRASTE E BRILHO HEX
-        function verificarContrasteFundo(hexColor) {
-            const hex = hexColor.replace('#', '');
-            const r = parseInt(hex.substring(0, 2), 16);
-            const g = parseInt(hex.substring(2, 4), 16);
-            const b = parseInt(hex.substring(4, 6), 16);
-            const brilho = (r * 299 + g * 587 + b * 114) / 1000;
-            
-            const bodyEl = document.getElementById("admin-body");
-            if (brilho > 175) { 
-                bodyEl.classList.add("tema-claro");
-            } else {
-                bodyEl.classList.remove("tema-claro");
-            }
-        }
-
-        // RESPONSIVIDADE MOBILE: TOGGLE SIDEBAR MENU
-        document.getElementById("mobile-menu-toggle").addEventListener("click", () => {
-            document.getElementById("sidebar-nav").classList.toggle("hidden");
-            document.getElementById("sep-nav").classList.toggle("hidden");
-            document.getElementById("box-atalho").classList.toggle("hidden");
-            document.getElementById("box-logout").classList.toggle("hidden");
-        });
-
-        // GESTOR DE ABAS SPA REATIVAS
-        document.querySelectorAll("#sidebar-nav button").forEach(button => {
-            button.addEventListener("click", () => {
-                document.querySelectorAll("#sidebar-nav button").forEach(b => {
-                    b.className = "nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left";
-                });
-                button.className = "nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left";
-                
-                const targetId = button.getAttribute("data-target");
-                document.querySelectorAll(".view-section").forEach(section => section.classList.remove("active"));
-                document.getElementById(targetId).classList.add("active");
-
-                // Auto-fechar menu no mobile após seleção
-                if(window.innerWidth < 768) {
-                    document.getElementById("sidebar-nav").classList.add("hidden");
-                    document.getElementById("sep-nav").classList.add("hidden");
-                    document.getElementById("box-atalho").classList.add("hidden");
-                    document.getElementById("box-logout").classList.add("hidden");
-                }
-            });
-        });
-
-        // TOAST ENGINE
-        function showToast(message, type = "success") {
+        // TOAST NOTIFICATIONS
+        function showToast(text, type = "success") {
             const container = document.getElementById("toast-container");
             const toast = document.createElement("div");
-            toast.className = `p-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-3 backdrop-blur-md transform translate-x-10 opacity-0 transition-all duration-300 pointer-events-auto ${
-                type === 'success' ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/20' : 'bg-red-950/90 text-red-400 border-red-500/20'
+            toast.className = `p-4 rounded-xl text-xs font-bold shadow-2xl border transition-all duration-300 bg-[#0b0b14] pointer-events-auto ${
+                type === 'error' ? 'border-red-500/30 text-red-400' : 'border-[#00f2fe]/30 text-[#00f2fe]'
             }`;
-            toast.innerHTML = `<span class="no-contrast">${type === 'success' ? '✨' : '⚠️'}</span> <span class="no-contrast">${message}</span>`;
+            toast.innerText = text;
             container.appendChild(toast);
-            setTimeout(() => toast.classList.remove("translate-x-10", "opacity-0"), 10);
-            setTimeout(() => {
-                toast.classList.add("translate-x-10", "opacity-0");
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+            setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
-        // ELEMENTOS EM TEMPO REAL (MUDANÇA INSTANTÂNEA)
-        const inputsReflexao = ['perf-nome-loja', 'perf-slug', 'perf-titulo', 'perf-subtitulo'];
-        inputsReflexao.forEach(id => {
-            document.getElementById(id).addEventListener('input', () => {
-                const slugValue = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-                document.getElementById("link-minha-loja").href = `loja.html?loja=${slugValue || 'vitrine'}`;
-                document.getElementById("url-loja-preview").innerText = `vide.digital/${slugValue || 'vitrine'}`;
-                document.getElementById("txt-preview-nome-loja").innerText = document.getElementById("perf-nome-loja").value || "Visão Geral";
-            });
-        });
-
-        // ESCUTADORES DE CORES PARA REFLETIR NA HORA NO ADMIN E CALCULAR CONTRASTE
-        document.getElementById("perf-admin-cor-fundo").addEventListener("input", (e) => {
-            document.getElementById("admin-body").style.backgroundColor = e.target.value;
-            verificarContrasteFundo(e.target.value);
-        });
-        document.getElementById("perf-admin-cor-destaque").addEventListener("input", (e) => {
-            const cor = e.target.value;
-            document.getElementById("admin-brand-icon").style.background = cor;
-            document.getElementById("admin-brand-text").style.color = cor;
-            document.getElementById("admin-online-dot").style.backgroundColor = cor;
-        });
-
-        // UPLOAD DE IMAGENS EM BASE64
-        inputImagemFile.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => { inputImagemBase64.value = reader.result; };
-                reader.readAsDataURL(file);
+        // VERIFICAÇÃO DE AUTENTICAÇÃO
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                fornecedorEmail = user.email;
+                document.getElementById("url-loja-preview").innerText = `videdigital.com/${user.uid || 'suavitrine'}`;
+                carregarPerfil();
+                carregarProdutos();
+                carregarLeads();
+            } else {
+                window.location.href = "login.html";
             }
         });
 
+        // NAVEGAÇÃO ENTRE ABAS
+        const navItems = document.querySelectorAll(".nav-item");
+        const sections = document.querySelectorAll(".view-section");
+        const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
+        const adminSidebar = document.getElementById("admin-sidebar");
+
+        navItems.forEach(btn => {
+            btn.addEventListener("click", () => {
+                navItems.forEach(b => b.classList.remove("active", "bg-white/5", "border-[#00f2fe]"));
+                btn.classList.add("active", "bg-white/5", "border-[#00f2fe]");
+                
+                sections.forEach(s => s.classList.remove("active"));
+                document.getElementById(btn.dataset.target).classList.add("active");
+            });
+        });
+
+        mobileMenuToggle.addEventListener("click", () => {
+            const isHidden = document.getElementById("sidebar-nav").classList.contains("hidden");
+            if(isHidden) {
+                document.getElementById("sidebar-nav").classList.remove("hidden");
+                document.getElementById("sep-nav").classList.remove("hidden");
+                document.getElementById("box-atalho").classList.remove("hidden");
+                document.getElementById("box-logout").classList.remove("hidden");
+            } else {
+                document.getElementById("sidebar-nav").classList.add("hidden");
+                document.getElementById("sep-nav").classList.add("hidden");
+                document.getElementById("box-atalho").classList.add("hidden");
+                document.getElementById("box-logout").classList.add("hidden");
+            }
+        });
+
+        // RECUPERAÇÃO DAS CONFIGURAÇÕES DE PERFIL / APARÊNCIA
+        async function carregarPerfil() {
+            if (!fornecedorEmail) return;
+            try {
+                const docSnap = await getDoc(doc(db, "fornecedores", fornecedorEmail));
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById("perf-nome-loja").value = data.nomeLoja || "";
+                    document.getElementById("perf-slug").value = data.slug || "";
+                    document.getElementById("perf-titulo").value = data.titulo || "";
+                    document.getElementById("perf-subtitulo").value = data.subtitulo || "";
+                    
+                    document.getElementById("perf-social-whatsapp-central").value = data.whatsappCentral || "";
+                    document.getElementById("perf-social-instagram").value = data.instagram || "";
+                    document.getElementById("perf-social-tiktok").value = data.tiktok || "";
+                    document.getElementById("perf-social-youtube").value = data.youtube || "";
+                    
+                    document.getElementById("perf-link1-titulo").value = data.link1_titulo || "";
+                    document.getElementById("perf-link1-url").value = data.link1_url || "";
+                    document.getElementById("perf-link2-titulo").value = data.link2_titulo || "";
+                    document.getElementById("perf-link2-url").value = data.link2_url || "";
+                    
+                    document.getElementById("perf-chat-ativo").checked = !!data.chatAtivo;
+                    document.getElementById("perf-social-whatsapp-chat").value = data.whatsappChat || "";
+                    document.getElementById("perf-aba-padrao").value = data.abaPadrao || "fisicos";
+                    
+                    if(data.adminCorFundo) document.getElementById("perf-admin-cor-fundo").value = data.adminCorFundo;
+                    if(data.adminCorDestaque) document.getElementById("perf-admin-cor-destaque").value = data.adminCorDestaque;
+                    if(data.corFundo) document.getElementById("perf-cor-fundo").value = data.corFundo;
+                    if(data.corDestaque) document.getElementById("perf-cor-destaque").value = data.corDestaque;
+                    if(data.corCard) document.getElementById("perf-cor-card").value = data.corCard;
+
+                    if (data.fotoBase64) {
+                        document.getElementById("preview-foto-perfil").src = data.fotoBase64;
+                        document.getElementById("perfil-foto-base64").value = data.fotoBase64;
+                    }
+                }
+            } catch(err) { console.error(err); }
+        }
+
+        // SALVAR AS ATUALIZAÇÕES DO PERFIL
+        document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
+            try {
+                const payload = {
+                    nomeLoja: document.getElementById("perf-nome-loja").value,
+                    slug: document.getElementById("perf-slug").value,
+                    titulo: document.getElementById("perf-titulo").value,
+                    subtitulo: document.getElementById("perf-subtitulo").value,
+                    whatsappCentral: document.getElementById("perf-social-whatsapp-central").value,
+                    instagram: document.getElementById("perf-social-instagram").value,
+                    tiktok: document.getElementById("perf-social-tiktok").value,
+                    youtube: document.getElementById("perf-social-youtube").value,
+                    link1_titulo: document.getElementById("perf-link1-titulo").value,
+                    link1_url: document.getElementById("perf-link1-url").value,
+                    link2_titulo: document.getElementById("perf-link2-titulo").value,
+                    link2_url: document.getElementById("perf-link2-url").value,
+                    chatAtivo: document.getElementById("perf-chat-ativo").checked,
+                    whatsappChat: document.getElementById("perf-social-whatsapp-chat").value,
+                    abaPadrao: document.getElementById("perf-aba-padrao").value,
+                    adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
+                    adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
+                    corFundo: document.getElementById("perf-cor-fundo").value,
+                    corDestaque: document.getElementById("perf-cor-destaque").value,
+                    corCard: document.getElementById("perf-cor-card").value,
+                    fotoBase64: document.getElementById("perfil-foto-base64").value
+                };
+
+                await setDoc(doc(db, "fornecedores", fornecedorEmail), payload, { merge: true });
+                showToast("Configurações da Vitrine aplicadas!");
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao processar salvamento.", "error");
+            }
+        });
+
+        // CONVERSOR DA FOTO DE PERFIL EM BASE64
         document.getElementById("input-foto-perfil").addEventListener("change", (e) => {
             const file = e.target.files[0];
-            if (file) {
+            if(file) {
                 const reader = new FileReader();
                 reader.onloadend = () => {
                     document.getElementById("preview-foto-perfil").src = reader.result;
@@ -547,311 +553,108 @@
             }
         });
 
-        tabCheckout.addEventListener("click", () => alternarDestino("checkout"));
-        tabWhatsapp.addEventListener("click", () => alternarDestino("whatsapp"));
-
-        function alternarDestino(destino) {
-            tipoDestino = destino;
-            if(destino === "checkout") {
-                tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg text-white bg-white/10 transition-all";
-                tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all";
-                wrapperCheckout.classList.remove("hidden");
-                wrapperWhatsapp.classList.add("hidden");
-            } else {
-                tabWhatsapp.className = "py-2.5 text-xs font-semibold rounded-lg text-white bg-white/10 transition-all";
-                tabCheckout.className = "py-2.5 text-xs font-semibold rounded-lg text-gray-400 transition-all";
-                wrapperWhatsapp.classList.remove("hidden");
-                wrapperCheckout.classList.add("hidden");
-            }
-        }
-
-        // CARGA DO USUÁRIO E PERSISTÊNCIA DOS CAMPOS ORIGINAIS
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                usuarioEmail = user.email.toLowerCase();
-                
-                const userSnap = await getDoc(doc(db, "usuarios", usuarioEmail));
-                if (userSnap.exists()) {
-                    const dados = userSnap.data();
-                    
-                    document.getElementById("perf-nome-loja").value = dados.nomeLoja || "";
-                    document.getElementById("perf-slug").value = dados.urlLoja || "";
-                    document.getElementById("perf-titulo").value = dados.tituloHero || "";
-                    document.getElementById("perf-subtitulo").value = dados.subtituloHero || "";
-                    document.getElementById("perf-social-whatsapp-central").value = dados.whatsappCentral || "";
-                    document.getElementById("perf-social-instagram").value = dados.instagramUser || "";
-                    document.getElementById("perf-social-tiktok").value = dados.tiktokUser || "";
-                    document.getElementById("perf-social-youtube").value = dados.youtubeUrl || "";
-                    document.getElementById("perf-link1-titulo").value = dados.link1Titulo || "";
-                    document.getElementById("perf-link1-url").value = dados.link1Url || "";
-                    document.getElementById("perf-link2-titulo").value = dados.link2Titulo || "";
-                    document.getElementById("perf-link2-url").value = dados.link2Url || "";
-                    document.getElementById("perf-aba-padrao").value = dados.abaPadrao || "fisicos";
-                    
-                    // Número do Chat e Botão Ativo
-                    document.getElementById("perf-social-whatsapp-chat").value = dados.whatsappChat || "";
-                    document.getElementById("perf-chat-ativo").checked = dados.chatAtivo || false;
-                    
-                    // Cores Cliente
-                    document.getElementById("perf-cor-destaque").value = dados.corDestaque || "#00f2fe";
-                    document.getElementById("perf-cor-fundo").value = dados.corFundo || "#030712";
-                    document.getElementById("perf-cor-card").value = dados.corCard || "#0c0c14";
-                    
-                    // Cores Admin
-                    const bgAdminSalvo = dados.adminCorFundo || "#030712";
-                    document.getElementById("perf-admin-cor-fundo").value = bgAdminSalvo;
-                    document.getElementById("perf-admin-cor-destaque").value = dados.adminCorDestaque || "#00f2fe";
-
-                    // Executar Correção de Contraste Imediato
-                    document.getElementById("admin-body").style.backgroundColor = bgAdminSalvo;
-                    verificarContrasteFundo(bgAdminSalvo);
-                    
-                    if (dados.fotoPerfilB64) {
-                        document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
-                        document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
-                    }
-
-                    const slugAtual = dados.urlLoja || "vitrine";
-                    document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtual}`;
-                    document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
-                    document.getElementById("txt-preview-nome-loja").innerText = dados.nomeLoja || "Visão Geral";
-                }
-                carregarProdutos();
-                carregarLeads();
-            } else {
-                window.location.href = "login.html";
-            }
-        });
-
-        // GRAVAÇÃO ROBUSTA COM SETDOC MERGE (CORREÇÃO COMPLETA DO ERRO DE SALVAMENTO)
-        document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
-            const novoSlug = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-            if (!novoSlug) return showToast("Slug inválido.", "error");
-
-            try {
-                const payloadPerfil = {
-                    nomeLoja: document.getElementById("perf-nome-loja").value.trim(),
-                    urlLoja: novoSlug,
-                    tituloHero: document.getElementById("perf-titulo").value.trim(),
-                    subtituloHero: document.getElementById("perf-subtitulo").value.trim(),
-                    whatsappCentral: document.getElementById("perf-social-whatsapp-central").value.trim(),
-                    instagramUser: document.getElementById("perf-social-instagram").value.trim(),
-                    tiktokUser: document.getElementById("perf-social-tiktok").value.trim(),
-                    youtubeUrl: document.getElementById("perf-social-youtube").value.trim(),
-                    link1Titulo: document.getElementById("perf-link1-titulo").value.trim(),
-                    link1Url: document.getElementById("perf-link1-url").value.trim(),
-                    link2Titulo: document.getElementById("perf-link2-titulo").value.trim(),
-                    link2Url: document.getElementById("perf-link2-url").value.trim(),
-                    abaPadrao: document.getElementById("perf-aba-padrao").value,
-                    
-                    whatsappChat: document.getElementById("perf-social-whatsapp-chat").value.trim(),
-                    chatAtivo: document.getElementById("perf-chat-ativo").checked,
-                    
-                    corDestaque: document.getElementById("perf-cor-destaque").value,
-                    corFundo: document.getElementById("perf-cor-fundo").value,
-                    corCard: document.getElementById("perf-cor-card").value,
-                    adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
-                    adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
-                    fotoPerfilB64: document.getElementById("perfil-foto-base64").value
-                };
-
-                await setDoc(doc(db, "usuarios", usuarioEmail), payloadPerfil, { merge: true });
-                showToast("Configurações salvas e aplicadas!");
-            } catch (err) {
-                console.error(err);
-                showToast("Erro ao salvar dados no Firebase.", "error");
-            }
-        });
-
-        // CARREGAR E RENDERIZAR LEADS ENTERPRISE ORIGINAIS
-        async function carregarLeads() {
-            const tableBody = document.getElementById("leads-table-body");
-            try {
-                const q = query(collection(db, "leads"), where("vitrineDona", "==", usuarioEmail));
-                const querySnapshot = await getDocs(q);
-                
-                let totalLeads = 0;
-                let comWhats = 0;
-                let totalCliques = 0;
-                let totalTempo = 0;
-                let html = "";
-
-                querySnapshot.forEach(docSnap => {
-                    const lead = docSnap.data();
-                    totalLeads++;
-                    if(lead.whatsapp) comWhats++;
-                    totalCliques += (lead.cliques || 1);
-                    totalTempo += (lead.tempoRetencao || 15);
-
-                    const badgesOrigem = {
-                        google: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
-                        meta: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
-                        tiktok: 'bg-pink-500/10 text-pink-400 border border-pink-500/20',
-                        insta: 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
-                    };
-                    const orig = lead.origem || 'meta';
-                    const badgeClass = badgesOrigem[orig] || 'bg-gray-500/10 text-gray-400';
-
-                    html += `
-                        <tr class="hover:bg-white/[0.01] transition-colors">
-                            <td class="p-4 font-bold text-white">${lead.nome || 'Lead Anônimo'}</td>
-                            <td class="p-4 text-gray-400">${lead.email || 'Não informado'}</td>
-                            <td class="p-4 text-emerald-400 font-medium">${lead.whatsapp || 'Tráfego Direto'}</td>
-                            <td class="p-4"><span class="px-2.5 py-1 text-[10px] uppercase font-extrabold rounded-md ${badgeClass}">${orig}</span></td>
-                            <td class="p-4 text-center font-bold text-white">${lead.cliques || 1}</td>
-                            <td class="p-4 text-center text-amber-400 font-medium">${lead.tempoRetencao || 15}s</td>
-                            <td class="p-4 text-[#00f2fe] font-medium max-w-[150px] truncate">${lead.produtoInteresse || 'Nenhum'}</td>
-                            <td class="p-4 text-gray-500">${lead.data ? new Date(lead.data).toLocaleDateString('pt-BR') : 'Hoje'}</td>
-                        </tr>
-                    `;
+        // PRODUTOS: CARREGAMENTO REALTIME
+        function carregarProdutos() {
+            if(!fornecedorEmail) return;
+            const q = query(collection(db, "produtos"), where("emailDono", "==", fornecedorEmail));
+            onSnapshot(q, (snapshot) => {
+                globalProdutos = [];
+                snapshot.forEach(doc => {
+                    globalProdutos.push({ id: doc.id, ...doc.data() });
                 });
-
-                if(totalLeads > 0) {
-                    tableBody.innerHTML = html;
-                    document.getElementById("lead-total-count").innerText = totalLeads;
-                    document.getElementById("lead-whatsapp-count").innerText = comWhats;
-                    document.getElementById("lead-clicks-count").innerText = totalCliques;
-                    document.getElementById("lead-time-count").innerText = `${Math.round(totalTempo / totalLeads)}s`;
-                }
-            } catch (err) {
-                console.error("Erro nos Leads:", err);
-            }
+                renderizarProdutos("todos");
+            });
         }
 
-        // GESTÃO DO CATÁLOGO DE PRODUTOS
-        document.getElementById("filtro-todos").addEventListener("click", () => aplicarFiltro("todos", "filtro-todos"));
-        document.getElementById("filtro-fisicos").addEventListener("click", () => aplicarFiltro("fisico", "filtro-fisicos"));
-        document.getElementById("filtro-digitais").addEventListener("click", () => aplicarFiltro("digital", "filtro-digitais"));
+        function renderizarProdutos(filtro) {
+            const container = document.getElementById("produtos-container");
+            container.innerHTML = "";
+            let filtrados = globalProdutos;
 
-        function aplicarFiltro(tipo, elementId) {
-            filtroLogistico = tipo;
-            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-            document.getElementById(elementId).classList.add("active");
-            carregarProdutos();
-        }
+            if (filtro === "fisicos") filtrados = globalProdutos.filter(p => p.tipo === "fisico");
+            if (filtro === "digitais") filtrados = globalProdutos.filter(p => p.tipo === "digital");
 
-        async function carregarProdutos() {
-            produtosContainer.innerHTML = "";
-            try {
-                const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioEmail));
-                const querySnapshot = await getDocs(q);
-                let produtosFiltrados = [];
+            document.getElementById("contador-produtos").innerText = `${filtrados.length} Ativos`;
 
-                querySnapshot.forEach(docSnap => {
-                    const data = docSnap.data();
-                    data.id = docSnap.id;
-                    if (filtroLogistico === "todos" || data.tipo === filtroLogistico) {
-                        produtosFiltrados.push(data);
-                    }
-                });
+            filtrados.forEach(p => {
+                const card = document.createElement("div");
+                card.className = "glass-card p-5 rounded-2xl flex flex-col justify-between group cursor-pointer";
+                card.onclick = () => abrirModalEdicao(p);
 
-                document.getElementById("contador-produtos").innerText = `${produtosFiltrados.length} Ativo(s)`;
-
-                if (produtosFiltrados.length === 0) {
-                    produtosContainer.innerHTML = `
-                        <div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl">
-                            <p class="text-gray-500 text-xs">Nenhum produto cadastrado.</p>
-                        </div>`;
-                    return;
-                }
-
-                produtosFiltrados.forEach((prod) => {
-                    const precoFormatado = parseFloat(prod.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    const imagemSrc = prod.imagemB64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect fill="%2309090f"/></svg>';
-
-                    const card = document.createElement("div");
-                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 relative group";
-                    card.innerHTML = `
-                        <div class="relative h-44 w-full bg-black/50 overflow-hidden flex items-center justify-center border-b border-white/5">
-                            <img src="${imagemSrc}" alt="${prod.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute top-3 left-3 flex flex-wrap gap-1">
-                                <span class="text-[9px] font-bold text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 px-2 py-0.5 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
-                            </div>
+                card.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="h-44 w-full rounded-xl bg-neutral-900 border border-white/5 overflow-hidden">
+                            <img src="${p.imagemUrl || 'https://images.unsplash.com/photo-1523275335684-37898b6baf30'}" class="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500">
                         </div>
-                        <div class="p-5 flex-1 flex flex-col justify-between space-y-4">
-                            <div>
-                                <h4 class="text-sm font-bold text-white tracking-tight truncate">${prod.nome}</h4>
-                                <p class="text-[11px] text-gray-500 mt-1.5 line-clamp-2">${prod.descricao || 'Sem descrição.'}</p>
-                            </div>
-                            <div>
-                                <p class="text-lg font-extrabold text-white">${precoFormatado}</p>
-                                <button type="button" class="btn-gerenciar w-full bg-white/5 hover:bg-white/10 border border-white/5 text-white text-[11px] font-bold uppercase tracking-wider py-3 rounded-xl transition-all mt-3" data-id="${prod.id}">
-                                    Gerenciar Oferta
-                                </button>
-                            </div>
+                        <div>
+                            <span class="text-[10px] font-bold tracking-widest uppercase text-gray-500 block">${p.tipo === 'digital' ? '⚡ DIGITAL' : '📦 FÍSICO'}</span>
+                            <h4 class="text-sm font-bold text-white mt-1 truncate">${p.titulo}</h4>
+                            <p class="text-xs text-gray-400 mt-1 line-clamp-2 h-8">${p.descricao || ''}</p>
                         </div>
-                    `;
-                    produtosContainer.appendChild(card);
-                });
-
-                document.querySelectorAll(".btn-gerenciar").forEach(btn => {
-                    btn.addEventListener("click", (e) => abrirModalEdicao(e.target.getAttribute("data-id")));
-                });
-            } catch (err) {
-                console.error(err);
-            }
+                    </div>
+                    <div class="flex items-baseline gap-2 mt-4 pt-4 border-t border-white/5">
+                        <span class="text-xs text-gray-500 line-through">R$ ${p.precoDe || ''}</span>
+                        <span class="text-lg font-black text-[#00f2fe]">R$ ${p.precoPor}</span>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
         }
 
-        document.getElementById("btn-abrir-criacao").addEventListener("click", () => {
+        // CONTROLE DE FILTROS DA VITRINE
+        document.getElementById("filtro-todos").onclick = (e) => { alternarBotaoFiltro(e.target); renderizarProdutos("todos"); };
+        document.getElementById("filtro-fisicos").onclick = (e) => { alternarBotaoFiltro(e.target); renderizarProdutos("fisicos"); };
+        document.getElementById("filtro-digitais").onclick = (e) => { alternarBotaoFiltro(e.target); renderizarProdutos("digitais"); };
+
+        function alternarBotaoFiltro(alvo) {
+            document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+            alvo.classList.add("active");
+        }
+
+        // MANIPULAÇÃO DE MODAL (CRIAÇÃO / EDIÇÃO)
+        const modal = document.getElementById("produto-modal");
+        const form = document.getElementById("produto-form");
+        const btnDeletar = document.getElementById("btn-deletar-produto");
+
+        document.getElementById("btn-abrir-criacao").onclick = () => {
             form.reset();
             document.getElementById("form-id-produto").value = "";
-            inputImagemBase64.value = "";
-            alternarDestino("checkout");
-            modalTitulo.innerText = "Criar Novo Produto";
+            document.getElementById("modal-titulo").innerText = "Cadastrar Nova Oferta";
             btnDeletar.classList.add("hidden");
             modal.classList.remove("hidden");
-        });
+        };
 
-        async function abrirModalEdicao(id) {
-            try {
-                const docSnap = await getDoc(doc(db, "produtos", id));
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    document.getElementById("form-id-produto").value = id;
-                    document.getElementById("prod-nome").value = data.nome;
-                    document.getElementById("prod-preco").value = data.preco;
-                    document.getElementById("prod-preco-de").value = data.precoDe || "";
-                    document.getElementById("prod-vagas-tag").value = data.vagasTag || "";
-                    document.getElementById("prod-badge-custom").value = data.badgeCustom || "";
-                    document.getElementById("prod-tipo").value = data.tipo || "fisico";
-                    document.getElementById("prod-subnicho").value = data.subnicho || "Outro";
-                    document.getElementById("prod-descricao").value = data.descricao || "";
-                    inputImagemBase64.value = data.imagemB64 || "";
+        function abrirModalEdicao(p) {
+            document.getElementById("form-id-produto").value = p.id;
+            document.getElementById("form-titulo-produto").value = p.titulo;
+            document.getElementById("form-tipo-produto").value = p.tipo;
+            document.getElementById("form-preco-de").value = p.precoDe || "";
+            document.getElementById("form-preco-por").value = p.precoPor;
+            document.getElementById("form-parcelas").value = p.parcelas || "";
+            document.getElementById("form-desc-produto").value = p.descricao || "";
+            document.getElementById("form-link-produto").value = p.linkCompra;
+            document.getElementById("form-imagem-url").value = p.imagemUrl || ""; // Carrega a URL no input
 
-                    if(data.tipoDestino === "whatsapp") {
-                        alternarDestino("whatsapp");
-                        inputWhatsapp.value = data.destinoValue;
-                    } else {
-                        alternarDestino("checkout");
-                        inputCheckout.value = data.destinoValue;
-                    }
-                    modalTitulo.innerText = "Gerenciar Oferta Ativa";
-                    btnDeletar.classList.remove("hidden");
-                    modal.classList.remove("hidden");
-                }
-            } catch (err) {
-                console.error(err);
-            }
+            document.getElementById("modal-titulo").innerText = "Editar Oferta Cadastrada";
+            btnDeletar.classList.remove("hidden");
+            modal.classList.remove("hidden");
         }
 
+        // SALVAR PRODUTO (CREATE / UPDATE)
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             const id = document.getElementById("form-id-produto").value;
-            const destinoFinalValue = (tipoDestino === "whatsapp") ? inputWhatsapp.value.trim() : inputCheckout.value.trim();
-
+            
             const produtoPayload = {
-                nome: document.getElementById("prod-nome").value.trim(),
-                preco: parseFloat(document.getElementById("prod-preco").value),
-                precoDe: document.getElementById("prod-preco-de").value ? parseFloat(document.getElementById("prod-preco-de").value) : "",
-                vagasTag: document.getElementById("prod-vagas-tag").value.trim(),
-                badgeCustom: document.getElementById("prod-badge-custom").value.trim(),
-                tipo: document.getElementById("prod-tipo").value,
-                subnicho: document.getElementById("prod-subnicho").value,
-                imagemB64: inputImagemBase64.value,
-                tipoDestino: tipoDestino,
-                destinoValue: destinoFinalValue,
-                descricao: document.getElementById("prod-descricao").value.trim(),
-                criadoPor: usuarioEmail,
+                titulo: document.getElementById("form-titulo-produto").value,
+                tipo: document.getElementById("form-tipo-produto").value,
+                precoDe: document.getElementById("form-preco-de").value,
+                precoPor: document.getElementById("form-preco-por").value,
+                parcelas: document.getElementById("form-parcelas").value,
+                descricao: document.getElementById("form-desc-produto").value,
+                linkCompra: document.getElementById("form-link-produto").value,
+                imagemUrl: document.getElementById("form-imagem-url").value, // Salva o link direto digitado
+                emailDono: fornecedorEmail,
                 atualizadoEm: new Date().toISOString()
             };
 
@@ -859,27 +662,69 @@
                 const docId = id || `prod_${Date.now()}`;
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
                 modal.classList.add("hidden");
-                carregarProdutos();
-                showToast(id ? "Produto updated!" : "Produto cadastrado com sucesso!");
+                showToast(id ? "Produto atualizado!" : "Produto cadastrado com sucesso!");
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao salvar produto.", "error");
             }
         });
 
+        // EXCLUIR PRODUTO
         btnDeletar.addEventListener("click", async () => {
             const id = document.getElementById("form-id-produto").value;
-            if (id && confirm("Deseja remover este produto?")) {
+            if (id && confirm("Deseja remover este produto do catálogo?")) {
                 try {
                     await deleteDoc(doc(db, "produtos", id));
                     modal.classList.add("hidden");
-                    carregarProdutos();
                     showToast("Produto excluído do catálogo.");
-                } catch(err) {
-                    console.error(err);
-                }
+                } catch(err) { console.error(err); }
             }
         });
+
+        // REALTIME LEADS CAPTURE
+        function carregarLeads() {
+            if(!fornecedorEmail) return;
+            const q = query(collection(db, "leads"), where("emailDono", "==", fornecedorEmail));
+            onSnapshot(q, (snapshot) => {
+                const tbody = document.getElementById("leads-table-body");
+                tbody.innerHTML = "";
+                
+                let total = 0, whats = 0, cliques = 0, tempoTotal = 0;
+                
+                if(snapshot.empty) {
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda. Continue divulgando sua vitrine!</td></tr>`;
+                }
+
+                snapshot.forEach(docSnap => {
+                    const l = docSnap.data();
+                    total++;
+                    if(l.whatsapp) whats++;
+                    cliques += parseInt(l.cliques || 0);
+                    tempoTotal += parseInt(l.tempoRetencao || 0);
+
+                    const dataFormatada = l.timestamp ? new Date(l.timestamp).toLocaleDateString('pt-BR') : '-';
+
+                    const row = document.createElement("tr");
+                    row.className = "hover:bg-white/[0.01] transition-colors border-b border-white/5";
+                    row.innerHTML = `
+                        <td class="p-4 text-white font-medium">${l.nome || 'Visitante Anonimo'}</td>
+                        <td class="p-4 text-gray-400">${l.email || l.contato || '-'}</td>
+                        <td class="p-4 text-emerald-400 font-semibold">${l.whatsapp || '-'}</td>
+                        <td class="p-4 text-gray-400"><span class="bg-white/5 px-2 py-1 rounded text-[10px]">${l.origem || 'Direto'}</span></td>
+                        <td class="p-4 text-center font-bold text-[#00f2fe]">${l.cliques || 0}</td>
+                        <td class="p-4 text-center text-amber-400 font-medium">${l.tempoRetencao || 0}s</td>
+                        <td class="p-4 text-white">${l.maiorInteresse || '-'}</td>
+                        <td class="p-4 text-gray-500">${dataFormatada}</td>
+                    `;
+                    tbody.appendChild(row);
+                });
+
+                document.getElementById("lead-total-count").innerText = total;
+                document.getElementById("lead-whatsapp-count").innerText = whats;
+                document.getElementById("lead-clicks-count").innerText = cliques;
+                document.getElementById("lead-time-count").innerText = total > 0 ? `${Math.round(tempoTotal / total)}s` : '0s';
+            });
+        }
 
         document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
