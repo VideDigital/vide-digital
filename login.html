@@ -159,52 +159,41 @@
         setupToggleSenha("login-senha", "toggle-senha-login");
         setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
 
-        // --- LÓGICA DE LOGIN CORRIGIDA ---
+        // --- LÓGICA DE LOGIN COM BUSCA PELO CAMPO EMAIL ---
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const email = document.getElementById("login-email").value;
             const senha = document.getElementById("login-senha").value;
 
             try {
-                // 1. Autentica o utilizador no Firebase Auth
+                // 1. Tenta autenticar
                 const userCredential = await signInWithEmailAndPassword(auth, email, senha);
                 
-                // Importamos dinamicamente as funções de query se não estiverem no topo
-                // Se já importou 'collection', 'query', 'where' e 'getDocs' no topo, pode ignorar esta linha
-                const { collection, query, where, getDocs } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-
-                // 2. Procura na coleção 'usuarios' onde o campo email é igual ao digitado
-                const usuariosRef = collection(db, "usuarios");
-                const q = query(usuariosRef, where("email", "==", email));
+                // 2. Busca o documento no Firestore onde o campo 'email' é igual ao digitado
+                const q = query(collection(db, "usuarios"), where("email", "==", email));
                 const querySnapshot = await getDocs(q);
 
-                if (!querySnapshot.empty) {
-                    // Obtém os dados do primeiro documento encontrado
-                    const userDoc = querySnapshot.docs[0];
-                    const dadosUsuario = userDoc.data();
+                if (querySnapshot.empty) {
+                    emitInlineFeedback("Conta não encontrada no banco de dados.", "error");
+                    await signOut(auth); // Desloga se não tiver perfil
+                    return;
+                }
 
-                    if (dadosUsuario.status !== "aprovado") {
-                        emitInlineFeedback("Sua conta está em análise. Aguarde a aprovação do administrador.", "error");
-                        await signOut(auth);
-                        return;
-                    }
-                } else {
-                    // Se não encontrar o documento nem pelo UID nem pelo campo email
-                    emitInlineFeedback("Conta pendente de configuração de perfil.", "error");
+                // 3. Pega o primeiro documento encontrado e verifica o status
+                const dadosUsuario = querySnapshot.docs[0].data();
+
+                if (dadosUsuario.status !== "aprovado") {
+                    emitInlineFeedback("Sua conta está em análise ou pendente.", "error");
                     await signOut(auth);
                     return;
                 }
 
-                emitInlineFeedback("Autenticado com sucesso! Entrando...", "success");
-                setTimeout(() => { window.location.href = "dashboard.html"; }, 800);
+                emitInlineFeedback("Login realizado com sucesso!", "success");
+                setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
 
             } catch (error) {
-                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/user-disabled') {
-                    emitInlineFeedback("Esta conta não existe ou foi revogada do ecossistema.", "error");
-                } else {
-                    emitInlineFeedback("Falha na autenticação. Verifique seus dados.", "error");
-                }
-                console.error(error);
+                emitInlineFeedback("Falha na autenticação. Verifique seus dados.", "error");
+                console.error("Erro:", error);
             }
         });
 
