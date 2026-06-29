@@ -1,45 +1,76 @@
-<script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-[#03040B]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideDigital | Autenticação do Ecossistema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="h-full flex items-center justify-center p-4 relative overflow-hidden">
 
-        // Suas chaves reais e homologadas
-        const firebaseConfig = {
-            apiKey: "AIzaSyB8bB4hN9vL26_0P9vM_5WbL7R3FfN4cM8", 
-            authDomain: "videdigital-ad.firebaseapp.com",
-            projectId: "videdigital-ad",
-            storageBucket: "videdigital-ad.appspot.com",
-            messagingSenderId: "560447367341",
-            appId: "1:560447367341:web:bfdf14b98686fb8a221f4c"
-        };
+    <div class="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-[#00f2fe] blur-[140px] opacity-15 pointer-events-none"></div>
+    <div class="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#4facfe] blur-[140px] opacity-15 pointer-events-none"></div>
 
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
-        const auth = getAuth(app);
+    <div class="w-full max-w-[460px] bg-gradient-to-b from-[rgba(12,13,26,0.6)] to-[rgba(6,7,15,0.9)] border border-white/5 p-10 rounded-[32px] space-y-8 relative z-10 backdrop-blur-xl">
+        
+        <div class="flex flex-col items-center text-center space-y-3">
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_30px_rgba(0,242,254,0.35)] relative group">
+                <span class="text-black font-extrabold text-sm tracking-tighter">V</span>
+            </div>
+            <h1 class="text-xl font-bold text-white tracking-tight">Acesse seu Painel</h1>
+            <p class="text-gray-400 text-xs">Entre com suas credenciais para gerenciar suas vitrines.</p>
+        </div>
 
-        let usuarioLogadoEmail = "";
+        <form id="login-form" class="space-y-5">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail Corporativo</label>
+                <input type="email" required id="login-email" class="w-full bg-[#06060a]/80 border border-white/5 rounded-xl p-3.5 text-sm text-white outline-none focus:border-[#00f2fe] focus:shadow-[0_0_20px_rgba(0,242,254,0.1)] transition-all" placeholder="nome@empresa.com">
+            </div>
 
-        // Trava de segurança: Se não estiver logado, chuta de volta para o index.html (sua nova tela de login)
-        onAuthStateChanged(auth, (user) => {
-            if (!user) {
-                window.location.href = "index.html";
-            } else {
-                usuarioLogadoEmail = user.email;
-                document.getElementById("user-email-display").innerText = user.email;
-                carregarConfiguracoesVitrine();
-                carregarProdutos();
-                ouvirLeadsEchats();
+            <div class="space-y-1.5">
+                <div class="flex justify-between items-center">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Senha de Acesso</label>
+                    <a href="#" class="text-[11px] text-[#00f2fe] hover:underline">Esqueceu a senha?</a>
+                </div>
+                <input type="password" required id="login-senha" class="w-full bg-[#06060a]/80 border border-white/5 rounded-xl p-3.5 text-sm text-white outline-none focus:border-[#00f2fe] focus:shadow-[0_0_20px_rgba(0,242,254,0.1)] transition-all" placeholder="••••••••">
+            </div>
+
+            <div id="mensagem-erro" class="text-red-400 text-xs text-center font-medium hidden bg-red-500/10 border border-red-500/20 py-2.5 rounded-xl"></div>
+
+            <button type="submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
+                Autenticar Entrada
+            </button>
+        </form>
+
+        <p class="text-center text-xs text-gray-500">Não tem uma conta? <a href="#" class="text-white font-semibold hover:underline">Criar Conta</a></p>
+    </div>
+
+    <script type="module">
+        import { auth } from './firebase-init.js';
+        import { signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        const form = document.getElementById("login-form");
+        const errorDiv = document.getElementById("mensagem-erro");
+
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            errorDiv.classList.add("hidden");
+
+            const email = document.getElementById("login-email").value;
+            const senha = document.getElementById("login-senha").value;
+
+            try {
+                await signInWithEmailAndPassword(auth, email, senha);
+                // Direciona direto para o painel após o sucesso
+                window.location.href = "dashboard.html";
+            } catch (error) {
+                errorDiv.innerText = "Falha na autenticação. Verifique seus dados de acesso.";
+                errorDiv.classList.remove("hidden");
+                console.error("Erro Firebase Auth:", error.message);
             }
         });
-
-        // Evento do botão de Logout atualizado para a nova estrutura de arquivos
-        document.getElementById("btn-logout").addEventListener("click", () => {
-            signOut(auth).then(() => {
-                window.location.href = "index.html";
-            }).catch((err) => {
-                console.error("Erro ao deslogar:", err);
-            });
-        });
-
-        // ... Mantenha as suas funções existentes abaixo (carregarProdutos, salvarVitrine, etc.) ...
     </script>
+</body>
+</html>
