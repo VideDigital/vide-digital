@@ -13,20 +13,10 @@
         .glass-card:hover { border-color: rgba(0, 242, 254, 0.2); box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5); }
         .glass-input { background: rgba(6, 6, 10, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
         .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.1); }
-        .neon-glow { text-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
         .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #00f2fe; }
         .view-section { display: none; }
         .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-
-        /* SISTEMA DE CONTRASTE AUTOMÁTICO PARA FUNDOS CLAROS */
-        .tema-claro { color: #0f172a !important; }
-        .tema-claro h1, .tema-claro h2, .tema-claro h3, .tema-claro h4, .tema-claro p, .tema-claro label, .tema-claro td, .tema-claro th, .tema-claro span:not(.no-contrast) { color: #0f172a !important; }
-        .tema-claro .glass-card { background: rgba(255, 255, 255, 0.85) !important; border-color: rgba(0, 0, 0, 0.08) !important; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06); }
-        .tema-claro .glass-input { background: #ffffff !important; border-color: rgba(0, 0, 0, 0.12) !important; color: #0f172a !important; }
-        .tema-claro .glass-sidebar { background: rgba(248, 250, 252, 0.9) !important; border-right: 1px solid rgba(0, 0, 0, 0.06) !important; }
-        .tema-claro nav button { color: #475569 !important; }
-        .tema-claro nav button.active { background: rgba(0, 0, 0, 0.04) !important; color: #0f172a !important; }
     </style>
 </head>
 <body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
@@ -50,7 +40,7 @@
                     <span>📊</span> Dashboard
                 </button>
                 <button data-target="view-perfil" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
-                    <span>👤</span> Perfil / Aparência
+                    <span>🎨</span> Perfil / Aparência
                 </button>
                 <button data-target="view-dominios" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
                     <span>🌐</span> Domínio / Pixel / Tag
@@ -86,7 +76,7 @@
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
                     <h1 id="txt-preview-nome-loja" class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
-                    <p class="text-gray-400 text-xs mt-1">Bem-vindo de volta, <span class="text-white font-semibold">Vide Digital</span></p>
+                    <p class="text-gray-400 text-xs mt-1">Bem-vindo de volta, <span id="admin-welcome-name" class="text-white font-semibold">Vide Digital</span></p>
                 </div>
                 <button id="btn-abrir-criacao" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-extrabold px-6 py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.02] transition-all shrink-0">
                     + Criar Produto
@@ -140,9 +130,15 @@
                                     <input type="text" id="perf-slug" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="ex: videdigital">
                                 </div>
                             </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título Principal (Hero)</label>
-                                <input type="text" id="perf-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Bem-vindo à Loja...">
+                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">Título da Aba (Navegador do Cliente)</label>
+                                    <input type="text" id="perf-aba-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: VideDigital | Ofertas Exclusivas">
+                                </div>
+                                <div class="space-y-1.5">
+                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título Principal (Hero)</label>
+                                    <input type="text" id="perf-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Bem-vindo à Loja...">
+                                </div>
                             </div>
                             <div class="space-y-1.5">
                                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo da Vitrine</label>
@@ -197,8 +193,7 @@
                                 <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
                             </label>
                         </div>
-                        <p class="text-xs text-gray-400">Ative um widget de chat flutuante e reativo no canto da tela do cliente. Quando um visitante iniciar um chat, o painel do cliente direcionará de forma automatizada e profissional o lead direto para o atendimento do WhatsApp abaixo.</p>
-                        
+                        <p class="text-xs text-gray-400">Ative um widget de chat flutuante e reativo no canto da tela do cliente. Quando um visitante iniciar um chat, o painel do cliente direcionará de forma automatizada direto para o WhatsApp.</p>
                         <div class="space-y-1.5 pt-2">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Número do WhatsApp do Chat (Com DDD, apenas números)</label>
                             <input type="text" id="perf-social-whatsapp-chat" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: 11992960466">
@@ -208,7 +203,12 @@
 
                 <div class="space-y-6">
                     <div class="glass-card p-6 rounded-2xl space-y-5 sticky top-6">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🎨 Controle de Aparência</h3>
+                        <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                            <h3 class="text-sm font-bold text-white tracking-wider uppercase">🎨 Cores & Design</h3>
+                            <button type="button" id="btn-reset-cores" class="text-[10px] font-bold text-red-400 hover:text-red-300 border border-red-500/20 bg-red-500/5 px-2.5 py-1 rounded-lg transition-all">
+                                🔄 Resetar Cores
+                            </button>
+                        </div>
                         
                         <div class="space-y-2">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
@@ -219,32 +219,42 @@
                         </div>
 
                         <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">🎨 Cores do Painel de Administração</label>
-                            
+                            <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">Painel Administrativo (Você)</label>
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo do Admin</span>
+                                <span class="text-xs text-gray-400">Fundo do Painel</span>
                                 <input type="color" id="perf-admin-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
                             </div>
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Destaque Admin</span>
+                                <span class="text-xs text-gray-400">Cor dos Textos</span>
+                                <input type="color" id="perf-admin-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#e2e8f0">
+                            </div>
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Destaque Interativo</span>
                                 <input type="color" id="perf-admin-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
                             </div>
                         </div>
 
                         <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">🛍️ Cores da Vitrine do Cliente</label>
-                            
+                            <label class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">Vitrine Externa (Cliente)</label>
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo da Vitrine</span>
+                                <span class="text-xs text-gray-400">Fundo da Página</span>
                                 <input type="color" id="perf-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
                             </div>
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Tom de Destaque (Brand)</span>
+                                <span class="text-xs text-gray-400">Card de Produto</span>
+                                <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
+                            </div>
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Textos do Catálogo</span>
+                                <input type="color" id="perf-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#ffffff">
+                            </div>
+                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                                <span class="text-xs text-gray-400">Tom de Destaque</span>
                                 <input type="color" id="perf-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
                             </div>
                             <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Cor do Card do Produto</span>
-                                <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
+                                <span class="text-xs text-gray-400">Botão Comprar</span>
+                                <input type="color" id="perf-cor-botao" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
                             </div>
                         </div>
 
@@ -371,7 +381,7 @@
 
                 <div class="space-y-1.5">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Link da Imagem do Produto (URL)</label>
-                    <input type="url" id="form-imagem-url" required class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="https://suaimagem.com/foto.jpg ou link do Imgur/Firebase">
+                    <input type="url" id="form-imagem-url" required class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="https://suaimagem.com/foto.jpg">
                 </div>
 
                 <div class="flex items-center justify-between gap-3 pt-4 border-t border-white/5">
@@ -392,7 +402,6 @@
         import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, getDoc, setDoc, collection, query, where, onSnapshot, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Configuração Firebase (Sua SDK ativa)
         const firebaseConfig = {
             apiKey: "AIzaSyAs8...", 
             authDomain: "videdigital-ad.firebaseapp.com",
@@ -409,7 +418,6 @@
         let fornecedorEmail = "";
         let globalProdutos = [];
 
-        // TOAST NOTIFICATIONS
         function showToast(text, type = "success") {
             const container = document.getElementById("toast-container");
             const toast = document.createElement("div");
@@ -421,11 +429,9 @@
             setTimeout(() => { toast.style.opacity = '0'; setTimeout(() => toast.remove(), 300); }, 3500);
         }
 
-        // VERIFICAÇÃO DE AUTENTICAÇÃO
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 fornecedorEmail = user.email;
-                document.getElementById("url-loja-preview").innerText = `videdigital.com/${user.uid || 'suavitrine'}`;
                 carregarPerfil();
                 carregarProdutos();
                 carregarLeads();
@@ -438,13 +444,11 @@
         const navItems = document.querySelectorAll(".nav-item");
         const sections = document.querySelectorAll(".view-section");
         const mobileMenuToggle = document.getElementById("mobile-menu-toggle");
-        const adminSidebar = document.getElementById("admin-sidebar");
 
         navItems.forEach(btn => {
             btn.addEventListener("click", () => {
                 navItems.forEach(b => b.classList.remove("active", "bg-white/5", "border-[#00f2fe]"));
                 btn.classList.add("active", "bg-white/5", "border-[#00f2fe]");
-                
                 sections.forEach(s => s.classList.remove("active"));
                 document.getElementById(btn.dataset.target).classList.add("active");
             });
@@ -452,31 +456,59 @@
 
         mobileMenuToggle.addEventListener("click", () => {
             const isHidden = document.getElementById("sidebar-nav").classList.contains("hidden");
-            if(isHidden) {
-                document.getElementById("sidebar-nav").classList.remove("hidden");
-                document.getElementById("sep-nav").classList.remove("hidden");
-                document.getElementById("box-atalho").classList.remove("hidden");
-                document.getElementById("box-logout").classList.remove("hidden");
-            } else {
-                document.getElementById("sidebar-nav").classList.add("hidden");
-                document.getElementById("sep-nav").classList.add("hidden");
-                document.getElementById("box-atalho").classList.add("hidden");
-                document.getElementById("box-logout").classList.add("hidden");
-            }
+            const targets = ["sidebar-nav", "sep-nav", "box-atalho", "box-logout"];
+            targets.forEach(id => {
+                document.getElementById(id).classList.toggle("hidden", !isHidden);
+            });
         });
 
-        // RECUPERAÇÃO DAS CONFIGURAÇÕES DE PERFIL / APARÊNCIA
+        // APLICA CORES DINÂMICAS NO ADMIN
+        function aplicarCoresAdmin(fundo, texto, destaque) {
+            document.getElementById("admin-body").style.backgroundColor = fundo;
+            document.getElementById("admin-body").style.color = texto;
+            document.getElementById("admin-sidebar").style.backgroundColor = fundo;
+            
+            const brandText = document.getElementById("admin-brand-text");
+            if (brandText) brandText.style.color = destaque;
+            
+            const mainTitles = document.querySelectorAll("main h1, main h3");
+            mainTitles.forEach(el => el.style.color = texto);
+        }
+
+        // RESET DE CORES PADRÃO
+        document.getElementById("btn-reset-cores").addEventListener("click", () => {
+            document.getElementById("perf-admin-cor-fundo").value = "#030712";
+            document.getElementById("perf-admin-cor-texto").value = "#e2e8f0";
+            document.getElementById("perf-admin-cor-destaque").value = "#00f2fe";
+            
+            document.getElementById("perf-cor-fundo").value = "#030712";
+            document.getElementById("perf-cor-card").value = "#0c0c14";
+            document.getElementById("perf-cor-texto").value = "#ffffff";
+            document.getElementById("perf-cor-destaque").value = "#00f2fe";
+            document.getElementById("perf-cor-botao").value = "#00f2fe";
+            
+            aplicarCoresAdmin("#030712", "#e2e8f0", "#00f2fe");
+            showToast("Cores resetadas para o padrão dark premium!");
+        });
+
+        // CARREGAR CONFIGURAÇÕES
         async function carregarPerfil() {
             if (!fornecedorEmail) return;
             try {
                 const docSnap = await getDoc(doc(db, "fornecedores", fornecedorEmail));
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    
                     document.getElementById("perf-nome-loja").value = data.nomeLoja || "";
                     document.getElementById("perf-slug").value = data.slug || "";
+                    document.getElementById("perf-aba-titulo").value = data.abaTitulo || "";
                     document.getElementById("perf-titulo").value = data.titulo || "";
                     document.getElementById("perf-subtitulo").value = data.subtitulo || "";
                     
+                    document.getElementById("admin-welcome-name").innerText = data.nomeLoja || "Vide Digital";
+                    document.getElementById("url-loja-preview").innerText = `videdigital.com/${data.slug || 'suavitrine'}`;
+                    document.getElementById("link-minha-loja").href = `/${data.slug || ''}`;
+
                     document.getElementById("perf-social-whatsapp-central").value = data.whatsappCentral || "";
                     document.getElementById("perf-social-instagram").value = data.instagram || "";
                     document.getElementById("perf-social-tiktok").value = data.tiktok || "";
@@ -492,10 +524,20 @@
                     document.getElementById("perf-aba-padrao").value = data.abaPadrao || "fisicos";
                     
                     if(data.adminCorFundo) document.getElementById("perf-admin-cor-fundo").value = data.adminCorFundo;
+                    if(data.adminCorTexto) document.getElementById("perf-admin-cor-texto").value = data.adminCorTexto;
                     if(data.adminCorDestaque) document.getElementById("perf-admin-cor-destaque").value = data.adminCorDestaque;
+                    
                     if(data.corFundo) document.getElementById("perf-cor-fundo").value = data.corFundo;
-                    if(data.corDestaque) document.getElementById("perf-cor-destaque").value = data.corDestaque;
                     if(data.corCard) document.getElementById("perf-cor-card").value = data.corCard;
+                    if(data.corTexto) document.getElementById("perf-cor-texto").value = data.corTexto;
+                    if(data.corDestaque) document.getElementById("perf-cor-destaque").value = data.corDestaque;
+                    if(data.corBotao) document.getElementById("perf-cor-botao").value = data.corBotao;
+
+                    aplicarCoresAdmin(
+                        data.adminCorFundo || "#030712", 
+                        data.adminCorTexto || "#e2e8f0", 
+                        data.adminCorDestaque || "#00f2fe"
+                    );
 
                     if (data.fotoBase64) {
                         document.getElementById("preview-foto-perfil").src = data.fotoBase64;
@@ -505,12 +547,21 @@
             } catch(err) { console.error(err); }
         }
 
-        // SALVAR AS ATUALIZAÇÕES DO PERFIL
+        // SALVAR INTEGRAÇÃO COMPLETA (E SALVAR CHAVE POR SLUG PARA A LOJA ACHAR)
         document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
+            const slugDigitado = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/\s+/g, '-');
+            
+            if(!slugDigitado) {
+                showToast("O link (slug) da loja é obrigatório!", "error");
+                return;
+            }
+
             try {
                 const payload = {
+                    emailDono: fornecedorEmail,
                     nomeLoja: document.getElementById("perf-nome-loja").value,
-                    slug: document.getElementById("perf-slug").value,
+                    slug: slugDigitado,
+                    abaTitulo: document.getElementById("perf-aba-titulo").value,
                     titulo: document.getElementById("perf-titulo").value,
                     subtitulo: document.getElementById("perf-subtitulo").value,
                     whatsappCentral: document.getElementById("perf-social-whatsapp-central").value,
@@ -524,19 +575,32 @@
                     chatAtivo: document.getElementById("perf-chat-ativo").checked,
                     whatsappChat: document.getElementById("perf-social-whatsapp-chat").value,
                     abaPadrao: document.getElementById("perf-aba-padrao").value,
+                    
                     adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
+                    adminCorTexto: document.getElementById("perf-admin-cor-texto").value,
                     adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
+                    
                     corFundo: document.getElementById("perf-cor-fundo").value,
-                    corDestaque: document.getElementById("perf-cor-destaque").value,
                     corCard: document.getElementById("perf-cor-card").value,
+                    corTexto: document.getElementById("perf-cor-texto").value,
+                    corDestaque: document.getElementById("perf-cor-destaque").value,
+                    corBotao: document.getElementById("perf-cor-botao").value,
                     fotoBase64: document.getElementById("perfil-foto-base64").value
                 };
 
+                // Salva no registro master do Fornecedor por E-mail
                 await setDoc(doc(db, "fornecedores", fornecedorEmail), payload, { merge: true });
-                showToast("Configurações da Vitrine aplicadas!");
+                
+                // CRUCIAL: Salva uma cópia na coleção indexada pelo SLUG para o arquivo da loja ler instantaneamente
+                await setDoc(doc(db, "vitrines_por_slug", slugDigitado), payload, { merge: true });
+
+                aplicarCoresAdmin(payload.adminCorFundo, payload.adminCorTexto, payload.adminCorDestaque);
+                document.getElementById("url-loja-preview").innerText = `videdigital.com/${slugDigitado}`;
+                
+                showToast("Catálogo e configurações sincronizados com o link!");
             } catch(err) {
                 console.error(err);
-                showToast("Erro ao processar salvamento.", "error");
+                showToast("Erro ao processar sincronização.", "error");
             }
         });
 
@@ -553,15 +617,13 @@
             }
         });
 
-        // PRODUTOS: CARREGAMENTO REALTIME
+        // PRODUTOS: REALTIME
         function carregarProdutos() {
             if(!fornecedorEmail) return;
             const q = query(collection(db, "produtos"), where("emailDono", "==", fornecedorEmail));
             onSnapshot(q, (snapshot) => {
                 globalProdutos = [];
-                snapshot.forEach(doc => {
-                    globalProdutos.push({ id: doc.id, ...doc.data() });
-                });
+                snapshot.forEach(doc => { globalProdutos.push({ id: doc.id, ...doc.data() }); });
                 renderizarProdutos("todos");
             });
         }
@@ -580,7 +642,6 @@
                 const card = document.createElement("div");
                 card.className = "glass-card p-5 rounded-2xl flex flex-col justify-between group cursor-pointer";
                 card.onclick = () => abrirModalEdicao(p);
-
                 card.innerHTML = `
                     <div class="space-y-4">
                         <div class="h-44 w-full rounded-xl bg-neutral-900 border border-white/5 overflow-hidden">
@@ -601,7 +662,6 @@
             });
         }
 
-        // CONTROLE DE FILTROS DA VITRINE
         document.getElementById("filtro-todos").onclick = (e) => { alternarBotaoFiltro(e.target); renderizarProdutos("todos"); };
         document.getElementById("filtro-fisicos").onclick = (e) => { alternarBotaoFiltro(e.target); renderizarProdutos("fisicos"); };
         document.getElementById("filtro-digitais").onclick = (e) => { alternarBotaoFiltro(e.target); renderizarProdutos("digitais"); };
@@ -611,7 +671,6 @@
             alvo.classList.add("active");
         }
 
-        // MANIPULAÇÃO DE MODAL (CRIAÇÃO / EDIÇÃO)
         const modal = document.getElementById("produto-modal");
         const form = document.getElementById("produto-form");
         const btnDeletar = document.getElementById("btn-deletar-produto");
@@ -633,17 +692,16 @@
             document.getElementById("form-parcelas").value = p.parcelas || "";
             document.getElementById("form-desc-produto").value = p.descricao || "";
             document.getElementById("form-link-produto").value = p.linkCompra;
-            document.getElementById("form-imagem-url").value = p.imagemUrl || ""; // Carrega a URL no input
-
+            document.getElementById("form-imagem-url").value = p.imagemUrl || "";
             document.getElementById("modal-titulo").innerText = "Editar Oferta Cadastrada";
             btnDeletar.classList.remove("hidden");
             modal.classList.remove("hidden");
         }
 
-        // SALVAR PRODUTO (CREATE / UPDATE)
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             const id = document.getElementById("form-id-produto").value;
+            const docId = id || `prod_${Date.now()}`;
             
             const produtoPayload = {
                 titulo: document.getElementById("form-titulo-produto").value,
@@ -653,46 +711,39 @@
                 parcelas: document.getElementById("form-parcelas").value,
                 descricao: document.getElementById("form-desc-produto").value,
                 linkCompra: document.getElementById("form-link-produto").value,
-                imagemUrl: document.getElementById("form-imagem-url").value, // Salva o link direto digitado
+                imagemUrl: document.getElementById("form-imagem-url").value,
                 emailDono: fornecedorEmail,
                 atualizadoEm: new Date().toISOString()
             };
 
             try {
-                const docId = id || `prod_${Date.now()}`;
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
                 modal.classList.add("hidden");
-                showToast(id ? "Produto atualizado!" : "Produto cadastrado com sucesso!");
-            } catch (err) {
-                console.error(err);
-                showToast("Erro ao salvar produto.", "error");
-            }
+                showToast("Catálogo atualizado com sucesso!");
+            } catch (err) { console.error(err); }
         });
 
-        // EXCLUIR PRODUTO
         btnDeletar.addEventListener("click", async () => {
             const id = document.getElementById("form-id-produto").value;
-            if (id && confirm("Deseja remover este produto do catálogo?")) {
-                try {
-                    await deleteDoc(doc(db, "produtos", id));
-                    modal.classList.add("hidden");
-                    showToast("Produto excluído do catálogo.");
-                } catch(err) { console.error(err); }
+            if (id && confirm("Remover produto permanentemente?")) {
+                await deleteDoc(doc(db, "produtos", id));
+                modal.classList.add("hidden");
+                showToast("Produto removido.");
             }
         });
 
-        // REALTIME LEADS CAPTURE
+        // REALTIME LEADS
         function carregarLeads() {
             if(!fornecedorEmail) return;
             const q = query(collection(db, "leads"), where("emailDono", "==", fornecedorEmail));
             onSnapshot(q, (snapshot) => {
                 const tbody = document.getElementById("leads-table-body");
                 tbody.innerHTML = "";
-                
                 let total = 0, whats = 0, cliques = 0, tempoTotal = 0;
                 
                 if(snapshot.empty) {
-                    tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda. Continue divulgando sua vitrine!</td></tr>`;
+                    tbody.innerHTML = `<tr><td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda.</td></tr>`;
+                    return;
                 }
 
                 snapshot.forEach(docSnap => {
@@ -702,19 +753,17 @@
                     cliques += parseInt(l.cliques || 0);
                     tempoTotal += parseInt(l.tempoRetencao || 0);
 
-                    const dataFormatada = l.timestamp ? new Date(l.timestamp).toLocaleDateString('pt-BR') : '-';
-
                     const row = document.createElement("tr");
                     row.className = "hover:bg-white/[0.01] transition-colors border-b border-white/5";
                     row.innerHTML = `
-                        <td class="p-4 text-white font-medium">${l.nome || 'Visitante Anonimo'}</td>
-                        <td class="p-4 text-gray-400">${l.email || l.contato || '-'}</td>
+                        <td class="p-4 text-white font-medium">${l.nome || 'Visitante'}</td>
+                        <td class="p-4 text-gray-400">${l.email || '-'}</td>
                         <td class="p-4 text-emerald-400 font-semibold">${l.whatsapp || '-'}</td>
                         <td class="p-4 text-gray-400"><span class="bg-white/5 px-2 py-1 rounded text-[10px]">${l.origem || 'Direto'}</span></td>
                         <td class="p-4 text-center font-bold text-[#00f2fe]">${l.cliques || 0}</td>
                         <td class="p-4 text-center text-amber-400 font-medium">${l.tempoRetencao || 0}s</td>
                         <td class="p-4 text-white">${l.maiorInteresse || '-'}</td>
-                        <td class="p-4 text-gray-500">${dataFormatada}</td>
+                        <td class="p-4 text-gray-500">${l.timestamp ? new Date(l.timestamp).toLocaleDateString('pt-BR') : '-'}</td>
                     `;
                     tbody.appendChild(row);
                 });
