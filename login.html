@@ -1,244 +1,156 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full antialiased">
+<html lang="pt-br" class="h-full bg-[#030712]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Acessar VideDigital | Enterprise SaaS</title>
+    <title>VideDigital | Acesso Restrito</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        @keyframes gradient-move { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
-        .mesh-gradient { background: radial-gradient(circle at 50% 50%, #061e2a 0%, #020617 50%, #000 100%); background-size: 200% 200%; animation: gradient-move 15s ease infinite; }
-        .glass-card { background: rgba(10, 10, 12, 0.65); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); }
-        .spinner { border: 2px solid rgba(255,255,255,0.1); border-top: 2px solid #00f2fe; border-radius: 50%; width: 22px; height: 22px; animation: spin 0.8s linear infinite; }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card { background: rgba(13, 13, 22, 0.4); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); }
+        .glass-input { background: rgba(6, 6, 10, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
+        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.1); }
     </style>
 </head>
-<body class="h-full mesh-gradient text-gray-200 font-sans relative">
+<body class="h-full flex items-center justify-center p-4">
 
-    <div class="h-full flex">
-        <div class="hidden lg:flex flex-col justify-between w-1/2 p-16 relative overflow-hidden border-r border-white/[0.02]">
-            <div class="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.15] pointer-events-none"></div>
-            
-            <div class="relative z-10">
-                <div class="flex items-center gap-2">
-                    <div class="h-6 w-6 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] shadow-[0_0_20px_rgba(0,242,254,0.4)]"></div>
-                    <h2 class="text-2xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
-                </div>
+    <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
+
+    <div class="w-full max-w-md glass-card p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden">
+        
+        <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-[#00f2fe]/10 blur-3xl"></div>
+
+        <div class="text-center space-y-2">
+            <div class="mx-auto h-10 w-10 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
+                <span class="text-black font-extrabold text-sm">V</span>
             </div>
-            
-            <div class="relative z-10 space-y-6 max-w-xl">
-                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-[#00f2fe] bg-[#00f2fe]/10 rounded-full border border-[#00f2fe]/20">
-                    <span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] animate-pulse"></span> Sistema Ativo v2.4
-                </span>
-                <h1 class="text-5xl font-black tracking-tight leading-[1.15] text-white">
-                    Domine a gestão do seu <br>
-                    <span class="bg-clip-text text-transparent bg-gradient-to-r from-[#00f2fe] to-[#4facfe]">ecossistema digital.</span>
-                </h1>
-                <p class="text-gray-400 text-base leading-relaxed">
-                    A infraestrutura definitiva de alta performance para gestores de tráfego e criadores. Autenticação criptografada, monitoramento em tempo real e estabilidade operacional absoluta para sua escala.
-                </p>
-            </div>
-            
-            <div class="relative z-10 flex items-center justify-between text-xs text-gray-500">
-                <div>© 2026 VideDigital Systems Inc.</div>
-                <div class="flex gap-4">
-                    <button id="btn-termos" class="hover:text-white transition-colors cursor-pointer">Termos</button>
-                    <button id="btn-privacidade" class="hover:text-white transition-colors cursor-pointer">Privacidade</button>
-                </div>
-            </div>
+            <h2 class="text-xl font-black tracking-tight text-white pt-2">Acesse seu Painel</h2>
+            <p class="text-xs text-gray-400">Entre com suas credenciais para gerenciar suas vitrines.</p>
         </div>
 
-        <div class="w-full lg:w-1/2 flex items-center justify-center p-6 md:p-12">
-            <div class="glass-card w-full max-w-[460px] p-8 md:p-10 rounded-[2rem] shadow-[0_25px_70px_-15px_rgba(0,0,0,0.7)] transition-all duration-300">
-                
-                <div class="mb-8">
-                    <div class="lg:hidden flex items-center gap-2 mb-6">
-                        <div class="h-5 w-5 rounded-md bg-gradient-to-tr from-[#00f2fe] to-[#4facfe]"></div>
-                        <h2 class="text-xl font-bold tracking-tight text-white">Vide<span class="text-[#00f2fe]">Digital</span></h2>
-                    </div>
-                    <h2 id="ui-title" class="text-2xl font-bold tracking-tight text-white">Acessar Painel</h2>
-                    <p id="ui-subtitle" class="text-gray-400 text-sm mt-1.5">Bem-vindo de volta ao seu centro de comando.</p>
-                </div>
-
-                <div id="error-container" class="hidden mb-6 p-4 rounded-xl border border-red-500/20 bg-red-950/20 text-red-400 text-sm flex items-start gap-2.5">
-                    <span class="mt-0.5">⚠️</span>
-                    <span id="error-text" class="font-medium"></span>
-                </div>
-
-                <form id="auth-form" class="space-y-5">
-                    <div id="field-nome" class="hidden space-y-2 transition-all">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome da Operação / Loja</label>
-                        <input type="text" id="input-nome" class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="Ex: Minha Vitrine">
-                    </div>
-                    
-                    <div class="space-y-2">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail Corporativo</label>
-                        <input type="email" id="input-email" required class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="nome@empresa.com">
-                    </div>
-
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Senha de Acesso</label>
-                            <button type="button" id="link-forgot" class="text-[11px] text-[#00f2fe]/80 hover:text-[#00f2fe] tracking-wide transition-colors bg-transparent border-none cursor-pointer">Esqueceu a senha?</button>
-                        </div>
-                        <input type="password" id="input-senha" required class="w-full bg-[#09090b]/80 border border-white/5 rounded-xl p-3.5 text-white placeholder-gray-600 focus:border-[#00f2fe] focus:ring-1 focus:ring-[#00f2fe]/20 outline-none transition-all duration-200" placeholder="••••••••">
-                    </div>
-
-                    <button type="submit" id="btn-submit" class="w-full mt-2 bg-white hover:bg-gray-100 text-black font-semibold py-3.5 rounded-xl transition-all duration-200 shadow-[0_4px_20px_rgba(255,255,255,0.05)] flex items-center justify-center gap-2">
-                        <span id="btn-text">Entrar no Painel</span>
-                    </button>
-                </form>
-
-                <div class="mt-8 text-center border-t border-white/[0.04] pt-6">
-                    <button type="button" id="btn-toggle" class="text-gray-400 hover:text-[#00f2fe] text-xs font-bold uppercase tracking-widest transition-colors duration-200">
-                        Solicitar acesso a nova conta
-                    </button>
-                </div>
+        <form id="login-form" class="space-y-4">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail Corporativo</label>
+                <input type="email" id="login-email" required class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="seu@email.com">
             </div>
-        </div>
-    </div>
 
-    <div id="modal-container" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-md">
-        <div class="glass-card w-full max-w-lg p-8 rounded-2xl max-h-[80vh] overflow-y-auto relative shadow-2xl">
-            <button id="modal-close" class="absolute top-4 right-4 text-gray-400 hover:text-white text-xl font-bold">&times;</button>
-            <h3 id="modal-title" class="text-xl font-bold text-white mb-4">Título do Conteúdo</h3>
-            <div id="modal-text" class="text-gray-400 text-sm space-y-3 leading-relaxed"></div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Senha de Acesso</label>
+                <input type="password" id="login-senha" required class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-xs">
+                <label class="flex items-center gap-2 text-gray-400 cursor-pointer select-none">
+                    <input type="checkbox" id="lembrar-me" class="rounded border-white/10 bg-black checked:bg-[#00f2fe]"> Lembrar acesso
+                </label>
+                <button type="button" id="btn-recuperar" class="text-[#00f2fe] hover:underline font-medium">Esqueceu a senha?</button>
+            </div>
+
+            <button type="submit" class="w-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest py-4 rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.15)] hover:scale-[1.01] active:scale-[0.99] transition-all">
+                Autenticar Entrada
+            </button>
+        </form>
+
+        <div class="text-center pt-2">
+            <p class="text-xs text-gray-500">Não tem uma conta? <button id="btn-registrar-view" class="text-white hover:underline font-semibold">Criar Conta</button></p>
         </div>
     </div>
 
     <script type="module">
-        import { auth, db } from "./firebase-init.js";
-        import { signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
-        import { doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
-        const form = document.getElementById("auth-form");
-        const btnSubmit = document.getElementById("btn-submit");
-        const btnText = document.getElementById("btn-text");
-        const btnToggle = document.getElementById("btn-toggle");
-        const btnForgot = document.getElementById("link-forgot");
-        const errorContainer = document.getElementById("error-container");
-        const errorText = document.getElementById("error-text");
-        const uiSubtitle = document.getElementById("ui-subtitle");
+        // Configuração central do Firebase (Certifique-se de que é a mesma usada no dashboard.html)
+        const firebaseConfig = {
+            apiKey: "AIzaSyAs8...", 
+            authDomain: "videdigital-ad.firebaseapp.com",
+            projectId: "videdigital-ad",
+            storageBucket: "videdigital-ad.appspot.com",
+            messagingSenderId: "9823749283",
+            appId: "1:9823749283:web:abcd1234"
+        };
 
-        // Modais
-        const modalContainer = document.getElementById("modal-container");
-        const modalTitle = document.getElementById("modal-title");
-        const modalText = document.getElementById("modal-text");
-        document.getElementById("modal-close").addEventListener("click", () => modalContainer.classList.add("hidden"));
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
 
-        let isLogin = true;
+        const form = document.getElementById("login-form");
+        const emailInput = document.getElementById("login-email");
+        const senhaInput = document.getElementById("login-senha");
+        const lembrarCheckbox = document.getElementById("lembrar-me");
 
-        window.addEventListener("pageshow", (event) => {
-            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                resetSubmitButton();
-            }
-        });
-
-        function resetSubmitButton() {
-            btnSubmit.disabled = false;
-            btnText.innerText = isLogin ? "Entrar no Painel" : "Solicitar Acesso";
-        }
-
-        function showError(msg, isSuccess = false) {
-            errorText.innerText = msg;
-            if(isSuccess) {
-                errorContainer.classList.remove("border-red-500/20", "bg-red-950/20", "text-red-400");
-                errorContainer.classList.add("border-emerald-500/20", "bg-emerald-950/20", "text-emerald-400");
-            } else {
-                errorContainer.classList.remove("border-emerald-500/20", "bg-emerald-950/20", "text-emerald-400");
-                errorContainer.classList.add("border-red-500/20", "bg-red-950/20", "text-red-400");
-            }
-            errorContainer.classList.remove("hidden");
-            resetSubmitButton();
-        }
-
-        // --- ENVIAR E-MAIL DE RECUPERAÇÃO ---
-        btnForgot.addEventListener("click", async () => {
-            const emailInput = document.getElementById("input-email").value.trim();
-            const email = emailInput || prompt("Por favor, digite seu e-mail de acesso corporativo:");
-            
-            if (!email) return;
-
-            try {
-                await sendPasswordResetEmail(auth, email);
-                showError("Link de redefinição enviado para o seu e-mail com sucesso!", true);
-            } catch (err) {
-                console.error(err);
-                showError("Não foi possível enviar o e-mail de recuperação. Verifique o endereço digitado.");
-            }
-        });
-
-        // --- COMPORTAMENTO DOS MODAIS ---
-        document.getElementById("btn-termos").addEventListener("click", () => {
-            modalTitle.innerText = "Termos de Uso da Plataforma";
-            modalText.innerHTML = `<p>Ao acessar e utilizar o ecossistema VideDigital, você concorda com o monitoramento de tráfego, auditorias de segurança e conformidade de criadores de conteúdo.</p><p>As ferramentas disponibilizadas devem ser operadas estritamente sob as diretrizes de tráfego orgânico e pago de cada rede de anúncios parceira.</p>`;
-            modalContainer.classList.remove("hidden");
-        });
-
-        document.getElementById("btn-privacidade").addEventListener("click", () => {
-            modalTitle.innerText = "Diretrizes de Privacidade";
-            modalText.innerHTML = `<p>Seus tokens de autenticação, dados de faturamento e chaves do ecossistema Firebase/Meta são processados por criptografia de ponta e nunca salvos de maneira aberta.</p><p>A conformidade LGPD é assegurada para todos os leads coletados na infraestrutura do seu SaaS.</p>`;
-            modalContainer.classList.remove("hidden");
-        });
-
-        btnToggle.addEventListener("click", () => {
-            isLogin = !isLogin;
-            errorContainer.classList.add("hidden");
-            document.getElementById("field-nome").classList.toggle("hidden", isLogin);
-            btnForgot.classList.toggle("invisible", !isLogin);
-            
-            document.getElementById("ui-title").innerText = isLogin ? 'Acessar Painel' : 'Criar Nova Conta';
-            uiSubtitle.innerText = isLogin ? 'Bem-vindo de volta ao seu centro de comando.' : 'Preencha os dados estruturais para solicitar sua credencial.';
-            
-            btnText.innerText = isLogin ? "Entrar no Painel" : "Solicitar Acesso";
-            btnToggle.innerText = isLogin ? "Solicitar acesso a nova conta" : "Voltar para o Login";
-        });
-
+        // 1. EVENTO DE LOGIN (AUTENTICAÇÃO)
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
-            errorContainer.classList.add("hidden");
-            btnSubmit.disabled = true;
-            btnText.innerHTML = '<div class="spinner"></div>';
-
-            const email = document.getElementById("input-email").value.trim().toLowerCase();
-            const senha = document.getElementById("input-senha").value;
-            const nomeLoja = document.getElementById("input-nome").value.trim();
+            const email = emailInput.value.trim();
+            const senha = senhaInput.value;
 
             try {
-                if (isLogin) {
-                    const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-                    // Buscando o documento usando o e-mail como chave primária
-                    const userSnap = await getDoc(doc(db, "usuarios", email));
-                    
-                    if (userSnap.exists() && userSnap.data().status === "aprovado") {
-                        window.location.href = "dashboard.html";
-                    } else {
-                        showError("Acesso pendente: Sua conta está em fase de análise operacional.");
-                    }
-                } else {
-                    const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-                    
-                    // SOLUÇÃO: Salvando no Firestore usando o E-MAIL como chave do documento
-                    await setDoc(doc(db, "usuarios", email), {
-                        uid: userCredential.user.uid,
-                        email: email, 
-                        nomeLoja: nomeLoja || "Minha Vitrine", 
-                        status: "pendente", 
-                        criadoEm: new Date().toISOString()
-                    });
-                    showError("Solicitação enviada com sucesso! Aguarde a liberação administrativa.", true);
+                // Define se a sessão vai durar mesmo fechando o navegador ou só enquanto a aba estiver aberta
+                const persistenceType = lembrarCheckbox.checked ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistenceType);
+
+                // Efetua o login no Firebase
+                await signInWithEmailAndPassword(auth, email, senha);
+                
+                showToast("Autenticado com sucesso! Redirecionando...", "success");
+                
+                // Redireciona para o arquivo do Dashboard
+                setTimeout(() => {
+                    window.location.href = "index.html"; // Mude para "dashboard.html" se o seu arquivo ainda tiver esse nome no repositório!
+                }, 1000);
+
+            } catch (error) {
+                console.error("Erro ao fazer login:", error);
+                let mensagemErro = "Falha na autenticação. Verifique os dados.";
+                
+                if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+                    mensagemErro = "E-mail ou senha incorretos.";
+                } else if (error.code === "auth/invalid-email") {
+                    mensagemErro = "Formato de e-mail inválido.";
                 }
-            } catch (err) {
-                console.error(err);
-                if(err.code === "auth/wrong-password" || err.code === "auth/user-not-found" || err.code === "auth/invalid-credential") {
-                    showError("Erro operacional: Credenciais inválidas ou incorretas.");
-                } else if (err.code === "auth/email-already-in-use") {
-                    showError("Erro: Este e-mail corporativo já está associado a uma conta.");
-                } else {
-                    showError("Erro de comunicação: Falha na conexão com a central de segurança.");
+                
+                showToast(mensagemErro, "error");
+            }
+        });
+
+        // 2. ALTERNATIVA: CRIAR CONTA RÁPIDA (Se precisar registrar um e-mail novo no banco)
+        document.getElementById("btn-registrar-view").addEventListener("click", async () => {
+            const email = emailInput.value.trim();
+            const senha = senhaInput.value;
+
+            if (!email || senha.length < 6) {
+                showToast("Para registrar, preencha o e-mail e uma senha de no mínimo 6 dígitos.", "error");
+                return;
+            }
+
+            if (confirm(`Deseja criar uma nova conta de administrador com o e-mail: ${email}?`)) {
+                try {
+                    await createUserWithEmailAndPassword(auth, email, senha);
+                    showToast("Conta criada com sucesso! Entrando...", "success");
+                    setTimeout(() => { window.location.href = "index.html"; }, 1200);
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao registrar: " + err.message, "error");
                 }
             }
         });
+
+        // FUNÇÃO AUXILIAR DE NOTIFICAÇÕES (TOAST)
+        function showToast(text, type = "success") {
+            const container = document.getElementById("toast-container");
+            const toast = document.createElement("div");
+            toast.className = `p-4 rounded-xl text-xs font-bold shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2 text-black ${
+                type === 'error' ? 'bg-red-400' : 'bg-[#00f2fe]'
+            }`;
+            toast.innerHTML = `<span>${type === 'error' ? '❌' : '⚡'}</span> ${text}`;
+            container.appendChild(toast);
+            setTimeout(() => { toast.classList.remove("opacity-0", "translate-y-2"); }, 50);
+            setTimeout(() => {
+                toast.classList.add("opacity-0", "translate-y-[-2px]");
+                setTimeout(() => toast.remove(), 300);
+            }, 3500);
+        }
     </script>
 </body>
 </html>
