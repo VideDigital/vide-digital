@@ -126,7 +126,7 @@
             setTimeout(() => { feedbackBox.style.display = 'none'; }, 4000);
         }
 
-        // Transições de tela
+        // Transições de tela corrigidas
         const cardLogin = document.getElementById("card-login");
         const cardCadastro = document.getElementById("card-cadastro");
         
@@ -140,18 +140,21 @@
             cardLogin.classList.remove("hidden");
         });
 
+        // Configuração dos Olhinhos de Senha corrigida
         function setupToggleSenha(inputId, buttonId) {
             const input = document.getElementById(inputId);
             const btn = document.getElementById(buttonId);
-            btn.addEventListener("click", () => {
-                if (input.type === "password") {
-                    input.type = "text";
-                    btn.textContent = "🙈";
-                } else {
-                    input.type = "password";
-                    btn.textContent = "👁️";
-                }
-            });
+            if(input && btn) {
+                btn.addEventListener("click", () => {
+                    if (input.type === "password") {
+                        input.type = "text";
+                        btn.textContent = "🙈";
+                    } else {
+                        input.type = "password";
+                        btn.textContent = "👁️";
+                    }
+                });
+            }
         }
         setupToggleSenha("login-senha", "toggle-senha-login");
         setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
@@ -195,7 +198,7 @@
             }
         });
 
-        // --- LÓGICA DE CADASTRO ATUALIZADA ---
+        // --- LÓGICA DE CADASTRO COM IDENTIFICADOR ---
         document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const nome = document.getElementById("cadastro-nome").value;
@@ -206,9 +209,9 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
                 const user = userCredential.user;
 
-                // Agora salvamos o e-mail como identificador principal dentro dos dados do documento
+                // Salvando o campo identificador com o e-mail no Firestore
                 await setDoc(doc(db, "usuarios", user.uid), {
-                    identificador: email, // Isso ajuda a filtrar visualmente no painel do Firebase
+                    identificador: email,
                     nome: nome,
                     email: email,
                     status: "pendente",
@@ -232,6 +235,9 @@
                     emitInlineFeedback("A senha precisa de pelo menos 6 caracteres.", "error");
                 } else {
                     emitInlineFeedback("Erro ao registrar no banco de dados.", "error");
+                }
+            }
+        });
     </script>
 </body>
 </html>
