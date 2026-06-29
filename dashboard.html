@@ -45,7 +45,7 @@
                 <button id="mobile-menu-toggle" class="md:hidden text-gray-400 hover:text-white p-1 text-xl">☰</button>
             </div>
 
-            <nav class="hidden md:space-y-1.5" id="sidebar-nav">
+            <nav class="hidden md:block space-y-1.5" id="sidebar-nav">
                 <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left">
                     <span>📊</span> Dashboard
                 </button>
@@ -214,8 +214,8 @@
                         <div class="space-y-2">
                             <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
                             <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
-                                <option value="fisicos">Mostrar Produtos Físicos Primeiro</option>
-                                <option value="digitais">Mostrar Produtos Digitais Primeiro</option>
+                                <option value="fisicos">Parar em Físicos Primeiro</option>
+                                <option value="digitais">Parar em Digitais Primeiro</option>
                             </select>
                         </div>
 
@@ -860,7 +860,7 @@
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
                 modal.classList.add("hidden");
                 carregarProdutos();
-                showToast(id ? "Produto atualizado!" : "Produto cadastrado com sucesso!");
+                showToast(id ? "Produto updated!" : "Produto cadastrado com sucesso!");
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao salvar produto.", "error");
