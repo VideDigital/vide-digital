@@ -1,11 +1,12 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full bg-[#030712]">
+<html lang="pt-br" class="h-full bg-[#03040B]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideDigital | Acesso Restrito</title>
+    <title>VideDigital | Autenticação do Ecossistema</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .glass-card { background: rgba(13, 13, 22, 0.4); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); }
@@ -13,144 +14,194 @@
         .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.1); }
     </style>
 </head>
-<body class="h-full flex items-center justify-center p-4">
+<body class="h-full flex items-center justify-center p-4 relative overflow-hidden">
 
-    <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
+    <div class="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-[#00f2fe]/15 blur-[140px] pointer-events-none"></div>
+    <div class="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#4facfe]/15 blur-[140px] pointer-events-none"></div>
 
-    <div class="w-full max-w-md glass-card p-8 rounded-3xl space-y-6 shadow-2xl relative overflow-hidden">
-        
-        <div class="absolute -top-10 -right-10 h-32 w-32 rounded-full bg-[#00f2fe]/10 blur-3xl"></div>
-
-        <div class="text-center space-y-2">
-            <div class="mx-auto h-10 w-10 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
-                <span class="text-black font-extrabold text-sm">V</span>
+    <div id="card-login" class="w-full max-w-[460px] glass-card p-10 rounded-[32px] space-y-8 relative z-10 shadow-2xl">
+        <div class="flex flex-col items-center text-center space-y-3">
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_30px_rgba(0,242,254,0.35)]">
+                <span class="text-black font-extrabold text-sm tracking-tighter">V</span>
             </div>
-            <h2 class="text-xl font-black tracking-tight text-white pt-2">Acesse seu Painel</h2>
-            <p class="text-xs text-gray-400">Entre com suas credenciais para gerenciar suas vitrines.</p>
+            <h1 class="text-xl font-bold text-white tracking-tight">Acesse seu Painel</h1>
+            <p class="text-gray-400 text-xs">Entre com suas credenciais para gerenciar suas vitrines.</p>
         </div>
 
-        <form id="login-form" class="space-y-4">
+        <form id="login-form" class="space-y-5">
             <div class="space-y-1.5">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail Corporativo</label>
-                <input type="email" id="login-email" required class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="seu@email.com">
+                <input type="email" required id="login-email" class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
             </div>
 
             <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Senha de Acesso</label>
-                <input type="password" id="login-senha" required class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
+                <div class="flex justify-between items-center">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Senha de Acesso</label>
+                    <a href="#" class="text-[11px] text-[#00f2fe] hover:underline">Esqueceu a senha?</a>
+                </div>
+                <div class="relative">
+                    <input type="password" required id="login-senha" class="w-full glass-input rounded-xl p-3.5 pr-11 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
+                    <button type="button" id="toggle-senha-login" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors text-sm select-none">👁️</button>
+                </div>
             </div>
 
-            <div class="flex items-center justify-between pt-1 text-xs">
-                <label class="flex items-center gap-2 text-gray-400 cursor-pointer select-none">
-                    <input type="checkbox" id="lembrar-me" class="rounded border-white/10 bg-black checked:bg-[#00f2fe]"> Lembrar acesso
-                </label>
-                <button type="button" id="btn-recuperar" class="text-[#00f2fe] hover:underline font-medium">Esqueceu a senha?</button>
-            </div>
-
-            <button type="submit" class="w-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest py-4 rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.15)] hover:scale-[1.01] active:scale-[0.99] transition-all">
-                Autenticar Entrada
+            <button type="submit" id="btn-entrar-submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
+                Entrar no Dashboard
             </button>
         </form>
 
-        <div class="text-center pt-2">
-            <p class="text-xs text-gray-500">Não tem uma conta? <button id="btn-registrar-view" class="text-white hover:underline font-semibold">Criar Conta</button></p>
+        <p class="text-center text-xs text-gray-500">Não tem uma conta? <button id="btn-ir-cadastro" class="text-white font-semibold hover:underline bg-transparent border-none cursor-pointer">Criar Conta</button></p>
+    </div>
+
+    <div id="card-cadastro" class="w-full max-w-[460px] glass-card p-10 rounded-[32px] space-y-8 relative z-10 shadow-2xl hidden">
+        <div class="flex flex-col items-center text-center space-y-3">
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_30px_rgba(0,242,254,0.35)]">
+                <span class="text-black font-extrabold text-sm tracking-tighter">V</span>
+            </div>
+            <h1 class="text-xl font-bold text-white tracking-tight">Solicitar Cadastro</h1>
+            <p class="text-gray-400 text-xs">Preencha os dados abaixo para criar sua conta de lojista.</p>
         </div>
+
+        <form id="cadastro-form" class="space-y-5">
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Completo</label>
+                <input type="text" required id="cadastro-nome" class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="Seu Nome">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail de Acesso</label>
+                <input type="email" required id="cadastro-email" class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
+            </div>
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Escolha uma Senha</label>
+                <div class="relative">
+                    <input type="password" required id="cadastro-senha" class="w-full glass-input rounded-xl p-3.5 pr-11 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
+                    <button type="button" id="toggle-senha-cadastro" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors text-sm select-none">👁️</button>
+                </div>
+            </div>
+
+            <button type="submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
+                Concluir Cadastro
+            </button>
+        </form>
+
+        <p class="text-center text-xs text-gray-500">Já possui uma conta? <button id="btn-ir-login" class="text-white font-semibold hover:underline bg-transparent border-none cursor-pointer">Fazer Login</button></p>
     </div>
 
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        // Configuração central do Firebase (Certifique-se de que é a mesma usada no dashboard.html)
         const firebaseConfig = {
-            apiKey: "AIzaSyAs8...", 
-            authDomain: "videdigital-ad.firebaseapp.com",
-            projectId: "videdigital-ad",
-            storageBucket: "videdigital-ad.appspot.com",
-            messagingSenderId: "9823749283",
-            appId: "1:9823749283:web:abcd1234"
+            apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
+            authDomain: "vide-digital-saas.firebaseapp.com",
+            projectId: "vide-digital-saas",
+            storageBucket: "vide-digital-saas.firebasestorage.app",
+            messagingSenderId: "891590456336",
+            appId: "1:891590456336:web:bd51ac50399465b886c695"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
 
-        const form = document.getElementById("login-form");
-        const emailInput = document.getElementById("login-email");
-        const senhaInput = document.getElementById("login-senha");
-        const lembrarCheckbox = document.getElementById("lembrar-me");
+        function emitInlineFeedback(message, status = 'success') {
+            let feedbackBox = document.getElementById('global-inline-feedback');
+            if (!feedbackBox) {
+                feedbackBox = document.createElement('div');
+                feedbackBox.id = 'global-inline-feedback';
+                Object.assign(feedbackBox.style, {
+                    position: 'fixed', bottom: '24px', left: '24px', padding: '14px 20px',
+                    borderRadius: '10px', color: '#FFF', fontWeight: '600', fontSize: '0.9rem',
+                    zIndex: '99999', transition: 'all 0.3s ease', boxShadow: '0 10px 25px rgba(0,0,0,0.4)'
+                });
+                document.body.appendChild(feedbackBox);
+            }
+            feedbackBox.style.backgroundColor = status === 'success' ? '#00D2DF' : '#EF4444';
+            feedbackBox.style.color = status === 'success' ? '#000' : '#FFF';
+            feedbackBox.textContent = message;
+            feedbackBox.style.display = 'block';
+            setTimeout(() => { feedbackBox.style.display = 'none'; }, 3000);
+        }
 
-        // 1. EVENTO DE LOGIN (AUTENTICAÇÃO)
-        form.addEventListener("submit", async (e) => {
+        // Transições de tela
+        const cardLogin = document.getElementById("card-login");
+        const cardCadastro = document.getElementById("card-cadastro");
+        
+        document.getElementById("btn-ir-cadastro").addEventListener("click", () => {
+            cardLogin.classList.add("hidden");
+            cardCadastro.classList.remove("hidden");
+        });
+
+        document.getElementById("btn-ir-login").addEventListener("click", () => {
+            cardCadastro.classList.add("hidden");
+            cardLogin.classList.remove("hidden");
+        });
+
+        // Olho mostrar senha
+        function setupToggleSenha(inputId, buttonId) {
+            const input = document.getElementById(inputId);
+            const btn = document.getElementById(buttonId);
+            btn.addEventListener("click", () => {
+                if (input.type === "password") {
+                    input.type = "text";
+                    btn.textContent = "🙈";
+                } else {
+                    input.type = "password";
+                    btn.textContent = "👁️";
+                }
+            });
+        }
+        setupToggleSenha("login-senha", "toggle-senha-login");
+        setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
+
+        // Execução do login e checagem de usuário ativo/deletado
+        document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const email = emailInput.value.trim();
-            const senha = senhaInput.value;
+            const email = document.getElementById("login-email").value;
+            const senha = document.getElementById("login-senha").value;
 
             try {
-                // Define se a sessão vai durar mesmo fechando o navegador ou só enquanto a aba estiver aberta
-                const persistenceType = lembrarCheckbox.checked ? browserLocalPersistence : browserSessionPersistence;
-                await setPersistence(auth, persistenceType);
+                const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+                const user = userCredential.user;
 
-                // Efetua o login no Firebase
-                await signInWithEmailAndPassword(auth, email, senha);
-                
-                showToast("Autenticado com sucesso! Redirecionando...", "success");
-                
-                // Redireciona para o arquivo do Dashboard
-                setTimeout(() => {
-                    window.location.href = "index.html"; // Mude para "dashboard.html" se o seu arquivo ainda tiver esse nome no repositório!
-                }, 1000);
+                // Força validação imediata com o servidor. Se deletado, gera exceção na hora.
+                await user.getIdToken(true);
+
+                emitInlineFeedback("Autenticado com sucesso! Entrando...", "success");
+                setTimeout(() => { window.location.href = "index.html"; }, 800);
 
             } catch (error) {
-                console.error("Erro ao fazer login:", error);
-                let mensagemErro = "Falha na autenticação. Verifique os dados.";
-                
-                if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
-                    mensagemErro = "E-mail ou senha incorretos.";
-                } else if (error.code === "auth/invalid-email") {
-                    mensagemErro = "Formato de e-mail inválido.";
+                if (error.code === 'auth/user-not-found' || error.code === 'auth/invalid-credential' || error.code === 'auth/user-disabled') {
+                    emitInlineFeedback("Esta conta não existe ou foi revogada do ecossistema.", "error");
+                    await signOut(auth); // Garante a limpeza do cache local do navegador
+                } else {
+                    emitInlineFeedback("Falha na autenticação. Verifique seus dados.", "error");
                 }
-                
-                showToast(mensagemErro, "error");
+                console.error("Erro capturado:", error.code);
             }
         });
 
-        // 2. ALTERNATIVA: CRIAR CONTA RÁPIDA (Se precisar registrar um e-mail novo no banco)
-        document.getElementById("btn-registrar-view").addEventListener("click", async () => {
-            const email = emailInput.value.trim();
-            const senha = senhaInput.value;
+        // Execução do Cadastro
+        document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = document.getElementById("cadastro-email").value;
+            const senha = document.getElementById("cadastro-senha").value;
 
-            if (!email || senha.length < 6) {
-                showToast("Para registrar, preencha o e-mail e uma senha de no mínimo 6 dígitos.", "error");
-                return;
-            }
-
-            if (confirm(`Deseja criar uma nova conta de administrador com o e-mail: ${email}?`)) {
-                try {
-                    await createUserWithEmailAndPassword(auth, email, senha);
-                    showToast("Conta criada com sucesso! Entrando...", "success");
-                    setTimeout(() => { window.location.href = "index.html"; }, 1200);
-                } catch (err) {
-                    console.error(err);
-                    showToast("Erro ao registrar: " + err.message, "error");
+            try {
+                await createUserWithEmailAndPassword(auth, email, senha);
+                emitInlineFeedback("Conta criada com sucesso!", "success");
+                setTimeout(() => { window.location.href = "index.html"; }, 1000);
+            } catch (error) {
+                if (error.code === 'auth/email-already-in-use') {
+                    emitInlineFeedback("Este e-mail já está cadastrado.", "error");
+                } else if (error.code === 'auth/weak-password') {
+                    emitInlineFeedback("A senha precisa de pelo menos 6 caracteres.", "error");
+                } else {
+                    emitInlineFeedback("Erro ao registrar no banco de dados.", "error");
                 }
             }
         });
-
-        // FUNÇÃO AUXILIAR DE NOTIFICAÇÕES (TOAST)
-        function showToast(text, type = "success") {
-            const container = document.getElementById("toast-container");
-            const toast = document.createElement("div");
-            toast.className = `p-4 rounded-xl text-xs font-bold shadow-2xl transition-all duration-300 transform translate-y-2 opacity-0 flex items-center gap-2 text-black ${
-                type === 'error' ? 'bg-red-400' : 'bg-[#00f2fe]'
-            }`;
-            toast.innerHTML = `<span>${type === 'error' ? '❌' : '⚡'}</span> ${text}`;
-            container.appendChild(toast);
-            setTimeout(() => { toast.classList.remove("opacity-0", "translate-y-2"); }, 50);
-            setTimeout(() => {
-                toast.classList.add("opacity-0", "translate-y-[-2px]");
-                setTimeout(() => toast.remove(), 300);
-            }, 3500);
-        }
     </script>
 </body>
 </html>
