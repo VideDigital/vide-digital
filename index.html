@@ -1,69 +1,186 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-br" class="h-full bg-[#03040B]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Carregando Vitrine...</title>
-    <!-- Fonte Premium -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Ícones das Redes Sociais -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link rel="stylesheet" href="style.css">
+    <title>VideDigital | Autenticação do Ecossistema</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow: hidden; }
+        .cyber-grid { background-image: linear-gradient(rgba(255,255,255,0.015) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.015) 1px, transparent 1px); background-size: 40px 40px; }
+        .glass-container { background: linear-gradient(180deg, rgba(12, 13, 26, 0.6) 0%, rgba(6, 7, 15, 0.9) 100%); border: 1px solid rgba(255, 255, 255, 0.05); box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.8), inset 0 1px 0px rgba(255,255,255,0.05); }
+        .input-glow { background: rgba(3, 4, 11, 0.6); border: 1px solid rgba(255, 255, 255, 0.06); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
+        .input-glow:focus { border-color: #00f2fe; box-shadow: 0 0 25px rgba(0, 242, 254, 0.15), inset 0 1px 1px rgba(255,255,255,0.02); color: #fff; }
+        .btn-gradient { background: linear-gradient(90deg, #00f2fe 0%, #4facfe 100%); transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); shadow: 0 0 30px rgba(0, 242, 254, 0.2); }
+        .btn-gradient:hover { filter: brightness(1.1); transform: translateY(-1px); box-shadow: 0 10px 30px rgba(0, 242, 254, 0.35); }
+        .glow-orb { filter: blur(140px); opacity: 0.15; mix-blend-mode: screen; pointer-events: none; }
+    </style>
 </head>
-<body>
+<body class="h-full flex items-center justify-center p-4 relative cyber-grid">
 
-    <!-- Tela de Carregamento -->
-    <div id="loading-screen" class="loading-overlay">
-        <div class="loader-content">
-            <div class="spinner"></div>
-            <p id="loading-text">Sincronizando infraestrutura e carregando vitrine comercial...</p>
+    <div class="glow-orb absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-[#00f2fe]"></div>
+    <div class="glow-orb absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#4facfe]"></div>
+
+    <div class="w-full max-w-[460px] glass-container p-10 rounded-[32px] space-y-8 relative z-10">
+        
+        <div class="flex flex-col items-center text-center space-y-3">
+            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_30px_rgba(0,242,254,0.35)] relative group">
+                <span class="text-black font-extrabold text-sm tracking-tighter">V</span>
+                <div class="absolute inset-0 rounded-2xl bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+            </div>
+            <div class="space-y-1">
+                <h2 id="auth-title" class="text-2xl font-extrabold tracking-tight text-white">Acessar Painel Gestor</h2>
+                <p id="auth-subtitle" class="text-xs text-gray-400 font-medium tracking-wide">Entre com suas credenciais para gerenciar o ecossistema.</p>
+            </div>
+        </div>
+
+        <div id="status-box" class="hidden rounded-xl border p-4 text-xs font-semibold flex items-center gap-3 transition-all duration-300">
+            <span id="status-icon" class="text-base shrink-0"></span>
+            <p id="status-message" class="leading-relaxed"></p>
+        </div>
+
+        <form id="auth-form" class="space-y-5">
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail Corporativo</label>
+                <input type="email" id="auth-email" required class="w-full input-glow rounded-xl p-3.5 text-sm text-gray-300 outline-none placeholder-gray-700" placeholder="nome@empresa.com">
+            </div>
+
+            <div class="space-y-2">
+                <div class="flex justify-between items-center">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Senha de Acesso</label>
+                    <button type="button" id="btn-forget" class="text-[10px] text-[#00f2fe]/80 hover:text-[#00f2fe] hover:underline font-bold tracking-wide transition-colors">Esqueceu a senha?</button>
+                </div>
+                <input type="password" id="auth-password" required class="w-full input-glow rounded-xl p-3.5 text-sm text-gray-300 outline-none placeholder-gray-700" placeholder="••••••••••••">
+            </div>
+
+            <div class="flex items-center justify-between pt-1 text-xs">
+                <label class="flex items-center gap-2.5 text-gray-400 cursor-pointer select-none font-medium group">
+                    <input type="checkbox" id="auth-remember" class="w-4 h-4 rounded border-white/10 bg-black/40 text-[#00f2fe] focus:ring-0 focus:ring-offset-0 cursor-pointer transition-all"> 
+                    <span class="group-hover:text-gray-300 transition-colors">Lembrar este dispositivo</span>
+                </label>
+            </div>
+
+            <button type="submit" id="btn-submit" class="w-full btn-gradient text-black font-black text-xs uppercase tracking-widest py-4 rounded-xl active:scale-[0.98] transition-all mt-2">
+                Autenticar Entrada
+            </button>
+        </form>
+
+        <div class="text-center pt-2 border-t border-white/[0.03]">
+            <p id="toggle-text" class="text-xs text-gray-500 font-medium">Não possui uma credencial? <button id="btn-toggle-mode" class="text-white hover:text-[#00f2fe] hover:underline font-bold transition-colors">Criar Conta</button></p>
         </div>
     </div>
 
-    <!-- Interface da Loja -->
-    <div id="store-wrapper" class="hidden animate-fade-in">
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, setPersistence, browserLocalPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+
+        // Sua configuração real injetada com sucesso!
+        const firebaseConfig = {
+            apiKey: "AIzaSyB8bB4hN9vL26_0P9vM_5WbL7R3FfN4cM8", 
+            authDomain: "videdigital-ad.firebaseapp.com",
+            projectId: "videdigital-ad",
+            storageBucket: "videdigital-ad.appspot.com",
+            messagingSenderId: "560447367341",
+            appId: "1:560447367341:web:bfdf14b98686fb8a221f4c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        const form = document.getElementById("auth-form");
+        const emailInput = document.getElementById("auth-email");
+        const passwordInput = document.getElementById("auth-password");
+        const rememberCheckbox = document.getElementById("auth-remember");
         
-        <!-- Cabeçalho de Identidade -->
-        <header class="store-header">
-            <div class="avatar-container" id="store-avatar-wrapper">
-                <img id="store-logo" src="" alt="Logo da Loja" class="store-avatar">
-            </div>
-            <h1 id="store-title">Carregando...</h1>
-            <p id="store-subtitle">Carregando descrição...</p>
+        const statusBox = document.getElementById("status-box");
+        const statusIcon = document.getElementById("status-icon");
+        const statusMessage = document.getElementById("status-message");
+        
+        const authTitle = document.getElementById("auth-title");
+        const authSubtitle = document.getElementById("auth-subtitle");
+        const btnSubmit = document.getElementById("btn-submit");
+        const btnToggleMode = document.getElementById("btn-toggle-mode");
+        const toggleText = document.getElementById("toggle-text");
+
+        let isLoginMode = true;
+
+        function displayStatus(message, type = "success") {
+            statusBox.classList.remove("hidden", "bg-red-500/5", "border-red-500/20", "text-red-400", "bg-emerald-500/5", "border-emerald-500/20", "text-emerald-400", "bg-blue-500/5", "border-blue-500/20", "text-blue-400");
             
-            <!-- Redes Sociais -->
-            <div id="social-links" class="social-grid"></div>
-        </header>
-
-        <!-- Seleção de Abas -->
-        <section class="tabs-section">
-            <div class="tabs-container">
-                <button id="btn-digitais" class="tab-button active"><i class="fa-solid fa-bolt"></i> Produtos Digitais</button>
-                <button id="btn-fisicos" class="tab-button"><i class="fa-solid fa-box"></i> Produtos Físicos</button>
-            </div>
-        </section>
-
-        <!-- Grid Principal de Produtos -->
-        <main class="store-container">
-            <div id="products-grid" class="products-grid"></div>
+            if(type === "error") {
+                statusBox.classList.add("bg-red-500/5", "border-red-500/20", "text-red-400");
+                statusIcon.innerText = "⚠️";
+            } else if(type === "success") {
+                statusBox.classList.add("bg-emerald-500/5", "border-emerald-500/20", "text-emerald-400");
+                statusIcon.innerText = "⚡";
+            } else {
+                statusBox.classList.add("bg-blue-500/5", "border-blue-500/20", "text-blue-400");
+                statusIcon.innerText = "⏳";
+            }
             
-            <!-- Estado Vazio -->
-            <div id="empty-state" class="empty-state hidden">
-                <i class="fa-solid fa-bag-shopping"></i>
-                <h3>Nenhum produto disponível nesta categoria</h3>
-                <p>Selecione outra aba para conferir nossos treinamentos.</p>
-            </div>
-        </main>
+            statusMessage.innerText = message;
+            statusBox.classList.remove("hidden");
+        }
 
-        <!-- Rodapé -->
-        <footer class="store-footer">
-            <p>&copy; <span id="year-copy"></span> <strong id="footer-store-name">Vide Digital</strong> - Todos os direitos reservados.</p>
-            <span class="powered-by">Tecnologia por Vide Digital</span>
-        </footer>
-    </div>
+        btnToggleMode.addEventListener("click", () => {
+            isLoginMode = !isLoginMode;
+            statusBox.classList.add("hidden");
+            
+            if(isLoginMode) {
+                authTitle.innerText = "Acessar Painel Gestor";
+                authSubtitle.innerText = "Entre com suas credenciais para gerenciar o ecossistema.";
+                btnSubmit.innerText = "Autenticar Entrada";
+                toggleText.innerHTML = `Não possui uma credencial? <button id="btn-toggle-mode" class="text-white hover:text-[#00f2fe] hover:underline font-bold transition-colors">Criar Conta</button>`;
+            } else {
+                authTitle.innerText = "Criar Nova Credencial";
+                authSubtitle.innerText = "Cadastre um e-mail de administrador para o ambiente.";
+                btnSubmit.innerText = "Registrar Nova Conta";
+                toggleText.innerHTML = `Já possui uma conta ativa? <button id="btn-toggle-mode" class="text-white hover:text-[#00f2fe] hover:underline font-bold transition-colors">Acessar Painel</button>`;
+            }
+            document.getElementById("btn-toggle-mode").addEventListener("click", () => btnToggleMode.click());
+        });
 
-    <script type="module" src="index.js"></script>
+        form.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const email = emailInput.value.trim();
+            const password = passwordInput.value;
+
+            displayStatus("Processando requisição de segurança...", "loading");
+
+            try {
+                const persistence = rememberCheckbox.checked ? browserLocalPersistence : browserSessionPersistence;
+                await setPersistence(auth, persistence);
+
+                if (isLoginMode) {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    displayStatus("Autenticação validada! Redirecionando ao ecossistema...", "success");
+                    setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+                } else {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    displayStatus("Conta de administrador criada com sucesso! Entrando...", "success");
+                    setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
+                }
+
+            } catch (error) {
+                console.error("Erro Firebase:", error.code);
+                
+                let friendlyMessage = "Erro operacional na API interna.";
+                if (error.code === "auth/invalid-credential" || error.code === "auth/wrong-password" || error.code === "auth/user-not-found") {
+                    friendlyMessage = "As credenciais inseridas estão incorretas ou são inválidas.";
+                } else if (error.code === "auth/invalid-email") {
+                    friendlyMessage = "O formato do e-mail corporativo fornecido está incorreto.";
+                } else if (error.code === "auth/email-already-in-use") {
+                    friendlyMessage = "Este endereço de e-mail já está associado a outro administrador.";
+                } else if (error.code === "auth/weak-password") {
+                    friendlyMessage = "A senha deve conter no mínimo 6 caracteres para segurança avançada.";
+                } else if (error.code === "auth/operation-not-allowed") {
+                    friendlyMessage = "O provedor de login por E-mail/Senha está desativado no console do seu Firebase.";
+                }
+                
+                displayStatus(friendlyMessage, "error");
+            }
+        });
+    </script>
 </body>
 </html>
