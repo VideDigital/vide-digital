@@ -40,16 +40,12 @@
 </head>
 <body class="h-full flex text-white antialiased selection:bg-[#00f2fe]/30 select-none overflow-hidden">
 
-    <!-- LADO ESQUERDO: Painel Visual Imersivo (Inspirado no image_03f058.png) -->
     <div class="hidden lg:flex lg:w-7/12 relative space-bg p-16 flex-col justify-between border-r border-white/[0.03] overflow-hidden">
-        <!-- Elementos Cósmicos de Fundo -->
         <div class="absolute top-[15%] left-[10%] h-[350px] w-[350px] rounded-full bg-[#00f2fe]/15 float-orbe-1 pointer-events-none"></div>
         <div class="absolute bottom-[20%] right-[15%] h-[450px] w-[450px] rounded-full bg-[#6a11cb]/10 float-orbe-2 pointer-events-none"></div>
         
-        <!-- Linhas e Estrelas decorativas discretas -->
         <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
 
-        <!-- Header do Lado Visual -->
         <div class="flex items-center space-x-3 relative z-10">
             <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.3)]">
                 <span class="text-black font-black text-xs">V</span>
@@ -57,7 +53,6 @@
             <span class="text-sm font-bold uppercase tracking-widest text-gray-300">Vide Hub</span>
         </div>
 
-        <!-- Texto de Impacto Principal -->
         <div class="space-y-6 max-w-xl relative z-10 mb-12">
             <h2 class="text-5xl font-extrabold tracking-tight leading-[1.15] bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
                 Gerencie suas vitrines digitais em um só lugar.
@@ -67,21 +62,17 @@
             </p>
         </div>
 
-        <!-- Footer do Lado Visual -->
         <div class="text-xs text-gray-600 font-medium relative z-10">
             &copy; 2026 Vide Hub Inc. Todos os direitos reservados.
         </div>
     </div>
 
-    <!-- LADO DIREITO: Formulário de Autenticação Puro -->
     <div class="w-full lg:w-5/12 bg-[#05050d] flex flex-col justify-center px-8 sm:px-16 md:px-24 relative">
         
-        <!-- Orbe luminoso sutil de fundo para mobile -->
         <div class="lg:hidden absolute top-[-10%] right-[-10%] h-[300px] w-[300px] rounded-full bg-[#00f2fe]/10 blur-[80px] pointer-events-none"></div>
 
         <div class="w-full max-w-[400px] mx-auto space-y-10">
             
-            <!-- CARD INTERNO: LOGIN -->
             <div id="card-login" class="space-y-8 transition-all duration-500 transform scale-100 opacity-100">
                 <div class="space-y-2">
                     <h1 class="text-3xl font-extrabold tracking-tight text-white">Login</h1>
@@ -106,17 +97,16 @@
                     </div>
 
                     <button type="submit" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] hover:shadow-[0_4px_35px_rgba(0,242,254,0.3)] active:scale-[0.99] transition-all duration-300">
-                        Acessar a Loja
+                        Entrar na Loja
                     </button>
                 </form>
 
                 <p class="text-xs text-gray-500 font-medium">Não tem uma licença? <button id="btn-ir-cadastro" class="text-white font-bold hover:text-[#00f2fe] hover:underline transition-colors bg-transparent border-none cursor-pointer">Solicitar Acesso</button></p>
             </div>
 
-            <!-- CARD INTERNO: CADASTRO -->
             <div id="card-cadastro" class="space-y-8 transition-all duration-500 transform scale-95 opacity-0 hidden">
                 <div class="space-y-2">
-                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Sign Up</h1>
+                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Criar Conta</h1>
                     <p class="text-gray-400 text-xs font-medium">Cadastre seu terminal. Sua conta passará por análise.</p>
                 </div>
 
@@ -140,7 +130,7 @@
                     </div>
 
                     <button type="submit" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
-                        Enviar Solicitação
+                        Ativar Minha Licença
                     </button>
                 </form>
 
@@ -150,11 +140,10 @@
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL (MÓDULO FIREBASE) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
@@ -231,20 +220,23 @@
         // --- ENTRAR NA CONTA ---
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const email = document.getElementById("login-email").value;
+            const email = document.getElementById("login-email").value.trim();
             const senha = document.getElementById("login-senha").value;
 
             try {
-                await signInWithEmailAndPassword(auth, email, senha);
-                const q = query(collection(db, "usuarios"), where("email", "==", email));
-                const querySnapshot = await getDocs(q);
+                const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+                const user = userCredential.user;
 
-                if (querySnapshot.empty) {
+                // Correção de performance e segurança: Buscar o documento direto usando o UID
+                const userDocRef = doc(db, "usuarios", user.uid);
+                const userDoc = await getDoc(userDocRef);
+
+                if (!userDoc.exists()) {
                     emitInlineFeedback("Assinatura inválida no ecossistema.", "error");
                     await signOut(auth); return;
                 }
 
-                const dadosUsuario = querySnapshot.docs[0].data();
+                const dadosUsuario = userDoc.data();
                 if (dadosUsuario.status !== "aprovado") {
                     emitInlineFeedback("Terminal em análise de segurança.", "error");
                     await signOut(auth); return;
@@ -262,8 +254,8 @@
         // --- SOLICITAR ACESSO ---
         document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
             e.preventDefault();
-            const nome = document.getElementById("cadastro-nome").value;
-            const email = document.getElementById("cadastro-email").value;
+            const nome = document.getElementById("cadastro-nome").value.trim();
+            const email = document.getElementById("cadastro-email").value.trim().toLowerCase();
             const senha = document.getElementById("cadastro-senha").value;
 
             try {
@@ -271,7 +263,11 @@
                 const user = userCredential.user;
 
                 await setDoc(doc(db, "usuarios", user.uid), {
-                    identificador: email, nome: nome, email: email, status: "pendente", criadoEm: new Date().toISOString()
+                    identificador: email, 
+                    nome: nome, 
+                    email: email, 
+                    status: "pendente", 
+                    criadoEm: new Date().toISOString()
                 });
 
                 emitInlineFeedback("Solicitação enviada com sucesso!", "success");
