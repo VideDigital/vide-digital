@@ -764,6 +764,9 @@
             const novoSlug = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
             if (!novoSlug) return showToast("Slug inválido.", "error");
 
+            const confirmou = window.confirm("Tem certeza que deseja salvar essas alterações na sua vitrine?");
+            if (!confirmou) return;
+
             try {
                 const payloadPerfil = {
                     nomeLoja: document.getElementById("perf-nome-loja").value.trim(),
