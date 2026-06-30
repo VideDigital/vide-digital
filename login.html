@@ -1,98 +1,160 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full bg-[#03040B]">
+<html lang="pt-br" class="h-full bg-[#030308]">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideDigital | Autenticação do Ecossistema</title>
+    <title>Vide Hub | Conectar ao Ecossistema</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .glass-card { background: rgba(13, 13, 22, 0.4); backdrop-filter: blur(24px); border: 1px solid rgba(255, 255, 255, 0.04); }
-        .glass-input { background: rgba(6, 6, 10, 0.8); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
-        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0, 242, 254, 0.1); }
+        body { 
+            font-family: 'Plus Jakarta Sans', sans-serif; 
+        }
+        /* Efeito Dark Premium para Inputs integrados */
+        .premium-input { 
+            background: rgba(15, 15, 25, 0.6); 
+            border: 1px solid rgba(255, 255, 255, 0.05); 
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
+        }
+        .premium-input:focus { 
+            border-color: #00f2fe; 
+            background: rgba(20, 20, 35, 0.9);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.1), inset 0 0 10px rgba(0, 242, 254, 0.02);
+        }
+        /* Fundo Dinâmico do Lado Visual */
+        .space-bg {
+            background: radial-gradient(circle at 30% 30%, #0d0b26 0%, #04030a 100%);
+        }
+        /* Animação dos planetas/orbes */
+        .float-orbe-1 { animation: float1 12s infinite ease-in-out alternate; }
+        .float-orbe-2 { animation: float2 18s infinite ease-in-out alternate; }
+        @keyframes float1 {
+            0% { transform: translateY(0px) scale(1); filter: blur(80px); }
+            100% { transform: translateY(-30px) scale(1.1); filter: blur(100px); }
+        }
+        @keyframes float2 {
+            0% { transform: translate(0px, 0px) scale(1); filter: blur(100px); }
+            100% { transform: translate(40px, -20px) scale(0.9); filter: blur(120px); }
+        }
     </style>
 </head>
-<body class="h-full flex items-center justify-center p-4 relative overflow-hidden">
+<body class="h-full flex text-white antialiased selection:bg-[#00f2fe]/30 select-none overflow-hidden">
 
-    <div class="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-[#00f2fe]/15 blur-[140px] pointer-events-none"></div>
-    <div class="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-[#4facfe]/15 blur-[140px] pointer-events-none"></div>
+    <!-- LADO ESQUERDO: Painel Visual Imersivo (Inspirado no image_03f058.png) -->
+    <div class="hidden lg:flex lg:w-7/12 relative space-bg p-16 flex-col justify-between border-r border-white/[0.03] overflow-hidden">
+        <!-- Elementos Cósmicos de Fundo -->
+        <div class="absolute top-[15%] left-[10%] h-[350px] w-[350px] rounded-full bg-[#00f2fe]/15 float-orbe-1 pointer-events-none"></div>
+        <div class="absolute bottom-[20%] right-[15%] h-[450px] w-[450px] rounded-full bg-[#6a11cb]/10 float-orbe-2 pointer-events-none"></div>
+        
+        <!-- Linhas e Estrelas decorativas discretas -->
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
 
-    <div id="card-login" class="w-full max-w-[460px] glass-card p-10 rounded-[32px] space-y-8 relative z-10 shadow-2xl">
-        <div class="flex flex-col items-center text-center space-y-3">
-            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_30px_rgba(0,242,254,0.35)]">
-                <span class="text-black font-extrabold text-sm tracking-tighter">V</span>
+        <!-- Header do Lado Visual -->
+        <div class="flex items-center space-x-3 relative z-10">
+            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.3)]">
+                <span class="text-black font-black text-xs">V</span>
             </div>
-            <h1 class="text-xl font-bold text-white tracking-tight">Acesse seu Painel</h1>
-            <p class="text-gray-400 text-xs">Entre com suas credenciais para gerenciar suas vitrines.</p>
+            <span class="text-sm font-bold uppercase tracking-widest text-gray-300">Vide Hub</span>
         </div>
 
-        <form id="login-form" class="space-y-5">
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail Corporativo</label>
-                <input type="email" required id="login-email" class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
-            </div>
-
-            <div class="space-y-1.5">
-                <div class="flex justify-between items-center">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Senha de Acesso</label>
-                    <a href="#" class="text-[11px] text-[#00f2fe] hover:underline">Esqueceu a senha?</a>
-                </div>
-                <div class="relative">
-                    <input type="password" required id="login-senha" class="w-full glass-input rounded-xl p-3.5 pr-11 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
-                    <button type="button" id="toggle-senha-login" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors text-sm select-none">👁️</button>
-                </div>
-            </div>
-
-            <button type="submit" id="btn-entrar-submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
-                Entrar no Dashboard
-            </button>
-        </form>
-
-        <p class="text-center text-xs text-gray-500">Não tem uma conta? <button id="btn-ir-cadastro" class="text-white font-semibold hover:underline bg-transparent border-none cursor-pointer">Criar Conta</button></p>
-    </div>
-
-    <div id="card-cadastro" class="w-full max-w-[460px] glass-card p-10 rounded-[32px] space-y-8 relative z-10 shadow-2xl hidden">
-        <div class="flex flex-col items-center text-center space-y-3">
-            <div class="h-12 w-12 rounded-2xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_30px_rgba(0,242,254,0.35)]">
-                <span class="text-black font-extrabold text-sm tracking-tighter">V</span>
-            </div>
-            <h1 class="text-xl font-bold text-white tracking-tight">Solicitar Cadastro</h1>
-            <p class="text-gray-400 text-xs">Sua conta passará por análise antes da liberação do painel.</p>
+        <!-- Texto de Impacto Principal -->
+        <div class="space-y-6 max-w-xl relative z-10 mb-12">
+            <h2 class="text-5xl font-extrabold tracking-tight leading-[1.15] bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
+                Gerencie suas vitrines digitais em um só lugar.
+            </h2>
+            <p class="text-gray-400 text-base font-medium leading-relaxed">
+                Conecte-se ao ecossistema inteligente criado para escalar suas operações de marketing digital e otimizar conversões.
+            </p>
         </div>
 
-        <form id="cadastro-form" class="space-y-5">
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Completo</label>
-                <input type="text" required id="cadastro-nome" class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="Seu Nome">
-            </div>
-
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail de Acesso</label>
-                <input type="email" required id="cadastro-email" class="w-full glass-input rounded-xl p-3.5 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
-            </div>
-
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Escolha uma Senha</label>
-                <div class="relative">
-                    <input type="password" required id="cadastro-senha" class="w-full glass-input rounded-xl p-3.5 pr-11 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
-                    <button type="button" id="toggle-senha-cadastro" class="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors text-sm select-none">👁️</button>
-                </div>
-            </div>
-
-            <button type="submit" class="w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.01] transition-all">
-                Solicitar Acesso
-            </button>
-        </form>
-
-        <p class="text-center text-xs text-gray-500">Já possui uma conta? <button id="btn-ir-login" class="text-white font-semibold hover:underline bg-transparent border-none cursor-pointer">Fazer Login</button></p>
+        <!-- Footer do Lado Visual -->
+        <div class="text-xs text-gray-600 font-medium relative z-10">
+            &copy; 2026 Vide Hub Inc. Todos os direitos reservados.
+        </div>
     </div>
 
+    <!-- LADO DIREITO: Formulário de Autenticação Puro -->
+    <div class="w-full lg:w-5/12 bg-[#05050d] flex flex-col justify-center px-8 sm:px-16 md:px-24 relative">
+        
+        <!-- Orbe luminoso sutil de fundo para mobile -->
+        <div class="lg:hidden absolute top-[-10%] right-[-10%] h-[300px] w-[300px] rounded-full bg-[#00f2fe]/10 blur-[80px] pointer-events-none"></div>
+
+        <div class="w-full max-w-[400px] mx-auto space-y-10">
+            
+            <!-- CARD INTERNO: LOGIN -->
+            <div id="card-login" class="space-y-8 transition-all duration-500 transform scale-100 opacity-100">
+                <div class="space-y-2">
+                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Login</h1>
+                    <p class="text-gray-400 text-xs font-medium">Entre com suas credenciais para acessar o ecossistema.</p>
+                </div>
+
+                <form id="login-form" class="space-y-5">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail Corporativo</label>
+                        <input type="email" required id="login-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="nome@empresa.com">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <div class="flex justify-between items-center">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Senha de Acesso</label>
+                            <a href="#" class="text-[11px] text-[#00f2fe] hover:underline font-medium">Esqueceu?</a>
+                        </div>
+                        <div class="relative">
+                            <input type="password" required id="login-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-700" placeholder="••••••••">
+                            <button type="button" id="toggle-senha-login" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] hover:shadow-[0_4px_35px_rgba(0,242,254,0.3)] active:scale-[0.99] transition-all duration-300">
+                        Acessar a Loja
+                    </button>
+                </form>
+
+                <p class="text-xs text-gray-500 font-medium">Não tem uma licença? <button id="btn-ir-cadastro" class="text-white font-bold hover:text-[#00f2fe] hover:underline transition-colors bg-transparent border-none cursor-pointer">Solicitar Acesso</button></p>
+            </div>
+
+            <!-- CARD INTERNO: CADASTRO -->
+            <div id="card-cadastro" class="space-y-8 transition-all duration-500 transform scale-95 opacity-0 hidden">
+                <div class="space-y-2">
+                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Sign Up</h1>
+                    <p class="text-gray-400 text-xs font-medium">Cadastre seu terminal. Sua conta passará por análise.</p>
+                </div>
+
+                <form id="cadastro-form" class="space-y-5">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome Completo</label>
+                        <input type="text" required id="cadastro-nome" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="Seu Nome">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail de Acesso</label>
+                        <input type="email" required id="cadastro-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="nome@empresa.com">
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Escolha uma Senha</label>
+                        <div class="relative">
+                            <input type="password" required id="cadastro-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-700" placeholder="••••••••">
+                            <button type="button" id="toggle-senha-cadastro" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
+                        Enviar Solicitação
+                    </button>
+                </form>
+
+                <p class="text-xs text-gray-500 font-medium">Já possui acesso? <button id="btn-ir-login" class="text-white font-bold hover:text-[#00f2fe] hover:underline transition-colors bg-transparent border-none cursor-pointer">Fazer Login</button></p>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- SCRIPT PRINCIPAL (MÓDULO FIREBASE) -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-    import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-    import { getFirestore, doc, setDoc, getDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
@@ -107,97 +169,97 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // Feedback Premium customizado
         function emitInlineFeedback(message, status = 'success') {
             let feedbackBox = document.getElementById('global-inline-feedback');
             if (!feedbackBox) {
                 feedbackBox = document.createElement('div');
                 feedbackBox.id = 'global-inline-feedback';
                 Object.assign(feedbackBox.style, {
-                    position: 'fixed', bottom: '24px', left: '24px', padding: '14px 20px',
-                    borderRadius: '10px', color: '#FFF', fontWeight: '600', fontSize: '0.9rem',
-                    zIndex: '99999', transition: 'all 0.3s ease', boxShadow: '0 10px 25px rgba(0,0,0,0.4)'
+                    position: 'fixed', bottom: '32px', right: '32px', padding: '16px 24px',
+                    borderRadius: '12px', fontWeight: '700', fontSize: '0.8rem', letterSpacing: '0.05em',
+                    textTransform: 'uppercase', zIndex: '99999', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)', transform: 'translateY(50px)', opacity: '0'
                 });
                 document.body.appendChild(feedbackBox);
             }
-            feedbackBox.style.backgroundColor = status === 'success' ? '#00D2DF' : '#EF4444';
-            feedbackBox.style.color = status === 'success' ? '#000' : '#FFF';
+            
+            feedbackBox.style.backgroundColor = status === 'success' ? 'rgba(0, 242, 254, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+            feedbackBox.style.border = status === 'success' ? '1px solid #00f2fe' : '1px solid #EF4444';
+            feedbackBox.style.color = status === 'success' ? '#00f2fe' : '#EF4444';
+            feedbackBox.style.backdropFilter = 'blur(10px)';
             feedbackBox.textContent = message;
-            feedbackBox.style.display = 'block';
-            setTimeout(() => { feedbackBox.style.display = 'none'; }, 4000);
+            
+            setTimeout(() => { feedbackBox.style.transform = 'translateY(0)'; feedbackBox.style.opacity = '1'; }, 50);
+            setTimeout(() => { feedbackBox.style.transform = 'translateY(50px)'; feedbackBox.style.opacity = '0'; }, 4000);
         }
 
-        // Transições de tela corrigidas
+        // Transições de Tela Fluidas
         const cardLogin = document.getElementById("card-login");
         const cardCadastro = document.getElementById("card-cadastro");
         
         document.getElementById("btn-ir-cadastro").addEventListener("click", () => {
-            cardLogin.classList.add("hidden");
-            cardCadastro.classList.remove("hidden");
+            cardLogin.style.transform = "scale(0.95)"; cardLogin.style.opacity = "0";
+            setTimeout(() => {
+                cardLogin.classList.add("hidden"); cardCadastro.classList.remove("hidden");
+                setTimeout(() => { cardCadastro.style.transform = "scale(1)"; cardCadastro.style.opacity = "1"; }, 50);
+            }, 300);
         });
 
         document.getElementById("btn-ir-login").addEventListener("click", () => {
-            cardCadastro.classList.add("hidden");
-            cardLogin.classList.remove("hidden");
+            cardCadastro.style.transform = "scale(0.95)"; cardCadastro.style.opacity = "0";
+            setTimeout(() => {
+                cardCadastro.classList.add("hidden"); cardLogin.classList.remove("hidden");
+                setTimeout(() => { cardLogin.style.transform = "scale(1)"; cardLogin.style.opacity = "1"; }, 50);
+            }, 300);
         });
 
-        // Configuração dos Olhinhos de Senha corrigida
+        // Alternador de Senhas
         function setupToggleSenha(inputId, buttonId) {
-            const input = document.getElementById(inputId);
-            const btn = document.getElementById(buttonId);
+            const input = document.getElementById(inputId); const btn = document.getElementById(buttonId);
             if(input && btn) {
                 btn.addEventListener("click", () => {
-                    if (input.type === "password") {
-                        input.type = "text";
-                        btn.textContent = "🙈";
-                    } else {
-                        input.type = "password";
-                        btn.textContent = "👁️";
-                    }
+                    const isPassword = input.type === "password";
+                    input.type = isPassword ? "text" : "password";
+                    btn.textContent = isPassword ? "🙈" : "👁️";
                 });
             }
         }
         setupToggleSenha("login-senha", "toggle-senha-login");
         setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
 
-        // --- LÓGICA DE LOGIN COM BUSCA PELO CAMPO EMAIL ---
+        // --- ENTRAR NA CONTA ---
         document.getElementById("login-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const email = document.getElementById("login-email").value;
             const senha = document.getElementById("login-senha").value;
 
             try {
-                // 1. Tenta autenticar
-                const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-                
-                // 2. Busca o documento no Firestore onde o campo 'email' é igual ao digitado
+                await signInWithEmailAndPassword(auth, email, senha);
                 const q = query(collection(db, "usuarios"), where("email", "==", email));
                 const querySnapshot = await getDocs(q);
 
                 if (querySnapshot.empty) {
-                    emitInlineFeedback("Conta não encontrada no banco de dados.", "error");
-                    await signOut(auth); // Desloga se não tiver perfil
-                    return;
+                    emitInlineFeedback("Assinatura inválida no ecossistema.", "error");
+                    await signOut(auth); return;
                 }
 
-                // 3. Pega o primeiro documento encontrado e verifica o status
                 const dadosUsuario = querySnapshot.docs[0].data();
-
                 if (dadosUsuario.status !== "aprovado") {
-                    emitInlineFeedback("Sua conta está em análise ou pendente.", "error");
-                    await signOut(auth);
-                    return;
+                    emitInlineFeedback("Terminal em análise de segurança.", "error");
+                    await signOut(auth); return;
                 }
 
-                emitInlineFeedback("Login realizado com sucesso!", "success");
-                setTimeout(() => { window.location.href = "dashboard.html"; }, 1000);
+                emitInlineFeedback("Sincronização bem-sucedida!", "success");
+                setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
 
             } catch (error) {
-                emitInlineFeedback("Falha na autenticação. Verifique seus dados.", "error");
-                console.error("Erro:", error);
+                emitInlineFeedback("Falha na autenticação corporativa.", "error");
+                console.error(error);
             }
         });
 
-        // --- LÓGICA DE CADASTRO COM IDENTIFICADOR ---
+        // --- SOLICITAR ACESSO ---
         document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
             e.preventDefault();
             const nome = document.getElementById("cadastro-nome").value;
@@ -208,32 +270,30 @@
                 const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
                 const user = userCredential.user;
 
-                // Salvando o campo identificador com o e-mail no Firestore
                 await setDoc(doc(db, "usuarios", user.uid), {
-                    identificador: email,
-                    nome: nome,
-                    email: email,
-                    status: "pendente",
-                    criadoEm: new Date().toISOString()
+                    identificador: email, nome: nome, email: email, status: "pendente", criadoEm: new Date().toISOString()
                 });
 
-                emitInlineFeedback("Solicitação enviada! Aguarde a aprovação do administrador.", "success");
+                emitInlineFeedback("Solicitação enviada com sucesso!", "success");
                 await signOut(auth);
 
                 setTimeout(() => {
-                    cardCadastro.classList.add("hidden");
-                    cardLogin.classList.remove("hidden");
-                    document.getElementById("cadastro-form").reset();
+                    cardCadastro.style.transform = "scale(0.95)"; cardCadastro.style.opacity = "0";
+                    setTimeout(() => {
+                        cardCadastro.classList.add("hidden"); cardLogin.classList.remove("hidden");
+                        setTimeout(() => { cardLogin.style.transform = "scale(1)"; cardLogin.style.opacity = "1"; }, 50);
+                        document.getElementById("cadastro-form").reset();
+                    }, 300);
                 }, 3000);
 
             } catch (error) {
                 console.error(error);
                 if (error.code === 'auth/email-already-in-use') {
-                    emitInlineFeedback("Este e-mail já enviou uma solicitação.", "error");
+                    emitInlineFeedback("Este e-mail já possui cadastro.", "error");
                 } else if (error.code === 'auth/weak-password') {
-                    emitInlineFeedback("A senha precisa de pelo menos 6 caracteres.", "error");
+                    emitInlineFeedback("A senha escolhida é muito fraca.", "error");
                 } else {
-                    emitInlineFeedback("Erro ao registrar no banco de dados.", "error");
+                    emitInlineFeedback("Erro ao registrar no banco.", "error");
                 }
             }
         });
