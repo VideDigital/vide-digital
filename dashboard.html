@@ -681,11 +681,18 @@
                     document.getElementById("perf-cor-destaque").value = dados.corDestaque || "#00f2fe";
                     document.getElementById("perf-cor-fundo").value = dados.corFundo || "#030712";
                     document.getElementById("perf-cor-card").value = dados.corCard || "#0c0c14";
+                    document.getElementById("perf-cor-secundaria").value = dados.corSecundaria || "#4facfe";
+                    document.getElementById("perf-cor-texto").value = dados.corTexto || "#e5e7eb";
+                    document.getElementById("perf-cor-texto-botao").value = dados.corTextoBotao || "#000000";
+                    document.getElementById("perf-cor-borda").value = dados.corBorda || "#ffffff";
+                    document.getElementById("perf-fonte-vitrine").value = dados.fonteVitrine || "Plus Jakarta Sans";
                     
                     // Cores Admin
                     const bgAdminSalvo = dados.adminCorFundo || "#030712";
                     document.getElementById("perf-admin-cor-fundo").value = bgAdminSalvo;
                     document.getElementById("perf-admin-cor-destaque").value = dados.adminCorDestaque || "#00f2fe";
+                    document.getElementById("perf-admin-cor-texto").value = dados.adminCorTexto || "#e5e7eb";
+                    document.getElementById("perf-admin-cor-card").value = dados.adminCorCard || "#0d0d16";
 
                     // Executar Correção de Contraste Imediato
                     document.getElementById("admin-body").style.backgroundColor = bgAdminSalvo;
@@ -735,8 +742,15 @@
                     corDestaque: document.getElementById("perf-cor-destaque").value,
                     corFundo: document.getElementById("perf-cor-fundo").value,
                     corCard: document.getElementById("perf-cor-card").value,
+                    corSecundaria: document.getElementById("perf-cor-secundaria").value,
+                    corTexto: document.getElementById("perf-cor-texto").value,
+                    corTextoBotao: document.getElementById("perf-cor-texto-botao").value,
+                    corBorda: document.getElementById("perf-cor-borda").value,
+                    fonteVitrine: document.getElementById("perf-fonte-vitrine").value,
                     adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
                     adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
+                    adminCorTexto: document.getElementById("perf-admin-cor-texto").value,
+                    adminCorCard: document.getElementById("perf-admin-cor-card").value,
                     fotoPerfilB64: document.getElementById("perfil-foto-base64").value
                 };
 
