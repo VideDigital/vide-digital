@@ -874,8 +874,37 @@
             showToast("Cores restauradas! Clique em Salvar Alterações para confirmar.");
         });
 
-        document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
-            abrirConfirmacao("Deseja salvar todas as alterações da sua vitrine?", executarSalvamento);
+        async function executarSalvamento() {
+            const payloadPerfil = montarPayloadCompleto();
+            if (!payloadPerfil.urlLoja) return showToast("Slug inválido.", "error");
+            try {
+                await setDoc(doc(db, "usuarios", usuarioUID), payloadPerfil, { merge: true });
+                
+                // --- LINHAS NOVAS DE ATUALIZAÇÃO EM TEMPO REAL ---
+                document.getElementById("txt-preview-nome-loja").innerText = payloadPerfil.nomeLoja;
+                document.getElementById("url-loja-preview").innerText = `vide.digital/${payloadPerfil.urlLoja}`;
+                document.getElementById("link-minha-loja").href = `loja.html?loja=${payloadPerfil.urlLoja}`;
+                // --------------------------------------------------
+
+                if (slugAtualSalvo && slugAtualSalvo !== payloadPerfil.urlLoja) {
+                    await deleteDoc(doc(db, "vitrines_publicas", slugAtualSalvo));
+                }
+                slugAtualSalvo = payloadPerfil.urlLoja;
+                
+                await setDoc(doc(db, "vitrines_publicas", payloadPerfil.urlLoja), {
+                    // ... (mantenha todo o conteúdo do seu objeto aqui como estava antes)
+                    donoUID: usuarioUID,
+                    emailDono: usuarioUID,
+                    nomeLoja: payloadPerfil.nomeLoja,
+                    // ... resto do seu payload
+                }, { merge: true });
+                
+                showToast("Configurações salvas e aplicadas!");
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao salvar dados no Firebase.", "error");
+            }
+        }
         });
         
         // MOTOR GENÉRICO DO MODAL DE CONFIRMAÇÃO (substitui window.confirm)
