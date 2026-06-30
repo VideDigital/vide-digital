@@ -189,7 +189,7 @@
                     await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), { totalSessoes: increment(1) }, { merge: true });
 
                     // Coleta os produtos cadastrados do dono desta vitrine
-                    const qProd = query(collection(db, "produtos"), where("criadoPor", "==", fornecedorEmail.toLowerCase()));
+                    const qProd = query(collection(db, "produtos"), where("criadoPor", "==", fornecedorEmail));
                     const queryProdSnap = await getDocs(qProd);
                     
                     todosProdutos = [];
