@@ -866,6 +866,12 @@
                     document.getElementById("prod-tipo").value = data.tipo || "fisico";
                     document.getElementById("prod-subnicho").value = data.subnicho || "Outro";
                     document.getElementById("prod-descricao").value = data.descricao || "";
+                    document.getElementById("prod-avaliacao").value = data.avaliacao || "";
+                    document.getElementById("prod-garantia").value = data.garantiaDias || "";
+                    document.getElementById("prod-estoque").value = data.estoque || "";
+                    document.getElementById("prod-video-url").value = data.videoUrl || "";
+                    document.getElementById("prod-selo-confianca").value = data.seloConfianca || "";
+                    document.getElementById("prod-frete-gratis").checked = data.freteGratis || false;
                     inputImagemBase64.value = data.imagemB64 || "";
 
                     if(data.tipoDestino === "whatsapp") {
