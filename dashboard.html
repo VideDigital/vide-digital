@@ -14,7 +14,7 @@
         .glass-card:hover { border-color: rgba(255, 255, 255, 0.1); }
         .glass-input { background: #0A0A0A; border: 1px solid rgba(255, 255, 255, 0.1); transition: border-color 0.2s ease; }
         .glass-input:focus { border-color: #ffffff; outline: none; }
-        .nav-item.active { background: rgba(255, 255, 255, 0.05); color: #ffffff; border-color: #ffffff; }
+        .nav-item.active { background: rgba(255, 255, 255, 0.05); color: var(--admin-accent, #ffffff); border-color: var(--admin-accent, #ffffff); }
         .neon-glow { text-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
         .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #00f2fe; }
         .view-section { display: none; }
@@ -39,7 +39,7 @@
     <div class="space-y-8">
         <div class="flex items-center justify-between md:justify-start gap-3 px-2">
             <div class="flex items-center gap-2.5">
-                <div class="h-6 w-6 rounded-md bg-white flex items-center justify-center">
+                <div id="admin-logo-box" class="h-6 w-6 rounded-md bg-white flex items-center justify-center">
                     <span class="text-black font-bold text-[10px]">V</span>
                 </div>
                 <h2 class="text-sm font-semibold tracking-tight text-white">VideDigital</h2>
@@ -67,11 +67,11 @@
             <div class="bg-[#111111] border border-white/5 p-4 rounded-xl">
                 <p class="text-[10px] text-gray-500 uppercase font-semibold mb-1">Status da Loja</p>
                 <div class="flex items-center gap-2 mb-2">
-                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    <span id="admin-online-dot" class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
                     <span class="text-xs text-white">Online</span>
                 </div>
-                <a id="link-minha-loja" href="#" target="_blank" class="text-[11px] text-gray-400 hover:text-white underline decoration-white/20 underline-offset-2 transition-all block truncate" id="url-loja-preview">
-                    Carregando endereço...
+                <a id="link-minha-loja" href="#" target="_blank" class="text-[11px] text-gray-400 hover:text-white underline decoration-white/20 underline-offset-2 transition-all block truncate">
+                    <span id="url-loja-preview">Carregando endereço...</span>
                 </a>
             </div>
         </div>
@@ -661,32 +661,41 @@
         // RESPONSIVIDADE MOBILE: TOGGLE SIDEBAR MENU
         document.getElementById("mobile-menu-toggle").addEventListener("click", () => {
             document.getElementById("sidebar-nav").classList.toggle("hidden");
-            document.getElementById("sep-nav").classList.toggle("hidden");
             document.getElementById("box-atalho").classList.toggle("hidden");
             document.getElementById("box-logout").classList.toggle("hidden");
         });
 
         // GESTOR DE ABAS SPA REATIVAS
+        function ativarAba(targetId) {
+            document.querySelectorAll("#sidebar-nav button").forEach(b => b.classList.remove("active"));
+            const botaoAlvo = document.querySelector(`#sidebar-nav button[data-target="${targetId}"]`);
+            if (botaoAlvo) botaoAlvo.classList.add("active");
+
+            document.querySelectorAll(".view-section").forEach(section => section.classList.remove("active"));
+            const secaoAlvo = document.getElementById(targetId);
+            if (secaoAlvo) secaoAlvo.classList.add("active");
+
+            localStorage.setItem("abaAtivaDashboard", targetId);
+        }
+
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
             button.addEventListener("click", () => {
-                document.querySelectorAll("#sidebar-nav button").forEach(b => {
-                    b.className = "nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left";
-                });
-                button.className = "nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left";
-                
-                const targetId = button.getAttribute("data-target");
-                document.querySelectorAll(".view-section").forEach(section => section.classList.remove("active"));
-                document.getElementById(targetId).classList.add("active");
+                ativarAba(button.getAttribute("data-target"));
 
                 // Auto-fechar menu no mobile após seleção
                 if(window.innerWidth < 768) {
                     document.getElementById("sidebar-nav").classList.add("hidden");
-                    document.getElementById("sep-nav").classList.add("hidden");
                     document.getElementById("box-atalho").classList.add("hidden");
                     document.getElementById("box-logout").classList.add("hidden");
                 }
             });
         });
+
+        // Restaura a última aba visitada ao recarregar a página
+        const abaSalva = localStorage.getItem("abaAtivaDashboard");
+        if (abaSalva && document.getElementById(abaSalva)) {
+            ativarAba(abaSalva);
+        }
 
         // TOAST ENGINE
         function showToast(message, type = "success") {
@@ -720,11 +729,16 @@
             document.getElementById("admin-body").style.backgroundColor = e.target.value;
             verificarContrasteFundo(e.target.value);
         });
+        function aplicarCorDestaqueAdmin(cor) {
+            document.documentElement.style.setProperty('--admin-accent', cor);
+            const logoBox = document.getElementById("admin-logo-box");
+            if (logoBox) logoBox.style.background = cor;
+            const onlineDot = document.getElementById("admin-online-dot");
+            if (onlineDot) onlineDot.style.backgroundColor = cor;
+        }
+
         document.getElementById("perf-admin-cor-destaque").addEventListener("input", (e) => {
-            const cor = e.target.value;
-            document.getElementById("admin-brand-icon").style.background = cor;
-            document.getElementById("admin-brand-text").style.color = cor;
-            document.getElementById("admin-online-dot").style.backgroundColor = cor;
+            aplicarCorDestaqueAdmin(e.target.value);
         });
 
         document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) => {
@@ -820,6 +834,7 @@
                     const bgAdminSalvo = dados.adminCorFundo || "#030712";
                     document.getElementById("perf-admin-cor-fundo").value = bgAdminSalvo;
                     document.getElementById("perf-admin-cor-destaque").value = dados.adminCorDestaque || "#00f2fe";
+                    aplicarCorDestaqueAdmin(dados.adminCorDestaque || "#00f2fe");
                     document.getElementById("perf-admin-cor-texto").value = dados.adminCorTexto || "#e5e7eb";
                     document.getElementById("perf-admin-cor-card").value = dados.adminCorCard || "#0d0d16";
 
