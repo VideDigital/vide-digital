@@ -117,6 +117,11 @@
                     </div>
 
                     <div class="space-y-1.5">
+    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome da Sua Loja</label>
+    <input type="text" required id="cadastro-nome-loja" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="Ex: Vide Digital">
+</div>
+
+                    <div class="space-y-1.5">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail de Acesso</label>
                         <input type="email" required id="cadastro-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="nome@empresa.com">
                     </div>
@@ -253,22 +258,27 @@
 
         // --- SOLICITAR ACESSO ---
         document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const nome = document.getElementById("cadastro-nome").value.trim();
-            const email = document.getElementById("cadastro-email").value.trim().toLowerCase();
-            const senha = document.getElementById("cadastro-senha").value;
+    e.preventDefault();
+    const nome = document.getElementById("cadastro-nome").value.trim();
+    const nomeLoja = document.getElementById("cadastro-nome-loja").value.trim();
+    const email = document.getElementById("cadastro-email").value.trim().toLowerCase();
+    const senha = document.getElementById("cadastro-senha").value;
 
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-                const user = userCredential.user;
+    const slugGerado = nomeLoja.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 
-                await setDoc(doc(db, "usuarios", user.uid), {
-                    identificador: email, 
-                    nome: nome, 
-                    email: email, 
-                    status: "pendente", 
-                    criadoEm: new Date().toISOString()
-                });
+    try {
+        const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+        const user = userCredential.user;
+
+        await setDoc(doc(db, "usuarios", user.uid), {
+            identificador: email, 
+            nome: nome, 
+            email: email, 
+            nomeLoja: nomeLoja,
+            urlLoja: slugGerado,
+            status: "pendente", 
+            criadoEm: new Date().toISOString()
+        });
 
                 emitInlineFeedback("Solicitação enviada com sucesso!", "success");
                 await signOut(auth);
