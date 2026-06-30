@@ -727,7 +727,36 @@
                 window.location.href = "login.html";
             }
         });
+        
+// RESTAURAR CORES PADRÃO DO PROJETO (SOMENTE VISUAL, PRECISA SALVAR DEPOIS)
+        document.getElementById("btn-resetar-cores").addEventListener("click", () => {
+            const coresPadrao = {
+                "perf-admin-cor-fundo": "#030712",
+                "perf-admin-cor-destaque": "#00f2fe",
+                "perf-admin-cor-texto": "#e5e7eb",
+                "perf-admin-cor-card": "#0d0d16",
+                "perf-cor-fundo": "#030712",
+                "perf-cor-destaque": "#00f2fe",
+                "perf-cor-card": "#0c0c14",
+                "perf-cor-secundaria": "#4facfe",
+                "perf-cor-texto": "#e5e7eb",
+                "perf-cor-texto-botao": "#000000",
+                "perf-cor-borda": "#ffffff"
+            };
 
+            Object.keys(coresPadrao).forEach(id => {
+                const input = document.getElementById(id);
+                if (input) {
+                    input.value = coresPadrao[id];
+                    input.dispatchEvent(new Event("input"));
+                }
+            });
+
+            document.getElementById("perf-fonte-vitrine").value = "Plus Jakarta Sans";
+
+            showToast("Cores restauradas! Clique em Salvar Alterações para confirmar.");
+        });
+        
         // GRAVAÇÃO ROBUSTA COM SETDOC MERGE (CORREÇÃO COMPLETA DO ERRO DE SALVAMENTO)
         document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
             const novoSlug = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
