@@ -34,77 +34,110 @@
 
     <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
 
-    <aside id="admin-sidebar" class="w-full md:w-72 glass-sidebar md:h-screen flex flex-col justify-between p-6 shrink-0 z-40 border-b md:border-b-0 border-white/5">
-        <div class="space-y-6 md:space-y-8">
-            <div class="flex items-center justify-between md:justify-start gap-3 px-2">
-                <div class="flex items-center gap-3">
-                    <div id="admin-brand-icon" class="h-7 w-7 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
-                        <span class="text-black font-extrabold text-xs">V</span>
-                    </div>
-                    <h2 class="text-lg font-black tracking-tight text-white">Vide<span id="admin-brand-text" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] bg-clip-text text-transparent">Hub</span></h2>
+    <aside id="admin-sidebar" class="w-full md:w-64 glass-sidebar md:h-screen flex flex-col justify-between p-5 shrink-0 z-40">
+    <div class="space-y-8">
+        <div class="flex items-center justify-between md:justify-start gap-3 px-2">
+            <div class="flex items-center gap-2.5">
+                <div class="h-6 w-6 rounded-md bg-white flex items-center justify-center">
+                    <span class="text-black font-bold text-[10px]">V</span>
                 </div>
-                <button id="mobile-menu-toggle" class="md:hidden text-gray-400 hover:text-white p-1 text-xl">☰</button>
+                <h2 class="text-sm font-semibold tracking-tight text-white">VideDigital</h2>
             </div>
-
-            <nav class="hidden md:block space-y-1.5" id="sidebar-nav">
-                <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-3 text-sm font-semibold text-white bg-white/5 border-l-2 border-[#00f2fe] rounded-r-xl transition-all text-left">
-                    <span>📊</span> Dashboard
-                </button>
-                <button data-target="view-perfil" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
-                    <span>👤</span> Perfil / Aparência
-                </button>
-                <button data-target="view-dominios" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
-                    <span>🌐</span> Domínio / Pixel / Tag
-                </button>
-                <button data-target="view-leads" class="nav-item w-full flex items-center gap-3 px-4 py-3 text-sm font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] border-l-2 border-transparent rounded-r-xl transition-all text-left">
-                    <span>👥</span> Leads (Capturas)
-                </button>
-            </nav>
-
-            <div class="hidden md:block h-[1px] bg-white/5 mx-2" id="sep-nav"></div>
-
-            <div class="hidden md:block space-y-3 px-1" id="box-atalho">
-                <a id="link-minha-loja" href="#" target="_blank" class="w-full flex flex-col items-start gap-1.5 p-3.5 bg-gradient-to-b from-white/[0.03] to-transparent border border-white/5 hover:border-[#00f2fe]/40 rounded-2xl transition-all group">
-                    <div class="flex items-center justify-between w-full">
-                        <span class="text-[10px] font-bold uppercase tracking-widest text-gray-400 group-hover:text-[#00f2fe] transition-colors">Visualizar Minha Loja</span>
-                        <span id="admin-online-dot" class="h-2 w-2 rounded-full bg-[#00f2fe] shadow-[0_0_10px_#00f2fe]"></span>
-                    </div>
-                    <span class="text-xs text-white font-medium truncate max-w-full" id="url-loja-preview">Carregando endereço...</span>
+            <button id="mobile-menu-toggle" class="md:hidden text-gray-500 hover:text-white p-1 text-xl">☰</button>
+        </div>
+        
+        <nav class="hidden md:block space-y-1" id="sidebar-nav">
+            <p class="px-4 text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-3">Menu Principal</p>
+            <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white rounded-lg transition-all text-left">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                Visão Geral
+            </button>
+            <button data-target="view-perfil" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Configurações da Loja
+            </button>
+            <button data-target="view-dominios" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                Pixels & Domínio
+            </button>
+        </nav>
+        
+        <div class="hidden md:block px-4" id="box-atalho">
+            <div class="bg-[#111111] border border-white/5 p-4 rounded-xl">
+                <p class="text-[10px] text-gray-500 uppercase font-semibold mb-1">Status da Loja</p>
+                <div class="flex items-center gap-2 mb-2">
+                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                    <span class="text-xs text-white">Online</span>
+                </div>
+                <a id="link-minha-loja" href="#" target="_blank" class="text-[11px] text-gray-400 hover:text-white underline decoration-white/20 underline-offset-2 transition-all block truncate" id="url-loja-preview">
+                    Carregando endereço...
                 </a>
             </div>
         </div>
-
-        <div class="hidden md:block px-2" id="box-logout">
-            <button id="btn-logout" class="flex items-center gap-3 py-3 text-sm font-medium text-gray-500 hover:text-red-400 transition-colors w-full text-left group">
-                <span class="transition-transform group-hover:translate-x-1">🚪</span> Sair da Conta
-            </button>
-        </div>
-    </aside>
+    </div>
+    <div class="hidden md:block px-2" id="box-logout">
+        <button id="btn-logout" class="flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-500 hover:text-white rounded-lg transition-colors w-full text-left">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+            Sair da Conta
+        </button>
+    </div>
+</aside>
 
     <main class="flex-1 md:h-screen overflow-y-auto p-4 sm:p-8 lg:p-12 relative z-10 w-full">
         
-        <section id="view-dashboard" class="view-section active space-y-8">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+        <section id="view-dashboard" class="view-section active space-y-6 max-w-6xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 border-b border-white/5 pb-5">
                 <div>
-                    <h1 id="txt-preview-nome-loja" class="text-2xl font-black text-white tracking-tight">Visão Geral</h1>
-                    <p class="text-gray-400 text-xs mt-1">Bem-vindo de volta, <span class="text-white font-semibold">Vide Digital</span></p>
+                    <h1 id="txt-preview-nome-loja" class="text-xl font-medium text-white tracking-tight">Dashboard</h1>
+                    <p class="text-gray-500 text-xs mt-1">Métricas de performance e conversão em tempo real.</p>
                 </div>
-                <button id="btn-abrir-criacao" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-extrabold px-6 py-3 rounded-xl text-xs uppercase tracking-wider shadow-[0_4px_30px_rgba(0,242,254,0.2)] hover:scale-[1.02] transition-all shrink-0">
-                    + Criar Produto
+                <button id="btn-abrir-criacao" class="bg-white text-black font-medium px-4 py-2 rounded-md text-xs hover:bg-gray-200 transition-all shrink-0">
+                    Adicionar Produto
                 </button>
             </div>
 
-            <div class="flex flex-wrap items-center justify-between gap-4 bg-[#090911]/60 p-2 rounded-xl border border-white/5">
-                <div class="flex gap-1">
-                    <button id="filtro-todos" class="tab-btn active text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">Todos</button>
-                    <button id="filtro-fisicos" class="tab-btn text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">📦 Físicos</button>
-                    <button id="filtro-digitais" class="tab-btn text-xs font-bold px-4 py-2 rounded-lg border border-transparent text-gray-400 transition-all">⚡ Digitais</button>
+            <!-- Estatísticas Premium e Gráficos -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Receita Total</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <h3 class="text-2xl font-medium text-white">R$ 0,00</h3>
+                        <span class="text-[10px] text-emerald-400 font-medium">+0% hoje</span>
+                    </div>
                 </div>
-                <span class="text-xs text-gray-500 font-medium px-3" id="contador-produtos">0 Ativos</span>
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Custo por Aquisição (CPA)</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <h3 class="text-2xl font-medium text-white">R$ 0,00</h3>
+                        <span class="text-[10px] text-gray-500 font-medium">Médio</span>
+                    </div>
+                </div>
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Retorno em Ads (ROAS)</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <h3 class="text-2xl font-medium text-white">0.00x</h3>
+                        <span class="text-[10px] text-gray-500 font-medium">Geral</span>
+                    </div>
+                </div>
             </div>
 
-            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Placeholder para Gráfico de Performance (Chart.js será integrado aqui) -->
+            <div class="glass-card p-5 rounded-xl h-48 flex items-center justify-center border-dashed border-white/10">
+                <p class="text-xs text-gray-500 flex items-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
+                    Gráfico de conversões será renderizado aqui
+                </p>
+            </div>
+
+            <!-- Filtros de Produtos Restante -->
+            <div class="flex flex-wrap items-center justify-between gap-4 mt-8">
+                <div class="flex gap-2">
+                    <button id="filtro-todos" class="text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all">Todos</button>
+                    <button id="filtro-fisicos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Físicos</button>
+                    <button id="filtro-digitais" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Digitais</button>
                 </div>
+                <span class="text-[11px] text-gray-500 font-medium" id="contador-produtos">0 Ativos</span>
+            </div>
         </section>
 
         <section id="view-perfil" class="view-section space-y-8">
@@ -1116,19 +1149,23 @@
             }
         });
 
-        btnDeletar.addEventListener("click", async () => {
-            const id = document.getElementById("form-id-produto").value;
-            if (id && confirm("Deseja remover este produto?")) {
-                try {
-                    await deleteDoc(doc(db, "produtos", id));
-                    modal.classList.add("hidden");
-                    carregarProdutos();
-                    showToast("Produto excluído do catálogo.");
-                } catch(err) {
-                    console.error(err);
-                }
+        btnDeletar.addEventListener("click", () => {
+    const id = document.getElementById("form-id-produto").value;
+    if (id) {
+        // Usa o seu modal bonito em vez do padrão do Google
+        abrirConfirmacao("Tem certeza que deseja remover permanentemente este produto?", async () => {
+            try {
+                await deleteDoc(doc(db, "produtos", id));
+                modal.classList.add("hidden");
+                carregarProdutos();
+                showToast("Produto excluído com sucesso.");
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao excluir.", "error");
             }
         });
+    }
+});
 
         document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
