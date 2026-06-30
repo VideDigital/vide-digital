@@ -986,8 +986,10 @@
                 let totalCliques = 0;
                 let totalTempo = 0;
                 
-                // Novos contadores de origem
-                let countMeta = 0, countGoogle = 0, countTiktok = 0, countInsta = 0;
+                // Nossos contadores para os cartões novos
+                let countFacebook = 0;
+                let countWhatsOrigem = 0;
+                let countDireto = 0;
                 
                 let html = "";
                 querySnapshot.forEach(docSnap => {
@@ -997,19 +999,24 @@
                     totalCliques += (lead.cliques || 1);
                     totalTempo += (lead.tempoRetencao || 15);
                     
-                    const orig = lead.origem || 'meta';
+                    const orig = (lead.origem || '').toLowerCase();
                     
-                    // Somando as origens
-                    if(orig === 'meta') countMeta++;
-                    else if(orig === 'google') countGoogle++;
-                    else if(orig === 'tiktok') countTiktok++;
-                    else if(orig === 'insta') countInsta++;
+                    // Lógica para contar as origens dos cartões novos
+                    if(orig.includes('facebook') || orig.includes('meta') || orig === 'fb') {
+                        countFacebook++;
+                    } else if(orig.includes('whatsapp') || orig.includes('whats') || orig === 'wa') {
+                        countWhatsOrigem++;
+                    } else {
+                        countDireto++;
+                    }
 
                     const badgesOrigem = {
                         google: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
                         meta: 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20',
                         tiktok: 'bg-pink-500/10 text-pink-400 border border-pink-500/20',
-                        insta: 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
+                        insta: 'bg-purple-500/10 text-purple-400 border border-purple-500/20',
+                        facebook: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+                        whatsapp: 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
                     };
                     const badgeClass = badgesOrigem[orig] || 'bg-gray-500/10 text-gray-400';
                     
@@ -1018,7 +1025,7 @@
                             <td class="p-4 font-bold text-white">${lead.nome || 'Lead Anônimo'}</td>
                             <td class="p-4 text-gray-400">${lead.email || 'Não informado'}</td>
                             <td class="p-4 text-emerald-400 font-medium">${lead.whatsapp || 'Tráfego Direto'}</td>
-                            <td class="p-4"><span class="px-2.5 py-1 text-[10px] uppercase font-extrabold rounded-md ${badgeClass}">${orig}</span></td>
+                            <td class="p-4"><span class="px-2.5 py-1 text-[10px] uppercase font-extrabold rounded-md ${badgeClass}">${lead.origem || 'Direto'}</span></td>
                             <td class="p-4 text-center font-bold text-white">${lead.cliques || 1}</td>
                             <td class="p-4 text-center text-amber-400 font-medium">${lead.tempoRetencao || 15}s</td>
                             <td class="p-4 text-[#00f2fe] font-medium max-w-[150px] truncate">${lead.produtoInteresse || 'Nenhum'}</td>
@@ -1026,6 +1033,23 @@
                         </tr>
                     `;
                 });
+                
+                if(totalLeads > 0) {
+                    tableBody.innerHTML = html;
+                    document.getElementById("lead-total-count").innerText = totalLeads;
+                    document.getElementById("lead-whatsapp-count").innerText = comWhats;
+                    document.getElementById("lead-clicks-count").innerText = totalCliques;
+                    document.getElementById("lead-time-count").innerText = `${Math.round(totalTempo / totalLeads)}s`;
+                    
+                    // Atualizando os nossos novos cartões de origem na tela
+                    if(document.getElementById("lead-count-facebook")) document.getElementById("lead-count-facebook").innerText = countFacebook;
+                    if(document.getElementById("lead-count-whats-origem")) document.getElementById("lead-count-whats-origem").innerText = countWhatsOrigem;
+                    if(document.getElementById("lead-count-direto")) document.getElementById("lead-count-direto").innerText = countDireto;
+                }
+            } catch (err) {
+                console.error("Erro nos Leads:", err);
+            }
+        }
                 
                 if(totalLeads > 0) {
                     tableBody.innerHTML = html;
