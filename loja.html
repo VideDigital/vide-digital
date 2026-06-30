@@ -255,6 +255,8 @@
                 const card = document.createElement("div");
                 card.className = "dynamic-card rounded-2xl overflow-hidden flex flex-col justify-between group";
                 card.style.backgroundColor = prod.corDoCard;
+                card.style.borderColor = "var(--client-borda)";
+                card.style.borderOpacity = "0.08";
 
                 const inputPreco = parseFloat(prod.preco || 0);
                 const precoFormatado = inputPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
