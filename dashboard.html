@@ -609,6 +609,15 @@
             document.getElementById("admin-online-dot").style.backgroundColor = cor;
         });
 
+        document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) => {
+            document.getElementById("admin-body").style.color = e.target.value;
+        });
+        document.getElementById("perf-admin-cor-card").addEventListener("input", (e) => {
+            document.querySelectorAll(".glass-card").forEach(card => {
+                card.style.backgroundColor = e.target.value;
+            });
+        });
+
         // UPLOAD DE IMAGENS EM BASE64
         inputImagemFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
