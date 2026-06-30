@@ -96,33 +96,6 @@
         </button>
     </div>
 
-    <div id="checkout-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
-        <div class="bg-[#0c0c14] border border-white/10 w-full max-w-md p-6 rounded-2xl space-y-4 shadow-2xl">
-            <div class="flex justify-between items-center">
-                <h3 class="text-sm font-bold text-white uppercase tracking-wider">Identificação Requerida</h3>
-                <button onclick="document.getElementById('checkout-modal').classList.add('hidden')" class="text-gray-500 hover:text-white text-xl">&times;</button>
-            </div>
-            <p class="text-xs text-gray-400">Preencha seus dados de acesso abaixo para abrir com segurança a sua oferta selecionada.</p>
-            <form id="checkout-lead-form" class="space-y-3.5">
-                <input type="hidden" id="lead-prod-nome">
-                <input type="hidden" id="lead-prod-url">
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Nome Completo</label>
-                    <input type="text" id="lead-nome" required class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">Seu Melhor E-mail</label>
-                    <input type="email" id="lead-email" required class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white outline-none">
-                </div>
-                <div>
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block mb-1">WhatsApp de Contato (Com DDD)</label>
-                    <input type="tel" id="lead-whatsapp" required class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-xs text-white outline-none">
-                </div>
-                <button type="submit" id="btn-submit-lead" class="w-full text-black font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all bg-white hover:bg-gray-200">Acessar Oferta com Segurança</button>
-            </form>
-        </div>
-    </div>
-
     <footer class="border-t border-white/5 py-6 bg-black/20 mt-12">
         <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-gray-500">
             <p id="client-footer-text">© 2026 Todos os direitos reservados. Checkout integrado.</p>
@@ -404,20 +377,21 @@
                             <p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">${prod.descricao || 'Sem especificações comerciais adicionadas.'}</p>
                             ${prod.videoUrl ? `<a href="${prod.videoUrl}" target="_blank" class="text-[11px] font-bold underline" style="color: ${prod.corDestaque}">▶️ Assistir vídeo de apresentação</a>` : ''}
                         </div>
-                        <div>
-                            ${cupomValido ? `<span class="inline-block text-[9px] font-black text-black px-2 py-1 rounded-md uppercase tracking-wider mb-1.5" style="background-color: ${prod.corDestaque}">🎟️ ${prod.cupomCodigo || 'CUPOM'} ATIVO — ${prod.cupomDesconto}% OFF</span>` : ''}
-                            <div class="flex items-baseline gap-2">
-                                <p class="text-xl font-black text-white tracking-tight">${precoFormatado}</p>
-                                ${cupomValido ? `<p class="text-xs text-gray-600 line-through">${precoOriginalFormatado}</p>` : (prod.precoDe ? `<p class="text-xs text-gray-600 line-through">De R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : '')}
-                            <div class="flex flex-wrap gap-2 mt-2">
+                        <div class="space-y-3">
+                            ${cupomValido ? `<span class="inline-block text-[9px] font-black text-black px-2 py-1 rounded-md uppercase tracking-wider" style="background-color: ${prod.corDestaque}">🎟️ ${prod.cupomCodigo || 'CUPOM'} — ${prod.cupomDesconto}% OFF</span>` : ''}
+                            <div>
+                                <p class="text-2xl font-black text-white tracking-tight">${precoFormatado}</p>
+                                ${cupomValido ? `<p class="text-xs text-gray-500 line-through mt-0.5">De ${precoOriginalFormatado}</p>` : (prod.precoDe ? `<p class="text-xs text-gray-500 line-through mt-0.5">De R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : '')}
+                            </div>
+                            <div class="flex flex-col gap-1">
                                 ${prod.garantiaDias ? `<span class="text-[10px] font-semibold text-gray-400">🛡️ Garantia de ${prod.garantiaDias} dias</span>` : ''}
                                 ${(prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[10px] font-semibold text-gray-400">📦 ${prod.estoque} unid. disponíveis</span>` : ''}
                                 <span class="text-[10px] font-semibold text-gray-500" id="views-${prod.id}">👀 carregando...</span>
                             </div>
-                            <button onclick="abrirFluxoLead('${prod.nome}', '${prod.destinoValue}')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl mt-4 transition-all hover:brightness-110" style="background-color: ${prod.corDestaque}; color: var(--client-texto-botao, #000);">
-                                Adquirir Acesso 🚀
+                            <button onclick="irParaOferta('${prod.destinoValue}', '${prod.tipoDestino}', '${prod.nome}')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl transition-all hover:brightness-110" style="background-color: ${prod.corDestaque}; color: var(--client-texto-botao, #000);">
+                                Obter Oferta
                             </button>
-                            ${prod.seloConfianca ? `<p class="text-[10px] text-center text-gray-500 mt-2">🔒 ${prod.seloConfianca}</p>` : ''}
+                            ${prod.seloConfianca ? `<p class="text-[10px] text-center text-gray-500">🔒 ${prod.seloConfianca}</p>` : ''}
                         </div>
                     </div>
                 `;
@@ -433,35 +407,18 @@
             });
         }
 
-        window.abrirFluxoLead = async function(nomeProd, urlDestino) {
-            // Contabiliza clique e interesse na matriz de métricas
+        window.irParaOferta = async function(destinoValue, tipoDestino, nomeProd) {
             const payloadMetricas = { totalCliques: increment(1) };
             payloadMetricas[`produtosInteresse.${nomeProd}`] = increment(1);
             await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), payloadMetricas, { merge: true });
 
-            document.getElementById("lead-prod-nome").value = nomeProd;
-            document.getElementById("lead-prod-url").value = urlDestino;
-            document.getElementById("checkout-modal").classList.remove("hidden");
+            if (tipoDestino === "whatsapp") {
+                const msg = encodeURIComponent(`Olá! Tenho interesse no produto: *${nomeProd}*`);
+                window.open(`https://wa.me/${destinoValue}?text=${msg}`, "_blank");
+            } else {
+                window.open(destinoValue, "_blank");
+            }
         }
-
-        document.getElementById("checkout-lead-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const nome = document.getElementById("lead-nome").value.trim();
-            const email = document.getElementById("lead-email").value.trim();
-            const whatsapp = document.getElementById("lead-whatsapp").value.trim();
-            const produtoInteresse = document.getElementById("lead-prod-nome").value;
-            const urlDestinoFinal = document.getElementById("lead-prod-url").value;
-
-            await setDoc(doc(db, "leads", `lead_${Date.now()}`), {
-                nome, email, whatsapp,
-                produtoInteresse,
-                utm_source: utmSourceCapturada,
-                criadoPor: fornecedorEmail,
-                data: Date.now()
-            });
-
-            window.location.href = urlDestinoFinal;
-        });
 
         // Eventos e Input Inteligente de Busca
         document.getElementById("search-input").addEventListener("input", renderizarCatalogoFiltros);
