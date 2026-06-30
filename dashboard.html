@@ -144,225 +144,229 @@
             </div>
         </section>
 
-        <section id="view-perfil" class="view-section space-y-8">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Configurações da Vitrine</h1>
-                <p class="text-gray-400 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
+        <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto hidden">
+            <!-- Cabeçalho Principal -->
+            <div class="border-b border-white/5 pb-5">
+                <h1 class="text-xl font-medium text-white tracking-tight">Configurações da Vitrine</h1>
+                <p class="text-gray-500 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
             </div>
 
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div class="lg:col-span-2 space-y-6">
-                    <div class="glass-card p-6 rounded-2xl space-y-5">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3 flex items-center gap-2"><span>🏪</span> Identidade Primária</h3>
-                        
-                        <div class="flex flex-col sm:flex-row items-center gap-5 bg-white/[0.01] p-4 rounded-xl border border-white/5">
-                            <div class="relative h-20 w-20 rounded-full border border-white/10 overflow-hidden bg-black flex items-center justify-center group shrink-0">
-                                <img id="preview-foto-perfil" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%23111'/></svg>" class="h-full w-full object-cover">
-                                <label for="input-foto-perfil" class="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-bold text-[#00f2fe]">MUDAR</label>
-                                <input type="file" id="input-foto-perfil" accept="image/*" class="hidden">
-                            </div>
-                            <div class="text-center sm:text-left">
-                                <h4 class="text-sm font-bold text-white">Logomarca / Foto de Perfil</h4>
-                                <p class="text-xs text-gray-400 mt-1">Formatos suportados: PNG, JPG ou WebP. Dimensões sugeridas: 500x500px.</p>
-                                <input type="hidden" id="perfil-foto-base64">
-                            </div>
-                        </div>
+            <!-- BOX 1: Identidade Primária (Foto, Nome, Slug e Títulos) -->
+            <div class="glass-card rounded-xl p-6 space-y-5">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🏪</span> Identidade Primária</h3>
+                
+                <div class="flex flex-col sm:flex-row items-center gap-5 bg-white/[0.01] p-4 rounded-xl border border-white/5">
+                    <div class="relative h-20 w-20 rounded-full border border-white/10 overflow-hidden bg-black flex items-center justify-center group shrink-0">
+                        <img id="preview-foto-perfil" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%23111'/></svg>" class="h-full w-full object-cover">
+                        <label for="input-foto-perfil" class="absolute inset-0 bg-black/70 flex items-center justify-center opacity-0 group-hover:opacity-100 cursor-pointer transition-opacity text-[10px] font-bold text-[#00f2fe]">MUDAR</label>
+                        <input type="file" id="input-foto-perfil" accept="image/*" class="hidden">
+                    </div>
+                    <div class="text-center sm:text-left">
+                        <h4 class="text-sm font-bold text-white">Logomarca / Foto de Perfil</h4>
+                        <p class="text-xs text-gray-400 mt-1">Formatos suportados: PNG, JPG ou WebP. Dimensões sugeridas: 500x500px.</p>
+                        <input type="hidden" id="perfil-foto-base64">
+                    </div>
+                </div>
 
-                        <div class="space-y-4">
-                            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div class="space-y-1.5">
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Público da Loja</label>
-                                    <input type="text" id="perf-nome-loja" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Vide Digital">
-                                </div>
-                                <div class="space-y-1.5">
-                                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Slug Personalizado (Seu Link)</label>
-                                    <input type="text" id="perf-slug" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="ex: videdigital">
-                                </div>
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título Principal (Hero)</label>
-                                <input type="text" id="perf-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Bem-vindo à Loja...">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo da Vitrine</label>
-                                <textarea id="perf-subtitulo" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none resize-none" placeholder="Ex: Encontre as melhores ofertas selecionadas..."></textarea>
-                            </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome Público da Loja</label>
+                        <input type="text" id="perf-nome-loja" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Vide Digital">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Slug Personalizado (Seu Link)</label>
+                        <input type="text" id="perf-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="ex: videdigital">
+                    </div>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título Principal (Hero)</label>
+                    <input type="text" id="perf-titulo" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Bem-vindo à Loja...">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Subtítulo da Vitrine</label>
+                    <textarea id="perf-subtitulo" rows="2" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none" placeholder="Ex: Encontre as melhores ofertas selecionadas..."></textarea>
+                </div>
+            </div>
+
+            <!-- BOX 2: NOVO - Banners Promocionais da Vitrine -->
+            <div class="glass-card rounded-xl p-6 space-y-4">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🖼️</span> Banners Promocionais</h3>
+                <p class="text-gray-400 text-xs">Insira os links das imagens de destaque para as suas campanhas de tráfego.</p>
+                <div class="space-y-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL do Banner Principal (Desktop - Recomendado 1920x450)</label>
+                        <input type="url" id="perf-banner-desktop" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="https://suaimagem.com/banner-desktop.png">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL do Banner Versão Mobile (Opcional - Recomendado 800x450)</label>
+                        <input type="url" id="perf-banner-mobile" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="https://suaimagem.com/banner-mobile.png">
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOX 3: Conexões e Redes Sociais -->
+            <div class="glass-card rounded-xl p-6 space-y-4">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>📱</span> Conexões e Redes Sociais</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp Central (Com DDD)</label>
+                        <input type="text" id="perf-social-whatsapp-central" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: 11992960466">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Instagram (Username sem @)</label>
+                        <input type="text" id="perf-social-instagram" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: academyvide">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">TikTok (Username)</label>
+                        <input type="text" id="perf-social-tiktok" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: vlz__in">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">YouTube Canal (URL completa)</label>
+                        <input type="text" id="perf-social-youtube" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: youtube.com/@canal">
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOX 4: Links Personalizados de Destaque -->
+            <div class="glass-card rounded-xl p-6 space-y-4">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🔗</span> Links Personalizados de Destaque</h3>
+                <p class="text-xs text-gray-400">Esses botões aparecem em destaque na sua vitrine pública, visíveis para todos os visitantes.</p>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-3 p-3 bg-white/[0.01] rounded-xl border border-white/5">
+                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase block">Botão Extra 1</label>
+                        <select id="perf-link1-icone" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                            <option value="🔗">🔗 Link Genérico</option>
+                            <option value="💬">💬 Suporte / Chat</option>
+                            <option value="📦">📦 Entrega / Pedido</option>
+                            <option value="🎁">🎁 Promoção / Oferta</option>
+                            <option value="📱">📱 Telegram / App</option>
+                            <option value="⭐">⭐ Avaliações</option>
+                            <option value="📍">📍 Localização</option>
+                        </select>
+                        <input type="text" id="perf-link1-titulo" placeholder="Título (Ex: Suporte VIP)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                        <input type="url" id="perf-link1-url" placeholder="URL Destino (https://...)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                    </div>
+                    <div class="space-y-3 p-3 bg-white/[0.01] rounded-xl border border-white/5">
+                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase block">Botão Extra 2</label>
+                        <select id="perf-link2-icone" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                            <option value="🔗">🔗 Link Genérico</option>
+                            <option value="💬">💬 Suporte / Chat</option>
+                            <option value="📦">📦 Entrega / Pedido</option>
+                            <option value="🎁">🎁 Promoção / Oferta</option>
+                            <option value="📱">📱 Telegram / App</option>
+                            <option value="⭐">⭐ Avaliações</option>
+                            <option value="📍">📍 Localização</option>
+                        </select>
+                        <input type="text" id="perf-link2-titulo" placeholder="Título (Ex: Grupo VIP Telegram)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                        <input type="url" id="perf-link2-url" placeholder="URL Destino (https://...)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                    </div>
+                </div>
+            </div>
+
+            <!-- BOX 5: Chat ao Vivo -->
+            <div class="glass-card rounded-xl p-6 space-y-4">
+                <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>💬</span> Chat ao Vivo (Suporte Direct)</h3>
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="perf-chat-ativo" class="sr-only peer">
+                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
+                    </label>
+                </div>
+                <p class="text-xs text-gray-400">Ative um widget de chat flutuante e reativo no canto da tela do cliente. Quando um visitante iniciar um chat, o painel do cliente direcionará de forma automatizada o lead direto para o atendimento do WhatsApp abaixo.</p>
+                <div class="space-y-1.5 pt-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Número do WhatsApp do Chat (Com DDD, apenas números)</label>
+                    <input type="text" id="perf-social-whatsapp-chat" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: 11992960466">
+                </div>
+            </div>
+
+            <!-- BOX 6: Controle de Aparência, Cores e Tipografia -->
+            <div class="glass-card rounded-xl p-6 space-y-5">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🎨</span> Controle de Aparência</h3>
+                
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
+                    <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+                        <option value="fisicos">Parar em Físicos Primeiro</option>
+                        <option value="digitais">Parar em Digitais Primeiro</option>
+                    </select>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
+                    <!-- Coluna Admin -->
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">🎨 Cores do Painel Admin</label>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Fundo do Admin</span>
+                            <input type="color" id="perf-admin-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Destaque Admin</span>
+                            <input type="color" id="perf-admin-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Texto do Admin</span>
+                            <input type="color" id="perf-admin-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#e5e7eb">
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Cards do Admin</span>
+                            <input type="color" id="perf-admin-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0d0d16">
                         </div>
                     </div>
 
-                    <div class="glass-card p-6 rounded-2xl space-y-4">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">📱 Conexões e Redes Sociais</h3>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">WhatsApp Central (Com DDD)</label>
-                                <input type="text" id="perf-social-whatsapp-central" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: 11992960466">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Instagram (Username sem @)</label>
-                                <input type="text" id="perf-social-instagram" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: academyvide">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">TikTok (Username)</label>
-                                <input type="text" id="perf-social-tiktok" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: vlz__in">
-                            </div>
-                            <div class="space-y-1.5">
-                                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">YouTube Canal (URL completa)</label>
-                                <input type="text" id="perf-social-youtube" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: youtube.com/@canal">
-                            </div>
+                    <!-- Coluna Vitrine -->
+                    <div class="space-y-3">
+                        <label class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">🛍️ Cores da Vitrine (Cliente)</label>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Fundo da Vitrine</span>
+                            <input type="color" id="perf-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
                         </div>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-2xl space-y-4 border-2 border-[#00f2fe]/20">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🔗 Links Personalizados de Destaque</h3>
-                        <p class="text-xs text-gray-400">Esses botões aparecem em destaque na sua vitrine pública, visíveis para todos os visitantes.</p>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                            <div class="space-y-3 p-3 bg-white/[0.01] rounded-xl border border-white/5">
-                                <label class="text-[10px] font-bold text-[#00f2fe] uppercase block">Botão Extra 1</label>
-                                <select id="perf-link1-icone" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                                    <option value="🔗">🔗 Link Genérico</option>
-                                    <option value="💬">💬 Suporte / Chat</option>
-                                    <option value="📦">📦 Entrega / Pedido</option>
-                                    <option value="🎁">🎁 Promoção / Oferta</option>
-                                    <option value="📱">📱 Telegram / App</option>
-                                    <option value="⭐">⭐ Avaliações</option>
-                                    <option value="📍">📍 Localização</option>
-                                </select>
-                                <input type="text" id="perf-link1-titulo" placeholder="Título (Ex: Suporte VIP)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                                <input type="url" id="perf-link1-url" placeholder="URL Destino (https://...)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                            </div>
-                            <div class="space-y-3 p-3 bg-white/[0.01] rounded-xl border border-white/5">
-                                <label class="text-[10px] font-bold text-[#00f2fe] uppercase block">Botão Extra 2</label>
-                                <select id="perf-link2-icone" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                                    <option value="🔗">🔗 Link Genérico</option>
-                                    <option value="💬">💬 Suporte / Chat</option>
-                                    <option value="📦">📦 Entrega / Pedido</option>
-                                    <option value="🎁">🎁 Promoção / Oferta</option>
-                                    <option value="📱">📱 Telegram / App</option>
-                                    <option value="⭐">⭐ Avaliações</option>
-                                    <option value="📍">📍 Localização</option>
-                                </select>
-                                <input type="text" id="perf-link2-titulo" placeholder="Título (Ex: Grupo VIP Telegram)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                                <input type="url" id="perf-link2-url" placeholder="URL Destino (https://...)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                            </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Destaque (Brand)</span>
+                            <input type="color" id="perf-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
                         </div>
-                    </div>
-
-                    <div class="glass-card p-6 rounded-2xl space-y-4">
-                        <div class="flex items-center justify-between border-b border-white/5 pb-3">
-                            <h3 class="text-sm font-bold text-white tracking-wider uppercase flex items-center gap-2">💬 Chat ao Vivo (Suporte Direct)</h3>
-                            <label class="relative inline-flex items-center cursor-pointer">
-                                <input type="checkbox" id="perf-chat-ativo" class="sr-only peer">
-                                <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
-                            </label>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Card do Produto</span>
+                            <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
                         </div>
-                        <p class="text-xs text-gray-400">Ative um widget de chat flutuante e reativo no canto da tela do cliente. Quando um visitante iniciar um chat, o painel do cliente direcionará de forma automatizada e profissional o lead direto para o atendimento do WhatsApp abaixo.</p>
-                        
-                        <div class="space-y-1.5 pt-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Número do WhatsApp do Chat (Com DDD, apenas números)</label>
-                            <input type="text" id="perf-social-whatsapp-chat" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: 11992960466">
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Cor Gradiente</span>
+                            <input type="color" id="perf-cor-secundaria" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#4facfe">
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Texto Vitrine</span>
+                            <input type="color" id="perf-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#e5e7eb">
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Texto Botões</span>
+                            <input type="color" id="perf-cor-texto-botao" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#000000">
+                        </div>
+                        <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
+                            <span class="text-xs text-gray-400">Borda Cards</span>
+                            <input type="color" id="perf-cor-borda" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#ffffff">
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-6">
-                    <div class="glass-card p-6 rounded-2xl space-y-5 sticky top-6">
-                        <h3 class="text-sm font-bold text-white tracking-wider uppercase border-b border-white/5 pb-3">🎨 Controle de Aparência</h3>
-                        
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
-                            <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
-                                <option value="fisicos">Parar em Físicos Primeiro</option>
-                                <option value="digitais">Parar em Digitais Primeiro</option>
-                            </select>
-                        </div>
+                <div class="space-y-3 pt-4 border-t border-white/5">
+                    <label class="text-[10px] font-bold text-orange-400 uppercase tracking-wider block">🔤 Tipografia da Vitrine</label>
+                    <select id="perf-fonte-vitrine" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+                        <option value="Plus Jakarta Sans">Plus Jakarta Sans (Padrão)</option>
+                        <option value="Poppins">Poppins</option>
+                        <option value="Inter">Inter</option>
+                        <option value="Montserrat">Montserrat</option>
+                        <option value="Roboto">Roboto</option>
+                        <option value="Playfair Display">Playfair Display (Elegante)</option>
+                    </select>
+                </div>
 
-                        <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">🎨 Cores do Painel de Administração</label>
-                            
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo do Admin</span>
-                                <input type="color" id="perf-admin-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Destaque Admin</span>
-                                <input type="color" id="perf-admin-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
-                            </div>
-
-                            <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider block">🎨 Cores do Painel de Administração</label>
-                            
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo do Admin</span>
-                                <input type="color" id="perf-admin-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Destaque Admin</span>
-                                <input type="color" id="perf-admin-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Texto do Admin</span>
-                                <input type="color" id="perf-admin-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#e5e7eb">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Cards do Admin</span>
-                                <input type="color" id="perf-admin-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0d0d16">
-                            </div>
-                    
-                        </div>
-
-                        <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">🛍️ Cores da Vitrine do Cliente</label>
-                            
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Fundo da Vitrine</span>
-                                <input type="color" id="perf-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#030712">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Tom de Destaque (Brand)</span>
-                                <input type="color" id="perf-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#00f2fe">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Cor do Card do Produto</span>
-                                <input type="color" id="perf-cor-card" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#0c0c14">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Cor Secundária (Gradiente)</span>
-                                <input type="color" id="perf-cor-secundaria" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#4facfe">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Texto da Vitrine</span>
-                                <input type="color" id="perf-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#e5e7eb">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Texto dos Botões</span>
-                                <input type="color" id="perf-cor-texto-botao" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#000000">
-                            </div>
-                            <div class="flex items-center justify-between p-2.5 bg-black/40 rounded-xl border border-white/5">
-                                <span class="text-xs text-gray-400">Borda dos Cards</span>
-                                <input type="color" id="perf-cor-borda" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer" value="#ffffff">
-                            </div>
-                        </div>
-
-                        <div class="space-y-3 pt-2 border-t border-white/5">
-                            <label class="text-[10px] font-bold text-orange-400 uppercase tracking-wider block">🔤 Tipografia da Vitrine</label>
-                            <select id="perf-fonte-vitrine" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
-                                <option value="Plus Jakarta Sans">Plus Jakarta Sans (Padrão)</option>
-                                <option value="Poppins">Poppins</option>
-                                <option value="Inter">Inter</option>
-                                <option value="Montserrat">Montserrat</option>
-                                <option value="Roboto">Roboto</option>
-                                <option value="Playfair Display">Playfair Display (Elegante)</option>
-                            </select>
-                        </div>
-
-                        <button type="button" id="btn-resetar-cores" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs uppercase tracking-widest font-bold py-3 rounded-xl transition-all">
-                            ↺ Restaurar Cores Padrão
-                        </button>
-
-                        <button id="btn-salvar-perfil" class="w-full bg-white hover:bg-gray-200 text-black text-xs uppercase tracking-widest font-black py-4 rounded-xl transition-all shadow-xl">
-                            Salvar Todas as Alterações
-                        </button>
-                    </div>
+                <!-- Botões de Ação Unificados -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                    <button type="button" id="btn-resetar-cores" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs uppercase tracking-widest font-bold py-3.5 rounded-xl transition-all">
+                        ↺ Restaurar Cores Padrão
+                    </button>
+                    <button id="btn-salvar-perfil" class="w-full bg-white hover:bg-gray-200 text-black text-xs uppercase tracking-widest font-black py-3.5 rounded-xl transition-all shadow-xl">
+                        Salvar Todas as Alterações
+                    </button>
                 </div>
             </div>
         </section>
@@ -1171,6 +1175,51 @@
     }
 });
 
+// --- INICIALIZAR GRÁFICO PREMIUM (ESTILO STRIPE/LINEAR) ---
+        function inicializarGrafico() {
+            const ctx = document.getElementById('graficoVendas');
+            if (!ctx) return;
+
+            // Destrói o gráfico existente para evitar duplicados ao recarregar
+            if (window.meuGrafico) window.meuGrafico.destroy();
+
+            window.meuGrafico = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+                    datasets: [{
+                        label: 'Vendas (R$)',
+                        data: [1200, 1900, 3200, 1500, 2800, 4100, 3600], // Dados fictícios para teste visual
+                        borderColor: '#ffffff',
+                        borderWidth: 1.5,
+                        pointBackgroundColor: '#ffffff',
+                        pointRadius: 0,
+                        pointHoverRadius: 4,
+                        lineTension: 0.2,
+                        fill: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#666666', font: { size: 10, family: 'Plus Jakarta Sans' } }
+                        },
+                        y: {
+                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
+                            ticks: { color: '#666666', font: { size: 10, family: 'Plus Jakarta Sans' } }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Força a renderização inicial do gráfico de forma segura
+        setTimeout(inicializarGrafico, 500);        
+        
         document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "login.html"));
