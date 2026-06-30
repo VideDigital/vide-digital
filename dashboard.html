@@ -1067,16 +1067,36 @@
         }
         
         // GESTÃO DO CATÁLOGO DE PRODUTOS
-        document.getElementById("filtro-todos").addEventListener("click", () => aplicarFiltro("todos", "filtro-todos"));
-        document.getElementById("filtro-fisicos").addEventListener("click", () => aplicarFiltro("fisico", "filtro-fisicos"));
-        document.getElementById("filtro-digitais").addEventListener("click", () => aplicarFiltro("digital", "filtro-digitais"));
+        function alternarVisualFiltro(botaoAtivo) {
+            const btnTodos = document.getElementById("filtro-todos");
+            const btnFisicos = document.getElementById("filtro-fisicos");
+            const btnDigitais = document.getElementById("filtro-digitais");
 
-        function aplicarFiltro(tipo, elementId) {
-            filtroLogistico = tipo;
-            document.querySelectorAll(".tab-btn").forEach(btn => btn.classList.remove("active"));
-            document.getElementById(elementId).classList.add("active");
-            carregarProdutos();
+            const classeAtivo = "text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all";
+            const classeInativo = "text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white border border-transparent transition-all bg-transparent";
+
+            btnTodos.className = (botaoAtivo === 'todos') ? classeAtivo : classeInativo;
+            btnFisicos.className = (botaoAtivo === 'fisico') ? classeAtivo : classeInativo;
+            btnDigitais.className = (botaoAtivo === 'digital') ? classeAtivo : classeInativo;
         }
+
+        document.getElementById("filtro-todos").addEventListener("click", () => {
+            filtroLogistico = "todos";
+            alternarVisualFiltro('todos');
+            carregarProdutos();
+        });
+
+        document.getElementById("filtro-fisicos").addEventListener("click", () => {
+            filtroLogistico = "fisico";
+            alternarVisualFiltro('fisico');
+            carregarProdutos();
+        });
+
+        document.getElementById("filtro-digitais").addEventListener("click", () => {
+            filtroLogistico = "digital";
+            alternarVisualFiltro('digital');
+            carregarProdutos();
+        });
 
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
