@@ -142,6 +142,11 @@
                 </div>
                 <span class="text-[11px] text-gray-500 font-medium" id="contador-produtos">0 Ativos</span>
             </div>
+            
+            <!-- GRID DE PRODUTOS -->
+            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+                <!-- Os produtos vão carregar aqui dentro -->
+            </div>
         </section>
 
         <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto hidden">
@@ -990,6 +995,9 @@
                 let countFacebook = 0;
                 let countWhatsOrigem = 0;
                 let countDireto = 0;
+                let countGoogle = 0;
+                let countTiktok = 0;
+                let countInsta = 0;
                 
                 let html = "";
                 querySnapshot.forEach(docSnap => {
@@ -1001,11 +1009,17 @@
                     
                     const orig = (lead.origem || '').toLowerCase();
                     
-                    // Lógica para contar as origens dos cartões novos
+                    // Lógica para contar as origens
                     if(orig.includes('facebook') || orig.includes('meta') || orig === 'fb') {
                         countFacebook++;
                     } else if(orig.includes('whatsapp') || orig.includes('whats') || orig === 'wa') {
                         countWhatsOrigem++;
+                    } else if (orig.includes('google')) {
+                        countGoogle++;
+                    } else if (orig.includes('tiktok') || orig.includes('tk')) {
+                        countTiktok++;
+                    } else if (orig.includes('insta') || orig.includes('ig')) {
+                        countInsta++;
                     } else {
                         countDireto++;
                     }
@@ -1041,25 +1055,8 @@
                     document.getElementById("lead-clicks-count").innerText = totalCliques;
                     document.getElementById("lead-time-count").innerText = `${Math.round(totalTempo / totalLeads)}s`;
                     
-                    // Atualizando os nossos novos cartões de origem na tela
-                    if(document.getElementById("lead-count-facebook")) document.getElementById("lead-count-facebook").innerText = countFacebook;
-                    if(document.getElementById("lead-count-whats-origem")) document.getElementById("lead-count-whats-origem").innerText = countWhatsOrigem;
-                    if(document.getElementById("lead-count-direto")) document.getElementById("lead-count-direto").innerText = countDireto;
-                }
-            } catch (err) {
-                console.error("Erro nos Leads:", err);
-            }
-        }
-                
-                if(totalLeads > 0) {
-                    tableBody.innerHTML = html;
-                    document.getElementById("lead-total-count").innerText = totalLeads;
-                    document.getElementById("lead-whatsapp-count").innerText = comWhats;
-                    document.getElementById("lead-clicks-count").innerText = totalCliques;
-                    document.getElementById("lead-time-count").innerText = `${Math.round(totalTempo / totalLeads)}s`;
-                    
-                    // Atualizando os novos cartões de origem na tela
-                    if(document.getElementById("origem-meta-count")) document.getElementById("origem-meta-count").innerText = countMeta;
+                    // Atualizando os cartões de origem na tela
+                    if(document.getElementById("origem-meta-count")) document.getElementById("origem-meta-count").innerText = countFacebook;
                     if(document.getElementById("origem-google-count")) document.getElementById("origem-google-count").innerText = countGoogle;
                     if(document.getElementById("origem-tiktok-count")) document.getElementById("origem-tiktok-count").innerText = countTiktok;
                     if(document.getElementById("origem-insta-count")) document.getElementById("origem-insta-count").innerText = countInsta;
