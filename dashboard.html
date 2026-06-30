@@ -322,7 +322,7 @@
                         </button>
 
                         <button id="btn-salvar-perfil" class="w-full bg-white hover:bg-gray-200 text-black text-xs uppercase tracking-widest font-black py-4 rounded-xl transition-all shadow-xl">
-                            Salvar Alterações
+                            Salvar Todas as Alterações
                         </button>
                     </div>
                 </div>
@@ -521,7 +521,21 @@
             </form>
         </div>
     </div>
-
+    
+<div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
+            <div class="h-12 w-12 rounded-full bg-[#00f2fe]/10 border border-[#00f2fe]/30 flex items-center justify-center mx-auto text-xl">⚠️</div>
+            <div>
+                <h3 class="text-sm font-bold text-white">Confirmar alterações</h3>
+                <p id="confirm-modal-texto" class="text-xs text-gray-400 mt-2">Deseja salvar essas alterações na sua vitrine?</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="confirm-modal-cancelar" class="flex-1 bg-white/5 hover:bg-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
+                <button id="confirm-modal-ok" class="flex-1 bg-white hover:bg-gray-200 text-black font-bold px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Confirmar</button>
+            </div>
+        </div>
+    </div>
+    
     <script type="module">
         import { auth, db } from "./firebase-init.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -779,59 +793,80 @@
 
             showToast("Cores restauradas! Clique em Salvar Alterações para confirmar.");
         });
-        
-        // GRAVAÇÃO ROBUSTA COM SETDOC MERGE (CORREÇÃO COMPLETA DO ERRO DE SALVAMENTO)
-        document.getElementById("btn-salvar-perfil").addEventListener("click", async () => {
-            const novoSlug = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-            if (!novoSlug) return showToast("Slug inválido.", "error");
 
-            const confirmou = window.confirm("Tem certeza que deseja salvar essas alterações na sua vitrine?");
-            if (!confirmou) return;
+        document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
+            abrirConfirmacao("Deseja salvar todas as alterações da sua vitrine?", executarSalvamento);
+        });
+        
+        // MOTOR GENÉRICO DO MODAL DE CONFIRMAÇÃO (substitui window.confirm)
+        function abrirConfirmacao(mensagem, callback) {
+            document.getElementById("confirm-modal-texto").innerText = mensagem;
+            document.getElementById("confirm-modal").classList.remove("hidden");
+
+            const btnOk = document.getElementById("confirm-modal-ok");
+            const btnCancelar = document.getElementById("confirm-modal-cancelar");
+
+            const fechar = () => document.getElementById("confirm-modal").classList.add("hidden");
+
+            const novoOk = btnOk.cloneNode(true);
+            btnOk.parentNode.replaceChild(novoOk, btnOk);
+            novoOk.addEventListener("click", () => { fechar(); callback(); });
+
+            const novoCancelar = btnCancelar.cloneNode(true);
+            btnCancelar.parentNode.replaceChild(novoCancelar, btnCancelar);
+            novoCancelar.addEventListener("click", fechar);
+        }
+
+        // Monta o pacote completo de dados da loja (usado por todas as seções)
+        function montarPayloadCompleto() {
+            return {
+                nomeLoja: document.getElementById("perf-nome-loja").value.trim(),
+                urlLoja: document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, ""),
+                tituloHero: document.getElementById("perf-titulo").value.trim(),
+                subtituloHero: document.getElementById("perf-subtitulo").value.trim(),
+                whatsappCentral: document.getElementById("perf-social-whatsapp-central").value.trim(),
+                instagramUser: document.getElementById("perf-social-instagram").value.trim(),
+                tiktokUser: document.getElementById("perf-social-tiktok").value.trim(),
+                youtubeUrl: document.getElementById("perf-social-youtube").value.trim(),
+                link1Titulo: document.getElementById("perf-link1-titulo").value.trim(),
+                link1Url: document.getElementById("perf-link1-url").value.trim(),
+                link1Icone: document.getElementById("perf-link1-icone").value,
+                link2Titulo: document.getElementById("perf-link2-titulo").value.trim(),
+                link2Url: document.getElementById("perf-link2-url").value.trim(),
+                link2Icone: document.getElementById("perf-link2-icone").value,
+                abaPadrao: document.getElementById("perf-aba-padrao").value,
+                whatsappChat: document.getElementById("perf-social-whatsapp-chat").value.trim(),
+                chatAtivo: document.getElementById("perf-chat-ativo").checked,
+                corDestaque: document.getElementById("perf-cor-destaque").value,
+                corFundo: document.getElementById("perf-cor-fundo").value,
+                corCard: document.getElementById("perf-cor-card").value,
+                corSecundaria: document.getElementById("perf-cor-secundaria").value,
+                corTexto: document.getElementById("perf-cor-texto").value,
+                corTextoBotao: document.getElementById("perf-cor-texto-botao").value,
+                corBorda: document.getElementById("perf-cor-borda").value,
+                fonteVitrine: document.getElementById("perf-fonte-vitrine").value,
+                adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
+                adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
+                adminCorTexto: document.getElementById("perf-admin-cor-texto").value,
+                adminCorCard: document.getElementById("perf-admin-cor-card").value,
+                fotoPerfilB64: document.getElementById("perfil-foto-base64").value
+            };
+        }
+
+        // Grava no Firestore (usuarios + vitrines_publicas) e cuida da troca de slug
+        async function executarSalvamento() {
+            const payloadPerfil = montarPayloadCompleto();
+            if (!payloadPerfil.urlLoja) return showToast("Slug inválido.", "error");
 
             try {
-                const payloadPerfil = {
-                    nomeLoja: document.getElementById("perf-nome-loja").value.trim(),
-                    urlLoja: novoSlug,
-                    tituloHero: document.getElementById("perf-titulo").value.trim(),
-                    subtituloHero: document.getElementById("perf-subtitulo").value.trim(),
-                    whatsappCentral: document.getElementById("perf-social-whatsapp-central").value.trim(),
-                    instagramUser: document.getElementById("perf-social-instagram").value.trim(),
-                    tiktokUser: document.getElementById("perf-social-tiktok").value.trim(),
-                    youtubeUrl: document.getElementById("perf-social-youtube").value.trim(),
-                    link1Titulo: document.getElementById("perf-link1-titulo").value.trim(),
-                    link1Url: document.getElementById("perf-link1-url").value.trim(),
-                    link1Icone: document.getElementById("perf-link1-icone").value,
-                    link2Titulo: document.getElementById("perf-link2-titulo").value.trim(),
-                    link2Url: document.getElementById("perf-link2-url").value.trim(),
-                    link2Icone: document.getElementById("perf-link2-icone").value,
-                    abaPadrao: document.getElementById("perf-aba-padrao").value,
-                    
-                    whatsappChat: document.getElementById("perf-social-whatsapp-chat").value.trim(),
-                    chatAtivo: document.getElementById("perf-chat-ativo").checked,
-                    
-                    corDestaque: document.getElementById("perf-cor-destaque").value,
-                    corFundo: document.getElementById("perf-cor-fundo").value,
-                    corCard: document.getElementById("perf-cor-card").value,
-                    corSecundaria: document.getElementById("perf-cor-secundaria").value,
-                    corTexto: document.getElementById("perf-cor-texto").value,
-                    corTextoBotao: document.getElementById("perf-cor-texto-botao").value,
-                    corBorda: document.getElementById("perf-cor-borda").value,
-                    fonteVitrine: document.getElementById("perf-fonte-vitrine").value,
-                    adminCorDestaque: document.getElementById("perf-admin-cor-destaque").value,
-                    adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
-                    adminCorTexto: document.getElementById("perf-admin-cor-texto").value,
-                    adminCorCard: document.getElementById("perf-admin-cor-card").value,
-                    fotoPerfilB64: document.getElementById("perfil-foto-base64").value
-                };
-
                 await setDoc(doc(db, "usuarios", usuarioUID), payloadPerfil, { merge: true });
 
-                if (slugAtualSalvo && slugAtualSalvo !== novoSlug) {
+                if (slugAtualSalvo && slugAtualSalvo !== payloadPerfil.urlLoja) {
                     await deleteDoc(doc(db, "vitrines_publicas", slugAtualSalvo));
                 }
-                slugAtualSalvo = novoSlug;
+                slugAtualSalvo = payloadPerfil.urlLoja;
 
-                await setDoc(doc(db, "vitrines_publicas", novoSlug), {
+                await setDoc(doc(db, "vitrines_publicas", payloadPerfil.urlLoja), {
                     donoUID: usuarioUID,
                     emailDono: usuarioUID,
                     nomeLoja: payloadPerfil.nomeLoja,
@@ -861,7 +896,8 @@
                 console.error(err);
                 showToast("Erro ao salvar dados no Firebase.", "error");
             }
-        });
+        }
+
 
         // CARREGAR E RENDERIZAR LEADS ENTERPRISE ORIGINAIS
         async function carregarLeads() {
