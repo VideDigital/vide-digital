@@ -123,11 +123,14 @@
             </div>
 
             <!-- Placeholder para Gráfico de Performance (Chart.js será integrado aqui) -->
-            <div class="glass-card p-5 rounded-xl h-48 flex items-center justify-center border-dashed border-white/10">
-                <p class="text-xs text-gray-500 flex items-center gap-2">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"></path></svg>
-                    Gráfico de conversões será renderizado aqui
-                </p>
+            <div class="glass-card p-6 rounded-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Conversões & Cliques</span>
+                    <span class="text-[11px] text-gray-400 font-mono">Últimos 7 dias</span>
+                </div>
+                <div class="relative w-full h-52">
+                    <canvas id="graficoVendas"></canvas>
+                </div>
             </div>
 
             <!-- Filtros de Produtos Restante -->
