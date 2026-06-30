@@ -189,6 +189,11 @@
                     document.getElementById("client-body").style.fontFamily = `'${fonteEscolhida}', sans-serif`;
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
                     document.getElementById("logo-indicator").style.background = `linear-gradient(to top right, ${brandColor}, ${secundariaColor})`;
+                    if (dados.fotoPerfilB64) {
+                        document.getElementById("logo-foto-cliente").src = dados.fotoPerfilB64;
+                        document.getElementById("logo-foto-cliente").classList.remove("hidden");
+                        document.getElementById("logo-indicator").classList.add("hidden");
+                    }
                     document.getElementById("btn-submit-lead").style.backgroundColor = brandColor;
                     document.getElementById("btn-submit-lead").style.color = textoBotaoColor;
 
