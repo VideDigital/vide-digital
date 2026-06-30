@@ -193,20 +193,19 @@
                 </div>
             </div>
 
-            <!-- BOX 2: NOVO - Banners Promocionais da Vitrine -->
+            <!-- BOX 2: Banners Promocionais (Galeria) -->
             <div class="glass-card rounded-xl p-6 space-y-4">
-                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🖼️</span> Banners Promocionais</h3>
-                <p class="text-gray-400 text-xs">Insira os links das imagens de destaque para as suas campanhas de tráfego.</p>
-                <div class="space-y-4">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL do Banner Principal (Desktop - Recomendado 1920x450)</label>
-                        <input type="url" id="perf-banner-desktop" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="https://suaimagem.com/banner-desktop.png">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">URL do Banner Versão Mobile (Opcional - Recomendado 800x450)</label>
-                        <input type="url" id="perf-banner-mobile" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="https://suaimagem.com/banner-mobile.png">
-                    </div>
-                </div>
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🖼️</span> Banners Promocionais (Galeria)</h3>
+                <p class="text-gray-400 text-xs">Suba quantas imagens quiser direto do seu computador ou celular. Elas vão rotacionar automaticamente na sua vitrine. Recomendado: 1920x450px.</p>
+                
+                <label for="input-banners-upload" class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/10 hover:border-[#00f2fe]/40 rounded-xl p-6 cursor-pointer transition-all text-center">
+                    <span class="text-2xl">📤</span>
+                    <span class="text-xs font-bold text-white">Clique para adicionar imagens</span>
+                    <span class="text-[10px] text-gray-500">PNG, JPG ou WebP — pode escolher várias de uma vez</span>
+                    <input type="file" id="input-banners-upload" accept="image/*" multiple class="hidden">
+                </label>
+
+                <div id="banners-galeria-preview" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
             </div>
 
             <!-- BOX 3: Conexões e Redes Sociais -->
@@ -760,16 +759,42 @@
             }
         });
 
-        document.getElementById("input-foto-perfil").addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file) {
+        // GALERIA DE BANNERS (MÚLTIPLAS IMAGENS, UPLOAD DO DISPOSITIVO)
+        let listaBanners = [];
+
+        function renderizarGaleriaBanners() {
+            const box = document.getElementById("banners-galeria-preview");
+            box.innerHTML = "";
+            listaBanners.forEach((src, index) => {
+                const item = document.createElement("div");
+                item.className = "relative group rounded-xl overflow-hidden border border-white/10 h-24";
+                item.innerHTML = `
+                    <img src="${src}" class="w-full h-full object-cover">
+                    <button type="button" data-index="${index}" class="btn-remover-banner absolute top-1 right-1 bg-black/70 hover:bg-red-600 text-white text-[10px] font-bold h-6 w-6 rounded-full flex items-center justify-center transition-all">✕</button>
+                `;
+                box.appendChild(item);
+            });
+
+            document.querySelectorAll(".btn-remover-banner").forEach(btn => {
+                btn.addEventListener("click", (e) => {
+                    const idx = parseInt(e.target.getAttribute("data-index"));
+                    listaBanners.splice(idx, 1);
+                    renderizarGaleriaBanners();
+                });
+            });
+        }
+
+        document.getElementById("input-banners-upload").addEventListener("change", (e) => {
+            const arquivos = Array.from(e.target.files);
+            arquivos.forEach(file => {
                 const reader = new FileReader();
                 reader.onloadend = () => {
-                    document.getElementById("preview-foto-perfil").src = reader.result;
-                    document.getElementById("perfil-foto-base64").value = reader.result;
+                    listaBanners.push(reader.result);
+                    renderizarGaleriaBanners();
                 };
                 reader.readAsDataURL(file);
-            }
+            });
+            e.target.value = "";
         });
 
         tabCheckout.addEventListener("click", () => alternarDestino("checkout"));
@@ -846,6 +871,9 @@
                         document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
                         document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
                     }
+
+                    listaBanners = dados.banners || [];
+                    renderizarGaleriaBanners();
 
                     slugAtualSalvo = dados.urlLoja || "";
                     const slugAtual = dados.urlLoja || "vitrine";
@@ -944,7 +972,8 @@
                 adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
                 adminCorTexto: document.getElementById("perf-admin-cor-texto").value,
                 adminCorCard: document.getElementById("perf-admin-cor-card").value,
-                fotoPerfilB64: document.getElementById("perfil-foto-base64").value
+                fotoPerfilB64: document.getElementById("perfil-foto-base64").value,
+                banners: listaBanners
             };
         }
 
@@ -952,6 +981,21 @@
         async function executarSalvamento() {
             const payloadPerfil = montarPayloadCompleto();
             if (!payloadPerfil.urlLoja) return showToast("Slug inválido.", "error");
+
+            // Verifica se o slug já está em uso por OUTRA conta antes de salvar
+            if (payloadPerfil.urlLoja !== slugAtualSalvo) {
+                try {
+                    const slugCheck = await getDoc(doc(db, "vitrines_publicas", payloadPerfil.urlLoja));
+                    if (slugCheck.exists() && slugCheck.data().donoUID !== usuarioUID) {
+                        showToast("Esse slug já está em uso. Escolha outro.", "error");
+                        return;
+                    }
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao verificar disponibilidade do slug.", "error");
+                    return;
+                }
+            }
 
             try {
                 await setDoc(doc(db, "usuarios", usuarioUID), payloadPerfil, { merge: true });
@@ -978,6 +1022,7 @@
                     corClientBorda: payloadPerfil.corBorda,
                     fonteVitrine: payloadPerfil.fonteVitrine,
                     fotoPerfilB64: payloadPerfil.fotoPerfilB64,
+                    banners: payloadPerfil.banners,
                     link1Titulo: payloadPerfil.link1Titulo,
                     link1Url: payloadPerfil.link1Url,
                     link1Icone: payloadPerfil.link1Icone,
