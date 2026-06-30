@@ -366,10 +366,26 @@
                 card.style.borderOpacity = "0.08";
 
                 const inputPreco = parseFloat(prod.preco || 0);
-                const precoFormatado = inputPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+
+                let cupomValido = false;
+                if (prod.cupomAtivo && prod.cupomDesconto) {
+                    if (!prod.cupomValidade || new Date(prod.cupomValidade + "T23:59:59") >= new Date()) {
+                        cupomValido = true;
+                    }
+                }
+                const precoComDesconto = cupomValido ? inputPreco * (1 - (prod.cupomDesconto / 100)) : inputPreco;
+                const precoFormatado = precoComDesconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const precoOriginalFormatado = inputPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                 const imgFinal = prod.imagemB64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%2309090f"/></svg>';
 
                 const estrelas = prod.avaliacao ? '⭐'.repeat(Math.round(prod.avaliacao)) + ` (${prod.avaliacao})` : '';
+
+                // Contador de visualizações (registra 1x por sessão por produto)
+                const chaveVisualizada = `visto_${prod.id}`;
+                if (!sessionStorage.getItem(chaveVisualizada)) {
+                    sessionStorage.setItem(chaveVisualizada, "1");
+                    setDoc(doc(db, "metricas_produtos", prod.id), { visualizacoes: increment(1) }, { merge: true });
+                }
 
                 card.innerHTML = `
                     <div class="relative h-52 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">
@@ -389,13 +405,14 @@
                             ${prod.videoUrl ? `<a href="${prod.videoUrl}" target="_blank" class="text-[11px] font-bold underline" style="color: ${prod.corDestaque}">▶️ Assistir vídeo de apresentação</a>` : ''}
                         </div>
                         <div>
+                            ${cupomValido ? `<span class="inline-block text-[9px] font-black text-black px-2 py-1 rounded-md uppercase tracking-wider mb-1.5" style="background-color: ${prod.corDestaque}">🎟️ ${prod.cupomCodigo || 'CUPOM'} ATIVO — ${prod.cupomDesconto}% OFF</span>` : ''}
                             <div class="flex items-baseline gap-2">
                                 <p class="text-xl font-black text-white tracking-tight">${precoFormatado}</p>
-                                ${prod.precoDe ? `<p class="text-xs text-gray-600 line-through">De R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : ''}
-                            </div>
+                                ${cupomValido ? `<p class="text-xs text-gray-600 line-through">${precoOriginalFormatado}</p>` : (prod.precoDe ? `<p class="text-xs text-gray-600 line-through">De R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : '')}
                             <div class="flex flex-wrap gap-2 mt-2">
                                 ${prod.garantiaDias ? `<span class="text-[10px] font-semibold text-gray-400">🛡️ Garantia de ${prod.garantiaDias} dias</span>` : ''}
                                 ${(prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[10px] font-semibold text-gray-400">📦 ${prod.estoque} unid. disponíveis</span>` : ''}
+                                <span class="text-[10px] font-semibold text-gray-500" id="views-${prod.id}">👀 carregando...</span>
                             </div>
                             <button onclick="abrirFluxoLead('${prod.nome}', '${prod.destinoValue}')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl mt-4 transition-all hover:brightness-110" style="background-color: ${prod.corDestaque}; color: var(--client-texto-botao, #000);">
                                 Adquirir Acesso 🚀
@@ -405,6 +422,14 @@
                     </div>
                 `;
                 container.appendChild(card);
+
+                getDoc(doc(db, "metricas_produtos", prod.id)).then(snap => {
+                    const elView = document.getElementById(`views-${prod.id}`);
+                    if (elView) {
+                        const total = snap.exists() ? (snap.data().visualizacoes || 0) : 0;
+                        elView.innerText = `👀 ${total} visualizaç${total === 1 ? 'ão' : 'ões'}`;
+                    }
+                });
             });
         }
 
