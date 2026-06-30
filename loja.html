@@ -33,6 +33,10 @@
         </div>
     </header>
 
+<div id="banners-carrossel" class="hidden relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden">
+        <div id="banners-track" class="flex h-full transition-transform duration-700 ease-in-out"></div>
+    </div>
+    
     <section class="max-w-6xl w-full mx-auto px-6 pt-12 text-center md:text-left space-y-6">
         <div class="max-w-3xl space-y-2">
             <h2 id="client-titulo-hero" class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">Soluções & Treinamentos</h2>
@@ -208,6 +212,26 @@
                     // Exibe widget se o administrador manteve ativado
                     if(dados.chatAtivo !== false) {
                         document.getElementById("widget-chat-cliente").classList.remove("hidden");
+                    }
+
+                    if (dados.banners && dados.banners.length > 0) {
+                        const carrossel = document.getElementById("banners-carrossel");
+                        const track = document.getElementById("banners-track");
+                        carrossel.classList.remove("hidden");
+                        dados.banners.forEach(imgSrc => {
+                            const slide = document.createElement("div");
+                            slide.className = "w-full h-full shrink-0 bg-black/40";
+                            slide.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-cover">`;
+                            track.appendChild(slide);
+                        });
+
+                        if (dados.banners.length > 1) {
+                            let indexAtual = 0;
+                            setInterval(() => {
+                                indexAtual = (indexAtual + 1) % dados.banners.length;
+                                track.style.transform = `translateX(-${indexAtual * 100}%)`;
+                            }, 4000);
+                        }
                     }
 
                     // Registra métrica de nova sessão aberta
