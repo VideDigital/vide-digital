@@ -182,6 +182,7 @@
                     document.documentElement.style.setProperty('--client-brand', brandColor);
                     document.documentElement.style.setProperty('--client-secundaria', secundariaColor);
                     document.documentElement.style.setProperty('--client-borda', bordaColor);
+                    document.documentElement.style.setProperty('--client-texto-botao', textoBotaoColor);
                     document.getElementById("client-body").style.backgroundColor = fundoColor;
                     document.getElementById("client-body").style.color = textoColor;
                     document.getElementById("client-body").style.fontFamily = `'${fonteEscolhida}', sans-serif`;
@@ -290,7 +291,7 @@
                                 ${prod.garantiaDias ? `<span class="text-[10px] font-semibold text-gray-400">🛡️ Garantia de ${prod.garantiaDias} dias</span>` : ''}
                                 ${(prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[10px] font-semibold text-gray-400">📦 ${prod.estoque} unid. disponíveis</span>` : ''}
                             </div>
-                            <button onclick="abrirFluxoLead('${prod.nome}', '${prod.destinoValue}')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl mt-4 text-black transition-all hover:brightness-110" style="background-color: ${prod.corDestaque}">
+                            <button onclick="abrirFluxoLead('${prod.nome}', '${prod.destinoValue}')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl mt-4 transition-all hover:brightness-110" style="background-color: ${prod.corDestaque}; color: var(--client-texto-botao, #000);">
                                 Adquirir Acesso 🚀
                             </button>
                             ${prod.seloConfianca ? `<p class="text-[10px] text-center text-gray-500 mt-2">🔒 ${prod.seloConfianca}</p>` : ''}
