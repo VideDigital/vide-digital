@@ -510,6 +510,7 @@
 
         let usuarioEmail = "";
         let usuarioUID = "";
+        let slugAtualSalvo = "";
         let tipoDestino = "checkout";
         let filtroLogistico = "todos";
 
@@ -716,6 +717,7 @@
                         document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
                     }
 
+                    slugAtualSalvo = dados.urlLoja || "";
                     const slugAtual = dados.urlLoja || "vitrine";
                     document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtual}`;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
@@ -797,6 +799,11 @@
                 };
 
                 await setDoc(doc(db, "usuarios", usuarioUID), payloadPerfil, { merge: true });
+
+                if (slugAtualSalvo && slugAtualSalvo !== novoSlug) {
+                    await deleteDoc(doc(db, "vitrines_publicas", slugAtualSalvo));
+                }
+                slugAtualSalvo = novoSlug;
 
                 await setDoc(doc(db, "vitrines_publicas", novoSlug), {
                     donoUID: usuarioUID,
