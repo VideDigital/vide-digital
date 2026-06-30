@@ -409,6 +409,39 @@
                     <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Média Tempo de Tela</span>
                     <h2 class="text-3xl font-black text-amber-400 mt-2" id="lead-time-count">0s</h2>
                 </div>
+                <!-- NOVO: Resumo Estratégico de Origens -->
+            <div class="glass-card p-5 rounded-2xl border border-white/5 mt-2">
+                <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider mb-4">Métricas de Origem de Tráfego</span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                        <div class="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">FB</div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold">Meta Ads</p>
+                            <h4 class="text-lg font-black text-white" id="origem-meta-count">0</h4>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                        <div class="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">GL</div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold">Google</p>
+                            <h4 class="text-lg font-black text-white" id="origem-google-count">0</h4>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                        <div class="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 border border-pink-500/20">TK</div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold">TikTok</p>
+                            <h4 class="text-lg font-black text-white" id="origem-tiktok-count">0</h4>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                        <div class="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20">IG</div>
+                        <div>
+                            <p class="text-[10px] text-gray-500 uppercase font-bold">Instagram</p>
+                            <h4 class="text-lg font-black text-white" id="origem-insta-count">0</h4>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <div class="glass-card rounded-2xl overflow-hidden border border-white/5">
@@ -952,14 +985,25 @@
                 let comWhats = 0;
                 let totalCliques = 0;
                 let totalTempo = 0;
+                
+                // Novos contadores de origem
+                let countMeta = 0, countGoogle = 0, countTiktok = 0, countInsta = 0;
+                
                 let html = "";
-
                 querySnapshot.forEach(docSnap => {
                     const lead = docSnap.data();
                     totalLeads++;
                     if(lead.whatsapp) comWhats++;
                     totalCliques += (lead.cliques || 1);
                     totalTempo += (lead.tempoRetencao || 15);
+                    
+                    const orig = lead.origem || 'meta';
+                    
+                    // Somando as origens
+                    if(orig === 'meta') countMeta++;
+                    else if(orig === 'google') countGoogle++;
+                    else if(orig === 'tiktok') countTiktok++;
+                    else if(orig === 'insta') countInsta++;
 
                     const badgesOrigem = {
                         google: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
@@ -967,9 +1011,8 @@
                         tiktok: 'bg-pink-500/10 text-pink-400 border border-pink-500/20',
                         insta: 'bg-purple-500/10 text-purple-400 border border-purple-500/20'
                     };
-                    const orig = lead.origem || 'meta';
                     const badgeClass = badgesOrigem[orig] || 'bg-gray-500/10 text-gray-400';
-
+                    
                     html += `
                         <tr class="hover:bg-white/[0.01] transition-colors">
                             <td class="p-4 font-bold text-white">${lead.nome || 'Lead Anônimo'}</td>
@@ -983,19 +1026,25 @@
                         </tr>
                     `;
                 });
-
+                
                 if(totalLeads > 0) {
                     tableBody.innerHTML = html;
                     document.getElementById("lead-total-count").innerText = totalLeads;
                     document.getElementById("lead-whatsapp-count").innerText = comWhats;
                     document.getElementById("lead-clicks-count").innerText = totalCliques;
                     document.getElementById("lead-time-count").innerText = `${Math.round(totalTempo / totalLeads)}s`;
+                    
+                    // Atualizando os novos cartões de origem na tela
+                    if(document.getElementById("origem-meta-count")) document.getElementById("origem-meta-count").innerText = countMeta;
+                    if(document.getElementById("origem-google-count")) document.getElementById("origem-google-count").innerText = countGoogle;
+                    if(document.getElementById("origem-tiktok-count")) document.getElementById("origem-tiktok-count").innerText = countTiktok;
+                    if(document.getElementById("origem-insta-count")) document.getElementById("origem-insta-count").innerText = countInsta;
                 }
             } catch (err) {
                 console.error("Erro nos Leads:", err);
             }
         }
-
+        
         // GESTÃO DO CATÁLOGO DE PRODUTOS
         document.getElementById("filtro-todos").addEventListener("click", () => aplicarFiltro("todos", "filtro-todos"));
         document.getElementById("filtro-fisicos").addEventListener("click", () => aplicarFiltro("fisico", "filtro-fisicos"));
