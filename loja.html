@@ -43,7 +43,8 @@
             <input type="text" id="search-input" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 text-sm text-white outline-none search-glow transition-all" placeholder="Buscar um produto ou treinamento específico...">
             <span class="absolute left-4 top-6 text-gray-400 text-sm">🔍</span>
         </div>
-
+        
+<div id="links-extras-container" class="flex flex-wrap gap-3 pt-2"></div>
         <div id="container-filtros" class="flex flex-wrap gap-2 pt-2">
             <button data-nicho="todos" class="filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm">✨ Todos</button>
             <button data-nicho="Automotivo" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Automotivo</button>
@@ -190,6 +191,13 @@
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
                     document.getElementById("logo-indicator").style.background = `linear-gradient(to top right, ${brandColor}, ${secundariaColor})`;
                     if (dados.fotoPerfilB64) {
+                        const linksExtrasBox = document.getElementById("links-extras-container");
+                    if (dados.link1Titulo && dados.link1Url) {
+                        linksExtrasBox.innerHTML += `<a href="${dados.link1Url}" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ${brandColor}; color: ${brandColor};">${dados.link1Icone || '🔗'} ${dados.link1Titulo}</a>`;
+                    }
+                    if (dados.link2Titulo && dados.link2Url) {
+                        linksExtrasBox.innerHTML += `<a href="${dados.link2Url}" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ${brandColor}; color: ${brandColor};">${dados.link2Icone || '🔗'} ${dados.link2Titulo}</a>`;
+                    }
                         document.getElementById("logo-foto-cliente").src = dados.fotoPerfilB64;
                         document.getElementById("logo-foto-cliente").classList.remove("hidden");
                         document.getElementById("logo-indicator").classList.add("hidden");
