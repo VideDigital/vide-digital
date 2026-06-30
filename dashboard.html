@@ -422,6 +422,7 @@
         import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
 
         let usuarioEmail = "";
+        let usuarioUID = "";
         let tipoDestino = "checkout";
         let filtroLogistico = "todos";
 
@@ -569,8 +570,9 @@
         onAuthStateChanged(auth, async (user) => {
             if (user) {
                 usuarioEmail = user.email.toLowerCase();
+                usuarioUID = user.uid;
                 
-                const userSnap = await getDoc(doc(db, "usuarios", usuarioEmail));
+                const userSnap = await getDoc(doc(db, "usuarios", usuarioUID));
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
                     
@@ -655,7 +657,21 @@
                     fotoPerfilB64: document.getElementById("perfil-foto-base64").value
                 };
 
-                await setDoc(doc(db, "usuarios", usuarioEmail), payloadPerfil, { merge: true });
+                await setDoc(doc(db, "usuarios", usuarioUID), payloadPerfil, { merge: true });
+
+                await setDoc(doc(db, "vitrines_publicas", novoSlug), {
+                    donoUID: usuarioUID,
+                    emailDono: usuarioUID,
+                    nomeLoja: payloadPerfil.nomeLoja,
+                    tituloHero: payloadPerfil.tituloHero,
+                    subtituloHero: payloadPerfil.subtituloHero,
+                    whatsappCentral: payloadPerfil.whatsappCentral,
+                    chatAtivo: payloadPerfil.chatAtivo,
+                    corClientBrand: payloadPerfil.corDestaque,
+                    corClientFundo: payloadPerfil.corFundo,
+                    corClientCard: payloadPerfil.corCard
+                }, { merge: true });
+
                 showToast("Configurações salvas e aplicadas!");
             } catch (err) {
                 console.error(err);
@@ -667,7 +683,7 @@
         async function carregarLeads() {
             const tableBody = document.getElementById("leads-table-body");
             try {
-                const q = query(collection(db, "leads"), where("vitrineDona", "==", usuarioEmail));
+                const q = query(collection(db, "leads"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
                 
                 let totalLeads = 0;
@@ -733,7 +749,7 @@
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
             try {
-                const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioEmail));
+                const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
                 let produtosFiltrados = [];
 
@@ -851,7 +867,7 @@
                 tipoDestino: tipoDestino,
                 destinoValue: destinoFinalValue,
                 descricao: document.getElementById("prod-descricao").value.trim(),
-                criadoPor: usuarioEmail,
+                criadoPor: usuarioUID,
                 atualizadoEm: new Date().toISOString()
             };
 
