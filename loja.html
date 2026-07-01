@@ -580,7 +580,7 @@
                 });
             } else {
                 await setDoc(doc(db, "chats/" + salaChatId + "/mensagens", "msg_" + Date.now()), { texto: txt, sender: "cliente", timestamp: Date.now() });
-                await setDoc(doc(db, "chats", salaChatId), { clienteNome: clienteNome, emailDono: fornecedorEmail, ultimaMensagem: txt, statusAdmin: "pendente", timestamp: Date.now() }, { merge: true });
+                await setDoc(doc(db, "chats", salaChatId), { clienteNome: clienteNome, emailDono: fornecedorEmail, ultimaMensagem: txt, statusAdmin: "pendente", utmSource: utmSourceCapturada, timestamp: Date.now() }, { merge: true });
                 input.value = "";
                 clearTimeout(timeoutRedirecionamentoWhats);
                 timeoutRedirecionamentoWhats = setTimeout(function() {
