@@ -495,11 +495,10 @@
                         <option value="direto">Direto</option>
                     </select>
                     <button onclick="aplicarFiltrosLeads()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+                    <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
+                        📥 Exportar Planilha (.CSV)
+                    </button>
                 </div>
-            </div>
-                <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
-                    📥 Exportar Planilha (.CSV)
-                </button>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -819,7 +818,7 @@
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
-            if (targetId === "view-leads") carregarLeads();
+            if (targetId === "view-metricas") carregarMetricas();
         }
 
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
