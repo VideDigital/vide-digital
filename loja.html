@@ -170,8 +170,6 @@
                     document.getElementById("client-body").style.fontFamily = `'${fonteEscolhida}', sans-serif`;
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
                     document.getElementById("logo-indicator").style.background = `linear-gradient(to top right, ${brandColor}, ${secundariaColor})`;
-                    document.getElementById("btn-submit-lead").style.backgroundColor = brandColor;
-                    document.getElementById("btn-submit-lead").style.color = textoBotaoColor;
 
                     if (dados.fotoPerfilB64) {
                         document.getElementById("logo-foto-cliente").src = dados.fotoPerfilB64;
@@ -186,41 +184,6 @@
                     if (dados.link2Titulo && dados.link2Url) {
                         linksExtrasBox.innerHTML += `<a href="${dados.link2Url}" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ${brandColor}; color: ${brandColor};">${dados.link2Icone || '🔗'} ${dados.link2Titulo}</a>`;
                     }
-
-                    if (dados.banners && dados.banners.length > 0) {
-                        const carrossel = document.getElementById("banners-carrossel");
-                        const track = document.getElementById("banners-track");
-                        const indicadoresBox = document.getElementById("banner-indicadores");
-                        carrossel.classList.remove("hidden");
-                        dados.banners.forEach((imgSrc, i) => {
-                            const slide = document.createElement("div");
-                            slide.className = "w-full h-full shrink-0 bg-black/40";
-                            slide.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-cover">`;
-                            track.appendChild(slide);
-
-                            const ponto = document.createElement("button");
-                            ponto.className = "h-1.5 rounded-full bg-white/40 transition-all";
-                            ponto.style.width = "6px";
-                            ponto.dataset.index = i;
-                            indicadoresBox.appendChild(ponto);
-                        });
-
-                        let indexAtual = 0;
-                        let intervaloBanner = null;
-
-                        function irParaBanner(novoIndex) {
-                            indexAtual = (novoIndex + dados.banners.length) % dados.banners.length;
-                            track.style.transform = `translateX(-${indexAtual * 100}%)`;
-                            document.querySelectorAll("#banner-indicadores button").forEach((ponto, i) => {
-                                ponto.style.width = (i === indexAtual) ? "18px" : "6px";
-                                ponto.style.backgroundColor = (i === indexAtual) ? brandColor : "rgba(255,255,255,0.4)";
-                            });
-                        }
-
-                        function iniciarAutoplayBanner() {
-                            clearInterval(intervaloBanner);
-                            intervaloBanner = setInterval(() => irParaBanner(indexAtual + 1), 4000);
-                        }
 
                         if (dados.banners.length > 1) {
                             document.getElementById("banner-seta-anterior").classList.remove("hidden");
