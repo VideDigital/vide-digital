@@ -97,7 +97,28 @@
                 </button>
             </div>
 
-           
+            <!-- Filtros -->
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex gap-2">
+                    <button id="filtro-todos" class="text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all">Todos</button>
+                    <button id="filtro-fisicos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Físicos</button>
+                    <button id="filtro-digitais" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Digitais</button>
+                </div>
+                <span class="text-[11px] text-gray-500 font-medium" id="contador-produtos">0 Ativos</span>
+            </div>
+
+            <!-- GRID DE PRODUTOS -->
+            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            </div>
+
+            <!-- Estatísticas -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/5">
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Receita Total</span>
+                    <div class="flex items-baseline gap-2 mt-2">
+                        <h3 class="text-2xl font-medium text-white">R$ 0,00</h3>
+                        <span class="text-[10px] text-emerald-400 font-medium">+0% hoje</span>
+                    </div>
                 </div>
                 <div class="glass-card p-5 rounded-xl">
                     <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Custo por Aquisição (CPA)</span>
@@ -115,7 +136,7 @@
                 </div>
             </div>
 
-            <!-- Placeholder para Gráfico de Performance (Chart.js será integrado aqui) -->
+            <!-- Gráfico -->
             <div class="glass-card p-6 rounded-xl">
                 <div class="flex items-center justify-between mb-4">
                     <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Conversões & Cliques</span>
@@ -125,31 +146,6 @@
                     <canvas id="graficoVendas"></canvas>
                 </div>
             </div>
-
-            <!-- Filtros de Produtos Restante -->
-            <div class="flex flex-wrap items-center justify-between gap-4 mt-8">
-                <div class="flex gap-2">
-                    <button id="filtro-todos" class="text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all">Todos</button>
-                    <button id="filtro-fisicos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Físicos</button>
-                    <button id="filtro-digitais" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Digitais</button>
-                </div>
-                <span class="text-[11px] text-gray-500 font-medium" id="contador-produtos">0 Ativos</span>
-            </div>
-            
-            <!-- GRID DE PRODUTOS -->
-            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
-                <!-- Os produtos vão carregar aqui dentro -->
-            </div>
-
- <!-- Estatísticas Premium e Gráficos -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Receita Total</span>
-                    <div class="flex items-baseline gap-2 mt-2">
-                        <h3 class="text-2xl font-medium text-white">R$ 0,00</h3>
-                        <span class="text-[10px] text-emerald-400 font-medium">+0% hoje</span>
-                    </div>
-            
         </section>
 
         <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto hidden">
@@ -554,6 +550,14 @@
                     </div>
                 </div>
 
+                <div class="flex items-center gap-3 bg-white/[0.01] p-4 rounded-xl border border-white/5">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="prod-frete-gratis" class="sr-only peer">
+                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
+                    </label>
+                    <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">📦 Marcar como Frete Grátis</span>
+                </div>
+                
                 <div class="flex items-center gap-3 bg-white/[0.01] p-4 rounded-xl border border-white/5">
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="prod-carrinho-permitido" class="sr-only peer">
