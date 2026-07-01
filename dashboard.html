@@ -1203,22 +1203,34 @@
             btnDigitais.className = (botaoAtivo === 'digital') ? classeAtivo : classeInativo;
         }
 
-        document.getElementById("filtro-todos").addEventListener("click", () => {
+        document.getElementById("filtro-todos").addEventListener("click", (e) => {
+            e.preventDefault();
+            const scrollPos = document.querySelector("main").scrollTop;
             filtroLogistico = "todos";
             alternarVisualFiltro('todos');
-            carregarProdutos();
+            carregarProdutos().then(() => {
+                document.querySelector("main").scrollTop = scrollPos;
+            });
         });
 
-        document.getElementById("filtro-fisicos").addEventListener("click", () => {
+        document.getElementById("filtro-fisicos").addEventListener("click", (e) => {
+            e.preventDefault();
+            const scrollPos = document.querySelector("main").scrollTop;
             filtroLogistico = "fisico";
             alternarVisualFiltro('fisico');
-            carregarProdutos();
+            carregarProdutos().then(() => {
+                document.querySelector("main").scrollTop = scrollPos;
+            });
         });
 
-        document.getElementById("filtro-digitais").addEventListener("click", () => {
+        document.getElementById("filtro-digitais").addEventListener("click", (e) => {
+            e.preventDefault();
+            const scrollPos = document.querySelector("main").scrollTop;
             filtroLogistico = "digital";
             alternarVisualFiltro('digital');
-            carregarProdutos();
+            carregarProdutos().then(() => {
+                document.querySelector("main").scrollTop = scrollPos;
+            });
         });
 
         async function carregarProdutos() {
