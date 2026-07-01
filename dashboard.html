@@ -773,7 +773,17 @@
                 card.style.backgroundColor = e.target.value;
             });
         });
-
+// FORÇA CAMPOS DE WHATSAPP A ACEITAREM SOMENTE NÚMEROS
+        function aplicarMascaraNumerica(id) {
+            const campo = document.getElementById(id);
+            if (campo) {
+                campo.addEventListener("input", () => {
+                    campo.value = campo.value.replace(/\D/g, "");
+                });
+            }
+        }
+        ["perf-social-whatsapp-central", "perf-social-whatsapp-chat", "prod-whatsapp"].forEach(aplicarMascaraNumerica);
+        
         // UPLOAD DE IMAGENS EM BASE64
         inputImagemFile.addEventListener("change", (e) => {
             const file = e.target.files[0];
