@@ -1320,7 +1320,8 @@
                     document.getElementById("prod-video-url").value = data.videoUrl || "";
                     document.getElementById("prod-selo-confianca").value = data.seloConfianca || "";
                     document.getElementById("prod-frete-gratis").checked = data.freteGratis || false;
-                    document.getElementById("prod-carrinho-permitido").checked = data.carrinhoPermitido || false;
+                    const elCarrinho = document.getElementById("prod-carrinho-permitido");
+                    if (elCarrinho) elCarrinho.checked = data.carrinhoPermitido || false;
                     document.getElementById("prod-cupom-ativo").checked = data.cupomAtivo || false;
                     document.getElementById("prod-cupom-codigo").value = data.cupomCodigo || "";
                     document.getElementById("prod-cupom-desconto").value = data.cupomDesconto || "";
@@ -1360,7 +1361,7 @@
                 videoUrl: document.getElementById("prod-video-url").value.trim(),
                 seloConfianca: document.getElementById("prod-selo-confianca").value.trim(),
                 freteGratis: document.getElementById("prod-frete-gratis").checked,
-                carrinhoPermitido: document.getElementById("prod-carrinho-permitido").checked,
+                carrinhoPermitido: document.getElementById("prod-carrinho-permitido") ? document.getElementById("prod-carrinho-permitido").checked : false,
                 cupomAtivo: document.getElementById("prod-cupom-ativo").checked,
                 cupomCodigo: document.getElementById("prod-cupom-codigo").value.trim(),
                 cupomDesconto: document.getElementById("prod-cupom-desconto").value ? parseFloat(document.getElementById("prod-cupom-desconto").value) : "",
