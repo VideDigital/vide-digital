@@ -444,6 +444,18 @@
                     </select>
                 </div>
 
+              <!-- BOX: Links de Rastreamento por Origem -->
+            </div>
+            <div class="glass-card rounded-xl p-6 space-y-4">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🔗</span> Links de Rastreamento por Origem</h3>
+                <p class="text-xs text-gray-400">Use estes links nos seus anúncios. A Vide Hub identifica automaticamente de onde o visitante veio e registra na aba de Leads.</p>
+                <div id="box-links-utm" class="space-y-2">
+                    <p class="text-xs text-gray-500">Salve seu slug primeiro para gerar os links.</p>
+                </div>
+            </div>
+            <div class="glass-card rounded-xl p-6 space-y-5">
+                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🎨</span> Controle de Aparência</h3>
+                
                 <!-- Botões de Ação Unificados -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <button type="button" id="btn-resetar-cores" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs uppercase tracking-widest font-bold py-3.5 rounded-xl transition-all">
@@ -1020,6 +1032,34 @@
                     document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtual}`;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
                     document.getElementById("txt-preview-nome-loja").innerText = dados.nomeLoja || "Visão Geral";
+                    // GERAR LINKS UTM POR ORIGEM
+                    const slugUTM = dados.urlLoja || "";
+                    if (slugUTM) {
+                        const baseUrl = `https://videdigital.github.io/vide-digital/loja.html?loja=${slugUTM}`;
+                        const origens = [
+                            { label: "Meta Ads (Facebook)", icon: "🟣", cor: "text-indigo-400", utm: "meta" },
+                            { label: "Google Ads", icon: "🔵", cor: "text-blue-400", utm: "google" },
+                            { label: "TikTok Ads", icon: "🩷", cor: "text-pink-400", utm: "tiktok" },
+                            { label: "Instagram Orgânico", icon: "📸", cor: "text-purple-400", utm: "instagram" },
+                            { label: "WhatsApp / Link Direto", icon: "💬", cor: "text-emerald-400", utm: "direto" }
+                        ];
+                        const boxUTM = document.getElementById("box-links-utm");
+                        if (boxUTM) {
+                            boxUTM.innerHTML = origens.map(o => {
+                                const link = `${baseUrl}&utm_source=${o.utm}`;
+                                return `
+                                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
+                                        <span class="text-base shrink-0">${o.icon}</span>
+                                        <div class="flex-1 min-w-0">
+                                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">${o.label}</p>
+                                            <p class="text-[10px] ${o.cor} truncate mt-0.5 font-mono">${link}</p>
+                                        </div>
+                                        <button onclick="navigator.clipboard.writeText('${link}').then(() => showToast('Link copiado!'))" class="shrink-0 text-[10px] font-bold text-white bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg transition-all">Copiar</button>
+                                    </div>
+                                `;
+                            }).join("");
+                        }
+                    }
                 }
                 carregarProdutos();
                 carregarLeads();
