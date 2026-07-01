@@ -1780,7 +1780,8 @@
         }
 
         // Exportar relatório simples
-        document.getElementById("btn-exportar-metricas").addEventListener("click", () => {
+        const btnExportarMet = document.getElementById("btn-exportar-metricas");
+        if (btnExportarMet) btnExportarMet.addEventListener("click", () => {
             const sessoes = document.getElementById("met-sessoes").innerText;
             const cliques = document.getElementById("met-cliques").innerText;
             const conversao = document.getElementById("met-conversao").innerText;
@@ -1800,8 +1801,8 @@
             a.download = `metricas_videhub_${new Date().toISOString().slice(0,10)}.txt`;
             a.click();
         });
-        document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
-        document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
+        if (document.getElementById("modal-fechar")) document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
+        if (document.getElementById("modal-cancelar")) document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "login.html"));
     </script>
 </body>
