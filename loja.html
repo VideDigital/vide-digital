@@ -29,7 +29,7 @@
                 <span class="text-[10px] px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
                     <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Loja Verificada
                 </span>
-                <button id="btn-abrir-carrinho" class="hidden relative h-9 w-9 rounded-xl bg-white/5 border border-white/10 items-center justify-center text-base hover:bg-white/10 transition-all" onclick="abrirCarrinho()">
+                <button id="btn-abrir-carrinho" style="display:none;" class="relative h-9 w-9 rounded-xl bg-white/5 border border-white/10 items-center justify-center text-base hover:bg-white/10 transition-all" onclick="abrirCarrinho()">
                     🛒
                     <span id="carrinho-contador" class="hidden absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">0</span>
                 </button>
@@ -164,14 +164,15 @@
                     const dados = publicSnap.data();
                     fornecedorEmail = dados.emailDono;
                     whatsappDono = dados.whatsappCentral || "";
-                    carrinhoAtivo = dados.carrinhoAtivo || false;
+                    carrinhoAtivo = dados.carrinhoAtivo === true;
                     carrinhoMensagemCustom = dados.carrinhoMensagem || "";
                     nomeLojaAtual = dados.nomeLoja || "Vitrine";
                     if (carrinhoAtivo) {
                         const btnCarrinho = document.getElementById("btn-abrir-carrinho");
-                        btnCarrinho.classList.remove("hidden");
-                        btnCarrinho.classList.add("flex");
-                        atualizarContadorCarrinho();
+                        if (btnCarrinho) {
+                            btnCarrinho.style.display = "flex";
+                            atualizarContadorCarrinho();
+                        }
                     }
 
                     document.getElementById("client-tab-title").innerText = dados.nomeLoja || "Vitrine Online";
@@ -368,7 +369,7 @@
                                 '<span class="text-[10px] font-semibold text-gray-500" id="views-' + prod.id + '">carregando...</span>' +
                             "</div>" +
                             '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + '\')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl transition-all hover:brightness-110" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #000);">Obter Oferta</button>' +
-                            (carrinhoAtivo ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + inputPreco + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-3 rounded-xl border transition-all hover:bg-white/5 mt-1" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';">🛒 Adicionar ao Carrinho</button>' : '') +
+                            (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-3 rounded-xl border transition-all hover:bg-white/5 mt-1" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';">🛒 Adicionar ao Carrinho</button>' : '') +
                             (prod.seloConfianca ? '<p class="text-[10px] text-center text-gray-500">&#128274; ' + prod.seloConfianca + "</p>" : "") +
                         "</div>" +
                     "</div>";
