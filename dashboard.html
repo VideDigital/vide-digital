@@ -61,6 +61,17 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
                 Pixels & Domínio
             </button>
+
+<button data-target="view-leads" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Leads (Capturas)
+            </button>
+
+            <button data-target="view-metricas" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                Métricas
+            </button>
+            
         </nav>
         
         <div class="hidden md:block px-4" id="box-atalho">
@@ -148,6 +159,62 @@
             </div>
         </section>
 
+<section id="view-metricas" class="view-section space-y-8 max-w-6xl mx-auto">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Métricas & Performance</h1>
+                <p class="text-gray-400 text-xs mt-1">Dados reais de comportamento dos visitantes na sua vitrine.</p>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-5 rounded-xl space-y-1">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Sessões Totais</p>
+                    <h2 class="text-3xl font-black text-white" id="met-sessoes">—</h2>
+                    <p class="text-[10px] text-gray-500">Visitas à vitrine</p>
+                </div>
+                <div class="glass-card p-5 rounded-xl space-y-1">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Cliques Totais</p>
+                    <h2 class="text-3xl font-black text-[#00f2fe]" id="met-cliques">—</h2>
+                    <p class="text-[10px] text-gray-500">Em produtos</p>
+                </div>
+                <div class="glass-card p-5 rounded-xl space-y-1">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Taxa de Conversão</p>
+                    <h2 class="text-3xl font-black text-emerald-400" id="met-conversao">—</h2>
+                    <p class="text-[10px] text-gray-500">Cliques ÷ Sessões</p>
+                </div>
+                <div class="glass-card p-5 rounded-xl space-y-1">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Tempo Médio</p>
+                    <h2 class="text-3xl font-black text-amber-400" id="met-tempo">—</h2>
+                    <p class="text-[10px] text-gray-500">Na vitrine</p>
+                </div>
+            </div>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="glass-card p-6 rounded-xl space-y-4">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider border-b border-white/5 pb-3">🏆 Top Produtos Mais Vistos</h3>
+                    <div id="met-top-produtos" class="space-y-3">
+                        <p class="text-xs text-gray-500">Carregando...</p>
+                    </div>
+                </div>
+                <div class="glass-card p-6 rounded-xl space-y-4">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider border-b border-white/5 pb-3">🎯 Produtos Mais Clicados</h3>
+                    <div id="met-produtos-clicados" class="space-y-3">
+                        <p class="text-xs text-gray-500">Carregando...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="glass-card p-6 rounded-xl space-y-4">
+                <div class="flex items-center justify-between border-b border-white/5 pb-3">
+                    <h3 class="text-xs font-bold text-white uppercase tracking-wider">📊 Cliques nos Últimos 7 Dias</h3>
+                    <span class="text-[10px] text-gray-500 font-mono" id="met-periodo">Carregando...</span>
+                </div>
+                <div id="met-grafico-barras" class="flex items-end gap-2 h-40 pt-4"></div>
+                <div id="met-grafico-labels" class="flex gap-2 text-[9px] text-gray-600 font-medium"></div>
+            </div>
+            <div class="flex justify-end">
+                <button id="btn-exportar-metricas" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-3 rounded-xl transition-all flex items-center gap-2">
+                    📤 Exportar Relatório
+                </button>
+            </div>
+        </section>
+        
         <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto hidden">
             <!-- Cabeçalho Principal -->
             <div class="border-b border-white/5 pb-5">
