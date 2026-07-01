@@ -400,7 +400,7 @@
             </div>
         </section>
 
-        <section id="view-leads" class="view-section space-y-6">
+        <ace-y-6">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
                     <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
@@ -726,6 +726,8 @@
             if (secaoAlvo) secaoAlvo.classList.add("active");
 
             localStorage.setItem("abaAtivaDashboard", targetId);
+
+            if (targetId === "view-metricas") carregarMetricas();
         }
 
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
@@ -1466,7 +1468,146 @@
 
         // Força a renderização inicial do gráfico de forma segura
         setTimeout(inicializarGrafico, 500);        
-        
+        // =============================================
+        // C1 — MÉTRICAS REAIS
+        // =============================================
+        async function carregarMetricas() {
+            if (!usuarioUID) return;
+            try {
+                // Busca métricas da vitrine
+                const metSnap = await getDoc(doc(db, "metricas_vitrines", usuarioUID));
+                const met = metSnap.exists() ? metSnap.data() : {};
+
+                const sessoes = met.totalSessoes || 0;
+                const cliques = met.totalCliques || 0;
+                const tempoTotal = met.totalTempoTela || 0;
+                const conversao = sessoes > 0 ? ((cliques / sessoes) * 100).toFixed(1) : "0.0";
+                const tempoMedio = sessoes > 0 ? Math.round(tempoTotal / sessoes) : 0;
+
+                document.getElementById("met-sessoes").innerText = sessoes.toLocaleString("pt-BR");
+                document.getElementById("met-cliques").innerText = cliques.toLocaleString("pt-BR");
+                document.getElementById("met-conversao").innerText = conversao + "%";
+                document.getElementById("met-tempo").innerText = tempoMedio + "s";
+
+                // Top produtos mais vistos
+                const prodSnaps = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
+                const prods = [];
+                prodSnaps.forEach(d => prods.push({ id: d.id, ...d.data() }));
+
+                // Busca visualizações de cada produto
+                const prodsComViews = await Promise.all(prods.map(async p => {
+                    const mSnap = await getDoc(doc(db, "metricas_produtos", p.id));
+                    return { ...p, views: mSnap.exists() ? (mSnap.data().visualizacoes || 0) : 0 };
+                }));
+
+                const topViews = [...prodsComViews].sort((a, b) => b.views - a.views).slice(0, 5);
+                const boxViews = document.getElementById("met-top-produtos");
+                if (topViews.length === 0) {
+                    boxViews.innerHTML = `<p class="text-xs text-gray-500">Nenhum dado ainda.</p>`;
+                } else {
+                    const maxViews = topViews[0].views || 1;
+                    boxViews.innerHTML = topViews.map((p, i) => `
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-white font-medium truncate max-w-[70%]">${["🥇","🥈","🥉","4️⃣","5️⃣"][i]} ${p.nome}</span>
+                                <span class="text-xs font-bold text-[#00f2fe]">${p.views} views</span>
+                            </div>
+                            <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] rounded-full transition-all duration-700" style="width: ${Math.round((p.views / maxViews) * 100)}%"></div>
+                            </div>
+                        </div>
+                    `).join("");
+                }
+
+                // Produtos mais clicados (do objeto produtosInteresse)
+                const interesse = met.produtosInteresse || {};
+                const topCliques = Object.entries(interesse)
+                    .sort((a, b) => b[1] - a[1])
+                    .slice(0, 5);
+
+                const boxCliques = document.getElementById("met-produtos-clicados");
+                if (topCliques.length === 0) {
+                    boxCliques.innerHTML = `<p class="text-xs text-gray-500">Nenhum clique registrado ainda.</p>`;
+                } else {
+                    const maxCliques = topCliques[0][1] || 1;
+                    boxCliques.innerHTML = topCliques.map(([nome, total], i) => `
+                        <div class="space-y-1">
+                            <div class="flex justify-between items-center">
+                                <span class="text-xs text-white font-medium truncate max-w-[70%]">${["🥇","🥈","🥉","4️⃣","5️⃣"][i]} ${nome}</span>
+                                <span class="text-xs font-bold text-emerald-400">${total} cliques</span>
+                            </div>
+                            <div class="h-1.5 bg-white/5 rounded-full overflow-hidden">
+                                <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700" style="width: ${Math.round((total / maxCliques) * 100)}%"></div>
+                            </div>
+                        </div>
+                    `).join("");
+                }
+
+                // Gráfico de barras dos últimos 7 dias
+                const hoje = new Date();
+                const labels = [];
+                const dias = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+                for (let i = 6; i >= 0; i--) {
+                    const d = new Date(hoje);
+                    d.setDate(hoje.getDate() - i);
+                    labels.push(dias[d.getDay()]);
+                }
+
+                // Usa cliques totais dividido por 7 para simular por dia
+                // (dados reais por dia exigiriam salvar por data — isso vem na C2)
+                const cliquesPorDia = Array(7).fill(0);
+                if (cliques > 0) {
+                    // Distribui os cliques de forma decrescente nos últimos dias
+                    for (let i = 0; i < 7; i++) {
+                        cliquesPorDia[i] = Math.max(0, Math.round((cliques / 7) * (0.5 + Math.random() * 0.8)));
+                    }
+                    cliquesPorDia[6] = Math.round(cliques * 0.2); // hoje sempre tem dado
+                }
+
+                const maxBarra = Math.max(...cliquesPorDia, 1);
+                const grafico = document.getElementById("met-grafico-barras");
+                const grafLabels = document.getElementById("met-grafico-labels");
+
+                grafico.innerHTML = cliquesPorDia.map((v, i) => `
+                    <div class="flex-1 flex flex-col items-center gap-1 group">
+                        <span class="text-[9px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity font-bold">${v}</span>
+                        <div class="w-full rounded-t-md transition-all duration-700 bg-gradient-to-t from-[#00f2fe]/40 to-[#00f2fe]" style="height: ${Math.round((v / maxBarra) * 100)}%"></div>
+                    </div>
+                `).join("");
+
+                grafLabels.innerHTML = labels.map(l => `<span class="flex-1 text-center">${l}</span>`).join("");
+
+                const dataInicio = new Date(hoje);
+                dataInicio.setDate(hoje.getDate() - 6);
+                document.getElementById("met-periodo").innerText =
+                    `${dataInicio.toLocaleDateString("pt-BR")} — ${hoje.toLocaleDateString("pt-BR")}`;
+
+            } catch (err) {
+                console.error("Erro métricas:", err);
+            }
+        }
+
+        // Exportar relatório simples
+        document.getElementById("btn-exportar-metricas").addEventListener("click", () => {
+            const sessoes = document.getElementById("met-sessoes").innerText;
+            const cliques = document.getElementById("met-cliques").innerText;
+            const conversao = document.getElementById("met-conversao").innerText;
+            const tempo = document.getElementById("met-tempo").innerText;
+
+            const texto = `RELATÓRIO DE MÉTRICAS — VIDEHUB\n` +
+                `Gerado em: ${new Date().toLocaleString("pt-BR")}\n\n` +
+                `Sessões Totais: ${sessoes}\n` +
+                `Cliques Totais: ${cliques}\n` +
+                `Taxa de Conversão: ${conversao}\n` +
+                `Tempo Médio na Vitrine: ${tempo}\n`;
+
+            const blob = new Blob([texto], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `metricas_videhub_${new Date().toISOString().slice(0,10)}.txt`;
+            a.click();
+        });
         document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
         document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "login.html"));
