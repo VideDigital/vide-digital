@@ -898,6 +898,8 @@
                     // Número do Chat e Botão Ativo
                     document.getElementById("perf-social-whatsapp-chat").value = dados.whatsappChat || "";
                     document.getElementById("perf-chat-ativo").checked = dados.chatAtivo || false;
+                    document.getElementById("perf-carrinho-ativo").checked = dados.carrinhoAtivo || false;
+                    document.getElementById("perf-carrinho-mensagem").value = dados.carrinhoMensagem || "";
                     
                     // Cores Cliente
                     document.getElementById("perf-cor-destaque").value = dados.corDestaque || "#00f2fe";
@@ -1014,6 +1016,8 @@
                 abaPadrao: document.getElementById("perf-aba-padrao").value,
                 whatsappChat: document.getElementById("perf-social-whatsapp-chat").value.trim(),
                 chatAtivo: document.getElementById("perf-chat-ativo").checked,
+                carrinhoAtivo: document.getElementById("perf-carrinho-ativo").checked,
+                carrinhoMensagem: document.getElementById("perf-carrinho-mensagem").value.trim(),
                 corDestaque: document.getElementById("perf-cor-destaque").value,
                 corFundo: document.getElementById("perf-cor-fundo").value,
                 corCard: document.getElementById("perf-cor-card").value,
@@ -1067,6 +1071,8 @@
                     subtituloHero: payloadPerfil.subtituloHero,
                     whatsappCentral: payloadPerfil.whatsappCentral,
                     chatAtivo: payloadPerfil.chatAtivo,
+                    carrinhoAtivo: payloadPerfil.carrinhoAtivo,
+                    carrinhoMensagem: payloadPerfil.carrinhoMensagem,
                     corClientBrand: payloadPerfil.corDestaque,
                     corClientFundo: payloadPerfil.corFundo,
                     corClientCard: payloadPerfil.corCard,
