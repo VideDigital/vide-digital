@@ -473,6 +473,31 @@
                     <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
                     <p class="text-gray-400 text-xs mt-1">Gerencie os contatos que demonstraram interesse em seus produtos.</p>
                 </div>
+                <div class="flex flex-wrap gap-2">
+                    <select id="filtro-lead-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option value="7">Últimos 7 dias</option>
+                        <option value="30" selected>Últimos 30 dias</option>
+                        <option value="90">Últimos 90 dias</option>
+                        <option value="0">Todos</option>
+                    </select>
+                    <select id="filtro-lead-status" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option value="todos">Todos os status</option>
+                        <option value="novo">Novos</option>
+                        <option value="contato">Em Contato</option>
+                        <option value="convertido">Convertidos</option>
+                        <option value="perdido">Perdidos</option>
+                    </select>
+                    <select id="filtro-lead-origem" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <option value="todos">Todas origens</option>
+                        <option value="meta">Meta Ads</option>
+                        <option value="google">Google</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="instagram">Instagram</option>
+                        <option value="direto">Direto</option>
+                    </select>
+                    <button onclick="aplicarFiltrosLeads()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+                </div>
+            </div>
                 <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
                     📥 Exportar Planilha (.CSV)
                 </button>
@@ -1176,11 +1201,104 @@
 
 
         // CARREGAR E RENDERIZAR LEADS ENTERPRISE ORIGINAIS
-        async function carregarLeads() {
+        async function carregarLeads(filtroDataDias = 30, filtroStatus = "todos", filtroOrigem = "todos") {
             const tableBody = document.getElementById("leads-table-body");
+            const statTotal = document.getElementById("lead-total-count");
+            const statWhats = document.getElementById("lead-whatsapp-count");
+            const statCliques = document.getElementById("lead-clicks-count");
+            const statTempo = document.getElementById("lead-time-count");
+            if (!usuarioUID) return;
             try {
                 const q = query(collection(db, "leads"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
+                const agora = Date.now();
+                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
+
+                let leads = [];
+                querySnapshot.forEach(docSnap => {
+                    const d = docSnap.data();
+                    const dataLead = d.data || agora;
+                    if (filtroDataDias !== 0 && dataLead < limite) return;
+                    if (filtroStatus !== "todos" && (d.statusLead || "novo") !== filtroStatus) return;
+                    if (filtroOrigem !== "todos" && (d.origem || "direto") !== filtroOrigem) return;
+                    leads.push({ id: docSnap.id, ...d });
+                });
+
+                leads.sort((a, b) => (b.data || 0) - (a.data || 0));
+
+                let totalLeads = leads.length;
+                let comWhats = leads.filter(l => l.whatsapp).length;
+                let totalCliques = leads.reduce((s, l) => s + (l.cliques || 1), 0);
+                let totalTempo = leads.reduce((s, l) => s + (l.tempoRetencao || 0), 0);
+
+                if (statTotal) statTotal.innerText = totalLeads;
+                if (statWhats) statWhats.innerText = comWhats;
+                if (statCliques) statCliques.innerText = totalCliques;
+                if (statTempo) statTempo.innerText = totalLeads > 0 ? Math.round(totalTempo / totalLeads) + "s" : "0s";
+
+                if (totalLeads === 0) {
+                    tableBody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500 text-xs">Nenhum lead encontrado com os filtros selecionados.</td></tr>`;
+                    return;
+                }
+
+                const statusClasses = {
+                    novo: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+                    contato: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                    convertido: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                    perdido: "bg-red-500/10 text-red-400 border border-red-500/20"
+                };
+                const statusLabels = { novo: "Novo", contato: "Em Contato", convertido: "Convertido", perdido: "Perdido" };
+                const origemClasses = {
+                    meta: "bg-indigo-500/10 text-indigo-400",
+                    google: "bg-blue-500/10 text-blue-400",
+                    tiktok: "bg-pink-500/10 text-pink-400",
+                    instagram: "bg-purple-500/10 text-purple-400",
+                    direto: "bg-gray-500/10 text-gray-400"
+                };
+
+                tableBody.innerHTML = leads.map(lead => `
+                    <tr class="hover:bg-white/[0.01] transition-colors border-b border-white/5">
+                        <td class="p-4">
+                            <div class="flex items-center gap-2.5">
+                                <div class="h-7 w-7 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-[10px] font-black text-[#00f2fe] shrink-0">
+                                    ${(lead.nome || "?")[0].toUpperCase()}
+                                </div>
+                                <span class="font-bold text-white text-xs">${lead.nome || "Anônimo"}</span>
+                            </div>
+                        </td>
+                        <td class="p-4 text-gray-400 text-xs">${lead.email || "—"}</td>
+                        <td class="p-4 text-emerald-400 text-xs font-medium">${lead.whatsapp || "—"}</td>
+                        <td class="p-4">
+                            <span class="text-[10px] font-bold px-2 py-1 rounded-md ${origemClasses[lead.origem] || origemClasses.direto} uppercase">${lead.origem || "Direto"}</span>
+                        </td>
+                        <td class="p-4 text-center text-xs font-bold text-white">${lead.cliques || 1}</td>
+                        <td class="p-4 text-center text-xs text-amber-400 font-medium">${lead.tempoRetencao || 0}s</td>
+                        <td class="p-4 text-[#00f2fe] text-xs max-w-[120px] truncate">${lead.produtoInteresse || "—"}</td>
+                        <td class="p-4">
+                            <select onchange="atualizarStatusLead('${lead.id}', this.value)" class="bg-transparent text-[10px] font-bold rounded-md px-2 py-1 border cursor-pointer outline-none ${statusClasses[lead.statusLead || 'novo']}">
+                                <option value="novo" ${(lead.statusLead || 'novo') === 'novo' ? 'selected' : ''}>Novo</option>
+                                <option value="contato" ${lead.statusLead === 'contato' ? 'selected' : ''}>Em Contato</option>
+                                <option value="convertido" ${lead.statusLead === 'convertido' ? 'selected' : ''}>Convertido</option>
+                                <option value="perdido" ${lead.statusLead === 'perdido' ? 'selected' : ''}>Perdido</option>
+                            </select>
+                        </td>
+                        <td class="p-4 text-gray-500 text-xs">${lead.data ? new Date(lead.data).toLocaleDateString("pt-BR") : "Hoje"}</td>
+                    </tr>
+                `).join("");
+
+            } catch (err) {
+                console.error("Erro leads:", err);
+            }
+        }
+
+        window.atualizarStatusLead = async function(leadId, novoStatus) {
+            try {
+                await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
+                showToast("Status atualizado!");
+            } catch(err) {
+                console.error(err);
+            }
+        };
                 
                 let totalLeads = 0;
                 let comWhats = 0;
