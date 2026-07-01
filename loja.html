@@ -33,32 +33,33 @@
         </div>
     </header>
 
-<div id="banners-carrossel" class="hidden relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group">
+    <div id="banners-carrossel" class="hidden relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group">
         <div id="banners-track" class="flex h-full transition-transform duration-700 ease-in-out"></div>
-        <button id="banner-seta-anterior" class="hidden absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">‹</button>
-        <button id="banner-seta-proximo" class="hidden absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">›</button>
+        <button id="banner-seta-anterior" class="hidden absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">&#8249;</button>
+        <button id="banner-seta-proximo" class="hidden absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">&#8250;</button>
         <div id="banner-indicadores" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 gap-1.5 z-10"></div>
     </div>
-    
+
     <section class="max-w-6xl w-full mx-auto px-6 pt-12 text-center md:text-left space-y-6">
         <div class="max-w-3xl space-y-2">
-            <h2 id="client-titulo-hero" class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">Soluções & Treinamentos</h2>
-            <p id="client-subtitulo" class="text-gray-400 text-sm max-w-xl">Escolha uma das ofertas premium abaixo para obter acesso imediato ao ambiente seguro de checkout.</p>
+            <h2 id="client-titulo-hero" class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">Solucoes e Treinamentos</h2>
+            <p id="client-subtitulo" class="text-gray-400 text-sm max-w-xl">Escolha uma das ofertas premium abaixo.</p>
         </div>
 
+        <div id="links-extras-container" class="flex flex-wrap gap-3 pt-2"></div>
+
         <div class="max-w-2xl pt-2 relative">
-            <input type="text" id="search-input" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 text-sm text-white outline-none search-glow transition-all" placeholder="Buscar um produto ou treinamento específico...">
-            <span class="absolute left-4 top-6 text-gray-400 text-sm">🔍</span>
+            <input type="text" id="search-input" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 text-sm text-white outline-none search-glow transition-all" placeholder="Buscar um produto...">
+            <span class="absolute left-4 top-6 text-gray-400 text-sm">&#128269;</span>
         </div>
-        
-<div id="links-extras-container" class="flex flex-wrap gap-3 pt-2"></div>
+
         <div id="container-filtros" class="flex flex-wrap gap-2 pt-2">
-            <button data-nicho="todos" class="filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm">✨ Todos</button>
+            <button data-nicho="todos" class="filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm">Todos</button>
             <button data-nicho="Automotivo" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Automotivo</button>
             <button data-nicho="Utilidades" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Utilidades</button>
             <button data-nicho="Confeitaria" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Confeitaria</button>
             <button data-nicho="Barbearia" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Barbearia</button>
-            <button data-nicho="Estética" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Estética e Beleza</button>
+            <button data-nicho="Estetica" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Estetica e Beleza</button>
         </div>
     </section>
 
@@ -73,33 +74,28 @@
     <div id="widget-chat-cliente" class="hidden fixed bottom-6 right-6 z-50 flex flex-col items-end">
         <div id="chat-window" class="hidden w-80 h-96 border border-white/10 rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden mb-3 bg-[#0c0c14]">
             <div class="p-4 bg-white/[0.02] border-b border-white/5 text-xs font-bold flex justify-between items-center text-white">
-                <span class="flex items-center gap-2">
-                    <span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Atendimento Online
-                </span>
+                <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Atendimento Online</span>
                 <button onclick="toggleChatWindow()" class="text-gray-400 hover:text-white text-lg">&times;</button>
             </div>
-            
             <div id="chat-client-messages" class="p-4 flex-1 overflow-y-auto space-y-2 text-[11px] flex flex-col custom-scrollbar">
                 <div class="bg-white/5 p-3 rounded-2xl border border-white/5 text-gray-300 rounded-tl-none">
-                    Olá! Prazer em te receber. Digite seu nome completo para iniciarmos o suporte especializado:
+                    Ola! Digite seu nome completo para iniciarmos o suporte:
                 </div>
             </div>
-
             <form id="chat-client-form" class="p-2 bg-black/40 border-t border-white/5 flex gap-1.5">
                 <input type="text" id="chat-client-input" class="flex-1 bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none" placeholder="Seu nome...">
                 <button type="submit" id="chat-send-btn" class="bg-white text-black font-bold px-4 rounded-xl text-xs">OK</button>
             </form>
         </div>
-
         <button onclick="toggleChatWindow()" id="chat-trigger-btn" class="h-14 w-14 rounded-full shadow-2xl flex items-center justify-center text-xl transition-transform hover:scale-110 active:scale-95 text-black bg-[#00f2fe]">
-            💬
+            &#128172;
         </button>
     </div>
 
     <footer class="border-t border-white/5 py-6 bg-black/20 mt-12">
         <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-gray-500">
-            <p id="client-footer-text">© 2026 Todos os direitos reservados. Checkout integrado.</p>
-            <p class="flex items-center gap-1.5">🔒 Conexão Criptografada de Ponta a Ponta</p>
+            <p id="client-footer-text">2026 Todos os direitos reservados.</p>
+            <p class="flex items-center gap-1.5">&#128274; Conexao Criptografada</p>
         </div>
     </footer>
 
@@ -114,62 +110,51 @@
         let nichoSelecionado = "todos";
         let fornecedorEmail = "";
         let whatsappDono = "";
-
-        // Estados do Chat Híbrido
         let clienteRegistrado = false;
         let clienteNome = "";
         let salaChatId = null;
         let timeoutRedirecionamentoWhats = null;
-
         let tempoInicioSessao = Date.now();
         const utmSourceCapturada = urlParams.get("utm_source") || "Direto";
 
         if (lojaSlug) {
             carregarConfiguracoesVitrine();
         } else {
-            document.getElementById("vitrine-container").innerHTML = `
-                <div class="col-span-full text-center p-12 bg-red-500/5 border border-dashed border-red-500/20 rounded-2xl">
-                    <p class="text-red-400 text-sm font-semibold">Parâmetro de link da loja ausente.</p>
-                </div>`;
-            document.getElementById("client-nome-loja").innerText = "Não Identificado";
+            document.getElementById("vitrine-container").innerHTML = '<div class="col-span-full text-center p-12 bg-red-500/5 border border-dashed border-red-500/20 rounded-2xl"><p class="text-red-400 text-sm font-semibold">Parametro de link da loja ausente.</p></div>';
+            document.getElementById("client-nome-loja").innerText = "Nao Identificado";
         }
 
         async function carregarConfiguracoesVitrine() {
             try {
-                // Busca a estrutura da vitrine direto no nó público unificado para garantir sincronização instantânea
                 const publicSnap = await getDoc(doc(db, "vitrines_publicas", lojaSlug.toLowerCase()));
-                
+
                 if (publicSnap.exists()) {
                     const dados = publicSnap.data();
                     fornecedorEmail = dados.emailDono;
                     whatsappDono = dados.whatsappCentral || "";
 
-                    // Injeta textos customizados das abas do administrador
                     document.getElementById("client-tab-title").innerText = dados.nomeLoja || "Vitrine Online";
                     document.getElementById("client-nome-loja").innerText = dados.nomeLoja || "Vitrine Comercial";
-                    document.getElementById("client-titulo-hero").innerText = dados.tituloHero || "Nossas Soluções";
+                    document.getElementById("client-titulo-hero").innerText = dados.tituloHero || "Nossas Solucoes";
                     document.getElementById("client-subtitulo").innerText = dados.subtituloHero || "Selecione um item.";
-                    document.getElementById("client-footer-text").innerText = `© 2026 ${dados.nomeLoja || 'MinhaVitrine'}. Todos os direitos reservados.`;
+                    document.getElementById("client-footer-text").innerText = "2026 " + (dados.nomeLoja || "MinhaVitrine") + ". Todos os direitos reservados.";
 
-                    // Injeta o motor de cores dinâmicas separadas do cliente
                     const brandColor = dados.corClientBrand || "#00f2fe";
                     const fundoColor = dados.corClientFundo || "#030712";
                     const cardColor = dados.corClientCard || "#0c0c14";
                     const secundariaColor = dados.corClientSecundaria || "#4facfe";
                     const textoColor = dados.corClientTexto || "#e5e7eb";
                     const textoBotaoColor = dados.corClientTextoBotao || "#000000";
-                    const bordaColor = dados.corClientBorda || "#ffffff";
                     const fonteEscolhida = dados.fonteVitrine || "Plus Jakarta Sans";
 
-                    document.documentElement.style.setProperty('--client-brand', brandColor);
-                    document.documentElement.style.setProperty('--client-secundaria', secundariaColor);
-                    document.documentElement.style.setProperty('--client-borda', bordaColor);
-                    document.documentElement.style.setProperty('--client-texto-botao', textoBotaoColor);
+                    document.documentElement.style.setProperty("--client-brand", brandColor);
+                    document.documentElement.style.setProperty("--client-secundaria", secundariaColor);
+                    document.documentElement.style.setProperty("--client-texto-botao", textoBotaoColor);
                     document.getElementById("client-body").style.backgroundColor = fundoColor;
                     document.getElementById("client-body").style.color = textoColor;
-                    document.getElementById("client-body").style.fontFamily = `'${fonteEscolhida}', sans-serif`;
+                    document.getElementById("client-body").style.fontFamily = "'" + fonteEscolhida + "', sans-serif";
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
-                    document.getElementById("logo-indicator").style.background = `linear-gradient(to top right, ${brandColor}, ${secundariaColor})`;
+                    document.getElementById("logo-indicator").style.background = "linear-gradient(to top right, " + brandColor + ", " + secundariaColor + ")";
 
                     if (dados.fotoPerfilB64) {
                         document.getElementById("logo-foto-cliente").src = dados.fotoPerfilB64;
@@ -177,101 +162,96 @@
                         document.getElementById("logo-indicator").classList.add("hidden");
                     }
 
-                    const linksExtrasBox = document.getElementById("links-extras-container");
+                    const linksBox = document.getElementById("links-extras-container");
                     if (dados.link1Titulo && dados.link1Url) {
-                        linksExtrasBox.innerHTML += `<a href="${dados.link1Url}" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ${brandColor}; color: ${brandColor};">${dados.link1Icone || '🔗'} ${dados.link1Titulo}</a>`;
+                        linksBox.innerHTML += '<a href="' + dados.link1Url + '" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ' + brandColor + '; color: ' + brandColor + ';">' + (dados.link1Icone || "&#128279;") + " " + dados.link1Titulo + "</a>";
                     }
                     if (dados.link2Titulo && dados.link2Url) {
-                        linksExtrasBox.innerHTML += `<a href="${dados.link2Url}" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ${brandColor}; color: ${brandColor};">${dados.link2Icone || '🔗'} ${dados.link2Titulo}</a>`;
-                    }
-
-                        if (dados.banners.length > 1) {
-                            document.getElementById("banner-seta-anterior").classList.remove("hidden");
-                            document.getElementById("banner-seta-anterior").classList.add("flex");
-                            document.getElementById("banner-seta-proximo").classList.remove("hidden");
-                            document.getElementById("banner-seta-proximo").classList.add("flex");
-                            indicadoresBox.classList.remove("hidden");
-                            indicadoresBox.classList.add("flex");
-
-                            document.getElementById("banner-seta-anterior").addEventListener("click", () => {
-                                irParaBanner(indexAtual - 1);
-                                iniciarAutoplayBanner();
-                            });
-                            document.getElementById("banner-seta-proximo").addEventListener("click", () => {
-                                irParaBanner(indexAtual + 1);
-                                iniciarAutoplayBanner();
-                            });
-                            document.querySelectorAll("#banner-indicadores button").forEach(ponto => {
-                                ponto.addEventListener("click", () => {
-                                    irParaBanner(parseInt(ponto.dataset.index));
-                                    iniciarAutoplayBanner();
-                                });
-                            });
-
-                            irParaBanner(0);
-                            iniciarAutoplayBanner();
-                        }
-                    }
-
-                    // Exibe widget se o administrador manteve ativado
-                    if(dados.chatAtivo !== false) {
-                        document.getElementById("widget-chat-cliente").classList.remove("hidden");
+                        linksBox.innerHTML += '<a href="' + dados.link2Url + '" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ' + brandColor + '; color: ' + brandColor + ';">' + (dados.link2Icone || "&#128279;") + " " + dados.link2Titulo + "</a>";
                     }
 
                     if (dados.banners && dados.banners.length > 0) {
                         const carrossel = document.getElementById("banners-carrossel");
                         const track = document.getElementById("banners-track");
+                        const indicadoresBox = document.getElementById("banner-indicadores");
                         carrossel.classList.remove("hidden");
-                        dados.banners.forEach(imgSrc => {
+
+                        dados.banners.forEach(function(imgSrc, i) {
                             const slide = document.createElement("div");
                             slide.className = "w-full h-full shrink-0 bg-black/40";
-                            slide.innerHTML = `<img src="${imgSrc}" class="w-full h-full object-cover">`;
+                            slide.innerHTML = '<img src="' + imgSrc + '" class="w-full h-full object-cover">';
                             track.appendChild(slide);
+
+                            const ponto = document.createElement("button");
+                            ponto.className = "h-1.5 rounded-full bg-white/40 transition-all";
+                            ponto.style.width = "6px";
+                            ponto.dataset.index = i;
+                            indicadoresBox.appendChild(ponto);
                         });
+
+                        let indexAtual = 0;
+                        let intervaloBanner = null;
+
+                        function irParaBanner(novoIndex) {
+                            indexAtual = (novoIndex + dados.banners.length) % dados.banners.length;
+                            track.style.transform = "translateX(-" + (indexAtual * 100) + "%)";
+                            document.querySelectorAll("#banner-indicadores button").forEach(function(ponto, i) {
+                                ponto.style.width = (i === indexAtual) ? "18px" : "6px";
+                                ponto.style.backgroundColor = (i === indexAtual) ? brandColor : "rgba(255,255,255,0.4)";
+                            });
+                        }
+
+                        function iniciarAutoplay() {
+                            clearInterval(intervaloBanner);
+                            intervaloBanner = setInterval(function() { irParaBanner(indexAtual + 1); }, 4000);
+                        }
 
                         if (dados.banners.length > 1) {
-                            let indexAtual = 0;
-                            setInterval(() => {
-                                indexAtual = (indexAtual + 1) % dados.banners.length;
-                                track.style.transform = `translateX(-${indexAtual * 100}%)`;
-                            }, 4000);
+                            const btnAnterior = document.getElementById("banner-seta-anterior");
+                            const btnProximo = document.getElementById("banner-seta-proximo");
+                            btnAnterior.classList.remove("hidden"); btnAnterior.classList.add("flex");
+                            btnProximo.classList.remove("hidden"); btnProximo.classList.add("flex");
+                            indicadoresBox.classList.remove("hidden"); indicadoresBox.classList.add("flex");
+
+                            btnAnterior.addEventListener("click", function() { irParaBanner(indexAtual - 1); iniciarAutoplay(); });
+                            btnProximo.addEventListener("click", function() { irParaBanner(indexAtual + 1); iniciarAutoplay(); });
+                            document.querySelectorAll("#banner-indicadores button").forEach(function(ponto) {
+                                ponto.addEventListener("click", function() { irParaBanner(parseInt(ponto.dataset.index)); iniciarAutoplay(); });
+                            });
                         }
+
+                        irParaBanner(0);
+                        if (dados.banners.length > 1) iniciarAutoplay();
                     }
 
-                    // Registra métrica de nova sessão aberta
+                    if (dados.chatAtivo !== false) {
+                        document.getElementById("widget-chat-cliente").classList.remove("hidden");
+                    }
+
                     await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), { totalSessoes: increment(1) }, { merge: true });
 
-                    // Coleta os produtos cadastrados do dono desta vitrine
                     const qProd = query(collection(db, "produtos"), where("criadoPor", "==", fornecedorEmail));
                     const queryProdSnap = await getDocs(qProd);
-                    
+
                     todosProdutos = [];
-                    queryProdSnap.forEach(docSnap => {
-                        todosProdutos.push({ 
-                            id: docSnap.id, 
-                            ...docSnap.data(), 
-                            corDoCard: cardColor, 
-                            corDestaque: brandColor 
-                        });
+                    queryProdSnap.forEach(function(docSnap) {
+                        todosProdutos.push(Object.assign({ id: docSnap.id, corDoCard: cardColor, corDestaque: brandColor }, docSnap.data()));
                     });
 
                     renderizarCatalogoFiltros();
+
                 } else {
-                    document.getElementById("vitrine-container").innerHTML = `
-                        <div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl">
-                            <p class="text-gray-500 text-sm">Esta loja personalizada não foi encontrada ou está inativa.</p>
-                        </div>`;
+                    document.getElementById("vitrine-container").innerHTML = '<div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl"><p class="text-gray-500 text-sm">Loja nao encontrada.</p></div>';
                 }
             } catch (err) {
-                console.error(err);
+                console.error("Erro ao carregar vitrine:", err);
             }
         }
 
-        // Calcula tempo de tela ao fechar a aba
-        window.addEventListener("beforeunload", () => {
-            if(fornecedorEmail) {
-                const tempoGasto = Math.round((Date.now() - tempoInicioSessao) / 1000);
-                setDoc(doc(db, "metricas_vitrines", fornecedorEmail), { totalTempoTela: increment(tempoGasto) }, { merge: true });
+        window.addEventListener("beforeunload", function() {
+            if (fornecedorEmail) {
+                const t = Math.round((Date.now() - tempoInicioSessao) / 1000);
+                setDoc(doc(db, "metricas_vitrines", fornecedorEmail), { totalTempoTela: increment(t) }, { merge: true });
             }
         });
 
@@ -280,26 +260,21 @@
             const buscaInput = document.getElementById("search-input").value.toLowerCase();
             container.innerHTML = "";
 
-            const produtosFiltrados = todosProdutos.filter(p => {
-                const matchesNicho = (nichoSelecionado === "todos" || p.subnicho === nichoSelecionado);
-                const matchesTexto = p.nome.toLowerCase().includes(buscaInput) || (p.descricao && p.descricao.toLowerCase().includes(buscaInput));
-                return matchesNicho && matchesTexto;
+            const produtosFiltrados = todosProdutos.filter(function(p) {
+                const matchNicho = (nichoSelecionado === "todos" || p.subnicho === nichoSelecionado);
+                const matchTexto = p.nome.toLowerCase().includes(buscaInput) || (p.descricao && p.descricao.toLowerCase().includes(buscaInput));
+                return matchNicho && matchTexto;
             });
 
-            if(produtosFiltrados.length === 0) {
-                container.innerHTML = `
-                    <div class="col-span-full text-center p-12 bg-white/[0.01] rounded-2xl border border-white/5">
-                        <p class="text-xs text-gray-500">Nenhum produto correspondente encontrado para os critérios de busca.</p>
-                    </div>`;
+            if (produtosFiltrados.length === 0) {
+                container.innerHTML = '<div class="col-span-full text-center p-12 bg-white/[0.01] rounded-2xl border border-white/5"><p class="text-xs text-gray-500">Nenhum produto encontrado.</p></div>';
                 return;
             }
 
-            produtosFiltrados.forEach(prod => {
+            produtosFiltrados.forEach(function(prod) {
                 const card = document.createElement("div");
                 card.className = "dynamic-card rounded-2xl overflow-hidden flex flex-col justify-between group";
                 card.style.backgroundColor = prod.corDoCard;
-                card.style.borderColor = "var(--client-borda)";
-                card.style.borderOpacity = "0.08";
 
                 const inputPreco = parseFloat(prod.preco || 0);
 
@@ -309,62 +284,60 @@
                         cupomValido = true;
                     }
                 }
-                const precoComDesconto = cupomValido ? inputPreco * (1 - (prod.cupomDesconto / 100)) : inputPreco;
-                const precoFormatado = precoComDesconto.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                const precoOriginalFormatado = inputPreco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                const precoFinal = cupomValido ? inputPreco * (1 - prod.cupomDesconto / 100) : inputPreco;
+                const precoFormatado = precoFinal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                const precoOriginal = inputPreco.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
                 const imgFinal = prod.imagemB64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%2309090f"/></svg>';
+                const estrelas = prod.avaliacao ? "&#11088;".repeat(Math.round(prod.avaliacao)) + " (" + prod.avaliacao + ")" : "";
+                const nomeSafe = (prod.nome || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                const destSafe = (prod.destinoValue || "").replace(/'/g, "\\'");
 
-                const estrelas = prod.avaliacao ? '⭐'.repeat(Math.round(prod.avaliacao)) + ` (${prod.avaliacao})` : '';
-
-                // Contador de visualizações (registra 1x por sessão por produto)
-                const chaveVisualizada = `visto_${prod.id}`;
-                if (!sessionStorage.getItem(chaveVisualizada)) {
-                    sessionStorage.setItem(chaveVisualizada, "1");
+                const chave = "visto_" + prod.id;
+                if (!sessionStorage.getItem(chave)) {
+                    sessionStorage.setItem(chave, "1");
                     setDoc(doc(db, "metricas_produtos", prod.id), { visualizacoes: increment(1) }, { merge: true });
                 }
 
-                card.innerHTML = `
-                    <div class="relative h-52 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">
-                        <img src="${imgFinal}" alt="${prod.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                        <div class="absolute top-3 left-3 flex flex-wrap gap-1">
-                            <span class="text-[9px] font-bold text-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
-                            ${prod.badgeCustom ? `<span class="text-[9px] font-black text-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md" style="background-color: ${prod.corDestaque}">${prod.badgeCustom}</span>` : ''}
-                            ${prod.freteGratis ? `<span class="text-[9px] font-black text-white bg-emerald-600 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">📦 Frete Grátis</span>` : ''}
-                        </div>
-                        ${prod.vagasTag ? `<span class="absolute bottom-3 right-3 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-500/20 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider animate-pulse">${prod.vagasTag}</span>` : ''}
-                    </div>
-                    <div class="p-6 flex-1 flex flex-col justify-between space-y-5">
-                        <div class="space-y-1.5">
-                            <h3 class="text-base font-bold text-white tracking-tight line-clamp-1">${prod.nome}</h3>
-                            ${estrelas ? `<p class="text-[11px] text-amber-300 font-semibold">${estrelas}</p>` : ''}
-                            <p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">${prod.descricao || 'Sem especificações comerciais adicionadas.'}</p>
-                            ${prod.videoUrl ? `<a href="${prod.videoUrl}" target="_blank" class="text-[11px] font-bold underline" style="color: ${prod.corDestaque}">▶️ Assistir vídeo de apresentação</a>` : ''}
-                        </div>
-                        <div class="space-y-3">
-                            ${cupomValido ? `<span class="inline-block text-[9px] font-black text-black px-2 py-1 rounded-md uppercase tracking-wider" style="background-color: ${prod.corDestaque}">🎟️ ${prod.cupomCodigo || 'CUPOM'} — ${prod.cupomDesconto}% OFF</span>` : ''}
-                            <div>
-                                <p class="text-2xl font-black text-white tracking-tight">${precoFormatado}</p>
-                                ${cupomValido ? `<p class="text-xs text-gray-500 line-through mt-0.5">De ${precoOriginalFormatado}</p>` : (prod.precoDe ? `<p class="text-xs text-gray-500 line-through mt-0.5">De R$ ${parseFloat(prod.precoDe).toFixed(2)}</p>` : '')}
-                            </div>
-                            <div class="flex flex-col gap-1">
-                                ${prod.garantiaDias ? `<span class="text-[10px] font-semibold text-gray-400">🛡️ Garantia de ${prod.garantiaDias} dias</span>` : ''}
-                                ${(prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[10px] font-semibold text-gray-400">📦 ${prod.estoque} unid. disponíveis</span>` : ''}
-                                <span class="text-[10px] font-semibold text-gray-500" id="views-${prod.id}">👀 carregando...</span>
-                            </div>
-                            <button onclick="irParaOferta('${prod.destinoValue}', '${prod.tipoDestino}', '${prod.nome}')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl transition-all hover:brightness-110" style="background-color: ${prod.corDestaque}; color: var(--client-texto-botao, #000);">
-                                Obter Oferta
-                            </button>
-                            ${prod.seloConfianca ? `<p class="text-[10px] text-center text-gray-500">🔒 ${prod.seloConfianca}</p>` : ''}
-                        </div>
-                    </div>
-                `;
+                card.innerHTML =
+                    '<div class="relative h-52 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">' +
+                        '<img src="' + imgFinal + '" alt="' + nomeSafe + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">' +
+                        '<div class="absolute top-3 left-3 flex flex-wrap gap-1">' +
+                            '<span class="text-[9px] font-bold text-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider">' + (prod.subnicho || "Geral") + "</span>" +
+                            (prod.badgeCustom ? '<span class="text-[9px] font-black text-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md" style="background-color: ' + prod.corDestaque + '">' + prod.badgeCustom + "</span>" : "") +
+                            (prod.freteGratis ? '<span class="text-[9px] font-black text-white bg-emerald-600 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">Frete Gratis</span>' : "") +
+                        "</div>" +
+                        (prod.vagasTag ? '<span class="absolute bottom-3 right-3 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-500/20 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider animate-pulse">' + prod.vagasTag + "</span>" : "") +
+                    "</div>" +
+                    '<div class="p-6 flex-1 flex flex-col justify-between space-y-4">' +
+                        '<div class="space-y-1.5">' +
+                            '<h3 class="text-base font-bold text-white tracking-tight line-clamp-1">' + prod.nome + "</h3>" +
+                            (estrelas ? '<p class="text-[11px] text-amber-300 font-semibold">' + estrelas + "</p>" : "") +
+                            '<p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">' + (prod.descricao || "Sem especificacoes.") + "</p>" +
+                            (prod.videoUrl ? '<a href="' + prod.videoUrl + '" target="_blank" class="text-[11px] font-bold underline" style="color: ' + prod.corDestaque + '">Assistir video de apresentacao</a>' : "") +
+                        "</div>" +
+                        '<div class="space-y-3">' +
+                            (cupomValido ? '<span class="inline-block text-[9px] font-black text-black px-2 py-1 rounded-md uppercase tracking-wider" style="background-color: ' + prod.corDestaque + '">Cupom ' + (prod.cupomCodigo || "CUPOM") + " - " + prod.cupomDesconto + "% OFF</span>" : "") +
+                            '<div>' +
+                                '<p class="text-2xl font-black text-white tracking-tight">' + precoFormatado + "</p>" +
+                                (cupomValido ? '<p class="text-xs text-gray-500 line-through mt-0.5">De ' + precoOriginal + "</p>" : (prod.precoDe ? '<p class="text-xs text-gray-500 line-through mt-0.5">De R$ ' + parseFloat(prod.precoDe).toFixed(2) + "</p>" : "")) +
+                            "</div>" +
+                            '<div class="flex flex-col gap-1">' +
+                                (prod.garantiaDias ? '<span class="text-[10px] font-semibold text-gray-400">Garantia de ' + prod.garantiaDias + " dias</span>" : "") +
+                                ((prod.estoque !== "" && prod.estoque !== undefined) ? '<span class="text-[10px] font-semibold text-gray-400">' + prod.estoque + " unid. disponiveis</span>" : "") +
+                                '<span class="text-[10px] font-semibold text-gray-500" id="views-' + prod.id + '">carregando...</span>' +
+                            "</div>" +
+                            '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + '\')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl transition-all hover:brightness-110" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #000);">Obter Oferta</button>' +
+                            (prod.seloConfianca ? '<p class="text-[10px] text-center text-gray-500">&#128274; ' + prod.seloConfianca + "</p>" : "") +
+                        "</div>" +
+                    "</div>";
+
                 container.appendChild(card);
 
-                getDoc(doc(db, "metricas_produtos", prod.id)).then(snap => {
-                    const elView = document.getElementById(`views-${prod.id}`);
-                    if (elView) {
+                getDoc(doc(db, "metricas_produtos", prod.id)).then(function(snap) {
+                    const el = document.getElementById("views-" + prod.id);
+                    if (el) {
                         const total = snap.exists() ? (snap.data().visualizacoes || 0) : 0;
-                        elView.innerText = `👀 ${total} visualizaç${total === 1 ? 'ão' : 'ões'}`;
+                        el.innerText = total + " visualizac" + (total === 1 ? "ao" : "oes");
                     }
                 });
             });
@@ -372,91 +345,70 @@
 
         window.irParaOferta = async function(destinoValue, tipoDestino, nomeProd) {
             const payloadMetricas = { totalCliques: increment(1) };
-            payloadMetricas[`produtosInteresse.${nomeProd}`] = increment(1);
+            payloadMetricas["produtosInteresse." + nomeProd] = increment(1);
             await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), payloadMetricas, { merge: true });
 
             if (tipoDestino === "whatsapp") {
-                const msg = encodeURIComponent(`Olá! Tenho interesse no produto: *${nomeProd}*`);
-                window.open(`https://wa.me/${destinoValue}?text=${msg}`, "_blank");
+                const msg = encodeURIComponent("Ola! Tenho interesse no produto: " + nomeProd);
+                window.open("https://wa.me/" + destinoValue + "?text=" + msg, "_blank");
             } else {
                 window.open(destinoValue, "_blank");
             }
-        }
+        };
 
-        // Eventos e Input Inteligente de Busca
         document.getElementById("search-input").addEventListener("input", renderizarCatalogoFiltros);
 
-        document.querySelectorAll(".filter-badge").forEach(badge => {
-            badge.addEventListener("click", (e) => {
-                document.querySelectorAll(".filter-badge").forEach(b => b.className = "filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white");
+        document.querySelectorAll(".filter-badge").forEach(function(badge) {
+            badge.addEventListener("click", function(e) {
+                document.querySelectorAll(".filter-badge").forEach(function(b) {
+                    b.className = "filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white";
+                });
                 e.target.className = "filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm";
                 nichoSelecionado = e.target.getAttribute("data-nicho");
                 renderizarCatalogoFiltros();
             });
         });
 
-        // SISTEMA DE INTERFONE / LIVE CHAT HÍBRIDO
         window.toggleChatWindow = function() {
             document.getElementById("chat-window").classList.toggle("hidden");
-        }
+        };
 
-        document.getElementById("chat-client-form").addEventListener("submit", async (e) => {
+        document.getElementById("chat-client-form").addEventListener("submit", async function(e) {
             e.preventDefault();
             const input = document.getElementById("chat-client-input");
             const txt = input.value.trim();
-            if(!txt) return;
+            if (!txt) return;
 
-            if(!clienteRegistrado) {
+            if (!clienteRegistrado) {
                 clienteNome = txt;
                 clienteRegistrado = true;
-                salaChatId = `chat_${Date.now()}`;
-
+                salaChatId = "chat_" + Date.now();
                 input.value = "";
-                input.placeholder = "Escreva sua mensagem aqui...";
+                input.placeholder = "Escreva sua mensagem...";
                 document.getElementById("chat-send-btn").innerText = "Enviar";
+                document.getElementById("chat-client-messages").innerHTML += '<div class="bg-emerald-950/40 text-emerald-400 border border-emerald-500/10 p-2.5 rounded-xl text-center font-bold">Conectado como ' + clienteNome + ".</div>";
 
-                document.getElementById("chat-client-messages").innerHTML += `
-                    <div class="bg-emerald-950/40 text-emerald-400 border border-emerald-500/10 p-2.5 rounded-xl text-center font-bold">
-                        Conectado com sucesso como ${clienteNome}.
-                    </div>`;
-
-                // Monitora as respostas do painel administrativo em tempo real
-                onSnapshot(query(collection(db, `chats/${salaChatId}/mensagens`), orderBy("timestamp", "asc")), (snapshot) => {
+                onSnapshot(query(collection(db, "chats/" + salaChatId + "/mensagens"), orderBy("timestamp", "asc")), function(snapshot) {
                     const box = document.getElementById("chat-client-messages");
                     box.innerHTML = "";
-                    snapshot.forEach(docM => {
+                    snapshot.forEach(function(docM) {
                         const m = docM.data();
                         const bubble = document.createElement("div");
-                        bubble.className = `p-3 rounded-2xl max-w-[85%] ${m.sender === 'admin' ? 'bg-white text-black self-start rounded-tl-none' : 'bg-white/5 text-gray-200 self-end rounded-tr-none border border-white/5'}`;
+                        bubble.className = "p-3 rounded-2xl max-w-[85%] " + (m.sender === "admin" ? "bg-white text-black self-start rounded-tl-none" : "bg-white/5 text-gray-200 self-end rounded-tr-none border border-white/5");
                         bubble.innerText = m.texto;
                         box.appendChild(bubble);
-                        
-                        if(m.sender === 'admin') clearTimeout(timeoutRedirecionamentoWhats);
+                        if (m.sender === "admin") clearTimeout(timeoutRedirecionamentoWhats);
                     });
                     box.scrollTop = box.scrollHeight;
                 });
             } else {
-                // Envia a mensagem comum para a sala no Firestore
-                await setDoc(doc(db, `chats/${salaChatId}/mensagens`, `msg_${Date.now()}`), {
-                    texto: txt, sender: "cliente", timestamp: Date.now()
-                });
-
-                await setDoc(doc(db, "chats", salaChatId), {
-                    clienteNome: clienteNome,
-                    emailDono: fornecedorEmail,
-                    ultimaMensagem: txt,
-                    statusAdmin: "pendente",
-                    timestamp: Date.now()
-                }, { merge: true });
-
+                await setDoc(doc(db, "chats/" + salaChatId + "/mensagens", "msg_" + Date.now()), { texto: txt, sender: "cliente", timestamp: Date.now() });
+                await setDoc(doc(db, "chats", salaChatId), { clienteNome: clienteNome, emailDono: fornecedorEmail, ultimaMensagem: txt, statusAdmin: "pendente", timestamp: Date.now() }, { merge: true });
                 input.value = "";
-
-                // Regra Fallback Híbrida: Se o admin não responder em 30 segundos, chama no WhatsApp
                 clearTimeout(timeoutRedirecionamentoWhats);
-                timeoutRedirecionamentoWhats = setTimeout(() => {
+                timeoutRedirecionamentoWhats = setTimeout(function() {
                     if (whatsappDono) {
-                        const linkWhats = `https://wa.me/${whatsappDono}?text=${encodeURIComponent('Olá! Estava no chat da sua vitrine como ' + clienteNome + ' e vim direto para o WhatsApp concluir minha dúvida: "' + txt + '"')}`;
-                        window.open(linkWhats, '_blank');
+                        window.open("https://wa.me/" + whatsappDono + "?text=" + encodeURIComponent("Ola! Estava no chat como " + clienteNome + ' e vim pelo WhatsApp: "' + txt + '"'), "_blank");
                     }
                 }, 30000);
             }
