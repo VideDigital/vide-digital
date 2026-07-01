@@ -530,6 +530,7 @@
             </div>
         </section>
 
+        <section id="view-leads" class="view-section space-y-6 max-w-6xl mx-auto">
         <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
                     <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
@@ -902,6 +903,7 @@
 
             if (targetId === "view-metricas") carregarMetricas();
             if (targetId === "view-pedidos") carregarPedidos();
+            if (targetId === "view-leads") carregarLeads();
         }
 
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
@@ -1405,8 +1407,7 @@
             }
         }
 
-        window.atualizarStatusLead = async function(leadId, novoStatus) {
-            window.salvarAnotacaoLead = async function(leadId, texto) {
+        window.salvarAnotacaoLead = async function(leadId, texto) {
             try {
                 await setDoc(doc(db, "leads", leadId), { anotacao: texto }, { merge: true });
                 showToast("Anotação salva!");
@@ -1414,6 +1415,8 @@
                 console.error(err);
             }
         };
+
+        window.atualizarStatusLead = async function(leadId, novoStatus) {
             try {
                 await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
                 showToast("Status atualizado!");
