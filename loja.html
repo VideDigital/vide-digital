@@ -525,6 +525,14 @@
             payloadMetricas["produtosInteresse." + nomeProd] = increment(1);
             await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), payloadMetricas, { merge: true });
 
+            await setDoc(doc(db, "leads", `lead_${Date.now()}`), {
+                criadoPor: fornecedorEmail,
+                origem: utmSourceCapturada,
+                produtoInteresse: nomeProd,
+                cliques: 1,
+                data: Date.now()
+            }, { merge: true });
+
             if (tipoDestino === "whatsapp") {
                 const msg = encodeURIComponent("Ola! Tenho interesse no produto: " + nomeProd);
                 window.open("https://wa.me/" + destinoValue + "?text=" + msg, "_blank");
