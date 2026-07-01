@@ -561,12 +561,13 @@
                         <thead>
                             <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
                                 <th class="p-4">👤 Nome</th>
-                                <th class="p-4">✉️ E-mail / Contato</th>
+                                <th class="p-4">✉️ E-mail</th>
                                 <th class="p-4">🟢 WhatsApp</th>
                                 <th class="p-4">📍 Origem</th>
                                 <th class="p-4 text-center">📊 Cliques</th>
-                                <th class="p-4 text-center">⏱️ Tempo Retido</th>
-                                <th class="p-4">🎯 Maior Interesse</th>
+                                <th class="p-4 text-center">⏱️ Tempo</th>
+                                <th class="p-4">🎯 Interesse</th>
+                                <th class="p-4">🏷️ Status</th>
                                 <th class="p-4">📅 Data</th>
                             </tr>
                         </thead>
@@ -819,7 +820,7 @@
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
-            if (targetId === "view-metricas") carregarMetricas();
+            if (targetId === "view-leads") carregarLeads();
         }
 
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
@@ -1656,6 +1657,13 @@
         // =============================================
         // C1 — MÉTRICAS REAIS
         // =============================================
+        window.aplicarFiltrosLeads = function() {
+            const dias = parseInt(document.getElementById("filtro-lead-dias").value);
+            const status = document.getElementById("filtro-lead-status").value;
+            const origem = document.getElementById("filtro-lead-origem").value;
+            carregarLeads(dias, status, origem);
+        };
+        
         async function carregarMetricas() {
             if (!usuarioUID) return;
             try {
