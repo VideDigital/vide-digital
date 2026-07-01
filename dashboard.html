@@ -556,10 +556,13 @@
 
                 <div class="flex items-center gap-3 bg-white/[0.01] p-4 rounded-xl border border-white/5">
                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="prod-frete-gratis" class="sr-only peer">
-                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
+                        <input type="checkbox" id="prod-carrinho-permitido" class="sr-only peer">
+                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
-                    <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">📦 Marcar como Frete Grátis</span>
+                    <div>
+                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🛒 Permitir adicionar ao Carrinho</span>
+                        <p class="text-[10px] text-gray-500 mt-0.5">Só aparece se o carrinho estiver ativo nas configurações da loja.</p>
+                    </div>
                 </div>
 
                 <div class="bg-white/[0.01] p-4 rounded-xl border border-white/5 space-y-3">
@@ -1317,6 +1320,7 @@
                     document.getElementById("prod-video-url").value = data.videoUrl || "";
                     document.getElementById("prod-selo-confianca").value = data.seloConfianca || "";
                     document.getElementById("prod-frete-gratis").checked = data.freteGratis || false;
+                    document.getElementById("prod-carrinho-permitido").checked = data.carrinhoPermitido || false;
                     document.getElementById("prod-cupom-ativo").checked = data.cupomAtivo || false;
                     document.getElementById("prod-cupom-codigo").value = data.cupomCodigo || "";
                     document.getElementById("prod-cupom-desconto").value = data.cupomDesconto || "";
@@ -1356,6 +1360,7 @@
                 videoUrl: document.getElementById("prod-video-url").value.trim(),
                 seloConfianca: document.getElementById("prod-selo-confianca").value.trim(),
                 freteGratis: document.getElementById("prod-frete-gratis").checked,
+                carrinhoPermitido: document.getElementById("prod-carrinho-permitido").checked,
                 cupomAtivo: document.getElementById("prod-cupom-ativo").checked,
                 cupomCodigo: document.getElementById("prod-cupom-codigo").value.trim(),
                 cupomDesconto: document.getElementById("prod-cupom-desconto").value ? parseFloat(document.getElementById("prod-cupom-desconto").value) : "",
