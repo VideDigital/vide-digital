@@ -66,6 +66,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Leads (Capturas)
             </button>
+            <button data-target="view-pedidos" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path></svg>
+                Pedidos
+            </button>
             <button data-target="view-metricas" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 Métricas
@@ -157,7 +161,55 @@
                 </div>
             </div>
         </section>
+<section id="view-pedidos" class="view-section space-y-6 max-w-6xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-white tracking-tight">Pedidos</h1>
+                    <p class="text-gray-400 text-xs mt-1">Registre e acompanhe os pedidos confirmados pelo carrinho ou WhatsApp.</p>
+                </div>
+                <button onclick="abrirModalPedido()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Pedido</button>
+            </div>
 
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-5 rounded-xl">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total de Pedidos</p>
+                    <h2 class="text-3xl font-black text-white mt-2" id="ped-total">0</h2>
+                </div>
+                <div class="glass-card p-5 rounded-xl">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Aguardando</p>
+                    <h2 class="text-3xl font-black text-amber-400 mt-2" id="ped-aguardando">0</h2>
+                </div>
+                <div class="glass-card p-5 rounded-xl">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Confirmados</p>
+                    <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="ped-confirmados">0</h2>
+                </div>
+                <div class="glass-card p-5 rounded-xl">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Receita Total</p>
+                    <h2 class="text-2xl font-black text-emerald-400 mt-2" id="ped-receita">R$ 0,00</h2>
+                </div>
+            </div>
+
+            <div class="glass-card rounded-xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                <th class="p-4">👤 Cliente</th>
+                                <th class="p-4">📦 Produto(s)</th>
+                                <th class="p-4">💰 Valor</th>
+                                <th class="p-4">🏷️ Status</th>
+                                <th class="p-4">📅 Data</th>
+                                <th class="p-4">📝 Obs.</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="pedidos-table-body" class="text-xs divide-y divide-white/5">
+                            <tr><td colspan="7" class="text-center p-12 text-gray-500">Nenhum pedido registrado ainda.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
 <section id="view-metricas" class="view-section space-y-8 max-w-6xl mx-auto">
             <div class="border-b border-white/5 pb-6">
                 <h1 class="text-2xl font-black text-white tracking-tight">Métricas & Performance</h1>
@@ -565,6 +617,7 @@
                                 <th class="p-4">🎯 Interesse</th>
                                 <th class="p-4">🏷️ Status</th>
                                 <th class="p-4">📅 Data</th>
+                                <th class="p-4">📝 Anotação</th>
                             </tr>
                         </thead>
                         <tbody id="leads-table-body" class="text-xs divide-y divide-white/5">
@@ -738,7 +791,40 @@
             </form>
         </div>
     </div>
-    
+    <div id="pedido-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
+            <button onclick="document.getElementById('pedido-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-sm font-black text-white">Registrar Pedido</h3>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="space-y-1.5 col-span-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Cliente</label>
+                    <input type="text" id="ped-cliente" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Maria Silva">
+                </div>
+                <div class="space-y-1.5 col-span-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Produto(s)</label>
+                    <input type="text" id="ped-produtos" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Curso Confeitaria + Kit Básico">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valor (R$)</label>
+                    <input type="number" step="0.01" id="ped-valor" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="0.00">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Status</label>
+                    <select id="ped-status" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+                        <option value="aguardando">Aguardando</option>
+                        <option value="confirmado">Confirmado</option>
+                        <option value="pago">Pago</option>
+                        <option value="cancelado">Cancelado</option>
+                    </select>
+                </div>
+                <div class="space-y-1.5 col-span-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Observação (opcional)</label>
+                    <input type="text" id="ped-obs" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Pagamento via Pix">
+                </div>
+            </div>
+            <button onclick="salvarPedido()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Pedido</button>
+        </div>
+    </div>
 <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
         <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
             <div class="h-12 w-12 rounded-full bg-[#00f2fe]/10 border border-[#00f2fe]/30 flex items-center justify-center mx-auto text-xl">⚠️</div>
@@ -815,6 +901,7 @@
             localStorage.setItem("abaAtivaDashboard", targetId);
 
             if (targetId === "view-metricas") carregarMetricas();
+            if (targetId === "view-pedidos") carregarPedidos();
         }
 
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
@@ -1063,6 +1150,7 @@
                 }
                 carregarProdutos();
                 carregarLeads();
+                carregarPedidos();
             } else {
                 window.location.href = "login.html";
             }
@@ -1306,6 +1394,9 @@
                             </select>
                         </td>
                         <td class="p-4 text-gray-500 text-xs">${lead.data ? new Date(lead.data).toLocaleDateString("pt-BR") : "Hoje"}</td>
+                        <td class="p-4">
+                            <input type="text" value="${lead.anotacao || ''}" placeholder="Anotação..." onblur="salvarAnotacaoLead('${lead.id}', this.value)" class="bg-transparent border-b border-white/10 focus:border-[#00f2fe] text-xs text-gray-400 focus:text-white outline-none w-32 transition-all pb-0.5">
+                        </td>
                     </tr>
                 `).join("");
 
@@ -1315,6 +1406,14 @@
         }
 
         window.atualizarStatusLead = async function(leadId, novoStatus) {
+            window.salvarAnotacaoLead = async function(leadId, texto) {
+            try {
+                await setDoc(doc(db, "leads", leadId), { anotacao: texto }, { merge: true });
+                showToast("Anotação salva!");
+            } catch(err) {
+                console.error(err);
+            }
+        };
             try {
                 await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
                 showToast("Status atualizado!");
@@ -1599,6 +1698,107 @@
         // =============================================
         // C1 — MÉTRICAS REAIS
         // =============================================
+        // PEDIDOS
+        window.abrirModalPedido = function() {
+            document.getElementById("pedido-modal").classList.remove("hidden");
+        };
+
+        window.salvarPedido = async function() {
+            const cliente = document.getElementById("ped-cliente").value.trim();
+            const produtos = document.getElementById("ped-produtos").value.trim();
+            const valor = parseFloat(document.getElementById("ped-valor").value || 0);
+            const status = document.getElementById("ped-status").value;
+            const obs = document.getElementById("ped-obs").value.trim();
+            if (!cliente || !produtos) return showToast("Preencha cliente e produto.", "error");
+            try {
+                await setDoc(doc(db, "pedidos", `ped_${Date.now()}`), {
+                    cliente, produtos, valor, status, obs,
+                    criadoPor: usuarioUID,
+                    data: Date.now()
+                });
+                document.getElementById("pedido-modal").classList.add("hidden");
+                document.getElementById("ped-cliente").value = "";
+                document.getElementById("ped-produtos").value = "";
+                document.getElementById("ped-valor").value = "";
+                document.getElementById("ped-obs").value = "";
+                carregarPedidos();
+                showToast("Pedido registrado!");
+            } catch(err) {
+                showToast("Erro ao salvar.", "error");
+            }
+        };
+
+        async function carregarPedidos() {
+            if (!usuarioUID) return;
+            try {
+                const q = query(collection(db, "pedidos"), where("criadoPor", "==", usuarioUID));
+                const snap = await getDocs(q);
+                let pedidos = [];
+                snap.forEach(d => pedidos.push({ id: d.id, ...d.data() }));
+                pedidos.sort((a, b) => (b.data || 0) - (a.data || 0));
+
+                const statusMap = { aguardando: "bg-amber-500/10 text-amber-400", confirmado: "bg-blue-500/10 text-blue-400", pago: "bg-emerald-500/10 text-emerald-400", cancelado: "bg-red-500/10 text-red-400" };
+                const total = pedidos.length;
+                const aguardando = pedidos.filter(p => p.status === "aguardando").length;
+                const confirmados = pedidos.filter(p => p.status === "confirmado" || p.status === "pago").length;
+                const receita = pedidos.filter(p => p.status === "pago").reduce((s, p) => s + (p.valor || 0), 0);
+
+                const elTotal = document.getElementById("ped-total");
+                const elAg = document.getElementById("ped-aguardando");
+                const elConf = document.getElementById("ped-confirmados");
+                const elRec = document.getElementById("ped-receita");
+                if (elTotal) elTotal.innerText = total;
+                if (elAg) elAg.innerText = aguardando;
+                if (elConf) elConf.innerText = confirmados;
+                if (elRec) elRec.innerText = receita.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+                const tbody = document.getElementById("pedidos-table-body");
+                if (!tbody) return;
+                if (pedidos.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="7" class="text-center p-12 text-gray-500">Nenhum pedido ainda.</td></tr>`;
+                    return;
+                }
+                tbody.innerHTML = pedidos.map(p => `
+                    <tr class="hover:bg-white/[0.01] transition-colors">
+                        <td class="p-4 font-bold text-white">${p.cliente}</td>
+                        <td class="p-4 text-gray-400 max-w-[160px] truncate">${p.produtos}</td>
+                        <td class="p-4 text-emerald-400 font-bold">${(p.valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</td>
+                        <td class="p-4">
+                            <select onchange="atualizarStatusPedido('${p.id}', this.value)" class="bg-transparent text-[10px] font-bold rounded-md px-2 py-1 border cursor-pointer outline-none ${statusMap[p.status] || statusMap.aguardando}">
+                                <option value="aguardando" ${p.status === 'aguardando' ? 'selected' : ''}>Aguardando</option>
+                                <option value="confirmado" ${p.status === 'confirmado' ? 'selected' : ''}>Confirmado</option>
+                                <option value="pago" ${p.status === 'pago' ? 'selected' : ''}>Pago</option>
+                                <option value="cancelado" ${p.status === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+                            </select>
+                        </td>
+                        <td class="p-4 text-gray-500">${p.data ? new Date(p.data).toLocaleDateString("pt-BR") : "Hoje"}</td>
+                        <td class="p-4 text-gray-400 max-w-[120px] truncate">${p.obs || "—"}</td>
+                        <td class="p-4 text-right">
+                            <button onclick="excluirPedido('${p.id}')" class="text-red-400 hover:text-red-300 text-xs transition-colors">Excluir</button>
+                        </td>
+                    </tr>
+                `).join("");
+            } catch(err) {
+                console.error(err);
+            }
+        }
+
+        window.atualizarStatusPedido = async function(pedidoId, novoStatus) {
+            try {
+                await setDoc(doc(db, "pedidos", pedidoId), { status: novoStatus }, { merge: true });
+                showToast("Status atualizado!");
+                carregarPedidos();
+            } catch(err) { console.error(err); }
+        };
+
+        window.excluirPedido = async function(pedidoId) {
+            if (!confirm("Excluir este pedido?")) return;
+            try {
+                await deleteDoc(doc(db, "pedidos", pedidoId));
+                carregarPedidos();
+                showToast("Pedido excluído.");
+            } catch(err) { console.error(err); }
+        };
         window.aplicarFiltrosLeads = function() {
             const dias = parseInt(document.getElementById("filtro-lead-dias").value);
             const status = document.getElementById("filtro-lead-status").value;
