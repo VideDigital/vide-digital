@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-[#030712]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideHub | Super Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .glass-card { background: rgba(13,13,22,0.6); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.05); }
+        .glass-input { background: rgba(6,6,10,0.8); border: 1px solid rgba(255,255,255,0.07); transition: all 0.2s ease; }
+        .glass-input:focus { border-color: #00f2fe; box-shadow: 0 0 20px rgba(0,242,254,0.1); outline: none; }
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+        .tab-btn.active { color: #00f2fe; border-bottom: 2px solid #00f2fe; }
+        @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+        .fade-in { animation: fadeIn 0.3s ease-out; }
+    </style>
+</head>
+<body class="min-h-full bg-[#030712] text-gray-200">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-2 pointer-events-none"></div>
+
+    <!-- HEADER -->
+    <header class="border-b border-white/5 bg-black/60 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-7 w-7 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
+                    <span class="text-black font-black text-xs">V</span>
+                </div>
+                <div>
+                    <h1 class="text-sm font-black text-white tracking-tight">VideHub <span class="text-[#00f2fe]">Super Admin</span></h1>
+                    <p class="text-[10px] text-gray-500">Painel de controle exclusivo</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-bold text-white" id="admin-nome">Carregando...</p>
+                    <p class="text-[10px] text-gray-500" id="admin-email-display"></p>
+                </div>
+                <button id="btn-logout" class="text-xs text-gray-400 hover:text-red-400 transition-colors px-3 py-2 rounded-lg hover:bg-red-500/10">Sair</button>
+            </div>
+        </div>
+    </header>
+
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
+
+        <!-- CARDS DE MÉTRICAS GLOBAIS -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total de Lojas</p>
+                <h2 class="text-3xl font-black text-white mt-2" id="stat-total">—</h2>
+                <p class="text-[10px] text-emerald-400 mt-1" id="stat-total-sub">Ativas na plataforma</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Pendentes</p>
+                <h2 class="text-3xl font-black text-amber-400 mt-2" id="stat-pendentes">—</h2>
+                <p class="text-[10px] text-gray-500 mt-1">Aguardando aprovação</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Aprovadas</p>
+                <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="stat-aprovadas">—</h2>
+                <p class="text-[10px] text-gray-500 mt-1">Lojas ativas</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Inativas</p>
+                <h2 class="text-3xl font-black text-red-400 mt-2" id="stat-inativas">—</h2>
+                <p class="text-[10px] text-gray-500 mt-1">Rejeitadas ou suspensas</p>
+            </div>
+        </div>
+
+        <!-- BARRA DE BUSCA + FILTROS -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <input type="text" id="busca-input" placeholder="Buscar por nome, e-mail ou slug..." class="w-full glass-input rounded-xl p-3 pl-10 text-sm text-white">
+                <span class="absolute left-3 top-3.5 text-gray-500 text-sm">🔍</span>
+            </div>
+            <select id="filtro-status" class="glass-input rounded-xl p-3 text-sm text-white min-w-[160px]">
+                <option value="todos">Todos os status</option>
+                <option value="pendente">Pendentes</option>
+                <option value="aprovado">Aprovados</option>
+                <option value="inativo">Inativos</option>
+                <option value="rejeitado">Rejeitados</option>
+            </select>
+            <select id="filtro-plano" class="glass-input rounded-xl p-3 text-sm text-white min-w-[140px]">
+                <option value="todos">Todos os planos</option>
+                <option value="basico">Básico</option>
+                <option value="pro">Pro</option>
+                <option value="premium">Premium</option>
+            </select>
+            <button onclick="carregarUsuarios()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold transition-all">↺ Atualizar</button>
+        </div>
+
+        <!-- TABS -->
+        <div class="flex gap-6 border-b border-white/5">
+            <button class="tab-btn active text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="clientes">Clientes</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="lojas">Lojas Ativas</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="pendentes">⚠️ Pendentes</button>
+        </div>
+
+        <!-- TABELA DE CLIENTES -->
+        <div id="tab-clientes" class="tab-content fade-in">
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                <th class="p-4">Cliente</th>
+                                <th class="p-4">Loja / Slug</th>
+                                <th class="p-4">Plano</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4">Cadastro</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-clientes" class="divide-y divide-white/5 text-xs">
+                            <tr>
+                                <td colspan="6" class="p-12 text-center text-gray-500">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- LOJAS ATIVAS (CARDS) -->
+        <div id="tab-lojas" class="tab-content hidden fade-in">
+            <div id="grid-lojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-center text-gray-500 text-xs p-12 col-span-full">Carregando...</div>
+            </div>
+        </div>
+
+        <!-- PENDENTES -->
+        <div id="tab-pendentes" class="tab-content hidden fade-in">
+            <div id="lista-pendentes" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- MODAL DE DETALHES DO CLIENTE -->
+    <div id="modal-cliente" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-5 relative border border-white/5 shadow-2xl">
+            <button onclick="fecharModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-sm font-black text-white tracking-tight">Gerenciar Cliente</h3>
+
+            <div id="modal-info" class="space-y-3"></div>
+
+            <div class="space-y-2 pt-2 border-t border-white/5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Plano do Cliente</label>
+                <select id="modal-plano" class="w-full glass-input rounded-xl p-3 text-sm text-white">
+                    <option value="basico">Básico — até 5 produtos</option>
+                    <option value="pro">Pro — até 20 produtos, carrinho, cupons</option>
+                    <option value="premium">Premium — ilimitado, todas as funções</option>
+                </select>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Anotação interna (visível só para você)</label>
+                <textarea id="modal-anotacao" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white resize-none" placeholder="Ex: Cliente pagou plano Pro em 01/07/2026"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button id="btn-modal-aprovar" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">✅ Aprovar</button>
+                <button id="btn-modal-rejeitar" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">❌ Rejeitar</button>
+                <button id="btn-modal-inativar" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">⏸️ Suspender</button>
+                <button id="btn-modal-salvar" class="bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">💾 Salvar Plano</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db } from "./firebase-init.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
+        let todosUsuarios = [];
+        let clienteSelecionadoUID = null;
+
+        // PROTEÇÃO: só super admin entra
+        onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+            if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+                alert("Acesso negado. Esta área é exclusiva do administrador do sistema.");
+                await signOut(auth);
+                window.location.href = "login.html";
+                return;
+            }
+            document.getElementById("admin-nome").innerText = user.displayName || "Super Admin";
+            document.getElementById("admin-email-display").innerText = user.email;
+            await carregarUsuarios();
+        });
+
+        // TOAST
+        function showToast(msg, tipo = "success") {
+            const c = document.getElementById("toast-container");
+            const t = document.createElement("div");
+            t.className = `px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-2 backdrop-blur-md transform opacity-0 translate-y-2 transition-all duration-300 pointer-events-auto ${tipo === "success" ? "bg-emerald-950/90 text-emerald-400 border-emerald-500/20" : "bg-red-950/90 text-red-400 border-red-500/20"}`;
+            t.innerText = (tipo === "success" ? "✅ " : "⚠️ ") + msg;
+            c.appendChild(t);
+            setTimeout(() => t.classList.remove("opacity-0", "translate-y-2"), 10);
+            setTimeout(() => { t.classList.add("opacity-0"); setTimeout(() => t.remove(), 300); }, 3500);
+        }
+
+        // CARREGAR TODOS OS USUÁRIOS
+        window.carregarUsuarios = async function() {
+            try {
+                const snap = await getDocs(collection(db, "usuarios"));
+                todosUsuarios = [];
+                snap.forEach(d => todosUsuarios.push({ uid: d.id, ...d.data() }));
+
+                const busca = document.getElementById("busca-input").value.toLowerCase();
+                const filtroStatus = document.getElementById("filtro-status").value;
+                const filtroPlano = document.getElementById("filtro-plano").value;
+
+                let filtrados = todosUsuarios.filter(u => {
+                    const matchBusca = !busca ||
+                        (u.nome || "").toLowerCase().includes(busca) ||
+                        (u.email || "").toLowerCase().includes(busca) ||
+                        (u.nomeLoja || "").toLowerCase().includes(busca) ||
+                        (u.urlLoja || "").toLowerCase().includes(busca);
+                    const matchStatus = filtroStatus === "todos" || (u.status || "pendente") === filtroStatus;
+                    const matchPlano = filtroPlano === "todos" || (u.plano || "basico") === filtroPlano;
+                    return matchBusca && matchStatus && matchPlano;
+                });
+
+                // Stats
+                const total = todosUsuarios.length;
+                const pendentes = todosUsuarios.filter(u => (u.status || "pendente") === "pendente").length;
+                const aprovados = todosUsuarios.filter(u => u.status === "aprovado").length;
+                const inativos = todosUsuarios.filter(u => u.status === "inativo" || u.status === "rejeitado").length;
+
+                document.getElementById("stat-total").innerText = total;
+                document.getElementById("stat-total-sub").innerText = `${aprovados} ativas`;
+                document.getElementById("stat-pendentes").innerText = pendentes;
+                document.getElementById("stat-aprovadas").innerText = aprovados;
+                document.getElementById("stat-inativas").innerText = inativos;
+
+                renderTabela(filtrados);
+                renderLojas(filtrados.filter(u => u.status === "aprovado"));
+                renderPendentes(filtrados.filter(u => (u.status || "pendente") === "pendente"));
+
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao carregar usuários.", "error");
+            }
+        };
+
+        function statusBadge(status) {
+            const map = {
+                pendente: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                aprovado: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                inativo: "bg-red-500/10 text-red-400 border border-red-500/20",
+                rejeitado: "bg-red-900/20 text-red-600 border border-red-900/20"
+            };
+            const label = { pendente: "Pendente", aprovado: "Aprovado", inativo: "Suspenso", rejeitado: "Rejeitado" };
+            const cls = map[status] || map.pendente;
+            return `<span class="status-badge ${cls}">${label[status] || "Pendente"}</span>`;
+        }
+
+        function planoBadge(plano) {
+            const map = {
+                basico: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
+                pro: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
+                premium: "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+            };
+            const cls = map[plano] || map.basico;
+            return `<span class="status-badge ${cls}">${(plano || "basico").toUpperCase()}</span>`;
+        }
+
+        function renderTabela(lista) {
+            const tbody = document.getElementById("tabela-clientes");
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-gray-500 text-xs">Nenhum cliente encontrado.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = lista.map(u => `
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-xs font-black text-[#00f2fe]">
+                                ${(u.nome || u.email || "?")[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="font-bold text-white">${u.nome || "Sem nome"}</p>
+                                <p class="text-gray-500 text-[11px]">${u.email || "Sem e-mail"}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <p class="font-semibold text-white">${u.nomeLoja || "—"}</p>
+                        <p class="text-gray-500 text-[11px]">${u.urlLoja ? `vide.digital/${u.urlLoja}` : "Sem slug"}</p>
+                    </td>
+                    <td class="p-4">${planoBadge(u.plano)}</td>
+                    <td class="p-4">${statusBadge(u.status || "pendente")}</td>
+                    <td class="p-4 text-gray-500">${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="abrirModal('${u.uid}')" class="text-[11px] font-bold text-[#00f2fe] hover:underline">Gerenciar</button>
+                    </td>
+                </tr>
+            `).join("");
+        }
+
+        function renderLojas(lista) {
+            const grid = document.getElementById("grid-lojas");
+            if (lista.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-gray-500 text-xs p-12">Nenhuma loja ativa ainda.</div>`;
+                return;
+            }
+            grid.innerHTML = lista.map(u => `
+                <div class="glass-card p-5 rounded-2xl space-y-4 hover:border-[#00f2fe]/20 transition-all">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-sm font-black text-[#00f2fe] shrink-0">
+                                ${(u.nomeLoja || u.nome || "?")[0].toUpperCase()}
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-bold text-white text-sm truncate">${u.nomeLoja || "Sem nome"}</p>
+                                <p class="text-gray-500 text-[11px] truncate">${u.email}</p>
+                            </div>
+                        </div>
+                        ${planoBadge(u.plano)}
+                    </div>
+
+                    <div class="space-y-1.5 text-[11px]">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Slug</span>
+                            <span class="text-white font-medium">${u.urlLoja || "—"}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Cadastro</span>
+                            <span class="text-white">${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</span>
+                        </div>
+                        ${u.anotacaoAdmin ? `<div class="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-amber-400/80">${u.anotacaoAdmin}</div>` : ""}
+                    </div>
+
+                    <div class="flex gap-2 pt-1">
+                        ${u.urlLoja ? `<a href="loja.html?loja=${u.urlLoja}" target="_blank" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all">Ver Loja</a>` : ""}
+                        <button onclick="abrirModal('${u.uid}')" class="flex-1 text-[11px] font-bold py-2 rounded-lg border border-[#00f2fe]/20 text-[#00f2fe] hover:bg-[#00f2fe]/5 transition-all">Gerenciar</button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        function renderPendentes(lista) {
+            const box = document.getElementById("lista-pendentes");
+            if (lista.length === 0) {
+                box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-2xl">Nenhum cadastro pendente. ✅</div>`;
+                return;
+            }
+            box.innerHTML = lista.map(u => `
+                <div class="glass-card p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-l-2 border-amber-500/40">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-sm font-black text-amber-400 shrink-0">
+                            ${(u.nome || u.email || "?")[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-bold text-white">${u.nome || "Sem nome"}</p>
+                            <p class="text-gray-400 text-[11px]">${u.email}</p>
+                            <p class="text-gray-500 text-[11px] mt-0.5">Loja: <span class="text-white">${u.nomeLoja || "Não informada"}</span> — Slug: <span class="text-white">${u.urlLoja || "Não definido"}</span></p>
+                            <p class="text-gray-600 text-[10px] mt-0.5">Cadastrado em: ${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="aprovarDireto('${u.uid}', '${u.email}')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all">✅ Aprovar</button>
+                        <button onclick="rejeitarDireto('${u.uid}')" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all">❌ Rejeitar</button>
+                        <button onclick="abrirModal('${u.uid}')" class="bg-white/5 hover:bg-white/10 text-gray-300 font-bold px-4 py-2 rounded-xl text-xs transition-all">Detalhes</button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        // ABRIR MODAL
+        window.abrirModal = async function(uid) {
+            clienteSelecionadoUID = uid;
+            const u = todosUsuarios.find(x => x.uid === uid);
+            if (!u) return;
+
+            document.getElementById("modal-info").innerHTML = `
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">Nome</p>
+                        <p class="text-white font-bold mt-1">${u.nome || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">E-mail</p>
+                        <p class="text-white font-bold mt-1 truncate">${u.email || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">Nome da Loja</p>
+                        <p class="text-white font-bold mt-1">${u.nomeLoja || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">Slug</p>
+                        <p class="text-[#00f2fe] font-bold mt-1">${u.urlLoja || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl col-span-2 flex items-center justify-between">
+                        <span class="text-gray-500 text-[10px] uppercase tracking-wider">Status atual</span>
+                        ${statusBadge(u.status || "pendente")}
+                    </div>
+                </div>
+            `;
+
+            document.getElementById("modal-plano").value = u.plano || "basico";
+            document.getElementById("modal-anotacao").value = u.anotacaoAdmin || "";
+            document.getElementById("modal-cliente").classList.remove("hidden");
+        };
+
+        window.fecharModal = function() {
+            document.getElementById("modal-cliente").classList.add("hidden");
+            clienteSelecionadoUID = null;
+        };
+
+        // APROVAR DIRETO (da lista de pendentes)
+        window.aprovarDireto = async function(uid, email) {
+            try {
+                await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
+                showToast("Cliente aprovado com sucesso!");
+                await carregarUsuarios();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao aprovar.", "error");
+            }
+        };
+
+        // REJEITAR DIRETO
+        window.rejeitarDireto = async function(uid) {
+            if (!confirm("Confirma a rejeição deste cadastro?")) return;
+            try {
+                await updateDoc(doc(db, "usuarios", uid), { status: "rejeitado" });
+                showToast("Cadastro rejeitado.");
+                await carregarUsuarios();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao rejeitar.", "error");
+            }
+        };
+
+        // BOTÕES DO MODAL
+        document.getElementById("btn-modal-aprovar").addEventListener("click", async () => {
+            if (!clienteSelecionadoUID) return;
+            try {
+                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "aprovado" });
+                showToast("Cliente aprovado!");
+                fecharModal();
+                await carregarUsuarios();
+            } catch (err) { showToast("Erro ao aprovar.", "error"); }
+        });
+
+        document.getElementById("btn-modal-rejeitar").addEventListener("click", async () => {
+            if (!clienteSelecionadoUID) return;
+            if (!confirm("Confirma a rejeição?")) return;
+            try {
+                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "rejeitado" });
+                showToast("Cadastro rejeitado.");
+                fecharModal();
+                await carregarUsuarios();
+            } catch (err) { showToast("Erro ao rejeitar.", "error"); }
+        });
+
+        document.getElementById("btn-modal-inativar").addEventListener("click", async () => {
+            if (!clienteSelecionadoUID) return;
+            if (!confirm("Confirma a suspensão desta loja?")) return;
+            try {
+                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "inativo" });
+                showToast("Loja suspensa.");
+                fecharModal();
+                await carregarUsuarios();
+            } catch (err) { showToast("Erro ao suspender.", "error"); }
+        });
+
+        document.getElementById("btn-modal-salvar").addEventListener("click", async () => {
+            if (!clienteSelecionadoUID) return;
+            try {
+                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), {
+                    plano: document.getElementById("modal-plano").value,
+                    anotacaoAdmin: document.getElementById("modal-anotacao").value.trim()
+                });
+                showToast("Plano e anotação salvos!");
+                fecharModal();
+                await carregarUsuarios();
+            } catch (err) { showToast("Erro ao salvar.", "error"); }
+        });
+
+        // TABS
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+                btn.classList.add("active");
+                document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+            });
+        });
+
+        // BUSCA E FILTROS EM TEMPO REAL
+        document.getElementById("busca-input").addEventListener("input", carregarUsuarios);
+        document.getElementById("filtro-status").addEventListener("change", carregarUsuarios);
+        document.getElementById("filtro-plano").addEventListener("change", carregarUsuarios);
+
+        // LOGOUT
+        document.getElementById("btn-logout").addEventListener("click", async () => {
+            await signOut(auth);
+            window.location.href = "login.html";
+        });
+
+        // FECHAR MODAL CLICANDO FORA
+        document.getElementById("modal-cliente").addEventListener("click", (e) => {
+            if (e.target === document.getElementById("modal-cliente")) fecharModal();
+        });
+    </script>
+</body>
+</html>
