@@ -466,8 +466,7 @@
             </div>
         </section>
 
-        <section id="view-leads" class="view-section space-y-6">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
                     <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
                     <p class="text-gray-400 text-xs mt-1">Gerencie os contatos que demonstraram interesse em seus produtos.</p>
@@ -495,65 +494,52 @@
                         <option value="direto">Direto</option>
                     </select>
                     <button onclick="aplicarFiltrosLeads()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
-                    <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">
-                        📥 Exportar Planilha (.CSV)
-                    </button>
+                    <button class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">📥 Exportar CSV</button>
                 </div>
             </div>
 
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Total de Leads</span>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Total de Leads</span>
                     <h2 class="text-3xl font-black text-white mt-2" id="lead-total-count">0</h2>
                 </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Com WhatsApp</span>
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Com WhatsApp</span>
                     <h2 class="text-3xl font-black text-emerald-400 mt-2" id="lead-whatsapp-count">0</h2>
                 </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Cliques Totais</span>
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Cliques Totais</span>
                     <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="lead-clicks-count">0</h2>
                 </div>
-                <div class="glass-card p-6 rounded-2xl">
-                    <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider">Média Tempo de Tela</span>
+                <div class="glass-card p-5 rounded-xl">
+                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Tempo Médio</span>
                     <h2 class="text-3xl font-black text-amber-400 mt-2" id="lead-time-count">0s</h2>
                 </div>
-                <!-- NOVO: Resumo Estratégico de Origens -->
-            <div class="glass-card p-5 rounded-2xl border border-white/5 mt-2">
-                <span class="text-[11px] font-bold text-gray-400 block uppercase tracking-wider mb-4">Métricas de Origem de Tráfego</span>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            </div>
+
+            <div class="glass-card p-5 rounded-xl">
+                <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider mb-4">Origem de Tráfego</span>
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20">FB</div>
-                        <div>
-                            <p class="text-[10px] text-gray-500 uppercase font-bold">Meta Ads</p>
-                            <h4 class="text-lg font-black text-white" id="origem-meta-count">0</h4>
-                        </div>
+                        <div class="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 text-xs font-black">FB</div>
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Meta Ads</p><h4 class="text-lg font-black text-white" id="origem-meta-count">0</h4></div>
                     </div>
                     <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">GL</div>
-                        <div>
-                            <p class="text-[10px] text-gray-500 uppercase font-bold">Google</p>
-                            <h4 class="text-lg font-black text-white" id="origem-google-count">0</h4>
-                        </div>
+                        <div class="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 text-xs font-black">GL</div>
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Google</p><h4 class="text-lg font-black text-white" id="origem-google-count">0</h4></div>
                     </div>
                     <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 border border-pink-500/20">TK</div>
-                        <div>
-                            <p class="text-[10px] text-gray-500 uppercase font-bold">TikTok</p>
-                            <h4 class="text-lg font-black text-white" id="origem-tiktok-count">0</h4>
-                        </div>
+                        <div class="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 border border-pink-500/20 text-xs font-black">TK</div>
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">TikTok</p><h4 class="text-lg font-black text-white" id="origem-tiktok-count">0</h4></div>
                     </div>
                     <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20">IG</div>
-                        <div>
-                            <p class="text-[10px] text-gray-500 uppercase font-bold">Instagram</p>
-                            <h4 class="text-lg font-black text-white" id="origem-insta-count">0</h4>
-                        </div>
+                        <div class="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20 text-xs font-black">IG</div>
+                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Instagram</p><h4 class="text-lg font-black text-white" id="origem-insta-count">0</h4></div>
                     </div>
                 </div>
             </div>
 
-            <div class="glass-card rounded-2xl overflow-hidden border border-white/5">
+            <div class="glass-card rounded-xl overflow-hidden border border-white/5">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -570,9 +556,7 @@
                             </tr>
                         </thead>
                         <tbody id="leads-table-body" class="text-xs divide-y divide-white/5">
-                            <tr>
-                                <td colspan="8" class="text-center p-12 text-gray-500">Nenhum lead capturado ainda. Continue divulgando sua vitrine!</td>
-                            </tr>
+                            <tr><td colspan="9" class="text-center p-12 text-gray-500">Nenhum lead ainda.</td></tr>
                         </tbody>
                     </table>
                 </div>
