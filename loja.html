@@ -119,6 +119,23 @@
             <p class="text-[10px] text-center text-gray-600">Você será redirecionado para o WhatsApp com seu pedido completo</p>
         </div>
     </div>
+    <!-- POP-UP CAPTURA DE LEAD -->
+    <div id="popup-captura" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+        <div class="relative w-full max-w-md bg-[#0c0c14] border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-5">
+            <button onclick="fecharPopup()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">&times;</button>
+            <div class="text-4xl">🎁</div>
+            <h2 class="text-xl font-black text-white">Espera! Temos um presente pra você</h2>
+            <p class="text-sm text-gray-400">Deixe seu WhatsApp e receba um cupom exclusivo de desconto agora mesmo.</p>
+            <div class="space-y-3">
+                <input type="text" id="popup-nome" placeholder="Seu nome completo" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-white/30 transition-all">
+                <input type="text" id="popup-whatsapp" placeholder="Seu WhatsApp (com DDD)" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-white/30 transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
+            </div>
+            <button onclick="enviarLeadPopup()" class="w-full font-black text-sm uppercase tracking-widest py-4 rounded-xl transition-all hover:brightness-110" style="background-color: var(--client-brand, #00f2fe); color: #000;">
+                Quero meu desconto agora!
+            </button>
+            <p class="text-[10px] text-gray-600">Sem spam. Seus dados são protegidos e não serão compartilhados.</p>
+        </div>
+    </div>
     
     <footer class="border-t border-white/5 py-6 bg-black/20 mt-12">
         <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-gray-500">
@@ -553,7 +570,61 @@
                 renderizarCatalogoFiltros();
             });
         });
+// POP-UP DE CAPTURA DE LEAD
+        let popupExibido = false;
 
+        function exibirPopup() {
+            if (popupExibido) return;
+            if (sessionStorage.getItem("popupFechado")) return;
+            popupExibido = true;
+            document.getElementById("popup-captura").classList.remove("hidden");
+        }
+
+        // Dispara após 15 segundos
+        setTimeout(exibirPopup, 15000);
+
+        // Dispara ao tentar sair da página (mouse para fora no topo)
+        document.addEventListener("mouseleave", (e) => {
+            if (e.clientY < 10) exibirPopup();
+        });
+
+        window.fecharPopup = function() {
+            document.getElementById("popup-captura").classList.add("hidden");
+            sessionStorage.setItem("popupFechado", "1");
+        };
+
+        window.enviarLeadPopup = async function() {
+            const nome = document.getElementById("popup-nome").value.trim();
+            const whatsapp = document.getElementById("popup-whatsapp").value.trim();
+            if (!nome || !whatsapp || whatsapp.length < 10) {
+                document.getElementById("popup-nome").style.borderColor = "#ef4444";
+                document.getElementById("popup-whatsapp").style.borderColor = "#ef4444";
+                return;
+            }
+            try {
+                await setDoc(doc(db, "leads", `lead_popup_${Date.now()}`), {
+                    criadoPor: fornecedorEmail,
+                    nome: nome,
+                    whatsapp: whatsapp,
+                    origem: utmSourceCapturada,
+                    produtoInteresse: "Popup de Captura",
+                    cliques: 0,
+                    tempoRetencao: Math.round((Date.now() - tempoInicioSessao) / 1000),
+                    data: Date.now()
+                });
+                document.getElementById("popup-captura").innerHTML = `
+                    <div class="text-center space-y-4 p-8">
+                        <div class="text-5xl">✅</div>
+                        <h2 class="text-xl font-black text-white">Cupom enviado!</h2>
+                        <p class="text-sm text-gray-400">Obrigado, <strong class="text-white">${nome}</strong>! Em breve você receberá seu desconto exclusivo no WhatsApp.</p>
+                        <button onclick="fecharPopup()" class="w-full font-bold text-sm py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all mt-2">Continuar comprando</button>
+                    </div>
+                `;
+                sessionStorage.setItem("popupFechado", "1");
+            } catch(err) {
+                console.error(err);
+            }
+        };
         window.toggleChatWindow = function() {
             document.getElementById("chat-window").classList.toggle("hidden");
         };
