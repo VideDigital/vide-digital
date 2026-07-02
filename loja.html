@@ -356,7 +356,7 @@
                 const precoFinal = cupomValido ? inputPreco * (1 - prod.cupomDesconto / 100) : inputPreco;
                 const precoFormatado = precoFinal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
                 const precoOriginal = inputPreco.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-                const imgFinal = prod.imagemB64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect width="100%" height="100%" fill="%2309090f"/></svg>';
+                const imgFinal = prod.imagemB64 || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect width='100%25' height='100%25' fill='%2309090f'/></svg>";
                 const estrelas = prod.avaliacao ? "&#11088;".repeat(Math.round(prod.avaliacao)) + " (" + prod.avaliacao + ")" : "";
                 const nomeSafe = (prod.nome || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 const destSafe = (prod.destinoValue || "").replace(/'/g, "\\'");
