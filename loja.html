@@ -582,12 +582,78 @@
 
         // Dispara após 15 segundos
         setTimeout(exibirPopup, 15000);
+        // Campanha relâmpago dispara após 3 segundos
+        setTimeout(verificarCampanha, 3000);
 
         // Dispara ao tentar sair da página (mouse para fora no topo)
         document.addEventListener("mouseleave", (e) => {
             if (e.clientY < 10) exibirPopup();
         });
+        
+// OFERTA RELÂMPAGO
+        async function verificarCampanha() {
+            if (!fornecedorEmail) return;
+            try {
+                const snap = await getDoc(doc(db, "campanhas", fornecedorEmail));
+                if (!snap.exists()) return;
+                const c = snap.data();
+                if (!c.ativa || !c.titulo) return;
+                if (sessionStorage.getItem("campanhaVista")) return;
 
+                const duracaoMs = (c.tempo || 10) * 60 * 1000;
+                const fimMs = Date.now() + duracaoMs;
+
+                const popup = document.createElement("div");
+                popup.id = "popup-campanha";
+                popup.className = "fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md";
+                popup.innerHTML = `
+                    <div class="relative w-full max-w-md bg-[#0c0c14] border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-4">
+                        <button onclick="fecharCampanha()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">&times;</button>
+                        <div class="text-4xl">⚡</div>
+                        <h2 class="text-xl font-black text-white">${c.titulo}</h2>
+                        <p class="text-sm text-gray-400">${c.texto || ""}</p>
+                        <div class="flex items-center justify-center gap-3 py-2">
+                            <div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+                                <span id="camp-min" class="text-3xl font-black text-white">00</span>
+                                <p class="text-[9px] text-gray-500 uppercase mt-1">Min</p>
+                            </div>
+                            <span class="text-2xl font-black text-white">:</span>
+                            <div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
+                                <span id="camp-seg" class="text-3xl font-black text-white">00</span>
+                                <p class="text-[9px] text-gray-500 uppercase mt-1">Seg</p>
+                            </div>
+                        </div>
+                        ${c.link ? `<a href="${c.link}" target="_blank" onclick="fecharCampanha()" class="block w-full font-black text-sm uppercase tracking-widest py-4 rounded-xl transition-all hover:brightness-110 text-black" style="background-color: var(--client-brand, #00f2fe)">${c.btnTexto || "Aproveitar agora!"}</a>` : ""}
+                        <button onclick="fecharCampanha()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Não tenho interesse</button>
+                    </div>
+                `;
+                document.body.appendChild(popup);
+
+                const intervalo = setInterval(() => {
+                    const resto = fimMs - Date.now();
+                    if (resto <= 0) {
+                        clearInterval(intervalo);
+                        fecharCampanha();
+                        return;
+                    }
+                    const min = Math.floor(resto / 60000);
+                    const seg = Math.floor((resto % 60000) / 1000);
+                    const elMin = document.getElementById("camp-min");
+                    const elSeg = document.getElementById("camp-seg");
+                    if (elMin) elMin.innerText = String(min).padStart(2, "0");
+                    if (elSeg) elSeg.innerText = String(seg).padStart(2, "0");
+                }, 1000);
+
+                window._campanhaIntervalo = intervalo;
+                sessionStorage.setItem("campanhaVista", "1");
+            } catch(err) { console.error(err); }
+        }
+
+        window.fecharCampanha = function() {
+            clearInterval(window._campanhaIntervalo);
+            const el = document.getElementById("popup-campanha");
+            if (el) el.remove();
+        };
         window.fecharPopup = function() {
             document.getElementById("popup-captura").classList.add("hidden");
             sessionStorage.setItem("popupFechado", "1");
