@@ -1461,9 +1461,12 @@
                     }
 
                     const featuresAtivas = listaFeaturesDoPlano(planoAtual);
-                    const featuresExtras = Array.isArray(dadosPlano.featuresExtras) ? dadosPlano.featuresExtras : [];
+                    // Se o admin já customizou manualmente as funções desse cliente (via
+                    // "Gerenciar Cliente"), essa lista MANDA — substitui o que vem do plano.
+                    const featuresManuais = Array.isArray(dadosPlano.featuresManuais) ? dadosPlano.featuresManuais : null;
+                    const featuresEfetivas = featuresManuais !== null ? featuresManuais : featuresAtivas;
                     temFeature = function(feature) {
-                        return featuresAtivas.includes(feature) || featuresExtras.includes(feature);
+                        return featuresEfetivas.includes(feature);
                     };
 
                     const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
