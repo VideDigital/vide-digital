@@ -227,6 +227,15 @@
                 </div>
                 <button onclick="abrirModalTemplate()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Template</button>
             </div>
+            <div class="flex flex-wrap gap-2">
+                <select id="filtro-template-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <option value="7">Últimos 7 dias</option>
+                    <option value="30">Últimos 30 dias</option>
+                    <option value="90">Últimos 90 dias</option>
+                    <option value="0" selected>Todos</option>
+                </select>
+                <button onclick="aplicarFiltroTemplates()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+            </div>
             <div id="templates-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template criado ainda.</div>
             </div>
@@ -282,6 +291,24 @@
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status Atual</h3>
                 <p class="text-xs text-gray-500" id="campanha-status-texto">Nenhuma campanha ativa no momento.</p>
             </div>
+
+            <div class="glass-card rounded-xl p-5 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Campanhas</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <select id="filtro-campanha-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="0">Todos</option>
+                        </select>
+                        <button onclick="aplicarFiltroCampanhas()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+                    </div>
+                </div>
+                <div id="campanhas-historico-lista" class="space-y-2">
+                    <p class="text-xs text-gray-500">Carregando histórico...</p>
+                </div>
+            </div>
         </section>
 <section id="view-pedidos" class="view-section space-y-6 max-w-6xl mx-auto">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
@@ -290,6 +317,16 @@
                     <p class="text-gray-400 text-xs mt-1">Registre e acompanhe os pedidos confirmados pelo carrinho ou WhatsApp.</p>
                 </div>
                 <button onclick="abrirModalPedido()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Pedido</button>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+                <select id="filtro-pedido-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <option value="7">Últimos 7 dias</option>
+                    <option value="30" selected>Últimos 30 dias</option>
+                    <option value="90">Últimos 90 dias</option>
+                    <option value="0">Todos</option>
+                </select>
+                <button onclick="aplicarFiltroPedidos()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -336,6 +373,15 @@
             <div class="border-b border-white/5 pb-6">
                 <h1 class="text-2xl font-black text-white tracking-tight">Métricas & Performance</h1>
                 <p class="text-gray-400 text-xs mt-1">Dados reais de comportamento dos visitantes na sua vitrine.</p>
+            </div>
+            <div class="flex flex-wrap gap-2">
+                <select id="filtro-metricas-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <option value="7" selected>Últimos 7 dias</option>
+                    <option value="30">Últimos 30 dias</option>
+                    <option value="90">Últimos 90 dias</option>
+                    <option value="0">Todos (histórico completo)</option>
+                </select>
+                <button onclick="aplicarFiltroMetricas()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <div class="glass-card p-5 rounded-xl space-y-1">
@@ -1107,11 +1153,11 @@
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
-            if (targetId === "view-metricas") carregarMetricas();
+            if (targetId === "view-metricas") carregarMetricas(parseInt(document.getElementById("filtro-metricas-dias")?.value ?? 7));
             if (targetId === "view-pedidos") carregarPedidos();
             if (targetId === "view-leads") carregarLeads();
             if (targetId === "view-templates") carregarTemplates();
-            if (targetId === "view-campanhas") carregarCampanha();
+            if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30)); }
         }
 
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
@@ -2211,25 +2257,84 @@ window.abrirTemplatesDoLead = async function() {
                     atualizadoEm: Date.now()
                 };
                 await setDoc(doc(db, "campanhas", usuarioUID), payload);
+
+                // Registra no histórico (não sobrescreve — cada save vira um registro novo)
+                await setDoc(doc(db, "campanhas_historico", `camphist_${Date.now()}`), {
+                    ...payload,
+                    criadoPor: usuarioUID,
+                    dataCriacao: Date.now()
+                });
+
                 const status = payload.ativa ? `✅ Campanha ativa — "${payload.titulo}"` : "❌ Campanha desativada.";
                 document.getElementById("campanha-status-texto").innerText = status;
                 showToast(payload.ativa ? "Campanha ativada na vitrine!" : "Campanha desativada.");
+                carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30));
             } catch(err) {
                 showToast("Erro ao salvar campanha.", "error");
             }
         };
+
+        async function carregarHistoricoCampanhas(filtroDataDias = 30) {
+            if (!usuarioUID) return;
+            const box = document.getElementById("campanhas-historico-lista");
+            if (!box) return;
+            try {
+                const snap = await getDocs(query(collection(db, "campanhas_historico"), where("criadoPor", "==", usuarioUID)));
+                let registros = [];
+                snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
+
+                const agora = Date.now();
+                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
+                if (filtroDataDias !== 0) {
+                    registros = registros.filter(r => (r.dataCriacao || agora) >= limite);
+                }
+                registros.sort((a, b) => (b.dataCriacao || 0) - (a.dataCriacao || 0));
+
+                if (registros.length === 0) {
+                    box.innerHTML = `<p class="text-xs text-gray-500">Nenhuma campanha salva nesse período.</p>`;
+                    return;
+                }
+
+                box.innerHTML = registros.map(r => `
+                    <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl p-3">
+                        <div class="min-w-0">
+                            <p class="text-xs font-bold text-white truncate">${r.titulo || "(sem título)"}</p>
+                            <p class="text-[10px] text-gray-500">${r.dataCriacao ? new Date(r.dataCriacao).toLocaleString("pt-BR") : "—"}</p>
+                        </div>
+                        <span class="text-[10px] font-bold px-2 py-1 rounded-md uppercase shrink-0 ${r.ativa ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'}">${r.ativa ? 'Ativada' : 'Desativada'}</span>
+                    </div>
+                `).join("");
+            } catch(err) {
+                console.error(err);
+                box.innerHTML = `<p class="text-xs text-red-400">Erro ao carregar histórico (veja o console).</p>`;
+            }
+        }
+
+        window.aplicarFiltroCampanhas = async function() {
+            const dias = parseInt(document.getElementById("filtro-campanha-dias").value);
+            await carregarHistoricoCampanhas(dias);
+            showToast("Filtro aplicado!");
+        };
         // TEMPLATES
-        async function carregarTemplates() {
+        async function carregarTemplates(filtroDataDias = 0) {
             if (!usuarioUID) return;
             try {
                 const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", usuarioUID)));
                 const container = document.getElementById("templates-container");
-                if (snap.empty) {
-                    container.innerHTML = `<div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template criado ainda.</div>`;
-                    return;
-                }
                 let templates = [];
                 snap.forEach(d => templates.push({ id: d.id, ...d.data() }));
+
+                const agora = Date.now();
+                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
+                if (filtroDataDias !== 0) {
+                    templates = templates.filter(t => (t.criadoEm || agora) >= limite);
+                }
+                templates.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                if (templates.length === 0) {
+                    container.innerHTML = `<div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template encontrado para esse período.</div>`;
+                    return;
+                }
                 container.innerHTML = templates.map(t => `
                     <div class="glass-card rounded-xl p-5 space-y-3 flex flex-col justify-between">
                         <div class="space-y-1.5">
@@ -2251,6 +2356,13 @@ window.abrirTemplatesDoLead = async function() {
 
         window.abrirModalTemplate = function() {
             document.getElementById("template-modal").classList.remove("hidden");
+        };
+
+        window.aplicarFiltroTemplates = async function() {
+            const dias = parseInt(document.getElementById("filtro-template-dias").value);
+            await carregarTemplates(dias);
+            const total = document.querySelectorAll("#templates-container > div.glass-card").length;
+            showToast(`Filtro aplicado! ${total} template(s) encontrado(s).`);
         };
 
         window.copiarTemplate = async function(id) {
@@ -2327,13 +2439,20 @@ window.editarTemplate = async function(id) {
             }
         };
 
-        async function carregarPedidos() {
+        async function carregarPedidos(filtroDataDias = 30) {
             if (!usuarioUID) return;
             try {
                 const q = query(collection(db, "pedidos"), where("criadoPor", "==", usuarioUID));
                 const snap = await getDocs(q);
                 let pedidos = [];
                 snap.forEach(d => pedidos.push({ id: d.id, ...d.data() }));
+
+                const agora = Date.now();
+                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
+                if (filtroDataDias !== 0) {
+                    pedidos = pedidos.filter(p => (p.data || agora) >= limite);
+                }
+
                 pedidos.sort((a, b) => (b.data || 0) - (a.data || 0));
 
                 const statusMap = { aguardando: "bg-amber-500/10 text-amber-400", confirmado: "bg-blue-500/10 text-blue-400", pago: "bg-emerald-500/10 text-emerald-400", cancelado: "bg-red-500/10 text-red-400" };
@@ -2386,8 +2505,15 @@ window.editarTemplate = async function(id) {
             try {
                 await setDoc(doc(db, "pedidos", pedidoId), { status: novoStatus }, { merge: true });
                 showToast("Status atualizado!");
-                carregarPedidos();
+                carregarPedidos(parseInt(document.getElementById("filtro-pedido-dias")?.value ?? 30));
             } catch(err) { console.error(err); }
+        };
+
+        window.aplicarFiltroPedidos = async function() {
+            const dias = parseInt(document.getElementById("filtro-pedido-dias").value);
+            await carregarPedidos(dias);
+            const total = document.getElementById("ped-total")?.innerText || "0";
+            showToast(`Filtro aplicado! ${total} pedido(s) encontrado(s).`);
         };
 
         window.excluirPedido = async function(pedidoId) {
@@ -2435,16 +2561,47 @@ window.editarTemplate = async function(id) {
             carregarLeads(dias, status, origem, busca);
         };
         
-        async function carregarMetricas() {
+        function formatarDataChave(d) {
+            return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        }
+
+        async function carregarMetricas(filtroDataDias = 7) {
             if (!usuarioUID) return;
             try {
                 // Busca métricas da vitrine
                 const metSnap = await getDoc(doc(db, "metricas_vitrines", usuarioUID));
                 const met = metSnap.exists() ? metSnap.data() : {};
+                const porDia = met.porDia || {};
+                const hoje = new Date();
+                const chavesExistentes = Object.keys(porDia).sort();
 
-                const sessoes = met.totalSessoes || 0;
-                const cliques = met.totalCliques || 0;
-                const tempoTotal = met.totalTempoTela || 0;
+                // Monta a lista de dias dentro do período selecionado
+                let chavesFiltradas;
+                if (filtroDataDias === 0) {
+                    chavesFiltradas = chavesExistentes;
+                } else {
+                    const limite = new Date(hoje);
+                    limite.setDate(hoje.getDate() - (filtroDataDias - 1));
+                    const limiteStr = formatarDataChave(limite);
+                    chavesFiltradas = chavesExistentes.filter(k => k >= limiteStr);
+                }
+
+                let sessoes = 0, cliques = 0, tempoTotal = 0;
+                chavesFiltradas.forEach(k => {
+                    sessoes += porDia[k]?.sessoes || 0;
+                    cliques += porDia[k]?.cliques || 0;
+                    tempoTotal += porDia[k]?.tempo || 0;
+                });
+
+                // Contas antigas (antes dessa atualização) ainda não têm dado por dia salvo.
+                // Nesse caso, cai de volta pro total acumulado geral pra não mostrar tudo zerado.
+                const usandoFallbackAntigo = chavesExistentes.length === 0;
+                if (usandoFallbackAntigo) {
+                    sessoes = met.totalSessoes || 0;
+                    cliques = met.totalCliques || 0;
+                    tempoTotal = met.totalTempoTela || 0;
+                }
+
                 const conversao = sessoes > 0 ? ((cliques / sessoes) * 100).toFixed(1) : "0.0";
                 const tempoMedio = sessoes > 0 ? Math.round(tempoTotal / sessoes) : 0;
 
@@ -2480,7 +2637,7 @@ window.editarTemplate = async function(id) {
                                 <div class="h-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] rounded-full transition-all duration-700" style="width: ${Math.round((p.views / maxViews) * 100)}%"></div>
                             </div>
                         </div>
-                    `).join("");
+                    `).join("") + `<p class="text-[9px] text-gray-600 pt-1">Acumulado desde o início (não filtra por data ainda).</p>`;
                 }
 
                 // Produtos mais clicados (do objeto produtosInteresse)
@@ -2504,52 +2661,59 @@ window.editarTemplate = async function(id) {
                                 <div class="h-full bg-gradient-to-r from-emerald-500 to-teal-400 rounded-full transition-all duration-700" style="width: ${Math.round((total / maxCliques) * 100)}%"></div>
                             </div>
                         </div>
-                    `).join("");
+                    `).join("") + `<p class="text-[9px] text-gray-600 pt-1">Acumulado desde o início (não filtra por data ainda).</p>`;
                 }
 
-                // Gráfico de barras dos últimos 7 dias
-                const hoje = new Date();
-                const labels = [];
-                const dias = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
-                for (let i = 6; i >= 0; i--) {
-                    const d = new Date(hoje);
-                    d.setDate(hoje.getDate() - i);
-                    labels.push(dias[d.getDay()]);
-                }
-
-                // Usa cliques totais dividido por 7 para simular por dia
-                // (dados reais por dia exigiriam salvar por data — isso vem na C2)
-                const cliquesPorDia = Array(7).fill(0);
-                if (cliques > 0) {
-                    // Distribui os cliques de forma decrescente nos últimos dias
-                    for (let i = 0; i < 7; i++) {
-                        cliquesPorDia[i] = Math.max(0, Math.round((cliques / 7) * (0.5 + Math.random() * 0.8)));
+                // Gráfico de barras — agora com dados REAIS salvos por dia
+                const diasSemana = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
+                let listaDatasGrafico = [];
+                if (filtroDataDias === 0) {
+                    listaDatasGrafico = chavesFiltradas.length > 0 ? chavesFiltradas : [formatarDataChave(hoje)];
+                } else {
+                    for (let i = filtroDataDias - 1; i >= 0; i--) {
+                        const d = new Date(hoje);
+                        d.setDate(hoje.getDate() - i);
+                        listaDatasGrafico.push(formatarDataChave(d));
                     }
-                    cliquesPorDia[6] = Math.round(cliques * 0.2); // hoje sempre tem dado
                 }
+
+                const labelsDias = listaDatasGrafico.map(chave => {
+                    const d = new Date(chave + "T12:00:00");
+                    return diasSemana[d.getDay()] + " " + String(d.getDate()).padStart(2, "0") + "/" + String(d.getMonth() + 1).padStart(2, "0");
+                });
+                const cliquesPorDia = listaDatasGrafico.map(chave => porDia[chave]?.cliques || 0);
 
                 const maxBarra = Math.max(...cliquesPorDia, 1);
                 const grafico = document.getElementById("met-grafico-barras");
                 const grafLabels = document.getElementById("met-grafico-labels");
 
-                grafico.innerHTML = cliquesPorDia.map((v, i) => `
+                grafico.innerHTML = cliquesPorDia.map((v) => `
                     <div class="flex-1 flex flex-col items-center gap-1 group">
                         <span class="text-[9px] text-gray-500 opacity-0 group-hover:opacity-100 transition-opacity font-bold">${v}</span>
-                        <div class="w-full rounded-t-md transition-all duration-700 bg-gradient-to-t from-[#00f2fe]/40 to-[#00f2fe]" style="height: ${Math.round((v / maxBarra) * 100)}%"></div>
+                        <div class="w-full rounded-t-md transition-all duration-700 bg-gradient-to-t from-[#00f2fe]/40 to-[#00f2fe]" style="height: ${Math.round((v / maxBarra) * 100)}%; min-height: 2px;"></div>
                     </div>
                 `).join("");
 
-                grafLabels.innerHTML = labels.map(l => `<span class="flex-1 text-center">${l}</span>`).join("");
+                grafLabels.innerHTML = labelsDias.map(l => `<span class="flex-1 text-center">${l}</span>`).join("");
 
-                const dataInicio = new Date(hoje);
-                dataInicio.setDate(hoje.getDate() - 6);
-                document.getElementById("met-periodo").innerText =
-                    `${dataInicio.toLocaleDateString("pt-BR")} — ${hoje.toLocaleDateString("pt-BR")}`;
+                if (usandoFallbackAntigo) {
+                    document.getElementById("met-periodo").innerText = "Ainda sem histórico por dia (conta antiga)";
+                } else if (listaDatasGrafico.length > 0) {
+                    const primeira = new Date(listaDatasGrafico[0] + "T12:00:00");
+                    document.getElementById("met-periodo").innerText =
+                        `${primeira.toLocaleDateString("pt-BR")} — ${hoje.toLocaleDateString("pt-BR")}`;
+                }
 
             } catch (err) {
                 console.error("Erro métricas:", err);
             }
         }
+
+        window.aplicarFiltroMetricas = async function() {
+            const dias = parseInt(document.getElementById("filtro-metricas-dias").value);
+            await carregarMetricas(dias);
+            showToast("Filtro aplicado!");
+        };
 
         // Exportar relatório simples
         const btnExportarMet = document.getElementById("btn-exportar-metricas");
