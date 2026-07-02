@@ -188,6 +188,12 @@
                 </select>
             </div>
 
+            <div class="space-y-2 pt-2 border-t border-white/5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Liberar funções extras (além do plano)</label>
+                <p class="text-[10px] text-gray-500">Marque pra liberar uma função específica pra esse cliente, mesmo que o plano dele não inclua.</p>
+                <div id="modal-override-features" class="grid grid-cols-2 gap-2"></div>
+            </div>
+
             <div class="space-y-2">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Anotação interna (visível só para você)</label>
                 <textarea id="modal-anotacao" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white resize-none" placeholder="Ex: Cliente pagou plano Pro em 01/07/2026"></textarea>
@@ -240,6 +246,22 @@
             premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
         };
 
+        // LISTA DE FUNÇÕES QUE PODEM SER LIBERADAS INDIVIDUALMENTE (override manual)
+        const FEATURES_OVERRIDE = [
+            { key: "templates", label: "Templates de Mensagens" },
+            { key: "campanhas", label: "Campanhas & Ofertas" },
+            { key: "metricas", label: "Métricas & Performance" },
+            { key: "hub", label: "Pedidos (Hub)" },
+            { key: "chatbot", label: "Chatbot" },
+            { key: "ia", label: "IA no Chat" },
+            { key: "agenda", label: "Agenda" },
+            { key: "mapamental", label: "Mapa Mental" },
+            { key: "subcontas", label: "Subcontas" },
+            { key: "api", label: "API" },
+            { key: "relatorios", label: "Relatórios" },
+            { key: "dominio", label: "Domínio Próprio" }
+        ];
+        
         // PROTEÇÃO: só super admin entra
         onAuthStateChanged(auth, async (user) => {
             if (!user) {
@@ -488,6 +510,15 @@
 
             document.getElementById("modal-plano").value = u.plano || "basico";
             document.getElementById("modal-anotacao").value = u.anotacaoAdmin || "";
+
+            const featuresExtrasAtuais = Array.isArray(u.featuresExtras) ? u.featuresExtras : [];
+            document.getElementById("modal-override-features").innerHTML = FEATURES_OVERRIDE.map(f => `
+                <label class="flex items-center gap-2 text-[11px] text-gray-300 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.04] transition-all">
+                    <input type="checkbox" class="override-feature-checkbox accent-[#00f2fe]" value="${f.key}" ${featuresExtrasAtuais.includes(f.key) ? "checked" : ""}>
+                    ${f.label}
+                </label>
+            `).join("");
+
             document.getElementById("modal-cliente").classList.remove("hidden");
         };
 
@@ -557,11 +588,13 @@
         document.getElementById("btn-modal-salvar").addEventListener("click", async () => {
             if (!clienteSelecionadoUID) return;
             try {
+                const featuresExtras = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
                 await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), {
                     plano: document.getElementById("modal-plano").value,
-                    anotacaoAdmin: document.getElementById("modal-anotacao").value.trim()
+                    anotacaoAdmin: document.getElementById("modal-anotacao").value.trim(),
+                    featuresExtras: featuresExtras
                 });
-                showToast("Plano e anotação salvos!");
+                showToast("Plano, anotação e permissões extras salvos!");
                 fecharModal();
                 await carregarUsuarios();
             } catch (err) { showToast("Erro ao salvar.", "error"); }
