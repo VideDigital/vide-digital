@@ -597,6 +597,12 @@
                     </select>
                 </div>
 
+                <div class="space-y-3 pt-4 border-t border-white/5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">🎭 Temas Prontos</label>
+                    <p class="text-[11px] text-gray-500">Clique num tema pra aplicar tudo de uma vez — cores e fonte. Depois é só ajustar o que quiser abaixo antes de salvar.</p>
+                    <div id="lista-temas-prontos" class="grid grid-cols-2 sm:grid-cols-4 gap-3"></div>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-white/5">
                     <!-- Coluna Admin -->
                     <div class="space-y-3">
@@ -1261,6 +1267,77 @@
             });
         });
 
+        // =============================================
+        // TEMAS PRONTOS (aplica um pacote inteiro de cores + fonte de uma vez)
+        // =============================================
+        const TEMAS_PRONTOS = {
+            dark_premium: {
+                nome: "Dark Premium", icone: "⚫",
+                admin: { fundo: "#030712", destaque: "#00f2fe", texto: "#e5e7eb", card: "#0d0d16" },
+                vitrine: { fundo: "#030712", destaque: "#00f2fe", card: "#0c0c14", secundaria: "#4facfe", texto: "#e5e7eb", textoBotao: "#000000", borda: "#ffffff" },
+                fonte: "Plus Jakarta Sans"
+            },
+            clean_white: {
+                nome: "Clean White", icone: "⚪",
+                admin: { fundo: "#f8fafc", destaque: "#2563eb", texto: "#0f172a", card: "#ffffff" },
+                vitrine: { fundo: "#ffffff", destaque: "#2563eb", card: "#f8fafc", secundaria: "#60a5fa", texto: "#0f172a", textoBotao: "#ffffff", borda: "#0f172a" },
+                fonte: "Inter"
+            },
+            neon: {
+                nome: "Neon", icone: "🟣",
+                admin: { fundo: "#0a0014", destaque: "#ff00e5", texto: "#f0e5ff", card: "#150022" },
+                vitrine: { fundo: "#0a0014", destaque: "#ff00e5", card: "#150022", secundaria: "#00f2fe", texto: "#f0e5ff", textoBotao: "#000000", borda: "#ff00e5" },
+                fonte: "Montserrat"
+            },
+            luxo_dourado: {
+                nome: "Luxo Dourado", icone: "🟡",
+                admin: { fundo: "#0a0a0a", destaque: "#d4af37", texto: "#f5f0e0", card: "#141414" },
+                vitrine: { fundo: "#0a0a0a", destaque: "#d4af37", card: "#141414", secundaria: "#f0d878", texto: "#f5f0e0", textoBotao: "#000000", borda: "#d4af37" },
+                fonte: "Playfair Display"
+            }
+        };
+
+        function renderizarTemasProntos() {
+            const box = document.getElementById("lista-temas-prontos");
+            if (!box) return;
+            box.innerHTML = Object.entries(TEMAS_PRONTOS).map(([key, t]) => `
+                <button type="button" onclick="aplicarTemaPronto('${key}')" class="group text-left bg-white/[0.02] hover:bg-white/[0.05] border border-white/5 hover:border-white/20 rounded-xl p-3 transition-all">
+                    <div class="flex gap-1 mb-2">
+                        <span class="h-5 w-5 rounded-full border border-white/10" style="background:${t.vitrine.fundo}"></span>
+                        <span class="h-5 w-5 rounded-full border border-white/10" style="background:${t.vitrine.destaque}"></span>
+                        <span class="h-5 w-5 rounded-full border border-white/10" style="background:${t.vitrine.secundaria}"></span>
+                        <span class="h-5 w-5 rounded-full border border-white/10" style="background:${t.vitrine.card}"></span>
+                    </div>
+                    <p class="text-xs font-bold text-white">${t.icone} ${t.nome}</p>
+                </button>
+            `).join("");
+        }
+        renderizarTemasProntos();
+
+        window.aplicarTemaPronto = function(key) {
+            const t = TEMAS_PRONTOS[key];
+            if (!t) return;
+            const campos = {
+                "perf-admin-cor-fundo": t.admin.fundo,
+                "perf-admin-cor-destaque": t.admin.destaque,
+                "perf-admin-cor-texto": t.admin.texto,
+                "perf-admin-cor-card": t.admin.card,
+                "perf-cor-fundo": t.vitrine.fundo,
+                "perf-cor-destaque": t.vitrine.destaque,
+                "perf-cor-card": t.vitrine.card,
+                "perf-cor-secundaria": t.vitrine.secundaria,
+                "perf-cor-texto": t.vitrine.texto,
+                "perf-cor-texto-botao": t.vitrine.textoBotao,
+                "perf-cor-borda": t.vitrine.borda
+            };
+            Object.entries(campos).forEach(([id, valor]) => {
+                const input = document.getElementById(id);
+                if (input) { input.value = valor; input.dispatchEvent(new Event("input")); }
+            });
+            document.getElementById("perf-fonte-vitrine").value = t.fonte;
+            showToast(`Tema "${t.nome}" aplicado! Ajuste o que quiser e clique em Salvar.`);
+        };
+
         // ESCUTADORES DE CORES PARA REFLETIR NA HORA NO ADMIN E CALCULAR CONTRASTE
         document.getElementById("perf-admin-cor-fundo").addEventListener("input", (e) => {
             document.getElementById("admin-body").style.backgroundColor = e.target.value;
@@ -1286,6 +1363,7 @@
                 card.style.backgroundColor = e.target.value;
             });
         });
+        
 // FORÇA CAMPOS DE WHATSAPP A ACEITAREM SOMENTE NÚMEROS
         function aplicarMascaraNumerica(id) {
             const campo = document.getElementById(id);
