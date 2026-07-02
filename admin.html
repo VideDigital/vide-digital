@@ -107,6 +107,7 @@
             <button class="tab-btn active text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="clientes">Clientes</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="lojas">Lojas Ativas</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="pendentes">⚠️ Pendentes</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="suspensos">⏸️ Suspensos</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
         </div>
 
@@ -161,7 +162,29 @@
             </div>
         </div>
 
+        <!-- SUSPENSOS -->
+        <div id="tab-suspensos" class="tab-content hidden fade-in">
+            <div id="lista-suspensos" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+            </div>
+        </div>
+
     </main>
+
+    <!-- MODAL DE CONFIRMAÇÃO (substitui o confirm() feio do navegador) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
+            <div class="h-12 w-12 rounded-full bg-[#00f2fe]/10 border border-[#00f2fe]/30 flex items-center justify-center mx-auto text-xl">⚠️</div>
+            <div>
+                <h3 class="text-sm font-bold text-white">Confirmar ação</h3>
+                <p id="confirm-modal-texto" class="text-xs text-gray-400 mt-2">Tem certeza?</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="confirm-modal-cancelar" class="flex-1 bg-white/5 hover:bg-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
+                <button id="confirm-modal-ok" class="flex-1 bg-white hover:bg-gray-200 text-black font-bold px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Confirmar</button>
+            </div>
+        </div>
+    </div>
 
     <!-- MODAL DE DETALHES DO CLIENTE -->
     <div id="modal-cliente" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
@@ -189,8 +212,11 @@
             </div>
 
             <div class="space-y-2 pt-2 border-t border-white/5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Liberar funções extras (além do plano)</label>
-                <p class="text-[10px] text-gray-500">Marque pra liberar uma função específica pra esse cliente, mesmo que o plano dele não inclua.</p>
+                <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Funções liberadas para esse cliente</label>
+                    <button type="button" onclick="restaurarFeaturesDoPlano()" class="text-[10px] font-bold text-[#00f2fe] hover:underline">↺ Restaurar padrão do plano</button>
+                </div>
+                <p class="text-[10px] text-gray-500">Já vem marcado com o que o plano atual inclui. Marque ou desmarque à vontade — o que estiver aqui na hora de salvar vira o padrão desse cliente específico.</p>
                 <div id="modal-override-features" class="grid grid-cols-2 gap-2"></div>
             </div>
 
@@ -327,6 +353,7 @@
                 renderTabela(filtrados);
                 renderLojas(filtrados.filter(u => u.status === "aprovado"));
                 renderPendentes(filtrados.filter(u => (u.status || "pendente") === "pendente"));
+                renderSuspensos(filtrados.filter(u => u.status === "inativo"));
 
             } catch (err) {
                 console.error(err);
@@ -477,6 +504,45 @@
             `).join("");
         }
 
+        function renderSuspensos(lista) {
+            const box = document.getElementById("lista-suspensos");
+            if (!box) return;
+            if (lista.length === 0) {
+                box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-2xl">Nenhuma loja suspensa no momento. ✅</div>`;
+                return;
+            }
+            box.innerHTML = lista.map(u => `
+                <div class="glass-card p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-l-2 border-gray-500/40">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-gray-500/10 border border-gray-500/20 flex items-center justify-center text-sm font-black text-gray-400 shrink-0">
+                            ${(u.nome || u.email || "?")[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-bold text-white">${u.nome || "Sem nome"}</p>
+                            <p class="text-gray-400 text-[11px]">${u.email}</p>
+                            <p class="text-gray-500 text-[11px] mt-0.5">Loja: <span class="text-white">${u.nomeLoja || "Não informada"}</span> — Slug: <span class="text-white">${u.urlLoja || "Não definido"}</span></p>
+                            ${u.anotacaoAdmin ? `<p class="text-amber-400/80 text-[10px] mt-1">${u.anotacaoAdmin}</p>` : ""}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="reativarDireto('${u.uid}')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all">▶️ Reativar</button>
+                        <button onclick="abrirModal('${u.uid}')" class="bg-white/5 hover:bg-white/10 text-gray-300 font-bold px-4 py-2 rounded-xl text-xs transition-all">Detalhes</button>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        window.reativarDireto = async function(uid) {
+            try {
+                await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
+                showToast("Loja reativada!");
+                await carregarUsuarios();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao reativar.", "error");
+            }
+        };
+
         // ABRIR MODAL
         window.abrirModal = async function(uid) {
             clienteSelecionadoUID = uid;
@@ -511,15 +577,26 @@
             document.getElementById("modal-plano").value = u.plano || "basico";
             document.getElementById("modal-anotacao").value = u.anotacaoAdmin || "";
 
-            const featuresExtrasAtuais = Array.isArray(u.featuresExtras) ? u.featuresExtras : [];
+            renderizarCheckboxesFeatures(Array.isArray(u.featuresManuais) ? u.featuresManuais : (FEATURES_PLANO[u.plano || "starter"] || []));
+
+            document.getElementById("modal-cliente").classList.remove("hidden");
+        };
+
+        // Desenha os checkboxes de função marcados de acordo com a lista passada
+        function renderizarCheckboxesFeatures(featuresAtivasLista) {
             document.getElementById("modal-override-features").innerHTML = FEATURES_OVERRIDE.map(f => `
                 <label class="flex items-center gap-2 text-[11px] text-gray-300 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.04] transition-all">
-                    <input type="checkbox" class="override-feature-checkbox accent-[#00f2fe]" value="${f.key}" ${featuresExtrasAtuais.includes(f.key) ? "checked" : ""}>
+                    <input type="checkbox" class="override-feature-checkbox accent-[#00f2fe]" value="${f.key}" ${featuresAtivasLista.includes(f.key) ? "checked" : ""}>
                     ${f.label}
                 </label>
             `).join("");
+        }
 
-            document.getElementById("modal-cliente").classList.remove("hidden");
+        // Botão "Restaurar padrão do plano" — recarrega os checkboxes com base no plano selecionado no <select> agora
+        window.restaurarFeaturesDoPlano = function() {
+            const planoSelecionado = document.getElementById("modal-plano").value;
+            renderizarCheckboxesFeatures(FEATURES_PLANO[planoSelecionado] || []);
+            showToast("Restaurado para o padrão do plano " + (PLANOS[planoSelecionado]?.nome || planoSelecionado) + ". Clique em Salvar Plano pra confirmar.");
         };
 
         window.fecharModal = function() {
@@ -527,8 +604,31 @@
             clienteSelecionadoUID = null;
         };
 
+        // MOTOR DE CONFIRMAÇÃO CUSTOMIZADO (substitui o confirm() feio do navegador)
+        function abrirConfirmacao(mensagem, callback) {
+            document.getElementById("confirm-modal-texto").innerText = mensagem;
+            document.getElementById("confirm-modal").classList.remove("hidden");
+
+            const btnOk = document.getElementById("confirm-modal-ok");
+            const btnCancelar = document.getElementById("confirm-modal-cancelar");
+            const fechar = () => document.getElementById("confirm-modal").classList.add("hidden");
+
+            const novoOk = btnOk.cloneNode(true);
+            btnOk.parentNode.replaceChild(novoOk, btnOk);
+            novoOk.addEventListener("click", () => { fechar(); callback(); });
+
+            const novoCancelar = btnCancelar.cloneNode(true);
+            btnCancelar.parentNode.replaceChild(novoCancelar, btnCancelar);
+            novoCancelar.addEventListener("click", fechar);
+        }
+
         // APROVAR DIRETO (da lista de pendentes)
         window.aprovarDireto = async function(uid, email) {
+            const u = todosUsuarios.find(x => x.uid === uid);
+            if (u && u.status === "aprovado") {
+                showToast("Esse cliente já está aprovado.", "error");
+                return;
+            }
             try {
                 await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
                 showToast("Cliente aprovado com sucesso!");
@@ -541,20 +641,26 @@
 
         // REJEITAR DIRETO
         window.rejeitarDireto = async function(uid) {
-            if (!confirm("Confirma a rejeição deste cadastro?")) return;
-            try {
-                await updateDoc(doc(db, "usuarios", uid), { status: "rejeitado" });
-                showToast("Cadastro rejeitado.");
-                await carregarUsuarios();
-            } catch (err) {
-                console.error(err);
-                showToast("Erro ao rejeitar.", "error");
-            }
+            abrirConfirmacao("Confirma a rejeição deste cadastro?", async () => {
+                try {
+                    await updateDoc(doc(db, "usuarios", uid), { status: "rejeitado" });
+                    showToast("Cadastro rejeitado.");
+                    await carregarUsuarios();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao rejeitar.", "error");
+                }
+            });
         };
 
         // BOTÕES DO MODAL
         document.getElementById("btn-modal-aprovar").addEventListener("click", async () => {
             if (!clienteSelecionadoUID) return;
+            const u = todosUsuarios.find(x => x.uid === clienteSelecionadoUID);
+            if (u && u.status === "aprovado") {
+                showToast("Esse cliente já está aprovado.", "error");
+                return;
+            }
             try {
                 await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "aprovado" });
                 showToast("Cliente aprovado!");
@@ -563,38 +669,47 @@
             } catch (err) { showToast("Erro ao aprovar.", "error"); }
         });
 
-        document.getElementById("btn-modal-rejeitar").addEventListener("click", async () => {
+        document.getElementById("btn-modal-rejeitar").addEventListener("click", () => {
             if (!clienteSelecionadoUID) return;
-            if (!confirm("Confirma a rejeição?")) return;
-            try {
-                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "rejeitado" });
-                showToast("Cadastro rejeitado.");
-                fecharModal();
-                await carregarUsuarios();
-            } catch (err) { showToast("Erro ao rejeitar.", "error"); }
+            const uidAlvo = clienteSelecionadoUID;
+            abrirConfirmacao("Confirma a rejeição?", async () => {
+                try {
+                    await updateDoc(doc(db, "usuarios", uidAlvo), { status: "rejeitado" });
+                    showToast("Cadastro rejeitado.");
+                    fecharModal();
+                    await carregarUsuarios();
+                } catch (err) { showToast("Erro ao rejeitar.", "error"); }
+            });
         });
 
-        document.getElementById("btn-modal-inativar").addEventListener("click", async () => {
+        document.getElementById("btn-modal-inativar").addEventListener("click", () => {
             if (!clienteSelecionadoUID) return;
-            if (!confirm("Confirma a suspensão desta loja?")) return;
-            try {
-                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "inativo" });
-                showToast("Loja suspensa.");
-                fecharModal();
-                await carregarUsuarios();
-            } catch (err) { showToast("Erro ao suspender.", "error"); }
+            const u = todosUsuarios.find(x => x.uid === clienteSelecionadoUID);
+            if (u && u.status === "inativo") {
+                showToast("Essa loja já está suspensa.", "error");
+                return;
+            }
+            const uidAlvo = clienteSelecionadoUID;
+            abrirConfirmacao("Confirma a suspensão desta loja?", async () => {
+                try {
+                    await updateDoc(doc(db, "usuarios", uidAlvo), { status: "inativo" });
+                    showToast("Loja suspensa.");
+                    fecharModal();
+                    await carregarUsuarios();
+                } catch (err) { showToast("Erro ao suspender.", "error"); }
+            });
         });
 
         document.getElementById("btn-modal-salvar").addEventListener("click", async () => {
             if (!clienteSelecionadoUID) return;
             try {
-                const featuresExtras = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
+                const featuresManuais = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
                 await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), {
                     plano: document.getElementById("modal-plano").value,
                     anotacaoAdmin: document.getElementById("modal-anotacao").value.trim(),
-                    featuresExtras: featuresExtras
+                    featuresManuais: featuresManuais
                 });
-                showToast("Plano, anotação e permissões extras salvos!");
+                showToast("Plano, anotação e funções liberadas salvos!");
                 fecharModal();
                 await carregarUsuarios();
             } catch (err) { showToast("Erro ao salvar.", "error"); }
@@ -616,6 +731,16 @@
         document.getElementById("filtro-plano").addEventListener("change", carregarUsuarios);
 
         // CONFIGURAÇÃO DE PLANOS
+        // Rótulos legíveis pra cada feature técnica (usa o mesmo nome do FEATURES_OVERRIDE quando existir)
+        const FEATURE_LABELS = Object.fromEntries(FEATURES_OVERRIDE.map(f => [f.key, f.label]));
+        Object.assign(FEATURE_LABELS, {
+            hub: "Vitrine Pública", popup: "Pop-up de Captura", carrinho: "Carrinho de Compras",
+            chat: "Chat ao Vivo", cupons: "Cupons Automáticos", csv: "Exportar CSV",
+            lp: "Landing Pages", lp1: "Landing Page (básica)", qrcode: "QR Code",
+            temas: "Temas Prontos", avaliacoes: "Avaliações", suporte_vip: "Suporte VIP",
+            onboarding: "Onboarding Guiado"
+        });
+
         function renderizarGridPlanos() {
             const grid = document.getElementById("grid-planos");
             if (!grid) return;
@@ -639,9 +764,11 @@
                             <input type="number" id="plano-rascunhos-${key}" value="${p.rascunhos}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
                         </div>
                     </div>
-                    <div class="text-[10px] text-gray-600 pt-1 border-t border-white/5">
-                        <p class="font-bold text-gray-500 mb-1">Features incluídas:</p>
-                        <p>${FEATURES_PLANO[key].join(", ")}</p>
+                    <div class="pt-2 border-t border-white/5 space-y-2">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Features incluídas (${FEATURES_PLANO[key].length})</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${FEATURES_PLANO[key].map(fk => `<span class="text-[9px] font-bold px-2 py-1 rounded-md bg-[#00f2fe]/10 text-[#00f2fe] border border-[#00f2fe]/20">${FEATURE_LABELS[fk] || fk}</span>`).join("")}
+                        </div>
                     </div>
                 </div>
             `).join("");
