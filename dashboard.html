@@ -1102,7 +1102,10 @@
         let slugAtualSalvo = "";
         let tipoDestino = "checkout";
         let filtroLogistico = "todos";
-
+        let planoAtualGlobal = "starter";
+        let limiteProdutosGlobal = 3;
+        let totalProdutosAtual = 0;
+        
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
         const form = document.getElementById("produto-form");
@@ -1357,6 +1360,12 @@
                 }
 
                 const planoAtual = dadosPlano.plano || "starter";
+                planoAtualGlobal = planoAtual;
+
+                const LIMITES_PLANO = {
+                    starter: 3, basico: 5, essencial: 10, negocio: 20, profissional: 35,
+                    avancado: 50, pro: -1, proplus: -1, agencia: -1, enterprise: -1, premium: -1
+                };
 
                 const FEATURES_PLANO = {
                     starter:      ["hub"],
@@ -1403,6 +1412,9 @@
                     temFeature = function(feature) {
                         return featuresAtivas.includes(feature);
                     };
+
+                    const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
+                    limiteProdutosGlobal = (typeof limiteSalvo === "number") ? limiteSalvo : (LIMITES_PLANO[planoAtual] ?? 3);
 
                     function planoMinimoParaFeature(feature) {
                         for (const p of ORDEM_PLANOS) {
@@ -1997,6 +2009,7 @@ window.abrirTemplatesDoLead = async function() {
             try {
                 const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
+                totalProdutosAtual = querySnapshot.size;
                 let produtosFiltrados = [];
 
                 querySnapshot.forEach(docSnap => {
@@ -2062,6 +2075,10 @@ window.abrirTemplatesDoLead = async function() {
         }
 
         document.getElementById("btn-abrir-criacao").addEventListener("click", () => {
+            if (limiteProdutosGlobal !== -1 && totalProdutosAtual >= limiteProdutosGlobal) {
+                showToast(`Limite de ${limiteProdutosGlobal} produtos do seu plano (${planoAtualGlobal}) atingido. Faça upgrade para cadastrar mais.`, "error");
+                return;
+            }
             form.reset();
             document.getElementById("form-id-produto").value = "";
             inputImagemBase64.value = "";
@@ -2118,6 +2135,10 @@ window.abrirTemplatesDoLead = async function() {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             const id = document.getElementById("form-id-produto").value;
+            if (!id && limiteProdutosGlobal !== -1 && totalProdutosAtual >= limiteProdutosGlobal) {
+                showToast(`Limite de ${limiteProdutosGlobal} produtos do seu plano atingido.`, "error");
+                return;
+            }
             const destinoFinalValue = (tipoDestino === "whatsapp") ? inputWhatsapp.value.trim() : inputCheckout.value.trim();
 
             const produtoPayload = {
