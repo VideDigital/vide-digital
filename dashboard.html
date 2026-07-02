@@ -1162,7 +1162,45 @@
             if (targetId === "view-templates") carregarTemplates();
             if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30)); }
         }
+// =============================================
+        // BLOQUEIO IMEDIATO DE PLANO (evita flash de conteúdo liberado)
+        // =============================================
+        // Bloqueia as abas pagas ANTES de qualquer chamada ao Firebase, pra nunca
+        // existir uma janela de tempo em que elas apareçam liberadas por engano.
+        const BLOQUEIOS_NAV = {
+            "view-templates": "templates",
+            "view-campanhas": "campanhas",
+            "view-metricas": "metricas",
+            "view-pedidos": "hub"
+        };
+        window._planoCarregado = false;
+        window._featureBloqueio = {};
 
+        document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
+            const target = btn.getAttribute("data-target");
+            if (!BLOQUEIOS_NAV[target]) return;
+            btn.classList.add("opacity-40");
+            const badge = document.createElement("span");
+            badge.className = "cadeado-badge";
+            badge.setAttribute("data-tip", "Verificando seu plano...");
+            badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
+            btn.appendChild(badge);
+            btn.addEventListener("click", (e) => {
+                if (!window._planoCarregado) {
+                    e.stopImmediatePropagation();
+                    showToast("Carregando suas permissões, aguarde um instante...", "error");
+                    return;
+                }
+                const nomePlano = window._featureBloqueio[target];
+                if (nomePlano) {
+                    e.stopImmediatePropagation();
+                    showToast(`Disponível a partir do plano ${nomePlano}.`, "error");
+                    const secao = document.getElementById(target);
+                    if (secao) secao.classList.remove("active");
+                }
+            }, true);
+        });
+        
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
             button.addEventListener("click", () => {
                 ativarAba(button.getAttribute("data-target"));
@@ -1387,12 +1425,7 @@
                     pro: "Pro", proplus: "Pro+", agencia: "Agência",
                     enterprise: "Enterprise", premium: "Premium"
                 };
-                const bloqueios = {
-                    "view-templates": "templates",
-                    "view-campanhas": "campanhas",
-                    "view-metricas": "metricas",
-                    "view-pedidos": "hub"
-                };
+                const bloqueios = BLOQUEIOS_NAV; // mesmo objeto usado no bloqueio provisório lá em cima
 
                 // Padrão seguro: se o carregamento do plano falhar por qualquer motivo,
                 // NÃO bloqueia o resto do painel (produtos, leads, etc. continuam funcionando).
@@ -1413,9 +1446,6 @@
                         return featuresAtivas.includes(feature);
                     };
 
-                    const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
-                    limiteProdutosGlobal = (typeof limiteSalvo === "number") ? limiteSalvo : (LIMITES_PLANO[planoAtual] ?? 3);
-
                     function planoMinimoParaFeature(feature) {
                         for (const p of ORDEM_PLANOS) {
                             if (listaFeaturesDoPlano(p).includes(feature)) return p;
@@ -1423,34 +1453,26 @@
                         return null;
                     }
 
-                    // APLICAR CADEADOS NO MENU
+                    // CONFIRMA OU LIBERA O CADEADO (o bloqueio provisório já existe desde
+                    // o início da página — aqui só atualizamos, nunca criamos clique novo)
                     document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
                         const target = btn.getAttribute("data-target");
                         const feature = bloqueios[target];
-
-                        // Remove cadeado antigo (evita duplicar caso o Firebase dispare de novo)
                         const badgeExistente = btn.querySelector(".cadeado-badge");
-                        if (badgeExistente) badgeExistente.remove();
-                        btn.classList.remove("opacity-40");
 
                         if (feature && !temFeature(feature)) {
-                            btn.classList.add("opacity-40");
                             const planoNecessario = planoMinimoParaFeature(feature);
                             const nomePlanoNecessario = planoNecessario ? planoNomes[planoNecessario] : "um plano superior";
-                            btn.title = "";
-                            const badge = document.createElement("span");
-                            badge.className = "cadeado-badge";
-                            badge.setAttribute("data-tip", `Disponível no plano ${nomePlanoNecessario}`);
-                            badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
-                            btn.appendChild(badge);
-                            btn.addEventListener("click", (e) => {
-                                e.stopImmediatePropagation();
-                                showToast(`Disponível a partir do plano ${nomePlanoNecessario}.`, "error");
-                                const secao = document.getElementById(target);
-                                if (secao) secao.classList.remove("active");
-                            }, true);
+                            window._featureBloqueio[target] = nomePlanoNecessario;
+                            btn.classList.add("opacity-40");
+                            if (badgeExistente) badgeExistente.setAttribute("data-tip", `Disponível no plano ${nomePlanoNecessario}`);
+                        } else {
+                            delete window._featureBloqueio[target];
+                            btn.classList.remove("opacity-40");
+                            if (badgeExistente) badgeExistente.remove();
                         }
                     });
+                    window._planoCarregado = true;
 
                     // MOSTRAR BADGE DO PLANO NO SIDEBAR (sem duplicar em recargas)
                     const boxAtivo = document.getElementById("box-atalho");
@@ -1466,6 +1488,14 @@
                 } catch (erroPlano) {
                     console.error("[Vide Hub] Erro ao carregar plano/cadeados:", erroPlano);
                     showToast("ERRO PLANO: " + (erroPlano?.message || erroPlano), "error");
+                    // Falha ao carregar o plano: libera tudo (fail-open) e limpa os cadeados provisórios
+                    window._planoCarregado = true;
+                    window._featureBloqueio = {};
+                    document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
+                        btn.classList.remove("opacity-40");
+                        const badgeExistente = btn.querySelector(".cadeado-badge");
+                        if (badgeExistente) badgeExistente.remove();
+                    });
                 }
 
                 const userSnap = userSnap2;
@@ -2032,7 +2062,7 @@ window.abrirTemplatesDoLead = async function() {
 
                 produtosFiltrados.forEach((prod) => {
                     const precoFormatado = parseFloat(prod.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    const imagemSrc = prod.imagemB64 || 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%"><rect fill="%2309090f"/></svg>';
+                    const imagemSrc = prod.imagemB64 || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%2309090f'/></svg>";
 
                     const tipoLabel = prod.tipo === 'digital' ? '⚡ Digital' : '📦 Físico';
                     const estoqueChip = (prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[9px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md">📦 ${prod.estoque} un.</span>` : '';
