@@ -921,11 +921,12 @@
     </div>
     <div id="template-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
-            <button onclick="document.getElementById('template-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <button onclick="document.getElementById('template-modal').classList.add('hidden'); document.getElementById('tpl-id-edicao').value = '';" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
             <h3 class="text-sm font-black text-white">Novo Template</h3>
             <div class="space-y-3">
                 <div class="space-y-1.5">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título do Template</label>
+                    <input type="hidden" id="tpl-id-edicao">
                     <input type="text" id="tpl-titulo" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Boas-vindas, Follow-up, Promoção...">
                 </div>
                 <div class="space-y-1.5">
@@ -2029,6 +2030,7 @@ window.abrirTemplatesDoLead = async function() {
                         </div>
                         <div class="flex gap-2 pt-2 border-t border-white/5">
                             <button onclick="copiarTemplate('${t.id}')" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">📋 Copiar</button>
+                            <button onclick="editarTemplate('${t.id}')" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all">✏️</button>
                             <button onclick="excluirTemplate('${t.id}')" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold px-3 py-2 rounded-xl transition-all">🗑️</button>
                         </div>
                     </div>
@@ -2047,7 +2049,16 @@ window.abrirTemplatesDoLead = async function() {
                 showToast("Template copiado!");
             }
         };
-
+window.editarTemplate = async function(id) {
+            const snap = await getDoc(doc(db, "templates", id));
+            if (!snap.exists()) return;
+            const t = snap.data();
+            document.getElementById("tpl-titulo").value = t.titulo;
+            document.getElementById("tpl-mensagem").value = t.mensagem;
+            document.getElementById("tpl-categoria").value = t.categoria || "geral";
+            document.getElementById("tpl-id-edicao").value = id;
+            document.getElementById("template-modal").classList.remove("hidden");
+        };
         window.excluirTemplate = async function(id) {
             try {
                 await deleteDoc(doc(db, "templates", id));
@@ -2060,9 +2071,11 @@ window.abrirTemplatesDoLead = async function() {
             const titulo = document.getElementById("tpl-titulo").value.trim();
             const mensagem = document.getElementById("tpl-mensagem").value.trim();
             const categoria = document.getElementById("tpl-categoria").value;
+            const idEdicao = document.getElementById("tpl-id-edicao").value;
             if (!titulo || !mensagem) return showToast("Preencha título e mensagem.", "error");
             try {
-                await setDoc(doc(db, "templates", `tpl_${Date.now()}`), {
+                const docId = idEdicao || `tpl_${Date.now()}`;
+                await setDoc(doc(db, "templates", docId), {
                     titulo, mensagem, categoria,
                     criadoPor: usuarioUID,
                     criadoEm: Date.now()
