@@ -1303,18 +1303,15 @@
 
                 // CARREGAR PLANO E APLICAR RESTRIÇÕES
                 const userSnap2 = await getDoc(doc(db, "usuarios", usuarioUID));
-                const planoAtual = userSnap2.exists() ? (userSnap2.data().plano || "starter") : "starter";
                 const dadosPlano = userSnap2.exists() ? userSnap2.data() : {};
                 const slugAtualURL = dadosPlano.urlLoja || "";
                 if (slugAtualURL) {
                     document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtualURL}`;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtualURL}`;
                 }
-                
-                // Buscar config de planos do Firebase (ou usar padrão)
-                const configSnap = await getDoc(doc(db, "config", "planos"));
-                const configPlanos = configSnap.exists() ? configSnap.data() : null;
-                
+
+                const planoAtual = dadosPlano.plano || "starter";
+
                 const FEATURES_PLANO = {
                     starter:      ["hub"],
                     basico:       ["hub", "popup"],
@@ -1328,15 +1325,6 @@
                     enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
                     premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
                 };
-
-                const featuresAtivas = configPlanos?.[planoAtual]?.features || FEATURES_PLANO[planoAtual] || FEATURES_PLANO.starter;
-
-                function temFeature(feature) {
-                    return featuresAtivas.includes(feature);
-                }
-
-                // ORDEM DOS PLANOS (do mais básico ao mais completo) — usada para
-                // descobrir automaticamente qual é o plano mínimo que libera cada função
                 const ORDEM_PLANOS = ["starter","basico","essencial","negocio","profissional","avancado","pro","proplus","agencia","enterprise","premium"];
                 const planoNomes = {
                     starter: "Starter", basico: "Básico", essencial: "Essencial",
@@ -1344,15 +1332,6 @@
                     pro: "Pro", proplus: "Pro+", agencia: "Agência",
                     enterprise: "Enterprise", premium: "Premium"
                 };
-                function planoMinimoParaFeature(feature) {
-                    for (const p of ORDEM_PLANOS) {
-                        const featuresDoPlano = configPlanos?.[p]?.features || FEATURES_PLANO[p] || [];
-                        if (featuresDoPlano.includes(feature)) return p;
-                    }
-                    return null;
-                }
-
-                // APLICAR CADEADOS NO MENU
                 const bloqueios = {
                     "view-leads": "leads",
                     "view-templates": "templates",
@@ -1361,38 +1340,76 @@
                     "view-pedidos": "hub"
                 };
 
-                document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
-                    const target = btn.getAttribute("data-target");
-                    const feature = bloqueios[target];
-                    if (feature && !temFeature(feature)) {
-                        btn.classList.add("opacity-40");
-                        const planoNecessario = planoMinimoParaFeature(feature);
-                        const nomePlanoNecessario = planoNecessario ? planoNomes[planoNecessario] : "um plano superior";
-                        btn.title = "";
-                        const badge = document.createElement("span");
-                        badge.className = "cadeado-badge";
-                        badge.setAttribute("data-tip", `Disponível no plano ${nomePlanoNecessario}`);
-                        badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
-                        btn.appendChild(badge);
-                        btn.addEventListener("click", (e) => {
-                            e.stopImmediatePropagation();
-                            showToast(`Disponível a partir do plano ${nomePlanoNecessario}.`, "error");
-                            // Esconde a seção caso já tenha sido carregada antes
-                            const secao = document.getElementById(target);
-                            if (secao) secao.classList.remove("active");
-                        }, true);
-                    }
-                });
+                // Padrão seguro: se o carregamento do plano falhar por qualquer motivo,
+                // NÃO bloqueia o resto do painel (produtos, leads, etc. continuam funcionando).
+                let temFeature = () => true;
 
-                // MOSTRAR BADGE DO PLANO NO SIDEBAR
-                const boxAtivo = document.getElementById("box-atalho");
-                if (boxAtivo) {
-                    const badgePlano = document.createElement("div");
-                    badgePlano.className = "mt-3 text-center text-[10px] font-black uppercase tracking-wider text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 rounded-lg py-1.5";
-                    badgePlano.innerText = "Plano " + (planoNomes[planoAtual] || planoAtual);
-                    boxAtivo.querySelector("div").appendChild(badgePlano);
+                try {
+                    // Buscar config de planos do Firebase (ou usar os valores padrão do código)
+                    const configSnap = await getDoc(doc(db, "config", "planos"));
+                    const configPlanos = configSnap.exists() ? configSnap.data() : null;
+
+                    function listaFeaturesDoPlano(p) {
+                        const salvas = configPlanos?.[p]?.features;
+                        return (Array.isArray(salvas) && salvas.length > 0) ? salvas : (FEATURES_PLANO[p] || []);
+                    }
+
+                    const featuresAtivas = listaFeaturesDoPlano(planoAtual);
+                    temFeature = function(feature) {
+                        return featuresAtivas.includes(feature);
+                    };
+
+                    function planoMinimoParaFeature(feature) {
+                        for (const p of ORDEM_PLANOS) {
+                            if (listaFeaturesDoPlano(p).includes(feature)) return p;
+                        }
+                        return null;
+                    }
+
+                    // APLICAR CADEADOS NO MENU
+                    document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
+                        const target = btn.getAttribute("data-target");
+                        const feature = bloqueios[target];
+
+                        // Remove cadeado antigo (evita duplicar caso o Firebase dispare de novo)
+                        const badgeExistente = btn.querySelector(".cadeado-badge");
+                        if (badgeExistente) badgeExistente.remove();
+                        btn.classList.remove("opacity-40");
+
+                        if (feature && !temFeature(feature)) {
+                            btn.classList.add("opacity-40");
+                            const planoNecessario = planoMinimoParaFeature(feature);
+                            const nomePlanoNecessario = planoNecessario ? planoNomes[planoNecessario] : "um plano superior";
+                            btn.title = "";
+                            const badge = document.createElement("span");
+                            badge.className = "cadeado-badge";
+                            badge.setAttribute("data-tip", `Disponível no plano ${nomePlanoNecessario}`);
+                            badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
+                            btn.appendChild(badge);
+                            btn.addEventListener("click", (e) => {
+                                e.stopImmediatePropagation();
+                                showToast(`Disponível a partir do plano ${nomePlanoNecessario}.`, "error");
+                                const secao = document.getElementById(target);
+                                if (secao) secao.classList.remove("active");
+                            }, true);
+                        }
+                    });
+
+                    // MOSTRAR BADGE DO PLANO NO SIDEBAR (sem duplicar em recargas)
+                    const boxAtivo = document.getElementById("box-atalho");
+                    if (boxAtivo) {
+                        let badgePlano = boxAtivo.querySelector(".badge-plano-atual");
+                        if (!badgePlano) {
+                            badgePlano = document.createElement("div");
+                            badgePlano.className = "badge-plano-atual mt-3 text-center text-[10px] font-black uppercase tracking-wider text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 rounded-lg py-1.5";
+                            boxAtivo.querySelector("div").appendChild(badgePlano);
+                        }
+                        badgePlano.innerText = "Plano " + (planoNomes[planoAtual] || planoAtual);
+                    }
+                } catch (erroPlano) {
+                    console.error("[Vide Hub] Erro ao carregar plano/cadeados:", erroPlano);
                 }
-                
+
                 const userSnap = userSnap2;
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
