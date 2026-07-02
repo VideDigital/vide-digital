@@ -1217,6 +1217,72 @@
             if (user) {
                 usuarioEmail = user.email.toLowerCase();
                 usuarioUID = user.uid;
+
+                // CARREGAR PLANO E APLICAR RESTRIÇÕES
+                const userSnap2 = await getDoc(doc(db, "usuarios", usuarioUID));
+                const planoAtual = userSnap2.exists() ? (userSnap2.data().plano || "starter") : "starter";
+                
+                // Buscar config de planos do Firebase (ou usar padrão)
+                const configSnap = await getDoc(doc(db, "config", "planos"));
+                const configPlanos = configSnap.exists() ? configSnap.data() : null;
+                
+                const FEATURES_PLANO = {
+                    starter:      ["hub"],
+                    basico:       ["hub", "popup"],
+                    essencial:    ["hub", "popup", "carrinho", "chat"],
+                    negocio:      ["hub", "popup", "carrinho", "chat", "templates", "cupons"],
+                    profissional: ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv"],
+                    avancado:     ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp1", "qrcode", "temas"],
+                    pro:          ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot"],
+                    proplus:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda"],
+                    agencia:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas"],
+                    enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
+                    premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
+                };
+
+                const featuresAtivas = configPlanos?.[planoAtual]?.features || FEATURES_PLANO[planoAtual] || FEATURES_PLANO.starter;
+
+                function temFeature(feature) {
+                    return featuresAtivas.includes(feature);
+                }
+
+                // APLICAR CADEADOS NO MENU
+                const bloqueios = {
+                    "view-templates": "templates",
+                    "view-campanhas": "campanhas",
+                    "view-metricas": "metricas",
+                    "view-pedidos": "hub"
+                };
+
+                document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
+                    const target = btn.getAttribute("data-target");
+                    const feature = bloqueios[target];
+                    if (feature && !temFeature(feature)) {
+                        btn.classList.add("opacity-40");
+                        btn.title = "🔒 Disponível em planos superiores";
+                        const icone = document.createElement("span");
+                        icone.innerText = "🔒";
+                        icone.className = "ml-auto text-[10px]";
+                        btn.appendChild(icone);
+                        btn.addEventListener("click", (e) => {
+                            e.stopImmediatePropagation();
+                            showToast("🔒 Esta função não está disponível no seu plano atual.", "error");
+                        }, true);
+                    }
+                });
+
+                // MOSTRAR BADGE DO PLANO NO SIDEBAR
+                const planoNomes = {
+                    starter: "Starter", basico: "Básico", essencial: "Essencial",
+                    negocio: "Negócio", profissional: "Profissional", avancado: "Avançado",
+                    pro: "Pro", proplus: "Pro+", agencia: "Agência",
+                    enterprise: "Enterprise", premium: "Premium"
+                };
+                const boxAtivo = document.getElementById("box-atalho");
+                if (boxAtivo) {
+                    const badgePlano = document.createElement("div");
+                    badgePlano.className = "mt-3 text-center text-[10px] font-black uppercase tracking-wider text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 rounded-lg py-1.5";
+                    badgePlano.innerText = "Plano " +
                 
                 const userSnap = await getDoc(doc(db, "usuarios", usuarioUID));
                 if (userSnap.exists()) {
