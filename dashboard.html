@@ -1254,6 +1254,7 @@
 
                 // APLICAR CADEADOS NO MENU
                 const bloqueios = {
+                    "view-leads": "leads",
                     "view-templates": "templates",
                     "view-campanhas": "campanhas",
                     "view-metricas": "metricas",
@@ -1273,6 +1274,9 @@
                         btn.addEventListener("click", (e) => {
                             e.stopImmediatePropagation();
                             showToast("🔒 Esta função não está disponível no seu plano atual.", "error");
+                            // Esconde a seção caso já tenha sido carregada antes
+                            const secao = document.getElementById(target);
+                            if (secao) secao.classList.remove("active");
                         }, true);
                     }
                 });
