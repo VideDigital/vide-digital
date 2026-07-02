@@ -1282,7 +1282,9 @@
                 if (boxAtivo) {
                     const badgePlano = document.createElement("div");
                     badgePlano.className = "mt-3 text-center text-[10px] font-black uppercase tracking-wider text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 rounded-lg py-1.5";
-                    badgePlano.innerText = "Plano " +
+                    badgePlano.innerText = "Plano " + (planoNomes[planoAtual] || planoAtual);
+                    boxAtivo.querySelector("div").appendChild(badgePlano);
+                }
                 
                 const userSnap = await getDoc(doc(db, "usuarios", usuarioUID));
                 if (userSnap.exists()) {
