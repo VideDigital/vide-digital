@@ -1387,9 +1387,10 @@
                     }
                 }
                 carregarProdutos();
-                carregarLeads();
-                carregarPedidos();
-                carregarTemplates();
+                if (temFeature("leads")) carregarLeads();
+                if (temFeature("hub")) carregarPedidos();
+                if (temFeature("templates")) carregarTemplates();
+                if (temFeature("campanhas")) carregarCampanha();
             } else {
                 window.location.href = "login.html";
             }
