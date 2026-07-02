@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VideDigital | Premium Enterprise Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Playfair+Display:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Merriweather:wght@400;700;900&family=Cormorant+Garamond:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Josefin+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; background-color: #000000; }
@@ -668,6 +668,18 @@
                         <option value="Montserrat">Montserrat</option>
                         <option value="Roboto">Roboto</option>
                         <option value="Playfair Display">Playfair Display (Elegante)</option>
+                        <option value="Outfit">Outfit</option>
+                        <option value="Manrope">Manrope</option>
+                        <option value="DM Sans">DM Sans</option>
+                        <option value="Space Grotesk">Space Grotesk</option>
+                        <option value="Bebas Neue">Bebas Neue (Impacto)</option>
+                        <option value="Merriweather">Merriweather (Serifada)</option>
+                        <option value="Cormorant Garamond">Cormorant Garamond (Luxo)</option>
+                        <option value="Dancing Script">Dancing Script (Manuscrita)</option>
+                        <option value="Nunito">Nunito (Arredondada)</option>
+                        <option value="Oswald">Oswald (Condensada)</option>
+                        <option value="Quicksand">Quicksand (Suave)</option>
+                        <option value="Josefin Sans">Josefin Sans</option>
                     </select>
                 </div>
 
@@ -1287,13 +1299,85 @@
                 nome: "Neon", icone: "🟣",
                 admin: { fundo: "#0a0014", destaque: "#ff00e5", texto: "#f0e5ff", card: "#150022" },
                 vitrine: { fundo: "#0a0014", destaque: "#ff00e5", card: "#150022", secundaria: "#00f2fe", texto: "#f0e5ff", textoBotao: "#000000", borda: "#ff00e5" },
-                fonte: "Montserrat"
+                fonte: "Space Grotesk"
             },
             luxo_dourado: {
                 nome: "Luxo Dourado", icone: "🟡",
                 admin: { fundo: "#0a0a0a", destaque: "#d4af37", texto: "#f5f0e0", card: "#141414" },
                 vitrine: { fundo: "#0a0a0a", destaque: "#d4af37", card: "#141414", secundaria: "#f0d878", texto: "#f5f0e0", textoBotao: "#000000", borda: "#d4af37" },
+                fonte: "Cormorant Garamond"
+            },
+            rosa_elegante: {
+                nome: "Rosa Elegante", icone: "🌸",
+                admin: { fundo: "#1a0e14", destaque: "#ff6b9d", texto: "#f5e6ea", card: "#241219" },
+                vitrine: { fundo: "#1a0e14", destaque: "#ff6b9d", card: "#241219", secundaria: "#ffb3c6", texto: "#f5e6ea", textoBotao: "#000000", borda: "#ff6b9d" },
+                fonte: "Quicksand"
+            },
+            pastel_doce: {
+                nome: "Pastel Doce", icone: "🧁",
+                admin: { fundo: "#fffaf5", destaque: "#ff9eb5", texto: "#4a3b3b", card: "#ffffff" },
+                vitrine: { fundo: "#fff8f0", destaque: "#ff9eb5", card: "#ffffff", secundaria: "#ffd166", texto: "#4a3b3b", textoBotao: "#ffffff", borda: "#ff9eb5" },
+                fonte: "Nunito"
+            },
+            barbearia_classica: {
+                nome: "Barbearia Clássica", icone: "💈",
+                admin: { fundo: "#0f0c09", destaque: "#c9922f", texto: "#ede4d3", card: "#1a1410" },
+                vitrine: { fundo: "#1a1410", destaque: "#c9922f", card: "#241c16", secundaria: "#8b5a2b", texto: "#ede4d3", textoBotao: "#000000", borda: "#c9922f" },
+                fonte: "Oswald"
+            },
+            oceano: {
+                nome: "Oceano", icone: "🌊",
+                admin: { fundo: "#04191c", destaque: "#00d9c0", texto: "#dff7f5", card: "#0a2a2e" },
+                vitrine: { fundo: "#04191c", destaque: "#00d9c0", card: "#0a2a2e", secundaria: "#4fd8e8", texto: "#dff7f5", textoBotao: "#000000", borda: "#00d9c0" },
+                fonte: "Outfit"
+            },
+            sunset: {
+                nome: "Sunset", icone: "🌅",
+                admin: { fundo: "#1a0e0a", destaque: "#ff6b35", texto: "#fdeee5", card: "#26140f" },
+                vitrine: { fundo: "#1a0e0a", destaque: "#ff6b35", card: "#26140f", secundaria: "#ffb84d", texto: "#fdeee5", textoBotao: "#000000", borda: "#ff6b35" },
+                fonte: "DM Sans"
+            },
+            floresta: {
+                nome: "Floresta", icone: "🌲",
+                admin: { fundo: "#0c1712", destaque: "#6fae52", texto: "#e8f0e5", card: "#16241c" },
+                vitrine: { fundo: "#0c1712", destaque: "#6fae52", card: "#16241c", secundaria: "#c9a227", texto: "#e8f0e5", textoBotao: "#000000", borda: "#6fae52" },
+                fonte: "Merriweather"
+            },
+            menta_fresca: {
+                nome: "Menta Fresca", icone: "🌿",
+                admin: { fundo: "#f5fdfa", destaque: "#10b981", texto: "#0f2e24", card: "#ffffff" },
+                vitrine: { fundo: "#f0faf7", destaque: "#10b981", card: "#ffffff", secundaria: "#6ee7b7", texto: "#0f2e24", textoBotao: "#ffffff", borda: "#10b981" },
+                fonte: "Manrope"
+            },
+            vinho: {
+                nome: "Vinho", icone: "🍷",
+                admin: { fundo: "#180508", destaque: "#a4243b", texto: "#f2e0e3", card: "#240a10" },
+                vitrine: { fundo: "#180508", destaque: "#a4243b", card: "#240a10", secundaria: "#d88c9a", texto: "#f2e0e3", textoBotao: "#ffffff", borda: "#a4243b" },
                 fonte: "Playfair Display"
+            },
+            ceu_noturno: {
+                nome: "Céu Noturno", icone: "🌌",
+                admin: { fundo: "#060b18", destaque: "#5b8def", texto: "#e3e8f5", card: "#0d1526" },
+                vitrine: { fundo: "#060b18", destaque: "#5b8def", card: "#0d1526", secundaria: "#b8c4e0", texto: "#e3e8f5", textoBotao: "#000000", borda: "#5b8def" },
+                fonte: "Josefin Sans"
+            },
+            lavanda: {
+                nome: "Lavanda", icone: "💜",
+                admin: { fundo: "#14101c", destaque: "#a78bfa", texto: "#ede9f7", card: "#1e1830" },
+                vitrine: { fundo: "#14101c", destaque: "#a78bfa", card: "#1e1830", secundaria: "#ddd6fe", texto: "#ede9f7", textoBotao: "#000000", borda: "#a78bfa" },
+                fonte: "Montserrat"
+            },
+            industrial: {
+                nome: "Industrial", icone: "🏁",
+                admin: { fundo: "#0d0d0d", destaque: "#e63946", texto: "#e5e5e5", card: "#1a1a1a" },
+                vitrine: { fundo: "#0d0d0d", destaque: "#e63946", card: "#1a1a1a", secundaria: "#8d8d8d", texto: "#e5e5e5", textoBotao: "#ffffff", borda: "#e63946" },
+                fonte: "Roboto"
+            },
+            cafe: {
+                nome: "Café", icone: "☕",
+                admin: { fundo: "#170f0a", destaque: "#c17f45", texto: "#f0e2d0", card: "#221610" },
+                vitrine: { fundo: "#170f0a", destaque: "#c17f45", card: "#221610", secundaria: "#e8c39e", texto: "#f0e2d0", textoBotao: "#000000", borda: "#c17f45" },
+                fonte: "Poppins"
             }
         };
 
