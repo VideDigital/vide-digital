@@ -744,7 +744,8 @@
                     <div id="lead-painel-chat" class="space-y-2 max-h-48 overflow-y-auto text-xs text-gray-500"></div>
                 </div>
             </div>
-            <div class="p-4 border-t border-white/5">
+            <div class="p-4 border-t border-white/5 space-y-2">
+                <button onclick="abrirTemplatesDoLead()" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition-all">📋 Usar Template</button>
                 <button id="lead-painel-whatsapp-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider py-3 rounded-xl transition-all">💬 Abrir WhatsApp</button>
             </div>
         </div>
@@ -909,6 +910,13 @@
                     <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-100 text-black font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Produto</button>
                 </div>
             </form>
+        </div>
+    </div>
+    <div id="template-lead-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl max-h-[80vh] flex flex-col">
+            <button onclick="document.getElementById('template-lead-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-sm font-black text-white">Escolher Template</h3>
+            <div id="template-lead-lista" class="flex-1 overflow-y-auto space-y-3"></div>
         </div>
     </div>
     <div id="template-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
@@ -1627,7 +1635,40 @@ window.abrirPainelLead = async function(lead) {
             document.getElementById("lead-painel").classList.remove("hidden");
             document.getElementById("lead-painel-overlay").classList.remove("hidden");
         };
-
+window.abrirTemplatesDoLead = async function() {
+            const nome = document.getElementById("lead-painel-nome").innerText;
+            const whatsapp = document.getElementById("lead-painel-whatsapp").innerText;
+            const lista = document.getElementById("template-lead-lista");
+            lista.innerHTML = `<p class="text-xs text-gray-500">Carregando...</p>`;
+            document.getElementById("template-lead-modal").classList.remove("hidden");
+            try {
+                const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", usuarioUID)));
+                if (snap.empty) {
+                    lista.innerHTML = `<p class="text-xs text-gray-500 text-center p-4">Nenhum template criado ainda. Crie na aba Templates.</p>`;
+                    return;
+                }
+                let templates = [];
+                snap.forEach(d => templates.push({ id: d.id, ...d.data() }));
+                lista.innerHTML = templates.map(t => {
+                    const msgFinal = t.mensagem.replace(/\{nome\}/g, nome !== "Anônimo" ? nome : "");
+                    return `
+                        <div class="glass-card rounded-xl p-4 space-y-2">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-white">${t.titulo}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${t.categoria === 'vendas' ? 'bg-emerald-500/10 text-emerald-400' : t.categoria === 'suporte' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}">${t.categoria || 'geral'}</span>
+                            </div>
+                            <p class="text-xs text-gray-400 line-clamp-2">${msgFinal}</p>
+                            <div class="flex gap-2">
+                                <button onclick="navigator.clipboard.writeText('${msgFinal.replace(/'/g, "\\'")}').then(() => showToast('Copiado!'))" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">📋 Copiar</button>
+                                ${whatsapp !== '—' ? `<button onclick="window.open('https://wa.me/55${whatsapp}?text=' + encodeURIComponent('${msgFinal.replace(/'/g, "\\'")}'), '_blank')" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold py-2 rounded-xl transition-all">💬 Enviar</button>` : ''}
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            } catch(err) {
+                lista.innerHTML = `<p class="text-xs text-gray-500">Erro ao carregar templates.</p>`;
+            }
+        };
         window.fecharPainelLead = function() {
             document.getElementById("lead-painel").classList.add("hidden");
             document.getElementById("lead-painel-overlay").classList.add("hidden");
