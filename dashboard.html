@@ -21,6 +21,56 @@
         .view-section.active { display: block; animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
 
+        /* BADGE DE CADEADO PREMIUM (SUBSTITUI O EMOJI 🔒) */
+        .cadeado-badge {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 20px;
+            height: 20px;
+            margin-left: auto;
+            border-radius: 999px;
+            background: linear-gradient(135deg, rgba(0,242,254,0.18), rgba(79,172,254,0.10));
+            border: 1px solid rgba(0,242,254,0.35);
+            color: #00f2fe;
+            box-shadow: 0 0 10px rgba(0,242,254,0.15);
+            transition: all 0.25s ease;
+            flex-shrink: 0;
+        }
+        .nav-item:hover .cadeado-badge {
+            transform: scale(1.15);
+            box-shadow: 0 0 16px rgba(0,242,254,0.4);
+            border-color: rgba(0,242,254,0.6);
+        }
+        .cadeado-badge svg { width: 10px; height: 10px; }
+        .cadeado-badge::after {
+            content: attr(data-tip);
+            position: absolute;
+            left: 50%;
+            bottom: calc(100% + 8px);
+            transform: translateX(-50%) translateY(4px);
+            background: #0a0a0a;
+            border: 1px solid rgba(0,242,254,0.25);
+            color: #e5e7eb;
+            font-size: 10px;
+            font-weight: 700;
+            letter-spacing: 0.02em;
+            text-transform: none;
+            white-space: nowrap;
+            padding: 6px 10px;
+            border-radius: 8px;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.5);
+            z-index: 50;
+        }
+        .cadeado-badge:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
         /* SISTEMA DE CONTRASTE AUTOMÁTICO PARA FUNDOS CLAROS */
         .tema-claro { color: #0f172a !important; }
         .tema-claro h1, .tema-claro h2, .tema-claro h3, .tema-claro h4, .tema-claro p, .tema-claro label, .tema-claro td, .tema-claro th, .tema-claro span:not(.no-contrast) { color: #0f172a !important; }
@@ -1077,11 +1127,10 @@
             });
         });
 
-        // Restaura a última aba visitada ao recarregar a página
-        const abaSalva = localStorage.getItem("abaAtivaDashboard");
-        if (abaSalva && document.getElementById(abaSalva)) {
-            ativarAba(abaSalva);
-        }
+        // A aba salva só é restaurada DEPOIS que o plano carregar e os cadeados
+        // forem aplicados (ver dentro do onAuthStateChanged, mais abaixo).
+        // Isso evita que uma aba bloqueada apareça por um instante antes do cadeado.
+        window._abaSalva = localStorage.getItem("abaAtivaDashboard");
 
         // TOAST ENGINE
         function showToast(message, type = "success") {
@@ -1212,6 +1261,40 @@
             }
         }
 
+        // =============================================
+        // LOGOFF AUTOMÁTICO POR INATIVIDADE (PRIVACIDADE)
+        // =============================================
+        // Depois de X minutos sem nenhuma interação, a sessão é encerrada
+        // automaticamente e o usuário precisa fazer login de novo.
+        const MINUTOS_INATIVIDADE = 30;
+        const TEMPO_INATIVIDADE_MS = MINUTOS_INATIVIDADE * 60 * 1000;
+        let timerInatividade = null;
+        let controleInatividadeAtivo = false;
+
+        async function encerrarPorInatividade() {
+            try {
+                await signOut(auth);
+            } catch (err) {
+                console.error(err);
+            }
+            window.location.href = "login.html?motivo=inatividade";
+        }
+
+        function resetarTimerInatividade() {
+            if (!controleInatividadeAtivo) return;
+            clearTimeout(timerInatividade);
+            timerInatividade = setTimeout(encerrarPorInatividade, TEMPO_INATIVIDADE_MS);
+        }
+
+        function iniciarControleInatividade() {
+            if (controleInatividadeAtivo) return; // evita registrar os listeners mais de uma vez
+            controleInatividadeAtivo = true;
+            ["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach(evento => {
+                document.addEventListener(evento, resetarTimerInatividade, { passive: true });
+            });
+            resetarTimerInatividade();
+        }
+
         // CARGA DO USUÁRIO E PERSISTÊNCIA DOS CAMPOS ORIGINAIS
         onAuthStateChanged(auth, async (user) => {
             if (user) {
@@ -1252,6 +1335,23 @@
                     return featuresAtivas.includes(feature);
                 }
 
+                // ORDEM DOS PLANOS (do mais básico ao mais completo) — usada para
+                // descobrir automaticamente qual é o plano mínimo que libera cada função
+                const ORDEM_PLANOS = ["starter","basico","essencial","negocio","profissional","avancado","pro","proplus","agencia","enterprise","premium"];
+                const planoNomes = {
+                    starter: "Starter", basico: "Básico", essencial: "Essencial",
+                    negocio: "Negócio", profissional: "Profissional", avancado: "Avançado",
+                    pro: "Pro", proplus: "Pro+", agencia: "Agência",
+                    enterprise: "Enterprise", premium: "Premium"
+                };
+                function planoMinimoParaFeature(feature) {
+                    for (const p of ORDEM_PLANOS) {
+                        const featuresDoPlano = configPlanos?.[p]?.features || FEATURES_PLANO[p] || [];
+                        if (featuresDoPlano.includes(feature)) return p;
+                    }
+                    return null;
+                }
+
                 // APLICAR CADEADOS NO MENU
                 const bloqueios = {
                     "view-leads": "leads",
@@ -1266,14 +1366,17 @@
                     const feature = bloqueios[target];
                     if (feature && !temFeature(feature)) {
                         btn.classList.add("opacity-40");
-                        btn.title = "🔒 Disponível em planos superiores";
-                        const icone = document.createElement("span");
-                        icone.innerText = "🔒";
-                        icone.className = "ml-auto text-[10px]";
-                        btn.appendChild(icone);
+                        const planoNecessario = planoMinimoParaFeature(feature);
+                        const nomePlanoNecessario = planoNecessario ? planoNomes[planoNecessario] : "um plano superior";
+                        btn.title = "";
+                        const badge = document.createElement("span");
+                        badge.className = "cadeado-badge";
+                        badge.setAttribute("data-tip", `Disponível no plano ${nomePlanoNecessario}`);
+                        badge.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"></rect><path d="M8 11V7a4 4 0 0 1 8 0v4"></path></svg>`;
+                        btn.appendChild(badge);
                         btn.addEventListener("click", (e) => {
                             e.stopImmediatePropagation();
-                            showToast("🔒 Esta função não está disponível no seu plano atual.", "error");
+                            showToast(`Disponível a partir do plano ${nomePlanoNecessario}.`, "error");
                             // Esconde a seção caso já tenha sido carregada antes
                             const secao = document.getElementById(target);
                             if (secao) secao.classList.remove("active");
@@ -1282,12 +1385,6 @@
                 });
 
                 // MOSTRAR BADGE DO PLANO NO SIDEBAR
-                const planoNomes = {
-                    starter: "Starter", basico: "Básico", essencial: "Essencial",
-                    negocio: "Negócio", profissional: "Profissional", avancado: "Avançado",
-                    pro: "Pro", proplus: "Pro+", agencia: "Agência",
-                    enterprise: "Enterprise", premium: "Premium"
-                };
                 const boxAtivo = document.getElementById("box-atalho");
                 if (boxAtivo) {
                     const badgePlano = document.createElement("div");
@@ -1386,6 +1483,22 @@
                         }
                     }
                 }
+
+                // Restaura a aba salva SOMENTE agora, depois que os cadeados já foram aplicados
+                if (window._abaSalva && document.getElementById(window._abaSalva)) {
+                    const featureNecessaria = bloqueios[window._abaSalva];
+                    if (!featureNecessaria || temFeature(featureNecessaria)) {
+                        ativarAba(window._abaSalva);
+                    } else {
+                        // A aba salva está bloqueada no plano atual: volta para a Visão Geral
+                        ativarAba("view-dashboard");
+                        localStorage.setItem("abaAtivaDashboard", "view-dashboard");
+                    }
+                }
+
+                // Liga o logoff automático por inatividade (proteção de privacidade)
+                iniciarControleInatividade();
+
                 carregarProdutos();
                 if (temFeature("leads")) carregarLeads();
                 if (temFeature("hub")) carregarPedidos();
@@ -2444,7 +2557,10 @@ window.editarTemplate = async function(id) {
         });
         if (document.getElementById("modal-fechar")) document.getElementById("modal-fechar").addEventListener("click", () => modal.classList.add("hidden"));
         if (document.getElementById("modal-cancelar")) document.getElementById("modal-cancelar").addEventListener("click", () => modal.classList.add("hidden"));
-        document.getElementById("btn-logout").addEventListener("click", () => signOut(auth).then(() => window.location.href = "login.html"));
+        document.getElementById("btn-logout").addEventListener("click", () => {
+            clearTimeout(timerInatividade);
+            signOut(auth).then(() => window.location.href = "login.html");
+        });
     </script>
 </body>
 </html>
