@@ -175,6 +175,7 @@
                     <button id="filtro-todos" class="text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all">Todos</button>
                     <button id="filtro-fisicos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Físicos</button>
                     <button id="filtro-digitais" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Digitais</button>
+                    <button id="filtro-rascunhos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all border-l border-white/10 ml-1 pl-3">🗂️ Rascunhos</button>
                 </div>
                 <span class="text-[11px] text-gray-500 font-medium" id="contador-produtos">0 Ativos</span>
             </div>
@@ -926,6 +927,17 @@
                     </div>
                 </div>
 
+                <div class="flex items-center gap-3 bg-white/[0.01] p-4 rounded-xl border border-white/5">
+                    <label class="relative inline-flex items-center cursor-pointer">
+                        <input type="checkbox" id="prod-rascunho" class="sr-only peer">
+                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
+                    </label>
+                    <div>
+                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🗂️ Salvar como Rascunho</span>
+                        <p class="text-[10px] text-gray-500 mt-0.5">Rascunhos não aparecem na sua vitrine pública. Use pra deixar algo pronto sem publicar ainda.</p>
+                    </div>
+                </div>
+
                 <div class="bg-white/[0.01] p-4 rounded-xl border border-white/5 space-y-3">
                     <div class="flex items-center gap-3">
                         <label class="relative inline-flex items-center cursor-pointer">
@@ -1105,6 +1117,9 @@
         let planoAtualGlobal = "starter";
         let limiteProdutosGlobal = 3;
         let totalProdutosAtual = 0;
+        let limiteRascunhosGlobal = 5;
+        let totalRascunhosAtual = 0;
+        let verRascunhos = false;
         
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
@@ -1404,6 +1419,10 @@
                     starter: 3, basico: 5, essencial: 10, negocio: 20, profissional: 35,
                     avancado: 50, pro: -1, proplus: -1, agencia: -1, enterprise: -1, premium: -1
                 };
+                const RASCUNHOS_LIMITE = {
+                    starter: 5, basico: 10, essencial: 20, negocio: 40, profissional: 70,
+                    avancado: 100, pro: -1, proplus: -1, agencia: -1, enterprise: -1, premium: -1
+                };
 
                 const FEATURES_PLANO = {
                     starter:      ["hub"],
@@ -1446,6 +1465,12 @@
                     temFeature = function(feature) {
                         return featuresAtivas.includes(feature) || featuresExtras.includes(feature);
                     };
+
+                    const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
+                    limiteProdutosGlobal = (typeof limiteSalvo === "number") ? limiteSalvo : (LIMITES_PLANO[planoAtual] ?? 3);
+
+                    const limiteRascunhosSalvo = configPlanos?.[planoAtual]?.rascunhos;
+                    limiteRascunhosGlobal = (typeof limiteRascunhosSalvo === "number") ? limiteRascunhosSalvo : (RASCUNHOS_LIMITE[planoAtual] ?? 5);
 
                     function planoMinimoParaFeature(feature) {
                         for (const p of ORDEM_PLANOS) {
@@ -1996,19 +2021,34 @@ window.abrirTemplatesDoLead = async function() {
             const btnTodos = document.getElementById("filtro-todos");
             const btnFisicos = document.getElementById("filtro-fisicos");
             const btnDigitais = document.getElementById("filtro-digitais");
+            const btnRascunhos = document.getElementById("filtro-rascunhos");
 
             const classeAtivo = "text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all";
             const classeInativo = "text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white border border-transparent transition-all bg-transparent";
+            const classeRascunhoAtivo = classeAtivo + " border-l ml-1 pl-3";
+            const classeRascunhoInativo = classeInativo + " border-l border-white/10 ml-1 pl-3";
 
             btnTodos.className = (botaoAtivo === 'todos') ? classeAtivo : classeInativo;
             btnFisicos.className = (botaoAtivo === 'fisico') ? classeAtivo : classeInativo;
             btnDigitais.className = (botaoAtivo === 'digital') ? classeAtivo : classeInativo;
+            btnRascunhos.className = (botaoAtivo === 'rascunhos') ? classeRascunhoAtivo : classeRascunhoInativo;
         }
+
+        document.getElementById("filtro-rascunhos").addEventListener("click", (e) => {
+            e.preventDefault();
+            const scrollPos = document.querySelector("main").scrollTop;
+            verRascunhos = true;
+            alternarVisualFiltro('rascunhos');
+            carregarProdutos().then(() => {
+                document.querySelector("main").scrollTop = scrollPos;
+            });
+        });
 
         document.getElementById("filtro-todos").addEventListener("click", (e) => {
             e.preventDefault();
             const scrollPos = document.querySelector("main").scrollTop;
             filtroLogistico = "todos";
+            verRascunhos = false;
             alternarVisualFiltro('todos');
             carregarProdutos().then(() => {
                 document.querySelector("main").scrollTop = scrollPos;
@@ -2019,6 +2059,7 @@ window.abrirTemplatesDoLead = async function() {
             e.preventDefault();
             const scrollPos = document.querySelector("main").scrollTop;
             filtroLogistico = "fisico";
+            verRascunhos = false;
             alternarVisualFiltro('fisico');
             carregarProdutos().then(() => {
                 document.querySelector("main").scrollTop = scrollPos;
@@ -2029,6 +2070,7 @@ window.abrirTemplatesDoLead = async function() {
             e.preventDefault();
             const scrollPos = document.querySelector("main").scrollTop;
             filtroLogistico = "digital";
+            verRascunhos = false;
             alternarVisualFiltro('digital');
             carregarProdutos().then(() => {
                 document.querySelector("main").scrollTop = scrollPos;
@@ -2040,23 +2082,31 @@ window.abrirTemplatesDoLead = async function() {
             try {
                 const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
-                totalProdutosAtual = querySnapshot.size;
+
+                totalProdutosAtual = 0;
+                totalRascunhosAtual = 0;
                 let produtosFiltrados = [];
 
                 querySnapshot.forEach(docSnap => {
                     const data = docSnap.data();
                     data.id = docSnap.id;
-                    if (filtroLogistico === "todos" || data.tipo === filtroLogistico) {
+                    const ehRascunho = data.statusProduto === "rascunho";
+                    if (ehRascunho) { totalRascunhosAtual++; } else { totalProdutosAtual++; }
+
+                    const statusBate = verRascunhos ? ehRascunho : !ehRascunho;
+                    if (statusBate && (filtroLogistico === "todos" || data.tipo === filtroLogistico)) {
                         produtosFiltrados.push(data);
                     }
                 });
 
-                document.getElementById("contador-produtos").innerText = `${produtosFiltrados.length} Ativo(s)`;
+                document.getElementById("contador-produtos").innerText = verRascunhos
+                    ? `${produtosFiltrados.length} Rascunho(s)`
+                    : `${produtosFiltrados.length} Ativo(s)`;
 
                 if (produtosFiltrados.length === 0) {
                     produtosContainer.innerHTML = `
                         <div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl">
-                            <p class="text-gray-500 text-xs">Nenhum produto cadastrado.</p>
+                            <p class="text-gray-500 text-xs">${verRascunhos ? "Nenhum rascunho salvo." : "Nenhum produto cadastrado."}</p>
                         </div>`;
                     return;
                 }
@@ -2069,6 +2119,7 @@ window.abrirTemplatesDoLead = async function() {
                     const estoqueChip = (prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[9px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md">📦 ${prod.estoque} un.</span>` : '';
                     const avaliacaoChip = prod.avaliacao ? `<span class="text-[9px] font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-md">⭐ ${prod.avaliacao}</span>` : '';
                     const freteChip = prod.freteGratis ? `<span class="text-[9px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">Frete Grátis</span>` : '';
+                    const rascunhoChip = prod.statusProduto === "rascunho" ? `<span class="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase">🗂️ Rascunho</span>` : '';
 
                     const card = document.createElement("div");
                     card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 relative group hover:scale-[1.02] transition-transform";
@@ -2078,6 +2129,7 @@ window.abrirTemplatesDoLead = async function() {
                             <div class="absolute top-3 left-3 flex flex-wrap gap-1 max-w-[85%]">
                                 <span class="text-[9px] font-bold text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 px-2 py-0.5 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
                                 <span class="text-[9px] font-bold text-white bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md uppercase tracking-wider">${tipoLabel}</span>
+                                ${rascunhoChip}
                             </div>
                         </div>
                         <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
@@ -2106,13 +2158,10 @@ window.abrirTemplatesDoLead = async function() {
         }
 
         document.getElementById("btn-abrir-criacao").addEventListener("click", () => {
-            if (limiteProdutosGlobal !== -1 && totalProdutosAtual >= limiteProdutosGlobal) {
-                showToast(`Limite de ${limiteProdutosGlobal} produtos do seu plano (${planoAtualGlobal}) atingido. Faça upgrade para cadastrar mais.`, "error");
-                return;
-            }
             form.reset();
             document.getElementById("form-id-produto").value = "";
             inputImagemBase64.value = "";
+            document.getElementById("prod-rascunho").checked = verRascunhos;
             alternarDestino("checkout");
             modalTitulo.innerText = "Criar Novo Produto";
             btnDeletar.classList.add("hidden");
@@ -2145,6 +2194,7 @@ window.abrirTemplatesDoLead = async function() {
                     document.getElementById("prod-cupom-codigo").value = data.cupomCodigo || "";
                     document.getElementById("prod-cupom-desconto").value = data.cupomDesconto || "";
                     document.getElementById("prod-cupom-validade").value = data.cupomValidade || "";
+                    document.getElementById("prod-rascunho").checked = data.statusProduto === "rascunho";
                     inputImagemBase64.value = data.imagemB64 || "";
 
                     if(data.tipoDestino === "whatsapp") {
@@ -2166,15 +2216,28 @@ window.abrirTemplatesDoLead = async function() {
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
             const id = document.getElementById("form-id-produto").value;
-            if (!id && limiteProdutosGlobal !== -1 && totalProdutosAtual >= limiteProdutosGlobal) {
-                showToast(`Limite de ${limiteProdutosGlobal} produtos do seu plano atingido.`, "error");
-                return;
+            const salvarComoRascunho = document.getElementById("prod-rascunho").checked;
+
+            if (!id) {
+                // Só checa limite pra produto NOVO — edição de um já existente não conta de novo
+                if (salvarComoRascunho) {
+                    if (limiteRascunhosGlobal !== -1 && totalRascunhosAtual >= limiteRascunhosGlobal) {
+                        showToast(`Limite de ${limiteRascunhosGlobal} rascunhos do seu plano atingido.`, "error");
+                        return;
+                    }
+                } else {
+                    if (limiteProdutosGlobal !== -1 && totalProdutosAtual >= limiteProdutosGlobal) {
+                        showToast(`Limite de ${limiteProdutosGlobal} produtos ativos do seu plano atingido. Faça upgrade ou salve como rascunho.`, "error");
+                        return;
+                    }
+                }
             }
             const destinoFinalValue = (tipoDestino === "whatsapp") ? inputWhatsapp.value.trim() : inputCheckout.value.trim();
 
             const produtoPayload = {
                 nome: document.getElementById("prod-nome").value.trim(),
                 preco: parseFloat(document.getElementById("prod-preco").value),
+                statusProduto: salvarComoRascunho ? "rascunho" : "ativo",
                 precoDe: document.getElementById("prod-preco-de").value ? parseFloat(document.getElementById("prod-preco-de").value) : "",
                 vagasTag: document.getElementById("prod-vagas-tag").value.trim(),
                 badgeCustom: document.getElementById("prod-badge-custom").value.trim(),
@@ -2204,7 +2267,7 @@ window.abrirTemplatesDoLead = async function() {
                 await setDoc(doc(db, "produtos", docId), produtoPayload, { merge: true });
                 modal.classList.add("hidden");
                 carregarProdutos();
-                showToast(id ? "Produto updated!" : "Produto cadastrado com sucesso!");
+                showToast(id ? "Produto atualizado!" : (salvarComoRascunho ? "Rascunho salvo!" : "Produto publicado com sucesso!"));
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao salvar produto.", "error");
