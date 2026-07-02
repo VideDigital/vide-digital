@@ -1442,8 +1442,9 @@
                     }
 
                     const featuresAtivas = listaFeaturesDoPlano(planoAtual);
+                    const featuresExtras = Array.isArray(dadosPlano.featuresExtras) ? dadosPlano.featuresExtras : [];
                     temFeature = function(feature) {
-                        return featuresAtivas.includes(feature);
+                        return featuresAtivas.includes(feature) || featuresExtras.includes(feature);
                     };
 
                     function planoMinimoParaFeature(feature) {
