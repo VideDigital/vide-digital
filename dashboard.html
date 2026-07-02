@@ -66,6 +66,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Leads (Capturas)
             </button>
+            <button data-target="view-templates" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
+                Templates
+            </button>
             <button data-target="view-campanhas" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5.882V19.24a1.76 1.76 0 01-3.417.592l-2.147-6.15M18 13a3 3 0 100-6M5.436 13.683A4.001 4.001 0 017 6h1.832c4.1 0 7.625-1.234 9.168-3v14c-1.543-1.766-5.067-3-9.168-3H7a3.988 3.988 0 01-1.564-.317z"></path></svg>
                 Campanhas
@@ -163,6 +167,18 @@
                 <div class="relative w-full h-52">
                     <canvas id="graficoVendas"></canvas>
                 </div>
+            </div>
+        </section>
+        <section id="view-templates" class="view-section space-y-6 max-w-4xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-white tracking-tight">Templates de Mensagens</h1>
+                    <p class="text-gray-400 text-xs mt-1">Crie mensagens pré-prontas para enviar rapidamente pelo WhatsApp.</p>
+                </div>
+                <button onclick="abrirModalTemplate()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Template</button>
+            </div>
+            <div id="templates-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template criado ainda.</div>
             </div>
         </section>
         <section id="view-campanhas" class="view-section space-y-6 max-w-4xl mx-auto">
@@ -895,6 +911,34 @@
             </form>
         </div>
     </div>
+    <div id="template-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
+            <button onclick="document.getElementById('template-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-sm font-black text-white">Novo Template</h3>
+            <div class="space-y-3">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título do Template</label>
+                    <input type="text" id="tpl-titulo" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Boas-vindas, Follow-up, Promoção...">
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Categoria</label>
+                    <select id="tpl-categoria" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+                        <option value="geral">Geral</option>
+                        <option value="vendas">Vendas</option>
+                        <option value="suporte">Suporte</option>
+                        <option value="followup">Follow-up</option>
+                        <option value="cobranca">Cobrança</option>
+                    </select>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mensagem</label>
+                    <textarea id="tpl-mensagem" rows="5" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none" placeholder="Olá {nome}! Tudo bem? Vim te avisar sobre..."></textarea>
+                    <p class="text-[10px] text-gray-600">Dica: use {nome} para inserir o nome do lead automaticamente.</p>
+                </div>
+            </div>
+            <button onclick="salvarTemplate()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Template</button>
+        </div>
+    </div>
     <div id="pedido-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
             <button onclick="document.getElementById('pedido-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
@@ -1007,6 +1051,7 @@
             if (targetId === "view-metricas") carregarMetricas();
             if (targetId === "view-pedidos") carregarPedidos();
             if (targetId === "view-leads") carregarLeads();
+            if (targetId === "view-templates") carregarTemplates();
             if (targetId === "view-campanhas") carregarCampanha();
         }
 
@@ -1919,6 +1964,74 @@ window.abrirPainelLead = async function(lead) {
             } catch(err) {
                 showToast("Erro ao salvar campanha.", "error");
             }
+        };
+        // TEMPLATES
+        async function carregarTemplates() {
+            if (!usuarioUID) return;
+            try {
+                const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", usuarioUID)));
+                const container = document.getElementById("templates-container");
+                if (snap.empty) {
+                    container.innerHTML = `<div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template criado ainda.</div>`;
+                    return;
+                }
+                let templates = [];
+                snap.forEach(d => templates.push({ id: d.id, ...d.data() }));
+                container.innerHTML = templates.map(t => `
+                    <div class="glass-card rounded-xl p-5 space-y-3 flex flex-col justify-between">
+                        <div class="space-y-1.5">
+                            <div class="flex items-center justify-between">
+                                <span class="text-xs font-bold text-white">${t.titulo}</span>
+                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${t.categoria === 'vendas' ? 'bg-emerald-500/10 text-emerald-400' : t.categoria === 'suporte' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}">${t.categoria || 'geral'}</span>
+                            </div>
+                            <p class="text-xs text-gray-400 leading-relaxed line-clamp-3">${t.mensagem}</p>
+                        </div>
+                        <div class="flex gap-2 pt-2 border-t border-white/5">
+                            <button onclick="copiarTemplate('${t.id}')" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">📋 Copiar</button>
+                            <button onclick="excluirTemplate('${t.id}')" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold px-3 py-2 rounded-xl transition-all">🗑️</button>
+                        </div>
+                    </div>
+                `).join("");
+            } catch(err) { console.error(err); }
+        }
+
+        window.abrirModalTemplate = function() {
+            document.getElementById("template-modal").classList.remove("hidden");
+        };
+
+        window.copiarTemplate = async function(id) {
+            const snap = await getDoc(doc(db, "templates", id));
+            if (snap.exists()) {
+                navigator.clipboard.writeText(snap.data().mensagem);
+                showToast("Template copiado!");
+            }
+        };
+
+        window.excluirTemplate = async function(id) {
+            try {
+                await deleteDoc(doc(db, "templates", id));
+                carregarTemplates();
+                showToast("Template excluído.");
+            } catch(err) { console.error(err); }
+        };
+
+        window.salvarTemplate = async function() {
+            const titulo = document.getElementById("tpl-titulo").value.trim();
+            const mensagem = document.getElementById("tpl-mensagem").value.trim();
+            const categoria = document.getElementById("tpl-categoria").value;
+            if (!titulo || !mensagem) return showToast("Preencha título e mensagem.", "error");
+            try {
+                await setDoc(doc(db, "templates", `tpl_${Date.now()}`), {
+                    titulo, mensagem, categoria,
+                    criadoPor: usuarioUID,
+                    criadoEm: Date.now()
+                });
+                document.getElementById("template-modal").classList.add("hidden");
+                document.getElementById("tpl-titulo").value = "";
+                document.getElementById("tpl-mensagem").value = "";
+                carregarTemplates();
+                showToast("Template salvo!");
+            } catch(err) { showToast("Erro ao salvar.", "error"); }
         };
         window.abrirModalPedido = function() {
             document.getElementById("pedido-modal").classList.remove("hidden");
