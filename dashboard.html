@@ -79,6 +79,14 @@
         .tema-claro .glass-sidebar { background: rgba(248, 250, 252, 0.9) !important; border-right: 1px solid rgba(0, 0, 0, 0.06) !important; }
         .tema-claro nav button { color: #475569 !important; }
         .tema-claro nav button.active { background: rgba(0, 0, 0, 0.04) !important; color: #0f172a !important; }
+
+        /* A caixa "Status da Loja" no menu lateral é sempre escura por design —
+           não pode deixar o tema claro forçar o texto pra escuro também, senão some. */
+        .tema-claro #box-atalho p,
+        .tema-claro #box-atalho span,
+        .tema-claro #box-atalho label,
+        .tema-claro #box-atalho a { color: #e5e7eb !important; }
+        .tema-claro #box-atalho a:hover { color: #ffffff !important; }
     </style>
 </head>
 <body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
