@@ -97,7 +97,9 @@
                 <option value="enterprise">Enterprise</option>
                 <option value="premium">Premium</option>
             </select>
-            <button onclick="carregarUsuarios()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold transition-all">↺ Atualizar</button>
+            <button id="btn-atualizar-usuarios" onclick="atualizarManualmente()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+    <span id="icone-atualizar" class="inline-block transition-transform duration-500">↺</span> Atualizar
+</button>
         </div>
 
         <!-- TABS -->
@@ -308,6 +310,16 @@
                 console.error(err);
                 showToast("Erro ao carregar usuários.", "error");
             }
+        };
+        window.atualizarManualmente = async function() {
+            const btn = document.getElementById("btn-atualizar-usuarios");
+            const icone = document.getElementById("icone-atualizar");
+            if (btn) btn.disabled = true;
+            if (icone) icone.classList.add("animate-spin");
+            await carregarUsuarios();
+            if (icone) icone.classList.remove("animate-spin");
+            if (btn) btn.disabled = false;
+            showToast("Lista atualizada!");
         };
 
         function statusBadge(status) {
