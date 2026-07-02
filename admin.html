@@ -109,6 +109,7 @@
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="pendentes">⚠️ Pendentes</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="suspensos">⏸️ Suspensos</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="comparativo">📊 Comparativo</button>
         </div>
 
         <!-- TABELA DE CLIENTES -->
@@ -153,6 +154,19 @@
                 <button onclick="salvarConfiguracaoPlanos()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">💾 Salvar Alterações</button>
             </div>
             <div id="grid-planos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+
+        <!-- COMPARATIVO ENTRE PLANOS (referência rápida pro admin) -->
+        <div id="tab-comparativo" class="tab-content hidden fade-in space-y-4">
+            <div>
+                <h2 class="text-sm font-black text-white">Comparativo de Planos</h2>
+                <p class="text-xs text-gray-500 mt-1">O que cada plano inclui, não inclui, e pra quem indicar cada um.</p>
+            </div>
+            <div id="comparativo-container" class="glass-card rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table id="comparativo-tabela" class="text-left border-collapse text-xs" style="min-width: 1400px;"></table>
+                </div>
+            </div>
         </div>
         
         <!-- PENDENTES -->
@@ -244,17 +258,17 @@
         let clienteSelecionadoUID = null;
         // DEFINIÇÃO DOS PLANOS — altere aqui os preços e limites
         const PLANOS = {
-            starter:      { nome: "Starter",      preco: 27,  produtos: 3,   rascunhos: 5,   cor: "gray" },
-            basico:       { nome: "Básico",        preco: 47,  produtos: 5,   rascunhos: 10,  cor: "gray" },
-            essencial:    { nome: "Essencial",     preco: 67,  produtos: 10,  rascunhos: 20,  cor: "blue" },
-            negocio:      { nome: "Negócio",       preco: 97,  produtos: 20,  rascunhos: 40,  cor: "blue" },
-            profissional: { nome: "Profissional",  preco: 127, produtos: 35,  rascunhos: 70,  cor: "indigo" },
-            avancado:     { nome: "Avançado",      preco: 167, produtos: 50,  rascunhos: 100, cor: "purple" },
-            pro:          { nome: "Pro",           preco: 197, produtos: -1,  rascunhos: -1,  cor: "cyan" },
-            proplus:      { nome: "Pro+",          preco: 247, produtos: -1,  rascunhos: -1,  cor: "cyan" },
-            agencia:      { nome: "Agência",       preco: 397, produtos: -1,  rascunhos: -1,  cor: "emerald" },
-            enterprise:   { nome: "Enterprise",    preco: 597, produtos: -1,  rascunhos: -1,  cor: "amber" },
-            premium:      { nome: "Premium",       preco: 997, produtos: -1,  rascunhos: -1,  cor: "rose" }
+            starter:      { nome: "Starter",      preco: 27,  produtos: 3,   rascunhos: 5,   cor: "gray",     recomendado: "Quem está começando e ainda testando o modelo de negócio" },
+            basico:       { nome: "Básico",        preco: 47,  produtos: 5,   rascunhos: 10,  cor: "gray",     recomendado: "Catálogo pequeno que já quer pop-up de captura de leads" },
+            essencial:    { nome: "Essencial",     preco: 67,  produtos: 10,  rascunhos: 20,  cor: "blue",     recomendado: "Quem já vende e precisa de carrinho + chat ao vivo" },
+            negocio:      { nome: "Negócio",       preco: 97,  produtos: 20,  rascunhos: 40,  cor: "blue",     recomendado: "Times que usam templates de mensagem e cupons pra converter mais" },
+            profissional: { nome: "Profissional",  preco: 127, produtos: 35,  rascunhos: 70,  cor: "indigo",   recomendado: "Operações com campanhas ativas que acompanham métricas de perto" },
+            avancado:     { nome: "Avançado",      preco: 167, produtos: 50,  rascunhos: 100, cor: "purple",   recomendado: "Marcas com landing page própria, QR Code e temas personalizados" },
+            pro:          { nome: "Pro",           preco: 197, produtos: -1,  rascunhos: -1,  cor: "cyan",     recomendado: "Catálogo ilimitado + atendimento automatizado com chatbot" },
+            proplus:      { nome: "Pro+",          preco: 247, produtos: -1,  rascunhos: -1,  cor: "cyan",     recomendado: "Negócios que usam IA no atendimento, avaliações e agenda" },
+            agencia:      { nome: "Agência",       preco: 397, produtos: -1,  rascunhos: -1,  cor: "emerald",  recomendado: "Agências/times que gerenciam várias contas (subcontas)" },
+            enterprise:   { nome: "Enterprise",    preco: 597, produtos: -1,  rascunhos: -1,  cor: "amber",    recomendado: "Empresas que precisam de API própria e relatórios avançados" },
+            premium:      { nome: "Premium",       preco: 997, produtos: -1,  rascunhos: -1,  cor: "rose",     recomendado: "Contas que querem tudo: domínio próprio, suporte VIP e onboarding" }
         };
 
         // FEATURES POR PLANO
@@ -741,6 +755,52 @@
             onboarding: "Onboarding Guiado"
         });
 
+// COMPARATIVO ENTRE PLANOS (tabela lado a lado, só leitura)
+        function renderizarComparativo() {
+            const tabela = document.getElementById("comparativo-tabela");
+            if (!tabela) return;
+
+            const chavesPlanos = Object.keys(PLANOS);
+            const todasFeatures = FEATURES_PLANO.premium; // premium já tem a lista completa, em ordem
+
+            let html = "";
+
+            // Cabeçalho com nome + preço de cada plano
+            html += `<thead><tr class="border-b border-white/10 bg-white/[0.03]">
+                <th class="p-3 sticky left-0 bg-[#0d0d16] text-gray-500 uppercase tracking-wider font-bold text-[10px]">Recurso</th>
+                ${chavesPlanos.map(k => `<th class="p-3 text-center min-w-[110px]"><div class="text-white font-black text-xs">${PLANOS[k].nome}</div><div class="text-[#00f2fe] font-bold text-[10px] mt-0.5">R$${PLANOS[k].preco}/mês</div></th>`).join("")}
+            </tr></thead>`;
+
+            html += `<tbody>`;
+
+            // Linha de limites
+            html += `<tr class="border-b border-white/5">
+                <td class="p-3 sticky left-0 bg-[#0d0d16] font-bold text-gray-400">Produtos ativos</td>
+                ${chavesPlanos.map(k => `<td class="p-3 text-center text-white font-bold">${PLANOS[k].produtos === -1 ? "Ilimitado" : PLANOS[k].produtos}</td>`).join("")}
+            </tr>`;
+            html += `<tr class="border-b border-white/5 bg-white/[0.01]">
+                <td class="p-3 sticky left-0 bg-[#0d0d16] font-bold text-gray-400">Rascunhos</td>
+                ${chavesPlanos.map(k => `<td class="p-3 text-center text-white font-bold">${PLANOS[k].rascunhos === -1 ? "Ilimitado" : PLANOS[k].rascunhos}</td>`).join("")}
+            </tr>`;
+
+            // Uma linha por feature, com ✅ ou —
+            todasFeatures.forEach((fk, i) => {
+                html += `<tr class="border-b border-white/5 ${i % 2 === 0 ? "" : "bg-white/[0.01]"}">
+                    <td class="p-3 sticky left-0 bg-[#0d0d16] text-gray-300">${FEATURE_LABELS[fk] || fk}</td>
+                    ${chavesPlanos.map(k => `<td class="p-3 text-center">${FEATURES_PLANO[k].includes(fk) ? '<span class="text-emerald-400 font-black">✅</span>' : '<span class="text-gray-700">—</span>'}</td>`).join("")}
+                </tr>`;
+            });
+
+            // Linha final: recomendado para
+            html += `<tr class="bg-[#00f2fe]/5">
+                <td class="p-3 sticky left-0 bg-[#0d0d16] font-bold text-[#00f2fe] uppercase text-[10px] tracking-wider">Recomendado para</td>
+                ${chavesPlanos.map(k => `<td class="p-3 text-center text-gray-300 text-[10px] leading-relaxed">${PLANOS[k].recomendado || "—"}</td>`).join("")}
+            </tr>`;
+
+            html += `</tbody>`;
+            tabela.innerHTML = html;
+        }
+        
         function renderizarGridPlanos() {
             const grid = document.getElementById("grid-planos");
             if (!grid) return;
@@ -797,6 +857,7 @@
         document.querySelectorAll(".tab-btn").forEach(btn => {
             btn.addEventListener("click", () => {
                 if (btn.dataset.tab === "planos") renderizarGridPlanos();
+                if (btn.dataset.tab === "comparativo") renderizarComparativo();
             });
         });
 
