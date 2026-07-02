@@ -1221,6 +1221,12 @@
                 // CARREGAR PLANO E APLICAR RESTRIÇÕES
                 const userSnap2 = await getDoc(doc(db, "usuarios", usuarioUID));
                 const planoAtual = userSnap2.exists() ? (userSnap2.data().plano || "starter") : "starter";
+                const dadosPlano = userSnap2.exists() ? userSnap2.data() : {};
+                const slugAtualURL = dadosPlano.urlLoja || "";
+                if (slugAtualURL) {
+                    document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtualURL}`;
+                    document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtualURL}`;
+                }
                 
                 // Buscar config de planos do Firebase (ou usar padrão)
                 const configSnap = await getDoc(doc(db, "config", "planos"));
@@ -1286,7 +1292,7 @@
                     boxAtivo.querySelector("div").appendChild(badgePlano);
                 }
                 
-                const userSnap = await getDoc(doc(db, "usuarios", usuarioUID));
+                const userSnap = userSnap2;
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
                     
