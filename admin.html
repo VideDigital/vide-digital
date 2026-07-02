@@ -85,8 +85,16 @@
             </select>
             <select id="filtro-plano" class="glass-input rounded-xl p-3 text-sm text-white min-w-[140px]">
                 <option value="todos">Todos os planos</option>
+                <option value="starter">Starter</option>
                 <option value="basico">Básico</option>
+                <option value="essencial">Essencial</option>
+                <option value="negocio">Negócio</option>
+                <option value="profissional">Profissional</option>
+                <option value="avancado">Avançado</option>
                 <option value="pro">Pro</option>
+                <option value="proplus">Pro+</option>
+                <option value="agencia">Agência</option>
+                <option value="enterprise">Enterprise</option>
                 <option value="premium">Premium</option>
             </select>
             <button onclick="carregarUsuarios()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold transition-all">↺ Atualizar</button>
@@ -97,6 +105,7 @@
             <button class="tab-btn active text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="clientes">Clientes</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="lojas">Lojas Ativas</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="pendentes">⚠️ Pendentes</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
         </div>
 
         <!-- TABELA DE CLIENTES -->
@@ -130,7 +139,19 @@
                 <div class="text-center text-gray-500 text-xs p-12 col-span-full">Carregando...</div>
             </div>
         </div>
-
+        
+<!-- CONFIGURAÇÃO DE PLANOS -->
+        <div id="tab-planos" class="tab-content hidden fade-in space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-sm font-black text-white">Configuração dos Planos</h2>
+                    <p class="text-xs text-gray-500 mt-1">Altere preços e limites. As mudanças refletem imediatamente no sistema.</p>
+                </div>
+                <button onclick="salvarConfiguracaoPlanos()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">💾 Salvar Alterações</button>
+            </div>
+            <div id="grid-planos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+        </div>
+        
         <!-- PENDENTES -->
         <div id="tab-pendentes" class="tab-content hidden fade-in">
             <div id="lista-pendentes" class="space-y-3">
@@ -150,10 +171,18 @@
 
             <div class="space-y-2 pt-2 border-t border-white/5">
                 <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Plano do Cliente</label>
-                <select id="modal-plano" class="w-full glass-input rounded-xl p-3 text-sm text-white">
-                    <option value="basico">Básico — até 5 produtos</option>
-                    <option value="pro">Pro — até 20 produtos, carrinho, cupons</option>
-                    <option value="premium">Premium — ilimitado, todas as funções</option>
+                <<select id="modal-plano" class="w-full glass-input rounded-xl p-3 text-sm text-white">
+                    <option value="starter">Starter — R$27/mês — 3 produtos</option>
+                    <option value="basico">Básico — R$47/mês — 5 produtos</option>
+                    <option value="essencial">Essencial — R$67/mês — 10 produtos</option>
+                    <option value="negocio">Negócio — R$97/mês — 20 produtos</option>
+                    <option value="profissional">Profissional — R$127/mês — 35 produtos</option>
+                    <option value="avancado">Avançado — R$167/mês — 50 produtos</option>
+                    <option value="pro">Pro — R$197/mês — Ilimitado</option>
+                    <option value="proplus">Pro+ — R$247/mês — Ilimitado + IA</option>
+                    <option value="agencia">Agência — R$397/mês — Subcontas</option>
+                    <option value="enterprise">Enterprise — R$597/mês — API + Relatórios</option>
+                    <option value="premium">Premium — R$997/mês — Tudo + Suporte VIP</option>
                 </select>
             </div>
 
@@ -179,6 +208,35 @@
         const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
         let todosUsuarios = [];
         let clienteSelecionadoUID = null;
+        // DEFINIÇÃO DOS PLANOS — altere aqui os preços e limites
+        const PLANOS = {
+            starter:      { nome: "Starter",      preco: 27,  produtos: 3,   rascunhos: 5,   cor: "gray" },
+            basico:       { nome: "Básico",        preco: 47,  produtos: 5,   rascunhos: 10,  cor: "gray" },
+            essencial:    { nome: "Essencial",     preco: 67,  produtos: 10,  rascunhos: 20,  cor: "blue" },
+            negocio:      { nome: "Negócio",       preco: 97,  produtos: 20,  rascunhos: 40,  cor: "blue" },
+            profissional: { nome: "Profissional",  preco: 127, produtos: 35,  rascunhos: 70,  cor: "indigo" },
+            avancado:     { nome: "Avançado",      preco: 167, produtos: 50,  rascunhos: 100, cor: "purple" },
+            pro:          { nome: "Pro",           preco: 197, produtos: -1,  rascunhos: -1,  cor: "cyan" },
+            proplus:      { nome: "Pro+",          preco: 247, produtos: -1,  rascunhos: -1,  cor: "cyan" },
+            agencia:      { nome: "Agência",       preco: 397, produtos: -1,  rascunhos: -1,  cor: "emerald" },
+            enterprise:   { nome: "Enterprise",    preco: 597, produtos: -1,  rascunhos: -1,  cor: "amber" },
+            premium:      { nome: "Premium",       preco: 997, produtos: -1,  rascunhos: -1,  cor: "rose" }
+        };
+
+        // FEATURES POR PLANO
+        const FEATURES_PLANO = {
+            starter:      ["hub"],
+            basico:       ["hub", "popup"],
+            essencial:    ["hub", "popup", "carrinho", "chat"],
+            negocio:      ["hub", "popup", "carrinho", "chat", "templates", "cupons"],
+            profissional: ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv"],
+            avancado:     ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp1", "qrcode", "temas"],
+            pro:          ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot"],
+            proplus:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda"],
+            agencia:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas"],
+            enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
+            premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
+        };
 
         // PROTEÇÃO: só super admin entra
         onAuthStateChanged(auth, async (user) => {
@@ -265,15 +323,24 @@
         }
 
         function planoBadge(plano) {
-            const map = {
-                basico: "bg-gray-500/10 text-gray-400 border border-gray-500/20",
-                pro: "bg-blue-500/10 text-blue-400 border border-blue-500/20",
-                premium: "bg-purple-500/10 text-purple-400 border border-purple-500/20"
+            const cores = {
+                starter: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+                basico: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+                essencial: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                negocio: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                profissional: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+                avancado: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                pro: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+                proplus: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+                agencia: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                enterprise: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                premium: "bg-rose-500/10 text-rose-400 border-rose-500/20"
             };
-            const cls = map[plano] || map.basico;
-            return `<span class="status-badge ${cls}">${(plano || "basico").toUpperCase()}</span>`;
+            const p = PLANOS[plano];
+            const cls = cores[plano] || cores.basico;
+            const label = p ? `${p.nome} — R$${p.preco}` : (plano || "starter").toUpperCase();
+            return `<span class="status-badge border ${cls}">${label}</span>`;
         }
-
         function renderTabela(lista) {
             const tbody = document.getElementById("tabela-clientes");
             if (lista.length === 0) {
@@ -502,6 +569,64 @@
         document.getElementById("busca-input").addEventListener("input", carregarUsuarios);
         document.getElementById("filtro-status").addEventListener("change", carregarUsuarios);
         document.getElementById("filtro-plano").addEventListener("change", carregarUsuarios);
+
+        // CONFIGURAÇÃO DE PLANOS
+        function renderizarGridPlanos() {
+            const grid = document.getElementById("grid-planos");
+            if (!grid) return;
+            grid.innerHTML = Object.entries(PLANOS).map(([key, p]) => `
+                <div class="glass-card rounded-xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-black text-white">${p.nome}</span>
+                        ${planoBadge(key)}
+                    </div>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Preço (R$/mês)</label>
+                            <input type="number" id="plano-preco-${key}" value="${p.preco}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Produtos Ativos (-1 = ilimitado)</label>
+                            <input type="number" id="plano-produtos-${key}" value="${p.produtos}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Rascunhos (-1 = ilimitado)</label>
+                            <input type="number" id="plano-rascunhos-${key}" value="${p.rascunhos}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                    </div>
+                    <div class="text-[10px] text-gray-600 pt-1 border-t border-white/5">
+                        <p class="font-bold text-gray-500 mb-1">Features incluídas:</p>
+                        <p>${FEATURES_PLANO[key].join(", ")}</p>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        window.salvarConfiguracaoPlanos = async function() {
+            try {
+                const config = {};
+                Object.keys(PLANOS).forEach(key => {
+                    config[key] = {
+                        ...PLANOS[key],
+                        preco: parseInt(document.getElementById(`plano-preco-${key}`)?.value || PLANOS[key].preco),
+                        produtos: parseInt(document.getElementById(`plano-produtos-${key}`)?.value || PLANOS[key].produtos),
+                        rascunhos: parseInt(document.getElementById(`plano-rascunhos-${key}`)?.value || PLANOS[key].rascunhos),
+                        features: FEATURES_PLANO[key]
+                    };
+                });
+                await setDoc(doc(db, "config", "planos"), config);
+                showToast("Configuração dos planos salva!");
+            } catch(err) {
+                showToast("Erro ao salvar.", "error");
+            }
+        };
+
+        // Renderiza grid ao clicar na aba planos
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                if (btn.dataset.tab === "planos") renderizarGridPlanos();
+            });
+        });
 
         // LOGOUT
         document.getElementById("btn-logout").addEventListener("click", async () => {
