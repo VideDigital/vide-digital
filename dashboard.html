@@ -614,6 +614,7 @@
                         <option value="instagram">Instagram</option>
                         <option value="direto">Direto</option>
                     </select>
+                    <input type="text" id="busca-lead" placeholder="🔍 Nome ou WhatsApp..." oninput="aplicarFiltrosLeads()" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none w-48">
                     <button onclick="aplicarFiltrosLeads()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
                     <button onclick="exportarLeadsCSV()" class="bg-[#0f2c2e] hover:bg-[#143d40] text-[#00f2fe] border border-[#00f2fe]/20 font-bold px-4 py-2 rounded-xl text-xs flex items-center gap-2 transition-all">📥 Exportar CSV</button>
                 </div>
@@ -685,7 +686,53 @@
             </div>
         </section>
     </main>
-
+<div id="lead-painel" class="hidden fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#0a0a0a] border-l border-white/10 z-50 flex flex-col shadow-2xl">
+            <div class="p-5 border-b border-white/5 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div id="lead-painel-avatar" class="h-10 w-10 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-sm font-black text-[#00f2fe]">?</div>
+                    <div>
+                        <h3 id="lead-painel-nome" class="text-sm font-bold text-white">Lead</h3>
+                        <p id="lead-painel-origem" class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">Origem</p>
+                    </div>
+                </div>
+                <button onclick="fecharPainelLead()" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+            </div>
+            <div class="flex-1 overflow-y-auto p-5 space-y-4">
+                <div class="glass-card rounded-xl p-4 space-y-3">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contato</h4>
+                    <div class="space-y-2">
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">WhatsApp</span><span id="lead-painel-whatsapp" class="text-xs font-bold text-emerald-400">—</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">E-mail</span><span id="lead-painel-email" class="text-xs text-gray-300">—</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">Interesse</span><span id="lead-painel-interesse" class="text-xs text-[#00f2fe] font-medium truncate max-w-[180px]">—</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">Data</span><span id="lead-painel-data" class="text-xs text-gray-400">—</span></div>
+                        <div class="flex justify-between"><span class="text-xs text-gray-500">Tempo na página</span><span id="lead-painel-tempo" class="text-xs text-amber-400">—</span></div>
+                    </div>
+                </div>
+                <div class="glass-card rounded-xl p-4 space-y-3">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</h4>
+                    <select id="lead-painel-status" onchange="atualizarStatusLead(document.getElementById('lead-painel-id').value, this.value)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
+                        <option value="novo">🔵 Novo</option>
+                        <option value="contato">🟡 Em Contato</option>
+                        <option value="convertido">🟢 Convertido</option>
+                        <option value="perdido">🔴 Perdido</option>
+                    </select>
+                    <input type="hidden" id="lead-painel-id">
+                </div>
+                <div class="glass-card rounded-xl p-4 space-y-3">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Anotação</h4>
+                    <textarea id="lead-painel-anotacao" rows="3" placeholder="Observação sobre este lead..." class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none"></textarea>
+                    <button onclick="salvarAnotacaoLead(document.getElementById('lead-painel-id').value, document.getElementById('lead-painel-anotacao').value)" class="w-full bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">Salvar Anotação</button>
+                </div>
+                <div class="glass-card rounded-xl p-4 space-y-3">
+                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Histórico do Chat</h4>
+                    <div id="lead-painel-chat" class="space-y-2 max-h-48 overflow-y-auto text-xs text-gray-500"></div>
+                </div>
+            </div>
+            <div class="p-4 border-t border-white/5">
+                <button id="lead-painel-whatsapp-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider py-3 rounded-xl transition-all">💬 Abrir WhatsApp</button>
+            </div>
+        </div>
+        <div id="lead-painel-overlay" class="hidden fixed inset-0 z-40 bg-black/50" onclick="fecharPainelLead()"></div>
     <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-2xl p-6 sm:p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
             <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
@@ -1371,7 +1418,7 @@
 
 
         // CARREGAR E RENDERIZAR LEADS ENTERPRISE ORIGINAIS
-        async function carregarLeads(filtroDataDias = 30, filtroStatus = "todos", filtroOrigem = "todos") {
+        async function carregarLeads(filtroDataDias = 30, filtroStatus = "todos", filtroOrigem = "todos", filtroBusca = "") {
             const tableBody = document.getElementById("leads-table-body");
             const statTotal = document.getElementById("lead-total-count");
             const statWhats = document.getElementById("lead-whatsapp-count");
@@ -1395,6 +1442,12 @@
                 });
 
                 leads.sort((a, b) => (b.data || 0) - (a.data || 0));
+                if (filtroBusca) {
+                    leads = leads.filter(l =>
+                        (l.nome || "").toLowerCase().includes(filtroBusca) ||
+                        (l.whatsapp || "").includes(filtroBusca)
+                    );
+                }
 
                 let totalLeads = leads.length;
                 let comWhats = leads.filter(l => l.whatsapp).length;
@@ -1405,6 +1458,22 @@
                 if (statWhats) statWhats.innerText = comWhats;
                 if (statCliques) statCliques.innerText = totalCliques;
                 if (statTempo) statTempo.innerText = totalLeads > 0 ? Math.round(totalTempo / totalLeads) + "s" : "0s";
+                const countOrigem = { meta: 0, google: 0, tiktok: 0, instagram: 0 };
+                leads.forEach(l => {
+                    const orig = (l.origem || "").toLowerCase();
+                    if (orig.includes("meta") || orig.includes("facebook") || orig === "fb") countOrigem.meta++;
+                    else if (orig.includes("google") || orig === "gl") countOrigem.google++;
+                    else if (orig.includes("tiktok") || orig === "tk") countOrigem.tiktok++;
+                    else if (orig.includes("instagram") || orig === "ig") countOrigem.instagram++;
+                });
+                const elMeta = document.getElementById("origem-meta-count");
+                const elGoogle = document.getElementById("origem-google-count");
+                const elTiktok = document.getElementById("origem-tiktok-count");
+                const elInsta = document.getElementById("origem-insta-count");
+                if (elMeta) elMeta.innerText = countOrigem.meta;
+                if (elGoogle) elGoogle.innerText = countOrigem.google;
+                if (elTiktok) elTiktok.innerText = countOrigem.tiktok;
+                if (elInsta) elInsta.innerText = countOrigem.instagram;
 
                 if (totalLeads === 0) {
                     tableBody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500 text-xs">Nenhum lead encontrado com os filtros selecionados.</td></tr>`;
@@ -1427,7 +1496,7 @@
                 };
 
                 tableBody.innerHTML = leads.map(lead => `
-                    <tr class="hover:bg-white/[0.01] transition-colors border-b border-white/5">
+                    <tr class="hover:bg-white/[0.02] transition-colors border-b border-white/5 cursor-pointer" onclick="abrirPainelLead(${JSON.stringify(lead).replace(/"/g, '&quot;')})">
                         <td class="p-4">
                             <div class="flex items-center gap-2.5">
                                 <div class="h-7 w-7 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-[10px] font-black text-[#00f2fe] shrink-0">
@@ -1463,7 +1532,61 @@
                 console.error("Erro leads:", err);
             }
         }
+        
+window.abrirPainelLead = async function(lead) {
+            document.getElementById("lead-painel-id").value = lead.id;
+            document.getElementById("lead-painel-avatar").innerText = (lead.nome || "?")[0].toUpperCase();
+            document.getElementById("lead-painel-nome").innerText = lead.nome || "Anônimo";
+            document.getElementById("lead-painel-origem").innerText = lead.origem || "Direto";
+            document.getElementById("lead-painel-whatsapp").innerText = lead.whatsapp || "—";
+            document.getElementById("lead-painel-email").innerText = lead.email || "—";
+            document.getElementById("lead-painel-interesse").innerText = lead.produtoInteresse || "—";
+            document.getElementById("lead-painel-tempo").innerText = (lead.tempoRetencao || 0) + "s";
+            document.getElementById("lead-painel-data").innerText = lead.data ? new Date(lead.data).toLocaleDateString("pt-BR") : "Hoje";
+            document.getElementById("lead-painel-status").value = lead.statusLead || "novo";
+            document.getElementById("lead-painel-anotacao").value = lead.anotacao || "";
+            const btnWhats = document.getElementById("lead-painel-whatsapp-btn");
+            if (lead.whatsapp) {
+                btnWhats.onclick = () => window.open("https://wa.me/55" + lead.whatsapp, "_blank");
+                btnWhats.classList.remove("opacity-40", "cursor-not-allowed");
+            } else {
+                btnWhats.onclick = null;
+                btnWhats.classList.add("opacity-40", "cursor-not-allowed");
+            }
+            const chatBox = document.getElementById("lead-painel-chat");
+            chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Buscando histórico...</p>";
+            try {
+                const chats = await getDocs(query(collection(db, "chats"), where("clienteNome", "==", lead.nome)));
+                if (chats.empty) {
+                    chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Nenhum chat encontrado.</p>";
+                } else {
+                    let msgs = [];
+                    for (const c of chats.docs) {
+                        const mSnap = await getDocs(collection(db, "chats", c.id, "mensagens"));
+                        mSnap.forEach(m => msgs.push({ ...m.data() }));
+                    }
+                    msgs.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+                    if (msgs.length === 0) {
+                        chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Nenhuma mensagem.</p>";
+                    } else {
+                        chatBox.innerHTML = msgs.map(m =>
+                            "<div class='flex " + (m.sender === 'admin' ? "justify-end" : "justify-start") + "'>" +
+                            "<div class='max-w-[80%] px-3 py-2 rounded-xl text-xs " + (m.sender === 'admin' ? "bg-blue-500/20 text-blue-300 rounded-tr-none" : "bg-red-500/10 text-red-300 rounded-tl-none border border-red-500/10") + "'>" +
+                            m.texto + "</div></div>"
+                        ).join("");
+                    }
+                }
+            } catch(e) {
+                chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Sem histórico de chat.</p>";
+            }
+            document.getElementById("lead-painel").classList.remove("hidden");
+            document.getElementById("lead-painel-overlay").classList.remove("hidden");
+        };
 
+        window.fecharPainelLead = function() {
+            document.getElementById("lead-painel").classList.add("hidden");
+            document.getElementById("lead-painel-overlay").classList.add("hidden");
+        };
         window.salvarAnotacaoLead = async function(leadId, texto) {
             try {
                 await setDoc(doc(db, "leads", leadId), { anotacao: texto }, { merge: true });
@@ -1930,7 +2053,8 @@
             const dias = parseInt(document.getElementById("filtro-lead-dias").value);
             const status = document.getElementById("filtro-lead-status").value;
             const origem = document.getElementById("filtro-lead-origem").value;
-            carregarLeads(dias, status, origem);
+            const busca = document.getElementById("busca-lead")?.value.toLowerCase() || "";
+            carregarLeads(dias, status, origem, busca);
         };
         
         async function carregarMetricas() {
