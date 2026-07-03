@@ -1729,7 +1729,7 @@
                 // MODO MASTER: super admin acessando o dashboard de outra loja com a própria conta
                 const paramsURL = new URLSearchParams(window.location.search);
                 const masterUIDAlvo = paramsURL.get("masterUID");
-                const emModoMaster = !!(masterUIDAlvo && usuarioEmail === "danielmarcelino549@gmail.com");
+                const emModoMaster = !!(masterUIDAlvo && usuarioEmail === "danielmarcelino549@gmail.com" && masterUIDAlvo !== user.uid);
                 if (emModoMaster) usuarioUID = masterUIDAlvo;
 
                 // Mostra o atalho "Painel Master" só pro super admin, só quando ele está na própria conta
