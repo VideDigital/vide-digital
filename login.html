@@ -224,7 +224,7 @@
                 "auth/popup-closed-by-user": "Login com Google cancelado.",
                 "auth/popup-blocked": "O navegador bloqueou o pop-up do Google. Permita pop-ups e tente de novo."
             };
-            return mapa[code] || "Não foi possível concluir. Tente novamente em instantes.";
+            return mapa[code] || `Não foi possível concluir (${code || "erro desconhecido"}). Tente novamente.`;
         }
 
         function mensagemPorStatus(status) {
