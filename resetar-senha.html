@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pt-br" class="h-full bg-[#030308]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vide Hub | Redefinir Senha</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        .premium-input {
+            background: rgba(15, 15, 25, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .premium-input:focus {
+            border-color: #00f2fe;
+            background: rgba(20, 20, 35, 0.9);
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.1), inset 0 0 10px rgba(0, 242, 254, 0.02);
+        }
+        .premium-input.input-valido { border-color: #10b981; }
+        .premium-input.input-invalido { border-color: #ef4444; }
+        .space-bg { background: radial-gradient(circle at 30% 30%, #0d0b26 0%, #04030a 100%); }
+        .float-orbe-1 { animation: float1 12s infinite ease-in-out alternate; }
+        .float-orbe-2 { animation: float2 18s infinite ease-in-out alternate; }
+        @keyframes float1 {
+            0% { transform: translateY(0px) scale(1); filter: blur(80px); }
+            100% { transform: translateY(-30px) scale(1.1); filter: blur(100px); }
+        }
+        @keyframes float2 {
+            0% { transform: translate(0px, 0px) scale(1); filter: blur(100px); }
+            100% { transform: translate(40px, -20px) scale(0.9); filter: blur(120px); }
+        }
+        .barra-forca { transition: all 0.3s ease; }
+    </style>
+</head>
+<body class="h-full flex text-white antialiased selection:bg-[#00f2fe]/30 overflow-hidden">
+    <div class="hidden lg:flex lg:w-7/12 relative space-bg p-16 flex-col justify-between border-r border-white/[0.03] overflow-hidden">
+        <div class="absolute top-[15%] left-[10%] h-[350px] w-[350px] rounded-full bg-[#00f2fe]/15 float-orbe-1 pointer-events-none"></div>
+        <div class="absolute bottom-[20%] right-[15%] h-[450px] w-[450px] rounded-full bg-[#6a11cb]/10 float-orbe-2 pointer-events-none"></div>
+        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
+        <div class="flex items-center space-x-3 relative z-10">
+            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.3)]">
+                <span class="text-black font-black text-xs">V</span>
+            </div>
+            <span class="text-sm font-bold uppercase tracking-widest text-gray-300">Vide Hub</span>
+        </div>
+        <div class="space-y-6 max-w-xl relative z-10 mb-12">
+            <h2 class="text-5xl font-extrabold tracking-tight leading-[1.15] bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
+                Sua segurança em primeiro lugar.
+            </h2>
+            <p class="text-gray-400 text-base font-medium leading-relaxed">
+                Escolha uma senha forte e exclusiva pra proteger o acesso à sua loja e aos dados dos seus clientes.
+            </p>
+        </div>
+        <div class="text-xs text-gray-600 font-medium relative z-10">
+            &copy; 2026 Vide Hub Inc. Todos os direitos reservados.
+        </div>
+    </div>
+
+    <div class="w-full lg:w-5/12 bg-[#05050d] flex flex-col justify-center px-8 sm:px-16 md:px-24 relative overflow-y-auto py-12">
+        <div class="lg:hidden absolute top-[-10%] right-[-10%] h-[300px] w-[300px] rounded-full bg-[#00f2fe]/10 blur-[80px] pointer-events-none"></div>
+        <div class="w-full max-w-[400px] mx-auto space-y-8">
+
+            <!-- ESTADO: CARREGANDO (validando o link) -->
+            <div id="estado-carregando" class="space-y-4 text-center py-12">
+                <svg class="animate-spin h-8 w-8 mx-auto text-[#00f2fe]" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>
+                <p class="text-xs text-gray-500 font-medium">Verificando seu link de redefinição...</p>
+            </div>
+
+            <!-- ESTADO: LINK INVÁLIDO/EXPIRADO -->
+            <div id="estado-invalido" class="hidden space-y-6 text-center">
+                <div class="h-14 w-14 rounded-full bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto text-2xl">⚠️</div>
+                <div class="space-y-2">
+                    <h1 class="text-2xl font-extrabold tracking-tight text-white">Link expirado</h1>
+                    <p class="text-gray-400 text-xs font-medium leading-relaxed">Esse link de redefinição não é mais válido — ele pode ter expirado ou já ter sido usado. Solicite um novo pra continuar.</p>
+                </div>
+                <a href="login.html" class="block w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl text-center shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
+                    Solicitar Novo Link
+                </a>
+            </div>
+
+            <!-- ESTADO: FORMULÁRIO DE NOVA SENHA -->
+            <div id="estado-formulario" class="hidden space-y-6">
+                <div class="space-y-2">
+                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Nova Senha</h1>
+                    <p class="text-gray-400 text-xs font-medium">Redefinindo o acesso de <strong id="email-preview" class="text-[#00f2fe]"></strong></p>
+                </div>
+
+                <form id="reset-form" class="space-y-5">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nova Senha</label>
+                        <div class="relative">
+                            <input type="password" required id="nova-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-700" placeholder="••••••••">
+                            <button type="button" id="toggle-nova-senha" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                        </div>
+                        <!-- Medidor de força -->
+                        <div class="flex gap-1.5 pt-1">
+                            <div id="barra-1" class="barra-forca h-1 flex-1 rounded-full bg-white/10"></div>
+                            <div id="barra-2" class="barra-forca h-1 flex-1 rounded-full bg-white/10"></div>
+                            <div id="barra-3" class="barra-forca h-1 flex-1 rounded-full bg-white/10"></div>
+                        </div>
+                        <p id="texto-forca" class="text-[10px] font-bold uppercase tracking-wider text-gray-600">Digite uma senha</p>
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Confirmar Nova Senha</label>
+                        <div class="relative">
+                            <input type="password" required id="confirmar-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-700" placeholder="••••••••">
+                            <button type="button" id="toggle-confirmar-senha" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                        </div>
+                        <p id="texto-match" class="text-[10px] font-bold uppercase tracking-wider text-gray-600 hidden"></p>
+                    </div>
+
+                    <button type="submit" id="btn-submit-reset" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] hover:shadow-[0_4px_35px_rgba(0,242,254,0.3)] active:scale-[0.99] transition-all duration-300">
+                        <span id="btn-submit-reset-texto">Salvar Nova Senha</span>
+                    </button>
+                </form>
+            </div>
+
+            <!-- ESTADO: SUCESSO -->
+            <div id="estado-sucesso" class="hidden space-y-6 text-center">
+                <div class="h-14 w-14 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto text-2xl">✅</div>
+                <div class="space-y-2">
+                    <h1 class="text-2xl font-extrabold tracking-tight text-white">Senha redefinida!</h1>
+                    <p class="text-gray-400 text-xs font-medium">Sua senha foi alterada com sucesso. Já pode entrar com ela.</p>
+                </div>
+                <a href="login.html" class="block w-full py-4 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl text-center shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
+                    Ir Para o Login
+                </a>
+            </div>
+
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth } from "./firebase-init.js";
+        import { verifyPasswordResetCode, confirmPasswordReset } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+
+        const estados = {
+            carregando: document.getElementById("estado-carregando"),
+            invalido: document.getElementById("estado-invalido"),
+            formulario: document.getElementById("estado-formulario"),
+            sucesso: document.getElementById("estado-sucesso")
+        };
+        function mostrarEstado(nome) {
+            Object.values(estados).forEach(el => el.classList.add("hidden"));
+            estados[nome].classList.remove("hidden");
+        }
+
+        const params = new URLSearchParams(window.location.search);
+        const oobCode = params.get("oobCode");
+
+        let emailDaConta = "";
+
+        (async function validarLink() {
+            if (!oobCode) {
+                mostrarEstado("invalido");
+                return;
+            }
+            try {
+                emailDaConta = await verifyPasswordResetCode(auth, oobCode);
+                document.getElementById("email-preview").innerText = emailDaConta;
+                mostrarEstado("formulario");
+            } catch (err) {
+                console.error(err);
+                mostrarEstado("invalido");
+            }
+        })();
+
+        function setupToggleSenha(inputId, buttonId) {
+            const input = document.getElementById(inputId); const btn = document.getElementById(buttonId);
+            btn.addEventListener("click", () => {
+                const isPassword = input.type === "password";
+                input.type = isPassword ? "text" : "password";
+                btn.textContent = isPassword ? "🙈" : "👁️";
+            });
+        }
+        setupToggleSenha("nova-senha", "toggle-nova-senha");
+        setupToggleSenha("confirmar-senha", "toggle-confirmar-senha");
+
+        // Medidor de força de senha em tempo real
+        function calcularForcaSenha(senha) {
+            let pontos = 0;
+            if (senha.length >= 8) pontos++;
+            if (senha.length >= 12) pontos++;
+            if (/[a-z]/.test(senha) && /[A-Z]/.test(senha)) pontos++;
+            if (/\d/.test(senha)) pontos++;
+            if (/[^A-Za-z0-9]/.test(senha)) pontos++;
+            return pontos;
+        }
+
+        const inputNovaSenha = document.getElementById("nova-senha");
+        const barras = [document.getElementById("barra-1"), document.getElementById("barra-2"), document.getElementById("barra-3")];
+        const textoForca = document.getElementById("texto-forca");
+
+        inputNovaSenha.addEventListener("input", () => {
+            const senha = inputNovaSenha.value;
+            barras.forEach(b => { b.className = "barra-forca h-1 flex-1 rounded-full bg-white/10"; });
+
+            if (senha.length === 0) {
+                textoForca.textContent = "Digite uma senha";
+                textoForca.className = "text-[10px] font-bold uppercase tracking-wider text-gray-600";
+                return;
+            }
+
+            const pontos = calcularForcaSenha(senha);
+            let nivel, cor, texto;
+            if (pontos <= 1) { nivel = 1; cor = "bg-red-500"; texto = "Fraca — tente adicionar mais caracteres"; }
+            else if (pontos <= 3) { nivel = 2; cor = "bg-amber-500"; texto = "Média — pode melhorar"; }
+            else { nivel = 3; cor = "bg-emerald-500"; texto = "Forte"; }
+
+            for (let i = 0; i < nivel; i++) {
+                barras[i].className = `barra-forca h-1 flex-1 rounded-full ${cor}`;
+            }
+            textoForca.textContent = texto;
+            textoForca.className = `text-[10px] font-bold uppercase tracking-wider ${nivel === 1 ? "text-red-400" : nivel === 2 ? "text-amber-400" : "text-emerald-400"}`;
+
+            verificarMatch();
+        });
+
+        // Validação de confirmação em tempo real
+        const inputConfirmar = document.getElementById("confirmar-senha");
+        const textoMatch = document.getElementById("texto-match");
+        function verificarMatch() {
+            const senha = inputNovaSenha.value;
+            const confirmacao = inputConfirmar.value;
+            inputConfirmar.classList.remove("input-valido", "input-invalido");
+            if (confirmacao.length === 0) {
+                textoMatch.classList.add("hidden");
+                return;
+            }
+            textoMatch.classList.remove("hidden");
+            if (senha === confirmacao) {
+                inputConfirmar.classList.add("input-valido");
+                textoMatch.textContent = "✓ As senhas coincidem";
+                textoMatch.className = "text-[10px] font-bold uppercase tracking-wider text-emerald-400";
+            } else {
+                inputConfirmar.classList.add("input-invalido");
+                textoMatch.textContent = "✕ As senhas não coincidem";
+                textoMatch.className = "text-[10px] font-bold uppercase tracking-wider text-red-400";
+            }
+        }
+        inputConfirmar.addEventListener("input", verificarMatch);
+
+        function definirCarregando(botao, span, carregando, textoNormal, textoCarregando) {
+            botao.disabled = carregando;
+            botao.classList.toggle("opacity-60", carregando);
+            botao.classList.toggle("cursor-not-allowed", carregando);
+            span.innerHTML = carregando
+                ? `<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${textoCarregando}</span>`
+                : textoNormal;
+        }
+
+        const btnSubmit = document.getElementById("btn-submit-reset");
+        const btnSubmitTexto = document.getElementById("btn-submit-reset-texto");
+        document.getElementById("reset-form").addEventListener("submit", async (e) => {
+            e.preventDefault();
+            const senha = inputNovaSenha.value;
+            const confirmacao = inputConfirmar.value;
+
+            if (senha.length < 6) {
+                textoForca.textContent = "A senha precisa ter ao menos 6 caracteres";
+                textoForca.className = "text-[10px] font-bold uppercase tracking-wider text-red-400";
+                return;
+            }
+            if (senha !== confirmacao) {
+                verificarMatch();
+                return;
+            }
+
+            definirCarregando(btnSubmit, btnSubmitTexto, true, "Salvar Nova Senha", "Salvando...");
+            try {
+                await confirmPasswordReset(auth, oobCode, senha);
+                mostrarEstado("sucesso");
+            } catch (err) {
+                console.error(err);
+                mostrarEstado("invalido");
+            } finally {
+                definirCarregando(btnSubmit, btnSubmitTexto, false, "Salvar Nova Senha", "");
+            }
+        });
+    </script>
+</body>
+</html>
