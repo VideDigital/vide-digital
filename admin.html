@@ -110,6 +110,7 @@
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="suspensos">⏸️ Suspensos</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="comparativo">📊 Comparativo</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="notificacoes">🔔 Notificações</button>
         </div>
 
         <!-- TABELA DE CLIENTES -->
@@ -165,6 +166,55 @@
             <div id="comparativo-container" class="glass-card rounded-2xl overflow-hidden">
                 <div class="overflow-x-auto">
                     <table id="comparativo-tabela" class="text-left border-collapse text-xs" style="min-width: 1400px;"></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOTIFICAÇÕES -->
+        <div id="tab-notificacoes" class="tab-content hidden fade-in space-y-6">
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+                <div>
+                    <h2 class="text-sm font-black text-white">Nova Notificação</h2>
+                    <p class="text-xs text-gray-500 mt-1">Aparece só no dashboard dos clientes (não afeta a vitrine pública deles).</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título</label>
+                    <input type="text" id="notif-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Nova funcionalidade disponível!">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mensagem</label>
+                    <textarea id="notif-mensagem" rows="3" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none resize-none" placeholder="Escreva o comunicado..."></textarea>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Foto (opcional)</label>
+                    <input type="file" id="notif-foto-file" accept="image/*" class="w-full glass-input rounded-xl p-2.5 text-xs text-gray-400 outline-none">
+                    <img id="notif-foto-preview" class="hidden h-24 rounded-xl mt-2 border border-white/10 object-cover">
+                    <input type="hidden" id="notif-foto-base64">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Enviar para</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                            <input type="radio" name="notif-destino" value="todos" checked class="accent-[#00f2fe]"> Todos os clientes
+                        </label>
+                        <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                            <input type="radio" name="notif-destino" value="especificos" class="accent-[#00f2fe]"> Clientes específicos
+                        </label>
+                    </div>
+                    <div id="notif-lista-clientes" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pt-2"></div>
+                </div>
+
+                <button onclick="enviarNotificacao()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all">📤 Enviar Notificação</button>
+            </div>
+
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Envios</h3>
+                <div id="lista-notificacoes-enviadas" class="space-y-3">
+                    <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
                 </div>
             </div>
         </div>
@@ -251,7 +301,7 @@
     <script type="module">
         import { auth, db } from "./firebase-init.js";
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, getDocs, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
         let todosUsuarios = [];
@@ -800,6 +850,145 @@
             html += `</tbody>`;
             tabela.innerHTML = html;
         }
+
+        // =============================================
+        // NOTIFICAÇÕES (admin → clientes, só aparece no dashboard deles)
+        // =============================================
+
+        // Upload de foto em base64
+        document.getElementById("notif-foto-file").addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                document.getElementById("notif-foto-base64").value = reader.result;
+                const preview = document.getElementById("notif-foto-preview");
+                preview.src = reader.result;
+                preview.classList.remove("hidden");
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Alterna entre "Todos" e "Específicos"
+        document.querySelectorAll('input[name="notif-destino"]').forEach(radio => {
+            radio.addEventListener("change", () => {
+                const box = document.getElementById("notif-lista-clientes");
+                if (document.querySelector('input[name="notif-destino"]:checked').value === "especificos") {
+                    box.classList.remove("hidden");
+                } else {
+                    box.classList.add("hidden");
+                }
+            });
+        });
+
+        function renderizarChecklistClientes() {
+            const box = document.getElementById("notif-lista-clientes");
+            if (!box) return;
+            if (todosUsuarios.length === 0) {
+                box.innerHTML = `<p class="text-xs text-gray-500 col-span-full">Nenhum cliente cadastrado ainda.</p>`;
+                return;
+            }
+            box.innerHTML = todosUsuarios.map(u => `
+                <label class="flex items-center gap-2 text-[11px] text-gray-300 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.04] transition-all">
+                    <input type="checkbox" class="notif-cliente-checkbox accent-[#00f2fe]" value="${u.uid}">
+                    <span class="truncate">${u.nome || u.email}</span>
+                </label>
+            `).join("");
+        }
+
+        window.enviarNotificacao = async function() {
+            const titulo = document.getElementById("notif-titulo").value.trim();
+            const mensagem = document.getElementById("notif-mensagem").value.trim();
+            const foto = document.getElementById("notif-foto-base64").value;
+            const destinoTipo = document.querySelector('input[name="notif-destino"]:checked').value;
+
+            if (!titulo || !mensagem) {
+                showToast("Preencha título e mensagem.", "error");
+                return;
+            }
+
+            let destinatarios = "todos";
+            if (destinoTipo === "especificos") {
+                destinatarios = Array.from(document.querySelectorAll(".notif-cliente-checkbox:checked")).map(cb => cb.value);
+                if (destinatarios.length === 0) {
+                    showToast("Selecione ao menos um cliente.", "error");
+                    return;
+                }
+            }
+
+            try {
+                await setDoc(doc(db, "notificacoes", `notif_${Date.now()}`), {
+                    titulo, mensagem, foto: foto || "",
+                    destinatarios,
+                    lidoPor: [],
+                    criadoPor: SUPER_ADMIN_EMAIL,
+                    criadoEm: Date.now()
+                });
+                showToast("Notificação enviada!");
+                document.getElementById("notif-titulo").value = "";
+                document.getElementById("notif-mensagem").value = "";
+                document.getElementById("notif-foto-base64").value = "";
+                document.getElementById("notif-foto-preview").classList.add("hidden");
+                document.querySelectorAll(".notif-cliente-checkbox").forEach(cb => cb.checked = false);
+                await carregarNotificacoesEnviadas();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao enviar notificação.", "error");
+            }
+        };
+
+        async function carregarNotificacoesEnviadas() {
+            const box = document.getElementById("lista-notificacoes-enviadas");
+            if (!box) return;
+            try {
+                const snap = await getDocs(collection(db, "notificacoes"));
+                let lista = [];
+                snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+                lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                if (lista.length === 0) {
+                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Nenhuma notificação enviada ainda.</div>`;
+                    return;
+                }
+
+                box.innerHTML = lista.map(n => {
+                    const destinoTexto = n.destinatarios === "todos"
+                        ? "Todos os clientes"
+                        : `${(n.destinatarios || []).length} cliente(s) específico(s)`;
+                    return `
+                        <div class="glass-card rounded-xl p-4 flex gap-3 items-start">
+                            ${n.foto ? `<img src="${n.foto}" class="h-12 w-12 rounded-lg object-cover shrink-0 border border-white/10">` : ""}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-bold text-white">${n.titulo}</p>
+                                <p class="text-[11px] text-gray-400 mt-0.5 line-clamp-2">${n.mensagem}</p>
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#00f2fe]/10 text-[#00f2fe] uppercase">${destinoTexto}</span>
+                                    <span class="text-[9px] text-gray-600">${n.criadoEm ? new Date(n.criadoEm).toLocaleString("pt-BR") : "—"}</span>
+                                    <span class="text-[9px] text-gray-600">· ${(n.lidoPor || []).length} leitura(s)</span>
+                                </div>
+                            </div>
+                            <button onclick="excluirNotificacao('${n.id}')" class="text-red-400 hover:text-red-300 text-xs shrink-0" title="Excluir">🗑️</button>
+                        </div>
+                    `;
+                }).join("");
+            } catch (err) {
+                console.error(err);
+                box.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar histórico.</div>`;
+            }
+        }
+
+        window.excluirNotificacao = async function(id) {
+            abrirConfirmacao("Excluir esta notificação? Ela some do histórico de todos.", async () => {
+                try {
+                    await deleteDoc(doc(db, "notificacoes", id));
+                    showToast("Notificação excluída.");
+                    await carregarNotificacoesEnviadas();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao excluir.", "error");
+                }
+            });
+        };
         
         function renderizarGridPlanos() {
             const grid = document.getElementById("grid-planos");
@@ -858,6 +1047,7 @@
             btn.addEventListener("click", () => {
                 if (btn.dataset.tab === "planos") renderizarGridPlanos();
                 if (btn.dataset.tab === "comparativo") renderizarComparativo();
+                if (btn.dataset.tab === "notificacoes") { renderizarChecklistClientes(); carregarNotificacoesEnviadas(); }
             });
         });
 
