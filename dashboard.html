@@ -93,6 +93,11 @@
 
     <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
 
+    <button id="btn-notificacoes" onclick="ativarAba('view-notificacoes')" class="fixed top-5 right-20 sm:right-24 z-40 h-10 w-10 rounded-full bg-[#111111] border border-white/10 hover:border-white/20 flex items-center justify-center text-base transition-all">
+        🔔
+        <span id="badge-notif-count" class="hidden absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-black items-center justify-center">0</span>
+    </button>
+
     <aside id="admin-sidebar" class="w-full md:w-64 glass-sidebar md:h-screen flex flex-col justify-between p-5 shrink-0 z-40">
     <div class="space-y-8">
         <div class="flex items-center justify-between md:justify-start gap-3 px-2">
@@ -139,6 +144,10 @@
             <button data-target="view-metricas" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
                 Métricas
+            </button>
+            <button data-target="view-notificacoes" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
+                Notificações
             </button>
             
         </nav>
@@ -440,6 +449,16 @@
                 <button id="btn-exportar-metricas" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-3 rounded-xl transition-all flex items-center gap-2">
                     📤 Exportar Relatório
                 </button>
+            </div>
+        </section>
+
+        <section id="view-notificacoes" class="view-section space-y-6 max-w-3xl mx-auto">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Notificações</h1>
+                <p class="text-gray-400 text-xs mt-1">Avisos e novidades da Vide Hub. Fica tudo salvo aqui pra você conferir quando puder.</p>
+            </div>
+            <div id="lista-notificacoes-cliente" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
             </div>
         </section>
         
@@ -1202,6 +1221,7 @@
             if (targetId === "view-leads") carregarLeads();
             if (targetId === "view-templates") carregarTemplates();
             if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30)); }
+            if (targetId === "view-notificacoes") carregarNotificacoes();
         }
 // =============================================
         // BLOQUEIO IMEDIATO DE PLANO (evita flash de conteúdo liberado)
@@ -1838,6 +1858,7 @@
                 if (temFeature("hub")) carregarPedidos();
                 if (temFeature("templates")) carregarTemplates();
                 if (temFeature("campanhas")) carregarCampanha();
+                carregarNotificacoes();
             } else {
                 window.location.href = "login.html";
             }
@@ -2840,6 +2861,91 @@ window.editarTemplate = async function(id) {
                 carregarPedidos();
                 showToast("Pedido excluído.");
             } catch(err) { console.error(err); }
+        };
+
+        // =============================================
+        // NOTIFICAÇÕES (recebidas do admin)
+        // =============================================
+        let _cacheNotificacoes = [];
+
+        async function carregarNotificacoes() {
+            if (!usuarioUID) return;
+            try {
+                const snap = await getDocs(collection(db, "notificacoes"));
+                let lista = [];
+                snap.forEach(d => {
+                    const n = { id: d.id, ...d.data() };
+                    const paraMim = n.destinatarios === "todos" || (Array.isArray(n.destinatarios) && n.destinatarios.includes(usuarioUID));
+                    if (paraMim) lista.push(n);
+                });
+                lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+                _cacheNotificacoes = lista;
+
+                atualizarBadgeNotificacoes();
+
+                const box = document.getElementById("lista-notificacoes-cliente");
+                if (!box) return;
+
+                if (lista.length === 0) {
+                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-xl">Nenhuma notificação por aqui ainda.</div>`;
+                    return;
+                }
+
+                box.innerHTML = lista.map(n => {
+                    const lida = (n.lidoPor || []).includes(usuarioUID);
+                    return `
+                        <div class="glass-card rounded-xl p-4 flex gap-3 items-start ${lida ? "opacity-60" : ""}">
+                            ${n.foto ? `<img src="${n.foto}" class="h-14 w-14 rounded-lg object-cover shrink-0 border border-white/10">` : `<div class="h-14 w-14 rounded-lg bg-white/5 border border-white/10 shrink-0 flex items-center justify-center text-lg">🔔</div>`}
+                            <div class="flex-1 min-w-0">
+                                <div class="flex items-center gap-2">
+                                    <p class="text-sm font-bold text-white">${n.titulo}</p>
+                                    ${!lida ? `<span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] shrink-0"></span>` : ""}
+                                </div>
+                                <p class="text-xs text-gray-400 mt-1 leading-relaxed">${n.mensagem}</p>
+                                <p class="text-[10px] text-gray-600 mt-2">${n.criadoEm ? new Date(n.criadoEm).toLocaleString("pt-BR") : "—"}</p>
+                            </div>
+                            <label class="flex items-center gap-1.5 shrink-0 cursor-pointer text-[10px] text-gray-400">
+                                <input type="checkbox" ${lida ? "checked" : ""} onchange="marcarNotificacaoLida('${n.id}', this.checked)" class="accent-[#00f2fe]">
+                                Lida
+                            </label>
+                        </div>
+                    `;
+                }).join("");
+            } catch (err) {
+                console.error("Erro notificações:", err);
+            }
+        }
+
+        function atualizarBadgeNotificacoes() {
+            const naoLidas = _cacheNotificacoes.filter(n => !(n.lidoPor || []).includes(usuarioUID)).length;
+            const badge = document.getElementById("badge-notif-count");
+            if (!badge) return;
+            if (naoLidas > 0) {
+                badge.innerText = naoLidas > 99 ? "99+" : naoLidas;
+                badge.classList.remove("hidden");
+                badge.classList.add("flex");
+            } else {
+                badge.classList.add("hidden");
+                badge.classList.remove("flex");
+            }
+        }
+
+        window.marcarNotificacaoLida = async function(id, lida) {
+            try {
+                const notif = _cacheNotificacoes.find(n => n.id === id);
+                if (!notif) return;
+                let lidoPor = Array.isArray(notif.lidoPor) ? [...notif.lidoPor] : [];
+                if (lida && !lidoPor.includes(usuarioUID)) lidoPor.push(usuarioUID);
+                if (!lida) lidoPor = lidoPor.filter(uid => uid !== usuarioUID);
+
+                await setDoc(doc(db, "notificacoes", id), { lidoPor }, { merge: true });
+                notif.lidoPor = lidoPor;
+                atualizarBadgeNotificacoes();
+                carregarNotificacoes();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao atualizar notificação.", "error");
+            }
         };
         window.exportarLeadsCSV = function() {
             const rows = [["Nome","Email","WhatsApp","Origem","Cliques","Tempo","Interesse","Status","Data","Anotação"]];
