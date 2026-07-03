@@ -102,8 +102,15 @@
 </button>
         </div>
 
+        <!-- ACESSO RÁPIDO AO MODO MASTER -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-center border border-amber-500/10">
+            <span class="text-xs font-bold text-amber-400 shrink-0 flex items-center gap-1.5">🔑 Acesso rápido:</span>
+            <input type="text" id="input-acesso-rapido" placeholder="Digite o e-mail do cliente..." class="flex-1 w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
+            <button onclick="acessoRapidoMaster()" class="w-full sm:w-auto shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 px-5 py-3 rounded-xl text-xs font-bold transition-all">Entrar no Dashboard</button>
+        </div>
+
         <!-- TABS -->
-        <div class="flex gap-6 border-b border-white/5 overflow-x-auto whitespace-nowrap">
+        <div class="flex gap-6 border-b border-white/5">
             <button class="tab-btn active text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="clientes">Clientes</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="lojas">Lojas Ativas</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="pendentes">⚠️ Pendentes</button>
@@ -536,6 +543,10 @@
                         ${u.urlLoja ? `<a href="loja.html?loja=${u.urlLoja}" target="_blank" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all">Ver Loja</a>` : ""}
                         <button onclick="abrirModal('${u.uid}')" class="flex-1 text-[11px] font-bold py-2 rounded-lg border border-[#00f2fe]/20 text-[#00f2fe] hover:bg-[#00f2fe]/5 transition-all">Gerenciar</button>
                     </div>
+                    <div class="flex gap-2">
+                        <a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard</a>
+                        <button onclick="copiarLinkMaster('${u.uid}')" class="text-[11px] font-bold py-2 px-3 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all" title="Copiar link direto">📋</button>
+                    </div>
                 </div>
             `).join("");
         }
@@ -605,6 +616,26 @@
                 console.error(err);
                 showToast("Erro ao reativar.", "error");
             }
+        };
+
+        window.copiarLinkMaster = function(uid) {
+            const link = `${window.location.origin}${window.location.pathname.replace("admin.html", "")}dashboard.html?masterUID=${uid}`;
+            navigator.clipboard.writeText(link).then(() => showToast("Link copiado! Já pode salvar como favorito."));
+        };
+
+        window.acessoRapidoMaster = function() {
+            const termo = document.getElementById("input-acesso-rapido").value.trim().toLowerCase();
+            if (!termo) {
+                showToast("Digite um e-mail pra buscar.", "error");
+                return;
+            }
+            const encontrado = todosUsuarios.find(u => (u.email || "").toLowerCase() === termo);
+            if (!encontrado) {
+                showToast("Nenhum cliente encontrado com esse e-mail.", "error");
+                return;
+            }
+            document.getElementById("input-acesso-rapido").value = "";
+            window.open(`dashboard.html?masterUID=${encontrado.uid}`, "_blank");
         };
 
         // ABRIR MODAL
@@ -791,6 +822,9 @@
 
         // BUSCA E FILTROS EM TEMPO REAL
         document.getElementById("busca-input").addEventListener("input", carregarUsuarios);
+        document.getElementById("input-acesso-rapido").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") acessoRapidoMaster();
+        });
         document.getElementById("filtro-status").addEventListener("change", carregarUsuarios);
         document.getElementById("filtro-plano").addEventListener("change", carregarUsuarios);
 
