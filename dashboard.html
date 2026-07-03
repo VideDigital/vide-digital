@@ -165,6 +165,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
                 Leads (Capturas)
             </button>
+            <button data-target="view-automacao-leads" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                Automação de Leads
+            </button>
             <button data-target="view-templates" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
                 Templates
@@ -975,6 +979,146 @@
                 </div>
             </div>
         </section>
+
+        <section id="view-automacao-leads" class="view-section space-y-6 max-w-6xl mx-auto">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Automação de Leads</h1>
+                <p class="text-gray-400 text-xs mt-1">Filtre e aplique ações em vários leads de uma vez só.</p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-5 space-y-4">
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Data</label>
+                        <select id="auto-lead-dias" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="0">Todos</option>
+                            <option value="custom">Data específica</option>
+                        </select>
+                    </div>
+                    <div id="auto-lead-datas-custom" class="hidden sm:col-span-2 flex gap-2 items-end">
+                        <div class="flex-1 space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">De</label>
+                            <input type="date" id="auto-lead-de" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        </div>
+                        <div class="flex-1 space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Até</label>
+                            <input type="date" id="auto-lead-ate" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        </div>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Origem</label>
+                        <select id="auto-lead-origem" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="todos">Todas</option>
+                            <option value="meta">Meta Ads</option>
+                            <option value="google">Google</option>
+                            <option value="tiktok">TikTok</option>
+                            <option value="instagram">Instagram</option>
+                            <option value="direto">Direto</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Status</label>
+                        <select id="auto-lead-status" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="todos">Todos</option>
+                            <option value="novo">Novo</option>
+                            <option value="contato">Em Contato</option>
+                            <option value="convertido">Convertido</option>
+                            <option value="perdido">Perdido</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Produto de Interesse</label>
+                        <select id="auto-lead-produto" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="todos">Todos</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">WhatsApp</label>
+                        <select id="auto-lead-whatsapp" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="todos">Tanto faz</option>
+                            <option value="com">Só com WhatsApp</option>
+                            <option value="sem">Só sem WhatsApp</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">E-mail</label>
+                        <select id="auto-lead-email" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="todos">Tanto faz</option>
+                            <option value="com">Só com e-mail</option>
+                            <option value="sem">Só sem e-mail</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Anotação</label>
+                        <select id="auto-lead-anotacao" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="todos">Tanto faz</option>
+                            <option value="sem">Nunca anotado</option>
+                            <option value="com">Já tem anotação</option>
+                        </select>
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Tempo mín. na página (s)</label>
+                        <input type="number" id="auto-lead-tempo-min" min="0" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none" placeholder="Ex: 30">
+                    </div>
+                    <div class="space-y-1">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Cliques mín.</label>
+                        <input type="number" id="auto-lead-cliques-min" min="0" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none" placeholder="Ex: 2">
+                    </div>
+                    <div class="space-y-1 sm:col-span-2">
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Buscar (nome, WhatsApp ou anotação)</label>
+                        <input type="text" id="auto-lead-busca" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none" placeholder="Digite pra buscar...">
+                    </div>
+                </div>
+                <div class="flex items-center gap-2 pt-2 flex-wrap">
+                    <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+                        <input type="checkbox" id="auto-lead-incluir-arquivados" class="accent-[#00f2fe]">
+                        Incluir arquivados
+                    </label>
+                    <button onclick="aplicarFiltroAutomacaoLeads()" class="ml-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all">🔍 Filtrar</button>
+                </div>
+            </div>
+
+            <div id="auto-lead-barra-acoes" class="hidden glass-card rounded-2xl p-4 flex flex-wrap items-center gap-3 border border-[#00f2fe]/20 bg-[#00f2fe]/5">
+                <span class="text-xs font-bold text-[#00f2fe]"><span id="auto-lead-contador-selecionados">0</span> selecionado(s)</span>
+                <select id="auto-lead-novo-status" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <option value="novo">🔵 Novo</option>
+                    <option value="contato">🟡 Em Contato</option>
+                    <option value="convertido">🟢 Convertido</option>
+                    <option value="perdido">🔴 Perdido</option>
+                </select>
+                <button onclick="aplicarStatusEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Mudar Status</button>
+                <input type="text" id="auto-lead-anotacao-massa" placeholder="Anotação pra adicionar..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 min-w-[160px]">
+                <button onclick="aplicarAnotacaoEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Anotar</button>
+                <button onclick="exportarSelecionadosCSV()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">📥 Exportar</button>
+                <button onclick="arquivarSelecionados()" class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗄️ Arquivar</button>
+            </div>
+
+            <div class="glass-card rounded-xl overflow-hidden border border-white/5">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
+                                <th class="p-4"><input type="checkbox" id="auto-lead-selecionar-todos" class="accent-[#00f2fe]"></th>
+                                <th class="p-4">👤 Nome</th>
+                                <th class="p-4">🟢 WhatsApp</th>
+                                <th class="p-4">📍 Origem</th>
+                                <th class="p-4">🎯 Interesse</th>
+                                <th class="p-4">📊 Cliques</th>
+                                <th class="p-4">⏱️ Tempo</th>
+                                <th class="p-4">🏷️ Status</th>
+                                <th class="p-4">📅 Data</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auto-lead-table-body" class="text-xs divide-y divide-white/5">
+                            <tr><td colspan="9" class="text-center p-12 text-gray-500">Use os filtros e clique em Filtrar.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
     </main>
 <div id="lead-painel" class="hidden fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#0a0a0a] border-l border-white/10 z-50 flex flex-col shadow-2xl">
             <div class="p-5 border-b border-white/5 flex items-center justify-between">
@@ -1554,6 +1698,7 @@
             if (targetId === "view-templates") carregarTemplates();
             if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate")); }
             if (targetId === "view-notificacoes") carregarNotificacoes();
+            if (targetId === "view-automacao-leads") carregarAutomacaoLeads();
             if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
             if (targetId === "view-guia") renderizarGuiaDoPlano();
         }
@@ -3489,6 +3634,202 @@ window.editarTemplate = async function(id) {
         };
 
         // =============================================
+        // AUTOMAÇÃO DE LEADS (filtros avançados + ações em massa)
+        // =============================================
+        let _cacheAutomacaoLeads = [];
+        let _selecionadosAutomacaoLeads = new Set();
+
+        async function carregarAutomacaoLeads() {
+            if (!usuarioUID) return;
+            try {
+                const snap = await getDocs(query(collection(db, "leads"), where("criadoPor", "==", usuarioUID)));
+                _cacheAutomacaoLeads = [];
+                snap.forEach(d => _cacheAutomacaoLeads.push({ id: d.id, ...d.data() }));
+
+                const produtosUnicos = [...new Set(_cacheAutomacaoLeads.map(l => l.produtoInteresse).filter(Boolean))];
+                const selectProduto = document.getElementById("auto-lead-produto");
+                if (selectProduto) {
+                    selectProduto.innerHTML = `<option value="todos">Todos</option>` + produtosUnicos.map(p => `<option value="${p}">${p}</option>`).join("");
+                }
+
+                aplicarFiltroAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.aplicarFiltroAutomacaoLeads = function() {
+            const filtroData = obterFiltroSelecionado("auto-lead-dias", "auto-lead-de", "auto-lead-ate");
+            const { inicio, fim, todos } = normalizarIntervalo(filtroData);
+            const origem = document.getElementById("auto-lead-origem").value;
+            const status = document.getElementById("auto-lead-status").value;
+            const produto = document.getElementById("auto-lead-produto").value;
+            const whatsappFiltro = document.getElementById("auto-lead-whatsapp").value;
+            const emailFiltro = document.getElementById("auto-lead-email").value;
+            const anotacaoFiltro = document.getElementById("auto-lead-anotacao").value;
+            const tempoMin = parseInt(document.getElementById("auto-lead-tempo-min").value) || 0;
+            const cliquesMin = parseInt(document.getElementById("auto-lead-cliques-min").value) || 0;
+            const busca = document.getElementById("auto-lead-busca").value.trim().toLowerCase();
+            const incluirArquivados = document.getElementById("auto-lead-incluir-arquivados").checked;
+
+            let filtrados = _cacheAutomacaoLeads.filter(l => {
+                if (!incluirArquivados && l.arquivado) return false;
+                const dataLead = l.data || Date.now();
+                if (!todos && (dataLead < inicio || dataLead > fim)) return false;
+                if (origem !== "todos" && (l.origem || "direto") !== origem) return false;
+                if (status !== "todos" && (l.statusLead || "novo") !== status) return false;
+                if (produto !== "todos" && l.produtoInteresse !== produto) return false;
+                if (whatsappFiltro === "com" && !l.whatsapp) return false;
+                if (whatsappFiltro === "sem" && l.whatsapp) return false;
+                if (emailFiltro === "com" && !l.email) return false;
+                if (emailFiltro === "sem" && l.email) return false;
+                if (anotacaoFiltro === "com" && !l.anotacao) return false;
+                if (anotacaoFiltro === "sem" && l.anotacao) return false;
+                if ((l.tempoRetencao || 0) < tempoMin) return false;
+                if ((l.cliques || 0) < cliquesMin) return false;
+                if (busca) {
+                    const alvo = `${l.nome || ""} ${l.whatsapp || ""} ${l.anotacao || ""}`.toLowerCase();
+                    if (!alvo.includes(busca)) return false;
+                }
+                return true;
+            });
+
+            filtrados.sort((a, b) => (b.data || 0) - (a.data || 0));
+            _selecionadosAutomacaoLeads.clear();
+            renderizarTabelaAutomacaoLeads(filtrados);
+            atualizarBarraAcoesAutomacao();
+            showToast(`Filtro aplicado! ${filtrados.length} lead(s) encontrado(s).`);
+        };
+
+        function renderizarTabelaAutomacaoLeads(lista) {
+            const tbody = document.getElementById("auto-lead-table-body");
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500">Nenhum lead encontrado com esses filtros.</td></tr>`;
+                return;
+            }
+            const statusClasses = {
+                novo: "bg-blue-500/10 text-blue-400",
+                contato: "bg-amber-500/10 text-amber-400",
+                convertido: "bg-emerald-500/10 text-emerald-400",
+                perdido: "bg-red-500/10 text-red-400"
+            };
+            tbody.innerHTML = lista.map(l => `
+                <tr class="hover:bg-white/[0.02] transition-colors ${l.arquivado ? "opacity-50" : ""}">
+                    <td class="p-4"><input type="checkbox" class="auto-lead-checkbox accent-[#00f2fe]" data-id="${l.id}"></td>
+                    <td class="p-4 font-bold text-white">${l.nome || "Anônimo"}${l.arquivado ? ' <span class="text-[9px] text-gray-500">(arquivado)</span>' : ""}</td>
+                    <td class="p-4 text-emerald-400">${l.whatsapp || "—"}</td>
+                    <td class="p-4"><span class="text-[10px] font-bold uppercase">${l.origem || "direto"}</span></td>
+                    <td class="p-4 text-[#00f2fe] max-w-[140px] truncate">${l.produtoInteresse || "—"}</td>
+                    <td class="p-4 text-center">${l.cliques || 0}</td>
+                    <td class="p-4 text-amber-400">${l.tempoRetencao || 0}s</td>
+                    <td class="p-4"><span class="text-[10px] font-bold px-2 py-1 rounded-md ${statusClasses[l.statusLead || "novo"]}">${l.statusLead || "novo"}</span></td>
+                    <td class="p-4 text-gray-500">${l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "—"}</td>
+                </tr>
+            `).join("");
+
+            document.querySelectorAll(".auto-lead-checkbox").forEach(cb => {
+                cb.addEventListener("change", () => {
+                    const id = cb.getAttribute("data-id");
+                    if (cb.checked) _selecionadosAutomacaoLeads.add(id);
+                    else _selecionadosAutomacaoLeads.delete(id);
+                    atualizarBarraAcoesAutomacao();
+                });
+            });
+        }
+
+        function atualizarBarraAcoesAutomacao() {
+            const barra = document.getElementById("auto-lead-barra-acoes");
+            const contador = document.getElementById("auto-lead-contador-selecionados");
+            const total = _selecionadosAutomacaoLeads.size;
+            if (contador) contador.innerText = total;
+            if (barra) barra.classList.toggle("hidden", total === 0);
+        }
+
+        const btnSelecionarTodosAuto = document.getElementById("auto-lead-selecionar-todos");
+        if (btnSelecionarTodosAuto) {
+            btnSelecionarTodosAuto.addEventListener("change", (e) => {
+                document.querySelectorAll(".auto-lead-checkbox").forEach(cb => {
+                    cb.checked = e.target.checked;
+                    const id = cb.getAttribute("data-id");
+                    if (e.target.checked) _selecionadosAutomacaoLeads.add(id);
+                    else _selecionadosAutomacaoLeads.delete(id);
+                });
+                atualizarBarraAcoesAutomacao();
+            });
+        }
+
+        window.aplicarStatusEmMassa = async function() {
+            const novoStatus = document.getElementById("auto-lead-novo-status").value;
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            abrirConfirmacao(`Mudar o status de ${ids.length} lead(s) pra "${novoStatus}"?`, async () => {
+                try {
+                    await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { statusLead: novoStatus }, { merge: true })));
+                    showToast(`${ids.length} lead(s) atualizados!`);
+                    carregarAutomacaoLeads();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao atualizar em massa.", "error");
+                }
+            });
+        };
+
+        window.aplicarAnotacaoEmMassa = async function() {
+            const texto = document.getElementById("auto-lead-anotacao-massa").value.trim();
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (!texto || ids.length === 0) {
+                showToast("Digite uma anotação e selecione ao menos um lead.", "error");
+                return;
+            }
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { anotacao: texto }, { merge: true })));
+                showToast(`Anotação aplicada em ${ids.length} lead(s)!`);
+                document.getElementById("auto-lead-anotacao-massa").value = "";
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao anotar em massa.", "error");
+            }
+        };
+
+        window.arquivarSelecionados = async function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            abrirConfirmacao(`Arquivar ${ids.length} lead(s)? Eles somem da lista principal, mas não são apagados.`, async () => {
+                try {
+                    await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { arquivado: true }, { merge: true })));
+                    showToast(`${ids.length} lead(s) arquivados!`);
+                    carregarAutomacaoLeads();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao arquivar.", "error");
+                }
+            });
+        };
+
+        window.exportarSelecionadosCSV = function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            const selecionados = _cacheAutomacaoLeads.filter(l => ids.includes(l.id));
+            const rows = [["Nome","Email","WhatsApp","Origem","Interesse","Cliques","Tempo","Status","Data","Anotação"]];
+            selecionados.forEach(l => {
+                rows.push([
+                    l.nome || "", l.email || "", l.whatsapp || "", l.origem || "", l.produtoInteresse || "",
+                    l.cliques || 0, l.tempoRetencao || 0, l.statusLead || "novo",
+                    l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "", l.anotacao || ""
+                ]);
+            });
+            const csv = rows.map(r => r.map(v => `"${v}"`).join(";")).join("\n");
+            const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `leads_selecionados_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            showToast("Exportado!");
+        };
+
+        // =============================================
         // FILTRO DE DATA PERSONALIZADO (reutilizado em Leads, Pedidos, Templates, Métricas, Campanhas)
         // =============================================
         function configurarFiltroPersonalizado(idSelect, idBoxDatas) {
@@ -3542,11 +3883,13 @@ window.editarTemplate = async function(id) {
         configurarFiltroPersonalizado("filtro-template-dias", "filtro-template-datas-custom");
         configurarFiltroPersonalizado("filtro-metricas-dias", "filtro-metricas-datas-custom");
         configurarFiltroPersonalizado("filtro-campanha-dias", "filtro-campanha-datas-custom");
+        configurarFiltroPersonalizado("auto-lead-dias", "auto-lead-datas-custom");
         ligarValidacaoIntervaloDatas("filtro-lead-de", "filtro-lead-ate");
         ligarValidacaoIntervaloDatas("filtro-pedido-de", "filtro-pedido-ate");
         ligarValidacaoIntervaloDatas("filtro-template-de", "filtro-template-ate");
         ligarValidacaoIntervaloDatas("filtro-metricas-de", "filtro-metricas-ate");
         ligarValidacaoIntervaloDatas("filtro-campanha-de", "filtro-campanha-ate");
+        ligarValidacaoIntervaloDatas("auto-lead-de", "auto-lead-ate");
         
         function formatarDataChave(d) {
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
