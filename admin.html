@@ -118,6 +118,7 @@
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="comparativo">📊 Comparativo</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="notificacoes">🔔 Notificações</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="personalizacoes">🎨 Personalizações</button>
         </div>
 
         <!-- TABELA DE CLIENTES -->
@@ -223,6 +224,17 @@
                 <div id="lista-notificacoes-enviadas" class="space-y-3">
                     <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- PERSONALIZAÇÕES -->
+        <div id="tab-personalizacoes" class="tab-content hidden fade-in">
+            <div class="mb-4">
+                <h2 class="text-sm font-black text-white">Solicitações de Personalização</h2>
+                <p class="text-xs text-gray-500 mt-1">Fila de clientes pedindo pra você montar a loja deles.</p>
+            </div>
+            <div id="lista-personalizacoes" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
             </div>
         </div>
         
@@ -1027,6 +1039,65 @@
                 }
             });
         };
+
+        // =============================================
+        // PERSONALIZAÇÕES (fila de solicitações dos clientes)
+        // =============================================
+        async function carregarPersonalizacoes() {
+            const box = document.getElementById("lista-personalizacoes");
+            if (!box) return;
+            try {
+                const snap = await getDocs(collection(db, "solicitacoes_customizacao"));
+                let lista = [];
+                snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+                lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                if (lista.length === 0) {
+                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Nenhuma solicitação ainda.</div>`;
+                    return;
+                }
+
+                const cliente = (uid) => todosUsuarios.find(u => u.uid === uid);
+
+                box.innerHTML = lista.map(p => {
+                    const u = cliente(p.uid);
+                    return `
+                        <div class="glass-card p-5 rounded-2xl space-y-3 border-l-2 ${p.status === "concluido" ? "border-emerald-500/40" : p.status === "em_andamento" ? "border-blue-500/40" : "border-amber-500/40"}">
+                            <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                                <div class="min-w-0">
+                                    <p class="text-sm font-bold text-white">${u?.nomeLoja || u?.nome || p.email}</p>
+                                    <p class="text-[11px] text-gray-500">${p.email} ${p.whatsapp ? "· 📱 " + p.whatsapp : ""}</p>
+                                    <p class="text-xs text-gray-300 mt-2">${p.descricao}</p>
+                                    <p class="text-[10px] text-gray-600 mt-1">${p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—"}</p>
+                                </div>
+                                <div class="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                                    <select onchange="atualizarStatusPersonalizacao('${p.id}', this.value)" class="glass-input rounded-lg px-3 py-2 text-xs text-white outline-none">
+                                        <option value="pendente" ${p.status === "pendente" ? "selected" : ""}>⏳ Pendente</option>
+                                        <option value="em_andamento" ${p.status === "em_andamento" ? "selected" : ""}>🛠️ Em andamento</option>
+                                        <option value="concluido" ${p.status === "concluido" ? "selected" : ""}>✅ Concluído</option>
+                                    </select>
+                                    ${u ? `<a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="text-center text-[11px] font-bold py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard</a>` : ""}
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            } catch (err) {
+                console.error(err);
+                box.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar solicitações.</div>`;
+            }
+        }
+
+        window.atualizarStatusPersonalizacao = async function(id, status) {
+            try {
+                await updateDoc(doc(db, "solicitacoes_customizacao", id), { status });
+                showToast("Status atualizado!");
+                await carregarPersonalizacoes();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao atualizar.", "error");
+            }
+        };
         
         function renderizarGridPlanos() {
             const grid = document.getElementById("grid-planos");
@@ -1086,6 +1157,7 @@
                 if (btn.dataset.tab === "planos") renderizarGridPlanos();
                 if (btn.dataset.tab === "comparativo") renderizarComparativo();
                 if (btn.dataset.tab === "notificacoes") { renderizarChecklistClientes(); carregarNotificacoesEnviadas(); }
+                if (btn.dataset.tab === "personalizacoes") carregarPersonalizacoes();
             });
         });
 
