@@ -173,6 +173,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h10a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485"></path></svg>
                 Personalização Premium
             </button>
+            <button data-target="view-guia" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
+                Guia do Plano
+            </button>
             
         </nav>
         
@@ -527,6 +531,20 @@
             <div id="personalizacao-historico-box" class="hidden space-y-3">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Solicitações</h3>
                 <div id="personalizacao-historico-lista" class="space-y-2"></div>
+            </div>
+        </section>
+
+        <section id="view-guia" class="view-section space-y-6 max-w-4xl mx-auto">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Guia do Plano</h1>
+                <p class="text-gray-400 text-xs mt-1">Tudo que o seu plano <span id="guia-nome-plano" class="text-[#00f2fe] font-bold">—</span> libera: como acessar, como usar, e as melhores estratégias.</p>
+            </div>
+            <div id="guia-conteudo" class="space-y-4">
+                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+            </div>
+            <div class="pt-4 border-t border-white/5 space-y-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">🚧 Chegando na Vide Hub</h3>
+                <div id="guia-em-breve" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
             </div>
         </section>
         
@@ -1252,6 +1270,7 @@
         let limiteRascunhosGlobal = 5;
         let totalRascunhosAtual = 0;
         let verRascunhos = false;
+        let temFeature = () => true; // fica atualizado de verdade assim que o plano carrega
         
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
@@ -1351,6 +1370,128 @@
             renderizarListaTrocarLoja(filtrados);
         });
 
+        // =============================================
+        // GUIA DO PLANO (conteúdo real, só das funções que já existem)
+        // =============================================
+        const NOMES_PLANO_GUIA = {
+            starter: "Starter", basico: "Básico", essencial: "Essencial", negocio: "Negócio",
+            profissional: "Profissional", avancado: "Avançado", pro: "Pro", proplus: "Pro+",
+            agencia: "Agência", enterprise: "Enterprise", premium: "Premium"
+        };
+
+        const GUIA_CONTEUDO = [
+            { chave: "hub", icone: "🏪", titulo: "Vitrine & Visão Geral",
+              acessar: "Aba \"Visão Geral\", sempre no topo do menu.",
+              usar: ["Clique em \"Adicionar Produto\" pra cadastrar um item novo.", "Edite cores, fontes e textos em \"Configurações da Loja\".", "Compartilhe o link da sua vitrine (vide.digital/seu-slug) nas redes."],
+              dicas: ["Preencha todos os campos do produto (garantia, avaliação, frete grátis) — isso aumenta a confiança de quem visita.", "Use fotos nítidas e com boa luz; é o que mais influencia a decisão de compra."] },
+            { chave: "popup", icone: "🎁", titulo: "Pop-up de Captura de Leads",
+              acessar: "Ativa sozinho na vitrine, depois de 15 segundos ou quando o visitante tenta sair da página.",
+              usar: ["Os contatos capturados aparecem na aba \"Leads (Capturas)\".", "Cada lead mostra de onde a pessoa veio (Meta Ads, Google, direto, etc.)."],
+              dicas: ["Responda rápido — um lead esfria em poucas horas.", "Use os Templates de Mensagens pra agilizar o primeiro contato."] },
+            { chave: "carrinho", icone: "🛒", titulo: "Carrinho de Compras",
+              acessar: "Ative em Configurações da Loja → \"Carrinho de Compras\".",
+              usar: ["Depois de ativar, marque \"Permitir adicionar ao Carrinho\" em cada produto que quiser incluir.", "O cliente monta o carrinho e fecha tudo de uma vez pelo seu WhatsApp."],
+              dicas: ["Personalize a mensagem de abertura do pedido pra soar mais natural e com a sua cara."] },
+            { chave: "chat", icone: "💬", titulo: "Chat ao Vivo",
+              acessar: "Ative em Configurações da Loja → \"Chat ao Vivo\" e cadastre o número.",
+              usar: ["Aparece como um balão flutuante na sua vitrine.", "Se ninguém responder em 30 segundos, o sistema já redireciona o cliente pro seu WhatsApp sozinho."],
+              dicas: ["Mesmo com o redirecionamento automático, responder rápido no chat converte muito mais que perder o cliente pro WhatsApp frio."] },
+            { chave: "templates", icone: "📋", titulo: "Templates de Mensagens",
+              acessar: "Aba \"Templates\", no menu lateral.",
+              usar: ["Crie mensagens prontas por categoria (vendas, suporte, follow-up, cobrança).", "Use {nome} dentro do texto — o sistema troca automaticamente pelo nome do lead."],
+              dicas: ["Tenha pelo menos um template pra cada etapa da conversa: primeiro contato, follow-up de 24h, e fechamento."] },
+            { chave: "cupons", icone: "🎟️", titulo: "Cupons Automáticos",
+              acessar: "Dentro de cada produto, na hora de cadastrar/editar, ative \"Cupom de Desconto Automático\".",
+              usar: ["O desconto aparece já aplicado na vitrine — o cliente não digita nenhum código.", "Dá pra colocar uma data de validade opcional."],
+              dicas: ["Cupons com prazo curto (24-48h) criam mais urgência do que cupons sem data."] },
+            { chave: "campanhas", icone: "⚡", titulo: "Campanhas & Ofertas Relâmpago",
+              acessar: "Aba \"Campanhas\", no menu lateral.",
+              usar: ["Configure título, texto e um contador regressivo.", "Aparece como pop-up pra quem visita sua vitrine enquanto estiver ativa."],
+              dicas: ["Campanhas curtas (10 a 30 minutos) funcionam melhor pra gerar urgência real — campanhas muito longas perdem o efeito."] },
+            { chave: "metricas", icone: "📊", titulo: "Métricas & Performance",
+              acessar: "Aba \"Métricas\", no menu lateral.",
+              usar: ["Acompanhe sessões, cliques, taxa de conversão e tempo médio na vitrine, com filtro de data.", "Veja quais produtos são mais vistos e mais clicados."],
+              dicas: ["Se a conversão cair numa semana, olhe primeiro o preço e as fotos dos produtos mais vistos — geralmente é aí que está o problema."] },
+            { chave: "csv", icone: "📥", titulo: "Exportar Leads (CSV)",
+              acessar: "Aba \"Leads (Capturas)\" → botão \"📥 Exportar CSV\".",
+              usar: ["Baixa todos os leads filtrados numa planilha."],
+              dicas: ["Útil pra importar em ferramentas de disparo — mas sempre com cuidado pra não parecer spam."] },
+            { chave: "temas", icone: "🎨", titulo: "Temas Prontos + Personalização",
+              acessar: "Configurações da Loja → \"Controle de Aparência\".",
+              usar: ["Escolha um dos temas prontos pra aplicar tudo de uma vez (cores + fonte).", "Depois é só ajustar qualquer cor individualmente antes de salvar."],
+              dicas: ["Escolha um tema que combine com seu nicho — ex: Confeitaria Rosa pra doces, Barbearia Clássica pra barbearias."] }
+        ];
+
+        const FEATURES_EM_BREVE_GUIA = [
+            { chave: "chatbot", icone: "🤖", titulo: "Chatbot com Fluxo" },
+            { chave: "ia", icone: "✨", titulo: "IA no Atendimento" },
+            { chave: "avaliacoes", icone: "⭐", titulo: "Avaliações de Clientes" },
+            { chave: "agenda", icone: "📅", titulo: "Agenda de Reservas" },
+            { chave: "subcontas", icone: "👥", titulo: "Subcontas / Equipe" },
+            { chave: "api", icone: "🔌", titulo: "API Própria" },
+            { chave: "relatorios", icone: "📈", titulo: "Relatórios Avançados" },
+            { chave: "dominio", icone: "🌐", titulo: "Domínio Próprio" }
+        ];
+
+        function renderizarGuiaDoPlano() {
+            const nomeEl = document.getElementById("guia-nome-plano");
+            if (nomeEl) nomeEl.innerText = NOMES_PLANO_GUIA[planoAtualGlobal] || planoAtualGlobal;
+
+            const box = document.getElementById("guia-conteudo");
+            if (box) {
+                box.innerHTML = GUIA_CONTEUDO.map(f => {
+                    const liberado = temFeature(f.chave);
+                    if (!liberado) {
+                        return `
+                            <div class="glass-card rounded-xl p-5 opacity-50 flex items-center gap-3">
+                                <span class="text-xl grayscale">${f.icone}</span>
+                                <div class="flex-1 min-w-0">
+                                    <p class="text-sm font-bold text-white">${f.titulo}</p>
+                                    <p class="text-[11px] text-gray-500">🔒 Disponível em planos superiores</p>
+                                </div>
+                            </div>
+                        `;
+                    }
+                    return `
+                        <div class="glass-card rounded-xl p-5 space-y-3">
+                            <div class="flex items-center gap-3">
+                                <span class="text-xl">${f.icone}</span>
+                                <p class="text-sm font-bold text-white">${f.titulo}</p>
+                            </div>
+                            <div class="space-y-1">
+                                <p class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider">Como acessar</p>
+                                <p class="text-xs text-gray-400">${f.acessar}</p>
+                            </div>
+                            <div class="space-y-1">
+                                <p class="text-[10px] font-bold text-[#00f2fe] uppercase tracking-wider">Como usar</p>
+                                <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside">
+                                    ${f.usar.map(u => `<li>${u}</li>`).join("")}
+                                </ul>
+                            </div>
+                            <div class="space-y-1 bg-white/[0.02] border border-white/5 rounded-lg p-3">
+                                <p class="text-[10px] font-bold text-amber-400 uppercase tracking-wider">💡 Dicas</p>
+                                <ul class="text-xs text-gray-400 space-y-1 list-disc list-inside">
+                                    ${f.dicas.map(d => `<li>${d}</li>`).join("")}
+                                </ul>
+                            </div>
+                        </div>
+                    `;
+                }).join("");
+            }
+
+            const boxEmBreve = document.getElementById("guia-em-breve");
+            if (boxEmBreve) {
+                boxEmBreve.innerHTML = FEATURES_EM_BREVE_GUIA.map(f => `
+                    <div class="glass-card rounded-xl p-4 flex items-center gap-3 opacity-70">
+                        <span class="text-lg">${f.icone}</span>
+                        <p class="text-xs font-bold text-gray-300">${f.titulo}</p>
+                    </div>
+                `).join("");
+            }
+        }
+
+        function ativarAba(targetId) {
+
         // GESTOR DE ABAS SPA REATIVAS
         function ativarAba(targetId) {
             document.querySelectorAll("#sidebar-nav button").forEach(b => b.classList.remove("active"));
@@ -1370,6 +1511,7 @@
             if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30)); }
             if (targetId === "view-notificacoes") carregarNotificacoes();
             if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
+            if (targetId === "view-guia") renderizarGuiaDoPlano();
         }
 // =============================================
         // BLOQUEIO IMEDIATO DE PLANO (evita flash de conteúdo liberado)
@@ -1831,7 +1973,7 @@
 
                 // Padrão seguro: se o carregamento do plano falhar por qualquer motivo,
                 // NÃO bloqueia o resto do painel (produtos, leads, etc. continuam funcionando).
-                let temFeature = () => true;
+                temFeature = () => true;
 
                 try {
                     // Buscar config de planos do Firebase (ou usar os valores padrão do código)
