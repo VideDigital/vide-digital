@@ -228,13 +228,31 @@
         </div>
 
         <!-- PERSONALIZAÇÕES -->
-        <div id="tab-personalizacoes" class="tab-content hidden fade-in">
-            <div class="mb-4">
-                <h2 class="text-sm font-black text-white">Solicitações de Personalização</h2>
-                <p class="text-xs text-gray-500 mt-1">Fila de clientes pedindo pra você montar a loja deles.</p>
+        <div id="tab-personalizacoes" class="tab-content hidden fade-in space-y-8">
+            <div>
+                <h2 class="text-sm font-black text-white">Fila Ativa</h2>
+                <p class="text-xs text-gray-500 mt-1">Pendentes e em andamento — o que precisa da sua atenção agora.</p>
             </div>
             <div id="lista-personalizacoes" class="space-y-3">
                 <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
+            </div>
+
+            <div class="pt-4 border-t border-white/5 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <h3 class="text-sm font-black text-white">Histórico</h3>
+                    <div class="flex flex-wrap gap-2">
+                        <select id="filtro-personalizacao-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="0">Todos</option>
+                        </select>
+                        <button onclick="aplicarFiltroPersonalizacoesHistorico()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+                    </div>
+                </div>
+                <div id="lista-personalizacoes-historico" class="space-y-3">
+                    <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
+                </div>
             </div>
         </div>
         
@@ -449,6 +467,10 @@
             if (btn) btn.disabled = true;
             if (icone) icone.classList.add("animate-spin");
             await carregarUsuarios();
+            const abaAtiva = document.querySelector(".tab-btn.active")?.dataset.tab;
+            if (abaAtiva === "personalizacoes") await carregarPersonalizacoes();
+            if (abaAtiva === "comparativo") renderizarComparativo();
+            if (abaAtiva === "planos") renderizarGridPlanos();
             if (icone) icone.classList.remove("animate-spin");
             if (btn) btn.disabled = false;
             showToast("Lista atualizada!");
@@ -1043,55 +1065,113 @@
         // =============================================
         // PERSONALIZAÇÕES (fila de solicitações dos clientes)
         // =============================================
+        let _cachePersonalizacoes = [];
+
+        const MENSAGENS_STATUS_CLIENTE = {
+            em_andamento: { titulo: "Sua personalização está em andamento!", mensagem: "Já começamos a trabalhar na sua loja. Em breve estará pronta!" },
+            concluido: { titulo: "Personalização concluída! 🎉", mensagem: "Sua loja foi personalizada com sucesso. Dá uma olhada!" },
+            negado: { titulo: "Sobre sua solicitação de personalização", mensagem: "Não foi possível seguir com sua solicitação no momento. Vamos entrar em contato pra entender melhor." },
+            pendente: { titulo: "Sua solicitação voltou pra fila", mensagem: "Sua solicitação de personalização está novamente aguardando análise." }
+        };
+
         async function carregarPersonalizacoes() {
-            const box = document.getElementById("lista-personalizacoes");
-            if (!box) return;
+            const boxAtivas = document.getElementById("lista-personalizacoes");
+            if (!boxAtivas) return;
             try {
                 const snap = await getDocs(collection(db, "solicitacoes_customizacao"));
-                let lista = [];
-                snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
-                lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+                _cachePersonalizacoes = [];
+                snap.forEach(d => _cachePersonalizacoes.push({ id: d.id, ...d.data() }));
+                _cachePersonalizacoes.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
 
-                if (lista.length === 0) {
-                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Nenhuma solicitação ainda.</div>`;
-                    return;
-                }
+                const ativas = _cachePersonalizacoes.filter(p => p.status === "pendente" || p.status === "em_andamento" || !p.status);
+                renderizarListaPersonalizacoes(boxAtivas, ativas, "Nenhuma solicitação na fila. ✅");
 
-                const cliente = (uid) => todosUsuarios.find(u => u.uid === uid);
-
-                box.innerHTML = lista.map(p => {
-                    const u = cliente(p.uid);
-                    return `
-                        <div class="glass-card p-5 rounded-2xl space-y-3 border-l-2 ${p.status === "concluido" ? "border-emerald-500/40" : p.status === "em_andamento" ? "border-blue-500/40" : "border-amber-500/40"}">
-                            <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
-                                <div class="min-w-0">
-                                    <p class="text-sm font-bold text-white">${u?.nomeLoja || u?.nome || p.email}</p>
-                                    <p class="text-[11px] text-gray-500">${p.email} ${p.whatsapp ? "· 📱 " + p.whatsapp : ""}</p>
-                                    <p class="text-xs text-gray-300 mt-2">${p.descricao}</p>
-                                    <p class="text-[10px] text-gray-600 mt-1">${p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—"}</p>
-                                </div>
-                                <div class="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
-                                    <select onchange="atualizarStatusPersonalizacao('${p.id}', this.value)" class="glass-input rounded-lg px-3 py-2 text-xs text-white outline-none">
-                                        <option value="pendente" ${p.status === "pendente" ? "selected" : ""}>⏳ Pendente</option>
-                                        <option value="em_andamento" ${p.status === "em_andamento" ? "selected" : ""}>🛠️ Em andamento</option>
-                                        <option value="concluido" ${p.status === "concluido" ? "selected" : ""}>✅ Concluído</option>
-                                    </select>
-                                    ${u ? `<a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="text-center text-[11px] font-bold py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard</a>` : ""}
-                                </div>
-                            </div>
-                        </div>
-                    `;
-                }).join("");
+                aplicarFiltroPersonalizacoesHistorico();
             } catch (err) {
                 console.error(err);
-                box.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar solicitações.</div>`;
+                boxAtivas.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar solicitações.</div>`;
             }
         }
 
+        window.aplicarFiltroPersonalizacoesHistorico = function() {
+            const boxHistorico = document.getElementById("lista-personalizacoes-historico");
+            if (!boxHistorico) return;
+            const dias = parseInt(document.getElementById("filtro-personalizacao-dias").value);
+            const agora = Date.now();
+            const limite = dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000);
+
+            let historico = _cachePersonalizacoes.filter(p => p.status === "concluido" || p.status === "negado");
+            if (dias !== 0) historico = historico.filter(p => (p.criadoEm || agora) >= limite);
+
+            renderizarListaPersonalizacoes(boxHistorico, historico, "Nenhum item no histórico desse período.");
+        };
+
+        function renderizarListaPersonalizacoes(box, lista, mensagemVazio) {
+            if (lista.length === 0) {
+                box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">${mensagemVazio}</div>`;
+                return;
+            }
+            const cliente = (uid) => todosUsuarios.find(u => u.uid === uid);
+
+            box.innerHTML = lista.map(p => {
+                const u = cliente(p.uid);
+                const corBorda = p.status === "concluido" ? "border-emerald-500/40" : p.status === "em_andamento" ? "border-blue-500/40" : p.status === "negado" ? "border-red-500/40" : "border-amber-500/40";
+                return `
+                    <div class="glass-card p-5 rounded-2xl space-y-3 border-l-2 ${corBorda}">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold text-white">${u?.nomeLoja || u?.nome || p.email}</p>
+                                <p class="text-[11px] text-gray-500">${p.email} ${p.whatsapp ? "· 📱 " + p.whatsapp : ""}</p>
+                                <p class="text-xs text-gray-300 mt-2">${p.descricao}</p>
+                                <p class="text-[10px] text-gray-600 mt-1">${p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—"}</p>
+                            </div>
+                            <div class="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                                <select onchange="atualizarStatusPersonalizacao('${p.id}', this.value)" class="glass-input rounded-lg px-3 py-2 text-xs text-white outline-none">
+                                    <option value="pendente" ${p.status === "pendente" ? "selected" : ""}>⏳ Pendente</option>
+                                    <option value="em_andamento" ${p.status === "em_andamento" ? "selected" : ""}>🛠️ Em andamento</option>
+                                    <option value="concluido" ${p.status === "concluido" ? "selected" : ""}>✅ Concluído</option>
+                                    <option value="negado" ${p.status === "negado" ? "selected" : ""}>❌ Negado</option>
+                                </select>
+                                ${u ? `<a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="text-center text-[11px] font-bold py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard</a>` : ""}
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-white/5">
+                            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Anotação interna (só você vê)</label>
+                            <textarea onblur="salvarAnotacaoPersonalizacao('${p.id}', this.value)" rows="2" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="Ex: Já entrei em contato, aguardando fotos dos produtos...">${p.anotacaoAdmin || ""}</textarea>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        window.salvarAnotacaoPersonalizacao = async function(id, texto) {
+            try {
+                await updateDoc(doc(db, "solicitacoes_customizacao", id), { anotacaoAdmin: texto });
+                showToast("Anotação salva!");
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
         window.atualizarStatusPersonalizacao = async function(id, status) {
             try {
+                const item = _cachePersonalizacoes.find(p => p.id === id);
                 await updateDoc(doc(db, "solicitacoes_customizacao", id), { status });
-                showToast("Status atualizado!");
+
+                const msg = MENSAGENS_STATUS_CLIENTE[status];
+                if (item && msg) {
+                    await setDoc(doc(db, "notificacoes", `notif_${Date.now()}`), {
+                        titulo: msg.titulo,
+                        mensagem: msg.mensagem,
+                        foto: "",
+                        destinatarios: [item.uid],
+                        lidoPor: [],
+                        criadoPor: SUPER_ADMIN_EMAIL,
+                        criadoEm: Date.now()
+                    });
+                }
+
+                showToast("Status atualizado! Cliente notificado.");
                 await carregarPersonalizacoes();
             } catch (err) {
                 console.error(err);
