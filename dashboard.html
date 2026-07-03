@@ -197,6 +197,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg>
                 Guia do Plano
             </button>
+            <button data-target="view-funcionarios" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zM7 10a2 2 0 11-4 0 2 2 0 014 0zM21 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
+                <span class="flex-1">Funcionários</span>
+            </button>
             
         </nav>
         
@@ -587,13 +591,6 @@
                 <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
             </div>
             <div class="pt-4 border-t border-white/5 space-y-3">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">🚧 Chegando na Vide Hub</h3>
-                <div id="guia-em-breve" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
-            </div>
-        </section>
-        
-        <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto">
-            <!-- Cabeçalho Principal -->
             <div class="border-b border-white/5 pb-5">
                 <h1 class="text-xl font-medium text-white tracking-tight">Configurações da Vitrine</h1>
                 <p class="text-gray-500 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
@@ -1430,6 +1427,44 @@
             </div>
         </div>
     </div>
+
+    <!-- MODAL DE FUNCIONÁRIO -->
+    <div id="funcionario-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-5 relative border border-white/5 shadow-2xl max-h-[85vh] overflow-y-auto">
+            <button onclick="fecharModalFuncionario()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 id="funcionario-modal-titulo" class="text-sm font-black text-white">Novo Funcionário</h3>
+            <input type="hidden" id="funcionario-uid-edicao">
+
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome</label>
+                <input type="text" id="funcionario-nome" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail</label>
+                <input type="email" id="funcionario-email" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
+            </div>
+            <div id="funcionario-senha-box" class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Senha Temporária</label>
+                <div class="flex gap-2">
+                    <input type="text" id="funcionario-senha" class="flex-1 glass-input rounded-xl p-3 text-sm text-white outline-none">
+                    <button type="button" onclick="gerarSenhaAleatoria()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 rounded-xl transition-all shrink-0">🎲 Gerar</button>
+                </div>
+                <p class="text-[10px] text-gray-500">Combine com ele por fora — ele vai poder trocar essa senha depois.</p>
+            </div>
+            <div class="space-y-1.5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cargo</label>
+                <input type="text" id="funcionario-cargo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Atendente, Vendedor...">
+            </div>
+
+            <div class="space-y-2 pt-2 border-t border-white/5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Permissões</label>
+                <p class="text-[10px] text-gray-500">"Ver" mostra a aba pra ele. "Editar" libera criar/alterar coisas nela.</p>
+                <div id="funcionario-permissoes-grid" class="space-y-2"></div>
+            </div>
+
+            <button onclick="salvarFuncionario()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Funcionário</button>
+        </div>
+    </div>
 <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
         <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
             <div class="h-12 w-12 rounded-full bg-[#00f2fe]/10 border border-[#00f2fe]/30 flex items-center justify-center mx-auto text-xl">⚠️</div>
@@ -1445,8 +1480,9 @@
     </div>
     
     <script type="module">
-        import { auth, db } from "./firebase-init.js";
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { auth, db, firebaseConfig } from "./firebase-init.js";
+        import { initializeApp as initializeAppSecundario, deleteApp as deleteAppSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { onAuthStateChanged, signOut, getAuth as getAuthSecundario, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
@@ -1680,6 +1716,186 @@
             }
         }
 
+        // =============================================
+        // FUNCIONÁRIOS (Gestão de Acessos — Fase 1: cadastro + permissões)
+        // =============================================
+        const MODULOS_PERMISSAO = [
+            { key: "produtos", label: "Produtos" },
+            { key: "pedidos", label: "Pedidos" },
+            { key: "leads", label: "Leads" },
+            { key: "templates", label: "Templates" },
+            { key: "campanhas", label: "Campanhas" },
+            { key: "metricas", label: "Métricas" },
+            { key: "configuracoes", label: "Configurações da Loja" }
+        ];
+
+        async function carregarFuncionarios() {
+            if (!usuarioUID) return;
+            const box = document.getElementById("lista-funcionarios");
+            if (!box) return;
+            try {
+                const snap = await getDocs(query(collection(db, "funcionarios"), where("donoUID", "==", usuarioUID)));
+                let funcionarios = [];
+                snap.forEach(d => funcionarios.push({ id: d.id, ...d.data() }));
+
+                if (funcionarios.length === 0) {
+                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-2xl">Nenhum funcionário cadastrado ainda.</div>`;
+                    return;
+                }
+
+                box.innerHTML = funcionarios.map(f => `
+                    <div class="glass-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                        <div class="flex items-center gap-3 min-w-0">
+                            <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-sm font-black text-[#00f2fe] shrink-0">${(f.nome || "?")[0].toUpperCase()}</div>
+                            <div class="min-w-0">
+                                <p class="text-sm font-bold text-white truncate">${f.nome}</p>
+                                <p class="text-[11px] text-gray-500 truncate">${f.email} ${f.cargo ? "· " + f.cargo : ""}</p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 shrink-0">
+                            <span class="text-[9px] font-bold px-2 py-1 rounded-md uppercase ${f.status === "ativo" ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"}">${f.status === "ativo" ? "Ativo" : "Inativo"}</span>
+                            <button onclick='abrirModalFuncionario(${JSON.stringify(f).replace(/'/g, "&apos;")})' class="text-[11px] font-bold text-[#00f2fe] hover:underline">Editar</button>
+                            <button onclick="alternarStatusFuncionario('${f.id}', '${f.status}')" class="text-[11px] font-bold text-gray-400 hover:text-white">${f.status === "ativo" ? "Desativar" : "Ativar"}</button>
+                        </div>
+                    </div>
+                `).join("");
+            } catch (err) {
+                console.error(err);
+                box.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar funcionários.</div>`;
+            }
+        }
+
+        function renderizarPermissoesGrid(permissoesAtuais) {
+            const box = document.getElementById("funcionario-permissoes-grid");
+            const ver = permissoesAtuais?.ver || [];
+            const editar = permissoesAtuais?.editar || [];
+            box.innerHTML = MODULOS_PERMISSAO.map(m => `
+                <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2">
+                    <span class="text-xs text-gray-300">${m.label}</span>
+                    <div class="flex gap-3">
+                        <label class="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer">
+                            <input type="checkbox" class="permissao-ver accent-[#00f2fe]" data-modulo="${m.key}" ${ver.includes(m.key) ? "checked" : ""}> Ver
+                        </label>
+                        <label class="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer">
+                            <input type="checkbox" class="permissao-editar accent-[#00f2fe]" data-modulo="${m.key}" ${editar.includes(m.key) ? "checked" : ""}> Editar
+                        </label>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        window.abrirModalFuncionario = function(funcionario) {
+            document.getElementById("funcionario-modal").classList.remove("hidden");
+            if (funcionario && funcionario.id) {
+                document.getElementById("funcionario-modal-titulo").innerText = "Editar Funcionário";
+                document.getElementById("funcionario-uid-edicao").value = funcionario.id;
+                document.getElementById("funcionario-nome").value = funcionario.nome || "";
+                document.getElementById("funcionario-email").value = funcionario.email || "";
+                document.getElementById("funcionario-email").disabled = true;
+                document.getElementById("funcionario-cargo").value = funcionario.cargo || "";
+                document.getElementById("funcionario-senha-box").classList.add("hidden");
+                renderizarPermissoesGrid(funcionario.permissoes);
+            } else {
+                document.getElementById("funcionario-modal-titulo").innerText = "Novo Funcionário";
+                document.getElementById("funcionario-uid-edicao").value = "";
+                document.getElementById("funcionario-nome").value = "";
+                document.getElementById("funcionario-email").value = "";
+                document.getElementById("funcionario-email").disabled = false;
+                document.getElementById("funcionario-cargo").value = "";
+                document.getElementById("funcionario-senha").value = "";
+                document.getElementById("funcionario-senha-box").classList.remove("hidden");
+                renderizarPermissoesGrid(null);
+            }
+        };
+
+        window.fecharModalFuncionario = function() {
+            document.getElementById("funcionario-modal").classList.add("hidden");
+        };
+
+        window.gerarSenhaAleatoria = function() {
+            const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+            let senha = "";
+            for (let i = 0; i < 10; i++) senha += chars[Math.floor(Math.random() * chars.length)];
+            document.getElementById("funcionario-senha").value = senha;
+        };
+
+        // Cria a conta de login do funcionário usando um app Firebase SECUNDÁRIO e temporário,
+        // assim a sua própria sessão (dono da loja) nunca é afetada.
+        async function criarContaFuncionarioAuth(email, senha) {
+            const appSecundario = initializeAppSecundario(firebaseConfig, "funcionario-temp-" + Date.now());
+            const authSecundario = getAuthSecundario(appSecundario);
+            try {
+                const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
+                const novoUID = cred.user.uid;
+                await signOut(authSecundario);
+                await deleteAppSecundario(appSecundario);
+                return novoUID;
+            } catch (err) {
+                await deleteAppSecundario(appSecundario).catch(() => {});
+                throw err;
+            }
+        }
+
+        window.salvarFuncionario = async function() {
+            const uidEdicao = document.getElementById("funcionario-uid-edicao").value;
+            const nome = document.getElementById("funcionario-nome").value.trim();
+            const email = document.getElementById("funcionario-email").value.trim().toLowerCase();
+            const cargo = document.getElementById("funcionario-cargo").value.trim();
+            const ver = Array.from(document.querySelectorAll(".permissao-ver:checked")).map(cb => cb.getAttribute("data-modulo"));
+            const editar = Array.from(document.querySelectorAll(".permissao-editar:checked")).map(cb => cb.getAttribute("data-modulo"));
+
+            if (!nome || !email) {
+                showToast("Preencha nome e e-mail.", "error");
+                return;
+            }
+
+            try {
+                if (uidEdicao) {
+                    await setDoc(doc(db, "funcionarios", uidEdicao), {
+                        nome, cargo, permissoes: { ver, editar }
+                    }, { merge: true });
+                    showToast("Funcionário atualizado!");
+                } else {
+                    const senha = document.getElementById("funcionario-senha").value;
+                    if (!senha || senha.length < 6) {
+                        showToast("A senha precisa ter ao menos 6 caracteres.", "error");
+                        return;
+                    }
+                    const novoUID = await criarContaFuncionarioAuth(email, senha);
+                    await setDoc(doc(db, "funcionarios", novoUID), {
+                        donoUID: usuarioUID,
+                        nome, email, cargo,
+                        status: "ativo",
+                        senhaTemporaria: true,
+                        permissoes: { ver, editar },
+                        criadoEm: Date.now()
+                    });
+                    showToast("Funcionário cadastrado! Já pode fazer login.");
+                }
+                fecharModalFuncionario();
+                carregarFuncionarios();
+            } catch (err) {
+                console.error(err);
+                if (err.code === "auth/email-already-in-use") {
+                    showToast("Esse e-mail já está em uso por outra conta.", "error");
+                } else {
+                    showToast("Erro ao salvar funcionário.", "error");
+                }
+            }
+        };
+
+        window.alternarStatusFuncionario = async function(uid, statusAtual) {
+            const novoStatus = statusAtual === "ativo" ? "inativo" : "ativo";
+            try {
+                await setDoc(doc(db, "funcionarios", uid), { status: novoStatus }, { merge: true });
+                showToast(novoStatus === "ativo" ? "Funcionário reativado!" : "Funcionário desativado.");
+                carregarFuncionarios();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao atualizar.", "error");
+            }
+        };
+        
         // GESTOR DE ABAS SPA REATIVAS
         function ativarAba(targetId) {
             document.querySelectorAll("#sidebar-nav button").forEach(b => b.classList.remove("active"));
@@ -1698,6 +1914,7 @@
             if (targetId === "view-templates") carregarTemplates();
             if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate")); }
             if (targetId === "view-notificacoes") carregarNotificacoes();
+            if (targetId === "view-funcionarios") carregarFuncionarios();
             if (targetId === "view-automacao-leads") carregarAutomacaoLeads();
             if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
             if (targetId === "view-guia") renderizarGuiaDoPlano();
@@ -1711,7 +1928,8 @@
             "view-templates": "templates",
             "view-campanhas": "campanhas",
             "view-metricas": "metricas",
-            "view-pedidos": "hub"
+            "view-pedidos": "hub",
+            "view-funcionarios": "subcontas"
         };
         window._planoCarregado = false;
         window._featureBloqueio = {};
