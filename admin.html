@@ -15,6 +15,9 @@
         .tab-btn.active { color: #00f2fe; border-bottom: 2px solid #00f2fe; }
         @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
         .fade-in { animation: fadeIn 0.3s ease-out; }
+        .modal-scroll::-webkit-scrollbar { width: 5px; }
+        .modal-scroll::-webkit-scrollbar-track { background: transparent; }
+        .modal-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
     </style>
 </head>
 <body class="min-h-full bg-[#030712] text-gray-200">
@@ -289,7 +292,7 @@
 
     <!-- MODAL DE DETALHES DO CLIENTE -->
     <div id="modal-cliente" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-5 relative border border-white/5 shadow-2xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-5 relative border border-white/5 shadow-2xl max-h-[85vh] overflow-y-auto modal-scroll">
             <button onclick="fecharModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
             <h3 class="text-sm font-black text-white tracking-tight">Gerenciar Cliente</h3>
 
@@ -375,18 +378,30 @@
 
         // LISTA DE FUNÇÕES QUE PODEM SER LIBERADAS INDIVIDUALMENTE (override manual)
         const FEATURES_OVERRIDE = [
+            { key: "hub", label: "Vitrine Pública / Hub" },
+            { key: "popup", label: "Pop-up de Captura" },
+            { key: "carrinho", label: "Carrinho de Compras" },
+            { key: "chat", label: "Chat ao Vivo" },
             { key: "templates", label: "Templates de Mensagens" },
+            { key: "cupons", label: "Cupons Automáticos" },
             { key: "campanhas", label: "Campanhas & Ofertas" },
             { key: "metricas", label: "Métricas & Performance" },
-            { key: "hub", label: "Pedidos (Hub)" },
+            { key: "csv", label: "Exportar CSV" },
+            { key: "lp1", label: "Landing Page (básica)" },
+            { key: "qrcode", label: "QR Code" },
+            { key: "temas", label: "Temas Prontos" },
+            { key: "lp", label: "Landing Pages" },
             { key: "chatbot", label: "Chatbot" },
             { key: "ia", label: "IA no Chat" },
+            { key: "avaliacoes", label: "Avaliações" },
             { key: "agenda", label: "Agenda" },
             { key: "mapamental", label: "Mapa Mental" },
             { key: "subcontas", label: "Subcontas" },
             { key: "api", label: "API" },
             { key: "relatorios", label: "Relatórios" },
-            { key: "dominio", label: "Domínio Próprio" }
+            { key: "dominio", label: "Domínio Próprio" },
+            { key: "suporte_vip", label: "Suporte VIP" },
+            { key: "onboarding", label: "Onboarding Guiado" }
         ];
         
         // PROTEÇÃO: só super admin entra
