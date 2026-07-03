@@ -3462,12 +3462,14 @@ window.editarTemplate = async function(id) {
             a.click();
             showToast("Planilha exportada com sucesso!");
         };
-        window.aplicarFiltrosLeads = function() {
+        window.aplicarFiltrosLeads = async function() {
             const filtro = obterFiltroSelecionado("filtro-lead-dias", "filtro-lead-de", "filtro-lead-ate");
             const status = document.getElementById("filtro-lead-status").value;
             const origem = document.getElementById("filtro-lead-origem").value;
             const busca = document.getElementById("busca-lead")?.value.toLowerCase() || "";
-            carregarLeads(filtro, status, origem, busca);
+            await carregarLeads(filtro, status, origem, busca);
+            const total = document.getElementById("lead-total-count")?.innerText || "0";
+            showToast(`Filtro aplicado! ${total} lead(s) encontrado(s).`);
         };
 
         // =============================================
@@ -3504,11 +3506,31 @@ window.editarTemplate = async function(id) {
             return { inicio: dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000), fim: agora, todos: dias === 0 };
         }
 
+        // Impede escolher a data "até" antes da data "de" (e vice-versa)
+        function ligarValidacaoIntervaloDatas(idDe, idAte) {
+            const inputDe = document.getElementById(idDe);
+            const inputAte = document.getElementById(idAte);
+            if (!inputDe || !inputAte) return;
+            inputDe.addEventListener("change", () => {
+                inputAte.min = inputDe.value;
+                if (inputAte.value && inputAte.value < inputDe.value) inputAte.value = inputDe.value;
+            });
+            inputAte.addEventListener("change", () => {
+                inputDe.max = inputAte.value;
+                if (inputDe.value && inputDe.value > inputAte.value) inputDe.value = inputAte.value;
+            });
+        }
+
         configurarFiltroPersonalizado("filtro-lead-dias", "filtro-lead-datas-custom");
         configurarFiltroPersonalizado("filtro-pedido-dias", "filtro-pedido-datas-custom");
         configurarFiltroPersonalizado("filtro-template-dias", "filtro-template-datas-custom");
         configurarFiltroPersonalizado("filtro-metricas-dias", "filtro-metricas-datas-custom");
         configurarFiltroPersonalizado("filtro-campanha-dias", "filtro-campanha-datas-custom");
+        ligarValidacaoIntervaloDatas("filtro-lead-de", "filtro-lead-ate");
+        ligarValidacaoIntervaloDatas("filtro-pedido-de", "filtro-pedido-ate");
+        ligarValidacaoIntervaloDatas("filtro-template-de", "filtro-template-ate");
+        ligarValidacaoIntervaloDatas("filtro-metricas-de", "filtro-metricas-ate");
+        ligarValidacaoIntervaloDatas("filtro-campanha-de", "filtro-campanha-ate");
         
         function formatarDataChave(d) {
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
