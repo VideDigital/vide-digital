@@ -169,6 +169,10 @@
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"></path></svg>
                 Notificações
             </button>
+            <button data-target="view-personalizacao" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h10a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485"></path></svg>
+                Personalização Premium
+            </button>
             
         </nav>
         
@@ -483,6 +487,41 @@
             </div>
             <div id="lista-notificacoes-cliente" class="space-y-3">
                 <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+            </div>
+        </section>
+
+        <section id="view-personalizacao" class="view-section space-y-6 max-w-3xl mx-auto">
+            <div class="border-b border-white/5 pb-6">
+                <h1 class="text-2xl font-black text-white tracking-tight">Personalização Premium</h1>
+                <p class="text-gray-400 text-xs mt-1">Não quer mexer em nada? A gente monta sua loja do seu jeito, do zero.</p>
+            </div>
+
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+                <h3 class="text-sm font-bold text-white">O que está incluso</h3>
+                <ul class="space-y-2 text-xs text-gray-400">
+                    <li class="flex items-start gap-2"><span class="text-[#00f2fe] shrink-0">✓</span> Configuração completa da vitrine (cores, fontes, textos, banners)</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00f2fe] shrink-0">✓</span> Cadastro dos seus produtos com fotos e descrições</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00f2fe] shrink-0">✓</span> Ajustes finos disponíveis no seu plano (campanhas, templates, o que couber)</li>
+                    <li class="flex items-start gap-2"><span class="text-[#00f2fe] shrink-0">✓</span> Disponível pra qualquer plano — inclusive quem já tem landing page</li>
+                </ul>
+                <div class="bg-[#00f2fe]/5 border border-[#00f2fe]/20 rounded-xl p-4">
+                    <p class="text-xs text-gray-300">Valor sob consulta, conforme o que você precisa. Envie sua solicitação abaixo e entramos em contato pra combinar os detalhes e o pagamento.</p>
+                </div>
+            </div>
+
+            <div id="personalizacao-status-box" class="hidden glass-card rounded-2xl p-6 space-y-2"></div>
+
+            <div id="personalizacao-form-box" class="glass-card rounded-2xl p-6 space-y-4">
+                <h3 class="text-sm font-bold text-white">Solicitar Personalização</h3>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">O que você quer que a gente faça?</label>
+                    <textarea id="personalizacao-descricao" rows="4" class="w-full glass-input rounded-xl p-4 text-sm text-white outline-none resize-none" placeholder="Ex: Quero as cores da minha marca, todos os produtos cadastrados e uma campanha de lançamento configurada."></textarea>
+                </div>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">WhatsApp pra contato (com DDD)</label>
+                    <input type="text" id="personalizacao-whatsapp" class="w-full glass-input rounded-xl p-4 text-sm text-white outline-none" placeholder="Ex: 11992960466" maxlength="11">
+                </div>
+                <button onclick="enviarSolicitacaoPersonalizacao()" class="w-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all">Enviar Solicitação</button>
             </div>
         </section>
         
@@ -1325,6 +1364,7 @@
             if (targetId === "view-templates") carregarTemplates();
             if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30)); }
             if (targetId === "view-notificacoes") carregarNotificacoes();
+            if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
         }
 // =============================================
         // BLOQUEIO IMEDIATO DE PLANO (evita flash de conteúdo liberado)
@@ -3060,10 +3100,74 @@ window.editarTemplate = async function(id) {
                 notif.lidoPor = lidoPor;
                 atualizarBadgeNotificacoes();
                 carregarNotificacoes();
-                renderizarListaNotifModal(); // mantém o modal central sincronizado, se estiver aberto
+                renderizarListaNotifModal();
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao atualizar notificação.", "error");
+            }
+        };
+
+        // =============================================
+        // SERVIÇO DE PERSONALIZAÇÃO PREMIUM
+        // =============================================
+        const STATUS_PERSONALIZACAO_LABEL = {
+            pendente: { texto: "⏳ Sua solicitação está na fila. Em breve entramos em contato pelo WhatsApp.", cor: "amber" },
+            em_andamento: { texto: "🛠️ Estamos trabalhando na sua loja agora.", cor: "blue" },
+            concluido: { texto: "✅ Personalização concluída! Dá uma olhada na sua loja.", cor: "emerald" }
+        };
+
+        async function carregarStatusPersonalizacao() {
+            if (!usuarioUID) return;
+            const statusBox = document.getElementById("personalizacao-status-box");
+            const formBox = document.getElementById("personalizacao-form-box");
+            try {
+                const snap = await getDocs(query(collection(db, "solicitacoes_customizacao"), where("uid", "==", usuarioUID)));
+                let pedidos = [];
+                snap.forEach(d => pedidos.push({ id: d.id, ...d.data() }));
+                pedidos.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                const ativo = pedidos.find(p => p.status !== "concluido");
+                if (ativo) {
+                    const info = STATUS_PERSONALIZACAO_LABEL[ativo.status] || STATUS_PERSONALIZACAO_LABEL.pendente;
+                    statusBox.innerHTML = `
+                        <h3 class="text-sm font-bold text-white">Sua solicitação</h3>
+                        <p class="text-xs text-${info.cor}-400">${info.texto}</p>
+                        <p class="text-[11px] text-gray-500 pt-1">${ativo.descricao}</p>
+                    `;
+                    statusBox.classList.remove("hidden");
+                    formBox.classList.add("hidden");
+                } else {
+                    statusBox.classList.add("hidden");
+                    formBox.classList.remove("hidden");
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        window.enviarSolicitacaoPersonalizacao = async function() {
+            const descricao = document.getElementById("personalizacao-descricao").value.trim();
+            const whatsapp = document.getElementById("personalizacao-whatsapp").value.trim();
+            if (!descricao) {
+                showToast("Conta pra gente o que você precisa.", "error");
+                return;
+            }
+            try {
+                await setDoc(doc(db, "solicitacoes_customizacao", `custom_${Date.now()}`), {
+                    uid: usuarioUID,
+                    email: usuarioEmail,
+                    descricao,
+                    whatsapp,
+                    status: "pendente",
+                    criadoEm: Date.now()
+                });
+                showToast("Solicitação enviada! Vamos entrar em contato em breve.");
+                document.getElementById("personalizacao-descricao").value = "";
+                document.getElementById("personalizacao-whatsapp").value = "";
+                await carregarStatusPersonalizacao();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao enviar solicitação.", "error");
             }
         };
 
