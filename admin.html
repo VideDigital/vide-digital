@@ -243,13 +243,19 @@
             <div class="pt-4 border-t border-white/5 space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                     <h3 class="text-sm font-black text-white">Histórico</h3>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2 items-center">
                         <select id="filtro-personalizacao-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <option value="7">Últimos 7 dias</option>
                             <option value="30" selected>Últimos 30 dias</option>
                             <option value="90">Últimos 90 dias</option>
                             <option value="0">Todos</option>
+                            <option value="custom">Data específica</option>
                         </select>
+                        <div id="filtro-personalizacao-datas-custom" class="hidden flex gap-2 items-center">
+                            <input type="date" id="filtro-personalizacao-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <span class="text-gray-500 text-xs">até</span>
+                            <input type="date" id="filtro-personalizacao-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        </div>
                         <button onclick="aplicarFiltroPersonalizacoesHistorico()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
                     </div>
                 </div>
@@ -1114,15 +1120,44 @@
             }
         }
 
+        function configurarFiltroPersonalizado(idSelect, idBoxDatas) {
+            const select = document.getElementById(idSelect);
+            const box = document.getElementById(idBoxDatas);
+            if (!select || !box) return;
+            select.addEventListener("change", () => {
+                box.classList.toggle("hidden", select.value !== "custom");
+            });
+        }
+        function obterFiltroSelecionado(idSelect, idDe, idAte) {
+            const valor = document.getElementById(idSelect).value;
+            if (valor === "custom") {
+                const de = document.getElementById(idDe).value;
+                const ate = document.getElementById(idAte).value;
+                return {
+                    inicio: de ? new Date(de + "T00:00:00").getTime() : 0,
+                    fim: ate ? new Date(ate + "T23:59:59").getTime() : Date.now()
+                };
+            }
+            return parseInt(valor);
+        }
+        function normalizarIntervalo(filtro) {
+            const agora = Date.now();
+            if (filtro && typeof filtro === "object") {
+                return { inicio: filtro.inicio || 0, fim: filtro.fim || agora, todos: !filtro.inicio };
+            }
+            const dias = filtro;
+            return { inicio: dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000), fim: agora, todos: dias === 0 };
+        }
+        configurarFiltroPersonalizado("filtro-personalizacao-dias", "filtro-personalizacao-datas-custom");
+
         window.aplicarFiltroPersonalizacoesHistorico = function() {
             const boxHistorico = document.getElementById("lista-personalizacoes-historico");
             if (!boxHistorico) return;
-            const dias = parseInt(document.getElementById("filtro-personalizacao-dias").value);
-            const agora = Date.now();
-            const limite = dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000);
+            const filtro = obterFiltroSelecionado("filtro-personalizacao-dias", "filtro-personalizacao-de", "filtro-personalizacao-ate");
+            const { inicio, fim, todos } = normalizarIntervalo(filtro);
 
             let historico = _cachePersonalizacoes.filter(p => p.status === "concluido" || p.status === "negado");
-            if (dias !== 0) historico = historico.filter(p => (p.criadoEm || agora) >= limite);
+            if (!todos) historico = historico.filter(p => (p.criadoEm || Date.now()) >= inicio && (p.criadoEm || Date.now()) <= fim);
 
             renderizarListaPersonalizacoes(boxHistorico, historico, "Nenhum item no histórico desse período.");
         };
