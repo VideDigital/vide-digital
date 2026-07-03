@@ -591,6 +591,26 @@
                 <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
             </div>
             <div class="pt-4 border-t border-white/5 space-y-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">🚧 Chegando na Vide Hub</h3>
+                <div id="guia-em-breve" class="grid grid-cols-1 sm:grid-cols-2 gap-3"></div>
+            </div>
+        </section>
+
+        <section id="view-funcionarios" class="view-section space-y-6 max-w-5xl mx-auto">
+            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+                <div>
+                    <h1 class="text-2xl font-black text-white tracking-tight">Funcionários</h1>
+                    <p class="text-gray-400 text-xs mt-1">Dê acesso à sua equipe, com permissões específicas pra cada um.</p>
+                </div>
+                <button onclick="abrirModalFuncionario()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all shrink-0">+ Novo Funcionário</button>
+            </div>
+            <div id="lista-funcionarios" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+            </div>
+        </section>
+        
+        <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto">
+            <!-- Cabeçalho Principal -->
             <div class="border-b border-white/5 pb-5">
                 <h1 class="text-xl font-medium text-white tracking-tight">Configurações da Vitrine</h1>
                 <p class="text-gray-500 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
@@ -4045,8 +4065,6 @@ window.editarTemplate = async function(id) {
                 if (barraLixeira) barraLixeira.classList.add("hidden");
             }
         }
-
-        const btnSelecionarTodosAuto = document.getElementById("auto-lead-selecionar-todos");
 
         const btnSelecionarTodosAuto = document.getElementById("auto-lead-selecionar-todos");
         if (btnSelecionarTodosAuto) {
