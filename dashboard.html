@@ -277,13 +277,19 @@
                 </div>
                 <button onclick="abrirModalTemplate()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Template</button>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
                 <select id="filtro-template-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                     <option value="7">Últimos 7 dias</option>
                     <option value="30">Últimos 30 dias</option>
                     <option value="90">Últimos 90 dias</option>
                     <option value="0" selected>Todos</option>
+                    <option value="custom">Data específica</option>
                 </select>
+                <div id="filtro-template-datas-custom" class="hidden flex gap-2 items-center">
+                    <input type="date" id="filtro-template-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <span class="text-gray-500 text-xs">até</span>
+                    <input type="date" id="filtro-template-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                </div>
                 <button onclick="aplicarFiltroTemplates()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
             <div id="templates-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -345,13 +351,19 @@
             <div class="glass-card rounded-xl p-5 space-y-4">
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Campanhas</h3>
-                    <div class="flex flex-wrap gap-2">
+                    <div class="flex flex-wrap gap-2 items-center">
                         <select id="filtro-campanha-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                             <option value="7">Últimos 7 dias</option>
                             <option value="30" selected>Últimos 30 dias</option>
                             <option value="90">Últimos 90 dias</option>
                             <option value="0">Todos</option>
+                            <option value="custom">Data específica</option>
                         </select>
+                        <div id="filtro-campanha-datas-custom" class="hidden flex gap-2 items-center">
+                            <input type="date" id="filtro-campanha-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <span class="text-gray-500 text-xs">até</span>
+                            <input type="date" id="filtro-campanha-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        </div>
                         <button onclick="aplicarFiltroCampanhas()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
                     </div>
                 </div>
@@ -369,13 +381,19 @@
                 <button onclick="abrirModalPedido()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Pedido</button>
             </div>
 
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
                 <select id="filtro-pedido-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                     <option value="7">Últimos 7 dias</option>
                     <option value="30" selected>Últimos 30 dias</option>
                     <option value="90">Últimos 90 dias</option>
                     <option value="0">Todos</option>
+                    <option value="custom">Data específica</option>
                 </select>
+                <div id="filtro-pedido-datas-custom" class="hidden flex gap-2 items-center">
+                    <input type="date" id="filtro-pedido-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <span class="text-gray-500 text-xs">até</span>
+                    <input type="date" id="filtro-pedido-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                </div>
                 <button onclick="aplicarFiltroPedidos()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
 
@@ -424,13 +442,19 @@
                 <h1 class="text-2xl font-black text-white tracking-tight">Métricas & Performance</h1>
                 <p class="text-gray-400 text-xs mt-1">Dados reais de comportamento dos visitantes na sua vitrine.</p>
             </div>
-            <div class="flex flex-wrap gap-2">
+            <div class="flex flex-wrap gap-2 items-center">
                 <select id="filtro-metricas-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                     <option value="7" selected>Últimos 7 dias</option>
                     <option value="30">Últimos 30 dias</option>
                     <option value="90">Últimos 90 dias</option>
                     <option value="0">Todos (histórico completo)</option>
+                    <option value="custom">Data específica</option>
                 </select>
+                <div id="filtro-metricas-datas-custom" class="hidden flex gap-2 items-center">
+                    <input type="date" id="filtro-metricas-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <span class="text-gray-500 text-xs">até</span>
+                    <input type="date" id="filtro-metricas-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                </div>
                 <button onclick="aplicarFiltroMetricas()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -842,7 +866,13 @@
                         <option value="30" selected>Últimos 30 dias</option>
                         <option value="90">Últimos 90 dias</option>
                         <option value="0">Todos</option>
+                        <option value="custom">Data específica</option>
                     </select>
+                    <div id="filtro-lead-datas-custom" class="hidden flex gap-2 items-center">
+                        <input type="date" id="filtro-lead-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        <span class="text-gray-500 text-xs">até</span>
+                        <input type="date" id="filtro-lead-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    </div>
                     <select id="filtro-lead-status" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                         <option value="todos">Todos os status</option>
                         <option value="novo">Novos</option>
@@ -1502,11 +1532,11 @@
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
-            if (targetId === "view-metricas") carregarMetricas(parseInt(document.getElementById("filtro-metricas-dias")?.value ?? 7));
+            if (targetId === "view-metricas") carregarMetricas(obterFiltroSelecionado("filtro-metricas-dias", "filtro-metricas-de", "filtro-metricas-ate"));
             if (targetId === "view-pedidos") carregarPedidos();
             if (targetId === "view-leads") carregarLeads();
             if (targetId === "view-templates") carregarTemplates();
-            if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30)); }
+            if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate")); }
             if (targetId === "view-notificacoes") carregarNotificacoes();
             if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
             if (targetId === "view-guia") renderizarGuiaDoPlano();
@@ -2334,15 +2364,13 @@
                 const q = query(collection(db, "leads"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
                 const agora = Date.now();
-                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
+                const { inicio, fim, todos } = normalizarIntervalo(filtroDataDias);
 
                 let leads = [];
                 querySnapshot.forEach(docSnap => {
                     const d = docSnap.data();
                     const dataLead = d.data || agora;
-                    if (filtroDataDias !== 0 && dataLead < limite) return;
-                    if (filtroStatus !== "todos" && (d.statusLead || "novo") !== filtroStatus) return;
-                    if (filtroOrigem !== "todos" && (d.origem || "direto") !== filtroOrigem) return;
+                    if (!todos && (dataLead < inicio || dataLead > fim)) return;
                     leads.push({ id: docSnap.id, ...d });
                 });
 
@@ -2909,7 +2937,7 @@ window.abrirTemplatesDoLead = async function() {
                 const status = payload.ativa ? `✅ Campanha ativa — "${payload.titulo}"` : "❌ Campanha desativada.";
                 document.getElementById("campanha-status-texto").innerText = status;
                 showToast(payload.ativa ? "Campanha ativada na vitrine!" : "Campanha desativada.");
-                carregarHistoricoCampanhas(parseInt(document.getElementById("filtro-campanha-dias")?.value ?? 30));
+                carregarHistoricoCampanhas(obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate"));
             } catch(err) {
                 showToast("Erro ao salvar campanha.", "error");
             }
@@ -2924,10 +2952,9 @@ window.abrirTemplatesDoLead = async function() {
                 let registros = [];
                 snap.forEach(d => registros.push({ id: d.id, ...d.data() }));
 
-                const agora = Date.now();
-                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
-                if (filtroDataDias !== 0) {
-                    registros = registros.filter(r => (r.dataCriacao || agora) >= limite);
+                const { inicio, fim, todos } = normalizarIntervalo(filtroDataDias);
+                if (!todos) {
+                    registros = registros.filter(r => (r.dataCriacao || Date.now()) >= inicio && (r.dataCriacao || Date.now()) <= fim);
                 }
                 registros.sort((a, b) => (b.dataCriacao || 0) - (a.dataCriacao || 0));
 
@@ -2952,8 +2979,8 @@ window.abrirTemplatesDoLead = async function() {
         }
 
         window.aplicarFiltroCampanhas = async function() {
-            const dias = parseInt(document.getElementById("filtro-campanha-dias").value);
-            await carregarHistoricoCampanhas(dias);
+            const filtro = obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate");
+            await carregarHistoricoCampanhas(filtro);
             showToast("Filtro aplicado!");
         };
         // TEMPLATES
@@ -2965,10 +2992,9 @@ window.abrirTemplatesDoLead = async function() {
                 let templates = [];
                 snap.forEach(d => templates.push({ id: d.id, ...d.data() }));
 
-                const agora = Date.now();
-                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
-                if (filtroDataDias !== 0) {
-                    templates = templates.filter(t => (t.criadoEm || agora) >= limite);
+                const { inicio, fim, todos } = normalizarIntervalo(filtroDataDias);
+                if (!todos) {
+                    templates = templates.filter(t => (t.criadoEm || Date.now()) >= inicio && (t.criadoEm || Date.now()) <= fim);
                 }
                 templates.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
 
@@ -3000,8 +3026,8 @@ window.abrirTemplatesDoLead = async function() {
         };
 
         window.aplicarFiltroTemplates = async function() {
-            const dias = parseInt(document.getElementById("filtro-template-dias").value);
-            await carregarTemplates(dias);
+            const filtro = obterFiltroSelecionado("filtro-template-dias", "filtro-template-de", "filtro-template-ate");
+            await carregarTemplates(filtro);
             const total = document.querySelectorAll("#templates-container > div.glass-card").length;
             showToast(`Filtro aplicado! ${total} template(s) encontrado(s).`);
         };
@@ -3088,10 +3114,9 @@ window.editarTemplate = async function(id) {
                 let pedidos = [];
                 snap.forEach(d => pedidos.push({ id: d.id, ...d.data() }));
 
-                const agora = Date.now();
-                const limite = filtroDataDias === 0 ? 0 : agora - (filtroDataDias * 24 * 60 * 60 * 1000);
-                if (filtroDataDias !== 0) {
-                    pedidos = pedidos.filter(p => (p.data || agora) >= limite);
+                const { inicio, fim, todos } = normalizarIntervalo(filtroDataDias);
+                if (!todos) {
+                    pedidos = pedidos.filter(p => (p.data || Date.now()) >= inicio && (p.data || Date.now()) <= fim);
                 }
 
                 pedidos.sort((a, b) => (b.data || 0) - (a.data || 0));
@@ -3146,13 +3171,13 @@ window.editarTemplate = async function(id) {
             try {
                 await setDoc(doc(db, "pedidos", pedidoId), { status: novoStatus }, { merge: true });
                 showToast("Status atualizado!");
-                carregarPedidos(parseInt(document.getElementById("filtro-pedido-dias")?.value ?? 30));
+                carregarPedidos(obterFiltroSelecionado("filtro-pedido-dias", "filtro-pedido-de", "filtro-pedido-ate"));
             } catch(err) { console.error(err); }
         };
 
         window.aplicarFiltroPedidos = async function() {
-            const dias = parseInt(document.getElementById("filtro-pedido-dias").value);
-            await carregarPedidos(dias);
+            const filtro = obterFiltroSelecionado("filtro-pedido-dias", "filtro-pedido-de", "filtro-pedido-ate");
+            await carregarPedidos(filtro);
             const total = document.getElementById("ped-total")?.innerText || "0";
             showToast(`Filtro aplicado! ${total} pedido(s) encontrado(s).`);
         };
@@ -3438,12 +3463,52 @@ window.editarTemplate = async function(id) {
             showToast("Planilha exportada com sucesso!");
         };
         window.aplicarFiltrosLeads = function() {
-            const dias = parseInt(document.getElementById("filtro-lead-dias").value);
+            const filtro = obterFiltroSelecionado("filtro-lead-dias", "filtro-lead-de", "filtro-lead-ate");
             const status = document.getElementById("filtro-lead-status").value;
             const origem = document.getElementById("filtro-lead-origem").value;
             const busca = document.getElementById("busca-lead")?.value.toLowerCase() || "";
-            carregarLeads(dias, status, origem, busca);
+            carregarLeads(filtro, status, origem, busca);
         };
+
+        // =============================================
+        // FILTRO DE DATA PERSONALIZADO (reutilizado em Leads, Pedidos, Templates, Métricas, Campanhas)
+        // =============================================
+        function configurarFiltroPersonalizado(idSelect, idBoxDatas) {
+            const select = document.getElementById(idSelect);
+            const box = document.getElementById(idBoxDatas);
+            if (!select || !box) return;
+            select.addEventListener("change", () => {
+                box.classList.toggle("hidden", select.value !== "custom");
+            });
+        }
+
+        function obterFiltroSelecionado(idSelect, idDe, idAte) {
+            const valor = document.getElementById(idSelect).value;
+            if (valor === "custom") {
+                const de = document.getElementById(idDe).value;
+                const ate = document.getElementById(idAte).value;
+                return {
+                    inicio: de ? new Date(de + "T00:00:00").getTime() : 0,
+                    fim: ate ? new Date(ate + "T23:59:59").getTime() : Date.now()
+                };
+            }
+            return parseInt(valor);
+        }
+
+        function normalizarIntervalo(filtro) {
+            const agora = Date.now();
+            if (filtro && typeof filtro === "object") {
+                return { inicio: filtro.inicio || 0, fim: filtro.fim || agora, todos: !filtro.inicio };
+            }
+            const dias = filtro;
+            return { inicio: dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000), fim: agora, todos: dias === 0 };
+        }
+
+        configurarFiltroPersonalizado("filtro-lead-dias", "filtro-lead-datas-custom");
+        configurarFiltroPersonalizado("filtro-pedido-dias", "filtro-pedido-datas-custom");
+        configurarFiltroPersonalizado("filtro-template-dias", "filtro-template-datas-custom");
+        configurarFiltroPersonalizado("filtro-metricas-dias", "filtro-metricas-datas-custom");
+        configurarFiltroPersonalizado("filtro-campanha-dias", "filtro-campanha-datas-custom");
         
         function formatarDataChave(d) {
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -3461,7 +3526,11 @@ window.editarTemplate = async function(id) {
 
                 // Monta a lista de dias dentro do período selecionado
                 let chavesFiltradas;
-                if (filtroDataDias === 0) {
+                if (filtroDataDias && typeof filtroDataDias === "object") {
+                    const chaveDe = formatarDataChave(new Date(filtroDataDias.inicio));
+                    const chaveAte = formatarDataChave(new Date(filtroDataDias.fim));
+                    chavesFiltradas = chavesExistentes.filter(k => k >= chaveDe && k <= chaveAte);
+                } else if (filtroDataDias === 0) {
                     chavesFiltradas = chavesExistentes;
                 } else {
                     const limite = new Date(hoje);
@@ -3551,7 +3620,9 @@ window.editarTemplate = async function(id) {
                 // Gráfico de barras — agora com dados REAIS salvos por dia
                 const diasSemana = ["Dom","Seg","Ter","Qua","Qui","Sex","Sáb"];
                 let listaDatasGrafico = [];
-                if (filtroDataDias === 0) {
+                if (filtroDataDias && typeof filtroDataDias === "object") {
+                    listaDatasGrafico = chavesFiltradas.length > 0 ? chavesFiltradas : [formatarDataChave(hoje)];
+                } else if (filtroDataDias === 0) {
                     listaDatasGrafico = chavesFiltradas.length > 0 ? chavesFiltradas : [formatarDataChave(hoje)];
                 } else {
                     for (let i = filtroDataDias - 1; i >= 0; i--) {
@@ -3594,8 +3665,8 @@ window.editarTemplate = async function(id) {
         }
 
         window.aplicarFiltroMetricas = async function() {
-            const dias = parseInt(document.getElementById("filtro-metricas-dias").value);
-            await carregarMetricas(dias);
+            const filtro = obterFiltroSelecionado("filtro-metricas-dias", "filtro-metricas-de", "filtro-metricas-ate");
+            await carregarMetricas(filtro);
             showToast("Filtro aplicado!");
         };
 
