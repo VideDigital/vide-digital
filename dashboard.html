@@ -1074,23 +1074,58 @@
                         <input type="checkbox" id="auto-lead-incluir-arquivados" class="accent-[#00f2fe]">
                         Incluir arquivados
                     </label>
+                    <button id="btn-toggle-lixeira" onclick="alternarModoLixeira()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-bold px-4 py-2.5 rounded-xl transition-all">🗑️ Ver Lixeira</button>
                     <button onclick="aplicarFiltroAutomacaoLeads()" class="ml-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all">🔍 Filtrar</button>
                 </div>
             </div>
 
             <div id="auto-lead-barra-acoes" class="hidden glass-card rounded-2xl p-4 flex flex-wrap items-center gap-3 border border-[#00f2fe]/20 bg-[#00f2fe]/5">
-                <span class="text-xs font-bold text-[#00f2fe]"><span id="auto-lead-contador-selecionados">0</span> selecionado(s)</span>
+                <span class="text-xs font-bold text-[#00f2fe] w-full sm:w-auto"><span id="auto-lead-contador-selecionados">0</span> selecionado(s)</span>
                 <select id="auto-lead-novo-status" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
                     <option value="novo">🔵 Novo</option>
                     <option value="contato">🟡 Em Contato</option>
                     <option value="convertido">🟢 Convertido</option>
                     <option value="perdido">🔴 Perdido</option>
                 </select>
-                <button onclick="aplicarStatusEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Mudar Status</button>
-                <input type="text" id="auto-lead-anotacao-massa" placeholder="Anotação pra adicionar..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 min-w-[160px]">
+                <button onclick="aplicarStatusEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Status</button>
+
+                <select id="auto-lead-nova-origem" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <option value="meta">Meta Ads</option>
+                    <option value="google">Google</option>
+                    <option value="tiktok">TikTok</option>
+                    <option value="instagram">Instagram</option>
+                    <option value="direto">Direto</option>
+                </select>
+                <button onclick="aplicarOrigemEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Origem</button>
+
+                <input type="text" id="auto-lead-novo-interesse" placeholder="Novo interesse..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none w-32">
+                <button onclick="aplicarInteresseEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Interesse</button>
+
+                <select id="auto-lead-funcionario-atribuir" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                    <option value="">Ninguém</option>
+                </select>
+                <button onclick="aplicarFuncionarioEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Atribuir</button>
+
+                <input type="text" id="auto-lead-etiqueta-massa" placeholder="Etiqueta..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none w-28">
+                <button onclick="aplicarEtiquetaEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Etiquetar</button>
+
+                <input type="date" id="auto-lead-lembrete-massa" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                <button onclick="aplicarLembreteEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Lembrete</button>
+
+                <input type="text" id="auto-lead-anotacao-massa" placeholder="Anotação..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 min-w-[140px]">
                 <button onclick="aplicarAnotacaoEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Anotar</button>
+
+                <button onclick="copiarWhatsappsSelecionados()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">📋 Copiar WhatsApps</button>
                 <button onclick="exportarSelecionadosCSV()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">📥 Exportar</button>
-                <button onclick="arquivarSelecionados()" class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗄️ Arquivar</button>
+                <button onclick="desarquivarSelecionados()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">♻️ Desarquivar</button>
+                <button onclick="arquivarSelecionados()" class="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗄️ Arquivar</button>
+                <button onclick="moverParaLixeiraSelecionados()" class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗑️ Lixeira</button>
+            </div>
+
+            <div id="auto-lead-barra-lixeira" class="hidden glass-card rounded-2xl p-4 flex flex-wrap items-center gap-3 border border-red-500/20 bg-red-500/5">
+                <span class="text-xs font-bold text-red-400"><span id="auto-lead-contador-lixeira">0</span> selecionado(s) na lixeira</span>
+                <button onclick="restaurarDaLixeira()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">♻️ Restaurar</button>
+                <button onclick="excluirPermanentemente()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗑️ Excluir Permanentemente</button>
             </div>
 
             <div class="glass-card rounded-xl overflow-hidden border border-white/5">
@@ -3857,6 +3892,8 @@ window.editarTemplate = async function(id) {
         let _cacheAutomacaoLeads = [];
         let _selecionadosAutomacaoLeads = new Set();
 
+        let _modoLixeira = false;
+
         async function carregarAutomacaoLeads() {
             if (!usuarioUID) return;
             try {
@@ -3870,13 +3907,49 @@ window.editarTemplate = async function(id) {
                     selectProduto.innerHTML = `<option value="todos">Todos</option>` + produtosUnicos.map(p => `<option value="${p}">${p}</option>`).join("");
                 }
 
-                aplicarFiltroAutomacaoLeads();
+                try {
+                    const snapFunc = await getDocs(query(collection(db, "funcionarios"), where("donoUID", "==", usuarioUID)));
+                    let funcionarios = [];
+                    snapFunc.forEach(d => funcionarios.push({ id: d.id, ...d.data() }));
+                    const selectFunc = document.getElementById("auto-lead-funcionario-atribuir");
+                    if (selectFunc) {
+                        selectFunc.innerHTML = `<option value="">Ninguém</option>` + funcionarios.map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
+                    }
+                } catch (e) { /* não é crítico, ignora silenciosamente */ }
+
+                if (_modoLixeira) {
+                    const lixeira = _cacheAutomacaoLeads.filter(l => l.lixeira);
+                    renderizarTabelaAutomacaoLeads(lixeira);
+                    _selecionadosAutomacaoLeads.clear();
+                    atualizarBarraAcoesAutomacao();
+                } else {
+                    aplicarFiltroAutomacaoLeads();
+                }
             } catch (err) {
                 console.error(err);
             }
         }
 
+        window.alternarModoLixeira = function() {
+            _modoLixeira = !_modoLixeira;
+            const btn = document.getElementById("btn-toggle-lixeira");
+            _selecionadosAutomacaoLeads.clear();
+            if (_modoLixeira) {
+                btn.classList.add("bg-red-500/10", "border-red-500/20", "text-red-400");
+                btn.innerText = "← Voltar pra lista";
+            } else {
+                btn.classList.remove("bg-red-500/10", "border-red-500/20", "text-red-400");
+                btn.innerText = "🗑️ Ver Lixeira";
+            }
+            carregarAutomacaoLeads();
+        };
+
         window.aplicarFiltroAutomacaoLeads = function() {
+            if (_modoLixeira) {
+                const lixeira = _cacheAutomacaoLeads.filter(l => l.lixeira);
+                renderizarTabelaAutomacaoLeads(lixeira);
+                return;
+            }
             const filtroData = obterFiltroSelecionado("auto-lead-dias", "auto-lead-de", "auto-lead-ate");
             const { inicio, fim, todos } = normalizarIntervalo(filtroData);
             const origem = document.getElementById("auto-lead-origem").value;
@@ -3891,6 +3964,7 @@ window.editarTemplate = async function(id) {
             const incluirArquivados = document.getElementById("auto-lead-incluir-arquivados").checked;
 
             let filtrados = _cacheAutomacaoLeads.filter(l => {
+                if (l.lixeira) return false;
                 if (!incluirArquivados && l.arquivado) return false;
                 const dataLead = l.data || Date.now();
                 if (!todos && (dataLead < inicio || dataLead > fim)) return false;
@@ -3922,7 +3996,7 @@ window.editarTemplate = async function(id) {
         function renderizarTabelaAutomacaoLeads(lista) {
             const tbody = document.getElementById("auto-lead-table-body");
             if (lista.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500">Nenhum lead encontrado com esses filtros.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500">${_modoLixeira ? "Lixeira vazia." : "Nenhum lead encontrado com esses filtros."}</td></tr>`;
                 return;
             }
             const statusClasses = {
@@ -3934,7 +4008,7 @@ window.editarTemplate = async function(id) {
             tbody.innerHTML = lista.map(l => `
                 <tr class="hover:bg-white/[0.02] transition-colors ${l.arquivado ? "opacity-50" : ""}">
                     <td class="p-4"><input type="checkbox" class="auto-lead-checkbox accent-[#00f2fe]" data-id="${l.id}"></td>
-                    <td class="p-4 font-bold text-white">${l.nome || "Anônimo"}${l.arquivado ? ' <span class="text-[9px] text-gray-500">(arquivado)</span>' : ""}</td>
+                    <td class="p-4 font-bold text-white">${l.nome || "Anônimo"}${l.etiqueta ? ` <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 ml-1">${l.etiqueta}</span>` : ""}${l.arquivado ? ' <span class="text-[9px] text-gray-500">(arquivado)</span>' : ""}</td>
                     <td class="p-4 text-emerald-400">${l.whatsapp || "—"}</td>
                     <td class="p-4"><span class="text-[10px] font-bold uppercase">${l.origem || "direto"}</span></td>
                     <td class="p-4 text-[#00f2fe] max-w-[140px] truncate">${l.produtoInteresse || "—"}</td>
@@ -3956,12 +4030,23 @@ window.editarTemplate = async function(id) {
         }
 
         function atualizarBarraAcoesAutomacao() {
-            const barra = document.getElementById("auto-lead-barra-acoes");
-            const contador = document.getElementById("auto-lead-contador-selecionados");
+            const barraNormal = document.getElementById("auto-lead-barra-acoes");
+            const barraLixeira = document.getElementById("auto-lead-barra-lixeira");
             const total = _selecionadosAutomacaoLeads.size;
-            if (contador) contador.innerText = total;
-            if (barra) barra.classList.toggle("hidden", total === 0);
+            if (_modoLixeira) {
+                const contadorLixeira = document.getElementById("auto-lead-contador-lixeira");
+                if (contadorLixeira) contadorLixeira.innerText = total;
+                if (barraLixeira) barraLixeira.classList.toggle("hidden", total === 0);
+                if (barraNormal) barraNormal.classList.add("hidden");
+            } else {
+                const contador = document.getElementById("auto-lead-contador-selecionados");
+                if (contador) contador.innerText = total;
+                if (barraNormal) barraNormal.classList.toggle("hidden", total === 0);
+                if (barraLixeira) barraLixeira.classList.add("hidden");
+            }
         }
+
+        const btnSelecionarTodosAuto = document.getElementById("auto-lead-selecionar-todos");
 
         const btnSelecionarTodosAuto = document.getElementById("auto-lead-selecionar-todos");
         if (btnSelecionarTodosAuto) {
@@ -4021,6 +4106,156 @@ window.editarTemplate = async function(id) {
                 } catch (err) {
                     console.error(err);
                     showToast("Erro ao arquivar.", "error");
+                }
+            });
+        };
+
+        window.aplicarOrigemEmMassa = async function() {
+            const novaOrigem = document.getElementById("auto-lead-nova-origem").value;
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            abrirConfirmacao(`Trocar a origem de ${ids.length} lead(s) pra "${novaOrigem}"?`, async () => {
+                try {
+                    await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { origem: novaOrigem }, { merge: true })));
+                    showToast(`Origem atualizada em ${ids.length} lead(s)!`);
+                    carregarAutomacaoLeads();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao trocar origem.", "error");
+                }
+            });
+        };
+
+        window.aplicarInteresseEmMassa = async function() {
+            const novoInteresse = document.getElementById("auto-lead-novo-interesse").value.trim();
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (!novoInteresse || ids.length === 0) {
+                showToast("Digite o novo interesse e selecione ao menos um lead.", "error");
+                return;
+            }
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { produtoInteresse: novoInteresse }, { merge: true })));
+                showToast(`Interesse atualizado em ${ids.length} lead(s)!`);
+                document.getElementById("auto-lead-novo-interesse").value = "";
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao trocar interesse.", "error");
+            }
+        };
+
+        window.aplicarFuncionarioEmMassa = async function() {
+            const funcUID = document.getElementById("auto-lead-funcionario-atribuir").value;
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { funcionarioResponsavel: funcUID || null }, { merge: true })));
+                showToast(`${ids.length} lead(s) atribuído(s)!`);
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao atribuir.", "error");
+            }
+        };
+
+        window.aplicarEtiquetaEmMassa = async function() {
+            const etiqueta = document.getElementById("auto-lead-etiqueta-massa").value.trim();
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (!etiqueta || ids.length === 0) {
+                showToast("Digite uma etiqueta e selecione ao menos um lead.", "error");
+                return;
+            }
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { etiqueta }, { merge: true })));
+                showToast(`Etiqueta aplicada em ${ids.length} lead(s)!`);
+                document.getElementById("auto-lead-etiqueta-massa").value = "";
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao etiquetar.", "error");
+            }
+        };
+
+        window.aplicarLembreteEmMassa = async function() {
+            const dataLembrete = document.getElementById("auto-lead-lembrete-massa").value;
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (!dataLembrete || ids.length === 0) {
+                showToast("Escolha uma data e selecione ao menos um lead.", "error");
+                return;
+            }
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { lembreteData: dataLembrete }, { merge: true })));
+                showToast(`Lembrete definido em ${ids.length} lead(s)!`);
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao definir lembrete.", "error");
+            }
+        };
+
+        window.copiarWhatsappsSelecionados = function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            const whatsapps = _cacheAutomacaoLeads.filter(l => ids.includes(l.id)).map(l => l.whatsapp).filter(Boolean);
+            if (whatsapps.length === 0) {
+                showToast("Nenhum dos selecionados tem WhatsApp cadastrado.", "error");
+                return;
+            }
+            navigator.clipboard.writeText(whatsapps.join("\n")).then(() => showToast(`${whatsapps.length} número(s) copiado(s)!`));
+        };
+
+        window.desarquivarSelecionados = async function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { arquivado: false }, { merge: true })));
+                showToast(`${ids.length} lead(s) desarquivados!`);
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao desarquivar.", "error");
+            }
+        };
+
+        window.moverParaLixeiraSelecionados = async function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            abrirConfirmacao(`Mover ${ids.length} lead(s) pra lixeira? Dá pra restaurar depois, mas eles somem de todas as listas normais.`, async () => {
+                try {
+                    await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { lixeira: true }, { merge: true })));
+                    showToast(`${ids.length} lead(s) movidos pra lixeira.`);
+                    carregarAutomacaoLeads();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao mover pra lixeira.", "error");
+                }
+            });
+        };
+
+        window.restaurarDaLixeira = async function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            try {
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { lixeira: false }, { merge: true })));
+                showToast(`${ids.length} lead(s) restaurados!`);
+                carregarAutomacaoLeads();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao restaurar.", "error");
+            }
+        };
+
+        window.excluirPermanentemente = async function() {
+            const ids = Array.from(_selecionadosAutomacaoLeads);
+            if (ids.length === 0) return;
+            abrirConfirmacao(`Excluir ${ids.length} lead(s) PERMANENTEMENTE? Essa ação não pode ser desfeita.`, async () => {
+                try {
+                    await Promise.all(ids.map(id => deleteDoc(doc(db, "leads", id))));
+                    showToast(`${ids.length} lead(s) excluídos permanentemente.`);
+                    carregarAutomacaoLeads();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao excluir.", "error");
                 }
             });
         };
