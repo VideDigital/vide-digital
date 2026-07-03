@@ -1745,6 +1745,7 @@
                 if (emModoMaster) ativarBannerModoMaster(dadosPlano.nomeLoja || dadosPlano.urlLoja || "loja sem nome");
 
                 const slugAtualURL = dadosPlano.urlLoja || "";
+                if (slugAtualURL) {
                     document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtualURL}`;
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtualURL}`;
                 }
