@@ -747,6 +747,12 @@
             showToast("Restaurado para o padrão do plano " + (PLANOS[planoSelecionado]?.nome || planoSelecionado) + ". Clique em Salvar Plano pra confirmar.");
         };
 
+        // Trocar o plano no dropdown já atualiza os checkboxes sozinho (sem precisar clicar em Restaurar)
+        document.getElementById("modal-plano").addEventListener("change", () => {
+            const planoSelecionado = document.getElementById("modal-plano").value;
+            renderizarCheckboxesFeatures(FEATURES_PLANO[planoSelecionado] || []);
+        });
+
         window.fecharModal = function() {
             document.getElementById("modal-cliente").classList.add("hidden");
             clienteSelecionadoUID = null;
