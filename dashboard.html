@@ -93,7 +93,7 @@
 
     <div id="toast-container" class="fixed top-6 right-6 z-50 space-y-3 pointer-events-none"></div>
 
-    <button id="btn-notificacoes" onclick="ativarAba('view-notificacoes')" class="fixed top-5 right-20 sm:right-24 z-40 h-10 w-10 rounded-full bg-[#111111] border border-white/10 hover:border-white/20 flex items-center justify-center text-base transition-all">
+    <button id="btn-notificacoes" onclick="abrirNotifModal()" class="fixed top-5 right-20 sm:right-24 z-40 h-10 w-10 rounded-full bg-[#111111] border border-white/10 hover:border-white/20 flex items-center justify-center text-base transition-all">
         🔔
         <span id="badge-notif-count" class="hidden absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-black items-center justify-center">0</span>
     </button>
@@ -1133,6 +1133,25 @@
                 </div>
             </div>
             <button onclick="salvarPedido()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Pedido</button>
+        </div>
+    </div>
+
+    <!-- MODAL CENTRAL DE NOTIFICAÇÕES (lista + detalhe na mesma caixa) -->
+    <div id="notif-modal" class="hidden fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onclick="if(event.target === this) fecharNotifModal()">
+        <div class="glass-card w-full max-w-lg rounded-2xl relative border border-white/5 shadow-2xl max-h-[80vh] flex flex-col overflow-hidden">
+            <button onclick="fecharNotifModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-10">&times;</button>
+
+            <!-- VISÃO EM LISTA -->
+            <div id="notif-modal-lista-view" class="p-6 overflow-y-auto">
+                <h3 class="text-sm font-black text-white mb-4">🔔 Notificações</h3>
+                <div id="notif-modal-lista" class="space-y-2"></div>
+            </div>
+
+            <!-- VISÃO DE DETALHE (uma notificação, maior) -->
+            <div id="notif-modal-detalhe-view" class="hidden p-6 overflow-y-auto">
+                <button onclick="voltarListaNotifModal()" class="text-xs text-gray-400 hover:text-white mb-4 flex items-center gap-1.5">← Voltar</button>
+                <div id="notif-modal-detalhe-conteudo"></div>
+            </div>
         </div>
     </div>
 <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
@@ -2942,10 +2961,79 @@ window.editarTemplate = async function(id) {
                 notif.lidoPor = lidoPor;
                 atualizarBadgeNotificacoes();
                 carregarNotificacoes();
+                renderizarListaNotifModal(); // mantém o modal central sincronizado, se estiver aberto
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao atualizar notificação.", "error");
             }
+        };
+
+        // =============================================
+        // MODAL CENTRAL DE NOTIFICAÇÕES (aberto pelo sino)
+        // =============================================
+        window.abrirNotifModal = async function() {
+            await carregarNotificacoes(); // garante que o cache está atualizado
+            document.getElementById("notif-modal-detalhe-view").classList.add("hidden");
+            document.getElementById("notif-modal-lista-view").classList.remove("hidden");
+            renderizarListaNotifModal();
+            document.getElementById("notif-modal").classList.remove("hidden");
+        };
+
+        window.fecharNotifModal = function() {
+            document.getElementById("notif-modal").classList.add("hidden");
+        };
+
+        function renderizarListaNotifModal() {
+            const box = document.getElementById("notif-modal-lista");
+            if (!box) return;
+            if (_cacheNotificacoes.length === 0) {
+                box.innerHTML = `<p class="text-xs text-gray-500 text-center py-8">Nenhuma notificação por aqui ainda.</p>`;
+                return;
+            }
+            box.innerHTML = _cacheNotificacoes.map(n => {
+                const lida = (n.lidoPor || []).includes(usuarioUID);
+                return `
+                    <button onclick="abrirDetalheNotifModal('${n.id}')" class="w-full text-left flex gap-3 items-start p-3 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/[0.03] transition-all ${lida ? "opacity-60" : ""}">
+                        ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink-0 border border-white/10">` : `<div class="h-11 w-11 rounded-lg bg-white/5 border border-white/10 shrink-0 flex items-center justify-center text-sm">🔔</div>`}
+                        <div class="flex-1 min-w-0">
+                            <div class="flex items-center gap-2">
+                                <p class="text-xs font-bold text-white truncate">${n.titulo}</p>
+                                ${!lida ? `<span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] shrink-0"></span>` : ""}
+                            </div>
+                            <p class="text-[11px] text-gray-500 mt-0.5 line-clamp-1">${n.mensagem}</p>
+                        </div>
+                    </button>
+                `;
+            }).join("");
+        }
+
+        window.abrirDetalheNotifModal = function(id) {
+            const n = _cacheNotificacoes.find(x => x.id === id);
+            if (!n) return;
+            const jaEstavaLida = (n.lidoPor || []).includes(usuarioUID);
+
+            document.getElementById("notif-modal-detalhe-conteudo").innerHTML = `
+                ${n.foto ? `<img src="${n.foto}" class="w-full max-h-64 object-cover rounded-xl mb-4 border border-white/10">` : ""}
+                <h3 class="text-lg font-black text-white">${n.titulo}</h3>
+                <p class="text-[11px] text-gray-600 mt-1">${n.criadoEm ? new Date(n.criadoEm).toLocaleString("pt-BR") : "—"}</p>
+                <p class="text-sm text-gray-300 mt-4 leading-relaxed whitespace-pre-line">${n.mensagem}</p>
+                <label class="flex items-center gap-2 mt-6 cursor-pointer text-xs text-gray-400">
+                    <input type="checkbox" checked onchange="marcarNotificacaoLida('${n.id}', this.checked)" class="accent-[#00f2fe]">
+                    Marcar como lida
+                </label>
+            `;
+
+            document.getElementById("notif-modal-lista-view").classList.add("hidden");
+            document.getElementById("notif-modal-detalhe-view").classList.remove("hidden");
+
+            // Abrir o detalhe já marca como lida automaticamente (o checkbox permite desmarcar depois)
+            if (!jaEstavaLida) marcarNotificacaoLida(id, true);
+        };
+
+        window.voltarListaNotifModal = function() {
+            document.getElementById("notif-modal-detalhe-view").classList.add("hidden");
+            document.getElementById("notif-modal-lista-view").classList.remove("hidden");
+            renderizarListaNotifModal();
         };
         window.exportarLeadsCSV = function() {
             const rows = [["Nome","Email","WhatsApp","Origem","Cliques","Tempo","Interesse","Status","Data","Anotação"]];
