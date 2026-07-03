@@ -1113,7 +1113,7 @@
                 const ativas = _cachePersonalizacoes.filter(p => p.status === "pendente" || p.status === "em_andamento" || !p.status);
                 renderizarListaPersonalizacoes(boxAtivas, ativas, "Nenhuma solicitação na fila. ✅");
 
-                aplicarFiltroPersonalizacoesHistorico();
+                renderizarHistoricoPersonalizacoes();
             } catch (err) {
                 console.error(err);
                 boxAtivas.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar solicitações.</div>`;
@@ -1148,11 +1148,27 @@
             const dias = filtro;
             return { inicio: dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000), fim: agora, todos: dias === 0 };
         }
-        configurarFiltroPersonalizado("filtro-personalizacao-dias", "filtro-personalizacao-datas-custom");
+        // Impede escolher a data "até" antes da data "de" (e vice-versa)
+        function ligarValidacaoIntervaloDatas(idDe, idAte) {
+            const inputDe = document.getElementById(idDe);
+            const inputAte = document.getElementById(idAte);
+            if (!inputDe || !inputAte) return;
+            inputDe.addEventListener("change", () => {
+                inputAte.min = inputDe.value;
+                if (inputAte.value && inputAte.value < inputDe.value) inputAte.value = inputDe.value;
+            });
+            inputAte.addEventListener("change", () => {
+                inputDe.max = inputAte.value;
+                if (inputDe.value && inputDe.value > inputAte.value) inputDe.value = inputAte.value;
+            });
+        }
 
-        window.aplicarFiltroPersonalizacoesHistorico = function() {
+        configurarFiltroPersonalizado("filtro-personalizacao-dias", "filtro-personalizacao-datas-custom");
+        ligarValidacaoIntervaloDatas("filtro-personalizacao-de", "filtro-personalizacao-ate");
+
+        function renderizarHistoricoPersonalizacoes() {
             const boxHistorico = document.getElementById("lista-personalizacoes-historico");
-            if (!boxHistorico) return;
+            if (!boxHistorico) return 0;
             const filtro = obterFiltroSelecionado("filtro-personalizacao-dias", "filtro-personalizacao-de", "filtro-personalizacao-ate");
             const { inicio, fim, todos } = normalizarIntervalo(filtro);
 
@@ -1160,8 +1176,13 @@
             if (!todos) historico = historico.filter(p => (p.criadoEm || Date.now()) >= inicio && (p.criadoEm || Date.now()) <= fim);
 
             renderizarListaPersonalizacoes(boxHistorico, historico, "Nenhum item no histórico desse período.");
-        };
+            return historico.length;
+        }
 
+        window.aplicarFiltroPersonalizacoesHistorico = function() {
+            const total = renderizarHistoricoPersonalizacoes();
+            showToast(`Filtro aplicado! ${total} item(ns) encontrado(s).`);
+        };
         function renderizarListaPersonalizacoes(box, lista, mensagemVazio) {
             if (lista.length === 0) {
                 box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">${mensagemVazio}</div>`;
