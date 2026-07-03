@@ -87,6 +87,22 @@
         .tema-claro #box-atalho label,
         .tema-claro #box-atalho a { color: #e5e7eb !important; }
         .tema-claro #box-atalho a:hover { color: #ffffff !important; }
+
+        /* Modal de confirmação e painel de Lead também são sempre escuros,
+           mesma lógica: o texto não pode virar escuro-sobre-escuro. */
+        .tema-claro #confirm-modal h3,
+        .tema-claro #confirm-modal p,
+        .tema-claro #confirm-modal-cancelar { color: #e5e7eb !important; }
+        .tema-claro #lead-painel h3,
+        .tema-claro #lead-painel h4,
+        .tema-claro #lead-painel p,
+        .tema-claro #lead-painel span,
+        .tema-claro #lead-painel label { color: #e5e7eb !important; }
+
+        /* Calendário nativo dos filtros de data — sem isso, o navegador sempre
+           desenha um calendário claro por padrão, mesmo com o resto escuro. */
+        input[type="date"] { color-scheme: dark; }
+        .tema-claro input[type="date"] { color-scheme: light; }
     </style>
 </head>
 <body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
