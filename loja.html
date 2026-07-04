@@ -15,7 +15,7 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
-#vitrine-container .text-white,
+#vitrine-container .text-white:not(.keep-white),
 
 #vitrine-container .text-gray-200,
 
@@ -399,9 +399,9 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
                     '<div class="relative h-52 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">' +
                         '<img src="' + imgFinal + '" alt="' + nomeSafe + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">' +
                         '<div class="absolute top-3 left-3 flex flex-wrap gap-1">' +
-                            '<span class="text-[9px] font-bold text-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider">' + (prod.subnicho || "Geral") + "</span>" +
+                            '<span class="text-[9px] font-bold text-white keep-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider">' + (prod.subnicho || "Geral") + "</span>" +
                             (prod.badgeCustom ? '<span class="text-[9px] font-black text-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md" style="background-color: ' + prod.corDestaque + '">' + prod.badgeCustom + "</span>" : "") +
-                            (prod.freteGratis ? '<span class="text-[9px] font-black text-white bg-emerald-600 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">Frete Gratis</span>' : "") +
+                            (prod.freteGratis ? '<span class="text-[9px] font-black text-white keep-white bg-emerald-600 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">Frete Gratis</span>' : "") +
                         "</div>" +
                         (prod.vagasTag ? '<span class="absolute bottom-3 right-3 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-500/20 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider animate-pulse">' + prod.vagasTag + "</span>" : "") +
                     "</div>" +
