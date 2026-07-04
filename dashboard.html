@@ -2347,7 +2347,7 @@
         document.getElementById("input-banners-upload").addEventListener("change", async (e) => {
             const arquivos = Array.from(e.target.files);
             for (const file of arquivos) {
-                const comprimida = await comprimirImagem(file, 1600, 0.7);
+                const comprimida = await comprimirImagem(file, 1200, 0.65);
                 listaBanners.push(comprimida);
                 renderizarGaleriaBanners();
             }
@@ -2831,8 +2831,14 @@
                         })
                     ));
                 } catch (errBanners) {
-                    console.error("Erro ao salvar banners:", errBanners);
-                }
+
+console.error("Erro ao salvar banners:", errBanners);
+
+showToast("Erro ao salvar banner: " + (errBanners.message || "verifique o tamanho da imagem"), "error");
+
+throw errBanners;
+
+}
 
                 showToast("Configurações salvas e aplicadas!");
             } catch (err) {
