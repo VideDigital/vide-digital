@@ -2275,14 +2275,48 @@
         }
         ["perf-social-whatsapp-central", "perf-social-whatsapp-chat", "prod-whatsapp", "personalizacao-whatsapp"].forEach(aplicarMascaraNumerica);
         
-        // UPLOAD DE IMAGENS EM BASE64
-        inputImagemFile.addEventListener("change", (e) => {
+        // COMPRIME A IMAGEM NO NAVEGADOR ANTES DE VIRAR BASE64 (evita estourar o limite do Firestore)
+        function comprimirImagem(file, maxLargura = 1200, qualidade = 0.75) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        let largura = img.width;
+                        let altura = img.height;
+                        if (largura > maxLargura) {
+                            altura = Math.round((altura * maxLargura) / largura);
+                            largura = maxLargura;
+                        }
+                        const canvas = document.createElement("canvas");
+                        canvas.width = largura;
+                        canvas.height = altura;
+                        canvas.getContext("2d").drawImage(img, 0, 0, largura, altura);
+                        resolve(canvas.toDataURL("image/jpeg", qualidade));
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // UPLOAD DE IMAGENS EM BASE64 (produto)
+        inputImagemFile.addEventListener("change", async (e) => {
             const file = e.target.files[0];
             if (file) {
-                const reader = new FileReader();
-                reader.onloadend = () => { inputImagemBase64.value = reader.result; };
-                reader.readAsDataURL(file);
+                inputImagemBase64.value = await comprimirImagem(file, 1000, 0.75);
             }
+        });
+
+        // UPLOAD DA LOGOMARCA (esse listener não existia — por isso a foto nunca salvava)
+        document.getElementById("input-foto-perfil").addEventListener("change", async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const comprimida = await comprimirImagem(file, 500, 0.8);
+            document.getElementById("perfil-foto-base64").value = comprimida;
+            document.getElementById("preview-foto-perfil").src = comprimida;
         });
 
         // GALERIA DE BANNERS (MÚLTIPLAS IMAGENS, UPLOAD DO DISPOSITIVO)
@@ -2310,16 +2344,13 @@
             });
         }
 
-        document.getElementById("input-banners-upload").addEventListener("change", (e) => {
+        document.getElementById("input-banners-upload").addEventListener("change", async (e) => {
             const arquivos = Array.from(e.target.files);
-            arquivos.forEach(file => {
-                const reader = new FileReader();
-                reader.onloadend = () => {
-                    listaBanners.push(reader.result);
-                    renderizarGaleriaBanners();
-                };
-                reader.readAsDataURL(file);
-            });
+            for (const file of arquivos) {
+                const comprimida = await comprimirImagem(file, 1600, 0.7);
+                listaBanners.push(comprimida);
+                renderizarGaleriaBanners();
+            }
             e.target.value = "";
         });
 
@@ -2573,7 +2604,14 @@
                         document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
                     }
 
-                    listaBanners = dados.banners || [];
+                    listaBanners = [];
+                    try {
+                        const snapBanners = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", usuarioUID)));
+                        let bannersCarregados = [];
+                        snapBanners.forEach(d => bannersCarregados.push(d.data()));
+                        bannersCarregados.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+                        listaBanners = bannersCarregados.map(b => b.imagemB64);
+                    } catch (e) { console.error("Erro ao carregar banners:", e); }
                     renderizarGaleriaBanners();
 
                     slugAtualSalvo = dados.urlLoja || "";
@@ -2723,8 +2761,7 @@
                 adminCorFundo: document.getElementById("perf-admin-cor-fundo").value,
                 adminCorTexto: document.getElementById("perf-admin-cor-texto").value,
                 adminCorCard: document.getElementById("perf-admin-cor-card").value,
-                fotoPerfilB64: document.getElementById("perfil-foto-base64").value,
-                banners: listaBanners
+                fotoPerfilB64: document.getElementById("perfil-foto-base64").value
             };
         }
 
@@ -2775,7 +2812,6 @@
                     corClientBorda: payloadPerfil.corBorda,
                     fonteVitrine: payloadPerfil.fonteVitrine,
                     fotoPerfilB64: payloadPerfil.fotoPerfilB64,
-                    banners: payloadPerfil.banners,
                     link1Titulo: payloadPerfil.link1Titulo,
                     link1Url: payloadPerfil.link1Url,
                     link1Icone: payloadPerfil.link1Icone,
@@ -2783,6 +2819,20 @@
                     link2Url: payloadPerfil.link2Url,
                     link2Icone: payloadPerfil.link2Icone
                 }, { merge: true });
+
+                try {
+                    const snapBannersAntigos = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", usuarioUID)));
+                    await Promise.all(snapBannersAntigos.docs.map(d => deleteDoc(doc(db, "banners_loja", d.id))));
+                    await Promise.all(listaBanners.map((imagemB64, index) =>
+                        setDoc(doc(db, "banners_loja", `banner_${usuarioUID}_${index}`), {
+                            donoUID: usuarioUID,
+                            imagemB64,
+                            ordem: index
+                        })
+                    ));
+                } catch (errBanners) {
+                    console.error("Erro ao salvar banners:", errBanners);
+                }
 
                 showToast("Configurações salvas e aplicadas!");
             } catch (err) {
