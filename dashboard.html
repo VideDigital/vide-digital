@@ -3071,13 +3071,14 @@ window.abrirTemplatesDoLead = async function() {
         };
 
         window.atualizarStatusLead = async function(leadId, novoStatus) {
-            try {
-                await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
-                showToast("Status atualizado!");
-            } catch(err) {
-                console.error(err);
-            }
-        };
+    try {
+        await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
+        showToast("Status atualizado!");
+        if (typeof window.aplicarFiltrosLeads === "function") window.aplicarFiltrosLeads();
+    } catch(err) {
+        console.error(err);
+    }
+};
         
         // GESTÃO DO CATÁLOGO DE PRODUTOS
         function alternarVisualFiltro(botaoAtivo) {
