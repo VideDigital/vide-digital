@@ -298,23 +298,6 @@
                         irParaBanner(0);
                         if (listaBannersVitrine.length > 1) iniciarAutoplay();
                     }
-                            const btnAnterior = document.getElementById("banner-seta-anterior");
-                            const btnProximo = document.getElementById("banner-seta-proximo");
-                            btnAnterior.classList.remove("hidden"); btnAnterior.classList.add("flex");
-                            btnProximo.classList.remove("hidden"); btnProximo.classList.add("flex");
-                            indicadoresBox.classList.remove("hidden"); indicadoresBox.classList.add("flex");
-
-                            btnAnterior.addEventListener("click", function() { irParaBanner(indexAtual - 1); iniciarAutoplay(); });
-                            btnProximo.addEventListener("click", function() { irParaBanner(indexAtual + 1); iniciarAutoplay(); });
-                            document.querySelectorAll("#banner-indicadores button").forEach(function(ponto) {
-                                ponto.addEventListener("click", function() { irParaBanner(parseInt(ponto.dataset.index)); iniciarAutoplay(); });
-                            });
-                        }
-
-                        irParaBanner(0);
-                        if (dados.banners.length > 1) iniciarAutoplay();
-                    }
-
                     if (dados.chatAtivo !== false) {
                         document.getElementById("widget-chat-cliente").classList.remove("hidden");
                     }
