@@ -102,7 +102,19 @@
         /* Calendário nativo dos filtros de data — sem isso, o navegador sempre
            desenha um calendário claro por padrão, mesmo com o resto escuro. */
         input[type="date"] { color-scheme: dark; }
-        .tema-claro input[type="date"] { color-scheme: light; }
+
+.tema-claro input[type="date"] { color-scheme: light; }
+
+/* Botões de filtro de Produtos (Todos/Físicos/Digitais/Rascunhos) — o estado
+"ativo" usa fundo quase transparente e texto branco, some no tema claro. */
+
+.tema-claro #filtro-todos.bg-white\/5,
+
+.tema-claro #filtro-fisicos.bg-white\/5,
+
+.tema-claro #filtro-digitais.bg-white\/5,
+
+.tema-claro #filtro-rascunhos.bg-white\/5 { background-color: rgba(0,0,0,0.06) !important; color: #111827 !important; border-color: rgba(0,0,0,0.12) !important; }
     </style>
 </head>
 <body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
@@ -3085,48 +3097,59 @@ window.abrirTemplatesDoLead = async function() {
             btnRascunhos.className = (botaoAtivo === 'rascunhos') ? classeRascunhoAtivo : classeRascunhoInativo;
         }
 
-        document.getElementById("filtro-rascunhos").addEventListener("click", (e) => {
-            e.preventDefault();
-            const scrollPos = document.querySelector("main").scrollTop;
-            verRascunhos = true;
-            alternarVisualFiltro('rascunhos');
-            carregarProdutos().then(() => {
-                document.querySelector("main").scrollTop = scrollPos;
-            });
-        });
+        ddocument.getElementById("filtro-rascunhos").addEventListener("click", (e) => {
+
+e.preventDefault();
+
+verRascunhos = true;
+
+alternarVisualFiltro('rascunhos');
+
+carregarProdutos();
+
+});
 
         document.getElementById("filtro-todos").addEventListener("click", (e) => {
-            e.preventDefault();
-            const scrollPos = document.querySelector("main").scrollTop;
-            filtroLogistico = "todos";
-            verRascunhos = false;
-            alternarVisualFiltro('todos');
-            carregarProdutos().then(() => {
-                document.querySelector("main").scrollTop = scrollPos;
-            });
-        });
+
+e.preventDefault();
+
+filtroLogistico = "todos";
+
+verRascunhos = false;
+
+alternarVisualFiltro('todos');
+
+carregarProdutos();
+
+});
 
         document.getElementById("filtro-fisicos").addEventListener("click", (e) => {
-            e.preventDefault();
-            const scrollPos = document.querySelector("main").scrollTop;
-            filtroLogistico = "fisico";
-            verRascunhos = false;
-            alternarVisualFiltro('fisico');
-            carregarProdutos().then(() => {
-                document.querySelector("main").scrollTop = scrollPos;
-            });
-        });
+
+e.preventDefault();
+
+filtroLogistico = "fisico";
+
+verRascunhos = false;
+
+alternarVisualFiltro('fisico');
+
+carregarProdutos();
+
+});
 
         document.getElementById("filtro-digitais").addEventListener("click", (e) => {
-            e.preventDefault();
-            const scrollPos = document.querySelector("main").scrollTop;
-            filtroLogistico = "digital";
-            verRascunhos = false;
-            alternarVisualFiltro('digital');
-            carregarProdutos().then(() => {
-                document.querySelector("main").scrollTop = scrollPos;
-            });
-        });
+
+e.preventDefault();
+
+filtroLogistico = "digital";
+
+verRascunhos = false;
+
+alternarVisualFiltro('digital');
+
+carregarProdutos();
+
+});
 
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
