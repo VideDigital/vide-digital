@@ -3074,7 +3074,7 @@ window.abrirTemplatesDoLead = async function() {
     try {
         await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
         showToast("Status atualizado!");
-        if (typeof window.aplicarFiltrosLeads === "function") window.aplicarFiltrosLeads();
+        if (typeof window.aplicarFiltrosLeads === "function") window.aplicarFiltrosLeads(false);
     } catch(err) {
         console.error(err);
     }
@@ -3971,15 +3971,17 @@ window.editarTemplate = async function(id) {
             a.click();
             showToast("Planilha exportada com sucesso!");
         };
-        window.aplicarFiltrosLeads = async function() {
-            const filtro = obterFiltroSelecionado("filtro-lead-dias", "filtro-lead-de", "filtro-lead-ate");
-            const status = document.getElementById("filtro-lead-status").value;
-            const origem = document.getElementById("filtro-lead-origem").value;
-            const busca = document.getElementById("busca-lead")?.value.toLowerCase() || "";
-            await carregarLeads(filtro, status, origem, busca);
-            const total = document.getElementById("lead-total-count")?.innerText || "0";
-            showToast(`Filtro aplicado! ${total} lead(s) encontrado(s).`);
-        };
+        window.aplicarFiltrosLeads = async function(mostrarToast = true) {
+    const filtro = obterFiltroSelecionado("filtro-lead-dias", "filtro-lead-de", "filtro-lead-ate");
+    const status = document.getElementById("filtro-lead-status").value;
+    const origem = document.getElementById("filtro-lead-origem").value;
+    const busca = document.getElementById("busca-lead")?.value.toLowerCase() || "";
+    await carregarLeads(filtro, status, origem, busca);
+    if (mostrarToast) {
+        const total = document.getElementById("lead-total-count")?.innerText || "0";
+        showToast(`Filtro aplicado! ${total} lead(s) encontrado(s).`);
+    }
+};
 
         // =============================================
         // AUTOMAÇÃO DE LEADS (filtros avançados + ações em massa)
