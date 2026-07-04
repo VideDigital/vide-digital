@@ -3138,18 +3138,12 @@ carregarProdutos();
 });
 
         document.getElementById("filtro-digitais").addEventListener("click", (e) => {
-
-e.preventDefault();
-
-filtroLogistico = "digital";
-
-verRascunhos = false;
-
-alternarVisualFiltro('digital');
-
-carregarProdutos();
-
-});
+            e.preventDefault();
+            filtroLogistico = "digital";
+            verRascunhos = false;
+            alternarVisualFiltro('digital');
+            carregarProdutos();
+        });
 
         async function carregarProdutos() {
             produtosContainer.innerHTML = "";
