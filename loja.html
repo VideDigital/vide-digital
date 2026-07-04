@@ -237,13 +237,21 @@
                         linksBox.innerHTML += '<a href="' + dados.link2Url + '" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ' + brandColor + '; color: ' + brandColor + ';">' + (dados.link2Icone || "&#128279;") + " " + dados.link2Titulo + "</a>";
                     }
 
-                    if (dados.banners && dados.banners.length > 0) {
+                    let listaBannersVitrine = [];
+                    try {
+                        const snapBanners = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", dados.donoUID)));
+                        snapBanners.forEach(d => listaBannersVitrine.push(d.data()));
+                        listaBannersVitrine.sort((a, b) => (a.ordem || 0) - (b.ordem || 0));
+                        listaBannersVitrine = listaBannersVitrine.map(b => b.imagemB64);
+                    } catch (e) { console.error("Erro ao carregar banners:", e); }
+
+                    if (listaBannersVitrine.length > 0) {
                         const carrossel = document.getElementById("banners-carrossel");
                         const track = document.getElementById("banners-track");
                         const indicadoresBox = document.getElementById("banner-indicadores");
                         carrossel.classList.remove("hidden");
 
-                        dados.banners.forEach(function(imgSrc, i) {
+                        listaBannersVitrine.forEach(function(imgSrc, i) {
                             const slide = document.createElement("div");
                             slide.className = "w-full h-full shrink-0 bg-black/40";
                             slide.innerHTML = '<img src="' + imgSrc + '" class="w-full h-full object-cover">';
@@ -260,7 +268,7 @@
                         let intervaloBanner = null;
 
                         function irParaBanner(novoIndex) {
-                            indexAtual = (novoIndex + dados.banners.length) % dados.banners.length;
+                            indexAtual = (novoIndex + listaBannersVitrine.length) % listaBannersVitrine.length;
                             track.style.transform = "translateX(-" + (indexAtual * 100) + "%)";
                             document.querySelectorAll("#banner-indicadores button").forEach(function(ponto, i) {
                                 ponto.style.width = (i === indexAtual) ? "18px" : "6px";
@@ -273,7 +281,23 @@
                             intervaloBanner = setInterval(function() { irParaBanner(indexAtual + 1); }, 4000);
                         }
 
-                        if (dados.banners.length > 1) {
+                        if (listaBannersVitrine.length > 1) {
+                            const btnAnterior = document.getElementById("banner-seta-anterior");
+                            const btnProximo = document.getElementById("banner-seta-proximo");
+                            btnAnterior.classList.remove("hidden"); btnAnterior.classList.add("flex");
+                            btnProximo.classList.remove("hidden"); btnProximo.classList.add("flex");
+                            indicadoresBox.classList.remove("hidden"); indicadoresBox.classList.add("flex");
+
+                            btnAnterior.addEventListener("click", function() { irParaBanner(indexAtual - 1); iniciarAutoplay(); });
+                            btnProximo.addEventListener("click", function() { irParaBanner(indexAtual + 1); iniciarAutoplay(); });
+                            document.querySelectorAll("#banner-indicadores button").forEach(function(ponto) {
+                                ponto.addEventListener("click", function() { irParaBanner(parseInt(ponto.dataset.index)); iniciarAutoplay(); });
+                            });
+                        }
+
+                        irParaBanner(0);
+                        if (listaBannersVitrine.length > 1) iniciarAutoplay();
+                    }
                             const btnAnterior = document.getElementById("banner-seta-anterior");
                             const btnProximo = document.getElementById("banner-seta-proximo");
                             btnAnterior.classList.remove("hidden"); btnAnterior.classList.add("flex");
