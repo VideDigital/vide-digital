@@ -1593,8 +1593,14 @@
 
         function ativarBannerModoMaster(nomeLoja) {
             document.getElementById("banner-master-nome-loja").innerText = nomeLoja;
-            document.getElementById("banner-modo-master").classList.remove("hidden");
-            document.body.classList.add("pt-9");
+            const banner = document.getElementById("banner-modo-master");
+            banner.classList.remove("hidden");
+
+            function ajustarEspacoBanner() {
+                document.body.style.paddingTop = banner.offsetHeight + "px";
+            }
+            ajustarEspacoBanner();
+            window.addEventListener("resize", ajustarEspacoBanner);
         }
 
         // =============================================
