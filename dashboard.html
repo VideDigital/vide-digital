@@ -2955,7 +2955,7 @@ throw errBanners;
                         <td class="p-4 text-center text-xs text-amber-400 font-medium">${lead.tempoRetencao || 0}s</td>
                         <td class="p-4 text-[#00f2fe] text-xs max-w-[120px] truncate">${lead.produtoInteresse || "—"}</td>
                         <td class="p-4">
-                            <select onchange="atualizarStatusLead('${lead.id}', this.value)" class="bg-transparent text-[10px] font-bold rounded-md px-2 py-1 border cursor-pointer outline-none ${statusClasses[lead.statusLead || 'novo']}">
+                            <select onclick="event.stopPropagation()" onchange="atualizarStatusLead('${lead.id}', this.value)" class="bg-transparent text-[10px] font-bold rounded-md px-2 py-1 border cursor-pointer outline-none ${statusClasses[lead.statusLead || 'novo']}">
                                 <option value="novo" ${(lead.statusLead || 'novo') === 'novo' ? 'selected' : ''}>Novo</option>
                                 <option value="contato" ${lead.statusLead === 'contato' ? 'selected' : ''}>Em Contato</option>
                                 <option value="convertido" ${lead.statusLead === 'convertido' ? 'selected' : ''}>Convertido</option>
