@@ -3141,10 +3141,10 @@ carregarProdutos();
         });
 
         async function carregarProdutos() {
-            produtosContainer.innerHTML = "";
-            try {
-                const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID));
-                const querySnapshot = await getDocs(q);
+    try {
+        const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID));
+        const querySnapshot = await getDocs(q);
+        produtosContainer.innerHTML = "";
 
                 totalProdutosAtual = 0;
                 totalRascunhosAtual = 0;
