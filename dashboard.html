@@ -2065,7 +2065,10 @@ function ativarAba(targetId) {
             if (targetId === "view-automacao-leads") carregarAutomacaoLeads();
             if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
             if (targetId === "view-guia") renderizarGuiaDoPlano();
-        }
+
+}
+
+window.ativarAba = ativarAba;
 // =============================================
         // BLOQUEIO IMEDIATO DE PLANO (evita flash de conteúdo liberado)
         // =============================================
