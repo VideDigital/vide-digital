@@ -118,7 +118,16 @@
 .tema-claro #filtro-digitais.bg-white\/5,
 
 .tema-claro #filtro-rascunhos.bg-white\/5 { background-color: rgba(0,0,0,0.06) !important; color: #111827 !important; border-color: rgba(0,0,0,0.12) !important; }
-    </style>
+
+#sidebar-nav.custom-scrollbar::-webkit-scrollbar { width: 5px; }
+
+#sidebar-nav.custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+
+#sidebar-nav.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+.tema-claro #sidebar-nav.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+
+</style>
 </head>
 <body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
 
@@ -161,7 +170,7 @@
             <button id="mobile-menu-toggle" class="md:hidden text-gray-500 hover:text-white p-1 text-xl">☰</button>
         </div>
         
-        <nav class="hidden md:block space-y-1" id="sidebar-nav">
+        <nav class="hidden md:block space-y-1 overflow-y-auto custom-scrollbar flex-1 min-h-0" id="sidebar-nav">
             <p class="px-4 text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-3">Menu Principal</p>
             <button data-target="view-dashboard" class="nav-item active w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white rounded-lg transition-all text-left">
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
@@ -269,9 +278,31 @@
                     <p class="text-gray-500 text-xs mt-1">Métricas de performance e conversão em tempo real.</p>
                 </div>
                 <button id="btn-abrir-criacao" class="bg-white text-black font-medium px-4 py-2 rounded-md text-xs hover:bg-gray-200 transition-all shrink-0">
-                    Adicionar Produto
-                </button>
-            </div>
+Adicionar Produto
+</button>
+</div>
+
+<!-- HUB DE MÓDULOS -->
+<div class="glass-card rounded-xl p-5 space-y-4">
+<h3 class="text-sm font-bold text-white uppercase tracking-wider">🧭 Hub de Módulos</h3>
+<input type="text" id="busca-hub-modulos" oninput="filtrarHubModulos(this.value)" placeholder="Buscar um módulo..." class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
+<div id="grid-hub-modulos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="configurações da loja perfil identidade" onclick="ativarAba('view-perfil')"><span class="text-2xl">⚙️</span><span class="text-xs font-bold text-white">Configurações da Loja</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="pixels domínio dominio" onclick="ativarAba('view-dominios')"><span class="text-2xl">🔗</span><span class="text-xs font-bold text-white">Pixels &amp; Domínio</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="leads capturas" onclick="ativarAba('view-leads')"><span class="text-2xl">👥</span><span class="text-xs font-bold text-white">Leads (Capturas)</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="automação de leads automacao" onclick="ativarAba('view-automacao-leads')"><span class="text-2xl">⚡</span><span class="text-xs font-bold text-white">Automação de Leads</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="templates" onclick="ativarAba('view-templates')"><span class="text-2xl">💬</span><span class="text-xs font-bold text-white">Templates</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="campanhas" onclick="ativarAba('view-campanhas')"><span class="text-2xl">📢</span><span class="text-xs font-bold text-white">Campanhas</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="pedidos" onclick="ativarAba('view-pedidos')"><span class="text-2xl">📦</span><span class="text-xs font-bold text-white">Pedidos</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="métricas metricas" onclick="ativarAba('view-metricas')"><span class="text-2xl">📊</span><span class="text-xs font-bold text-white">Métricas</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="notificações notificacoes" onclick="ativarAba('view-notificacoes')"><span class="text-2xl">🔔</span><span class="text-xs font-bold text-white">Notificações</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="personalização premium personalizacao" onclick="ativarAba('view-personalizacao')"><span class="text-2xl">💎</span><span class="text-xs font-bold text-white">Personalização Premium</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="guia do plano" onclick="ativarAba('view-guia')"><span class="text-2xl">📖</span><span class="text-xs font-bold text-white">Guia do Plano</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="funcionários funcionarios" onclick="ativarAba('view-funcionarios')"><span class="text-2xl">🧑‍🤝‍🧑</span><span class="text-xs font-bold text-white">Funcionários</span></div>
+</div>
+</div>
+
+<!-- Filtros -->
 
             <!-- Filtros -->
             <div class="flex flex-wrap items-center justify-between gap-4">
@@ -1989,7 +2020,15 @@
         };
         
         // GESTOR DE ABAS SPA REATIVAS
-        function ativarAba(targetId) {
+        window.filtrarHubModulos = function(termo) {
+    const t = termo.trim().toLowerCase();
+    document.querySelectorAll("#grid-hub-modulos > div").forEach(card => {
+        const nome = card.getAttribute("data-nome") || "";
+        card.classList.toggle("hidden", t !== "" && !nome.includes(t));
+    });
+};
+
+function ativarAba(targetId) {
             document.querySelectorAll("#sidebar-nav button").forEach(b => b.classList.remove("active"));
             const botaoAlvo = document.querySelector(`#sidebar-nav button[data-target="${targetId}"]`);
             if (botaoAlvo) botaoAlvo.classList.add("active");
