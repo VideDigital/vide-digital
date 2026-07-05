@@ -5,16 +5,51 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>VideDigital | Premium Enterprise Control</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Playfair+Display:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Merriweather:wght@400;700;900&family=Cormorant+Garamond:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Josefin+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; overflow-x: hidden; background-color: #000000; }
-        .glass-sidebar { background: #0A0A0A; border-right: 1px solid rgba(255, 255, 255, 0.05); }
-        .glass-card { background: #111111; border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
-        .glass-card:hover { border-color: rgba(255, 255, 255, 0.1); }
-        .glass-input { background: #0A0A0A; border: 1px solid rgba(255, 255, 255, 0.1); transition: border-color 0.2s ease; }
-        .glass-input:focus { border-color: #ffffff; outline: none; }
-        .nav-item.active { background: rgba(255, 255, 255, 0.05); color: var(--admin-accent, #ffffff); border-color: var(--admin-accent, #ffffff); }
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=JetBrains+Mono:wght@500&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Playfair+Display:wght@400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Manrope:wght@400;500;600;700;800&family=DM+Sans:wght@400;500;700;800&family=Space+Grotesk:wght@400;500;600;700&family=Bebas+Neue&family=Merriweather:wght@400;700;900&family=Cormorant+Garamond:wght@400;500;600;700&family=Dancing+Script:wght@400;500;600;700&family=Nunito:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&family=Quicksand:wght@400;500;600;700&family=Josefin+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+
+body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: #14132B; }
+
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
+
+.glass-sidebar { background: #14132B; border-right: 1px solid rgba(255, 255, 255, 0.05); }
+
+.glass-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
+
+.glass-card:hover { border-color: rgba(255, 255, 255, 0.1); }
+
+.glass-input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255, 255, 255, 0.1); transition: border-color 0.2s ease; }
+
+.glass-input:focus { border-color: #5B3DF5; outline: none; }
+
+.nav-item.active { background: rgba(255, 255, 255, 0.05); color: var(--admin-accent, #FF7A45); border-color: var(--admin-accent, #FF7A45); }
+
+.neon-glow { text-shadow: 0 0 20px rgba(91, 61, 245, 0.4); }
+
+.tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #FF7A45; }
+
+.text-\[\#00f2fe\] { color: #5B3DF5 !important; }
+
+.bg-\[\#00f2fe\] { background-color: #5B3DF5 !important; }
+
+.border-\[\#00f2fe\] { border-color: #5B3DF5 !important; }
+
+.from-\[\#00f2fe\] { --tw-gradient-from: #5B3DF5 !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(91,61,245,0)) !important; }
+
+.to-\[\#4facfe\], .to-\[\#00f2fe\] { --tw-gradient-to: #FF7A45 !important; }
+
+.bg-\[\#030712\], .bg-\[\#0c0c14\], .bg-\[\#111111\], .bg-\[\#0a0a0a\], .bg-\[\#09090f\] { background-color: #14132B !important; }
+
+.text-blue-400, .text-sky-400, .text-sky-300, .text-blue-300 { color: #FF7A45 !important; }
+
+.bg-blue-500\/10, .bg-sky-500\/10 { background-color: rgba(255,122,69,0.1) !important; }
+
+.bg-blue-500\/20 { background-color: rgba(255,122,69,0.2) !important; }
+
+.border-blue-500\/20, .border-sky-500\/20 { border-color: rgba(255,122,69,0.3) !important; }
         .neon-glow { text-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
         .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #00f2fe; }
         .view-section { display: none; }
