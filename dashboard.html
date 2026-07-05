@@ -1199,9 +1199,9 @@
                 <div class="glass-card rounded-xl p-4 space-y-3">
                     <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contato</h4>
                     <div class="space-y-2">
-                        <div class="flex justify-between"><span class="text-xs text-gray-500">WhatsApp</span><span id="lead-painel-whatsapp" class="text-xs font-bold text-emerald-400">—</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-gray-500">E-mail</span><span id="lead-painel-email" class="text-xs text-gray-300">—</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-gray-500">Interesse</span><span id="lead-painel-interesse" class="text-xs text-[#00f2fe] font-medium truncate max-w-[180px]">—</span></div>
+                        <div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500 shrink-0">WhatsApp</span><input id="lead-painel-whatsapp" onblur="salvarCampoLead('whatsapp', this.value)" class="text-xs font-bold text-emerald-400 bg-transparent text-right outline-none w-32"></div>
+<div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500 shrink-0">E-mail</span><input id="lead-painel-email" onblur="salvarCampoLead('email', this.value)" class="text-xs text-gray-300 bg-transparent text-right outline-none w-32"></div>
+<div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500 shrink-0">Interesse</span><input id="lead-painel-interesse" onblur="salvarCampoLead('produtoInteresse', this.value)" class="text-xs text-[#00f2fe] font-medium bg-transparent text-right outline-none w-32"></div>
                         <div class="flex justify-between"><span class="text-xs text-gray-500">Data</span><span id="lead-painel-data" class="text-xs text-gray-400">—</span></div>
                         <div class="flex justify-between"><span class="text-xs text-gray-500">Tempo na página</span><span id="lead-painel-tempo" class="text-xs text-amber-400">—</span></div>
                     </div>
@@ -2979,9 +2979,9 @@ window.abrirPainelLead = async function(lead) {
             document.getElementById("lead-painel-avatar").innerText = (lead.nome || "?")[0].toUpperCase();
             document.getElementById("lead-painel-nome").innerText = lead.nome || "Anônimo";
             document.getElementById("lead-painel-origem").innerText = lead.origem || "Direto";
-            document.getElementById("lead-painel-whatsapp").innerText = lead.whatsapp || "—";
-            document.getElementById("lead-painel-email").innerText = lead.email || "—";
-            document.getElementById("lead-painel-interesse").innerText = lead.produtoInteresse || "—";
+            document.getElementById("lead-painel-whatsapp").value = lead.whatsapp || "";
+document.getElementById("lead-painel-email").value = lead.email || "";
+document.getElementById("lead-painel-interesse").value = lead.produtoInteresse || "";
             document.getElementById("lead-painel-tempo").innerText = (lead.tempoRetencao || 0) + "s";
             document.getElementById("lead-painel-data").innerText = lead.data ? new Date(lead.data).toLocaleDateString("pt-BR") : "Hoje";
             document.getElementById("lead-painel-status").value = lead.statusLead || "novo";
@@ -3072,7 +3072,19 @@ window.abrirTemplatesDoLead = async function() {
     }
 };
 
-        window.atualizarStatusLead = async function(leadId, novoStatus) {
+        window.salvarCampoLead = async function(campo, valor) {
+    const leadId = document.getElementById("lead-painel-id").value;
+    if (!leadId) return;
+    try {
+        await setDoc(doc(db, "leads", leadId), { [campo]: valor }, { merge: true });
+        showToast("Contato atualizado!");
+        if (typeof window.aplicarFiltrosLeads === "function") window.aplicarFiltrosLeads(false);
+    } catch(err) {
+        console.error(err);
+    }
+};
+
+window.atualizarStatusLead = async function(leadId, novoStatus) {
     try {
         await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
         showToast("Status atualizado!");
