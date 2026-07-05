@@ -122,7 +122,8 @@
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="comparativo">📊 Comparativo</button>
             <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="notificacoes">🔔 Notificações</button>
-            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="personalizacoes">🎨 Personalizações</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="personalizacoes">✨ Personalizações</button>
+            <button id="tab-btn-equipe" class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="equipe">🔑 Equipe</button>
         </div>
 
         <!-- TABELA DE CLIENTES -->
@@ -275,12 +276,62 @@
 
         <!-- SUSPENSOS -->
         <div id="tab-suspensos" class="tab-content hidden fade-in">
-            <div id="lista-suspensos" class="space-y-3">
-                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
-            </div>
-        </div>
 
-    </main>
+<div id="lista-suspensos" class="space-y-3">
+
+<div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+
+</div>
+
+</div>
+
+<div id="tab-equipe" class="tab-content hidden fade-in space-y-6">
+
+<div class="glass-card rounded-2xl p-6 space-y-4">
+
+<h2 class="text-sm font-black text-white">Adicionar Membro da Equipe</h2>
+
+<input type="email" id="equipe-email" placeholder="E-mail do membro" class="glass-input rounded-xl p-3 text-sm text-white outline-none w-full">
+
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="clientes" class="equipe-perm"> Clientes</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="lojas" class="equipe-perm"> Lojas Ativas</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="pendentes" class="equipe-perm"> Pendentes</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="suspensos" class="equipe-perm"> Suspensos</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="planos" class="equipe-perm"> Planos</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="comparativo" class="equipe-perm"> Comparativo</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="notificacoes" class="equipe-perm"> Notificações</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="personalizacoes" class="equipe-perm"> Personalizações</label>
+
+</div>
+
+<button onclick="adicionarMembroEquipe()" class="bg-white text-black font-bold px-5 py-2.5 rounded-xl text-xs">Adicionar Membro</button>
+
+</div>
+
+<div class="glass-card rounded-2xl p-6 space-y-3">
+
+<h2 class="text-sm font-black text-white">Membros Atuais</h2>
+
+<div id="lista-equipe" class="space-y-3">
+
+<div class="text-center text-gray-500 text-xs p-8">Carregando...</div>
+
+</div>
+
+</div>
+
+</div>
+
+</main>
 
     <!-- MODAL DE CONFIRMAÇÃO (substitui o confirm() feio do navegador) -->
     <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
@@ -417,19 +468,143 @@
                 window.location.href = "login.html";
                 return;
             }
-            if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
-                alert("Acesso negado. Esta área é exclusiva do administrador do sistema.");
-                await signOut(auth);
-                window.location.href = "login.html";
-                return;
-            }
-            document.getElementById("admin-nome").innerText = user.displayName || "Super Admin";
-            document.getElementById("admin-email-display").innerText = user.email;
-            await carregarUsuarios();
-        });
+            let permissoesEquipeAtual = null;
 
+if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+
+const snapEquipe = await getDocs(collection(db, "equipe_admin"));
+
+const membro = snapEquipe.docs.map(d => d.data()).find(m => (m.email || "").toLowerCase() === user.email.toLowerCase());
+
+if (!membro) {
+
+alert("Acesso negado. Esta área é exclusiva do administrador do sistema.");
+
+await signOut(auth);
+
+window.location.href = "login.html";
+
+return;
+
+}
+
+permissoesEquipeAtual = membro.permissoes || [];
+
+document.getElementById("tab-btn-equipe")?.remove();
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+
+if (btn.dataset.tab !== "equipe" && !permissoesEquipeAtual.includes(btn.dataset.tab)) btn.remove();
+
+});
+
+}
+
+document.getElementById("admin-nome").innerText = user.displayName || "Super Admin";
+
+document.getElementById("admin-email-display").innerText = user.email;
+
+await carregarUsuarios();
+
+if (!permissoesEquipeAtual) carregarEquipe();
+
+});
         // TOAST
-        function showToast(msg, tipo = "success") {
+        async function carregarEquipe() {
+
+const lista = document.getElementById("lista-equipe");
+
+lista.innerHTML = "<div class='text-center text-gray-500 text-xs p-8'>Carregando...</div>";
+
+try {
+
+const snap = await getDocs(collection(db, "equipe_admin"));
+
+if (snap.empty) {
+
+lista.innerHTML = "<div class='text-center text-gray-500 text-xs p-8'>Nenhum membro adicionado ainda.</div>";
+
+return;
+
+}
+
+lista.innerHTML = snap.docs.map(d => {
+
+const m = d.data();
+
+const perms = (m.permissoes || []).join(", ") || "nenhuma";
+
+return `<div class="flex items-center justify-between bg-white/5 rounded-xl p-4"><div><p class="text-xs font-bold text-white">${m.email}</p><p class="text-[10px] text-gray-500 mt-1">${perms}</p></div><button onclick="removerMembroEquipe('${d.id}')" class="text-red-400 hover:text-red-300 text-xs">Remover</button></div>`;
+
+}).join("");
+
+} catch(err) {
+
+console.error(err);
+
+lista.innerHTML = "<div class='text-center text-red-400 text-xs p-8'>Erro ao carregar equipe.</div>";
+
+}
+
+}
+
+window.adicionarMembroEquipe = async function() {
+
+const email = document.getElementById("equipe-email").value.trim().toLowerCase();
+
+if (!email) { showToast("Digite um e-mail.", "error"); return; }
+
+const permissoes = Array.from(document.querySelectorAll(".equipe-perm:checked")).map(c => c.value);
+
+if (permissoes.length === 0) { showToast("Selecione ao menos uma permissão.", "error"); return; }
+
+try {
+
+await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, criadoEm: new Date().toISOString() });
+
+showToast("Membro adicionado!");
+
+document.getElementById("equipe-email").value = "";
+
+document.querySelectorAll(".equipe-perm").forEach(c => c.checked = false);
+
+carregarEquipe();
+
+} catch(err) {
+
+console.error(err);
+
+showToast("Erro ao adicionar membro.", "error");
+
+}
+
+};
+
+window.removerMembroEquipe = async function(id) {
+
+abrirConfirmacao("Remover esse membro da equipe? Ele perderá o acesso ao admin.", async () => {
+
+try {
+
+await deleteDoc(doc(db, "equipe_admin", id));
+
+showToast("Membro removido.");
+
+carregarEquipe();
+
+} catch(err) {
+
+console.error(err);
+
+showToast("Erro ao remover membro.", "error");
+
+}
+
+});
+
+};
+
+function showToast(msg, tipo = "success") {
             const c = document.getElementById("toast-container");
             const t = document.createElement("div");
             t.className = `px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-2 backdrop-blur-md transform opacity-0 translate-y-2 transition-all duration-300 pointer-events-auto ${tipo === "success" ? "bg-emerald-950/90 text-emerald-400 border-emerald-500/20" : "bg-red-950/90 text-red-400 border-red-500/20"}`;
