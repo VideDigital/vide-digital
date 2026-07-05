@@ -2005,12 +2005,22 @@
             "view-funcionarios": "subcontas"
         };
         window._planoCarregado = false;
-        window._featureBloqueio = {};
 
-        document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
-            const target = btn.getAttribute("data-target");
-            if (!BLOQUEIOS_NAV[target]) return;
-            btn.classList.add("opacity-40");
+window._featureBloqueio = {};
+
+let featuresCache = [];
+
+try { featuresCache = JSON.parse(localStorage.getItem("ultimoPlanoFeatures") || "[]"); } catch(e) { featuresCache = []; }
+
+document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
+
+const target = btn.getAttribute("data-target");
+
+if (!BLOQUEIOS_NAV[target]) return;
+
+if (featuresCache.includes(BLOQUEIOS_NAV[target])) return;
+
+btn.classList.add("opacity-40");
             const badge = document.createElement("span");
             badge.className = "cadeado-badge";
             badge.setAttribute("data-tip", "Verificando seu plano...");
@@ -2502,8 +2512,9 @@
                     const featuresManuais = Array.isArray(dadosPlano.featuresManuais) ? dadosPlano.featuresManuais : null;
                     const featuresEfetivas = featuresManuais !== null ? featuresManuais : featuresAtivas;
                     temFeature = function(feature) {
-                        return featuresEfetivas.includes(feature);
-                    };
+    return featuresEfetivas.includes(feature);
+};
+try { localStorage.setItem("ultimoPlanoFeatures", JSON.stringify(featuresEfetivas)); } catch(e) {}
 
                     const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
                     limiteProdutosGlobal = (typeof limiteSalvo === "number") ? limiteSalvo : (LIMITES_PLANO[planoAtual] ?? 3);
