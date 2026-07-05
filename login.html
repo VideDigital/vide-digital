@@ -183,7 +183,7 @@
     <script type="module">
         import { auth, db } from "./firebase-init.js";
         import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const googleProvider = new GoogleAuthProvider();
 
@@ -282,22 +282,64 @@
         setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
 
         async function autorizarEEntrar(uid) {
-            const userDoc = await getDoc(doc(db, "usuarios", uid));
-            if (!userDoc.exists()) {
-                emitInlineFeedback("Nenhuma conta encontrada. Cadastre-se primeiro.", "error");
-                await signOut(auth);
-                return false;
-            }
-            const dados = userDoc.data();
-            if (dados.status !== "aprovado") {
-                emitInlineFeedback(mensagemPorStatus(dados.status), "error");
-                await signOut(auth);
-                return false;
-            }
-            emitInlineFeedback("Sincronização bem-sucedida!", "success");
-            setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
-            return true;
-        }
+
+const emailAtual = (auth.currentUser?.email || "").toLowerCase();
+
+if (emailAtual === "danielmarcelino549@gmail.com") {
+
+emitInlineFeedback("Sincronização bem-sucedida!", "success");
+
+setTimeout(() => { window.location.href = "admin.html"; }, 1200);
+
+return true;
+
+}
+
+const snapEquipe = await getDocs(collection(db, "equipe_admin"));
+
+const ehEquipe = snapEquipe.docs.some(d => (d.data().email || "").toLowerCase() === emailAtual);
+
+if (ehEquipe) {
+
+emitInlineFeedback("Sincronização bem-sucedida!", "success");
+
+setTimeout(() => { window.location.href = "admin.html"; }, 1200);
+
+return true;
+
+}
+
+const userDoc = await getDoc(doc(db, "usuarios", uid));
+
+if (!userDoc.exists()) {
+
+emitInlineFeedback("Nenhuma conta encontrada. Cadastre-se primeiro.", "error");
+
+await signOut(auth);
+
+return false;
+
+}
+
+const dados = userDoc.data();
+
+if (dados.status !== "aprovado") {
+
+emitInlineFeedback(mensagemPorStatus(dados.status), "error");
+
+await signOut(auth);
+
+return false;
+
+}
+
+emitInlineFeedback("Sincronização bem-sucedida!", "success");
+
+setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
+
+return true;
+
+}
 
         const btnSubmitLogin = document.getElementById("btn-submit-login");
         const btnSubmitLoginTexto = document.getElementById("btn-submit-login-texto");
