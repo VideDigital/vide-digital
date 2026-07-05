@@ -3091,13 +3091,12 @@ window.abrirTemplatesDoLead = async function() {
             document.getElementById("lead-painel-overlay").classList.add("hidden");
         };
         window.salvarAnotacaoLead = async function(leadId, texto) {
-    alert("cliquei, leadId = " + leadId);
     try {
         await setDoc(doc(db, "leads", leadId), { anotacao: texto }, { merge: true });
         showToast("Anotação salva!");
     } catch(err) {
-        alert("ERRO: " + err.message);
         console.error(err);
+        showToast("Erro ao salvar anotação: " + (err.message || "tente novamente"), "error");
     }
 };
 
