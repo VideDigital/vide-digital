@@ -94,11 +94,14 @@
         .tema-claro #confirm-modal p,
         .tema-claro #confirm-modal-cancelar { color: #e5e7eb !important; }
         .tema-claro #lead-painel h3,
-        .tema-claro #lead-painel h4,
-        .tema-claro #lead-painel p,
-        .tema-claro #lead-painel span,
-        .tema-claro #lead-painel label { color: #e5e7eb !important; }
-
+.tema-claro #lead-painel h4,
+.tema-claro #lead-painel p,
+.tema-claro #lead-painel span,
+.tema-claro #lead-painel label { color: #111827 !important; }
+.tema-claro #lead-painel textarea,
+.tema-claro #lead-painel input,
+.tema-claro #lead-painel select { color: #111827 !important; background: rgba(255,255,255,0.6) !important; }
+.tema-claro #lead-painel button { color: #111827 !important; }
         /* Calendário nativo dos filtros de data — sem isso, o navegador sempre
            desenha um calendário claro por padrão, mesmo com o resto escuro. */
         input[type="date"] { color-scheme: dark; }
@@ -3599,12 +3602,14 @@ window.editarTemplate = async function(id) {
             document.getElementById("template-modal").classList.remove("hidden");
         };
         window.excluirTemplate = async function(id) {
-            try {
-                await deleteDoc(doc(db, "templates", id));
-                carregarTemplates();
-                showToast("Template excluído.");
-            } catch(err) { console.error(err); }
-        };
+    abrirConfirmacao("Excluir este template? Essa ação não pode ser desfeita.", async () => {
+        try {
+            await deleteDoc(doc(db, "templates", id));
+            carregarTemplates();
+            showToast("Template excluído.");
+        } catch(err) { console.error(err); }
+    });
+};
 
         window.salvarTemplate = async function() {
             const titulo = document.getElementById("tpl-titulo").value.trim();
@@ -3732,13 +3737,14 @@ window.editarTemplate = async function(id) {
         };
 
         window.excluirPedido = async function(pedidoId) {
-            if (!confirm("Excluir este pedido?")) return;
-            try {
-                await deleteDoc(doc(db, "pedidos", pedidoId));
-                carregarPedidos();
-                showToast("Pedido excluído.");
-            } catch(err) { console.error(err); }
-        };
+    abrirConfirmacao("Excluir este pedido? Essa ação não pode ser desfeita.", async () => {
+        try {
+            await deleteDoc(doc(db, "pedidos", pedidoId));
+            carregarPedidos();
+            showToast("Pedido excluído.");
+        } catch(err) { console.error(err); }
+    });
+};
 
         // =============================================
         // NOTIFICAÇÕES (recebidas do admin)
