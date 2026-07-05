@@ -2513,7 +2513,14 @@ btn.classList.add("opacity-40");
                 // MODO MASTER: super admin acessando o dashboard de outra loja com a própria conta
                 const paramsURL = new URLSearchParams(window.location.search);
                 const masterUIDAlvo = paramsURL.get("masterUID");
-                const emModoMaster = !!(masterUIDAlvo && usuarioEmail === "danielmarcelino549@gmail.com" && masterUIDAlvo !== user.uid);
+                let ehEquipeAdmin = false;
+if (masterUIDAlvo && usuarioEmail !== "danielmarcelino549@gmail.com") {
+    try {
+        const snapEquipeCheck = await getDocs(collection(db, "equipe_admin"));
+        ehEquipeAdmin = snapEquipeCheck.docs.some(d => (d.data().email || "").toLowerCase() === usuarioEmail);
+    } catch(e) { ehEquipeAdmin = false; }
+}
+const emModoMaster = !!(masterUIDAlvo && (usuarioEmail === "danielmarcelino549@gmail.com" || ehEquipeAdmin) && masterUIDAlvo !== user.uid);
                 if (emModoMaster) usuarioUID = masterUIDAlvo;
 
                 // Mostra o atalho "Painel Master" só pro super admin, só quando ele está na própria conta
