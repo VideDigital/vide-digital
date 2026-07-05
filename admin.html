@@ -293,6 +293,14 @@
 
 <input type="email" id="equipe-email" placeholder="E-mail do membro" class="glass-input rounded-xl p-3 text-sm text-white outline-none w-full">
 
+<div class="flex gap-2">
+
+<input type="text" id="equipe-senha" placeholder="Senha de acesso" class="glass-input rounded-xl p-3 text-sm text-white outline-none flex-1">
+
+<button type="button" onclick="gerarSenhaEquipe()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0">Gerar Senha</button>
+
+</div>
+
 <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
 
 <label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="clientes" class="equipe-perm"> Clientes</label>
@@ -397,10 +405,12 @@
     </div>
 
     <script type="module">
-        import { auth, db } from "./firebase-init.js";
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { auth, db, firebaseConfig } from "./firebase-init.js";
 
+import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth as getAuthSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { initializeApp as initializeAppSecundario, deleteApp as deleteAppSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        
         const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
         let todosUsuarios = [];
         let clienteSelecionadoUID = null;
@@ -548,11 +558,51 @@ lista.innerHTML = "<div class='text-center text-red-400 text-xs p-8'>Erro ao car
 
 }
 
+window.gerarSenhaEquipe = function() {
+
+const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+
+let senha = "";
+
+for (let i = 0; i < 10; i++) senha += chars[Math.floor(Math.random() * chars.length)];
+
+document.getElementById("equipe-senha").value = senha;
+
+};
+
+async function criarContaEquipeAuth(email, senha) {
+
+const appSecundario = initializeAppSecundario(firebaseConfig, "equipe-temp-" + Date.now());
+
+const authSecundario = getAuthSecundario(appSecundario);
+
+try {
+
+const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
+
+await signOut(authSecundario);
+
+await deleteAppSecundario(appSecundario);
+
+return cred.user.uid;
+
+} catch (err) {
+
+await deleteAppSecundario(appSecundario).catch(() => {});
+
+throw err;
+
+}
+
+}
+
 window.adicionarMembroEquipe = async function() {
 
 const email = document.getElementById("equipe-email").value.trim().toLowerCase();
 
-if (!email) { showToast("Digite um e-mail.", "error"); return; }
+const senha = document.getElementById("equipe-senha").value.trim();
+
+if (!email || !senha) { showToast("Preencha e-mail e senha.", "error"); return; }
 
 const permissoes = Array.from(document.querySelectorAll(".equipe-perm:checked")).map(c => c.value);
 
@@ -560,11 +610,15 @@ if (permissoes.length === 0) { showToast("Selecione ao menos uma permissão.", "
 
 try {
 
+await criarContaEquipeAuth(email, senha);
+
 await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, criadoEm: new Date().toISOString() });
 
-showToast("Membro adicionado!");
+showToast("Membro adicionado! Já pode fazer login com esse e-mail e senha.");
 
 document.getElementById("equipe-email").value = "";
+
+document.getElementById("equipe-senha").value = "";
 
 document.querySelectorAll(".equipe-perm").forEach(c => c.checked = false);
 
@@ -574,7 +628,7 @@ carregarEquipe();
 
 console.error(err);
 
-showToast("Erro ao adicionar membro.", "error");
+showToast("Erro ao criar conta: " + (err.message || "tente novamente"), "error");
 
 }
 
