@@ -2008,10 +2008,9 @@
 
 window._featureBloqueio = {};
 
+const chaveCacheAlvo = new URLSearchParams(window.location.search).get("masterUID") || "own";
 let featuresCache = [];
-
-try { featuresCache = JSON.parse(localStorage.getItem("ultimoPlanoFeatures") || "[]"); } catch(e) { featuresCache = []; }
-
+try { featuresCache = JSON.parse(localStorage.getItem("ultimoPlanoFeatures_" + chaveCacheAlvo) || "[]"); } catch(e) { featuresCache = []; }
 document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
 
 const target = btn.getAttribute("data-target");
@@ -2514,7 +2513,7 @@ btn.classList.add("opacity-40");
                     temFeature = function(feature) {
     return featuresEfetivas.includes(feature);
 };
-try { localStorage.setItem("ultimoPlanoFeatures", JSON.stringify(featuresEfetivas)); } catch(e) {}
+try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(featuresEfetivas)); } catch(e) {}
 
                     const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
                     limiteProdutosGlobal = (typeof limiteSalvo === "number") ? limiteSalvo : (LIMITES_PLANO[planoAtual] ?? 3);
