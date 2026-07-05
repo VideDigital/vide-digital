@@ -1,287 +1,349 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full bg-[#030308]">
+<html lang="pt-br" class="h-full">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vide Hub | Conectar ao Ecossistema</title>
+    <title>Vide Hub | Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Plus Jakarta Sans', sans-serif; 
-        }
-        .premium-input { 
-            background: rgba(15, 15, 25, 0.6); 
-            border: 1px solid rgba(255, 255, 255, 0.05); 
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-        }
-        .premium-input:focus { 
-            border-color: #00f2fe; 
-            background: rgba(20, 20, 35, 0.9);
-            box-shadow: 0 0 20px rgba(0, 242, 254, 0.1), inset 0 0 10px rgba(0, 242, 254, 0.02);
-        }
-        .space-bg {
-            background: radial-gradient(circle at 30% 30%, #0d0b26 0%, #04030a 100%);
-        }
-        .float-orbe-1 { animation: float1 12s infinite ease-in-out alternate; }
-        .float-orbe-2 { animation: float2 18s infinite ease-in-out alternate; }
-        @keyframes float1 {
-            0% { transform: translateY(0px) scale(1); filter: blur(80px); }
-            100% { transform: translateY(-30px) scale(1.1); filter: blur(100px); }
-        }
-        @keyframes float2 {
-            0% { transform: translate(0px, 0px) scale(1); filter: blur(100px); }
-            100% { transform: translate(40px, -20px) scale(0.9); filter: blur(120px); }
-        }
+        body { font-family: 'Inter', sans-serif; background: #14132B; }
+        .fonte-display { font-family: 'Sora', sans-serif; }
+        .farol-glow { background: radial-gradient(circle, rgba(91,61,245,0.35) 0%, rgba(255,122,69,0.18) 45%, transparent 70%); filter: blur(10px); }
+        .premium-input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s ease; }
+        .premium-input:focus { border-color: #5B3DF5; box-shadow: 0 0 0 3px rgba(91,61,245,0.15); }
+        .btn-marca { background: linear-gradient(90deg, #5B3DF5, #FF7A45); }
+        .btn-marca:hover { filter: brightness(1.08); }
+        .link-marca { color: #FF7A45; }
+        .link-marca:hover { color: #ff9066; }
     </style>
 </head>
-<body class="h-full flex text-white antialiased selection:bg-[#00f2fe]/30 select-none overflow-hidden">
-    <div class="hidden lg:flex lg:w-7/12 relative space-bg p-16 flex-col justify-between border-r border-white/[0.03] overflow-hidden">
-        <div class="absolute top-[15%] left-[10%] h-[350px] w-[350px] rounded-full bg-[#00f2fe]/15 float-orbe-1 pointer-events-none"></div>
-        <div class="absolute bottom-[20%] right-[15%] h-[450px] w-[450px] rounded-full bg-[#6a11cb]/10 float-orbe-2 pointer-events-none"></div>
-        <div class="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.01)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.01)_1px,transparent_1px)] bg-[size:40px_40px] opacity-30 pointer-events-none"></div>
-        <div class="flex items-center space-x-3 relative z-10">
-            <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.3)]">
-                <span class="text-black font-black text-xs">V</span>
+<body class="h-full flex items-center justify-center p-4 relative overflow-hidden text-white">
+
+    <div class="absolute top-[-15%] left-[-10%] h-[550px] w-[550px] rounded-full farol-glow pointer-events-none"></div>
+    <div class="absolute bottom-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full farol-glow pointer-events-none opacity-60"></div>
+
+    <div id="global-inline-feedback-holder"></div>
+
+    <div class="w-full max-w-[440px] bg-white/[0.03] border border-white/10 p-8 sm:p-10 rounded-[28px] relative z-10 backdrop-blur-xl shadow-2xl">
+
+        <div class="flex flex-col items-center text-center gap-3 mb-8">
+            <div class="h-11 w-11 rounded-2xl btn-marca flex items-center justify-center shadow-[0_0_25px_rgba(91,61,245,0.35)]">
+                <span class="text-white font-extrabold text-sm fonte-display">V</span>
             </div>
-            <span class="text-sm font-bold uppercase tracking-widest text-gray-300">Vide Hub</span>
+            <h1 class="text-lg fonte-display font-bold text-white tracking-tight">Vide Hub</h1>
         </div>
-        <div class="space-y-6 max-w-xl relative z-10 mb-12">
-            <h2 class="text-5xl font-extrabold tracking-tight leading-[1.15] bg-clip-text text-transparent bg-gradient-to-r from-white via-gray-200 to-gray-500">
-                Gerencie suas vitrines digitais em um só lugar.
-            </h2>
-            <p class="text-gray-400 text-base font-medium leading-relaxed">
-                Conecte-se ao ecossistema inteligente criado para escalar suas operações de marketing digital e otimizar conversões.
-            </p>
-        </div>
-        <div class="text-xs text-gray-600 font-medium relative z-10">
-            &copy; 2026 Vide Hub Inc. Todos os direitos reservados.
-        </div>
-    </div>
-    <div class="w-full lg:w-5/12 bg-[#05050d] flex flex-col justify-center px-8 sm:px-16 md:px-24 relative overflow-y-auto py-12">
-        <div class="lg:hidden absolute top-[-10%] right-[-10%] h-[300px] w-[300px] rounded-full bg-[#00f2fe]/10 blur-[80px] pointer-events-none"></div>
-        <div class="w-full max-w-[400px] mx-auto space-y-10">
 
-            <div id="card-login" class="space-y-6 transition-all duration-500 transform scale-100 opacity-100">
-                <div class="space-y-2">
-                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Login</h1>
-                    <p class="text-gray-400 text-xs font-medium">Entre com suas credenciais para acessar o ecossistema.</p>
+        <!-- CARD LOGIN -->
+        <div id="card-login" class="space-y-6 transition-all duration-500 transform scale-100 opacity-100">
+
+            <div class="text-center space-y-1">
+                <h2 class="text-xl fonte-display font-bold text-white">Acesse seu Painel</h2>
+                <p class="text-gray-400 text-xs">Entre com suas credenciais para gerenciar suas vitrines.</p>
+            </div>
+
+            <button type="button" id="btn-google-login" class="w-full py-3.5 bg-white hover:bg-gray-100 text-black font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.99]">
+                <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                Entrar com Google
+            </button>
+
+            <div class="flex items-center gap-3">
+                <div class="flex-1 h-px bg-white/10"></div>
+                <span class="text-[10px] text-gray-500 uppercase tracking-wider">ou</span>
+                <div class="flex-1 h-px bg-white/10"></div>
+            </div>
+
+            <form id="login-form" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail</label>
+                    <input type="email" required id="login-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
                 </div>
+                <div class="space-y-1.5">
+                    <div class="flex justify-between items-center">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Senha</label>
+                        <button type="button" id="btn-esqueci-senha" class="text-[11px] link-marca hover:underline font-medium bg-transparent border-none cursor-pointer">Esqueceu?</button>
+                    </div>
+                    <div class="relative">
+                        <input type="password" required id="login-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
+                        <button type="button" id="toggle-senha-login" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                    </div>
+                </div>
+                <button type="submit" id="btn-submit-login" class="w-full py-4 mt-2 btn-marca text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(91,61,245,0.25)] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
+                    <span id="btn-submit-login-texto">Entrar na Loja</span>
+                </button>
+            </form>
 
-                <button type="button" id="btn-google-login" class="w-full py-3.5 bg-white hover:bg-gray-100 text-black font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.99]">
-                    <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
-                    Entrar com Google
+            <p class="text-center text-xs text-gray-500 font-medium">Não tem uma licença? <button id="btn-ir-cadastro" class="text-white font-bold hover:underline transition-colors bg-transparent border-none cursor-pointer">Solicitar Acesso</button></p>
+        </div>
+
+        <!-- CARD CADASTRO -->
+        <div id="card-cadastro" class="space-y-6 transition-all duration-500 transform scale-95 opacity-0 hidden">
+
+            <div class="text-center space-y-1">
+                <h2 class="text-xl fonte-display font-bold text-white">Criar Conta</h2>
+                <p class="text-gray-400 text-xs">Ative sua licença e comece a vender.</p>
+            </div>
+
+            <div id="cadastro-passo-1">
+                <button type="button" id="btn-google-cadastro" class="w-full py-3.5 bg-white hover:bg-gray-100 text-black font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.99] mb-6">
+                    <svg width="16" height="16" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+                    Continuar com Google
                 </button>
 
-                <div class="flex items-center gap-3">
-                    <div class="h-px flex-1 bg-white/10"></div>
-                    <span class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">ou</span>
-                    <div class="h-px flex-1 bg-white/10"></div>
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="flex-1 h-px bg-white/10"></div>
+                    <span class="text-[10px] text-gray-500 uppercase tracking-wider">ou</span>
+                    <div class="flex-1 h-px bg-white/10"></div>
                 </div>
 
-                <form id="login-form" class="space-y-5">
+                <form id="cadastro-form" class="space-y-5">
                     <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail Corporativo</label>
-                        <input type="email" required id="login-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="nome@empresa.com">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Seu Nome</label>
+                        <input type="text" required id="cadastro-nome" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-600" placeholder="Seu Nome">
                     </div>
                     <div class="space-y-1.5">
-                        <div class="flex justify-between items-center">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Senha de Acesso</label>
-                            <button type="button" id="btn-esqueci-senha" class="text-[11px] text-[#00f2fe] hover:underline font-medium bg-transparent border-none cursor-pointer">Esqueceu?</button>
-                        </div>
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome da Loja</label>
+                        <input type="text" required id="cadastro-nome-loja" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-600" placeholder="Ex: Vide Digital">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail</label>
+                        <input type="email" required id="cadastro-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
+                    </div>
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Senha</label>
                         <div class="relative">
-                            <input type="password" required id="login-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-700" placeholder="••••••••">
-                            <button type="button" id="toggle-senha-login" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                            <input type="password" required id="cadastro-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
+                            <button type="button" id="toggle-senha-cadastro" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
                         </div>
                     </div>
-                    <button type="submit" id="btn-submit-login" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] hover:shadow-[0_4px_35px_rgba(0,242,254,0.3)] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
-                        <span id="btn-submit-login-texto">Entrar na Loja</span>
+                    <button type="submit" id="btn-submit-cadastro" class="w-full py-4 mt-2 btn-marca text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(91,61,245,0.25)] active:scale-[0.99] transition-all duration-300">
+                        <span id="btn-submit-cadastro-texto">Ativar Minha Licença</span>
                     </button>
                 </form>
-                <p class="text-xs text-gray-500 font-medium">Não tem uma licença? <button id="btn-ir-cadastro" class="text-white font-bold hover:text-[#00f2fe] hover:underline transition-colors bg-transparent border-none cursor-pointer">Solicitar Acesso</button></p>
             </div>
 
-            <div id="card-cadastro" class="space-y-6 transition-all duration-500 transform scale-95 opacity-0 hidden">
-                <div class="space-y-2">
-                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Criar Conta</h1>
-                    <p class="text-gray-400 text-xs font-medium">Cadastre seu terminal. Sua conta passará por análise.</p>
+            <div id="cadastro-passo-2" class="hidden space-y-5">
+                <p class="text-xs text-gray-300">Conectado como <strong id="cadastro-google-email-preview" class="text-white"></strong>. Falta só o nome da sua loja pra concluir.</p>
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome da Loja</label>
+                    <input type="text" id="cadastro-google-nome-loja" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-600" placeholder="Ex: Vide Digital">
                 </div>
-
-                <div id="cadastro-passo-1">
-                    <button type="button" id="btn-google-cadastro" class="w-full py-3.5 bg-white hover:bg-gray-100 text-black font-bold text-xs uppercase tracking-widest rounded-xl flex items-center justify-center gap-3 transition-all active:scale-[0.99] mb-6">
-                        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
-                        Cadastrar com Google
-                    </button>
-
-                    <div class="flex items-center gap-3 mb-6">
-                        <div class="h-px flex-1 bg-white/10"></div>
-                        <span class="text-[10px] text-gray-600 uppercase tracking-widest font-bold">ou</span>
-                        <div class="h-px flex-1 bg-white/10"></div>
-                    </div>
-
-                    <form id="cadastro-form" class="space-y-5">
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome Completo</label>
-                            <input type="text" required id="cadastro-nome" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="Seu Nome">
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome da Sua Loja</label>
-                            <input type="text" required id="cadastro-nome-loja" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="Ex: Vide Digital">
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail de Acesso</label>
-                            <input type="email" required id="cadastro-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="nome@empresa.com">
-                        </div>
-                        <div class="space-y-1.5">
-                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Escolha uma Senha</label>
-                            <div class="relative">
-                                <input type="password" required id="cadastro-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-700" placeholder="••••••••">
-                                <button type="button" id="toggle-senha-cadastro" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
-                            </div>
-                        </div>
-                        <button type="submit" id="btn-submit-cadastro" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
-                            <span id="btn-submit-cadastro-texto">Ativar Minha Licença</span>
-                        </button>
-                    </form>
-                </div>
-
-                <div id="cadastro-passo-2" class="hidden space-y-5">
-                    <div class="bg-[#00f2fe]/5 border border-[#00f2fe]/20 rounded-xl p-4">
-                        <p class="text-xs text-gray-300">Conectado como <strong id="cadastro-google-email-preview" class="text-white"></strong>. Falta só o nome da sua loja pra concluir.</p>
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Nome da Sua Loja</label>
-                        <input type="text" id="cadastro-google-nome-loja" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="Ex: Vide Digital">
-                    </div>
-                    <button type="button" id="btn-concluir-cadastro-google" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
-                        <span id="btn-concluir-google-texto">Concluir Cadastro</span>
-                    </button>
-                </div>
-
-                <p class="text-xs text-gray-500 font-medium">Já possui acesso? <button id="btn-ir-login" class="text-white font-bold hover:text-[#00f2fe] hover:underline transition-colors bg-transparent border-none cursor-pointer">Fazer Login</button></p>
+                <button type="button" id="btn-concluir-cadastro-google" class="w-full py-4 mt-2 btn-marca text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(91,61,245,0.25)] active:scale-[0.99] transition-all duration-300">
+                    <span id="btn-concluir-google-texto">Concluir Cadastro</span>
+                </button>
             </div>
 
-            <div id="card-esqueci-senha" class="space-y-6 transition-all duration-500 transform scale-95 opacity-0 hidden">
-                <div class="space-y-2">
-                    <h1 class="text-3xl font-extrabold tracking-tight text-white">Redefinir Senha</h1>
-                    <p class="text-gray-400 text-xs font-medium">Digite seu e-mail e enviaremos um link seguro pra você criar uma senha nova.</p>
-                </div>
-                <form id="esqueci-senha-form" class="space-y-5">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">E-mail Corporativo</label>
-                        <input type="email" required id="esqueci-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-700" placeholder="nome@empresa.com">
-                    </div>
-                    <button type="submit" id="btn-submit-esqueci" class="w-full py-4 mt-2 bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(0,242,254,0.15)] active:scale-[0.99] transition-all duration-300">
-                        <span id="btn-submit-esqueci-texto">Enviar Link de Redefinição</span>
-                    </button>
-                </form>
-                <p class="text-xs text-gray-500 font-medium"><button id="btn-voltar-login" class="text-white font-bold hover:text-[#00f2fe] hover:underline transition-colors bg-transparent border-none cursor-pointer">← Voltar ao login</button></p>
-            </div>
-
+            <p class="text-center text-xs text-gray-500 font-medium">Já possui acesso? <button id="btn-ir-login" class="text-white font-bold hover:underline transition-colors bg-transparent border-none cursor-pointer">Fazer Login</button></p>
         </div>
+
+        <!-- CARD ESQUECI SENHA -->
+        <div id="card-esqueci-senha" class="space-y-6 transition-all duration-500 transform scale-95 opacity-0 hidden">
+
+            <div class="text-center space-y-1">
+                <h2 class="text-xl fonte-display font-bold text-white">Redefinir Senha</h2>
+                <p class="text-gray-400 text-xs">Enviamos um link de redefinição para o seu e-mail.</p>
+            </div>
+
+            <form id="esqueci-senha-form" class="space-y-5">
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail</label>
+                    <input type="email" required id="esqueci-email" class="w-full premium-input rounded-xl p-4 text-sm text-white outline-none placeholder-gray-600" placeholder="nome@empresa.com">
+                </div>
+                <button type="submit" id="btn-submit-esqueci" class="w-full py-4 mt-2 btn-marca text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(91,61,245,0.25)] active:scale-[0.99] transition-all duration-300">
+                    <span id="btn-submit-esqueci-texto">Enviar Link de Redefinição</span>
+                </button>
+            </form>
+
+            <p class="text-center text-xs text-gray-500 font-medium"><button id="btn-voltar-login" class="text-white font-bold hover:underline transition-colors bg-transparent border-none cursor-pointer">← Voltar ao login</button></p>
+        </div>
+
     </div>
-    <script type="module">
-        import { auth, db } from "./firebase-init.js";
-        import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        const googleProvider = new GoogleAuthProvider();
+<script type="module">
 
-        function emitInlineFeedback(message, status = 'success') {
-            let feedbackBox = document.getElementById('global-inline-feedback');
-            if (!feedbackBox) {
-                feedbackBox = document.createElement('div');
-                feedbackBox.id = 'global-inline-feedback';
-                Object.assign(feedbackBox.style, {
-                    position: 'fixed', bottom: '32px', right: '32px', padding: '16px 24px',
-                    borderRadius: '12px', fontWeight: '700', fontSize: '0.8rem', letterSpacing: '0.05em',
-                    textTransform: 'uppercase', zIndex: '99999', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-                    boxShadow: '0 20px 40px rgba(0,0,0,0.5)', transform: 'translateY(50px)', opacity: '0', maxWidth: '340px'
-                });
-                document.body.appendChild(feedbackBox);
-            }
-            feedbackBox.style.backgroundColor = status === 'success' ? 'rgba(0, 242, 254, 0.1)' : 'rgba(239, 68, 68, 0.1)';
-            feedbackBox.style.border = status === 'success' ? '1px solid #00f2fe' : '1px solid #EF4444';
-            feedbackBox.style.color = status === 'success' ? '#00f2fe' : '#EF4444';
-            feedbackBox.style.backdropFilter = 'blur(10px)';
-            feedbackBox.textContent = message;
-            setTimeout(() => { feedbackBox.style.transform = 'translateY(0)'; feedbackBox.style.opacity = '1'; }, 50);
-            setTimeout(() => { feedbackBox.style.transform = 'translateY(50px)'; feedbackBox.style.opacity = '0'; }, 4000);
-        }
+import { auth, db } from "./firebase-init.js";
 
-        function traduzirErroFirebase(code) {
-            const mapa = {
-                "auth/invalid-email": "E-mail inválido.",
-                "auth/user-disabled": "Esta conta foi desativada.",
-                "auth/user-not-found": "Nenhuma conta encontrada com esse e-mail.",
-                "auth/wrong-password": "E-mail ou senha incorretos.",
-                "auth/invalid-credential": "E-mail ou senha incorretos.",
-                "auth/invalid-login-credentials": "E-mail ou senha incorretos.",
-                "auth/too-many-requests": "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.",
-                "auth/network-request-failed": "Falha de conexão. Confira sua internet e tente de novo.",
-                "auth/email-already-in-use": "Este e-mail já possui cadastro.",
-                "auth/weak-password": "A senha escolhida é muito fraca (use ao menos 6 caracteres).",
-                "auth/popup-closed-by-user": "Login com Google cancelado.",
-                "auth/popup-blocked": "O navegador bloqueou o pop-up do Google. Permita pop-ups e tente de novo."
-            };
-            return mapa[code] || `Não foi possível concluir (${code || "erro desconhecido"}). Tente novamente.`;
-        }
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
-        function mensagemPorStatus(status) {
-            const mapa = {
-                pendente: "Seu cadastro está em análise. Você recebe acesso assim que for aprovado.",
-                inativo: "Sua conta foi suspensa. Fale com o suporte pra mais informações.",
-                rejeitado: "Seu cadastro não foi aprovado. Fale com o suporte pra mais informações."
-            };
-            return mapa[status] || "Sua conta ainda não está liberada para acesso.";
-        }
+import { doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-        function definirCarregando(botao, span, carregando, textoNormal, textoCarregando) {
-            botao.disabled = carregando;
-            botao.classList.toggle("opacity-60", carregando);
-            botao.classList.toggle("cursor-not-allowed", carregando);
-            span.innerHTML = carregando
-                ? `<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${textoCarregando}</span>`
-                : textoNormal;
-        }
+const googleProvider = new GoogleAuthProvider();
 
-        const cards = {
-            login: document.getElementById("card-login"),
-            cadastro: document.getElementById("card-cadastro"),
-            esqueci: document.getElementById("card-esqueci-senha")
-        };
-        function mostrarCard(alvo) {
-            const atual = Object.values(cards).find(c => !c.classList.contains("hidden"));
-            if (atual === cards[alvo]) return;
-            if (atual) {
-                atual.style.transform = "scale(0.95)"; atual.style.opacity = "0";
-            }
-            setTimeout(() => {
-                Object.values(cards).forEach(c => c.classList.add("hidden"));
-                cards[alvo].classList.remove("hidden");
-                setTimeout(() => { cards[alvo].style.transform = "scale(1)"; cards[alvo].style.opacity = "1"; }, 50);
-            }, atual ? 300 : 0);
-        }
+function emitInlineFeedback(message, status = 'success') {
 
-        document.getElementById("btn-ir-cadastro").addEventListener("click", () => mostrarCard("cadastro"));
-        document.getElementById("btn-ir-login").addEventListener("click", () => mostrarCard("login"));
-        document.getElementById("btn-esqueci-senha").addEventListener("click", () => mostrarCard("esqueci"));
-        document.getElementById("btn-voltar-login").addEventListener("click", () => mostrarCard("login"));
+let feedbackBox = document.getElementById('global-inline-feedback');
 
-        function setupToggleSenha(inputId, buttonId) {
-            const input = document.getElementById(inputId); const btn = document.getElementById(buttonId);
-            if(input && btn) {
-                btn.addEventListener("click", () => {
-                    const isPassword = input.type === "password";
-                    input.type = isPassword ? "text" : "password";
-                    btn.textContent = isPassword ? "🙈" : "👁️";
-                });
-            }
-        }
-        setupToggleSenha("login-senha", "toggle-senha-login");
-        setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
+if (!feedbackBox) {
 
-        async function autorizarEEntrar(uid) {
+feedbackBox = document.createElement('div');
+
+feedbackBox.id = 'global-inline-feedback';
+
+Object.assign(feedbackBox.style, {
+
+position: 'fixed', bottom: '32px', right: '32px', padding: '16px 24px',
+
+borderRadius: '12px', fontWeight: '700', fontSize: '0.8rem', letterSpacing: '0.05em',
+
+textTransform: 'uppercase', zIndex: '99999', transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+
+boxShadow: '0 20px 40px rgba(0,0,0,0.5)', transform: 'translateY(50px)', opacity: '0', maxWidth: '340px'
+
+});
+
+document.body.appendChild(feedbackBox);
+
+}
+
+feedbackBox.style.backgroundColor = status === 'success' ? 'rgba(0, 242, 254, 0.1)' : 'rgba(239, 68, 68, 0.1)';
+
+feedbackBox.style.border = status === 'success' ? '1px solid #00f2fe' : '1px solid #EF4444';
+
+feedbackBox.style.color = status === 'success' ? '#00f2fe' : '#EF4444';
+
+feedbackBox.style.backdropFilter = 'blur(10px)';
+
+feedbackBox.textContent = message;
+
+setTimeout(() => { feedbackBox.style.transform = 'translateY(0)'; feedbackBox.style.opacity = '1'; }, 50);
+
+setTimeout(() => { feedbackBox.style.transform = 'translateY(50px)'; feedbackBox.style.opacity = '0'; }, 4000);
+
+}
+
+function traduzirErroFirebase(code) {
+
+const mapa = {
+
+"auth/invalid-email": "E-mail inválido.",
+
+"auth/user-disabled": "Esta conta foi desativada.",
+
+"auth/user-not-found": "Nenhuma conta encontrada com esse e-mail.",
+
+"auth/wrong-password": "E-mail ou senha incorretos.",
+
+"auth/invalid-credential": "E-mail ou senha incorretos.",
+
+"auth/invalid-login-credentials": "E-mail ou senha incorretos.",
+
+"auth/too-many-requests": "Muitas tentativas seguidas. Aguarde alguns minutos e tente de novo.",
+
+"auth/network-request-failed": "Falha de conexão. Confira sua internet e tente de novo.",
+
+"auth/email-already-in-use": "Este e-mail já possui cadastro.",
+
+"auth/weak-password": "A senha escolhida é muito fraca (use ao menos 6 caracteres).",
+
+"auth/popup-closed-by-user": "Login com Google cancelado.",
+
+"auth/popup-blocked": "O navegador bloqueou o pop-up do Google. Permita pop-ups e tente de novo."
+
+};
+
+return mapa[code] || `Não foi possível concluir (${code || "erro desconhecido"}). Tente novamente.`;
+
+}
+
+function mensagemPorStatus(status) {
+
+const mapa = {
+
+pendente: "Seu cadastro está em análise. Você recebe acesso assim que for aprovado.",
+
+inativo: "Sua conta foi suspensa. Fale com o suporte pra mais informações.",
+
+rejeitado: "Seu cadastro não foi aprovado. Fale com o suporte pra mais informações."
+
+};
+
+return mapa[status] || "Sua conta ainda não está liberada para acesso.";
+
+}
+
+function definirCarregando(botao, span, carregando, textoNormal, textoCarregando) {
+
+botao.disabled = carregando;
+
+botao.classList.toggle("opacity-60", carregando);
+
+botao.classList.toggle("cursor-not-allowed", carregando);
+
+span.innerHTML = carregando
+
+? `<span class="inline-flex items-center gap-2"><svg class="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>${textoCarregando}</span>`
+
+: textoNormal;
+
+}
+
+const cards = {
+
+login: document.getElementById("card-login"),
+
+cadastro: document.getElementById("card-cadastro"),
+
+esqueci: document.getElementById("card-esqueci-senha")
+
+};
+
+function mostrarCard(alvo) {
+
+const atual = Object.values(cards).find(c => !c.classList.contains("hidden"));
+
+if (atual === cards[alvo]) return;
+
+if (atual) {
+
+atual.style.transform = "scale(0.95)"; atual.style.opacity = "0";
+
+}
+
+setTimeout(() => {
+
+Object.values(cards).forEach(c => c.classList.add("hidden"));
+
+cards[alvo].classList.remove("hidden");
+
+setTimeout(() => { cards[alvo].style.transform = "scale(1)"; cards[alvo].style.opacity = "1"; }, 50);
+
+}, atual ? 300 : 0);
+
+}
+
+document.getElementById("btn-ir-cadastro").addEventListener("click", () => mostrarCard("cadastro"));
+
+document.getElementById("btn-ir-login").addEventListener("click", () => mostrarCard("login"));
+
+document.getElementById("btn-esqueci-senha").addEventListener("click", () => mostrarCard("esqueci"));
+
+document.getElementById("btn-voltar-login").addEventListener("click", () => mostrarCard("login"));
+
+function setupToggleSenha(inputId, buttonId) {
+
+const input = document.getElementById(inputId); const btn = document.getElementById(buttonId);
+
+if(input && btn) {
+
+btn.addEventListener("click", () => {
+
+const isPassword = input.type === "password";
+
+input.type = isPassword ? "text" : "password";
+
+btn.textContent = isPassword ? "��" : "��️";
+
+});
+
+}
+
+}
+
+setupToggleSenha("login-senha", "toggle-senha-login");
+
+setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
+
+async function autorizarEEntrar(uid) {
 
 const emailAtual = (auth.currentUser?.email || "").toLowerCase();
 
@@ -341,148 +403,280 @@ return true;
 
 }
 
-        const btnSubmitLogin = document.getElementById("btn-submit-login");
-        const btnSubmitLoginTexto = document.getElementById("btn-submit-login-texto");
-        document.getElementById("login-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const email = document.getElementById("login-email").value.trim();
-            const senha = document.getElementById("login-senha").value;
-            definirCarregando(btnSubmitLogin, btnSubmitLoginTexto, true, "Entrar na Loja", "Entrando...");
-            try {
-                const userCredential = await signInWithEmailAndPassword(auth, email, senha);
-                await autorizarEEntrar(userCredential.user.uid);
-            } catch (error) {
-                console.error(error);
-                emitInlineFeedback(traduzirErroFirebase(error.code), "error");
-            } finally {
-                definirCarregando(btnSubmitLogin, btnSubmitLoginTexto, false, "Entrar na Loja", "");
-            }
-        });
+const btnSubmitLogin = document.getElementById("btn-submit-login");
 
-        document.getElementById("btn-google-login").addEventListener("click", async () => {
-            try {
-                const result = await signInWithPopup(auth, googleProvider);
-                await autorizarEEntrar(result.user.uid);
-            } catch (error) {
-                console.error(error);
-                emitInlineFeedback(traduzirErroFirebase(error.code), "error");
-            }
-        });
+const btnSubmitLoginTexto = document.getElementById("btn-submit-login-texto");
 
-        let googleUserPendente = null;
-        document.getElementById("btn-google-cadastro").addEventListener("click", async () => {
-            try {
-                const result = await signInWithPopup(auth, googleProvider);
-                const user = result.user;
-                const userDoc = await getDoc(doc(db, "usuarios", user.uid));
-                if (userDoc.exists()) {
-                    await autorizarEEntrar(user.uid);
-                    return;
-                }
-                googleUserPendente = user;
-                document.getElementById("cadastro-google-email-preview").innerText = user.email;
-                document.getElementById("cadastro-passo-1").classList.add("hidden");
-                document.getElementById("cadastro-passo-2").classList.remove("hidden");
-            } catch (error) {
-                console.error(error);
-                emitInlineFeedback(traduzirErroFirebase(error.code), "error");
-            }
-        });
+document.getElementById("login-form").addEventListener("submit", async (e) => {
 
-        const btnConcluirGoogle = document.getElementById("btn-concluir-cadastro-google");
-        const btnConcluirGoogleTexto = document.getElementById("btn-concluir-google-texto");
-        btnConcluirGoogle.addEventListener("click", async () => {
-            const nomeLoja = document.getElementById("cadastro-google-nome-loja").value.trim();
-            if (!nomeLoja || !googleUserPendente) {
-                emitInlineFeedback("Digite o nome da sua loja.", "error");
-                return;
-            }
-            const slugGerado = nomeLoja.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-            definirCarregando(btnConcluirGoogle, btnConcluirGoogleTexto, true, "Concluir Cadastro", "Enviando...");
-            try {
-                await setDoc(doc(db, "usuarios", googleUserPendente.uid), {
-                    identificador: googleUserPendente.email,
-                    nome: googleUserPendente.displayName || "",
-                    email: googleUserPendente.email,
-                    nomeLoja: nomeLoja,
-                    urlLoja: slugGerado,
-                    status: "pendente",
-                    criadoEm: new Date().toISOString()
-                });
-                emitInlineFeedback("Solicitação enviada com sucesso!", "success");
-                await signOut(auth);
-                setTimeout(() => {
-                    document.getElementById("cadastro-passo-2").classList.add("hidden");
-                    document.getElementById("cadastro-passo-1").classList.remove("hidden");
-                    document.getElementById("cadastro-google-nome-loja").value = "";
-                    googleUserPendente = null;
-                    mostrarCard("login");
-                }, 2500);
-            } catch (error) {
-                console.error(error);
-                emitInlineFeedback("Erro ao registrar no banco.", "error");
-            } finally {
-                definirCarregando(btnConcluirGoogle, btnConcluirGoogleTexto, false, "Concluir Cadastro", "");
-            }
-        });
+e.preventDefault();
 
-        const btnSubmitCadastro = document.getElementById("btn-submit-cadastro");
-        const btnSubmitCadastroTexto = document.getElementById("btn-submit-cadastro-texto");
-        document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const nome = document.getElementById("cadastro-nome").value.trim();
-            const nomeLoja = document.getElementById("cadastro-nome-loja").value.trim();
-            const email = document.getElementById("cadastro-email").value.trim().toLowerCase();
-            const senha = document.getElementById("cadastro-senha").value;
-            const slugGerado = nomeLoja.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
-            definirCarregando(btnSubmitCadastro, btnSubmitCadastroTexto, true, "Ativar Minha Licença", "Enviando...");
-            try {
-                const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
-                const user = userCredential.user;
-                await setDoc(doc(db, "usuarios", user.uid), {
-                    identificador: email, 
-                    nome: nome, 
-                    email: email, 
-                    nomeLoja: nomeLoja,
-                    urlLoja: slugGerado,
-                    status: "pendente", 
-                    criadoEm: new Date().toISOString()
-                });
-                emitInlineFeedback("Solicitação enviada com sucesso!", "success");
-                await signOut(auth);
-                setTimeout(() => {
-                    document.getElementById("cadastro-form").reset();
-                    mostrarCard("login");
-                }, 2500);
-            } catch (error) {
-                console.error(error);
-                emitInlineFeedback(traduzirErroFirebase(error.code), "error");
-            } finally {
-                definirCarregando(btnSubmitCadastro, btnSubmitCadastroTexto, false, "Ativar Minha Licença", "");
-            }
-        });
+const email = document.getElementById("login-email").value.trim();
 
-        const btnSubmitEsqueci = document.getElementById("btn-submit-esqueci");
-        const btnSubmitEsqueciTexto = document.getElementById("btn-submit-esqueci-texto");
-        document.getElementById("esqueci-senha-form").addEventListener("submit", async (e) => {
-            e.preventDefault();
-            const email = document.getElementById("esqueci-email").value.trim();
-            definirCarregando(btnSubmitEsqueci, btnSubmitEsqueciTexto, true, "Enviar Link de Redefinição", "Enviando...");
-            try {
-                await sendPasswordResetEmail(auth, email, {
-                    url: "https://videdigital.github.io/vide-digital/resetar-senha.html",
-                    handleCodeInApp: false
-                });
-                emitInlineFeedback("Link enviado! Confira seu e-mail.", "success");
-                document.getElementById("esqueci-senha-form").reset();
-                setTimeout(() => mostrarCard("login"), 2500);
-            } catch (error) {
-                console.error(error);
-                emitInlineFeedback(traduzirErroFirebase(error.code), "error");
-            } finally {
-                definirCarregando(btnSubmitEsqueci, btnSubmitEsqueciTexto, false, "Enviar Link de Redefinição", "");
-            }
-        });
-    </script>
+const senha = document.getElementById("login-senha").value;
+
+definirCarregando(btnSubmitLogin, btnSubmitLoginTexto, true, "Entrar na Loja", "Entrando...");
+
+try {
+
+const userCredential = await signInWithEmailAndPassword(auth, email, senha);
+
+await autorizarEEntrar(userCredential.user.uid);
+
+} catch (error) {
+
+console.error(error);
+
+emitInlineFeedback(traduzirErroFirebase(error.code), "error");
+
+} finally {
+
+definirCarregando(btnSubmitLogin, btnSubmitLoginTexto, false, "Entrar na Loja", "");
+
+}
+
+});
+
+document.getElementById("btn-google-login").addEventListener("click", async () => {
+
+try {
+
+const result = await signInWithPopup(auth, googleProvider);
+
+await autorizarEEntrar(result.user.uid);
+
+} catch (error) {
+
+console.error(error);
+
+emitInlineFeedback(traduzirErroFirebase(error.code), "error");
+
+}
+
+});
+
+let googleUserPendente = null;
+
+document.getElementById("btn-google-cadastro").addEventListener("click", async () => {
+
+try {
+
+const result = await signInWithPopup(auth, googleProvider);
+
+const user = result.user;
+
+const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+
+if (userDoc.exists()) {
+
+await autorizarEEntrar(user.uid);
+
+return;
+
+}
+
+googleUserPendente = user;
+
+document.getElementById("cadastro-google-email-preview").innerText = user.email;
+
+document.getElementById("cadastro-passo-1").classList.add("hidden");
+
+document.getElementById("cadastro-passo-2").classList.remove("hidden");
+
+} catch (error) {
+
+console.error(error);
+
+emitInlineFeedback(traduzirErroFirebase(error.code), "error");
+
+}
+
+});
+
+const btnConcluirGoogle = document.getElementById("btn-concluir-cadastro-google");
+
+const btnConcluirGoogleTexto = document.getElementById("btn-concluir-google-texto");
+
+btnConcluirGoogle.addEventListener("click", async () => {
+
+const nomeLoja = document.getElementById("cadastro-google-nome-loja").value.trim();
+
+if (!nomeLoja || !googleUserPendente) {
+
+emitInlineFeedback("Digite o nome da sua loja.", "error");
+
+return;
+
+}
+
+const slugGerado = nomeLoja.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+definirCarregando(btnConcluirGoogle, btnConcluirGoogleTexto, true, "Concluir Cadastro", "Enviando...");
+
+try {
+
+await setDoc(doc(db, "usuarios", googleUserPendente.uid), {
+
+identificador: googleUserPendente.email,
+
+nome: googleUserPendente.displayName || "",
+
+email: googleUserPendente.email,
+
+nomeLoja: nomeLoja,
+
+urlLoja: slugGerado,
+
+status: "pendente",
+
+criadoEm: new Date().toISOString()
+
+});
+
+emitInlineFeedback("Solicitação enviada com sucesso!", "success");
+
+await signOut(auth);
+
+setTimeout(() => {
+
+document.getElementById("cadastro-passo-2").classList.add("hidden");
+
+document.getElementById("cadastro-passo-1").classList.remove("hidden");
+
+document.getElementById("cadastro-google-nome-loja").value = "";
+
+googleUserPendente = null;
+
+mostrarCard("login");
+
+}, 2500);
+
+} catch (error) {
+
+console.error(error);
+
+emitInlineFeedback("Erro ao registrar no banco.", "error");
+
+} finally {
+
+definirCarregando(btnConcluirGoogle, btnConcluirGoogleTexto, false, "Concluir Cadastro", "");
+
+}
+
+});
+
+const btnSubmitCadastro = document.getElementById("btn-submit-cadastro");
+
+const btnSubmitCadastroTexto = document.getElementById("btn-submit-cadastro-texto");
+
+document.getElementById("cadastro-form").addEventListener("submit", async (e) => {
+
+e.preventDefault();
+
+const nome = document.getElementById("cadastro-nome").value.trim();
+
+const nomeLoja = document.getElementById("cadastro-nome-loja").value.trim();
+
+const email = document.getElementById("cadastro-email").value.trim().toLowerCase();
+
+const senha = document.getElementById("cadastro-senha").value;
+
+const slugGerado = nomeLoja.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+definirCarregando(btnSubmitCadastro, btnSubmitCadastroTexto, true, "Ativar Minha Licença", "Enviando...");
+
+try {
+
+const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+
+const user = userCredential.user;
+
+await setDoc(doc(db, "usuarios", user.uid), {
+
+identificador: email,
+
+nome: nome,
+
+email: email,
+
+nomeLoja: nomeLoja,
+
+urlLoja: slugGerado,
+
+status: "pendente",
+
+criadoEm: new Date().toISOString()
+
+});
+
+emitInlineFeedback("Solicitação enviada com sucesso!", "success");
+
+await signOut(auth);
+
+setTimeout(() => {
+
+document.getElementById("cadastro-form").reset();
+
+mostrarCard("login");
+
+}, 2500);
+
+} catch (error) {
+
+console.error(error);
+
+emitInlineFeedback(traduzirErroFirebase(error.code), "error");
+
+} finally {
+
+definirCarregando(btnSubmitCadastro, btnSubmitCadastroTexto, false, "Ativar Minha Licença", "");
+
+}
+
+});
+
+const btnSubmitEsqueci = document.getElementById("btn-submit-esqueci");
+
+const btnSubmitEsqueciTexto = document.getElementById("btn-submit-esqueci-texto");
+
+document.getElementById("esqueci-senha-form").addEventListener("submit", async (e) => {
+
+e.preventDefault();
+
+const email = document.getElementById("esqueci-email").value.trim();
+
+definirCarregando(btnSubmitEsqueci, btnSubmitEsqueciTexto, true, "Enviar Link de Redefinição", "Enviando...");
+
+try {
+
+await sendPasswordResetEmail(auth, email, {
+
+url: "https://videdigital.github.io/vide-digital/resetar-senha.html",
+
+handleCodeInApp: false
+
+});
+
+emitInlineFeedback("Link enviado! Confira seu e-mail.", "success");
+
+document.getElementById("esqueci-senha-form").reset();
+
+setTimeout(() => mostrarCard("login"), 2500);
+
+} catch (error) {
+
+console.error(error);
+
+emitInlineFeedback(traduzirErroFirebase(error.code), "error");
+
+} finally {
+
+definirCarregando(btnSubmitEsqueci, btnSubmitEsqueciTexto, false, "Enviar Link de Redefinição", "");
+
+}
+
+});
+
+</script>
 </body>
 </html>
