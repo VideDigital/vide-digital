@@ -458,6 +458,12 @@ import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "
 window.addEventListener("pageshow", function(event) {
     if (event.persisted) window.location.reload();
 });
+
+// Ao sair da página por QUALQUER motivo (Voltar do navegador, fechar aba, trocar de URL),
+// encerra a sessão na hora — assim "Avançar" nunca reabre o painel já logado.
+window.addEventListener("pagehide", function() {
+    signOut(auth).catch(() => {});
+});
         let todosUsuarios = [];
         let clienteSelecionadoUID = null;
         // DEFINIÇÃO DOS PLANOS — altere aqui os preços e limites
