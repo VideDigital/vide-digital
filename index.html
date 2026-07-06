@@ -30,16 +30,21 @@
     <p class="text-gray-400 text-sm">Carregando...</p>
 </div>
 <script type="module">
-    import { db } from "./firebase-init.js";
-    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-
+(async function() {
     var ehDominioPadrao = window.location.hostname === "videdigital.github.io";
     var base = ehDominioPadrao ? "/vide-digital/" : "/";
+
+    // Import absoluto (nao relativo) -- evita quebrar quando a URL "fake" tem varios niveis (ex: /teste/lp1)
+    const firebaseInit = await import(base + "firebase-init.js");
+    const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const db = firebaseInit.db;
+
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
     var segmentos = caminho.split("/").filter(Boolean);
     if (segmentos.length && segmentos[segmentos.length - 1].toLowerCase() === "index.html") {
         segmentos.pop();
     }
+
     async function resolverLojaPorDominio(hostname) {
         // TODO: quando o recurso de dominio proprio existir, buscar aqui
         // a loja dona desse hostname (ex: colecao "dominios_personalizados").
@@ -66,10 +71,10 @@
                     container.insertAdjacentHTML("beforeend", renderizarBloco(blocoSnap.data()));
                 }
             }
-} catch (erro) {
-        console.error("Erro ao carregar landing page:", erro);
-        document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
-    }
+        } catch (erro) {
+            console.error("Erro ao carregar landing page:", erro);
+            document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
+        }
     }
 
     function renderizarBloco(bloco) {
@@ -104,16 +109,16 @@
         document.getElementById("lp-container").innerHTML = '<p class="text-gray-400 text-sm">Pagina nao encontrada.</p>';
     }
 
-if (segmentos.length === 0) {
-    window.location.href = "login.html";
-} else if (ehDominioPadrao && segmentos.length === 2) {
-    setTimeout(function() {
-        var c = document.getElementById("lp-container");
-        if (c && c.textContent.indexOf("Carregando") !== -1) {
-            c.innerHTML = '<p class="text-amber-400 text-xs px-6 text-center">Travou carregando ha mais de 8s (loja=' + segmentos[0] + ', pagina=' + segmentos[1] + ')</p>';
-        }
-    }, 8000);
-    renderizarLandingPage(segmentos[0], segmentos[1]);
+    if (segmentos.length === 0) {
+        window.location.href = "login.html";
+    } else if (ehDominioPadrao && segmentos.length === 2) {
+        setTimeout(function() {
+            var c = document.getElementById("lp-container");
+            if (c && c.textContent.indexOf("Carregando") !== -1) {
+                c.innerHTML = '<p class="text-amber-400 text-xs px-6 text-center">Travou carregando ha mais de 8s (loja=' + segmentos[0] + ', pagina=' + segmentos[1] + ')</p>';
+            }
+        }, 8000);
+        renderizarLandingPage(segmentos[0], segmentos[1]);
     } else if (!ehDominioPadrao && segmentos.length === 1) {
         resolverLojaPorDominio(window.location.hostname).then(function(lojaSlug) {
             if (lojaSlug) renderizarLandingPage(lojaSlug, segmentos[0]);
@@ -122,6 +127,7 @@ if (segmentos.length === 0) {
     } else {
         mostrarErro();
     }
+})();
 </script>
 </body>
 </html>
