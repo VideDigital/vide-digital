@@ -52,14 +52,16 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
         </div>
     </header>
 
-    <div id="banners-carrossel" class="hidden relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group">
+<div id="corpo-vitrine-blocos">
+
+<div id="banners-carrossel" class="hidden relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group layout-block-lp" data-block-id="banners">
         <div id="banners-track" class="flex h-full transition-transform duration-700 ease-in-out"></div>
         <button id="banner-seta-anterior" class="hidden absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">&#8249;</button>
         <button id="banner-seta-proximo" class="hidden absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">&#8250;</button>
         <div id="banner-indicadores" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 gap-1.5 z-10"></div>
     </div>
 
-    <section class="max-w-6xl w-full mx-auto px-6 pt-12 text-center md:text-left space-y-6">
+    <section class="max-w-6xl w-full mx-auto px-6 pt-12 text-center md:text-left space-y-6 layout-block-lp" data-block-id="hero">
         <div class="max-w-3xl space-y-2">
             <h2 id="client-titulo-hero" class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">Solucoes e Treinamentos</h2>
             <p id="client-subtitulo" class="text-gray-400 text-sm max-w-xl">Escolha uma das ofertas premium abaixo.</p>
@@ -82,7 +84,7 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
         </div>
     </section>
 
-    <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-8">
+    <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-8 layout-block-lp" data-block-id="produtos">
         <div id="vitrine-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="animate-pulse bg-white/5 h-80 rounded-2xl"></div>
             <div class="animate-pulse bg-white/5 h-80 rounded-2xl"></div>
@@ -90,7 +92,9 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
         </div>
     </main>
 
-    <div id="widget-chat-cliente" class="hidden fixed bottom-6 right-6 z-50 flex flex-col items-end">
+</div>
+
+<div id="widget-chat-cliente" class="hidden fixed bottom-6 right-6 z-50 flex flex-col items-end">
         <div id="chat-window" class="hidden w-80 h-96 border border-white/10 rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden mb-3 bg-[#0c0c14]">
             <div class="p-4 bg-white/[0.02] border-b border-white/5 text-xs font-bold flex justify-between items-center text-white">
                 <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Atendimento Online</span>
@@ -213,6 +217,18 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
                     carrinhoAtivo = dados.carrinhoAtivo === true;
                     carrinhoMensagemCustom = dados.carrinhoMensagem || "";
                     nomeLojaAtual = dados.nomeLoja || "Vitrine";
+
+if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0) {
+    const containerLP = document.getElementById("corpo-vitrine-blocos");
+    if (containerLP) {
+        dados.layoutLojaPublica.forEach(item => {
+            const elBloco = containerLP.querySelector(`.layout-block-lp[data-block-id="${item.id}"]`);
+            if (!elBloco) return;
+            if (item.visivel === false) elBloco.style.display = "none";
+            containerLP.appendChild(elBloco);
+        });
+    }
+}
                     if (carrinhoAtivo) {
                         const btnCarrinho = document.getElementById("btn-abrir-carrinho");
                         if (btnCarrinho) {
