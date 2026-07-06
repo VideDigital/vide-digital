@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar LP de Teste</title>
+<script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="min-h-screen bg-[#14132B] text-white flex items-center justify-center p-6">
+<div class="max-w-md w-full bg-white/5 border border-white/10 rounded-2xl p-8 space-y-5">
+    <h1 class="text-xl font-bold">Criar LP de Teste</h1>
+    <p id="status" class="text-sm text-gray-400">Verificando login...</p>
+    <button id="btn-criar" class="w-full bg-white text-black font-bold py-3 rounded-xl hidden" disabled>Criar LP de teste</button>
+    <button id="btn-apagar" class="w-full bg-red-500/20 border border-red-500/30 text-red-400 font-bold py-3 rounded-xl hidden">Apagar LP de teste</button>
+    <div id="resultado" class="text-sm break-all"></div>
+</div>
+<script type="module">
+    import { auth, db } from "./firebase-init.js";
+    import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+    import { doc, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+    const statusEl = document.getElementById("status");
+    const btnCriar = document.getElementById("btn-criar");
+    const btnApagar = document.getElementById("btn-apagar");
+    const resultadoEl = document.getElementById("resultado");
+
+    let uidAtual = null;
+    let slugAtual = null;
+
+    onAuthStateChanged(auth, async (user) => {
+        if (!user) {
+            statusEl.textContent = "Voce precisa estar logado. Abra o dashboard em outra aba, faca login, e recarregue esta pagina.";
+            return;
+        }
+        uidAtual = user.uid;
+        const perfilSnap = await getDoc(doc(db, "usuarios", user.uid));
+        if (!perfilSnap.exists() || !perfilSnap.data().urlLoja) {
+            statusEl.textContent = "Nao encontrei o slug da sua loja (campo urlLoja) no seu perfil. Salve o slug em Configuracoes da Loja primeiro.";
+            return;
+        }
+        slugAtual = perfilSnap.data().urlLoja;
+        statusEl.textContent = "Logado como " + user.email + ". Slug da loja: " + slugAtual;
+        btnCriar.classList.remove("hidden");
+        btnCriar.disabled = false;
+        btnApagar.classList.remove("hidden");
+    });
+
+    btnCriar.addEventListener("click", async () => {
+        btnCriar.disabled = true;
+        btnCriar.textContent = "Criando...";
+        const docIdPagina = slugAtual.toLowerCase() + "__teste-lp";
+
+        await setDoc(doc(db, "landing_pages_publicas", docIdPagina), {
+            titulo: "LP de Teste",
+            publicado: true,
+            donoUID: uidAtual,
+            ordemBlocos: ["lpb_teste_1", "lpb_teste_2"]
+        });
+
+        await setDoc(doc(db, "landing_pages_blocos_publicas", "lpb_teste_1"), {
+            tipo: "texto_midia",
+            visivel: true,
+            donoUID: uidAtual,
+            props: {
+                titulo: "Sua loja online em minutos",
+                subtitulo: "Essa e uma pagina de teste do editor de Landing Pages",
+                botaoTexto: "Quero comecar",
+                botaoLink: "#",
+                posicaoImagem: "direita"
+            }
+        });
+
+        await setDoc(doc(db, "landing_pages_blocos_publicas", "lpb_teste_2"), {
+            tipo: "formulario_captura",
+            visivel: true,
+            donoUID: uidAtual,
+            props: {
+                titulo: "Garanta sua vaga",
+                campos: ["nome", "whatsapp"],
+                textoBotao: "Enviar"
+            }
+        });
+
+        const urlTeste = "https://videdigital.github.io/vide-digital/" + slugAtual + "/teste-lp";
+        resultadoEl.innerHTML = 'Criado! Acesse: <a href="' + urlTeste + '" target="_blank" class="text-[#00D2DF] underline">' + urlTeste + "</a>";
+        btnCriar.textContent = "Criado";
+    });
+
+    btnApagar.addEventListener("click", async () => {
+        const docIdPagina = slugAtual.toLowerCase() + "__teste-lp";
+        await deleteDoc(doc(db, "landing_pages_publicas", docIdPagina));
+        await deleteDoc(doc(db, "landing_pages_blocos_publicas", "lpb_teste_1"));
+        await deleteDoc(doc(db, "landing_pages_blocos_publicas", "lpb_teste_2"));
+        resultadoEl.textContent = "LP de teste apagada.";
+    });
+</script>
+</body>
+</html>
