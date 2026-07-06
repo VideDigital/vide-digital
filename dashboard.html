@@ -353,6 +353,7 @@ Adicionar Produto
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="automação de leads automacao" onclick="ativarAba('view-automacao-leads')"><span class="text-2xl">⚡</span><span class="text-xs font-bold text-white">Automação de Leads</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="templates" onclick="ativarAba('view-templates')"><span class="text-2xl">💬</span><span class="text-xs font-bold text-white">Templates</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="campanhas" onclick="ativarAba('view-campanhas')"><span class="text-2xl">📢</span><span class="text-xs font-bold text-white">Campanhas</span></div>
+<div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="landing pages lp" onclick="ativarAba('view-landing-pages')"><span class="text-2xl">🖥️</span><span class="text-xs font-bold text-white">Landing Pages</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="pedidos" onclick="ativarAba('view-pedidos')"><span class="text-2xl">📦</span><span class="text-xs font-bold text-white">Pedidos</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="métricas metricas" onclick="ativarAba('view-metricas')"><span class="text-2xl">📊</span><span class="text-xs font-bold text-white">Métricas</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="notificações notificacoes" onclick="ativarAba('view-notificacoes')"><span class="text-2xl">🔔</span><span class="text-xs font-bold text-white">Notificações</span></div>
@@ -2747,6 +2748,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             }
             renderizarEditorBlocos();
             document.getElementById("lp-editor-modal").classList.remove("hidden");
+            carregarProdutosParaEditor();
         };
         function atualizarBadgeStatusEditor() {
             const badge = document.getElementById("lped-status-badge");
@@ -2774,7 +2776,14 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 lista_cards: "Lista de Cards",
                 tabela_comparativo: "Tabela de Comparativo",
                 texto_rico: "Texto Rico",
-                codigo_iframe: "Codigo / iFrame"
+                codigo_iframe: "Codigo / iFrame",
+                carrossel_banners: "Carrossel de Banners",
+                carrossel_produtos: "Carrossel de Produtos",
+                carrossel_cards: "Carrossel de Cards",
+                navegacao: "Navegacao",
+                rodape: "Rodape",
+                seletor_cores: "Seletor de Cores",
+                breadcrumb: "Breadcrumb"
             };
             return nomes[tipo] || tipo;
         }
@@ -2975,9 +2984,180 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         </div>
                     </div>
                 `;
+            } else if (bloco.tipo === "carrossel_banners") {
+                const banners = bloco.props.banners || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        ${banners.map((b, j) => `
+                            <div class="border border-white/5 rounded-lg p-2.5 flex items-center gap-2">
+                                <img src="${b.imagemB64}" class="w-16 h-10 object-cover rounded-lg border border-white/10">
+                                <input type="text" value="${(b.link || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.banners[${j}].link = this.value" placeholder="Link (opcional)" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <button onclick="removerItemListaEditor(${i}, 'banners', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
+                            </div>
+                        `).join("")}
+                        <label class="inline-block bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
+                            + Adicionar banner
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadBannerCarrosselEditor(${i}, this)">
+                        </label>
+                    </div>
+                `;
+            } else if (bloco.tipo === "carrossel_produtos") {
+                const selecionados = bloco.props.produtosIds || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo da secao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <p class="text-[9px] text-gray-500">Selecione os produtos:</p>
+                        <div class="max-h-48 overflow-y-auto space-y-1.5 border border-white/5 rounded-lg p-2">
+                            ${produtosDoUsuarioCache.length === 0 ? '<p class="text-[10px] text-gray-500 p-2">Nenhum produto ativo encontrado.</p>' : produtosDoUsuarioCache.map(p => `
+                                <label class="flex items-center gap-2 text-xs text-gray-300 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
+                                    <input type="checkbox" ${selecionados.includes(p.id) ? "checked" : ""} onchange="alternarProdutoCarrosselEditor(${i}, '${p.id}', this.checked)">
+                                    ${p.imagemB64 ? `<img src="${p.imagemB64}" class="w-8 h-8 object-cover rounded">` : ""}
+                                    <span>${p.nome} - R$ ${p.preco}</span>
+                                </label>
+                            `).join("")}
+                        </div>
+                    </div>
+                `;
+            } else if (bloco.tipo === "carrossel_cards") {
+                const cards = bloco.props.cards || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo da secao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <select onchange="lpEditorBlocos[${i}].props.estiloImagem = this.value" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            <option value="lado" ${bloco.props.estiloImagem !== "fundo" ? "selected" : ""}>Imagem ao lado</option>
+                            <option value="fundo" ${bloco.props.estiloImagem === "fundo" ? "selected" : ""}>Imagem de fundo</option>
+                        </select>
+                        ${cards.map((card, j) => `
+                            <div class="border border-white/5 rounded-lg p-2.5 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] text-gray-500">Card ${j + 1}</span>
+                                    <button onclick="removerItemListaEditor(${i}, 'cards', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
+                                </div>
+                                ${card.imagemB64 ? `<img src="${card.imagemB64}" class="w-full h-16 object-cover rounded-lg">` : ""}
+                                <label class="inline-block bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[9px] font-bold px-2 py-1.5 rounded-lg cursor-pointer">
+                                    ${card.imagemB64 ? "Trocar imagem" : "Adicionar imagem"}
+                                    <input type="file" accept="image/*" class="hidden" onchange="uploadImagemCardCarrosselEditor(${i}, ${j}, this)">
+                                </label>
+                                <input type="text" value="${(card.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.cards[${j}].titulo = this.value" placeholder="Titulo" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <textarea oninput="lpEditorBlocos[${i}].props.cards[${j}].texto = this.value" placeholder="Texto" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${card.texto || ""}</textarea>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'cards', {titulo: '', texto: '', imagemB64: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar card</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "navegacao") {
+                const links = bloco.props.links || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.logoTexto || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.logoTexto = this.value" placeholder="Texto do logo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        ${links.map((link, j) => `
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <input type="text" value="${(link.label || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.links[${j}].label = this.value" placeholder="Texto do link" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <div class="flex gap-1">
+                                    <input type="text" value="${(link.href || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.links[${j}].href = this.value" placeholder="#link" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                    <button onclick="removerItemListaEditor(${i}, 'links', ${j})" class="text-red-400 text-[9px] font-bold px-1">X</button>
+                                </div>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'links', {label: '', href: '#'})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar link</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "rodape") {
+                const links = bloco.props.links || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.textoCopyright || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoCopyright = this.value" placeholder="Texto de copyright" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        ${links.map((link, j) => `
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <input type="text" value="${(link.label || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.links[${j}].label = this.value" placeholder="Texto do link" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <div class="flex gap-1">
+                                    <input type="text" value="${(link.href || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.links[${j}].href = this.value" placeholder="#link" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                    <button onclick="removerItemListaEditor(${i}, 'links', ${j})" class="text-red-400 text-[9px] font-bold px-1">X</button>
+                                </div>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'links', {label: '', href: '#'})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar link</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "seletor_cores") {
+                const opcoes = bloco.props.opcoes || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo (ex: Escolha a cor)" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        ${opcoes.map((op, j) => `
+                            <div class="flex items-center gap-2">
+                                <input type="color" value="${op.hex || "#000000"}" oninput="lpEditorBlocos[${i}].props.opcoes[${j}].hex = this.value" class="h-8 w-8 rounded cursor-pointer bg-transparent border-0">
+                                <input type="text" value="${(op.nome || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.opcoes[${j}].nome = this.value" placeholder="Nome da cor" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <button onclick="removerItemListaEditor(${i}, 'opcoes', ${j})" class="text-red-400 text-[9px] font-bold px-1">X</button>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'opcoes', {nome: '', hex: '#000000'})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar cor</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "breadcrumb") {
+                const itens = bloco.props.itens || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        ${itens.map((item, j) => `
+                            <div class="grid grid-cols-2 gap-1.5">
+                                <input type="text" value="${(item.label || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.itens[${j}].label = this.value" placeholder="Texto" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <div class="flex gap-1">
+                                    <input type="text" value="${(item.href || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.itens[${j}].href = this.value" placeholder="#link" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                    <button onclick="removerItemListaEditor(${i}, 'itens', ${j})" class="text-red-400 text-[9px] font-bold px-1">X</button>
+                                </div>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'itens', {label: '', href: '#'})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar item</button>
+                    </div>
+                `;
             }
             return "";
         }
+        let produtosDoUsuarioCache = [];
+        async function carregarProdutosParaEditor() {
+            try {
+                const snap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
+                produtosDoUsuarioCache = [];
+                snap.forEach(d => {
+                    const p = d.data();
+                    if (p.statusProduto !== "rascunho") produtosDoUsuarioCache.push({ id: d.id, nome: p.nome, preco: p.preco, imagemB64: p.imagemB64 });
+                });
+                renderizarEditorBlocos();
+            } catch(err) {
+                console.error("Erro ao carregar produtos pro editor de LP:", err);
+            }
+        }
+        window.alternarProdutoCarrosselEditor = function(i, prodId, marcado) {
+            if (!lpEditorBlocos[i].props.produtosIds) lpEditorBlocos[i].props.produtosIds = [];
+            const ids = lpEditorBlocos[i].props.produtosIds;
+            if (marcado && !ids.includes(prodId)) ids.push(prodId);
+            if (!marcado) lpEditorBlocos[i].props.produtosIds = ids.filter(x => x !== prodId);
+        };
+        window.uploadBannerCarrosselEditor = async function(i, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            try {
+                const b64 = await comprimirImagem(file, 1600, 0.75);
+                if (!lpEditorBlocos[i].props.banners) lpEditorBlocos[i].props.banners = [];
+                lpEditorBlocos[i].props.banners.push({ imagemB64: b64, link: "" });
+                renderizarEditorBlocos();
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao processar imagem: " + err.message, "error");
+            }
+        };
+        window.uploadImagemCardCarrosselEditor = async function(i, cardIndex, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            try {
+                const b64 = await comprimirImagem(file, 1200, 0.7);
+                lpEditorBlocos[i].props.cards[cardIndex].imagemB64 = b64;
+                renderizarEditorBlocos();
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao processar imagem: " + err.message, "error");
+            }
+        };
         function renderAbaDesign(bloco, i) {
             const d = bloco.design;
             return `
@@ -3135,7 +3315,14 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             { tipo: "lista_cards", nome: "Lista de Cards", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0a2 2 0 01-2-2V7a2 2 0 012-2m10 12a2 2 0 002 2h0a2 2 0 002-2V7a2 2 0 00-2-2h0a2 2 0 00-2 2v10z"></path>' },
             { tipo: "tabela_comparativo", nome: "Tabela de Comparativo", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"></path>' },
             { tipo: "texto_rico", nome: "Texto Rico", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>' },
-            { tipo: "codigo_iframe", nome: "Codigo / iFrame", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 8l-4 4 4 4"></path>' }
+            { tipo: "codigo_iframe", nome: "Codigo / iFrame", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 8l-4 4 4 4"></path>' },
+            { tipo: "carrossel_banners", nome: "Carrossel de Banners", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7M4 5l7 7-7 7"></path>' },
+            { tipo: "carrossel_produtos", nome: "Carrossel de Produtos", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"></path>' },
+            { tipo: "carrossel_cards", nome: "Carrossel de Cards", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7M15 5l-7 7 7 7" transform="scale(0.8) translate(3,3)"></path>' },
+            { tipo: "navegacao", nome: "Navegacao", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>' },
+            { tipo: "rodape", nome: "Rodape", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 18h16M4 6h16M4 12h8"></path>' },
+            { tipo: "seletor_cores", nome: "Seletor de Cores", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004-4V5m6 16a4 4 0 004-4V9a2 2 0 00-2-2h-4a2 2 0 00-2 2v8a4 4 0 004 4z"></path>' },
+            { tipo: "breadcrumb", nome: "Breadcrumb", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>' }
         ];
         window.abrirPainelBlocos = function() {
             document.getElementById("lp-blocos-busca").value = "";
@@ -3179,6 +3366,20 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 props = { titulo: "", conteudo: "Escreva seu texto aqui." };
             } else if (tipo === "codigo_iframe") {
                 props = { url: "", altura: 400 };
+            } else if (tipo === "carrossel_banners") {
+                props = { banners: [] };
+            } else if (tipo === "carrossel_produtos") {
+                props = { titulo: "Nossos produtos", produtosIds: [] };
+            } else if (tipo === "carrossel_cards") {
+                props = { titulo: "Confira", estiloImagem: "lado", cards: [] };
+            } else if (tipo === "navegacao") {
+                props = { logoTexto: "Sua Marca", links: [{ label: "Inicio", href: "#" }] };
+            } else if (tipo === "rodape") {
+                props = { textoCopyright: "© 2026 Sua Marca. Todos os direitos reservados.", links: [] };
+            } else if (tipo === "seletor_cores") {
+                props = { titulo: "Escolha a cor", opcoes: [{ nome: "Preto", hex: "#000000" }] };
+            } else if (tipo === "breadcrumb") {
+                props = { itens: [{ label: "Inicio", href: "#" }] };
             }
             lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo" });
             renderizarEditorBlocos();
