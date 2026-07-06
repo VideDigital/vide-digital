@@ -170,6 +170,24 @@ import { doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.co
 
 const googleProvider = new GoogleAuthProvider();
 
+// Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
+// de verdade, pra sempre revalidar login/sessão em vez de mostrar a versão congelada.
+window.addEventListener("pageshow", function(event) {
+    if (event.persisted) window.location.reload();
+});
+
+(async function carregarTemaSistemaCedo() {
+    try {
+        const snap = await getDoc(doc(db, "config", "tema_sistema"));
+        if (!snap.exists()) return;
+        const t = snap.data();
+        const root = document.documentElement;
+        if (t.primaria) root.style.setProperty("--sys-primaria", t.primaria);
+        if (t.destaque) root.style.setProperty("--sys-destaque", t.destaque);
+        if (t.fundo) root.style.setProperty("--sys-fundo", t.fundo);
+    } catch(err) { console.error(err); }
+})();
+
 function emitInlineFeedback(message, status = 'success') {
 
 let feedbackBox = document.getElementById('global-inline-feedback');
