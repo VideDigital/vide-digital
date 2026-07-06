@@ -320,11 +320,7 @@ Adicionar Produto
 
 </button>
 
-<button type="button" id="btn-editar-layout" onclick="alternarModoEdicaoLayout()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium px-4 py-2 rounded-md text-xs transition-all shrink-0">✏️ Editar Layout</button>
-
-<button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-md text-xs transition-all shrink-0">💾 Salvar Layout</button>
-
-<button type="button" id="btn-restaurar-layout" onclick="restaurarLayoutOriginal()" class="hidden bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold px-4 py-2 rounded-md text-xs transition-all shrink-0">↺ Restaurar Original</button>
+</div>
 
 </div>
 <!-- HUB DE MÓDULOS -->
@@ -2122,7 +2118,7 @@ function aplicarEstadoModoEdicaoLayout() {
     const btn = document.getElementById("btn-editar-layout");
     const btnSalvar = document.getElementById("btn-salvar-layout");
     const btnRestaurar = document.getElementById("btn-restaurar-layout");
-    document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
+    document.querySelectorAll(".view-section.active .layout-block").forEach(el => {
         el.draggable = modoEdicaoLayoutAtivo;
         if (modoEdicaoLayoutAtivo) {
             el.classList.add("border-2", "border-dashed", "border-white/30");
@@ -2213,6 +2209,8 @@ function ativarAba(targetId) {
             document.querySelectorAll(".view-section").forEach(section => section.classList.remove("active"));
             const secaoAlvo = document.getElementById(targetId);
             if (secaoAlvo) secaoAlvo.classList.add("active");
+
+            aplicarLayoutSalvoDaAba(targetId);
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
@@ -2877,18 +2875,8 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                         renderizarLayoutLoja();
                     }
 
-                    if (Array.isArray(dados.layoutVisaoGeral) && dados.layoutVisaoGeral.length > 0) {
-                        const containerVisaoGeral = document.querySelector("#view-dashboard");
-                        dados.layoutVisaoGeral.forEach(item => {
-                            const elBloco = containerVisaoGeral.querySelector(`.layout-block[data-block-id="${item.id}"]`);
-                            if (!elBloco) return;
-                            if (!item.visivel) { elBloco.classList.add("hidden", "layout-block-oculto"); }
-
-containerVisaoGeral.appendChild(elBloco);
-
-});
-
-}
+                    window._layoutPorAbaSalvo = dados.layoutPorAba || {};
+                    aplicarLayoutSalvoDaAba(document.querySelector(".view-section.active")?.id);
 
 listaBanners = [];
                     try {
