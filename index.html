@@ -11,7 +11,9 @@
     if (caminhoRestaurado !== null) {
         var ehDominioPadrao = window.location.hostname === "videdigital.github.io";
         var base = ehDominioPadrao ? "/vide-digital/" : "/";
-        var novaURL = base + caminhoRestaurado + window.location.hash;
+        params.delete("p");
+        var restoQuery = params.toString();
+        var novaURL = base + caminhoRestaurado + (restoQuery ? "?" + restoQuery : "") + window.location.hash;
         window.history.replaceState(null, "", novaURL);
     }
 })();
