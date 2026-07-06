@@ -2845,14 +2845,14 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                             const elBloco = containerVisaoGeral.querySelector(`.layout-block[data-block-id="${item.id}"]`);
                             if (!elBloco) return;
                             if (!item.visivel) { elBloco.classList.add("hidden", "layout-block-oculto"); }
-                            containerVisaoGeral.appendChild(elBloco);
-                        });
-                    }
-                        document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
-                        document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
-                    }
 
-                    listaBanners = [];
+containerVisaoGeral.appendChild(elBloco);
+
+});
+
+}
+
+listaBanners = [];
                     try {
                         const snapBanners = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", usuarioUID)));
                         let bannersCarregados = [];
