@@ -7,15 +7,16 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Inter', sans-serif; background: #14132B; }
+        body { font-family: 'Inter', sans-serif; background: var(--sys-fundo, #14132B); }
         .fonte-display { font-family: 'Sora', sans-serif; }
-        .farol-glow { background: radial-gradient(circle, rgba(91,61,245,0.35) 0%, rgba(255,122,69,0.18) 45%, transparent 70%); filter: blur(10px); }
-        .premium-input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s ease; }
-        .premium-input:focus { border-color: #5B3DF5; box-shadow: 0 0 0 3px rgba(91,61,245,0.15); }
-        .btn-marca { background: linear-gradient(90deg, #5B3DF5, #FF7A45); }
-        .btn-marca:hover { filter: brightness(1.08); }
-        .link-marca { color: #FF7A45; }
-        .link-marca:hover { color: #ff9066; }
+        :root { --sys-primaria: #5B3DF5; --sys-destaque: #FF7A45; --sys-fundo: #14132B; }
+.farol-glow { background: radial-gradient(circle, color-mix(in srgb, var(--sys-primaria) 35%, transparent) 0%, color-mix(in srgb, var(--sys-destaque) 18%, transparent) 45%, transparent 70%); filter: blur(10px); }
+.premium-input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s ease; }
+.premium-input:focus { border-color: var(--sys-primaria); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-primaria) 15%, transparent); }
+.btn-marca { background: linear-gradient(90deg, var(--sys-primaria), var(--sys-destaque)); }
+.btn-marca:hover { filter: brightness(1.08); }
+.link-marca { color: var(--sys-destaque); }
+.link-marca:hover { filter: brightness(1.15); }
     </style>
 </head>
 <body class="h-full flex items-center justify-center p-4 relative overflow-hidden text-white">
