@@ -68,7 +68,7 @@
             for (const blocoId of ordemBlocos) {
                 const blocoSnap = await getDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
                 if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
-                    container.insertAdjacentHTML("beforeend", renderizarBloco(blocoSnap.data()));
+                    container.insertAdjacentHTML("beforeend", await renderizarBloco(blocoSnap.data()));
                 }
             }
         } catch (erro) {
@@ -77,7 +77,18 @@
         }
     }
 
-   function renderizarBloco(bloco) {
+    function envolverCarrossel(idUnico, slidesHtml) {
+        return `
+            <div class="relative">
+                <div id="${idUnico}" class="flex overflow-x-auto snap-x snap-mandatory gap-4 scroll-smooth" style="scrollbar-width: none;">
+                    ${slidesHtml}
+                </div>
+                <button onclick="document.getElementById('${idUnico}').scrollBy({left: -320, behavior: 'smooth'})" class="absolute left-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center">&larr;</button>
+                <button onclick="document.getElementById('${idUnico}').scrollBy({left: 320, behavior: 'smooth'})" class="absolute right-2 top-1/2 -translate-y-1/2 bg-black/50 hover:bg-black/70 text-white rounded-full w-9 h-9 flex items-center justify-center">&rarr;</button>
+            </div>
+        `;
+    }
+    async function renderizarBloco(bloco) {
         const d = bloco.design || {};
         const corFundo = d.corFundo || "";
         const imagemFundo = d.imagemFundoB64 || "";
@@ -91,6 +102,7 @@
         const alinhamento = d.alinhamento || "esquerda";
         const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
         const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
+        const justifyClasse = alinhamento === "centro" ? "justify-center" : alinhamento === "direita" ? "justify-end" : "justify-start";
         const idSecaoAttr = d.idSecao ? ` id="${d.idSecao}"` : "";
         const visivelDesktop = d.visivelDesktop !== false;
         const visivelMobile = d.visivelMobile !== false;
@@ -193,7 +205,7 @@
                     </table>
                 </div>`;
         } else if (bloco.tipo === "texto_rico") {
-            const paragrafos = (bloco.props.conteudo || "").split(/\\n\\s*\\n/).filter(p => p.trim());
+            const paragrafos = (bloco.props.conteudo || "").split(/\n\s*\n/).filter(p => p.trim());
             conteudoHtml = `
                 <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
                     ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-6">${bloco.props.titulo}</h2>` : ""}
@@ -205,6 +217,98 @@
             conteudoHtml = bloco.props.url
                 ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
                 : "";
+        } else if (bloco.tipo === "carrossel_banners") {
+            const banners = bloco.props.banners || [];
+            const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
+            const slides = banners.map(b => `
+                <a href="${b.link || "#"}" class="shrink-0 snap-center w-full md:w-[600px]">
+                    <img src="${b.imagemB64}"${loadingAttr} class="w-full h-64 object-cover rounded-2xl">
+                </a>
+            `).join("");
+            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${envolverCarrossel(idUnico, slides)}</div>`;
+        } else if (bloco.tipo === "carrossel_produtos") {
+            const ids = bloco.props.produtosIds || [];
+            const produtos = [];
+            for (const pid of ids) {
+                const pSnap = await getDoc(doc(db, "produtos", pid));
+                if (pSnap.exists()) produtos.push(pSnap.data());
+            }
+            const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
+            const slides = produtos.map(p => `
+                <div class="shrink-0 snap-center w-64 bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                    ${p.imagemB64 ? `<img src="${p.imagemB64}"${loadingAttr} class="w-full h-40 object-cover">` : ""}
+                    <div class="p-4">
+                        <h3 class="font-bold text-sm mb-1">${p.nome || ""}</h3>
+                        <p class="text-gray-400 text-xs">R$ ${p.preco || ""}</p>
+                    </div>
+                </div>
+            `).join("");
+            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}${envolverCarrossel(idUnico, slides)}</div>`;
+        } else if (bloco.tipo === "carrossel_cards") {
+            const cards = bloco.props.cards || [];
+            const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
+            const estilo = bloco.props.estiloImagem || "lado";
+            const slides = cards.map(c => {
+                if (estilo === "fundo") {
+                    return `
+                        <div class="shrink-0 snap-center w-64 h-72 rounded-2xl relative overflow-hidden" style="${c.imagemB64 ? `background-image:url('${c.imagemB64}');background-size:cover;background-position:center;` : "background-color:#222;"}">
+                            <div class="absolute inset-0 bg-black/40"></div>
+                            <div class="relative p-5 flex flex-col justify-end h-full text-white">
+                                <h3 class="font-bold mb-1">${c.titulo || ""}</h3>
+                                <p class="text-sm text-gray-200">${c.texto || ""}</p>
+                            </div>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="shrink-0 snap-center w-64 bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
+                        ${c.imagemB64 ? `<img src="${c.imagemB64}"${loadingAttr} class="w-full h-36 object-cover">` : ""}
+                        <div class="p-4">
+                            <h3 class="font-bold text-sm mb-1">${c.titulo || ""}</h3>
+                            <p class="text-gray-400 text-xs">${c.texto || ""}</p>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}${envolverCarrossel(idUnico, slides)}</div>`;
+        } else if (bloco.tipo === "navegacao") {
+            const links = bloco.props.links || [];
+            conteudoHtml = `
+                <div class="max-w-6xl mx-auto px-6 flex items-center justify-between flex-wrap gap-4">
+                    <span class="font-bold text-lg">${bloco.props.logoTexto || ""}</span>
+                    <nav class="flex gap-6 flex-wrap">
+                        ${links.map(l => `<a href="${l.href || "#"}" class="text-sm hover:opacity-70">${l.label || ""}</a>`).join("")}
+                    </nav>
+                </div>`;
+        } else if (bloco.tipo === "rodape") {
+            const links = bloco.props.links || [];
+            conteudoHtml = `
+                <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
+                    <p>${bloco.props.textoCopyright || ""}</p>
+                    <div class="flex gap-6 flex-wrap">
+                        ${links.map(l => `<a href="${l.href || "#"}" class="hover:opacity-70">${l.label || ""}</a>`).join("")}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "seletor_cores") {
+            const opcoes = bloco.props.opcoes || [];
+            conteudoHtml = `
+                <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
+                    ${bloco.props.titulo ? `<h3 class="font-bold mb-3">${bloco.props.titulo}</h3>` : ""}
+                    <div class="flex gap-3 flex-wrap ${justifyClasse}">
+                        ${opcoes.map(op => `
+                            <div class="flex flex-col items-center gap-1">
+                                <div style="background-color:${op.hex || "#000"};" class="w-10 h-10 rounded-full border-2 border-white/20"></div>
+                                <span class="text-[10px] text-gray-400">${op.nome || ""}</span>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "breadcrumb") {
+            const itens = bloco.props.itens || [];
+            conteudoHtml = `
+                <div class="max-w-5xl mx-auto px-6 text-xs text-gray-400">
+                    ${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-2">/</span>' : ""}<a href="${item.href || "#"}" class="hover:text-white">${item.label || ""}</a>`).join("")}
+                </div>`;
         }
         return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
             ${overlayHtml}
