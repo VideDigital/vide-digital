@@ -2189,6 +2189,19 @@ document.querySelectorAll(".layout-block").forEach(el => {
     });
 });
 
+function aplicarLayoutSalvoDaAba(targetId) {
+    const config = window._layoutPorAbaSalvo && window._layoutPorAbaSalvo[targetId];
+    if (!Array.isArray(config) || config.length === 0) return;
+    const secao = document.getElementById(targetId);
+    if (!secao) return;
+    config.forEach(item => {
+        const el = secao.querySelector(`.layout-block[data-block-id="${item.id}"]`);
+        if (!el) return;
+        el.classList.toggle("hidden", item.visivel === false);
+        secao.appendChild(el);
+    });
+}
+
 window.salvarLayoutVisaoGeral = async function() {
     const abaAtivaId = document.querySelector(".view-section.active")?.id;
     if (!abaAtivaId) return;
