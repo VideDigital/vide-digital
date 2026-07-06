@@ -371,17 +371,32 @@ input[type="date"] { color-scheme: dark; }
 
 </div>
 
-<div class="glass-card rounded-2xl p-6 space-y-3">
+<div class="glass-card p-6 rounded-2xl space-y-3">
+                <h2 class="text-sm font-black text-white">Membros Atuais</h2>
+                <div id="lista-equipe" class="space-y-3">
+                    <div class="text-center text-gray-500 text-xs p-8">Carregando...</div>
+                </div>
+            </div>
 
-<h2 class="text-sm font-black text-white">Membros Atuais</h2>
-
-<div id="lista-equipe" class="space-y-3">
-
-<div class="text-center text-gray-500 text-xs p-8">Carregando...</div>
-
-</div>
-
-</div>
+            <div class="glass-card p-6 rounded-2xl space-y-4">
+                <h2 class="text-sm font-black text-white">🎨 Identidade Visual do Sistema</h2>
+                <p class="text-xs text-gray-400">Essas cores valem pro Login, Admin e Dashboard (não mexe na personalização de cada loja).</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Cor Primária</span>
+                        <input type="color" id="tema-cor-primaria" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#5B3DF5">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Cor de Destaque</span>
+                        <input type="color" id="tema-cor-destaque" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#FF7A45">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Fundo Escuro</span>
+                        <input type="color" id="tema-cor-fundo" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#14132B">
+                    </div>
+                </div>
+                <button onclick="salvarTemaSistema()" class="bg-white hover:bg-gray-200 text-black font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all">Salvar Identidade Visual</button>
+            </div>
 
 </div>
 
@@ -691,6 +706,44 @@ throw err;
 }
 
 }
+
+function aplicarTemaSistemaVars(t) {
+    const root = document.documentElement;
+    if (t.primaria) root.style.setProperty("--sys-primaria", t.primaria);
+    if (t.destaque) root.style.setProperty("--sys-destaque", t.destaque);
+    if (t.fundo) root.style.setProperty("--sys-fundo", t.fundo);
+}
+
+async function carregarTemaSistema() {
+    try {
+        const snap = await getDoc(doc(db, "config", "tema_sistema"));
+        if (!snap.exists()) return;
+        const t = snap.data();
+        aplicarTemaSistemaVars(t);
+        if (document.getElementById("tema-cor-primaria")) {
+            document.getElementById("tema-cor-primaria").value = t.primaria || "#5B3DF5";
+            document.getElementById("tema-cor-destaque").value = t.destaque || "#FF7A45";
+            document.getElementById("tema-cor-fundo").value = t.fundo || "#14132B";
+        }
+    } catch(err) { console.error(err); }
+}
+carregarTemaSistema();
+
+window.salvarTemaSistema = async function() {
+    const t = {
+        primaria: document.getElementById("tema-cor-primaria").value,
+        destaque: document.getElementById("tema-cor-destaque").value,
+        fundo: document.getElementById("tema-cor-fundo").value
+    };
+    try {
+        await setDoc(doc(db, "config", "tema_sistema"), t, { merge: true });
+        aplicarTemaSistemaVars(t);
+        showToast("Identidade visual salva! Já aplicada aqui — os outros painéis atualizam no próximo carregamento.");
+    } catch(err) {
+        console.error(err);
+        showToast("Erro ao salvar identidade visual.", "error");
+    }
+};
 
 window.adicionarMembroEquipe = async function() {
 
