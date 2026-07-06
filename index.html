@@ -78,31 +78,63 @@
     }
 
     function renderizarBloco(bloco) {
-        switch (bloco.tipo) {
-            case "texto_midia":
-                return `
-                    <section class="max-w-5xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10 items-center">
-                        <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""}">
-                            <h2 class="text-3xl font-bold mb-4">${bloco.props.titulo || ""}</h2>
-                            <p class="text-gray-300 mb-6">${bloco.props.subtitulo || ""}</p>
-                            ${bloco.props.botaoTexto ? `<a href="${bloco.props.botaoLink || "#"}" class="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl">${bloco.props.botaoTexto}</a>` : ""}
-                        </div>
-                        <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
-                            ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}" class="rounded-2xl w-full">` : ""}
-                        </div>
-                    </section>`;
-            case "formulario_captura":
-                return `
-                    <section class="max-w-md mx-auto px-6 py-16">
-                        <h2 class="text-2xl font-bold mb-6 text-center">${bloco.props.titulo || ""}</h2>
-                        <form class="space-y-3">
-                            ${(bloco.props.campos || []).map(campo => `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
-                            <button type="submit" class="w-full bg-white text-black font-bold py-3 rounded-xl">${bloco.props.textoBotao || "Enviar"}</button>
-                        </form>
-                    </section>`;
-            default:
-                return "";
+        const d = bloco.design || {};
+        const corFundo = d.corFundo || "";
+        const imagemFundo = d.imagemFundoB64 || "";
+        const corSobreposicao = d.corSobreposicao || "#000000";
+        const opacidade = (d.opacidadeSobreposicao || 0) / 100;
+        const corBotaoFundo = d.corBotaoFundo || "";
+        const corBotaoBorda = d.corBotaoBorda || "";
+        const corBotaoTexto = d.corBotaoTexto || "";
+        const paddingTop = d.paddingTop !== undefined ? d.paddingTop : 64;
+        const paddingBottom = d.paddingBottom !== undefined ? d.paddingBottom : 64;
+        const alinhamento = d.alinhamento || "esquerda";
+        const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
+        const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
+        const idSecaoAttr = d.idSecao ? ` id="${d.idSecao}"` : "";
+        const visivelDesktop = d.visivelDesktop !== false;
+        const visivelMobile = d.visivelMobile !== false;
+        let visClasse = "";
+        if (visivelDesktop && !visivelMobile) visClasse = "hidden md:block";
+        else if (!visivelDesktop && visivelMobile) visClasse = "block md:hidden";
+        else if (!visivelDesktop && !visivelMobile) visClasse = "hidden";
+        const loadingAttr = d.priorizarImagem ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"';
+        const estiloFundo = imagemFundo
+            ? `background-image: url('${imagemFundo}'); background-size: cover; background-position: center;`
+            : (corFundo ? `background-color: ${corFundo};` : "");
+        const overlayHtml = imagemFundo
+            ? `<div style="position:absolute; inset:0; background-color:${corSobreposicao}; opacity:${opacidade};"></div>`
+            : "";
+        const estiloBotao = `${corBotaoFundo ? "background-color:" + corBotaoFundo + ";" : ""}${corBotaoBorda ? "border: 2px solid " + corBotaoBorda + ";" : ""}${corBotaoTexto ? "color:" + corBotaoTexto + ";" : ""}`;
+        const classeBotao = `inline-block font-bold px-6 py-3 rounded-xl ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
+        const classeBotaoForm = `w-full font-bold py-3 rounded-xl ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
+        let conteudoHtml = "";
+        if (bloco.tipo === "texto_midia") {
+            conteudoHtml = `
+                <div class="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-10 ${itemsClasse}">
+                    <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""} ${textAlignClasse}">
+                        <h2 class="text-3xl font-bold mb-4">${bloco.props.titulo || ""}</h2>
+                        <p class="text-gray-300 mb-6">${bloco.props.subtitulo || ""}</p>
+                        ${bloco.props.botaoTexto ? `<a href="${bloco.props.botaoLink || "#"}" style="${estiloBotao}" class="${classeBotao}">${bloco.props.botaoTexto}</a>` : ""}
+                    </div>
+                    <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
+                        ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}"${loadingAttr} class="rounded-2xl w-full">` : ""}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "formulario_captura") {
+            conteudoHtml = `
+                <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
+                    <h2 class="text-2xl font-bold mb-6">${bloco.props.titulo || ""}</h2>
+                    <form class="space-y-3 text-left">
+                        ${(bloco.props.campos || []).map(campo => `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
+                        <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</button>
+                    </form>
+                </div>`;
         }
+        return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
+            ${overlayHtml}
+            <div class="relative">${conteudoHtml}</div>
+        </section>`;
     }
 
     function mostrarErro() {
