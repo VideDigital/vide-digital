@@ -37,7 +37,9 @@
     var base = ehDominioPadrao ? "/vide-digital/" : "/";
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
     var segmentos = caminho.split("/").filter(Boolean);
-
+    if (segmentos.length && segmentos[segmentos.length - 1].toLowerCase() === "index.html") {
+        segmentos.pop();
+    }
     async function resolverLojaPorDominio(hostname) {
         // TODO: quando o recurso de dominio proprio existir, buscar aqui
         // a loja dona desse hostname (ex: colecao "dominios_personalizados").
