@@ -9,7 +9,8 @@
     <style>
         body { font-family: 'Inter', sans-serif; background: var(--sys-fundo, #14132B); }
         .fonte-display { font-family: 'Sora', sans-serif; }
-        :root { --sys-primaria: #5B3DF5; --sys-destaque: #FF7A45; --sys-fundo: #14132B; }
+        :root { --sys-primaria: #5B3DF5; --sys-destaque: #FF7A45; --sys-fundo: #14132B; --sys-texto: #ffffff; }
+.text-white { color: var(--sys-texto, #ffffff) !important; }
 .farol-glow { background: radial-gradient(circle, color-mix(in srgb, var(--sys-primaria) 35%, transparent) 0%, color-mix(in srgb, var(--sys-destaque) 18%, transparent) 45%, transparent 70%); filter: blur(10px); }
 .premium-input { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); transition: all 0.2s ease; }
 .premium-input:focus { border-color: var(--sys-primaria); box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-primaria) 15%, transparent); }
