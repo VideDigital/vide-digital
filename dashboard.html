@@ -547,7 +547,7 @@ Adicionar Produto
                 <button onclick="aplicarFiltroPedidos()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block" data-block-id="estatisticas-pedidos" data-block-nome="Estatísticas de Pedidos">
                 <div class="glass-card p-5 rounded-xl">
                     <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total de Pedidos</p>
                     <h2 class="text-3xl font-black text-white mt-2" id="ped-total">0</h2>
@@ -566,7 +566,7 @@ Adicionar Produto
                 </div>
             </div>
 
-            <div class="glass-card rounded-xl overflow-hidden">
+            <div class="glass-card rounded-xl overflow-hidden layout-block" data-block-id="tabela-pedidos" data-block-nome="Tabela de Pedidos">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
