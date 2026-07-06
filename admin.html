@@ -700,10 +700,10 @@ if (permissoes.length === 0) { showToast("Selecione ao menos uma permissão.", "
 
 try {
 
-await criarContaEquipeAuth(email, senha);
+const novoUID = await criarContaEquipeAuth(email, senha);
 
-await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, criadoEm: new Date().toISOString() });
-
+await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, uid: novoUID, criadoEm: new Date().toISOString() });
+    
 showToast("Membro adicionado! Já pode fazer login com esse e-mail e senha.");
 
 document.getElementById("equipe-email").value = "";
