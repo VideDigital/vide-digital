@@ -320,8 +320,14 @@ Adicionar Produto
 
 </button>
 
+</div>         
+
 </div>
 
+<div id="barra-editor-layout" class="fixed bottom-6 right-6 z-40 flex items-center gap-2">
+    <button type="button" id="btn-editar-layout" onclick="alternarModoEdicaoLayout()" class="bg-white text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">✏️ Editar Layout desta Aba</button>
+    <button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">💾 Salvar</button>
+    <button type="button" id="btn-restaurar-layout" onclick="restaurarLayoutOriginal()" class="hidden bg-red-500/90 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">↺ Restaurar</button>
 </div>
 <!-- HUB DE MÓDULOS -->
 <div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="hub-modulos" data-block-nome="Hub de Módulos">
@@ -2153,9 +2159,15 @@ window.alternarModoEdicaoLayout = function() {
 };
 
 window.restaurarLayoutOriginal = async function() {
-    abrirConfirmacao("Restaurar o layout original da Visão Geral? Isso apaga a personalização salva.", async () => {
+    const abaAtivaId = document.querySelector(".view-section.active")?.id;
+    if (!abaAtivaId) return;
+    abrirConfirmacao("Restaurar o layout original desta aba? Isso apaga a personalização salva dela.", async () => {
         try {
-            await setDoc(doc(db, "usuarios", usuarioUID), { layoutVisaoGeral: [] }, { merge: true });
+            const docRef = doc(db, "usuarios", usuarioUID);
+            const snapAtual = await getDoc(docRef);
+            const todasAbas = (snapAtual.exists() && snapAtual.data().layoutPorAba) || {};
+            delete todasAbas[abaAtivaId];
+            await setDoc(docRef, { layoutPorAba: todasAbas }, { merge: true });
             showToast("Layout restaurado! Recarregando...");
             setTimeout(() => window.location.reload(), 1000);
         } catch(err) {
@@ -2164,8 +2176,7 @@ window.restaurarLayoutOriginal = async function() {
         }
     });
 };
-
-document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
+document.querySelectorAll(".layout-block").forEach(el => {
     el.addEventListener("dragstart", () => { blocoArrastando = el; });
     el.addEventListener("dragover", (e) => {
         e.preventDefault();
@@ -2178,13 +2189,19 @@ document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
 });
 
 window.salvarLayoutVisaoGeral = async function() {
-    const ordem = Array.from(document.querySelectorAll("#view-dashboard .layout-block")).map(el => ({
+    const abaAtivaId = document.querySelector(".view-section.active")?.id;
+    if (!abaAtivaId) return;
+    const ordem = Array.from(document.querySelectorAll(".view-section.active .layout-block")).map(el => ({
         id: el.getAttribute("data-block-id"),
         visivel: !el.classList.contains("layout-block-oculto")
     }));
     try {
-        await setDoc(doc(db, "usuarios", usuarioUID), { layoutVisaoGeral: ordem }, { merge: true });
-        showToast("Layout salvo! Vai continuar assim toda vez que você entrar.");
+        const docRef = doc(db, "usuarios", usuarioUID);
+        const snapAtual = await getDoc(docRef);
+        const todasAbas = (snapAtual.exists() && snapAtual.data().layoutPorAba) || {};
+        todasAbas[abaAtivaId] = ordem;
+        await setDoc(docRef, { layoutPorAba: todasAbas }, { merge: true });
+        showToast("Layout salvo! Vai continuar assim toda vez que você entrar nessa aba.");
         modoEdicaoLayoutAtivo = false;
         aplicarEstadoModoEdicaoLayout();
     } catch(err) {
