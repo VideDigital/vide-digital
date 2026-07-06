@@ -607,7 +607,7 @@ Adicionar Produto
                 </div>
                 <button onclick="aplicarFiltroMetricas()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
             </div>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block" data-block-id="estatisticas-metricas" data-block-nome="Estatísticas">
                 <div class="glass-card p-5 rounded-xl space-y-1">
                     <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Sessões Totais</p>
                     <h2 class="text-3xl font-black text-white" id="met-sessoes">—</h2>
@@ -629,7 +629,7 @@ Adicionar Produto
                     <p class="text-[10px] text-gray-500">Na loja</p>
                 </div>
             </div>
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 layout-block" data-block-id="produtos-destaque-metricas" data-block-nome="Produtos em Destaque">
                 <div class="glass-card p-6 rounded-xl space-y-4">
                     <h3 class="text-xs font-bold text-white uppercase tracking-wider border-b border-white/5 pb-3">🏆 Top Produtos Mais Vistos</h3>
                     <div id="met-top-produtos" class="space-y-3">
@@ -643,7 +643,7 @@ Adicionar Produto
                     </div>
                 </div>
             </div>
-            <div class="glass-card p-6 rounded-xl space-y-4">
+            <div class="glass-card p-6 rounded-xl space-y-4 layout-block" data-block-id="grafico-metricas" data-block-nome="Gráfico de Cliques">
                 <div class="flex items-center justify-between border-b border-white/5 pb-3">
                     <h3 class="text-xs font-bold text-white uppercase tracking-wider">📊 Cliques nos Últimos 7 Dias</h3>
                     <span class="text-[10px] text-gray-500 font-mono" id="met-periodo">Carregando...</span>
