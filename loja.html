@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title id="client-tab-title">Carregando Vitrine...</title>
+    <title id="client-tab-title">Carregando Loja...</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Playfair+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
@@ -38,7 +38,7 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
             <div class="flex items-center gap-4">
                 <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] shadow-[0_0_15px_rgba(0,242,254,0.4)]" id="logo-indicator"></div>
                 <img id="logo-foto-cliente" class="hidden h-14 w-14 rounded-full object-cover border-2 border-white/20 shadow-lg" src="" alt="Logo">
-                <h1 id="client-nome-loja" class="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">Carregando Vitrine...</h1>
+                <h1 id="client-nome-loja" class="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">Carregando Loja...</h1>
             </div>
             <div class="flex items-center gap-3">
                 <span class="text-[10px] px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
@@ -216,7 +216,7 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
                     whatsappDono = dados.whatsappCentral || "";
                     carrinhoAtivo = dados.carrinhoAtivo === true;
                     carrinhoMensagemCustom = dados.carrinhoMensagem || "";
-                    nomeLojaAtual = dados.nomeLoja || "Vitrine";
+                    nomeLojaAtual = dados.nomeLoja || "Loja";
 
 if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0) {
     const containerLP = document.getElementById("corpo-vitrine-blocos");
@@ -237,11 +237,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                         }
                     }
 
-                    document.getElementById("client-tab-title").innerText = dados.nomeLoja || "Vitrine Online";
-                    document.getElementById("client-nome-loja").innerText = dados.nomeLoja || "Vitrine Comercial";
+                    document.getElementById("client-tab-title").innerText = dados.nomeLoja || "Loja Online";
+                    document.getElementById("client-nome-loja").innerText = dados.nomeLoja || "Loja Comercial";
                     document.getElementById("client-titulo-hero").innerText = dados.tituloHero || "Nossas Solucoes";
                     document.getElementById("client-subtitulo").innerText = dados.subtituloHero || "Selecione um item.";
-                    document.getElementById("client-footer-text").innerText = "2026 " + (dados.nomeLoja || "MinhaVitrine") + ". Todos os direitos reservados.";
+                    document.getElementById("client-footer-text").innerText = "2026 " + (dados.nomeLoja || "MinhaLoja") + ". Todos os direitos reservados.";
 
                     const brandColor = dados.corClientBrand || "#00f2fe";
                     const fundoColor = dados.corClientFundo || "#030712";
