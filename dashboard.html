@@ -2559,11 +2559,20 @@ btn.classList.add("opacity-40");
         };
 
         // ESCUTADORES DE CORES PARA REFLETIR NA HORA NO ADMIN E CALCULAR CONTRASTE
-        document.getElementById("perf-admin-cor-fundo").addEventListener("input", (e) => {
+                document.getElementById("perf-admin-cor-fundo").addEventListener("input", (e) => {
+            document.documentElement.style.setProperty("--sys-fundo", e.target.value);
             document.getElementById("admin-body").style.backgroundColor = e.target.value;
             verificarContrasteFundo(e.target.value);
         });
-        function aplicarCorDestaqueAdmin(cor) {
+         function aplicarCorDestaqueAdmin(cor) {
+            document.documentElement.style.setProperty('--admin-accent', cor);
+            document.documentElement.style.setProperty('--sys-destaque', cor);
+            document.documentElement.style.setProperty('--sys-primaria', cor);
+            const logoBox = document.getElementById("admin-logo-box");
+            if (logoBox) logoBox.style.background = cor;
+            const onlineDot = document.getElementById("admin-online-dot");
+            if (onlineDot) onlineDot.style.backgroundColor = cor;
+        }       function aplicarCorDestaqueAdmin(cor) {
             document.documentElement.style.setProperty('--admin-accent', cor);
             const logoBox = document.getElementById("admin-logo-box");
             if (logoBox) logoBox.style.background = cor;
@@ -2575,7 +2584,8 @@ btn.classList.add("opacity-40");
             aplicarCorDestaqueAdmin(e.target.value);
         });
 
-        document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) => {
+document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) => {
+            document.documentElement.style.setProperty("--sys-texto", e.target.value);
             document.getElementById("admin-body").style.color = e.target.value;
         });
         document.getElementById("perf-admin-cor-card").addEventListener("input", (e) => {
@@ -2925,6 +2935,10 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                     document.getElementById("perf-admin-cor-card").value = dados.adminCorCard || "#0d0d16";
 
                     // Executar Correção de Contraste Imediato
+                    document.documentElement.style.setProperty("--sys-fundo", bgAdminSalvo);
+                    document.documentElement.style.setProperty("--sys-destaque", dados.adminCorDestaque || "#00f2fe");
+                    document.documentElement.style.setProperty("--sys-primaria", dados.adminCorDestaque || "#00f2fe");
+                    document.documentElement.style.setProperty("--sys-texto", dados.adminCorTexto || "#e5e7eb");
                     document.getElementById("admin-body").style.backgroundColor = bgAdminSalvo;
                     verificarContrasteFundo(bgAdminSalvo);
                     
