@@ -2564,16 +2564,10 @@ btn.classList.add("opacity-40");
             document.getElementById("admin-body").style.backgroundColor = e.target.value;
             verificarContrasteFundo(e.target.value);
         });
-         function aplicarCorDestaqueAdmin(cor) {
+        function aplicarCorDestaqueAdmin(cor) {
             document.documentElement.style.setProperty('--admin-accent', cor);
             document.documentElement.style.setProperty('--sys-destaque', cor);
             document.documentElement.style.setProperty('--sys-primaria', cor);
-            const logoBox = document.getElementById("admin-logo-box");
-            if (logoBox) logoBox.style.background = cor;
-            const onlineDot = document.getElementById("admin-online-dot");
-            if (onlineDot) onlineDot.style.backgroundColor = cor;
-        }       function aplicarCorDestaqueAdmin(cor) {
-            document.documentElement.style.setProperty('--admin-accent', cor);
             const logoBox = document.getElementById("admin-logo-box");
             if (logoBox) logoBox.style.background = cor;
             const onlineDot = document.getElementById("admin-online-dot");
