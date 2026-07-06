@@ -1649,6 +1649,31 @@ Adicionar Produto
             <button onclick="salvarLP()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar</button>
         </div>
     </div>
+    <div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#14132B] overflow-y-auto">
+        <div class="sticky top-0 z-10 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between gap-4">
+            <div class="flex items-center gap-3 flex-1 min-w-0">
+                <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
+                <input type="text" id="lped-titulo" class="bg-transparent text-white font-bold text-sm outline-none border-b border-transparent focus:border-white/20 py-1 flex-1" placeholder="Titulo da pagina">
+            </div>
+            <div class="flex items-center gap-2 shrink-0">
+                <span id="lped-status-badge" class="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-gray-500/10 text-gray-400">Rascunho</span>
+                <button onclick="abrirPreviewEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Abrir</button>
+                <button onclick="salvarEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Salvar</button>
+                <button onclick="publicarEditorLP()" id="lped-btn-publicar" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-3 py-2 rounded-lg transition-all">Publicar</button>
+            </div>
+        </div>
+        <div class="max-w-3xl mx-auto p-6 space-y-4">
+            <div>
+                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Endereco (slug)</label>
+                <input type="text" id="lped-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none mt-1" placeholder="promocao-inverno">
+            </div>
+            <div id="lped-blocos-lista" class="space-y-3"></div>
+            <div class="flex gap-2 pt-2">
+                <button onclick="adicionarBlocoEditor('texto_midia')" class="flex-1 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-3 rounded-xl transition-all">+ Bloco de Texto e Botao</button>
+                <button onclick="adicionarBlocoEditor('formulario_captura')" class="flex-1 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-3 rounded-xl transition-all">+ Bloco de Formulario</button>
+            </div>
+        </div>
+    </div>
     <!-- MODAL CENTRAL DE NOTIFICAÇÕES (lista + detalhe na mesma caixa) -->
     <div id="notif-modal" class="hidden fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onclick="if(event.target === this) fecharNotifModal()">
         <div class="glass-card w-full max-w-lg rounded-2xl relative border border-white/5 shadow-2xl max-h-[80vh] flex flex-col overflow-hidden">
@@ -2681,15 +2706,172 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lp-slug").value = "";
             document.getElementById("lp-modal").classList.remove("hidden");
         };
+        let lpEditorId = null;
+        let lpEditorBlocos = [];
+        let lpEditorRemovidos = [];
+        let lpEditorPublicado = false;
+        let lpEditorSlugOriginal = "";
         window.editarLP = async function(id) {
             const snap = await getDoc(doc(db, "landing_pages", id));
             if (!snap.exists()) return;
             const lp = snap.data();
-            document.getElementById("lp-modal-titulo").innerText = "Editar Landing Page";
-            document.getElementById("lp-id-edicao").value = id;
-            document.getElementById("lp-titulo").value = lp.titulo;
-            document.getElementById("lp-slug").value = lp.pagina;
-            document.getElementById("lp-modal").classList.remove("hidden");
+            lpEditorId = id;
+            lpEditorPublicado = !!lp.publicado;
+            lpEditorSlugOriginal = lp.pagina;
+            lpEditorRemovidos = [];
+            document.getElementById("lped-titulo").value = lp.titulo;
+            document.getElementById("lped-slug").value = lp.pagina;
+            atualizarBadgeStatusEditor();
+            lpEditorBlocos = [];
+            for (const blocoId of (lp.ordemBlocos || [])) {
+                const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
+                if (blocoSnap.exists()) {
+                    lpEditorBlocos.push({ id: blocoId, ...blocoSnap.data() });
+                }
+            }
+            renderizarEditorBlocos();
+            document.getElementById("lp-editor-modal").classList.remove("hidden");
+        };
+        function atualizarBadgeStatusEditor() {
+            const badge = document.getElementById("lped-status-badge");
+            const btnPub = document.getElementById("lped-btn-publicar");
+            if (lpEditorPublicado) {
+                badge.className = "text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-emerald-500/10 text-emerald-400";
+                badge.innerText = "Publicada";
+                btnPub.innerText = "Despublicar";
+            } else {
+                badge.className = "text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-gray-500/10 text-gray-400";
+                badge.innerText = "Rascunho";
+                btnPub.innerText = "Publicar";
+            }
+        }
+        window.fecharEditorLP = function() {
+            document.getElementById("lp-editor-modal").classList.add("hidden");
+            carregarLandingPages();
+        };
+        function nomeTipoBlocoEditor(tipo) {
+            if (tipo === "texto_midia") return "Texto e Botao";
+            if (tipo === "formulario_captura") return "Formulario";
+            return tipo;
+        }
+        function renderizarEditorBlocos() {
+            const box = document.getElementById("lped-blocos-lista");
+            box.innerHTML = lpEditorBlocos.map((bloco, i) => {
+                let camposHtml = "";
+                if (bloco.tipo === "texto_midia") {
+                    camposHtml = `
+                        <div class="space-y-2 mt-3">
+                            <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            <textarea oninput="lpEditorBlocos[${i}].props.subtitulo = this.value" placeholder="Subtitulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none" rows="2">${bloco.props.subtitulo || ""}</textarea>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="text" value="${(bloco.props.botaoTexto || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoTexto = this.value" placeholder="Texto do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                                <input type="text" value="${(bloco.props.botaoLink || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoLink = this.value" placeholder="Link do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            </div>
+                            <select onchange="lpEditorBlocos[${i}].props.posicaoImagem = this.value" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                                <option value="direita" ${bloco.props.posicaoImagem !== "esquerda" ? "selected" : ""}>Imagem a direita</option>
+                                <option value="esquerda" ${bloco.props.posicaoImagem === "esquerda" ? "selected" : ""}>Imagem a esquerda</option>
+                            </select>
+                        </div>
+                    `;
+                } else if (bloco.tipo === "formulario_captura") {
+                    const camposAtuais = bloco.props.campos || [];
+                    camposHtml = `
+                        <div class="space-y-2 mt-3">
+                            <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo do formulario" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            <div class="flex gap-3 flex-wrap">
+                                ${["nome", "whatsapp", "email"].map(campo => `
+                                    <label class="flex items-center gap-1.5 text-xs text-gray-400">
+                                        <input type="checkbox" ${camposAtuais.includes(campo) ? "checked" : ""} onchange="alternarCampoFormEditor(${i}, '${campo}', this.checked)">
+                                        ${campo}
+                                    </label>
+                                `).join("")}
+                            </div>
+                            <input type="text" value="${(bloco.props.textoBotao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoBotao = this.value" placeholder="Texto do botao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="glass-card rounded-xl p-4 border border-white/5">
+                        <div class="flex items-center justify-between">
+                            <p class="text-xs font-bold text-white">${nomeTipoBlocoEditor(bloco.tipo)}</p>
+                            <div class="flex items-center gap-1">
+                                <button onclick="moverBlocoEditor(${i}, -1)" class="text-gray-400 hover:text-white text-xs px-2 py-1 ${i === 0 ? "opacity-30 pointer-events-none" : ""}">&uarr;</button>
+                                <button onclick="moverBlocoEditor(${i}, 1)" class="text-gray-400 hover:text-white text-xs px-2 py-1 ${i === lpEditorBlocos.length - 1 ? "opacity-30 pointer-events-none" : ""}">&darr;</button>
+                                <button onclick="removerBlocoEditor(${i})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Excluir</button>
+                            </div>
+                        </div>
+                        ${camposHtml}
+                    </div>
+                `;
+            }).join("") || '<p class="text-xs text-gray-500 text-center py-8">Nenhum bloco ainda. Adicione um abaixo.</p>';
+        }
+        window.alternarCampoFormEditor = function(i, campo, marcado) {
+            if (!lpEditorBlocos[i].props.campos) lpEditorBlocos[i].props.campos = [];
+            const campos = lpEditorBlocos[i].props.campos;
+            if (marcado && !campos.includes(campo)) campos.push(campo);
+            if (!marcado) lpEditorBlocos[i].props.campos = campos.filter(c => c !== campo);
+        };
+        window.moverBlocoEditor = function(i, direcao) {
+            const novoIndex = i + direcao;
+            if (novoIndex < 0 || novoIndex >= lpEditorBlocos.length) return;
+            const temp = lpEditorBlocos[i];
+            lpEditorBlocos[i] = lpEditorBlocos[novoIndex];
+            lpEditorBlocos[novoIndex] = temp;
+            renderizarEditorBlocos();
+        };
+        window.removerBlocoEditor = function(i) {
+            const removido = lpEditorBlocos.splice(i, 1)[0];
+            if (removido && removido.id) lpEditorRemovidos.push(removido.id);
+            renderizarEditorBlocos();
+        };
+        window.adicionarBlocoEditor = function(tipo) {
+            const novoId = `lpb_${Date.now()}_${lpEditorBlocos.length}`;
+            let props = {};
+            if (tipo === "texto_midia") {
+                props = { titulo: "Novo titulo", subtitulo: "Nova descricao", botaoTexto: "Saiba mais", botaoLink: "#", posicaoImagem: "direita" };
+            } else if (tipo === "formulario_captura") {
+                props = { titulo: "Preencha seus dados", campos: ["nome", "whatsapp"], textoBotao: "Enviar" };
+            }
+            lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props });
+            renderizarEditorBlocos();
+        };
+        window.salvarEditorLP = async function() {
+            const titulo = document.getElementById("lped-titulo").value.trim();
+            const slug = document.getElementById("lped-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
+            if (!titulo || !slug) return showToast("Preencha titulo e endereco.", "error");
+            try {
+                for (const blocoId of lpEditorRemovidos) {
+                    await deleteDoc(doc(db, "landing_pages_blocos", blocoId));
+                    await deleteDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
+                }
+                lpEditorRemovidos = [];
+                for (const bloco of lpEditorBlocos) {
+                    await setDoc(doc(db, "landing_pages_blocos", bloco.id), {
+                        lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
+                        visivel: bloco.visivel !== false, props: bloco.props
+                    });
+                }
+                await setDoc(doc(db, "landing_pages", lpEditorId), {
+                    titulo, pagina: slug,
+                    ordemBlocos: lpEditorBlocos.map(b => b.id),
+                    atualizadoEm: Date.now()
+                }, { merge: true });
+                lpEditorSlugOriginal = slug;
+                showToast("Landing Page salva.");
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao salvar: " + err.message, "error");
+            }
+        };
+        window.publicarEditorLP = async function() {
+            await salvarEditorLP();
+            lpEditorPublicado = !lpEditorPublicado;
+            await alternarPublicacaoLP(lpEditorId, lpEditorPublicado);
+            atualizarBadgeStatusEditor();
+        };
+        window.abrirPreviewEditorLP = function() {
+            const url = `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lpEditorSlugOriginal}`;
+            window.open(url, "_blank");
         };
         window.salvarLP = async function() {
             const titulo = document.getElementById("lp-titulo").value.trim();
