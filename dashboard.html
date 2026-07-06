@@ -2754,42 +2754,190 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (tipo === "formulario_captura") return "Formulario";
             return tipo;
         }
+        function garantirDesignPadrao(bloco) {
+            if (!bloco.design) bloco.design = {};
+            const d = bloco.design;
+            if (d.corFundo === undefined) d.corFundo = "";
+            if (d.imagemFundoB64 === undefined) d.imagemFundoB64 = "";
+            if (d.corSobreposicao === undefined) d.corSobreposicao = "#000000";
+            if (d.opacidadeSobreposicao === undefined) d.opacidadeSobreposicao = 0;
+            if (d.corBotaoFundo === undefined) d.corBotaoFundo = "";
+            if (d.corBotaoBorda === undefined) d.corBotaoBorda = "";
+            if (d.corBotaoTexto === undefined) d.corBotaoTexto = "";
+            if (d.paddingTop === undefined) d.paddingTop = 64;
+            if (d.paddingBottom === undefined) d.paddingBottom = 64;
+            if (d.alinhamento === undefined) d.alinhamento = "esquerda";
+            if (d.visivelDesktop === undefined) d.visivelDesktop = true;
+            if (d.visivelMobile === undefined) d.visivelMobile = true;
+            if (d.idSecao === undefined) d.idSecao = "";
+            if (d.priorizarImagem === undefined) d.priorizarImagem = false;
+            if (!bloco._aba) bloco._aba = "conteudo";
+        }
+        window.trocarAbaBlocoEditor = function(i, aba) {
+            lpEditorBlocos[i]._aba = aba;
+            renderizarEditorBlocos();
+        };
+        window.uploadImagemFundoEditor = async function(i, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            try {
+                const b64 = await comprimirImagem(file, 1600, 0.75);
+                lpEditorBlocos[i].design.imagemFundoB64 = b64;
+                renderizarEditorBlocos();
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao processar imagem: " + err.message, "error");
+            }
+        };
+        window.removerImagemFundoEditor = function(i) {
+            lpEditorBlocos[i].design.imagemFundoB64 = "";
+            renderizarEditorBlocos();
+        };
+        function renderAbaConteudo(bloco, i) {
+            if (bloco.tipo === "texto_midia") {
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <textarea oninput="lpEditorBlocos[${i}].props.subtitulo = this.value" placeholder="Subtitulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none" rows="2">${bloco.props.subtitulo || ""}</textarea>
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" value="${(bloco.props.botaoTexto || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoTexto = this.value" placeholder="Texto do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            <input type="text" value="${(bloco.props.botaoLink || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoLink = this.value" placeholder="Link do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                        <select onchange="lpEditorBlocos[${i}].props.posicaoImagem = this.value" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            <option value="direita" ${bloco.props.posicaoImagem !== "esquerda" ? "selected" : ""}>Imagem a direita</option>
+                            <option value="esquerda" ${bloco.props.posicaoImagem === "esquerda" ? "selected" : ""}>Imagem a esquerda</option>
+                        </select>
+                    </div>
+                `;
+            } else if (bloco.tipo === "formulario_captura") {
+                const camposAtuais = bloco.props.campos || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo do formulario" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <div class="flex gap-3 flex-wrap">
+                            ${["nome", "whatsapp", "email"].map(campo => `
+                                <label class="flex items-center gap-1.5 text-xs text-gray-400">
+                                    <input type="checkbox" ${camposAtuais.includes(campo) ? "checked" : ""} onchange="alternarCampoFormEditor(${i}, '${campo}', this.checked)">
+                                    ${campo}
+                                </label>
+                            `).join("")}
+                        </div>
+                        <input type="text" value="${(bloco.props.textoBotao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoBotao = this.value" placeholder="Texto do botao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                    </div>
+                `;
+            }
+            return "";
+        }
+        function renderAbaDesign(bloco, i) {
+            const d = bloco.design;
+            return `
+                <div class="space-y-4 mt-3">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Plano de fundo</p>
+                        <div class="flex items-center gap-2 mb-2">
+                            <input type="color" value="${d.corFundo || "#14132B"}" oninput="lpEditorBlocos[${i}].design.corFundo = this.value" class="h-8 w-8 rounded cursor-pointer bg-transparent border-0">
+                            <span class="text-[10px] text-gray-500">Cor de fundo (usada se nao tiver imagem)</span>
+                        </div>
+                        ${d.imagemFundoB64 ? `
+                            <div class="flex items-center gap-2 mb-2">
+                                <img src="${d.imagemFundoB64}" class="h-12 w-20 object-cover rounded-lg border border-white/10">
+                                <button onclick="removerImagemFundoEditor(${i})" class="text-red-400 hover:text-red-300 text-[10px] font-bold">Remover imagem</button>
+                            </div>
+                        ` : `
+                            <label class="inline-block bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
+                                Enviar imagem de fundo
+                                <input type="file" accept="image/*" class="hidden" onchange="uploadImagemFundoEditor(${i}, this)">
+                            </label>
+                        `}
+                        <div class="grid grid-cols-2 gap-2 mt-2">
+                            <div>
+                                <label class="text-[9px] text-gray-500">Cor da sobreposicao</label>
+                                <input type="color" value="${d.corSobreposicao}" oninput="lpEditorBlocos[${i}].design.corSobreposicao = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-500">Opacidade (0-100)</label>
+                                <input type="number" min="0" max="100" value="${d.opacidadeSobreposicao}" oninput="lpEditorBlocos[${i}].design.opacidadeSobreposicao = parseInt(this.value) || 0" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Cor dos botoes</p>
+                        <div class="grid grid-cols-3 gap-2">
+                            <div>
+                                <label class="text-[9px] text-gray-500">Fundo</label>
+                                <input type="color" value="${d.corBotaoFundo || "#FFFFFF"}" oninput="lpEditorBlocos[${i}].design.corBotaoFundo = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-500">Borda</label>
+                                <input type="color" value="${d.corBotaoBorda || "#FFFFFF"}" oninput="lpEditorBlocos[${i}].design.corBotaoBorda = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-500">Texto</label>
+                                <input type="color" value="${d.corBotaoTexto || "#000000"}" oninput="lpEditorBlocos[${i}].design.corBotaoTexto = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Espacamento (padding em px)</p>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[9px] text-gray-500">Superior</label>
+                                <input type="number" min="0" value="${d.paddingTop}" oninput="lpEditorBlocos[${i}].design.paddingTop = parseInt(this.value) || 0" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-500">Inferior</label>
+                                <input type="number" min="0" value="${d.paddingBottom}" oninput="lpEditorBlocos[${i}].design.paddingBottom = parseInt(this.value) || 0" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Alinhamento</p>
+                        <div class="flex gap-2">
+                            ${["esquerda", "centro", "direita"].map(op => `
+                                <button onclick="lpEditorBlocos[${i}].design.alinhamento = '${op}'; renderizarEditorBlocos();" class="flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${d.alinhamento === op ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"}">${op}</button>
+                            `).join("")}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        function renderAbaAvancado(bloco, i) {
+            const d = bloco.design;
+            return `
+                <div class="space-y-4 mt-3">
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Visibilidade</p>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 text-xs text-gray-300">
+                                <input type="checkbox" ${d.visivelDesktop ? "checked" : ""} onchange="lpEditorBlocos[${i}].design.visivelDesktop = this.checked">
+                                Exibir no Desktop
+                            </label>
+                            <label class="flex items-center gap-2 text-xs text-gray-300">
+                                <input type="checkbox" ${d.visivelMobile ? "checked" : ""} onchange="lpEditorBlocos[${i}].design.visivelMobile = this.checked">
+                                Exibir no Mobile
+                            </label>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block mb-1.5">ID da Secao (opcional, pra links internos tipo #secao)</label>
+                        <input type="text" value="${(d.idSecao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].design.idSecao = this.value" placeholder="minha-secao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                    </div>
+                    <label class="flex items-center gap-2 text-xs text-gray-300">
+                        <input type="checkbox" ${d.priorizarImagem ? "checked" : ""} onchange="lpEditorBlocos[${i}].design.priorizarImagem = this.checked">
+                        Priorizar carregamento de imagem (use so no 1o bloco da pagina)
+                    </label>
+                </div>
+            `;
+        }
         function renderizarEditorBlocos() {
             const box = document.getElementById("lped-blocos-lista");
             box.innerHTML = lpEditorBlocos.map((bloco, i) => {
-                let camposHtml = "";
-                if (bloco.tipo === "texto_midia") {
-                    camposHtml = `
-                        <div class="space-y-2 mt-3">
-                            <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                            <textarea oninput="lpEditorBlocos[${i}].props.subtitulo = this.value" placeholder="Subtitulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none" rows="2">${bloco.props.subtitulo || ""}</textarea>
-                            <div class="grid grid-cols-2 gap-2">
-                                <input type="text" value="${(bloco.props.botaoTexto || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoTexto = this.value" placeholder="Texto do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                                <input type="text" value="${(bloco.props.botaoLink || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoLink = this.value" placeholder="Link do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                            </div>
-                            <select onchange="lpEditorBlocos[${i}].props.posicaoImagem = this.value" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                                <option value="direita" ${bloco.props.posicaoImagem !== "esquerda" ? "selected" : ""}>Imagem a direita</option>
-                                <option value="esquerda" ${bloco.props.posicaoImagem === "esquerda" ? "selected" : ""}>Imagem a esquerda</option>
-                            </select>
-                        </div>
-                    `;
-                } else if (bloco.tipo === "formulario_captura") {
-                    const camposAtuais = bloco.props.campos || [];
-                    camposHtml = `
-                        <div class="space-y-2 mt-3">
-                            <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo do formulario" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                            <div class="flex gap-3 flex-wrap">
-                                ${["nome", "whatsapp", "email"].map(campo => `
-                                    <label class="flex items-center gap-1.5 text-xs text-gray-400">
-                                        <input type="checkbox" ${camposAtuais.includes(campo) ? "checked" : ""} onchange="alternarCampoFormEditor(${i}, '${campo}', this.checked)">
-                                        ${campo}
-                                    </label>
-                                `).join("")}
-                            </div>
-                            <input type="text" value="${(bloco.props.textoBotao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoBotao = this.value" placeholder="Texto do botao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                        </div>
-                    `;
-                }
+                garantirDesignPadrao(bloco);
+                const aba = bloco._aba;
+                let paneHtml = "";
+                if (aba === "design") paneHtml = renderAbaDesign(bloco, i);
+                else if (aba === "avancado") paneHtml = renderAbaAvancado(bloco, i);
+                else paneHtml = renderAbaConteudo(bloco, i);
                 return `
                     <div class="glass-card rounded-xl p-4 border border-white/5">
                         <div class="flex items-center justify-between">
@@ -2800,7 +2948,12 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                 <button onclick="removerBlocoEditor(${i})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Excluir</button>
                             </div>
                         </div>
-                        ${camposHtml}
+                        <div class="flex gap-1 mt-3 border-b border-white/5 pb-2">
+                            <button onclick="trocarAbaBlocoEditor(${i}, 'conteudo')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "conteudo" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}">Conteudo</button>
+                            <button onclick="trocarAbaBlocoEditor(${i}, 'design')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "design" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}">Design</button>
+                            <button onclick="trocarAbaBlocoEditor(${i}, 'avancado')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "avancado" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}">Avancado</button>
+                        </div>
+                        ${paneHtml}
                     </div>
                 `;
             }).join("") || '<p class="text-xs text-gray-500 text-center py-8">Nenhum bloco ainda. Adicione um abaixo.</p>';
@@ -2832,7 +2985,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             } else if (tipo === "formulario_captura") {
                 props = { titulo: "Preencha seus dados", campos: ["nome", "whatsapp"], textoBotao: "Enviar" };
             }
-            lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props });
+            lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo" });
             renderizarEditorBlocos();
         };
         window.salvarEditorLP = async function() {
@@ -2848,7 +3001,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 for (const bloco of lpEditorBlocos) {
                     await setDoc(doc(db, "landing_pages_blocos", bloco.id), {
                         lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
-                        visivel: bloco.visivel !== false, props: bloco.props
+                        visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {}
                     });
                 }
                 await setDoc(doc(db, "landing_pages", lpEditorId), {
