@@ -1669,8 +1669,17 @@ Adicionar Produto
             </div>
             <div id="lped-blocos-lista" class="space-y-3"></div>
             <div class="flex gap-2 pt-2">
-                <button onclick="adicionarBlocoEditor('texto_midia')" class="flex-1 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-3 rounded-xl transition-all">+ Bloco de Texto e Botao</button>
-                <button onclick="adicionarBlocoEditor('formulario_captura')" class="flex-1 bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-3 rounded-xl transition-all">+ Bloco de Formulario</button>
+                <select id="lped-tipo-novo-bloco" class="flex-1 glass-input rounded-xl p-3 text-xs text-white outline-none">
+                    <option value="texto_midia">Texto e Botao</option>
+                    <option value="formulario_captura">Formulario</option>
+                    <option value="faq">FAQ - Perguntas Frequentes</option>
+                    <option value="galeria_imagens">Galeria de Imagens</option>
+                    <option value="lista_cards">Lista de Cards</option>
+                    <option value="tabela_comparativo">Tabela de Comparativo</option>
+                    <option value="texto_rico">Texto Rico</option>
+                    <option value="codigo_iframe">Codigo / iFrame</option>
+                </select>
+                <button onclick="adicionarBlocoEditor(document.getElementById('lped-tipo-novo-bloco').value)" class="bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-3 px-5 rounded-xl transition-all whitespace-nowrap">+ Adicionar Bloco</button>
             </div>
         </div>
     </div>
@@ -2749,11 +2758,45 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lp-editor-modal").classList.add("hidden");
             carregarLandingPages();
         };
-        function nomeTipoBlocoEditor(tipo) {
-            if (tipo === "texto_midia") return "Texto e Botao";
-            if (tipo === "formulario_captura") return "Formulario";
-            return tipo;
+  function nomeTipoBlocoEditor(tipo) {
+            const nomes = {
+                texto_midia: "Texto e Botao",
+                formulario_captura: "Formulario",
+                faq: "FAQ - Perguntas Frequentes",
+                galeria_imagens: "Galeria de Imagens",
+                lista_cards: "Lista de Cards",
+                tabela_comparativo: "Tabela de Comparativo",
+                texto_rico: "Texto Rico",
+                codigo_iframe: "Codigo / iFrame"
+            };
+            return nomes[tipo] || tipo;
         }
+        window.adicionarItemListaEditor = function(i, propName, itemPadrao) {
+            if (!lpEditorBlocos[i].props[propName]) lpEditorBlocos[i].props[propName] = [];
+            lpEditorBlocos[i].props[propName].push(itemPadrao);
+            renderizarEditorBlocos();
+        };
+        window.removerItemListaEditor = function(i, propName, itemIndex) {
+            lpEditorBlocos[i].props[propName].splice(itemIndex, 1);
+            renderizarEditorBlocos();
+        };
+        window.uploadImagemGaleriaEditor = async function(i, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            try {
+                const b64 = await comprimirImagem(file, 1200, 0.7);
+                if (!lpEditorBlocos[i].props.imagens) lpEditorBlocos[i].props.imagens = [];
+                lpEditorBlocos[i].props.imagens.push(b64);
+                renderizarEditorBlocos();
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao processar imagem: " + err.message, "error");
+            }
+        };
+        window.removerImagemGaleriaEditor = function(i, imgIndex) {
+            lpEditorBlocos[i].props.imagens.splice(imgIndex, 1);
+            renderizarEditorBlocos();
+        };
         function garantirDesignPadrao(bloco) {
             if (!bloco.design) bloco.design = {};
             const d = bloco.design;
@@ -2822,7 +2865,107 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                 </label>
                             `).join("")}
                         </div>
-                        <input type="text" value="${(bloco.props.textoBotao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoBotao = this.value" placeholder="Texto do botao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                       <input type="text" value="${(bloco.props.textoBotao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoBotao = this.value" placeholder="Texto do botao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                    </div>
+                `;
+            } else if (bloco.tipo === "faq") {
+                const itens = bloco.props.itens || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo da secao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        ${itens.map((item, j) => `
+                            <div class="border border-white/5 rounded-lg p-2.5 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] text-gray-500">Pergunta ${j + 1}</span>
+                                    <button onclick="removerItemListaEditor(${i}, 'itens', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
+                                </div>
+                                <input type="text" value="${(item.pergunta || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.itens[${j}].pergunta = this.value" placeholder="Pergunta" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <textarea oninput="lpEditorBlocos[${i}].props.itens[${j}].resposta = this.value" placeholder="Resposta" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${item.resposta || ""}</textarea>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'itens', {pergunta: '', resposta: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar pergunta</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "galeria_imagens") {
+                const imagens = bloco.props.imagens || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo da galeria" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <div class="grid grid-cols-4 gap-2">
+                            ${imagens.map((img, j) => `
+                                <div class="relative">
+                                    <img src="${img}" class="w-full h-16 object-cover rounded-lg border border-white/10">
+                                    <button onclick="removerImagemGaleriaEditor(${i}, ${j})" class="absolute top-0.5 right-0.5 bg-black/70 text-red-400 text-[9px] font-bold rounded px-1">X</button>
+                                </div>
+                            `).join("")}
+                        </div>
+                        <label class="inline-block bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
+                            + Adicionar imagem
+                            <input type="file" accept="image/*" class="hidden" onchange="uploadImagemGaleriaEditor(${i}, this)">
+                        </label>
+                    </div>
+                `;
+            } else if (bloco.tipo === "lista_cards") {
+                const cards = bloco.props.cards || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo da secao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        ${cards.map((card, j) => `
+                            <div class="border border-white/5 rounded-lg p-2.5 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] text-gray-500">Card ${j + 1}</span>
+                                    <button onclick="removerItemListaEditor(${i}, 'cards', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
+                                </div>
+                                <div class="grid grid-cols-3 gap-1.5">
+                                    <input type="text" value="${(card.icone || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.cards[${j}].icone = this.value" placeholder="Emoji" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                    <input type="text" value="${(card.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.cards[${j}].titulo = this.value" placeholder="Titulo" class="col-span-2 glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                </div>
+                                <textarea oninput="lpEditorBlocos[${i}].props.cards[${j}].texto = this.value" placeholder="Texto" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${card.texto || ""}</textarea>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'cards', {icone: '', titulo: '', texto: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar card</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "tabela_comparativo") {
+                const linhas = bloco.props.linhas || [];
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo da tabela" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <div class="grid grid-cols-2 gap-2">
+                            <input type="text" value="${(bloco.props.coluna1 || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.coluna1 = this.value" placeholder="Nome coluna 1" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                            <input type="text" value="${(bloco.props.coluna2 || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.coluna2 = this.value" placeholder="Nome coluna 2" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                        </div>
+                        ${linhas.map((linha, j) => `
+                            <div class="border border-white/5 rounded-lg p-2.5 space-y-1.5">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[9px] text-gray-500">Linha ${j + 1}</span>
+                                    <button onclick="removerItemListaEditor(${i}, 'linhas', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
+                                </div>
+                                <input type="text" value="${(linha.label || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.linhas[${j}].label = this.value" placeholder="Nome do recurso" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <div class="grid grid-cols-2 gap-1.5">
+                                    <input type="text" value="${(linha.valor1 || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.linhas[${j}].valor1 = this.value" placeholder="Valor coluna 1" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                    <input type="text" value="${(linha.valor2 || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.linhas[${j}].valor2 = this.value" placeholder="Valor coluna 2" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                </div>
+                            </div>
+                        `).join("")}
+                        <button onclick="adicionarItemListaEditor(${i}, 'linhas', {label: '', valor1: '', valor2: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar linha</button>
+                    </div>
+                `;
+            } else if (bloco.tipo === "texto_rico") {
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo (opcional)" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <textarea oninput="lpEditorBlocos[${i}].props.conteudo = this.value" placeholder="Texto (deixe uma linha em branco entre paragrafos)" rows="6" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">${bloco.props.conteudo || ""}</textarea>
+                    </div>
+                `;
+            } else if (bloco.tipo === "codigo_iframe") {
+                return `
+                    <div class="space-y-2 mt-3">
+                        <input type="text" value="${(bloco.props.url || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.url = this.value" placeholder="URL do conteudo (ex: video, mapa, formulario externo)" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        <div>
+                            <label class="text-[9px] text-gray-500">Altura (px)</label>
+                            <input type="number" min="100" value="${bloco.props.altura || 400}" oninput="lpEditorBlocos[${i}].props.altura = parseInt(this.value) || 400" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                        </div>
                     </div>
                 `;
             }
@@ -2977,13 +3120,25 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (removido && removido.id) lpEditorRemovidos.push(removido.id);
             renderizarEditorBlocos();
         };
-        window.adicionarBlocoEditor = function(tipo) {
+      window.adicionarBlocoEditor = function(tipo) {
             const novoId = `lpb_${Date.now()}_${lpEditorBlocos.length}`;
             let props = {};
             if (tipo === "texto_midia") {
                 props = { titulo: "Novo titulo", subtitulo: "Nova descricao", botaoTexto: "Saiba mais", botaoLink: "#", posicaoImagem: "direita" };
             } else if (tipo === "formulario_captura") {
                 props = { titulo: "Preencha seus dados", campos: ["nome", "whatsapp"], textoBotao: "Enviar" };
+            } else if (tipo === "faq") {
+                props = { titulo: "Perguntas Frequentes", itens: [{ pergunta: "Pergunta exemplo", resposta: "Resposta exemplo" }] };
+            } else if (tipo === "galeria_imagens") {
+                props = { titulo: "Galeria", imagens: [] };
+            } else if (tipo === "lista_cards") {
+                props = { titulo: "Nossos diferenciais", cards: [{ icone: "⭐", titulo: "Card exemplo", texto: "Descricao do card" }] };
+            } else if (tipo === "tabela_comparativo") {
+                props = { titulo: "Compare", coluna1: "Basico", coluna2: "Premium", linhas: [{ label: "Recurso exemplo", valor1: "Nao", valor2: "Sim" }] };
+            } else if (tipo === "texto_rico") {
+                props = { titulo: "", conteudo: "Escreva seu texto aqui." };
+            } else if (tipo === "codigo_iframe") {
+                props = { url: "", altura: 400 };
             }
             lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo" });
             renderizarEditorBlocos();
