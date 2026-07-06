@@ -235,7 +235,7 @@ input[type="date"] { color-scheme: dark; }
             <div class="glass-card rounded-2xl p-6 space-y-4">
                 <div>
                     <h2 class="text-sm font-black text-white">Nova Notificação</h2>
-                    <p class="text-xs text-gray-500 mt-1">Aparece só no dashboard dos clientes (não afeta a vitrine pública deles).</p>
+                    <p class="text-xs text-gray-500 mt-1">Aparece só no dashboard dos clientes (não afeta a loja pública deles).</p>
                 </div>
 
                 <div class="space-y-1.5">
@@ -522,7 +522,7 @@ window.addEventListener("pagehide", function() {
 
         // LISTA DE FUNÇÕES QUE PODEM SER LIBERADAS INDIVIDUALMENTE (override manual)
         const FEATURES_OVERRIDE = [
-            { key: "hub", label: "Vitrine Pública / Hub" },
+            { key: "hub", label: "Loja Pública / Hub" },
             { key: "popup", label: "Pop-up de Captura" },
             { key: "carrinho", label: "Carrinho de Compras" },
             { key: "chat", label: "Chat ao Vivo" },
@@ -1282,7 +1282,7 @@ function showToast(msg, tipo = "success") {
         // Rótulos legíveis pra cada feature técnica (usa o mesmo nome do FEATURES_OVERRIDE quando existir)
         const FEATURE_LABELS = Object.fromEntries(FEATURES_OVERRIDE.map(f => [f.key, f.label]));
         Object.assign(FEATURE_LABELS, {
-            hub: "Vitrine Pública", popup: "Pop-up de Captura", carrinho: "Carrinho de Compras",
+            hub: "Loja Pública", popup: "Pop-up de Captura", carrinho: "Carrinho de Compras",
             chat: "Chat ao Vivo", cupons: "Cupons Automáticos", csv: "Exportar CSV",
             lp: "Landing Pages", lp1: "Landing Page (básica)", qrcode: "QR Code",
             temas: "Temas Prontos", avaliacoes: "Avaliações", suporte_vip: "Suporte VIP",
