@@ -382,7 +382,7 @@ input[type="date"] { color-scheme: dark; }
                 <h2 class="text-sm font-black text-white">🎨 Identidade Visual do Sistema</h2>
                 <p class="text-xs text-gray-400">Essas cores valem pro Login, Admin e Dashboard (não mexe na personalização de cada loja).</p>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                    
                         <span class="text-xs text-gray-400">Cor Primária</span>
                         <input type="color" id="tema-cor-primaria" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#5B3DF5">
                     </div>
@@ -393,6 +393,10 @@ input[type="date"] { color-scheme: dark; }
                     <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
                         <span class="text-xs text-gray-400">Fundo Escuro</span>
                         <input type="color" id="tema-cor-fundo" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#14132B">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Cor de Texto</span>
+                        <input type="color" id="tema-cor-texto" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#ffffff">
                     </div>
                 </div>
                 <button onclick="salvarTemaSistema()" class="bg-white hover:bg-gray-200 text-black font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all">Salvar Identidade Visual</button>
@@ -712,6 +716,7 @@ function aplicarTemaSistemaVars(t) {
     if (t.primaria) root.style.setProperty("--sys-primaria", t.primaria);
     if (t.destaque) root.style.setProperty("--sys-destaque", t.destaque);
     if (t.fundo) root.style.setProperty("--sys-fundo", t.fundo);
+    if (t.texto) root.style.setProperty("--sys-texto", t.texto);
 }
 
 async function carregarTemaSistema() {
@@ -724,6 +729,7 @@ async function carregarTemaSistema() {
             document.getElementById("tema-cor-primaria").value = t.primaria || "#5B3DF5";
             document.getElementById("tema-cor-destaque").value = t.destaque || "#FF7A45";
             document.getElementById("tema-cor-fundo").value = t.fundo || "#14132B";
+            document.getElementById("tema-cor-texto").value = t.texto || "#ffffff";
         }
     } catch(err) { console.error(err); }
 }
@@ -733,7 +739,8 @@ window.salvarTemaSistema = async function() {
     const t = {
         primaria: document.getElementById("tema-cor-primaria").value,
         destaque: document.getElementById("tema-cor-destaque").value,
-        fundo: document.getElementById("tema-cor-fundo").value
+        fundo: document.getElementById("tema-cor-fundo").value,
+        texto: document.getElementById("tema-cor-texto").value
     };
     try {
         await setDoc(doc(db, "config", "tema_sistema"), t, { merge: true });
