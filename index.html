@@ -77,7 +77,7 @@
         }
     }
 
-    function renderizarBloco(bloco) {
+   function renderizarBloco(bloco) {
         const d = bloco.design || {};
         const corFundo = d.corFundo || "";
         const imagemFundo = d.imagemFundoB64 || "";
@@ -130,6 +130,81 @@
                         <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</button>
                     </form>
                 </div>`;
+        } else if (bloco.tipo === "faq") {
+            const itens = bloco.props.itens || [];
+            conteudoHtml = `
+                <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    <div class="space-y-3 text-left">
+                        ${itens.map(item => `
+                            <details class="bg-white/5 border border-white/10 rounded-xl p-4">
+                                <summary class="font-bold cursor-pointer">${item.pergunta || ""}</summary>
+                                <p class="text-gray-300 mt-2 text-sm">${item.resposta || ""}</p>
+                            </details>
+                        `).join("")}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "galeria_imagens") {
+            const imagens = bloco.props.imagens || [];
+            conteudoHtml = `
+                <div class="max-w-5xl mx-auto px-6 ${textAlignClasse}">
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                        ${imagens.map(img => `<img src="${img}"${loadingAttr} class="w-full h-40 object-cover rounded-xl">`).join("")}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "lista_cards") {
+            const cards = bloco.props.cards || [];
+            conteudoHtml = `
+                <div class="max-w-5xl mx-auto px-6 ${textAlignClasse}">
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                        ${cards.map(card => `
+                            <div class="bg-white/5 border border-white/10 rounded-xl p-5">
+                                ${card.icone ? `<div class="text-2xl mb-2">${card.icone}</div>` : ""}
+                                <h3 class="font-bold mb-1">${card.titulo || ""}</h3>
+                                <p class="text-gray-400 text-sm">${card.texto || ""}</p>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "tabela_comparativo") {
+            const linhas = bloco.props.linhas || [];
+            conteudoHtml = `
+                <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    <table class="w-full text-left border-collapse text-sm">
+                        <thead>
+                            <tr class="border-b border-white/10">
+                                <th class="p-3"></th>
+                                <th class="p-3 font-bold">${bloco.props.coluna1 || ""}</th>
+                                <th class="p-3 font-bold">${bloco.props.coluna2 || ""}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${linhas.map(linha => `
+                                <tr class="border-b border-white/5">
+                                    <td class="p-3 text-gray-400">${linha.label || ""}</td>
+                                    <td class="p-3">${linha.valor1 || ""}</td>
+                                    <td class="p-3">${linha.valor2 || ""}</td>
+                                </tr>
+                            `).join("")}
+                        </tbody>
+                    </table>
+                </div>`;
+        } else if (bloco.tipo === "texto_rico") {
+            const paragrafos = (bloco.props.conteudo || "").split(/\\n\\s*\\n/).filter(p => p.trim());
+            conteudoHtml = `
+                <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-6">${bloco.props.titulo}</h2>` : ""}
+                    <div class="text-gray-300 space-y-4 leading-relaxed">
+                        ${paragrafos.map(p => `<p>${p}</p>`).join("")}
+                    </div>
+                </div>`;
+        } else if (bloco.tipo === "codigo_iframe") {
+            conteudoHtml = bloco.props.url
+                ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
+                : "";
         }
         return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
             ${overlayHtml}
