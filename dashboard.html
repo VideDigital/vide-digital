@@ -1921,13 +1921,13 @@ usar: ["Filtre leads por data, status, origem ou anotação.", "Selecione vário
 dicas: ["Use os filtros pra separar leads \"Novo\" toda semana e priorizar quem ainda não foi contatado."] },
 
 { chave: "subcontas", icone: "🧑‍🤝‍🧑", titulo: "Funcionários",
-
 acessar: "Aba \"Funcionários\", no menu lateral.",
-
 usar: ["Adicione pessoas da sua equipe com acesso ao painel, definindo o que cada uma pode ver e fazer."],
-
-dicas: ["Dê só as permissões que a pessoa realmente precisa pro trabalho dela — evita erro e mantém o controle."] }
-
+dicas: ["Dê só as permissões que a pessoa realmente precisa pro trabalho dela — evita erro e mantém o controle."] },
+{ chave: "lp", icone: "🖥️", titulo: "Landing Pages",
+acessar: "Aba \"Landing Pages\", no menu lateral.",
+usar: ["Clique em \"+ Nova LP\" pra criar uma pagina com titulo e endereco proprios.", "Publique quando estiver pronta pra gerar o link de verdade, ou deixe como rascunho enquanto ajusta."],
+dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas com foco unico convertem mais que a loja inteira."] }
 ];
 
         const FEATURES_EM_BREVE_GUIA = [
@@ -2642,7 +2642,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const tbody = document.getElementById("lps-table-body");
             if (!tbody) return;
             try {
-                const snap = await getDocs(query(collection(db, "landing_pages"), where("uid", "==", usuarioUID)));
+                const snap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
                 let lps = [];
                 snap.forEach(d => lps.push({ id: d.id, ...d.data() }));
                 lps.sort((a, b) => (b.atualizadoEm || 0) - (a.atualizadoEm || 0));
@@ -2703,13 +2703,13 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                     }, { merge: true });
                     showToast("Landing Page atualizada.");
                 } else {
-                    const existente = await getDocs(query(collection(db, "landing_pages"), where("uid", "==", usuarioUID), where("pagina", "==", slug)));
+                    const existente = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID), where("pagina", "==", slug)));
                     if (!existente.empty) return showToast("Ja existe uma LP com esse endereco.", "error");
                     const novoId = `lp_${Date.now()}`;
                     const bloco1Id = `lpb_${Date.now()}_1`;
                     const bloco2Id = `lpb_${Date.now()}_2`;
                     await setDoc(doc(db, "landing_pages", novoId), {
-                        uid: usuarioUID, titulo, pagina: slug, publicado: false,
+                        donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
                         ordemBlocos: [bloco1Id, bloco2Id],
                         criadoEm: Date.now(), atualizadoEm: Date.now()
                     });
