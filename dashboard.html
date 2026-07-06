@@ -324,6 +324,8 @@ Adicionar Produto
 
 <button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-md text-xs transition-all shrink-0">💾 Salvar Layout</button>
 
+<button type="button" id="btn-restaurar-layout" onclick="restaurarLayoutOriginal()" class="hidden bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 font-bold px-4 py-2 rounded-md text-xs transition-all shrink-0">↺ Restaurar Original</button>
+
 </div>
 <!-- HUB DE MÓDULOS -->
 <div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="hub-modulos" data-block-nome="Hub de Módulos">
@@ -2109,15 +2111,17 @@ dicas: ["Dê só as permissões que a pessoa realmente precisa pro trabalho dela
         let modoEdicaoLayoutAtivo = false;
 let blocoArrastando = null;
 
-window.alternarModoEdicaoLayout = function() {
-    modoEdicaoLayoutAtivo = !modoEdicaoLayoutAtivo;
+function aplicarEstadoModoEdicaoLayout() {
     const btn = document.getElementById("btn-editar-layout");
     const btnSalvar = document.getElementById("btn-salvar-layout");
+    const btnRestaurar = document.getElementById("btn-restaurar-layout");
     document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
         el.draggable = modoEdicaoLayoutAtivo;
-        el.classList.toggle("border-2", modoEdicaoLayoutAtivo);
-        el.classList.toggle("border-dashed", modoEdicaoLayoutAtivo);
-        el.classList.toggle("border-white/30", modoEdicaoLayoutAtivo);
+        if (modoEdicaoLayoutAtivo) {
+            el.classList.add("border-2", "border-dashed", "border-white/30");
+        } else {
+            el.classList.remove("border-2", "border-dashed", "border-white/30");
+        }
         let controle = el.querySelector(".layout-block-controle");
         if (modoEdicaoLayoutAtivo && !controle) {
             controle = document.createElement("div");
@@ -2125,17 +2129,37 @@ window.alternarModoEdicaoLayout = function() {
             const oculto = el.classList.contains("layout-block-oculto");
             controle.innerHTML = `<span class="text-xs font-bold text-white">⠿ ${el.getAttribute("data-block-nome")}</span><button type="button" class="btn-toggle-visibilidade-bloco text-xs font-bold text-gray-300 hover:text-white">${oculto ? "🚫 Oculto" : "👁️ Ocultar"}</button>`;
             el.insertBefore(controle, el.firstChild);
-            controle.querySelector(".btn-toggle-visibilidade-bloco").onclick = () => {
+            controle.querySelector(".btn-toggle-visibilidade-bloco").addEventListener("click", (ev) => {
+                ev.stopPropagation();
                 const escondido = el.classList.toggle("layout-block-oculto");
                 el.style.opacity = escondido ? "0.3" : "1";
-                controle.querySelector(".btn-toggle-visibilidade-bloco").innerText = escondido ? "🚫 Oculto" : "👁️ Ocultar";
-            };
+                ev.target.innerText = escondido ? "🚫 Oculto" : "👁️ Ocultar";
+            });
         } else if (!modoEdicaoLayoutAtivo && controle) {
             controle.remove();
         }
     });
-    btn.innerText = modoEdicaoLayoutAtivo ? "✅ Concluir Edição" : "✏️ Editar Layout";
-    btnSalvar.classList.toggle("hidden", !modoEdicaoLayoutAtivo);
+    if (btn) btn.innerText = modoEdicaoLayoutAtivo ? "✅ Concluir Edição" : "✏️ Editar Layout";
+    if (btnSalvar) btnSalvar.classList.toggle("hidden", !modoEdicaoLayoutAtivo);
+    if (btnRestaurar) btnRestaurar.classList.toggle("hidden", !modoEdicaoLayoutAtivo);
+}
+
+window.alternarModoEdicaoLayout = function() {
+    modoEdicaoLayoutAtivo = !modoEdicaoLayoutAtivo;
+    aplicarEstadoModoEdicaoLayout();
+};
+
+window.restaurarLayoutOriginal = async function() {
+    abrirConfirmacao("Restaurar o layout original da Visão Geral? Isso apaga a personalização salva.", async () => {
+        try {
+            await setDoc(doc(db, "usuarios", usuarioUID), { layoutVisaoGeral: [] }, { merge: true });
+            showToast("Layout restaurado! Recarregando...");
+            setTimeout(() => window.location.reload(), 1000);
+        } catch(err) {
+            console.error(err);
+            showToast("Erro ao restaurar layout.", "error");
+        }
+    });
 };
 
 document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
@@ -2158,7 +2182,8 @@ window.salvarLayoutVisaoGeral = async function() {
     try {
         await setDoc(doc(db, "usuarios", usuarioUID), { layoutVisaoGeral: ordem }, { merge: true });
         showToast("Layout salvo! Vai continuar assim toda vez que você entrar.");
-        alternarModoEdicaoLayout();
+        modoEdicaoLayoutAtivo = false;
+        aplicarEstadoModoEdicaoLayout();
     } catch(err) {
         console.error(err);
         showToast("Erro ao salvar layout.", "error");
