@@ -2837,6 +2837,19 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                         document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
                     }
 
+                    if (Array.isArray(dados.layoutVisaoGeral) && dados.layoutVisaoGeral.length > 0) {
+                        const containerVisaoGeral = document.querySelector("#view-dashboard");
+                        dados.layoutVisaoGeral.forEach(item => {
+                            const elBloco = containerVisaoGeral.querySelector(`.layout-block[data-block-id="${item.id}"]`);
+                            if (!elBloco) return;
+                            if (!item.visivel) { elBloco.classList.add("hidden", "layout-block-oculto"); }
+                            containerVisaoGeral.appendChild(elBloco);
+                        });
+                    }
+                        document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
+                        document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
+                    }
+
                     listaBanners = [];
                     try {
                         const snapBanners = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", usuarioUID)));
