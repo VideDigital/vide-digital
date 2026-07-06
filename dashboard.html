@@ -874,7 +874,14 @@ Adicionar Produto
                 </div>
             </div>
 
-            <!-- BOX 6: Controle de Aparência, Cores e Tipografia -->
+            <!-- BOX: Layout da Vitrine Pública -->
+<div class="glass-card rounded-xl p-6 space-y-4">
+<h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>📐</span> Layout da Vitrine Pública</h3>
+<p class="text-xs text-gray-400">Arraste pra reordenar, ou esconda o que não quiser mostrar na sua loja.</p>
+<div id="lista-layout-loja" class="space-y-2"></div>
+</div>
+
+<!-- BOX 6: Controle de Aparência, Cores e Tipografia -->
             <div class="glass-card rounded-xl p-6 space-y-5">
                 <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🎨</span> Controle de Aparência</h3>
                 
@@ -2864,6 +2871,12 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                         document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
                     }
 
+                    if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0) {
+                        const nomesLP = { banners: "🖼️ Banners", hero: "🔎 Título, Busca e Categorias", produtos: "🛍️ Produtos" };
+                        listaLayoutLoja = dados.layoutLojaPublica.map(item => ({ id: item.id, nome: nomesLP[item.id] || item.id, visivel: item.visivel !== false }));
+                        renderizarLayoutLoja();
+                    }
+
                     if (Array.isArray(dados.layoutVisaoGeral) && dados.layoutVisaoGeral.length > 0) {
                         const containerVisaoGeral = document.querySelector("#view-dashboard");
                         dados.layoutVisaoGeral.forEach(item => {
@@ -2977,7 +2990,48 @@ listaBanners = [];
             showToast("Cores restauradas! Clique em Salvar Alterações para confirmar.");
         });
 
-        document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
+        let listaLayoutLoja = [
+    { id: "banners", nome: "🖼️ Banners", visivel: true },
+    { id: "hero", nome: "🔎 Título, Busca e Categorias", visivel: true },
+    { id: "produtos", nome: "🛍️ Produtos", visivel: true }
+];
+
+function renderizarLayoutLoja() {
+    const box = document.getElementById("lista-layout-loja");
+    if (!box) return;
+    box.innerHTML = listaLayoutLoja.map((b, i) => `
+        <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-xl p-3 cursor-move" draggable="true" data-index="${i}">
+            <span class="text-xs font-bold text-white">⠿ ${b.nome}</span>
+            <button type="button" class="btn-toggle-layout-loja text-xs font-bold text-gray-300 hover:text-white" data-index="${i}">${b.visivel ? "👁️ Visível" : "🚫 Oculto"}</button>
+        </div>
+    `).join("");
+
+    let arrastandoLP = null;
+    box.querySelectorAll("[draggable]").forEach(el => {
+        el.addEventListener("dragstart", () => { arrastandoLP = parseInt(el.getAttribute("data-index")); });
+        el.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            const alvo = parseInt(el.getAttribute("data-index"));
+            if (arrastandoLP === null || arrastandoLP === alvo) return;
+            const item = listaLayoutLoja.splice(arrastandoLP, 1)[0];
+            listaLayoutLoja.splice(alvo, 0, item);
+            arrastandoLP = alvo;
+            renderizarLayoutLoja();
+        });
+    });
+
+    box.querySelectorAll(".btn-toggle-layout-loja").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            const idx = parseInt(btn.getAttribute("data-index"));
+            listaLayoutLoja[idx].visivel = !listaLayoutLoja[idx].visivel;
+            renderizarLayoutLoja();
+        });
+    });
+}
+renderizarLayoutLoja();
+
+document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
             abrirConfirmacao("Deseja salvar todas as alterações da sua vitrine?", executarSalvamento);
         });
         
@@ -3090,7 +3144,8 @@ listaBanners = [];
                     link1Icone: payloadPerfil.link1Icone,
                     link2Titulo: payloadPerfil.link2Titulo,
                     link2Url: payloadPerfil.link2Url,
-                    link2Icone: payloadPerfil.link2Icone
+                    link2Icone: payloadPerfil.link2Icone,
+                    layoutLojaPublica: listaLayoutLoja.map(b => ({ id: b.id, visivel: b.visivel }))
                 }, { merge: true });
 
                 try {
