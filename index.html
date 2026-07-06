@@ -1,110 +1,117 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full bg-[#03040B]">
+<html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VideDigital | Painel de Controle</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
-    <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vide Hub</title>
+<script>
+(function() {
+    var params = new URLSearchParams(window.location.search);
+    var caminhoRestaurado = params.get("p");
+    if (caminhoRestaurado !== null) {
+        var ehDominioPadrao = window.location.hostname === "videdigital.github.io";
+        var base = ehDominioPadrao ? "/vide-digital/" : "/";
+        var novaURL = base + caminhoRestaurado + window.location.hash;
+        window.history.replaceState(null, "", novaURL);
+    }
+})();
+</script>
+<script src="https://cdn.tailwindcss.com"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+    body { font-family: 'Inter', sans-serif; background: #14132B; }
+    h1, h2, h3 { font-family: 'Sora', sans-serif; }
+</style>
 </head>
-<body class="h-full text-white bg-[#03040B] relative overflow-hidden">
+<body class="min-h-screen text-white">
+<div id="lp-container" class="min-h-screen flex items-center justify-center">
+    <p class="text-gray-400 text-sm">Carregando...</p>
+</div>
+<script type="module">
+    import { db } from "./firebase-init.js";
+    import { doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-    <div class="absolute top-[-20%] left-[-10%] h-[600px] w-[600px] rounded-full bg-[#00f2fe]/10 blur-[140px] pointer-events-none"></div>
+    var ehDominioPadrao = window.location.hostname === "videdigital.github.io";
+    var base = ehDominioPadrao ? "/vide-digital/" : "/";
+    var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
+    var segmentos = caminho.split("/").filter(Boolean);
 
-    <div class="min-h-screen flex flex-col relative z-10">
-        <header class="border-b border-white/5 bg(12,13,26,0.5) backdrop-blur-md px-6 py-4 flex items-center justify-between">
-            <div class="flex items-center gap-3">
-                <div class="h-9 w-9 rounded-xl bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.3)]">
-                    <span class="text-black font-extrabold text-xs">V</span>
-                </div>
-                <span class="font-bold tracking-tight text-sm">Dashboard Ecossistema</span>
-            </div>
-            
-            <div class="flex items-center gap-4">
-                <span id="user-display-email" class="text-xs text-gray-400 font-medium">Carregando usuário...</span>
-                <button id="btn-logout" class="px-3 py-1.5 bg-white/5 hover:bg-red-500/20 hover:text-red-400 border border-white/10 rounded-lg text-xs font-semibold transition-all">
-                    Sair
-                </button>
-            </div>
-        </header>
+    async function resolverLojaPorDominio(hostname) {
+        // TODO: quando o recurso de dominio proprio existir, buscar aqui
+        // a loja dona desse hostname (ex: colecao "dominios_personalizados").
+        return null;
+    }
 
-        <main class="flex-1 p-8 max-w-7xl w-full mx-auto space-y-6">
-            <div class="space-y-1">
-                <h1 class="text-2xl font-extrabold tracking-tight">Bem-vindo ao seu Ecossistema</h1>
-                <p class="text-xs text-gray-400">Gerencie suas vitrines e acompanhe métricas em tempo real.</p>
-            </div>
-
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-5">
-                <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-2 backdrop-blur-xl">
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Vitrines Ativas</p>
-                    <p class="text-3xl font-black text-white">01</p>
-                </div>
-                <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-2 backdrop-blur-xl">
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Visualizações (Mês)</p>
-                    <p class="text-3xl font-black text-[#00f2fe]">1,240</p>
-                </div>
-                <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-6 space-y-2 backdrop-blur-xl">
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Status do Servidor</p>
-                    <p class="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 pt-2">
-                        <span class="h-2 w-2 rounded-full bg-emerald-400 animate-pulse"></span> Operacional
-                    </p>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-
-        // Configuração Oficial de Produção
-        const firebaseConfig = {
-            apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
-            authDomain: "vide-digital-saas.firebaseapp.com",
-            projectId: "vide-digital-saas",
-            storageBucket: "vide-digital-saas.firebasestorage.app",
-            messagingSenderId: "891590456336",
-            appId: "1:891590456336:web:bd51ac50399465b886c695"
-        };
-
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-
-        const userDisplay = document.getElementById("user-display-email");
-
-        // SEGURANÇA ATIVA: Monitora a sessão e barra intrusos ou e-mails excluídos
-        onAuthStateChanged(auth, async (user) => {
-            if (user) {
-                try {
-                    // Força a validação do token com o servidor do Firebase.
-                    // Se o usuário foi deletado do banco, isso vai falhar e acionar o catch.
-                    await user.getIdToken(true);
-                    
-                    // Exibe o e-mail no cabeçalho se estiver tudo correto
-                    if (userDisplay) userDisplay.textContent = user.email;
-                } catch (error) {
-                    console.error("Sessão inválida ou usuário removido:", error);
-                    await signOut(auth);
-                    window.location.href = "login.html";
-                }
-            } else {
-                // Se não há usuário logado, manda direto para a página de login
-                window.location.href = "login.html";
+    async function renderizarLandingPage(lojaSlug, paginaSlug) {
+        const container = document.getElementById("lp-container");
+        const docId = lojaSlug.toLowerCase() + "__" + paginaSlug.toLowerCase();
+        try {
+            const metaSnap = await getDoc(doc(db, "landing_pages_publicas", docId));
+            if (!metaSnap.exists() || metaSnap.data().publicado !== true) {
+                mostrarErro();
+                return;
             }
-        });
-
-        // Ação do Botão de Sair
-        const btnLogout = document.getElementById("btn-logout");
-        if (btnLogout) {
-            btnLogout.addEventListener("click", async () => {
-                await signOut(auth);
-                window.location.href = "login.html";
-            });
+            const meta = metaSnap.data();
+            document.title = meta.titulo || "Vide Hub";
+            container.className = "min-h-screen";
+            container.innerHTML = "";
+            const ordemBlocos = meta.ordemBlocos || [];
+            for (const blocoId of ordemBlocos) {
+                const blocoSnap = await getDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
+                if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
+                    container.insertAdjacentHTML("beforeend", renderizarBloco(blocoSnap.data()));
+                }
+            }
+        } catch (erro) {
+            console.error("Erro ao carregar landing page:", erro);
+            mostrarErro();
         }
-    </script>
+    }
+
+    function renderizarBloco(bloco) {
+        switch (bloco.tipo) {
+            case "texto_midia":
+                return `
+                    <section class="max-w-5xl mx-auto px-6 py-16 grid md:grid-cols-2 gap-10 items-center">
+                        <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""}">
+                            <h2 class="text-3xl font-bold mb-4">${bloco.props.titulo || ""}</h2>
+                            <p class="text-gray-300 mb-6">${bloco.props.subtitulo || ""}</p>
+                            ${bloco.props.botaoTexto ? `<a href="${bloco.props.botaoLink || "#"}" class="inline-block bg-white text-black font-bold px-6 py-3 rounded-xl">${bloco.props.botaoTexto}</a>` : ""}
+                        </div>
+                        <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
+                            ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}" class="rounded-2xl w-full">` : ""}
+                        </div>
+                    </section>`;
+            case "formulario_captura":
+                return `
+                    <section class="max-w-md mx-auto px-6 py-16">
+                        <h2 class="text-2xl font-bold mb-6 text-center">${bloco.props.titulo || ""}</h2>
+                        <form class="space-y-3">
+                            ${(bloco.props.campos || []).map(campo => `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
+                            <button type="submit" class="w-full bg-white text-black font-bold py-3 rounded-xl">${bloco.props.textoBotao || "Enviar"}</button>
+                        </form>
+                    </section>`;
+            default:
+                return "";
+        }
+    }
+
+    function mostrarErro() {
+        document.getElementById("lp-container").innerHTML = '<p class="text-gray-400 text-sm">Pagina nao encontrada.</p>';
+    }
+
+    if (segmentos.length === 0) {
+        window.location.href = "login.html";
+    } else if (ehDominioPadrao && segmentos.length === 2) {
+        renderizarLandingPage(segmentos[0], segmentos[1]);
+    } else if (!ehDominioPadrao && segmentos.length === 1) {
+        resolverLojaPorDominio(window.location.hostname).then(function(lojaSlug) {
+            if (lojaSlug) renderizarLandingPage(lojaSlug, segmentos[0]);
+            else mostrarErro();
+        });
+    } else {
+        mostrarErro();
+    }
+</script>
 </body>
 </html>
