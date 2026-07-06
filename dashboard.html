@@ -1064,7 +1064,7 @@ Adicionar Produto
                 </div>
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block" data-block-id="estatisticas-leads" data-block-nome="Estatísticas de Leads">
                 <div class="glass-card p-5 rounded-xl">
                     <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Total de Leads</span>
                     <h2 class="text-3xl font-black text-white mt-2" id="lead-total-count">0</h2>
@@ -1083,7 +1083,7 @@ Adicionar Produto
                 </div>
             </div>
 
-            <div class="glass-card p-5 rounded-xl">
+            <div class="glass-card p-5 rounded-xl layout-block" data-block-id="origem-trafego" data-block-nome="Origem de Tráfego">
                 <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider mb-4">Origem de Tráfego</span>
                 <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                     <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
@@ -1106,11 +1106,7 @@ Adicionar Produto
             </div>
 
             <div class="glass-card rounded-xl overflow-hidden border border-white/5">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                <th class="p-4">👤 Nome</th>
+
                                 <th class="p-4">✉️ E-mail</th>
                                 <th class="p-4">🟢 WhatsApp</th>
                                 <th class="p-4">📍 Origem</th>
@@ -1281,13 +1277,13 @@ Adicionar Produto
                 <button onclick="excluirPermanentemente()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗑️ Excluir Permanentemente</button>
             </div>
 
-            <div class="glass-card rounded-xl overflow-hidden border border-white/5">
+            <div class="glass-card rounded-xl overflow-hidden border border-white/5 layout-block" data-block-id="tabela-leads" data-block-nome="Tabela de Leads">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
                             <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                <th class="p-4"><input type="checkbox" id="auto-lead-selecionar-todos" class="accent-[#00f2fe]"></th>
                                 <th class="p-4">👤 Nome</th>
+                                <th class="p-4">✉️ E-mail</th>
                                 <th class="p-4">🟢 WhatsApp</th>
                                 <th class="p-4">📍 Origem</th>
                                 <th class="p-4">🎯 Interesse</th>
@@ -2818,6 +2814,7 @@ const emModoMaster = !!(masterUIDAlvo && (usuarioEmail === "danielmarcelino549@g
                     const featuresManuais = Array.isArray(dadosPlano.featuresManuais) ? dadosPlano.featuresManuais : null;
                     const featuresEfetivas = featuresManuais !== null ? featuresManuais : featuresAtivas;
                     temFeature = function(feature) {
+    if (feature === "leads") return true;
     return featuresEfetivas.includes(feature);
 };
 try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(featuresEfetivas)); } catch(e) {}
