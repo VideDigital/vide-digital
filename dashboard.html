@@ -270,26 +270,13 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
     try {
         var chaveAlvo = new URLSearchParams(window.location.search).get("masterUID") || "own";
         var cache = JSON.parse(localStorage.getItem("ultimoPlanoFeatures_" + chaveAlvo) || "null");
-        if (cache) {
-            var bloqueiosPrecoces = { "view-templates": "templates", "view-campanhas": "campanhas", "view-metricas": "metricas", "view-pedidos": "hub", "view-funcionarios": "subcontas" };
-            document.querySelectorAll("#sidebar-nav button[data-target]").forEach(function(btn) {
-                var target = btn.getAttribute("data-target");
-                var feature = bloqueiosPrecoces[target];
-                if (feature && !cache.includes(feature)) btn.classList.add("opacity-40");
-            });
-        }
-    } catch(e) {}
-    try {
-        var chavePerfil = new URLSearchParams(window.location.search).get("masterUID") || "own";
-        var perfil = JSON.parse(localStorage.getItem("ultimoPerfilLoja_" + chavePerfil) || "null");
-        if (perfil) {
-            var elTitulo = document.getElementById("txt-preview-nome-loja");
-            var elUrlPreview = document.getElementById("url-loja-preview");
-            var elLink = document.getElementById("link-minha-loja");
-            if (elTitulo && perfil.nomeLoja) elTitulo.innerText = perfil.nomeLoja;
-            if (elUrlPreview && perfil.urlLoja) elUrlPreview.innerText = "vide.digital/" + perfil.urlLoja;
-            if (elLink && perfil.urlLoja) elLink.href = "loja.html?loja=" + perfil.urlLoja;
-        }
+        if (!cache) return;
+        var bloqueiosPrecoces = { "view-templates": "templates", "view-campanhas": "campanhas", "view-metricas": "metricas", "view-pedidos": "hub", "view-funcionarios": "subcontas" };
+        document.querySelectorAll("#sidebar-nav button[data-target]").forEach(function(btn) {
+            var target = btn.getAttribute("data-target");
+            var feature = bloqueiosPrecoces[target];
+            if (feature && !cache.includes(feature)) btn.classList.add("opacity-40");
+        });
     } catch(e) {}
 })();
 </script>
@@ -335,6 +322,23 @@ Adicionar Produto
 </div>         
 
 </div>
+
+<script>
+(function() {
+    try {
+        var chavePerfil = new URLSearchParams(window.location.search).get("masterUID") || "own";
+        var perfil = JSON.parse(localStorage.getItem("ultimoPerfilLoja_" + chavePerfil) || "null");
+        if (perfil) {
+            var elTitulo = document.getElementById("txt-preview-nome-loja");
+            var elUrlPreview = document.getElementById("url-loja-preview");
+            var elLink = document.getElementById("link-minha-loja");
+            if (elTitulo && perfil.nomeLoja) elTitulo.innerText = perfil.nomeLoja;
+            if (elUrlPreview && perfil.urlLoja) elUrlPreview.innerText = "vide.digital/" + perfil.urlLoja;
+            if (elLink && perfil.urlLoja) elLink.href = "loja.html?loja=" + perfil.urlLoja;
+        }
+    } catch(e) {}
+})();
+</script>
 
 <!-- HUB DE MÓDULOS -->
 <div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="hub-modulos" data-block-nome="Hub de Módulos">
