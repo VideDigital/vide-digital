@@ -314,10 +314,16 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
                     <p class="text-gray-500 text-xs mt-1">Métricas de performance e conversão em tempo real.</p>
                 </div>
                 <button id="btn-abrir-criacao" class="bg-white text-black font-medium px-4 py-2 rounded-md text-xs hover:bg-gray-200 transition-all shrink-0">
-Adicionar Produto
-</button>
-</div>
 
+Adicionar Produto
+
+</button>
+
+<button type="button" id="btn-editar-layout" onclick="alternarModoEdicaoLayout()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white font-medium px-4 py-2 rounded-md text-xs transition-all shrink-0">✏️ Editar Layout</button>
+
+<button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-md text-xs transition-all shrink-0">💾 Salvar Layout</button>
+
+</div>
 <!-- HUB DE MÓDULOS -->
 <div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="hub-modulos" data-block-nome="Hub de Módulos">
 <h3 class="text-sm font-bold text-white uppercase tracking-wider">🧭 Hub de Módulos</h3>
@@ -2098,7 +2104,66 @@ dicas: ["Dê só as permissões que a pessoa realmente precisa pro trabalho dela
         };
         
         // GESTOR DE ABAS SPA REATIVAS
-        window.filtrarHubModulos = function(termo) {
+        let modoEdicaoLayoutAtivo = false;
+let blocoArrastando = null;
+
+window.alternarModoEdicaoLayout = function() {
+    modoEdicaoLayoutAtivo = !modoEdicaoLayoutAtivo;
+    const btn = document.getElementById("btn-editar-layout");
+    const btnSalvar = document.getElementById("btn-salvar-layout");
+    document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
+        el.draggable = modoEdicaoLayoutAtivo;
+        el.classList.toggle("border-2", modoEdicaoLayoutAtivo);
+        el.classList.toggle("border-dashed", modoEdicaoLayoutAtivo);
+        el.classList.toggle("border-white/30", modoEdicaoLayoutAtivo);
+        let controle = el.querySelector(".layout-block-controle");
+        if (modoEdicaoLayoutAtivo && !controle) {
+            controle = document.createElement("div");
+            controle.className = "layout-block-controle flex items-center justify-between gap-2 mb-3 p-2 bg-black/40 rounded-lg cursor-move";
+            const oculto = el.classList.contains("layout-block-oculto");
+            controle.innerHTML = `<span class="text-xs font-bold text-white">⠿ ${el.getAttribute("data-block-nome")}</span><button type="button" class="btn-toggle-visibilidade-bloco text-xs font-bold text-gray-300 hover:text-white">${oculto ? "🚫 Oculto" : "👁️ Ocultar"}</button>`;
+            el.insertBefore(controle, el.firstChild);
+            controle.querySelector(".btn-toggle-visibilidade-bloco").onclick = () => {
+                const escondido = el.classList.toggle("layout-block-oculto");
+                el.style.opacity = escondido ? "0.3" : "1";
+                controle.querySelector(".btn-toggle-visibilidade-bloco").innerText = escondido ? "🚫 Oculto" : "👁️ Ocultar";
+            };
+        } else if (!modoEdicaoLayoutAtivo && controle) {
+            controle.remove();
+        }
+    });
+    btn.innerText = modoEdicaoLayoutAtivo ? "✅ Concluir Edição" : "✏️ Editar Layout";
+    btnSalvar.classList.toggle("hidden", !modoEdicaoLayoutAtivo);
+};
+
+document.querySelectorAll("#view-dashboard .layout-block").forEach(el => {
+    el.addEventListener("dragstart", () => { blocoArrastando = el; });
+    el.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        if (!modoEdicaoLayoutAtivo || blocoArrastando === el) return;
+        const rect = el.getBoundingClientRect();
+        const meio = rect.top + rect.height / 2;
+        if (e.clientY < meio) el.parentNode.insertBefore(blocoArrastando, el);
+        else el.parentNode.insertBefore(blocoArrastando, el.nextSibling);
+    });
+});
+
+window.salvarLayoutVisaoGeral = async function() {
+    const ordem = Array.from(document.querySelectorAll("#view-dashboard .layout-block")).map(el => ({
+        id: el.getAttribute("data-block-id"),
+        visivel: !el.classList.contains("layout-block-oculto")
+    }));
+    try {
+        await setDoc(doc(db, "usuarios", usuarioUID), { layoutVisaoGeral: ordem }, { merge: true });
+        showToast("Layout salvo! Vai continuar assim toda vez que você entrar.");
+        alternarModoEdicaoLayout();
+    } catch(err) {
+        console.error(err);
+        showToast("Erro ao salvar layout.", "error");
+    }
+};
+
+window.filtrarHubModulos = function(termo) {
     const t = termo.trim().toLowerCase();
     document.querySelectorAll("#grid-hub-modulos > div").forEach(card => {
         const nome = card.getAttribute("data-nome") || "";
