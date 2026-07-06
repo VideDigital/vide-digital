@@ -13,7 +13,7 @@
         .search-glow:focus { box-shadow: 0 0 25px var(--client-brand); border-color: var(--client-brand); }
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #5B3DF5, #FF7A45); border-radius: 10px; opacity: 0.6; }
 
 #vitrine-container .text-white:not(.keep-white),
 
@@ -113,6 +113,8 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
 <div id="carrinho-overlay" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onclick="fecharCarrinho()"></div>
 
     <div id="carrinho-painel" class="fixed top-0 right-0 z-50 h-full w-full sm:w-96 bg-[#0c0c14] border-l border-white/10 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+
+<div class="h-1 w-full shrink-0" style="background: linear-gradient(90deg, #5B3DF5, #FF7A45);"></div>
         <div class="p-5 border-b border-white/5 flex items-center justify-between">
             <div>
                 <h3 class="text-sm font-bold text-white uppercase tracking-wider">🛒 Seu Carrinho</h3>
@@ -136,7 +138,10 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
     </div>
     <!-- POP-UP CAPTURA DE LEAD -->
     <div id="popup-captura" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-        <div class="relative w-full max-w-md bg-[#0c0c14] border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-5">
+
+<div class="relative w-full max-w-md bg-[#0c0c14] border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-5 overflow-hidden">
+
+<div class="absolute top-0 left-0 h-1 w-full" style="background: linear-gradient(90deg, #5B3DF5, #FF7A45);"></div>
             <button onclick="fecharPopup()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">&times;</button>
             <div class="text-4xl">🎁</div>
             <h2 class="text-xl font-black text-white">Espera! Temos um presente pra você</h2>
@@ -155,9 +160,14 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
     <footer class="border-t border-white/5 py-6 bg-black/20 mt-12">
         <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-gray-500">
             <p id="client-footer-text">2026 Todos os direitos reservados.</p>
-            <p class="flex items-center gap-1.5">&#128274; Conexao Criptografada</p>
-        </div>
-    </footer>
+
+<p class="flex items-center gap-1.5">&#128274; Conexao Criptografada</p>
+
+<a href="https://videdigital.github.io/vide-digital/" target="_blank" class="flex items-center gap-1.5 hover:text-white transition-colors">Feito com <span class="font-bold" style="background: linear-gradient(90deg, #5B3DF5, #FF7A45); -webkit-background-clip: text; background-clip: text; color: transparent;">Vide Hub</span></a>
+
+</div>
+
+</footer>
 
     <script type="module">
         import { db } from "./firebase-init.js";
