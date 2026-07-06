@@ -324,11 +324,6 @@ Adicionar Produto
 
 </div>
 
-<div id="barra-editor-layout" class="fixed bottom-6 right-6 z-40 flex items-center gap-2">
-    <button type="button" id="btn-editar-layout" onclick="alternarModoEdicaoLayout()" class="bg-white text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">✏️ Editar Layout desta Aba</button>
-    <button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">💾 Salvar</button>
-    <button type="button" id="btn-restaurar-layout" onclick="restaurarLayoutOriginal()" class="hidden bg-red-500/90 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">↺ Restaurar</button>
-</div>
 <!-- HUB DE MÓDULOS -->
 <div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="hub-modulos" data-block-nome="Hub de Módulos">
 <h3 class="text-sm font-bold text-white uppercase tracking-wider">🧭 Hub de Módulos</h3>
@@ -1296,6 +1291,12 @@ Adicionar Produto
             </div>
         </section>
     </main>
+
+<div id="barra-editor-layout" class="fixed bottom-6 right-6 z-40 flex items-center gap-2">
+    <button type="button" id="btn-editar-layout" onclick="alternarModoEdicaoLayout()" class="bg-white text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">✏️ Editar Layout desta Aba</button>
+    <button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">💾 Salvar</button>
+    <button type="button" id="btn-restaurar-layout" onclick="restaurarLayoutOriginal()" class="hidden bg-red-500/90 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">↺ Restaurar</button>
+</div>
 <div id="lead-painel" class="hidden fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#0a0a0a] border-l border-white/10 z-50 flex flex-col shadow-2xl">
             <div class="p-5 border-b border-white/5 flex items-center justify-between">
                 <div class="flex items-center gap-3">
