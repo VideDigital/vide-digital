@@ -1668,19 +1668,26 @@ Adicionar Produto
                 <input type="text" id="lped-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none mt-1" placeholder="promocao-inverno">
             </div>
             <div id="lped-blocos-lista" class="space-y-3"></div>
-            <div class="flex gap-2 pt-2">
-                <select id="lped-tipo-novo-bloco" class="flex-1 glass-input rounded-xl p-3 text-xs text-white outline-none">
-                    <option value="texto_midia">Texto e Botao</option>
-                    <option value="formulario_captura">Formulario</option>
-                    <option value="faq">FAQ - Perguntas Frequentes</option>
-                    <option value="galeria_imagens">Galeria de Imagens</option>
-                    <option value="lista_cards">Lista de Cards</option>
-                    <option value="tabela_comparativo">Tabela de Comparativo</option>
-                    <option value="texto_rico">Texto Rico</option>
-                    <option value="codigo_iframe">Codigo / iFrame</option>
-                </select>
-                <button onclick="adicionarBlocoEditor(document.getElementById('lped-tipo-novo-bloco').value)" class="bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-3 px-5 rounded-xl transition-all whitespace-nowrap">+ Adicionar Bloco</button>
+            <button onclick="abrirPainelBlocos()" class="w-full bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                Adicionar Bloco
+            </button>
+        </div>
+    </div>
+    <div id="lp-blocos-panel" class="hidden fixed inset-0 z-[125] flex justify-end">
+        <div onclick="fecharPainelBlocos()" class="absolute inset-0 bg-black/60 backdrop-blur-sm"></div>
+        <div class="relative w-full max-w-sm h-full bg-[#1A1935] border-l border-white/10 flex flex-col">
+            <div class="p-5 border-b border-white/5 space-y-3">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-black text-white">Blocos</h3>
+                    <button onclick="fecharPainelBlocos()" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+                <div class="relative">
+                    <svg class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                    <input type="text" id="lp-blocos-busca" oninput="renderizarPainelBlocos()" placeholder="Pesquisar blocos..." class="w-full glass-input rounded-xl p-3 pl-9 text-xs text-white outline-none">
+                </div>
             </div>
+            <div id="lp-blocos-grid" class="flex-1 overflow-y-auto p-5 grid grid-cols-2 gap-3 content-start"></div>
         </div>
     </div>
     <!-- MODAL CENTRAL DE NOTIFICAÇÕES (lista + detalhe na mesma caixa) -->
@@ -3120,7 +3127,40 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (removido && removido.id) lpEditorRemovidos.push(removido.id);
             renderizarEditorBlocos();
         };
-      window.adicionarBlocoEditor = function(tipo) {
+        const TIPOS_BLOCO_DISPONIVEIS = [
+            { tipo: "texto_midia", nome: "Texto e Botao", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>' },
+            { tipo: "formulario_captura", nome: "Formulario", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>' },
+            { tipo: "faq", nome: "FAQ - Perguntas Frequentes", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>' },
+            { tipo: "galeria_imagens", nome: "Galeria de Imagens", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path>' },
+            { tipo: "lista_cards", nome: "Lista de Cards", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m-6 0a2 2 0 01-2-2V7a2 2 0 012-2m10 12a2 2 0 002 2h0a2 2 0 002-2V7a2 2 0 00-2-2h0a2 2 0 00-2 2v10z"></path>' },
+            { tipo: "tabela_comparativo", nome: "Tabela de Comparativo", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M3 6h18M3 14h18M3 18h18"></path>' },
+            { tipo: "texto_rico", nome: "Texto Rico", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>' },
+            { tipo: "codigo_iframe", nome: "Codigo / iFrame", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 8l-4 4 4 4"></path>' }
+        ];
+        window.abrirPainelBlocos = function() {
+            document.getElementById("lp-blocos-busca").value = "";
+            renderizarPainelBlocos();
+            document.getElementById("lp-blocos-panel").classList.remove("hidden");
+        };
+        window.fecharPainelBlocos = function() {
+            document.getElementById("lp-blocos-panel").classList.add("hidden");
+        };
+        function renderizarPainelBlocos() {
+            const termo = document.getElementById("lp-blocos-busca").value.trim().toLowerCase();
+            const grid = document.getElementById("lp-blocos-grid");
+            const filtrados = TIPOS_BLOCO_DISPONIVEIS.filter(t => t.nome.toLowerCase().includes(termo));
+            grid.innerHTML = filtrados.map(t => `
+                <button onclick="selecionarBlocoPanel('${t.tipo}')" class="flex flex-col items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl p-4 text-center transition-all">
+                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">${t.icone}</svg>
+                    <span class="text-[10px] font-bold text-white leading-tight">${t.nome}</span>
+                </button>
+            `).join("") || '<p class="col-span-2 text-xs text-gray-500 text-center py-8">Nenhum bloco encontrado.</p>';
+        }
+        window.selecionarBlocoPanel = function(tipo) {
+            fecharPainelBlocos();
+            adicionarBlocoEditor(tipo);
+        };
+        window.adicionarBlocoEditor = function(tipo) {
             const novoId = `lpb_${Date.now()}_${lpEditorBlocos.length}`;
             let props = {};
             if (tipo === "texto_midia") {
