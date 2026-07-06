@@ -11,11 +11,10 @@
 
 <style>
 
-body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: #14132B; }
-
+body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: var(--sys-fundo, #14132B); }
 h1, h2, h3 { font-family: 'Sora', sans-serif; }
 
-.glass-sidebar { background: #14132B; border-right: 1px solid rgba(255, 255, 255, 0.05); }
+.glass-sidebar { background: var(--sys-fundo, #14132B); border-right: 1px solid rgba(255, 255, 255, 0.05); }
 
 .glass-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255, 255, 255, 0.05); transition: all 0.2s ease; }
 
@@ -31,25 +30,29 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
 
 .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #FF7A45; }
 
-.text-\[\#00f2fe\] { color: #5B3DF5 !important; }
+:root { --sys-primaria: #5B3DF5; --sys-destaque: #FF7A45; --sys-fundo: #14132B; }
 
-.bg-\[\#00f2fe\] { background-color: #5B3DF5 !important; }
+.text-\[\#00f2fe\] { color: var(--sys-primaria) !important; }
 
-.border-\[\#00f2fe\] { border-color: #5B3DF5 !important; }
+.bg-\[\#00f2fe\] { background-color: var(--sys-primaria) !important; }
 
-.from-\[\#00f2fe\] { --tw-gradient-from: #5B3DF5 !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgba(91,61,245,0)) !important; }
+.border-\[\#00f2fe\] { border-color: var(--sys-primaria) !important; }
 
-.to-\[\#4facfe\], .to-\[\#00f2fe\] { --tw-gradient-to: #FF7A45 !important; }
+.from-\[\#00f2fe\] { --tw-gradient-from: var(--sys-primaria) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
 
-.bg-\[\#030712\], .bg-\[\#0c0c14\], .bg-\[\#111111\], .bg-\[\#0a0a0a\], .bg-\[\#09090f\] { background-color: #14132B !important; }
+.to-\[\#4facfe\], .to-\[\#00f2fe\] { --tw-gradient-to: var(--sys-destaque) !important; }
 
-.text-blue-400, .text-sky-400, .text-sky-300, .text-blue-300 { color: #FF7A45 !important; }
+.bg-\[\#030712\], .bg-\[\#0c0c14\], .bg-\[\#111111\], .bg-\[\#0a0a0a\], .bg-\[\#09090f\] { background-color: var(--sys-fundo) !important; }
+
+.text-blue-400, .text-sky-400, .text-sky-300, .text-blue-300 { color: var(--sys-destaque) !important; }
 
 .bg-blue-500\/10, .bg-sky-500\/10 { background-color: rgba(255,122,69,0.1) !important; }
 
 .bg-blue-500\/20 { background-color: rgba(255,122,69,0.2) !important; }
 
 .border-blue-500\/20, .border-sky-500\/20 { border-color: rgba(255,122,69,0.3) !important; }
+
+.tab-btn.active { border-color: var(--sys-destaque) !important; }
         .neon-glow { text-shadow: 0 0 20px rgba(0, 242, 254, 0.4); }
         .tab-btn.active { background: rgba(255, 255, 255, 0.06); color: #fff; border-color: #00f2fe; }
         .view-section { display: none; }
