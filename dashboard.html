@@ -2220,6 +2220,22 @@ window.filtrarHubModulos = function(termo) {
 };
 
 function ativarAba(targetId) {
+            if (modoEdicaoLayoutAtivo) {
+                modoEdicaoLayoutAtivo = false;
+                document.querySelectorAll(".layout-block").forEach(el => {
+                    el.draggable = false;
+                    el.classList.remove("border-2", "border-dashed", "border-white/30");
+                    const controleAntigo = el.querySelector(".layout-block-controle");
+                    if (controleAntigo) controleAntigo.remove();
+                });
+                const btnEditar = document.getElementById("btn-editar-layout");
+                const btnSalvarAba = document.getElementById("btn-salvar-layout");
+                const btnRestaurarAba = document.getElementById("btn-restaurar-layout");
+                if (btnEditar) btnEditar.innerText = "✏️ Editar Layout desta Aba";
+                if (btnSalvarAba) btnSalvarAba.classList.add("hidden");
+                if (btnRestaurarAba) btnRestaurarAba.classList.add("hidden");
+            }
+
             document.querySelectorAll("#sidebar-nav button").forEach(b => b.classList.remove("active"));
             const botaoAlvo = document.querySelector(`#sidebar-nav button[data-target="${targetId}"]`);
             if (botaoAlvo) botaoAlvo.classList.add("active");
