@@ -382,7 +382,7 @@
             const zIndex = bloco.zIndex || 1;
             return `<section${idSecaoAttr} class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTextoBloco}">
                 ${overlayHtml}
-                <div class="relative w-full h-full overflow-auto" style="padding-top:${Math.min(paddingTop, 24)}px; padding-bottom:${Math.min(paddingBottom, 24)}px;">${conteudoHtml}</div>
+                <div class="relative w-full h-full overflow-hidden" style="padding-top:${Math.min(paddingTop, 24)}px; padding-bottom:${Math.min(paddingBottom, 24)}px;">${conteudoHtml}</div>
             </section>`;
         }
         return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} ${estiloTextoBloco} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
