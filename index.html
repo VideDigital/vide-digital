@@ -353,8 +353,18 @@
                 <div class="max-w-5xl mx-auto px-6 text-xs text-gray-400">
                     ${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-2">/</span>' : ""}<a href="${item.href || "#"}" class="hover:text-white">${item.label || ""}</a>`).join("")}
                 </div>`;
+        } else if (bloco.tipo === "forma") {
+            const largura = bloco.props.largura || 120;
+            const altura = bloco.props.altura || 120;
+            const corForma = bloco.props.cor || "#5B3DF5";
+            let estiloForma = `width:${largura}px; background-color:${corForma};`;
+            if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
+            else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
+            else estiloForma += `height:${altura}px; border-radius:8px;`;
+            conteudoHtml = `<div class="flex ${justifyClasse} px-6"><div style="${estiloForma}"></div></div>`;
         }
-        return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
+        const estiloTextoBloco = d.corTexto ? `color:${d.corTexto};` : "";
+        return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} ${estiloTextoBloco} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
             ${overlayHtml}
             <div class="relative">${conteudoHtml}</div>
         </section>`;
