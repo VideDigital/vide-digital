@@ -3128,6 +3128,24 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             lpEditorBlocos[i].props.imagens.splice(imgIndex, 1);
             renderizarEditorBlocos();
         };
+        window.uploadImagemTextoMidiaEditor = async function(i, inputEl) {
+            const file = inputEl.files[0];
+            if (!file) return;
+            try {
+                const b64 = await comprimirImagem(file, 1200, 0.75);
+                lpEditorBlocos[i].props.imagemB64 = b64;
+                renderizarEditorBlocos();
+                salvarHistoricoEditor();
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao processar imagem: " + err.message, "error");
+            }
+        };
+        window.removerImagemTextoMidiaEditor = function(i) {
+            lpEditorBlocos[i].props.imagemB64 = "";
+            renderizarEditorBlocos();
+            salvarHistoricoEditor();
+        };
         function garantirDesignPadrao(bloco) {
             if (!bloco.design) bloco.design = {};
             const d = bloco.design;
@@ -3182,6 +3200,21 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             <option value="direita" ${bloco.props.posicaoImagem !== "esquerda" ? "selected" : ""}>Imagem a direita</option>
                             <option value="esquerda" ${bloco.props.posicaoImagem === "esquerda" ? "selected" : ""}>Imagem a esquerda</option>
                         </select>
+                        ${bloco.props.imagemB64 ? `
+                            <div class="flex items-center gap-2">
+                                <img src="${bloco.props.imagemB64}" class="h-12 w-20 object-cover rounded-lg border border-white/10">
+                                <label class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
+                                    Trocar imagem
+                                    <input type="file" accept="image/*" class="hidden" onchange="uploadImagemTextoMidiaEditor(${i}, this)">
+                                </label>
+                                <button onclick="removerImagemTextoMidiaEditor(${i})" class="text-red-400 hover:text-red-300 text-[10px] font-bold">Remover</button>
+                            </div>
+                        ` : `
+                            <label class="inline-block bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
+                                Enviar imagem
+                                <input type="file" accept="image/*" class="hidden" onchange="uploadImagemTextoMidiaEditor(${i}, this)">
+                            </label>
+                        `}
                     </div>
                 `;
             } else if (bloco.tipo === "formulario_captura") {
