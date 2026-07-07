@@ -533,25 +533,13 @@ Adicionar Produto
                     <h1 class="text-2xl font-black text-white tracking-tight">Landing Pages</h1>
                     <p class="text-gray-400 text-xs mt-1">Crie paginas de conversao pra suas campanhas, com o seu proprio link.</p>
                 </div>
-                <button onclick="abrirModalLP()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Nova LP</button>
+                <button onclick="abrirModalLP()" class="bg-[#FF7A45] hover:bg-[#ff8a5c] text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all flex items-center gap-2 shrink-0">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Nova LP
+                </button>
             </div>
-            <div class="glass-card rounded-xl overflow-hidden">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-500">
-                                <th class="p-4">Titulo</th>
-                                <th class="p-4">Endereco</th>
-                                <th class="p-4">Status</th>
-                                <th class="p-4">Atualizado em</th>
-                                <th class="p-4 text-right">Acoes</th>
-                            </tr>
-                        </thead>
-                        <tbody id="lps-table-body">
-                            <tr><td colspan="5" class="p-8 text-center text-xs text-gray-500">Carregando...</td></tr>
-                        </tbody>
-                    </table>
-                </div>
+            <div id="lps-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                <p class="col-span-full text-center text-xs text-gray-500 py-8">Carregando...</p>
             </div>
         </section>
 <section id="view-pedidos" class="view-section space-y-6 max-w-6xl mx-auto">
@@ -2711,40 +2699,55 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         // =============================================
         // LANDING PAGES (7.6 - Fase B: tela de gestao)
         // =============================================
-        async function carregarLandingPages() {
-            const tbody = document.getElementById("lps-table-body");
-            if (!tbody) return;
+       async function carregarLandingPages() {
+            const grid = document.getElementById("lps-grid");
+            if (!grid) return;
             try {
                 const snap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
                 let lps = [];
                 snap.forEach(d => lps.push({ id: d.id, ...d.data() }));
                 lps.sort((a, b) => (b.atualizadoEm || 0) - (a.atualizadoEm || 0));
                 if (lps.length === 0) {
-                    tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-xs text-gray-500">Nenhuma Landing Page ainda. Clique em "+ Nova LP" pra criar a primeira.</td></tr>`;
+                    grid.innerHTML = `
+                        <div class="col-span-full text-center py-16">
+                            <svg class="w-12 h-12 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                            <p class="text-sm text-gray-400 mb-1">Nenhuma Landing Page ainda</p>
+                            <p class="text-xs text-gray-600 mb-4">Crie sua primeira pagina de conversao em segundos.</p>
+                            <button onclick="abrirModalLP()" class="bg-[#FF7A45] hover:bg-[#ff8a5c] text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all">+ Criar primeira LP</button>
+                        </div>
+                    `;
                     return;
                 }
-                tbody.innerHTML = lps.map(lp => {
+                grid.innerHTML = lps.map(lp => {
                     const url = `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lp.pagina}`;
                     return `
-                        <tr class="border-b border-white/5 hover:bg-white/[0.02] transition-all">
-                            <td class="p-4 text-xs text-white font-bold">${lp.titulo}</td>
-                            <td class="p-4 text-xs text-gray-400">/${lp.pagina}</td>
-                            <td class="p-4">
-                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${lp.publicado ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'}">${lp.publicado ? 'Publicada' : 'Rascunho'}</span>
-                            </td>
-                            <td class="p-4 text-xs text-gray-400">${lp.atualizadoEm ? new Date(lp.atualizadoEm).toLocaleDateString('pt-BR') : '-'}</td>
-                            <td class="p-4 text-right space-x-1 whitespace-nowrap">
-                                <button onclick="window.open('${url}', '_blank')" class="bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold px-3 py-2 rounded-lg transition-all">Abrir</button>
-                                <button onclick="editarLP('${lp.id}')" class="bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold px-3 py-2 rounded-lg transition-all">Editar</button>
-                                <button onclick="alternarPublicacaoLP('${lp.id}', ${!lp.publicado})" class="bg-white/5 hover:bg-white/10 text-white text-[11px] font-bold px-3 py-2 rounded-lg transition-all">${lp.publicado ? 'Despublicar' : 'Publicar'}</button>
-                                <button onclick="excluirLP('${lp.id}')" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-[11px] font-bold px-3 py-2 rounded-lg transition-all">Excluir</button>
-                            </td>
-                        </tr>
+                        <div class="glass-card rounded-2xl p-5 border border-white/5 border-l-2 border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5] transition-all space-y-3">
+                            <div class="flex items-start justify-between gap-2">
+                                <div class="min-w-0">
+                                    <h3 class="text-sm font-bold text-white truncate">${lp.titulo}</h3>
+                                    <p class="text-[11px] text-gray-500 truncate">/${lp.pagina}</p>
+                                </div>
+                                <span class="shrink-0 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${lp.publicado ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'}">${lp.publicado ? 'Publicada' : 'Rascunho'}</span>
+                            </div>
+                            <p class="text-[10px] text-gray-600">Atualizado em ${lp.atualizadoEm ? new Date(lp.atualizadoEm).toLocaleDateString('pt-BR') : '-'}</p>
+                            <div class="flex items-center gap-1.5 pt-2 border-t border-white/5">
+                                <button onclick="editarLP('${lp.id}')" class="flex-1 bg-[#5B3DF5]/10 hover:bg-[#5B3DF5]/20 text-[#a996ff] text-[11px] font-bold px-3 py-2 rounded-lg transition-all">Editar</button>
+                                <button onclick="window.open('${url}', '_blank')" title="Abrir" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                                </button>
+                                <button onclick="alternarPublicacaoLP('${lp.id}', ${!lp.publicado})" title="${lp.publicado ? 'Despublicar' : 'Publicar'}" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${lp.publicado ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>' : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'}</svg>
+                                </button>
+                                <button onclick="excluirLP('${lp.id}')" title="Excluir" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2 rounded-lg transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                                </button>
+                            </div>
+                        </div>
                     `;
                 }).join("");
             } catch(err) {
                 console.error(err);
-                tbody.innerHTML = `<tr><td colspan="5" class="p-8 text-center text-xs text-red-400">Erro ao carregar: ${err.message}</td></tr>`;
+                grid.innerHTML = `<p class="col-span-full text-center text-xs text-red-400 py-8">Erro ao carregar: ${err.message}</p>`;
             }
         }
         window.abrirModalLP = function() {
