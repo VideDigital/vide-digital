@@ -3455,6 +3455,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             <label class="text-[9px] text-gray-500">Altura (px)</label>
                             <input type="number" min="100" value="${bloco.props.altura || 400}" oninput="lpEditorBlocos[${i}].props.altura = parseInt(this.value) || 400" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
                         </div>
+                        <p class="text-[9px] text-gray-500">Ou cole um codigo HTML pronto (usado no lugar do link acima, se preenchido):</p>
+                        <textarea oninput="lpEditorBlocos[${i}].props.htmlCustom = this.value" placeholder="Cole aqui o codigo HTML" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none font-mono" rows="4">${bloco.props.htmlCustom || ""}</textarea>
                     </div>
                 `;
             } else if (bloco.tipo === "carrossel_banners") {
