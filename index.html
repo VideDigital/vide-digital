@@ -77,6 +77,7 @@
             const canvasDiv = document.createElement("div");
             canvasDiv.className = "relative";
             canvasDiv.style.height = alturaCanvas + "px";
+            canvasDiv.style.overflowX = "hidden";
             container.appendChild(canvasDiv);
             for (const bloco of blocosCarregados) {
                 canvasDiv.insertAdjacentHTML("beforeend", await renderizarBloco(bloco, "livre"));
@@ -403,10 +404,12 @@
         }
         const estiloTextoBloco = d.corTexto ? `color:${d.corTexto};` : "";
         if (modoLayout === "livre") {
-            const x = bloco.x !== undefined ? bloco.x : 20;
-            const y = bloco.y !== undefined ? bloco.y : 20;
+        if (modoLayout === "livre") {
             const largura = bloco.largura || 600;
             const altura = bloco.altura || 220;
+            const larguraTela = window.innerWidth;
+            const x = Math.min(Math.max(0, bloco.x !== undefined ? bloco.x : 20), Math.max(0, larguraTela - largura));
+            const y = bloco.y !== undefined ? bloco.y : 20;
             const zIndex = bloco.zIndex || 1;
             return `<section${idSecaoAttr} class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTextoBloco}">
                 ${overlayHtml}
