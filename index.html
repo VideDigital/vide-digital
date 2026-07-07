@@ -157,7 +157,7 @@
         const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
         const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
         const justifyClasse = alinhamento === "centro" ? "justify-center" : alinhamento === "direita" ? "justify-end" : "justify-start";
-        const idSecaoAttr = d.idSecao ? ` id="${d.idSecao}"` : "";
+        const idSecaoAttr = d.idSecao ? ` id="${d.idSecao.replace(/^#+/, "")}"` : "";
         const visivelDesktop = d.visivelDesktop !== false;
         const visivelMobile = d.visivelMobile !== false;
         let visClasse = "";
