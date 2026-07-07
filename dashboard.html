@@ -3603,6 +3603,18 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                     atualizadoEm: Date.now()
                 }, { merge: true });
                 lpEditorSlugOriginal = slug;
+                if (lpEditorPublicado) {
+                    const docIdPublico = `${slugAtualSalvo}__${slug}`.toLowerCase();
+                    await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
+                        titulo, publicado: true, donoUID: usuarioUID, ordemBlocos: lpEditorBlocos.map(b => b.id)
+                    });
+                    for (const bloco of lpEditorBlocos) {
+                        await setDoc(doc(db, "landing_pages_blocos_publicas", bloco.id), {
+                            lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
+                            visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {}
+                        });
+                    }
+                }
                 showToast("Landing Page salva.");
             } catch(err) {
                 console.error(err);
