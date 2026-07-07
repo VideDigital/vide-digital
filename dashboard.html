@@ -2782,8 +2782,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const corBotaoFundo = d.corBotaoFundo || "";
             const corBotaoBorda = d.corBotaoBorda || "";
             const corBotaoTexto = d.corBotaoTexto || "";
-            const paddingTop = d.paddingTop !== undefined ? Math.min(d.paddingTop, 48) : 32;
-            const paddingBottom = d.paddingBottom !== undefined ? Math.min(d.paddingBottom, 48) : 32;
+            const paddingTop = d.paddingTop !== undefined ? d.paddingTop : 64;
+            const paddingBottom = d.paddingBottom !== undefined ? d.paddingBottom : 64;
             const alinhamento = d.alinhamento || "esquerda";
             const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
             const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
