@@ -192,7 +192,8 @@
                 <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
                     <h2 class="text-2xl font-bold mb-6">${bloco.props.titulo || ""}</h2>
                     <form class="space-y-3 text-left">
-                        ${(bloco.props.campos || []).map(campo => `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
+                        ${(bloco.props.campos || []).map(campo => campo === "whatsapp" ? `<input type="tel" inputmode="numeric" placeholder="${campo}" oninput="this.value=this.value.replace(/[^0-9]/g,'')" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">` : `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
+
                         <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</button>
                     </form>
                 </div>`;
