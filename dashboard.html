@@ -1664,6 +1664,14 @@ Adicionar Produto
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                 </button>
             </div>
+            <div class="flex items-center gap-1 shrink-0">
+                <button onclick="desfazerEditor()" id="lped-btn-desfazer" title="Desfazer (Ctrl+Z)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"></path></svg>
+                </button>
+                <button onclick="refazerEditor()" id="lped-btn-refazer" title="Refazer (Ctrl+Y)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"></path></svg>
+                </button>
+            </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span id="lped-status-badge" class="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-gray-500/10 text-gray-400">Rascunho</span>
                 <button onclick="abrirPreviewEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Abrir</button>
@@ -2753,6 +2761,59 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         let lpEditorRemovidos = [];
         let lpEditorPublicado = false;
         let lpEditorSlugOriginal = "";
+        let historicoEditor = [];
+        let indiceHistorico = -1;
+        let historicoDebounceTimer = null;
+        function clonarBlocosEditor() {
+            return JSON.parse(JSON.stringify(lpEditorBlocos));
+        }
+        function salvarHistoricoEditor() {
+            historicoEditor = historicoEditor.slice(0, indiceHistorico + 1);
+            historicoEditor.push(clonarBlocosEditor());
+            indiceHistorico = historicoEditor.length - 1;
+            if (historicoEditor.length > 50) {
+                historicoEditor.shift();
+                indiceHistorico--;
+            }
+            atualizarBotoesHistoricoEditor();
+        }
+        function agendarHistoricoEditor() {
+            clearTimeout(historicoDebounceTimer);
+            historicoDebounceTimer = setTimeout(salvarHistoricoEditor, 800);
+        }
+        function atualizarBotoesHistoricoEditor() {
+            const btnU = document.getElementById("lped-btn-desfazer");
+            const btnR = document.getElementById("lped-btn-refazer");
+            if (btnU) btnU.style.opacity = indiceHistorico <= 0 ? "0.3" : "1";
+            if (btnR) btnR.style.opacity = (indiceHistorico >= historicoEditor.length - 1) ? "0.3" : "1";
+        }
+        window.desfazerEditor = function() {
+            if (indiceHistorico <= 0) return;
+            indiceHistorico--;
+            lpEditorBlocos.length = 0;
+            lpEditorBlocos.push(...JSON.parse(JSON.stringify(historicoEditor[indiceHistorico])));
+            renderizarEditorBlocos();
+            atualizarBotoesHistoricoEditor();
+        };
+        window.refazerEditor = function() {
+            if (indiceHistorico >= historicoEditor.length - 1) return;
+            indiceHistorico++;
+            lpEditorBlocos.length = 0;
+            lpEditorBlocos.push(...JSON.parse(JSON.stringify(historicoEditor[indiceHistorico])));
+            renderizarEditorBlocos();
+            atualizarBotoesHistoricoEditor();
+        };
+        document.addEventListener("keydown", function(e) {
+            const modal = document.getElementById("lp-editor-modal");
+            if (!modal || modal.classList.contains("hidden")) return;
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+                e.preventDefault();
+                desfazerEditor();
+            } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
+                e.preventDefault();
+                refazerEditor();
+            }
+        });
         let dispositivoPreviewAtual = "desktop";
         window.alternarDispositivoPreview = function(disp) {
             dispositivoPreviewAtual = disp;
@@ -2953,11 +3014,16 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 }
             }
             renderizarEditorBlocos();
+            historicoEditor = [clonarBlocosEditor()];
+            indiceHistorico = 0;
+            atualizarBotoesHistoricoEditor();
             document.getElementById("lp-editor-modal").classList.remove("hidden");
             carregarProdutosParaEditor();
         };
         document.getElementById("lped-blocos-lista").addEventListener("input", renderizarPreviewEditor);
         document.getElementById("lped-blocos-lista").addEventListener("change", renderizarPreviewEditor);
+        document.getElementById("lped-blocos-lista").addEventListener("input", agendarHistoricoEditor);
+        document.getElementById("lped-blocos-lista").addEventListener("change", agendarHistoricoEditor);
         function atualizarBadgeStatusEditor() {
             const badge = document.getElementById("lped-status-badge");
             const btnPub = document.getElementById("lped-btn-publicar");
@@ -3546,6 +3612,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const removido = lpEditorBlocos.splice(i, 1)[0];
             if (removido && removido.id) lpEditorRemovidos.push(removido.id);
             renderizarEditorBlocos();
+            salvarHistoricoEditor();
         };
         window.dragSourceIndex = null;
         window.iniciarArrastoBloco = function(event, i) {
@@ -3563,6 +3630,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             lpEditorBlocos.splice(i, 0, item);
             window.dragSourceIndex = null;
             renderizarEditorBlocos();
+            salvarHistoricoEditor();
         };
         const TIPOS_BLOCO_DISPONIVEIS = [
             { tipo: "texto_midia", nome: "Texto e Botao", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>' },
@@ -3643,6 +3711,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             }
             lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo" });
             renderizarEditorBlocos();
+            salvarHistoricoEditor();
         };
         window.salvarEditorLP = async function() {
             const titulo = document.getElementById("lped-titulo").value.trim();
