@@ -174,7 +174,7 @@
                         ${bloco.props.botaoTexto ? `<a href="${bloco.props.botaoLink || "#"}" style="${estiloBotao}" class="${classeBotao}">${bloco.props.botaoTexto}</a>` : ""}
                     </div>
                     <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
-                        ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}"${loadingAttr} class="rounded-2xl w-full">` : ""}
+                        ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}"${loadingAttr} style="${bloco.props.imagemLargura ? `width:${bloco.props.imagemLargura}px; max-width:100%;` : "width:100%;"}" class="rounded-2xl">` : ""}
                     </div>
                 </div>`;
         } else if (bloco.tipo === "formulario_captura") {
