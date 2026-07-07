@@ -2908,8 +2908,18 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             } else if (bloco.tipo === "breadcrumb") {
                 const itens = bloco.props.itens || [];
                 conteudo = `<div class="max-w-3xl mx-auto px-6 text-xs text-gray-400">${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-1">/</span>' : ""}<span>${item.label || ""}</span>`).join("")}</div>`;
+            } else if (bloco.tipo === "forma") {
+                const largura = bloco.props.largura || 120;
+                const altura = bloco.props.altura || 120;
+                const corForma = bloco.props.cor || "#5B3DF5";
+                let estiloForma = `width:${largura}px; background-color:${corForma};`;
+                if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
+                else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
+                else estiloForma += `height:${altura}px; border-radius:8px;`;
+                conteudo = `<div class="flex ${justifyClasse} px-6"><div style="${estiloForma}"></div></div>`;
             }
-            return `<div class="relative" style="${estiloFundo} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
+            const estiloTexto = d.corTexto ? `color:${d.corTexto};` : "";
+            return `<div class="relative" style="${estiloFundo} ${estiloTexto} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
                 ${overlayHtml}
                 <div class="relative">${conteudo}</div>
             </div>`;
@@ -2981,7 +2991,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 navegacao: "Navegacao",
                 rodape: "Rodape",
                 seletor_cores: "Seletor de Cores",
-                breadcrumb: "Breadcrumb"
+                breadcrumb: "Breadcrumb",
+                forma: "Forma"
             };
             return nomes[tipo] || tipo;
         }
@@ -3021,6 +3032,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (d.corBotaoFundo === undefined) d.corBotaoFundo = "";
             if (d.corBotaoBorda === undefined) d.corBotaoBorda = "";
             if (d.corBotaoTexto === undefined) d.corBotaoTexto = "";
+            if (d.corTexto === undefined) d.corTexto = "";
             if (d.paddingTop === undefined) d.paddingTop = 64;
             if (d.paddingBottom === undefined) d.paddingBottom = 64;
             if (d.alinhamento === undefined) d.alinhamento = "esquerda";
@@ -3308,6 +3320,30 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         <button onclick="adicionarItemListaEditor(${i}, 'itens', {label: '', href: '#'})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar item</button>
                     </div>
                 `;
+            } else if (bloco.tipo === "forma") {
+                return `
+                    <div class="space-y-2 mt-3">
+                        <select onchange="lpEditorBlocos[${i}].props.tipoForma = this.value" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            <option value="retangulo" ${bloco.props.tipoForma !== "circulo" && bloco.props.tipoForma !== "linha" ? "selected" : ""}>Retangulo</option>
+                            <option value="circulo" ${bloco.props.tipoForma === "circulo" ? "selected" : ""}>Circulo</option>
+                            <option value="linha" ${bloco.props.tipoForma === "linha" ? "selected" : ""}>Linha</option>
+                        </select>
+                        <div class="grid grid-cols-2 gap-2">
+                            <div>
+                                <label class="text-[9px] text-gray-500">Largura (px)</label>
+                                <input type="number" min="1" value="${bloco.props.largura || 120}" oninput="lpEditorBlocos[${i}].props.largura = parseInt(this.value) || 120" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                            </div>
+                            <div>
+                                <label class="text-[9px] text-gray-500">Altura (px)</label>
+                                <input type="number" min="1" value="${bloco.props.altura || 120}" oninput="lpEditorBlocos[${i}].props.altura = parseInt(this.value) || 120" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[9px] text-gray-500">Cor</label>
+                            <input type="color" value="${bloco.props.cor || "#5B3DF5"}" oninput="lpEditorBlocos[${i}].props.cor = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                        </div>
+                    </div>
+                `;
             }
             return "";
         }
@@ -3406,6 +3442,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         </div>
                     </div>
                     <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Cor do texto do bloco</p>
+                        <input type="color" value="${d.corTexto || "#FFFFFF"}" oninput="lpEditorBlocos[${i}].design.corTexto = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                    </div>
+                    <div>
                         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Espacamento (padding em px)</p>
                         <div class="grid grid-cols-2 gap-2">
                             <div>
@@ -3467,12 +3507,13 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 else if (aba === "avancado") paneHtml = renderAbaAvancado(bloco, i);
                 else paneHtml = renderAbaConteudo(bloco, i);
                 return `
-                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5] transition-all">
+                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5] transition-all" ondragover="permitirSoltarBloco(event)" ondrop="soltarBloco(event, ${i})">
                         <div class="flex items-center justify-between">
-                            <p class="text-xs font-bold text-white">${nomeTipoBlocoEditor(bloco.tipo)}</p>
+                            <div class="flex items-center gap-2">
+                                <span draggable="true" ondragstart="iniciarArrastoBloco(event, ${i})" class="cursor-grab text-gray-500 hover:text-white select-none" title="Arrastar pra reordenar">&#10021;</span>
+                                <p class="text-xs font-bold text-white">${nomeTipoBlocoEditor(bloco.tipo)}</p>
+                            </div>
                             <div class="flex items-center gap-1">
-                                <button onclick="moverBlocoEditor(${i}, -1)" class="text-gray-400 hover:text-white text-xs px-2 py-1 ${i === 0 ? "opacity-30 pointer-events-none" : ""}">&uarr;</button>
-                                <button onclick="moverBlocoEditor(${i}, 1)" class="text-gray-400 hover:text-white text-xs px-2 py-1 ${i === lpEditorBlocos.length - 1 ? "opacity-30 pointer-events-none" : ""}">&darr;</button>
                                 <button onclick="removerBlocoEditor(${i})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Excluir</button>
                             </div>
                         </div>
@@ -3506,6 +3547,23 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (removido && removido.id) lpEditorRemovidos.push(removido.id);
             renderizarEditorBlocos();
         };
+        window.dragSourceIndex = null;
+        window.iniciarArrastoBloco = function(event, i) {
+            window.dragSourceIndex = i;
+            event.dataTransfer.effectAllowed = "move";
+        };
+        window.permitirSoltarBloco = function(event) {
+            event.preventDefault();
+        };
+        window.soltarBloco = function(event, i) {
+            event.preventDefault();
+            const origem = window.dragSourceIndex;
+            if (origem === null || origem === undefined || origem === i) return;
+            const item = lpEditorBlocos.splice(origem, 1)[0];
+            lpEditorBlocos.splice(i, 0, item);
+            window.dragSourceIndex = null;
+            renderizarEditorBlocos();
+        };
         const TIPOS_BLOCO_DISPONIVEIS = [
             { tipo: "texto_midia", nome: "Texto e Botao", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>' },
             { tipo: "formulario_captura", nome: "Formulario", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"></path>' },
@@ -3521,7 +3579,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             { tipo: "navegacao", nome: "Navegacao", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>' },
             { tipo: "rodape", nome: "Rodape", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 18h16M4 6h16M4 12h8"></path>' },
             { tipo: "seletor_cores", nome: "Seletor de Cores", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0a4 4 0 004-4V5m6 16a4 4 0 004-4V9a2 2 0 00-2-2h-4a2 2 0 00-2 2v8a4 4 0 004 4z"></path>' },
-            { tipo: "breadcrumb", nome: "Breadcrumb", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>' }
+            { tipo: "breadcrumb", nome: "Breadcrumb", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>' },
+            { tipo: "forma", nome: "Forma", icone: '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4h7v7H4zM13 13h7v7h-7zM17.5 4a3.5 3.5 0 110 7 3.5 3.5 0 010-7z"></path>' }
         ];
         window.abrirPainelBlocos = function() {
             document.getElementById("lp-blocos-busca").value = "";
@@ -3579,6 +3638,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 props = { titulo: "Escolha a cor", opcoes: [{ nome: "Preto", hex: "#000000" }] };
             } else if (tipo === "breadcrumb") {
                 props = { itens: [{ label: "Inicio", href: "#" }] };
+            } else if (tipo === "forma") {
+                props = { tipoForma: "retangulo", largura: 120, altura: 120, cor: "#5B3DF5" };
             }
             lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo" });
             renderizarEditorBlocos();
