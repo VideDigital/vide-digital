@@ -3698,7 +3698,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         window.fecharPainelBlocos = function() {
             document.getElementById("lp-blocos-panel").classList.add("hidden");
         };
-        function renderizarPainelBlocos() {
+        window.renderizarPainelBlocos = function() {
             const termo = document.getElementById("lp-blocos-busca").value.trim().toLowerCase();
             const grid = document.getElementById("lp-blocos-grid");
             const filtrados = TIPOS_BLOCO_DISPONIVEIS.filter(t => t.nome.toLowerCase().includes(termo));
@@ -3708,7 +3708,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                     <span class="text-[10px] font-bold text-white leading-tight">${t.nome}</span>
                 </button>
             `).join("") || '<p class="col-span-2 text-xs text-gray-500 text-center py-8">Nenhum bloco encontrado.</p>';
-        }
+        };
         window.selecionarBlocoPanel = function(tipo) {
             fecharPainelBlocos();
             adicionarBlocoEditor(tipo);
