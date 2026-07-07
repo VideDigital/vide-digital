@@ -3906,7 +3906,14 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const titulo = document.getElementById("lped-titulo").value.trim();
             const slug = document.getElementById("lped-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
             if (!titulo || !slug) return showToast("Preencha titulo e endereco.", "error");
+            const slugAnterior = lpEditorSlugOriginal;
+            const slugMudou = slug !== slugAnterior;
             try {
+                if (slugMudou) {
+                    const existente = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID), where("pagina", "==", slug)));
+                    const usadoPorOutra = existente.docs.some(d => d.id !== lpEditorId);
+                    if (usadoPorOutra) return showToast("Ja existe outra LP com esse endereco.", "error");
+                }
                 for (const blocoId of lpEditorRemovidos) {
                     await deleteDoc(doc(db, "landing_pages_blocos", blocoId));
                     await deleteDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
@@ -3931,6 +3938,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 }, { merge: true });
                 lpEditorSlugOriginal = slug;
                 if (lpEditorPublicado) {
+                    if (slugMudou) {
+                        const docIdAntigo = `${slugAtualSalvo}__${slugAnterior}`.toLowerCase();
+                        await deleteDoc(doc(db, "landing_pages_publicas", docIdAntigo));
+                    }
                     const docIdPublico = `${slugAtualSalvo}__${slug}`.toLowerCase();
                     await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
                         titulo, publicado: true, donoUID: usuarioUID, modoLayout: lpEditorModoLayout, ordemBlocos: lpEditorBlocos.map(b => b.id)
