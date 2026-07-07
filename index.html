@@ -37,13 +37,25 @@
 
     // Import absoluto (nao relativo) -- evita quebrar quando a URL "fake" tem varios niveis (ex: /teste/lp1)
     const firebaseInit = await import(base + "firebase-init.js");
-    const { doc, getDoc } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { doc, getDoc, getDocs, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const db = firebaseInit.db;
+    const auth = firebaseInit.auth;
 
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
     var segmentos = caminho.split("/").filter(Boolean);
     if (segmentos.length && segmentos[segmentos.length - 1].toLowerCase() === "index.html") {
         segmentos.pop();
+    }
+    var modoPreview = new URLSearchParams(window.location.search).get("preview") === "1";
+
+    function aguardarAuth() {
+        return new Promise(function(resolve) {
+            const unsub = onAuthStateChanged(auth, function(user) {
+                unsub();
+                resolve(user);
+            });
+        });
     }
 
     async function resolverLojaPorDominio(hostname) {
@@ -74,6 +86,37 @@
             }
         } catch (erro) {
             console.error("Erro ao carregar landing page:", erro);
+            document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
+        }
+    }
+
+    async function renderizarLandingPagePreview(paginaSlug) {
+        const container = document.getElementById("lp-container");
+        try {
+            const user = await aguardarAuth();
+            if (!user) {
+                container.className = "min-h-screen flex items-center justify-center";
+                container.innerHTML = '<div class="text-center px-6"><p class="text-sm text-gray-300 mb-4">Voce precisa estar logado pra ver esta previa.</p><a href="login.html" class="inline-block bg-white text-black font-bold px-5 py-2.5 rounded-xl text-xs">Fazer login</a></div>';
+                return;
+            }
+            const snap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", user.uid), where("pagina", "==", paginaSlug)));
+            if (snap.empty) {
+                mostrarErro();
+                return;
+            }
+            const lp = snap.docs[0].data();
+            document.title = "[Rascunho] " + (lp.titulo || "Vide Hub");
+            container.className = "min-h-screen";
+            container.innerHTML = '<div class="fixed top-0 inset-x-0 z-50 bg-amber-500 text-black text-xs font-bold text-center py-1.5">RASCUNHO -- visivel so pra voce</div><div style="height:32px;"></div>';
+            const ordemBlocos = lp.ordemBlocos || [];
+            for (const blocoId of ordemBlocos) {
+                const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
+                if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
+                    container.insertAdjacentHTML("beforeend", await renderizarBloco(blocoSnap.data()));
+                }
+            }
+        } catch (erro) {
+            console.error("Erro ao carregar previa:", erro);
             document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
         }
     }
@@ -323,6 +366,14 @@
 
     if (segmentos.length === 0) {
         window.location.href = "login.html";
+    } else if (ehDominioPadrao && segmentos.length === 2 && modoPreview) {
+        setTimeout(function() {
+            var c = document.getElementById("lp-container");
+            if (c && c.textContent.indexOf("Carregando") !== -1) {
+                c.innerHTML = '<p class="text-amber-400 text-xs px-6 text-center">Travou carregando ha mais de 8s (loja=' + segmentos[0] + ', pagina=' + segmentos[1] + ')</p>';
+            }
+        }, 8000);
+        renderizarLandingPagePreview(segmentos[1]);
     } else if (ehDominioPadrao && segmentos.length === 2) {
         setTimeout(function() {
             var c = document.getElementById("lp-container");
