@@ -2992,7 +2992,11 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const visiveis = lpEditorBlocos.map((b, idx) => ({ b, idx })).filter(x => x.b.visivel !== false);
             canvas.innerHTML = visiveis.length === 0
                 ? '<p class="text-center text-gray-500 text-xs p-16">Adicione um bloco pra ver a previa aqui.</p>'
-                : visiveis.map(x => renderizarBlocoPreview(x.b, x.idx)).join("");
+                : visiveis.map(x => {
+                    const selecionado = x.b._colapsado === false;
+                    const anelSelecao = selecionado ? "box-shadow: inset 0 0 0 2px #FF7A45;" : "";
+                    return `<div id="lped-preview-bloco-${x.idx}" style="${anelSelecao}">${renderizarBlocoPreview(x.b, x.idx)}</div>`;
+                }).join("");
         }
         let redimensionandoElemento = null;
         document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
@@ -3165,6 +3169,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (d.idSecao === undefined) d.idSecao = "";
             if (d.priorizarImagem === undefined) d.priorizarImagem = false;
             if (!bloco._aba) bloco._aba = "conteudo";
+            if (bloco._colapsado === undefined) bloco._colapsado = true;
         }
         window.trocarAbaBlocoEditor = function(i, aba) {
             lpEditorBlocos[i]._aba = aba;
@@ -3636,32 +3641,51 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 </div>
             `;
         }
+        window.alternarColapsoBloco = function(i) {
+            lpEditorBlocos[i]._colapsado = !lpEditorBlocos[i]._colapsado;
+            renderizarEditorBlocos();
+            if (!lpEditorBlocos[i]._colapsado) {
+                setTimeout(function() {
+                    const alvo = document.getElementById("lped-preview-bloco-" + i);
+                    if (alvo) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+                }, 60);
+            }
+        };
         function renderizarEditorBlocos() {
             const box = document.getElementById("lped-blocos-lista");
             box.innerHTML = lpEditorBlocos.map((bloco, i) => {
                 garantirDesignPadrao(bloco);
                 const aba = bloco._aba;
-                let paneHtml = "";
-                if (aba === "design") paneHtml = renderAbaDesign(bloco, i);
-                else if (aba === "avancado") paneHtml = renderAbaAvancado(bloco, i);
-                else paneHtml = renderAbaConteudo(bloco, i);
-                return `
-                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5] transition-all" ondragover="permitirSoltarBloco(event)" ondrop="soltarBloco(event, ${i})">
-                        <div class="flex items-center justify-between">
-                            <div class="flex items-center gap-2">
-                                <span draggable="true" ondragstart="iniciarArrastoBloco(event, ${i})" class="cursor-grab text-gray-500 hover:text-white select-none" title="Arrastar pra reordenar">&#10021;</span>
-                                <p class="text-xs font-bold text-white">${nomeTipoBlocoEditor(bloco.tipo)}</p>
-                            </div>
-                            <div class="flex items-center gap-1">
-                                <button onclick="removerBlocoEditor(${i})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Excluir</button>
-                            </div>
-                        </div>
+                const colapsado = bloco._colapsado;
+                let corpoHtml = "";
+                if (!colapsado) {
+                    let paneHtml = "";
+                    if (aba === "design") paneHtml = renderAbaDesign(bloco, i);
+                    else if (aba === "avancado") paneHtml = renderAbaAvancado(bloco, i);
+                    else paneHtml = renderAbaConteudo(bloco, i);
+                    corpoHtml = `
                         <div class="flex gap-1 mt-3 border-b border-white/5 pb-2">
-                            <button onclick="trocarAbaBlocoEditor(${i}, 'conteudo')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "conteudo" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Conteudo</button>
-                            <button onclick="trocarAbaBlocoEditor(${i}, 'design')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "design" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Design</button>
-                            <button onclick="trocarAbaBlocoEditor(${i}, 'avancado')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "avancado" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Avancado</button>
+                            <button onclick="event.stopPropagation(); trocarAbaBlocoEditor(${i}, 'conteudo')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "conteudo" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Conteudo</button>
+                            <button onclick="event.stopPropagation(); trocarAbaBlocoEditor(${i}, 'design')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "design" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Design</button>
+                            <button onclick="event.stopPropagation(); trocarAbaBlocoEditor(${i}, 'avancado')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "avancado" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Avancado</button>
                         </div>
                         ${paneHtml}
+                    `;
+                }
+                const resumo = nomeResumoBloco(bloco);
+                return `
+                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 ${colapsado ? "border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5]" : "border-l-[#FF7A45]"} transition-all" ondragover="permitirSoltarBloco(event)" ondrop="soltarBloco(event, ${i})">
+                        <div class="flex items-center justify-between cursor-pointer" onclick="alternarColapsoBloco(${i})">
+                            <div class="flex items-center gap-2 min-w-0">
+                                <span draggable="true" ondragstart="event.stopPropagation(); iniciarArrastoBloco(event, ${i})" onclick="event.stopPropagation()" class="cursor-grab text-gray-500 hover:text-white select-none shrink-0" title="Arrastar pra reordenar">&#10021;</span>
+                                <svg class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform ${colapsado ? "" : "rotate-90"}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                                <p class="text-xs font-bold text-white truncate">${nomeTipoBlocoEditor(bloco.tipo)}${resumo ? ` <span class="text-gray-500 font-normal">- ${resumo}</span>` : ""}</p>
+                            </div>
+                            <div class="flex items-center gap-1 shrink-0">
+                                <button onclick="event.stopPropagation(); removerBlocoEditor(${i})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Excluir</button>
+                            </div>
+                        </div>
+                        ${corpoHtml}
                     </div>
                 `;
             }).join("") || '<p class="text-xs text-gray-500 text-center py-8">Nenhum bloco ainda. Adicione um abaixo.</p>';
@@ -3782,7 +3806,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             } else if (tipo === "forma") {
                 props = { tipoForma: "retangulo", largura: 120, altura: 120, cor: "#5B3DF5" };
             }
-            lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo" });
+            lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo", _colapsado: false });
             renderizarEditorBlocos();
             salvarHistoricoEditor();
         };
