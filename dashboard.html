@@ -1650,29 +1650,52 @@ Adicionar Produto
             <button onclick="salvarLP()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar</button>
         </div>
     </div>
-    <div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#14132B] overflow-y-auto">
-        <div class="sticky top-0 z-10 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-4 flex items-center justify-between gap-4">
+    <div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col">
+        <div class="shrink-0 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
-                <input type="text" id="lped-titulo" class="bg-transparent text-white font-bold text-sm outline-none border-b border-transparent focus:border-white/20 py-1 flex-1" placeholder="Titulo da pagina">
+                <input type="text" id="lped-titulo" class="bg-transparent text-white font-bold text-sm outline-none border-b border-transparent focus:border-[#FF7A45] py-1 flex-1" placeholder="Titulo da pagina" oninput="atualizarUrlPreviewEditor()">
+            </div>
+            <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1 shrink-0">
+                <button onclick="alternarDispositivoPreview('desktop')" id="lped-btn-desktop" class="p-1.5 rounded-md transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                </button>
+                <button onclick="alternarDispositivoPreview('mobile')" id="lped-btn-mobile" class="p-1.5 rounded-md transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
+                </button>
             </div>
             <div class="flex items-center gap-2 shrink-0">
                 <span id="lped-status-badge" class="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-gray-500/10 text-gray-400">Rascunho</span>
                 <button onclick="abrirPreviewEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Abrir</button>
                 <button onclick="salvarEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Salvar</button>
-                <button onclick="publicarEditorLP()" id="lped-btn-publicar" class="bg-white hover:bg-gray-200 text-black text-xs font-bold px-3 py-2 rounded-lg transition-all">Publicar</button>
+                <button onclick="publicarEditorLP()" id="lped-btn-publicar" class="bg-[#FF7A45] hover:bg-[#ff8a5c] text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">Publicar</button>
             </div>
         </div>
-        <div class="max-w-3xl mx-auto p-6 space-y-4">
-            <div>
-                <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Endereco (slug)</label>
-                <input type="text" id="lped-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none mt-1" placeholder="promocao-inverno">
+        <div class="flex-1 flex overflow-hidden">
+            <div class="w-[420px] shrink-0 border-r border-white/5 overflow-y-auto p-5 space-y-4">
+                <div>
+                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Endereco (slug)</label>
+                    <input type="text" id="lped-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none mt-1" placeholder="promocao-inverno" oninput="atualizarUrlPreviewEditor()">
+                </div>
+                <div id="lped-blocos-lista" class="space-y-3"></div>
+                <button onclick="abrirPainelBlocos()" class="w-full bg-[#5B3DF5]/10 hover:bg-[#5B3DF5]/20 border border-dashed border-[#5B3DF5]/40 text-[#a996ff] text-xs font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
+                    Adicionar Bloco
+                </button>
             </div>
-            <div id="lped-blocos-lista" class="space-y-3"></div>
-            <button onclick="abrirPainelBlocos()" class="w-full bg-white/5 hover:bg-white/10 border border-dashed border-white/20 text-white text-xs font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
-                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                Adicionar Bloco
-            </button>
+            <div class="flex-1 overflow-y-auto bg-[#08070f] p-8 flex flex-col items-center">
+                <div id="lped-browser-frame" class="w-full max-w-4xl bg-[#14132B] rounded-2xl overflow-hidden shadow-2xl border border-white/5 transition-all duration-300">
+                    <div class="bg-black/40 px-4 py-2.5 flex items-center gap-3 border-b border-white/5">
+                        <div class="flex gap-1.5 shrink-0">
+                            <span class="w-2.5 h-2.5 rounded-full bg-red-500/60"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></span>
+                            <span class="w-2.5 h-2.5 rounded-full bg-green-500/60"></span>
+                        </div>
+                        <div class="flex-1 bg-white/5 rounded-md px-3 py-1 text-[10px] text-gray-400 truncate" id="lped-url-preview">videdigital.github.io/vide-digital/sua-loja/sua-pagina</div>
+                    </div>
+                    <div id="lped-preview-canvas" class="text-white overflow-y-auto" style="max-height: calc(100vh - 220px);"></div>
+                </div>
+            </div>
         </div>
     </div>
     <div id="lp-blocos-panel" class="hidden fixed inset-0 z-[125] flex justify-end">
@@ -2728,6 +2751,175 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         let lpEditorRemovidos = [];
         let lpEditorPublicado = false;
         let lpEditorSlugOriginal = "";
+        let dispositivoPreviewAtual = "desktop";
+        window.alternarDispositivoPreview = function(disp) {
+            dispositivoPreviewAtual = disp;
+            const frame = document.getElementById("lped-browser-frame");
+            if (disp === "mobile") {
+                frame.classList.remove("max-w-4xl");
+                frame.classList.add("max-w-[380px]");
+            } else {
+                frame.classList.remove("max-w-[380px]");
+                frame.classList.add("max-w-4xl");
+            }
+            const btnD = document.getElementById("lped-btn-desktop");
+            const btnM = document.getElementById("lped-btn-mobile");
+            btnD.className = "p-1.5 rounded-md transition-all " + (disp === "desktop" ? "bg-[#FF7A45] text-white" : "text-gray-400 hover:text-white");
+            btnM.className = "p-1.5 rounded-md transition-all " + (disp === "mobile" ? "bg-[#FF7A45] text-white" : "text-gray-400 hover:text-white");
+        };
+        window.atualizarUrlPreviewEditor = function() {
+            const slug = document.getElementById("lped-slug").value.trim().toLowerCase() || "sua-pagina";
+            document.getElementById("lped-url-preview").innerText = `videdigital.github.io/vide-digital/${slugAtualSalvo}/${slug}`;
+        };
+        function renderizarBlocoPreview(bloco) {
+            const d = bloco.design || {};
+            const corFundo = d.corFundo || "";
+            const imagemFundo = d.imagemFundoB64 || "";
+            const corSobreposicao = d.corSobreposicao || "#000000";
+            const opacidade = (d.opacidadeSobreposicao || 0) / 100;
+            const corBotaoFundo = d.corBotaoFundo || "";
+            const corBotaoBorda = d.corBotaoBorda || "";
+            const corBotaoTexto = d.corBotaoTexto || "";
+            const paddingTop = d.paddingTop !== undefined ? Math.min(d.paddingTop, 48) : 32;
+            const paddingBottom = d.paddingBottom !== undefined ? Math.min(d.paddingBottom, 48) : 32;
+            const alinhamento = d.alinhamento || "esquerda";
+            const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
+            const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
+            const justifyClasse = alinhamento === "centro" ? "justify-center" : alinhamento === "direita" ? "justify-end" : "justify-start";
+            const estiloBotao = `${corBotaoFundo ? "background-color:" + corBotaoFundo + ";" : ""}${corBotaoBorda ? "border: 2px solid " + corBotaoBorda + ";" : ""}${corBotaoTexto ? "color:" + corBotaoTexto + ";" : ""}`;
+            const classeBotao = `inline-block font-bold px-5 py-2.5 rounded-xl text-sm ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
+            const classeBotaoForm = `w-full font-bold py-2.5 rounded-xl text-sm text-center ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
+            const estiloFundo = imagemFundo
+                ? `background-image: url('${imagemFundo}'); background-size: cover; background-position: center;`
+                : (corFundo ? `background-color: ${corFundo};` : "");
+            const overlayHtml = imagemFundo
+                ? `<div style="position:absolute; inset:0; background-color:${corSobreposicao}; opacity:${opacidade};"></div>`
+                : "";
+            let conteudo = "";
+            if (bloco.tipo === "texto_midia") {
+                conteudo = `
+                    <div class="max-w-3xl mx-auto px-6 grid md:grid-cols-2 gap-6 ${itemsClasse}">
+                        <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""} ${textAlignClasse}">
+                            <h2 class="text-xl font-bold mb-2">${bloco.props.titulo || ""}</h2>
+                            <p class="text-gray-300 text-sm mb-3">${bloco.props.subtitulo || ""}</p>
+                            ${bloco.props.botaoTexto ? `<span style="${estiloBotao}" class="${classeBotao}">${bloco.props.botaoTexto}</span>` : ""}
+                        </div>
+                        <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
+                            ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}" class="rounded-xl w-full">` : '<div class="w-full h-24 bg-white/5 rounded-xl"></div>'}
+                        </div>
+                    </div>`;
+            } else if (bloco.tipo === "formulario_captura") {
+                conteudo = `
+                    <div class="max-w-sm mx-auto px-6 ${textAlignClasse}">
+                        <h2 class="text-lg font-bold mb-3">${bloco.props.titulo || ""}</h2>
+                        <div class="space-y-2 text-left">
+                            ${(bloco.props.campos || []).map(campo => `<div class="w-full p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-500">${campo}</div>`).join("")}
+                            <div style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</div>
+                        </div>
+                    </div>`;
+            } else if (bloco.tipo === "faq") {
+                const itens = bloco.props.itens || [];
+                conteudo = `
+                    <div class="max-w-2xl mx-auto px-6 ${textAlignClasse}">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
+                        <div class="space-y-2 text-left">${itens.map(item => `<div class="bg-white/5 border border-white/10 rounded-xl p-3"><p class="font-bold text-sm">${item.pergunta || ""}</p></div>`).join("")}</div>
+                    </div>`;
+            } else if (bloco.tipo === "galeria_imagens") {
+                const imagens = bloco.props.imagens || [];
+                conteudo = `
+                    <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
+                        <div class="grid grid-cols-4 gap-2">${imagens.length === 0 ? '<p class="text-xs text-gray-500 col-span-4">Sem imagens ainda.</p>' : imagens.map(img => `<img src="${img}" class="w-full h-20 object-cover rounded-lg">`).join("")}</div>
+                    </div>`;
+            } else if (bloco.tipo === "lista_cards") {
+                const cards = bloco.props.cards || [];
+                conteudo = `
+                    <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
+                        <div class="grid grid-cols-3 gap-2 text-left">${cards.map(c => `<div class="bg-white/5 border border-white/10 rounded-xl p-3"><p class="text-sm">${c.icone || ""} ${c.titulo || ""}</p></div>`).join("")}</div>
+                    </div>`;
+            } else if (bloco.tipo === "tabela_comparativo") {
+                const linhas = bloco.props.linhas || [];
+                conteudo = `
+                    <div class="max-w-2xl mx-auto px-6 ${textAlignClasse}">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
+                        <table class="w-full text-xs text-left">
+                            <tr class="border-b border-white/10"><th></th><th class="p-1">${bloco.props.coluna1 || ""}</th><th class="p-1">${bloco.props.coluna2 || ""}</th></tr>
+                            ${linhas.map(l => `<tr class="border-b border-white/5"><td class="p-1 text-gray-400">${l.label || ""}</td><td class="p-1">${l.valor1 || ""}</td><td class="p-1">${l.valor2 || ""}</td></tr>`).join("")}
+                        </table>
+                    </div>`;
+            } else if (bloco.tipo === "texto_rico") {
+                const paragrafos = (bloco.props.conteudo || "").split(/\n\s*\n/).filter(p => p.trim());
+                conteudo = `
+                    <div class="max-w-2xl mx-auto px-6 ${textAlignClasse}">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-3">${bloco.props.titulo}</h2>` : ""}
+                        <div class="text-gray-300 text-sm space-y-2">${paragrafos.map(p => `<p>${p}</p>`).join("")}</div>
+                    </div>`;
+            } else if (bloco.tipo === "codigo_iframe") {
+                conteudo = bloco.props.url
+                    ? `<div class="max-w-3xl mx-auto px-6"><div class="bg-white/5 border border-dashed border-white/20 rounded-xl p-6 text-center text-xs text-gray-500">Incorporado: ${bloco.props.url}</div></div>`
+                    : `<div class="max-w-3xl mx-auto px-6"><p class="text-xs text-gray-500 text-center">Nenhuma URL definida ainda.</p></div>`;
+            } else if (bloco.tipo === "carrossel_banners") {
+                const banners = bloco.props.banners || [];
+                conteudo = `<div class="max-w-3xl mx-auto px-6"><div class="flex gap-2 overflow-x-auto">${banners.length === 0 ? '<p class="text-xs text-gray-500">Sem banners ainda.</p>' : banners.map(b => `<img src="${b.imagemB64}" class="shrink-0 w-40 h-20 object-cover rounded-xl">`).join("")}</div></div>`;
+            } else if (bloco.tipo === "carrossel_produtos") {
+                const ids = bloco.props.produtosIds || [];
+                const produtos = produtosDoUsuarioCache.filter(p => ids.includes(p.id));
+                conteudo = `
+                    <div class="max-w-3xl mx-auto px-6">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}
+                        <div class="flex gap-3 overflow-x-auto">
+                            ${produtos.length === 0 ? '<p class="text-xs text-gray-500">Nenhum produto selecionado ainda.</p>' : produtos.map(p => `
+                                <div class="shrink-0 w-28 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
+                                    <div class="w-full h-16 bg-white/10"></div>
+                                    <div class="p-2"><p class="text-[10px] font-bold truncate">${p.nome}</p><p class="text-[9px] text-gray-400">R$ ${p.preco}</p></div>
+                                </div>
+                            `).join("")}
+                        </div>
+                    </div>`;
+            } else if (bloco.tipo === "carrossel_cards") {
+                const cards = bloco.props.cards || [];
+                const estilo = bloco.props.estiloImagem || "lado";
+                conteudo = `
+                    <div class="max-w-3xl mx-auto px-6">
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}
+                        <div class="flex gap-3 overflow-x-auto">
+                            ${cards.length === 0 ? '<p class="text-xs text-gray-500">Sem cards ainda.</p>' : cards.map(c => estilo === "fundo"
+                                ? `<div class="shrink-0 w-32 h-32 rounded-xl relative overflow-hidden" style="${c.imagemB64 ? `background-image:url('${c.imagemB64}');background-size:cover;` : "background-color:#222;"}"><div class="absolute inset-0 bg-black/40"></div><p class="relative text-[10px] font-bold p-2 text-white">${c.titulo || ""}</p></div>`
+                                : `<div class="shrink-0 w-28 bg-white/5 border border-white/10 rounded-xl overflow-hidden"><div class="w-full h-14 bg-white/10"></div><p class="text-[10px] font-bold p-2">${c.titulo || ""}</p></div>`
+                            ).join("")}
+                        </div>
+                    </div>`;
+            } else if (bloco.tipo === "navegacao") {
+                const links = bloco.props.links || [];
+                conteudo = `<div class="max-w-3xl mx-auto px-6 flex items-center justify-between"><span class="font-bold">${bloco.props.logoTexto || ""}</span><div class="flex gap-3 text-xs">${links.map(l => `<span>${l.label || ""}</span>`).join("")}</div></div>`;
+            } else if (bloco.tipo === "rodape") {
+                const links = bloco.props.links || [];
+                conteudo = `<div class="max-w-3xl mx-auto px-6 flex items-center justify-between text-xs text-gray-400"><p>${bloco.props.textoCopyright || ""}</p><div class="flex gap-3">${links.map(l => `<span>${l.label || ""}</span>`).join("")}</div></div>`;
+            } else if (bloco.tipo === "seletor_cores") {
+                const opcoes = bloco.props.opcoes || [];
+                conteudo = `
+                    <div class="max-w-sm mx-auto px-6 ${textAlignClasse}">
+                        ${bloco.props.titulo ? `<p class="font-bold text-sm mb-2">${bloco.props.titulo}</p>` : ""}
+                        <div class="flex gap-2 ${justifyClasse}">${opcoes.map(op => `<div style="background-color:${op.hex || "#000"};" class="w-7 h-7 rounded-full border border-white/20"></div>`).join("")}</div>
+                    </div>`;
+            } else if (bloco.tipo === "breadcrumb") {
+                const itens = bloco.props.itens || [];
+                conteudo = `<div class="max-w-3xl mx-auto px-6 text-xs text-gray-400">${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-1">/</span>' : ""}<span>${item.label || ""}</span>`).join("")}</div>`;
+            }
+            return `<div class="relative" style="${estiloFundo} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
+                ${overlayHtml}
+                <div class="relative">${conteudo}</div>
+            </div>`;
+        }
+        function renderizarPreviewEditor() {
+            const canvas = document.getElementById("lped-preview-canvas");
+            if (!canvas) return;
+            const visiveis = lpEditorBlocos.filter(b => b.visivel !== false);
+            canvas.innerHTML = visiveis.length === 0
+                ? '<p class="text-center text-gray-500 text-xs p-16">Adicione um bloco pra ver a previa aqui.</p>'
+                : visiveis.map(bloco => renderizarBlocoPreview(bloco)).join("");
+        }
         window.editarLP = async function(id) {
             const snap = await getDoc(doc(db, "landing_pages", id));
             if (!snap.exists()) return;
@@ -2739,6 +2931,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lped-titulo").value = lp.titulo;
             document.getElementById("lped-slug").value = lp.pagina;
             atualizarBadgeStatusEditor();
+            atualizarUrlPreviewEditor();
+            alternarDispositivoPreview("desktop");
             lpEditorBlocos = [];
             for (const blocoId of (lp.ordemBlocos || [])) {
                 const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
@@ -2750,6 +2944,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lp-editor-modal").classList.remove("hidden");
             carregarProdutosParaEditor();
         };
+        document.getElementById("lped-blocos-lista").addEventListener("input", renderizarPreviewEditor);
+        document.getElementById("lped-blocos-lista").addEventListener("change", renderizarPreviewEditor);
         function atualizarBadgeStatusEditor() {
             const badge = document.getElementById("lped-status-badge");
             const btnPub = document.getElementById("lped-btn-publicar");
@@ -3269,7 +3465,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 else if (aba === "avancado") paneHtml = renderAbaAvancado(bloco, i);
                 else paneHtml = renderAbaConteudo(bloco, i);
                 return `
-                    <div class="glass-card rounded-xl p-4 border border-white/5">
+                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5] transition-all">
                         <div class="flex items-center justify-between">
                             <p class="text-xs font-bold text-white">${nomeTipoBlocoEditor(bloco.tipo)}</p>
                             <div class="flex items-center gap-1">
@@ -3279,14 +3475,15 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             </div>
                         </div>
                         <div class="flex gap-1 mt-3 border-b border-white/5 pb-2">
-                            <button onclick="trocarAbaBlocoEditor(${i}, 'conteudo')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "conteudo" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}">Conteudo</button>
-                            <button onclick="trocarAbaBlocoEditor(${i}, 'design')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "design" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}">Design</button>
-                            <button onclick="trocarAbaBlocoEditor(${i}, 'avancado')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "avancado" ? "bg-white/10 text-white" : "text-gray-500 hover:text-gray-300"}">Avancado</button>
+                            <button onclick="trocarAbaBlocoEditor(${i}, 'conteudo')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "conteudo" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Conteudo</button>
+                            <button onclick="trocarAbaBlocoEditor(${i}, 'design')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "design" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Design</button>
+                            <button onclick="trocarAbaBlocoEditor(${i}, 'avancado')" class="text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${aba === "avancado" ? "bg-[#FF7A45] text-white" : "text-gray-500 hover:text-gray-300"}">Avancado</button>
                         </div>
                         ${paneHtml}
                     </div>
                 `;
             }).join("") || '<p class="text-xs text-gray-500 text-center py-8">Nenhum bloco ainda. Adicione um abaixo.</p>';
+            renderizarPreviewEditor();
         }
         window.alternarCampoFormEditor = function(i, campo, marcado) {
             if (!lpEditorBlocos[i].props.campos) lpEditorBlocos[i].props.campos = [];
@@ -3337,8 +3534,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const grid = document.getElementById("lp-blocos-grid");
             const filtrados = TIPOS_BLOCO_DISPONIVEIS.filter(t => t.nome.toLowerCase().includes(termo));
             grid.innerHTML = filtrados.map(t => `
-                <button onclick="selecionarBlocoPanel('${t.tipo}')" class="flex flex-col items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/5 hover:border-white/20 rounded-xl p-4 text-center transition-all">
-                    <svg class="w-6 h-6 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">${t.icone}</svg>
+                <button onclick="selecionarBlocoPanel('${t.tipo}')" class="group flex flex-col items-center justify-center gap-2 bg-white/5 hover:bg-[#5B3DF5]/10 border border-white/5 hover:border-[#5B3DF5]/40 rounded-xl p-4 text-center transition-all">
+                    <svg class="w-6 h-6 text-gray-300 group-hover:text-[#FF7A45] transition-all" fill="none" stroke="currentColor" viewBox="0 0 24 24">${t.icone}</svg>
                     <span class="text-[10px] font-bold text-white leading-tight">${t.nome}</span>
                 </button>
             `).join("") || '<p class="col-span-2 text-xs text-gray-500 text-center py-8">Nenhum bloco encontrado.</p>';
