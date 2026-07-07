@@ -3130,7 +3130,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 const canvasEl = document.getElementById("lped-preview-canvas");
                 const larguraCanvas = canvasEl ? canvasEl.clientWidth : 900;
                 const resultado = calcularSnapping(xBruto, yBruto, bloco.largura || 600, bloco.altura || 220, redimensionandoElemento.indiceBloco, larguraCanvas);
-                bloco.x = resultado.x;
+                const larguraBloco = bloco.largura || 600;
+                bloco.x = Math.min(Math.max(0, resultado.x), Math.max(0, larguraCanvas - larguraBloco));
                 bloco.y = resultado.y;
                 guiasAlinhamentoAtivas = resultado.guias;
             } else if (redimensionandoElemento.modo === "livre-tamanho") {
