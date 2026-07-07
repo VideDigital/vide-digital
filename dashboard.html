@@ -3937,7 +3937,16 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             } else if (tipo === "forma") {
                 props = { tipoForma: "retangulo", largura: 120, altura: 120, cor: "#5B3DF5" };
             }
-            lpEditorBlocos.push({ id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo", _colapsado: false });
+            const novoBloco = { id: novoId, tipo, visivel: true, props, design: {}, _aba: "conteudo", _colapsado: false };
+            if (lpEditorModoLayout === "livre") {
+                const maiorY = Math.max(0, ...lpEditorBlocos.map(b => (b.y || 0) + (b.altura || 220)));
+                novoBloco.x = 20;
+                novoBloco.y = maiorY + 20;
+                novoBloco.largura = 600;
+                novoBloco.altura = 220;
+                novoBloco.zIndex = Math.max(0, ...lpEditorBlocos.map(b => b.zIndex || 0)) + 1;
+            }
+            lpEditorBlocos.push(novoBloco);
             renderizarEditorBlocos();
             salvarHistoricoEditor();
         };
