@@ -3641,6 +3641,12 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 </div>
             `;
         }
+        function nomeResumoBloco(bloco) {
+            const p = bloco.props || {};
+            const texto = p.titulo || p.textoCopyright || p.logoTexto || p.url || "";
+            if (!texto) return "";
+            return texto.length > 28 ? texto.slice(0, 28) + "..." : texto;
+        }
         window.alternarColapsoBloco = function(i) {
             lpEditorBlocos[i]._colapsado = !lpEditorBlocos[i]._colapsado;
             renderizarEditorBlocos();
