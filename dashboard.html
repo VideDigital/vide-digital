@@ -3047,6 +3047,32 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 <div class="relative">${conteudo}</div>
             </div>`;
         }
+        let guiasAlinhamentoAtivas = [];
+        function calcularSnapping(x, y, largura, altura, indiceIgnorar, larguraCanvas) {
+            const limiar = 6;
+            let novoX = x, novoY = y;
+            const guias = [];
+            const centroCanvasX = larguraCanvas / 2;
+            const centroXAtual = x + largura / 2;
+            if (Math.abs(centroXAtual - centroCanvasX) < limiar) {
+                novoX = centroCanvasX - largura / 2;
+                guias.push({ tipo: "vertical", posicao: centroCanvasX });
+            }
+            lpEditorBlocos.forEach((outro, idx) => {
+                if (idx === indiceIgnorar || outro.visivel === false || outro.x === undefined) return;
+                const esquerda = novoX, direita = novoX + largura, centroX = novoX + largura / 2;
+                const topo = y, baixo = y + altura, centroY = y + altura / 2;
+                const oEsquerda = outro.x, oDireita = outro.x + (outro.largura || 600), oCentroX = outro.x + (outro.largura || 600) / 2;
+                const oTopo = outro.y, oBaixo = outro.y + (outro.altura || 220), oCentroY = outro.y + (outro.altura || 220) / 2;
+                if (Math.abs(esquerda - oEsquerda) < limiar) { novoX = oEsquerda; guias.push({ tipo: "vertical", posicao: oEsquerda }); }
+                else if (Math.abs(direita - oDireita) < limiar) { novoX = oDireita - largura; guias.push({ tipo: "vertical", posicao: oDireita }); }
+                else if (Math.abs(centroX - oCentroX) < limiar) { novoX = oCentroX - largura / 2; guias.push({ tipo: "vertical", posicao: oCentroX }); }
+                if (Math.abs(topo - oTopo) < limiar) { novoY = oTopo; guias.push({ tipo: "horizontal", posicao: oTopo }); }
+                else if (Math.abs(baixo - oBaixo) < limiar) { novoY = oBaixo - altura; guias.push({ tipo: "horizontal", posicao: oBaixo }); }
+                else if (Math.abs(centroY - oCentroY) < limiar) { novoY = oCentroY - altura / 2; guias.push({ tipo: "horizontal", posicao: oCentroY }); }
+            });
+            return { x: novoX, y: novoY, guias };
+        }
         function renderizarPreviewEditor() {
             const canvas = document.getElementById("lped-preview-canvas");
             if (!canvas) return;
@@ -3057,7 +3083,11 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             }
             if (lpEditorModoLayout === "livre") {
                 const alturaCanvas = Math.max(400, ...visiveis.map(x => (x.b.y || 20) + (x.b.altura || 220) + 40));
-                canvas.innerHTML = `<div class="relative" style="height:${alturaCanvas}px; background:#0d0c1f;">${visiveis.map(x => renderizarBlocoPreview(x.b, x.idx)).join("")}</div>`;
+                const guiasHtml = guiasAlinhamentoAtivas.map(g => g.tipo === "vertical"
+                    ? `<div class="absolute top-0 bottom-0 pointer-events-none" style="left:${g.posicao}px; width:1px; background:#FF7A45; z-index:9999;"></div>`
+                    : `<div class="absolute left-0 right-0 pointer-events-none" style="top:${g.posicao}px; height:1px; background:#FF7A45; z-index:9999;"></div>`
+                ).join("");
+                canvas.innerHTML = `<div class="relative" style="height:${alturaCanvas}px; background:#0d0c1f;">${visiveis.map(x => renderizarBlocoPreview(x.b, x.idx)).join("")}${guiasHtml}</div>`;
                 return;
             }
             canvas.innerHTML = visiveis.map(x => {
@@ -3095,8 +3125,14 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if (redimensionandoElemento.modo === "imagem-largura") {
                 bloco.props.imagemLargura = Math.round(Math.max(60, redimensionandoElemento.imagemLarguraInicial + dx));
             } else if (redimensionandoElemento.modo === "mover-livre") {
-                bloco.x = Math.round(Math.max(0, redimensionandoElemento.xInicial + dx));
-                bloco.y = Math.round(Math.max(0, redimensionandoElemento.yInicial + dy));
+                const xBruto = Math.round(Math.max(0, redimensionandoElemento.xInicial + dx));
+                const yBruto = Math.round(Math.max(0, redimensionandoElemento.yInicial + dy));
+                const canvasEl = document.getElementById("lped-preview-canvas");
+                const larguraCanvas = canvasEl ? canvasEl.clientWidth : 900;
+                const resultado = calcularSnapping(xBruto, yBruto, bloco.largura || 600, bloco.altura || 220, redimensionandoElemento.indiceBloco, larguraCanvas);
+                bloco.x = resultado.x;
+                bloco.y = resultado.y;
+                guiasAlinhamentoAtivas = resultado.guias;
             } else if (redimensionandoElemento.modo === "livre-tamanho") {
                 bloco.largura = Math.round(Math.max(80, redimensionandoElemento.larguraLivreInicial + dx));
                 bloco.altura = Math.round(Math.max(60, redimensionandoElemento.alturaLivreInicial + dy));
@@ -3111,6 +3147,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         document.addEventListener("mouseup", function() {
             if (redimensionandoElemento) {
                 redimensionandoElemento = null;
+                guiasAlinhamentoAtivas = [];
                 renderizarEditorBlocos();
                 salvarHistoricoEditor();
             }
