@@ -2834,7 +2834,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const slug = document.getElementById("lped-slug").value.trim().toLowerCase() || "sua-pagina";
             document.getElementById("lped-url-preview").innerText = `videdigital.github.io/vide-digital/${slugAtualSalvo}/${slug}`;
         };
-        function renderizarBlocoPreview(bloco) {
+        function renderizarBlocoPreview(bloco, indiceBloco) {
             const d = bloco.design || {};
             const corFundo = d.corFundo || "";
             const imagemFundo = d.imagemFundoB64 || "";
@@ -2977,7 +2977,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
                 else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
                 else estiloForma += `height:${altura}px; border-radius:8px;`;
-                conteudo = `<div class="flex ${justifyClasse} px-6"><div style="${estiloForma}"></div></div>`;
+                conteudo = `<div class="flex ${justifyClasse} px-6"><div class="relative inline-block"><div style="${estiloForma}"></div><div class="resize-handle-forma absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}"></div></div></div>`;
             }
             const estiloTexto = d.corTexto ? `color:${d.corTexto};` : "";
             return `<div class="relative" style="${estiloFundo} ${estiloTexto} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
@@ -2988,11 +2988,42 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         function renderizarPreviewEditor() {
             const canvas = document.getElementById("lped-preview-canvas");
             if (!canvas) return;
-            const visiveis = lpEditorBlocos.filter(b => b.visivel !== false);
+            const visiveis = lpEditorBlocos.map((b, idx) => ({ b, idx })).filter(x => x.b.visivel !== false);
             canvas.innerHTML = visiveis.length === 0
                 ? '<p class="text-center text-gray-500 text-xs p-16">Adicione um bloco pra ver a previa aqui.</p>'
-                : visiveis.map(bloco => renderizarBlocoPreview(bloco)).join("");
+                : visiveis.map(x => renderizarBlocoPreview(x.b, x.idx)).join("");
         }
+        let redimensionandoForma = null;
+        document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
+            if (!e.target.classList.contains("resize-handle-forma")) return;
+            e.preventDefault();
+            const idx = parseInt(e.target.getAttribute("data-bloco-index"));
+            redimensionandoForma = {
+                indiceBloco: idx,
+                larguraInicial: lpEditorBlocos[idx].props.largura || 120,
+                alturaInicial: lpEditorBlocos[idx].props.altura || 120,
+                mouseXInicial: e.clientX,
+                mouseYInicial: e.clientY
+            };
+        });
+        document.addEventListener("mousemove", function(e) {
+            if (!redimensionandoForma) return;
+            const dx = e.clientX - redimensionandoForma.mouseXInicial;
+            const dy = e.clientY - redimensionandoForma.mouseYInicial;
+            const bloco = lpEditorBlocos[redimensionandoForma.indiceBloco];
+            bloco.props.largura = Math.round(Math.max(20, redimensionandoForma.larguraInicial + dx));
+            if (bloco.props.tipoForma !== "linha") {
+                bloco.props.altura = Math.round(Math.max(20, redimensionandoForma.alturaInicial + dy));
+            }
+            renderizarPreviewEditor();
+        });
+        document.addEventListener("mouseup", function() {
+            if (redimensionandoForma) {
+                redimensionandoForma = null;
+                renderizarEditorBlocos();
+                salvarHistoricoEditor();
+            }
+        });
         window.editarLP = async function(id) {
             const snap = await getDoc(doc(db, "landing_pages", id));
             if (!snap.exists()) return;
