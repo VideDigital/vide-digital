@@ -269,9 +269,11 @@
                     </div>
                 </div>`;
         } else if (bloco.tipo === "codigo_iframe") {
-            conteudoHtml = bloco.props.url
-                ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
-                : "";
+            conteudoHtml = bloco.props.htmlCustom
+                ? `<div class="max-w-5xl mx-auto px-6">${bloco.props.htmlCustom}</div>`
+                : (bloco.props.url
+                    ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
+                    : "");
         } else if (bloco.tipo === "carrossel_banners") {
             const banners = bloco.props.banners || [];
             const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
