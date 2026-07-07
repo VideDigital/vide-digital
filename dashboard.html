@@ -3629,10 +3629,16 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             await alternarPublicacaoLP(lpEditorId, lpEditorPublicado);
             atualizarBadgeStatusEditor();
         };
-        window.abrirPreviewEditorLP = function() {
-            const url = `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lpEditorSlugOriginal}`;
-            window.open(url, "_blank");
-        };
+window.abrirPreviewEditorLP = async function() {
+    if (!lpEditorPublicado) {
+        await salvarEditorLP();
+        const url = `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lpEditorSlugOriginal}?preview=1`;
+        window.open(url, "_blank");
+    } else {
+        const url = `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lpEditorSlugOriginal}`;
+        window.open(url, "_blank");
+    }
+};
         window.salvarLP = async function() {
             const titulo = document.getElementById("lp-titulo").value.trim();
             const slug = document.getElementById("lp-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
