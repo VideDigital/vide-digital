@@ -87,6 +87,30 @@
             }
         }
     }
+    window.enviarFormularioLP = async function(event) {
+        event.preventDefault();
+        const form = event.target;
+        const dados = {};
+        form.querySelectorAll("input").forEach(inp => { dados[inp.placeholder] = inp.value.trim(); });
+        if (!dados.nome && !dados.whatsapp && !dados.email) return false;
+        try {
+            await setDoc(doc(db, "leads", `lead_lp_${Date.now()}`), {
+                criadoPor: window.lpDonoUIDAtual || "",
+                nome: dados.nome || "",
+                whatsapp: dados.whatsapp || "",
+                email: dados.email || "",
+                origem: "Landing Page",
+                produtoInteresse: document.title || "Landing Page",
+                cliques: 0,
+                data: Date.now()
+            });
+            form.innerHTML = '<p class="text-center text-white font-bold py-4">Recebemos seus dados! Em breve entraremos em contato.</p>';
+        } catch (err) {
+            console.error(err);
+            form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Erro ao enviar, tenta de novo.</p>';
+        }
+        return false;
+    };
     async function renderizarLandingPage(lojaSlug, paginaSlug) {
         const container = document.getElementById("lp-container");
         const docId = lojaSlug.toLowerCase() + "__" + paginaSlug.toLowerCase();
@@ -97,6 +121,7 @@
                 return;
             }
             const meta = metaSnap.data();
+            window.lpDonoUIDAtual = meta.donoUID || null;
             document.title = meta.titulo || "Vide Hub";
             container.className = "min-h-screen";
             container.innerHTML = "";
@@ -191,7 +216,7 @@
             conteudoHtml = `
                 <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
                     <h2 class="text-2xl font-bold mb-6">${bloco.props.titulo || ""}</h2>
-                    <form class="space-y-3 text-left">
+                    <form class="space-y-3 text-left" onsubmit="return enviarFormularioLP(event)">
                         ${(bloco.props.campos || []).map(campo => campo === "whatsapp" ? `<input type="tel" inputmode="numeric" placeholder="${campo}" oninput="this.value=this.value.replace(/[^0-9]/g,'')" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">` : `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
 
                         <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</button>
