@@ -2860,6 +2860,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 : "";
             let conteudo = "";
             if (bloco.tipo === "texto_midia") {
+                const estiloImgLargura = bloco.props.imagemLargura ? `width:${bloco.props.imagemLargura}px; max-width:100%;` : "width:100%;";
                 conteudo = `
                     <div class="max-w-3xl mx-auto px-6 grid md:grid-cols-2 gap-6 ${itemsClasse}">
                         <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""} ${textAlignClasse}">
@@ -2868,7 +2869,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             ${bloco.props.botaoTexto ? `<span style="${estiloBotao}" class="${classeBotao}">${bloco.props.botaoTexto}</span>` : ""}
                         </div>
                         <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
-                            ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}" class="rounded-xl w-full">` : '<div class="w-full h-24 bg-white/5 rounded-xl"></div>'}
+                            ${bloco.props.imagemB64 ? `<div class="relative inline-block"><img src="${bloco.props.imagemB64}" style="${estiloImgLargura}" class="rounded-xl"><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="imagem-largura"></div></div>` : '<div class="w-full h-24 bg-white/5 rounded-xl"></div>'}
                         </div>
                     </div>`;
             } else if (bloco.tipo === "formulario_captura") {
@@ -2977,7 +2978,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
                 else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
                 else estiloForma += `height:${altura}px; border-radius:8px;`;
-                conteudo = `<div class="flex ${justifyClasse} px-6"><div class="relative inline-block"><div style="${estiloForma}"></div><div class="resize-handle-forma absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}"></div></div></div>`;
+                conteudo = `<div class="flex ${justifyClasse} px-6"><div class="relative inline-block"><div style="${estiloForma}"></div><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="forma"></div></div></div>`;
             }
             const estiloTexto = d.corTexto ? `color:${d.corTexto};` : "";
             return `<div class="relative" style="${estiloFundo} ${estiloTexto} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
@@ -2993,33 +2994,41 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 ? '<p class="text-center text-gray-500 text-xs p-16">Adicione um bloco pra ver a previa aqui.</p>'
                 : visiveis.map(x => renderizarBlocoPreview(x.b, x.idx)).join("");
         }
-        let redimensionandoForma = null;
+        let redimensionandoElemento = null;
         document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
-            if (!e.target.classList.contains("resize-handle-forma")) return;
+            const handle = e.target.closest(".resize-handle");
+            if (!handle) return;
             e.preventDefault();
-            const idx = parseInt(e.target.getAttribute("data-bloco-index"));
-            redimensionandoForma = {
+            const idx = parseInt(handle.getAttribute("data-bloco-index"));
+            const modo = handle.getAttribute("data-modo-redimensionar");
+            redimensionandoElemento = {
                 indiceBloco: idx,
+                modo: modo,
                 larguraInicial: lpEditorBlocos[idx].props.largura || 120,
                 alturaInicial: lpEditorBlocos[idx].props.altura || 120,
+                imagemLarguraInicial: lpEditorBlocos[idx].props.imagemLargura || 400,
                 mouseXInicial: e.clientX,
                 mouseYInicial: e.clientY
             };
         });
         document.addEventListener("mousemove", function(e) {
-            if (!redimensionandoForma) return;
-            const dx = e.clientX - redimensionandoForma.mouseXInicial;
-            const dy = e.clientY - redimensionandoForma.mouseYInicial;
-            const bloco = lpEditorBlocos[redimensionandoForma.indiceBloco];
-            bloco.props.largura = Math.round(Math.max(20, redimensionandoForma.larguraInicial + dx));
-            if (bloco.props.tipoForma !== "linha") {
-                bloco.props.altura = Math.round(Math.max(20, redimensionandoForma.alturaInicial + dy));
+            if (!redimensionandoElemento) return;
+            const dx = e.clientX - redimensionandoElemento.mouseXInicial;
+            const dy = e.clientY - redimensionandoElemento.mouseYInicial;
+            const bloco = lpEditorBlocos[redimensionandoElemento.indiceBloco];
+            if (redimensionandoElemento.modo === "imagem-largura") {
+                bloco.props.imagemLargura = Math.round(Math.max(60, redimensionandoElemento.imagemLarguraInicial + dx));
+            } else {
+                bloco.props.largura = Math.round(Math.max(20, redimensionandoElemento.larguraInicial + dx));
+                if (bloco.props.tipoForma !== "linha") {
+                    bloco.props.altura = Math.round(Math.max(20, redimensionandoElemento.alturaInicial + dy));
+                }
             }
             renderizarPreviewEditor();
         });
         document.addEventListener("mouseup", function() {
-            if (redimensionandoForma) {
-                redimensionandoForma = null;
+            if (redimensionandoElemento) {
+                redimensionandoElemento = null;
                 renderizarEditorBlocos();
                 salvarHistoricoEditor();
             }
