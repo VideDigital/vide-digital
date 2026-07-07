@@ -2748,6 +2748,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         };
         let lpEditorId = null;
         let lpEditorBlocos = [];
+        window.lpEditorBlocos = lpEditorBlocos;
+        window.renderizarEditorBlocos = function() { renderizarEditorBlocos(); };
         let lpEditorRemovidos = [];
         let lpEditorPublicado = false;
         let lpEditorSlugOriginal = "";
