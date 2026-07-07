@@ -2935,7 +2935,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             atualizarBadgeStatusEditor();
             atualizarUrlPreviewEditor();
             alternarDispositivoPreview("desktop");
-            lpEditorBlocos = [];
+            lpEditorBlocos.length = 0;
             for (const blocoId of (lp.ordemBlocos || [])) {
                 const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
                 if (blocoSnap.exists()) {
