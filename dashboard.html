@@ -1652,6 +1652,10 @@ Adicionar Produto
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                 </button>
             </div>
+            <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1 shrink-0">
+                <button onclick="alternarModoLayout('empilhado')" id="lped-btn-modo-empilhado" class="px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all">Empilhado</button>
+                <button onclick="alternarModoLayout('livre')" id="lped-btn-modo-livre" class="px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all">Livre</button>
+            </div>
             <div class="flex items-center gap-1 shrink-0">
                 <button onclick="desfazerEditor()" id="lped-btn-desfazer" title="Desfazer (Ctrl+Z)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"></path></svg>
@@ -2767,6 +2771,45 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         let historicoEditor = [];
         let indiceHistorico = -1;
         let historicoDebounceTimer = null;
+        let lpEditorModoLayout = "empilhado";
+        window.alternarModoLayout = function(modo) {
+            if (modo === "livre") {
+                let yAcumulado = 20;
+                lpEditorBlocos.forEach((b, i) => {
+                    if (b.x === undefined) {
+                        b.x = 20;
+                        b.y = yAcumulado;
+                        b.largura = 600;
+                        b.altura = 220;
+                        b.zIndex = i + 1;
+                        yAcumulado += 240;
+                    }
+                });
+            }
+            lpEditorModoLayout = modo;
+            atualizarBotoesModoLayout();
+            renderizarEditorBlocos();
+            salvarHistoricoEditor();
+        };
+        function atualizarBotoesModoLayout() {
+            const btnE = document.getElementById("lped-btn-modo-empilhado");
+            const btnL = document.getElementById("lped-btn-modo-livre");
+            if (!btnE || !btnL) return;
+            btnE.className = "px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all " + (lpEditorModoLayout === "empilhado" ? "bg-[#FF7A45] text-white" : "text-gray-400 hover:text-white");
+            btnL.className = "px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all " + (lpEditorModoLayout === "livre" ? "bg-[#FF7A45] text-white" : "text-gray-400 hover:text-white");
+        }
+        window.trazerParaFrente = function(i) {
+            const maxZ = Math.max(0, ...lpEditorBlocos.map(b => b.zIndex || 0));
+            lpEditorBlocos[i].zIndex = maxZ + 1;
+            renderizarPreviewEditor();
+            salvarHistoricoEditor();
+        };
+        window.enviarParaTras = function(i) {
+            const minZ = Math.min(0, ...lpEditorBlocos.map(b => b.zIndex || 0));
+            lpEditorBlocos[i].zIndex = minZ - 1;
+            renderizarPreviewEditor();
+            salvarHistoricoEditor();
+        };
         function clonarBlocosEditor() {
             return JSON.parse(JSON.stringify(lpEditorBlocos));
         }
@@ -2984,6 +3027,19 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 conteudo = `<div class="flex ${justifyClasse} px-6"><div class="relative inline-block"><div style="${estiloForma}"></div><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="forma"></div></div></div>`;
             }
             const estiloTexto = d.corTexto ? `color:${d.corTexto};` : "";
+            if (lpEditorModoLayout === "livre") {
+                const x = bloco.x !== undefined ? bloco.x : 20;
+                const y = bloco.y !== undefined ? bloco.y : 20;
+                const largura = bloco.largura || 600;
+                const altura = bloco.altura || 220;
+                const zIndex = bloco.zIndex || 1;
+                return `<div class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTexto}">
+                    ${overlayHtml}
+                    <div class="relative w-full h-full overflow-auto" style="padding-top:${Math.min(paddingTop, 24)}px; padding-bottom:${Math.min(paddingBottom, 24)}px;">${conteudo}</div>
+                    <div class="livre-mover absolute inset-0 cursor-move" data-bloco-index="${indiceBloco}" data-modo-redimensionar="mover-livre"></div>
+                    <div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="livre-tamanho" style="z-index:${zIndex + 1};"></div>
+                </div>`;
+            }
             return `<div class="relative" style="${estiloFundo} ${estiloTexto} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
                 ${overlayHtml}
                 <div class="relative">${conteudo}</div>
@@ -2993,17 +3049,24 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const canvas = document.getElementById("lped-preview-canvas");
             if (!canvas) return;
             const visiveis = lpEditorBlocos.map((b, idx) => ({ b, idx })).filter(x => x.b.visivel !== false);
-            canvas.innerHTML = visiveis.length === 0
-                ? '<p class="text-center text-gray-500 text-xs p-16">Adicione um bloco pra ver a previa aqui.</p>'
-                : visiveis.map(x => {
-                    const selecionado = x.b._colapsado === false;
-                    const anelSelecao = selecionado ? "box-shadow: inset 0 0 0 2px #FF7A45;" : "";
-                    return `<div id="lped-preview-bloco-${x.idx}" style="${anelSelecao}">${renderizarBlocoPreview(x.b, x.idx)}</div>`;
-                }).join("");
+            if (visiveis.length === 0) {
+                canvas.innerHTML = '<p class="text-center text-gray-500 text-xs p-16">Adicione um bloco pra ver a previa aqui.</p>';
+                return;
+            }
+            if (lpEditorModoLayout === "livre") {
+                const alturaCanvas = Math.max(400, ...visiveis.map(x => (x.b.y || 20) + (x.b.altura || 220) + 40));
+                canvas.innerHTML = `<div class="relative" style="height:${alturaCanvas}px; background:#0d0c1f;">${visiveis.map(x => renderizarBlocoPreview(x.b, x.idx)).join("")}</div>`;
+                return;
+            }
+            canvas.innerHTML = visiveis.map(x => {
+                const selecionado = x.b._colapsado === false;
+                const anelSelecao = selecionado ? "box-shadow: inset 0 0 0 2px #FF7A45;" : "";
+                return `<div id="lped-preview-bloco-${x.idx}" style="${anelSelecao}">${renderizarBlocoPreview(x.b, x.idx)}</div>`;
+            }).join("");
         }
         let redimensionandoElemento = null;
         document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
-            const handle = e.target.closest(".resize-handle");
+            const handle = e.target.closest(".resize-handle, .livre-mover");
             if (!handle) return;
             e.preventDefault();
             const idx = parseInt(handle.getAttribute("data-bloco-index"));
@@ -3014,6 +3077,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 larguraInicial: lpEditorBlocos[idx].props.largura || 120,
                 alturaInicial: lpEditorBlocos[idx].props.altura || 120,
                 imagemLarguraInicial: lpEditorBlocos[idx].props.imagemLargura || 400,
+                xInicial: lpEditorBlocos[idx].x !== undefined ? lpEditorBlocos[idx].x : 20,
+                yInicial: lpEditorBlocos[idx].y !== undefined ? lpEditorBlocos[idx].y : 20,
+                larguraLivreInicial: lpEditorBlocos[idx].largura || 600,
+                alturaLivreInicial: lpEditorBlocos[idx].altura || 220,
                 mouseXInicial: e.clientX,
                 mouseYInicial: e.clientY
             };
@@ -3025,6 +3092,12 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const bloco = lpEditorBlocos[redimensionandoElemento.indiceBloco];
             if (redimensionandoElemento.modo === "imagem-largura") {
                 bloco.props.imagemLargura = Math.round(Math.max(60, redimensionandoElemento.imagemLarguraInicial + dx));
+            } else if (redimensionandoElemento.modo === "mover-livre") {
+                bloco.x = Math.round(Math.max(0, redimensionandoElemento.xInicial + dx));
+                bloco.y = Math.round(Math.max(0, redimensionandoElemento.yInicial + dy));
+            } else if (redimensionandoElemento.modo === "livre-tamanho") {
+                bloco.largura = Math.round(Math.max(80, redimensionandoElemento.larguraLivreInicial + dx));
+                bloco.altura = Math.round(Math.max(60, redimensionandoElemento.alturaLivreInicial + dy));
             } else {
                 bloco.props.largura = Math.round(Math.max(20, redimensionandoElemento.larguraInicial + dx));
                 if (bloco.props.tipoForma !== "linha") {
@@ -3052,7 +3125,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lped-slug").value = lp.pagina;
             atualizarBadgeStatusEditor();
             atualizarUrlPreviewEditor();
+            atualizarBadgeStatusEditor();
+            atualizarUrlPreviewEditor();
             alternarDispositivoPreview("desktop");
+            lpEditorModoLayout = lp.modoLayout || "empilhado";
             lpEditorBlocos.length = 0;
             for (const blocoId of (lp.ordemBlocos || [])) {
                 const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
@@ -3061,6 +3137,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 }
             }
             renderizarEditorBlocos();
+            atualizarBotoesModoLayout();
             historicoEditor = [clonarBlocosEditor()];
             indiceHistorico = 0;
             atualizarBotoesHistoricoEditor();
@@ -3691,6 +3768,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                 <p class="text-xs font-bold text-white truncate">${nomeTipoBlocoEditor(bloco.tipo)}${resumo ? ` <span class="text-gray-500 font-normal">- ${resumo}</span>` : ""}</p>
                             </div>
                             <div class="flex items-center gap-1 shrink-0">
+                                ${lpEditorModoLayout === "livre" ? `
+                                    <button onclick="event.stopPropagation(); trazerParaFrente(${i})" title="Trazer pra frente" class="text-gray-400 hover:text-white text-xs px-1.5 py-1">&#9650;</button>
+                                    <button onclick="event.stopPropagation(); enviarParaTras(${i})" title="Mandar pra tras" class="text-gray-400 hover:text-white text-xs px-1.5 py-1">&#9660;</button>
+                                ` : ""}
                                 <button onclick="event.stopPropagation(); removerBlocoEditor(${i})" class="text-red-400 hover:text-red-300 text-xs px-2 py-1">Excluir</button>
                             </div>
                         </div>
@@ -3832,11 +3913,17 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 for (const bloco of lpEditorBlocos) {
                     await setDoc(doc(db, "landing_pages_blocos", bloco.id), {
                         lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
-                        visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {}
+                        visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {},
+                        x: bloco.x !== undefined ? bloco.x : null,
+                        y: bloco.y !== undefined ? bloco.y : null,
+                        largura: bloco.largura !== undefined ? bloco.largura : null,
+                        altura: bloco.altura !== undefined ? bloco.altura : null,
+                        zIndex: bloco.zIndex !== undefined ? bloco.zIndex : null
                     });
                 }
                 await setDoc(doc(db, "landing_pages", lpEditorId), {
                     titulo, pagina: slug,
+                    modoLayout: lpEditorModoLayout,
                     ordemBlocos: lpEditorBlocos.map(b => b.id),
                     atualizadoEm: Date.now()
                 }, { merge: true });
@@ -3844,12 +3931,17 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 if (lpEditorPublicado) {
                     const docIdPublico = `${slugAtualSalvo}__${slug}`.toLowerCase();
                     await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
-                        titulo, publicado: true, donoUID: usuarioUID, ordemBlocos: lpEditorBlocos.map(b => b.id)
+                        titulo, publicado: true, donoUID: usuarioUID, modoLayout: lpEditorModoLayout, ordemBlocos: lpEditorBlocos.map(b => b.id)
                     });
                     for (const bloco of lpEditorBlocos) {
                         await setDoc(doc(db, "landing_pages_blocos_publicas", bloco.id), {
                             lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
-                            visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {}
+                            visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {},
+                            x: bloco.x !== undefined ? bloco.x : null,
+                            y: bloco.y !== undefined ? bloco.y : null,
+                            largura: bloco.largura !== undefined ? bloco.largura : null,
+                            altura: bloco.altura !== undefined ? bloco.altura : null,
+                            zIndex: bloco.zIndex !== undefined ? bloco.zIndex : null
                         });
                     }
                 }
@@ -3923,7 +4015,7 @@ window.abrirPreviewEditorLP = async function() {
                 const docIdPublico = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
                 if (publicarAgora) {
                     await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
-                        titulo: lp.titulo, publicado: true, donoUID: usuarioUID, ordemBlocos: lp.ordemBlocos || []
+                        titulo: lp.titulo, publicado: true, donoUID: usuarioUID, modoLayout: lp.modoLayout || "empilhado", ordemBlocos: lp.ordemBlocos || []
                     });
                     for (const blocoId of (lp.ordemBlocos || [])) {
                         const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
