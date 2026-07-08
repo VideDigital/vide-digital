@@ -1638,7 +1638,14 @@ Adicionar Produto
             <button onclick="salvarLP()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar</button>
         </div>
     </div>
-    <div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col">
+<div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col">
+        <div id="lped-painel-camadas" class="hidden fixed right-4 top-20 z-[130] w-72 bg-[#14132B] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
+            <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
+                <p class="text-xs font-bold text-white">Camadas</p>
+                <button onclick="alternarPainelCamadas()" class="text-gray-400 hover:text-white text-sm leading-none">&times;</button>
+            </div>
+            <div id="lped-camadas-lista" class="max-h-[60vh] overflow-y-auto p-2 space-y-1"></div>
+        </div>
         <div class="shrink-0 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
@@ -1660,8 +1667,11 @@ Adicionar Produto
                 <button onclick="desfazerEditor()" id="lped-btn-desfazer" title="Desfazer (Ctrl+Z)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"></path></svg>
                 </button>
-                <button onclick="refazerEditor()" id="lped-btn-refazer" title="Refazer (Ctrl+Y)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+<button onclick="refazerEditor()" id="lped-btn-refazer" title="Refazer (Ctrl+Y)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"></path></svg>
+                </button>
+                <button onclick="alternarPainelCamadas()" id="lped-btn-camadas" title="Camadas (Alt+1)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 5-9 5-9-5 9-5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13l9 5 9-5"></path></svg>
                 </button>
             </div>
             <div class="flex items-center gap-2 shrink-0">
@@ -2827,16 +2837,76 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             btnE.className = "px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all " + (lpEditorModoLayout === "empilhado" ? "bg-[#FF7A45] text-white" : "text-gray-400 hover:text-white");
             btnL.className = "px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all " + (lpEditorModoLayout === "livre" ? "bg-[#FF7A45] text-white" : "text-gray-400 hover:text-white");
         }
-        window.trazerParaFrente = function(i) {
-            const maxZ = Math.max(0, ...lpEditorBlocos.map(b => b.zIndex || 0));
-            lpEditorBlocos[i].zIndex = maxZ + 1;
+function moverCamada(i, direcao) {
+            const livres = lpEditorBlocos.map((b, idx) => ({ b, idx })).filter(x => x.b.x !== undefined);
+            livres.sort((a, c) => (a.b.zIndex || 0) - (c.b.zIndex || 0));
+            const pos = livres.findIndex(x => x.idx === i);
+            if (pos === -1) return;
+            const novaPos = pos + direcao;
+            if (novaPos < 0 || novaPos >= livres.length) return;
+            const temp = livres[pos];
+            livres[pos] = livres[novaPos];
+            livres[novaPos] = temp;
+            livres.forEach((x, ordem) => { x.b.zIndex = ordem + 1; });
             renderizarPreviewEditor();
+            renderizarPainelCamadas();
             salvarHistoricoEditor();
+        }
+        window.trazerParaFrente = function(i) {
+            moverCamada(i, 1);
         };
         window.enviarParaTras = function(i) {
-            const minZ = Math.min(0, ...lpEditorBlocos.map(b => b.zIndex || 0));
-            lpEditorBlocos[i].zIndex = minZ - 1;
-            renderizarPreviewEditor();
+            moverCamada(i, -1);
+        };
+        window.alternarPainelCamadas = function() {
+            const painel = document.getElementById("lped-painel-camadas");
+            if (!painel) return;
+            painel.classList.toggle("hidden");
+            if (!painel.classList.contains("hidden")) renderizarPainelCamadas();
+        };
+        function renderizarPainelCamadas() {
+            const lista = document.getElementById("lped-camadas-lista");
+            const painel = document.getElementById("lped-painel-camadas");
+            if (!lista || !painel || painel.classList.contains("hidden")) return;
+            if (lpEditorModoLayout !== "livre") {
+                lista.innerHTML = '<p class="text-[10px] text-gray-500 text-center py-6 px-3">As camadas funcionam no modo Livre. Ative o modo Livre pra gerenciar a ordem dos blocos.</p>';
+                return;
+            }
+            const livres = lpEditorBlocos.map((b, idx) => ({ b, idx })).filter(x => x.b.x !== undefined);
+            livres.sort((a, c) => (c.b.zIndex || 0) - (a.b.zIndex || 0));
+            if (livres.length === 0) {
+                lista.innerHTML = '<p class="text-[10px] text-gray-500 text-center py-6 px-3">Nenhum bloco ainda.</p>';
+                return;
+            }
+            lista.innerHTML = livres.map((x, pos) => {
+                const selecionado = x.b._colapsado === false;
+                const oculto = x.b.visivel === false;
+                return `
+                    <div onclick="selecionarBlocoCamada(${x.idx})" class="flex items-center gap-2 px-2.5 py-2 rounded-lg cursor-pointer transition-all ${selecionado ? "bg-[#FF7A45]/15 border border-[#FF7A45]/40" : "hover:bg-white/5 border border-transparent"}">
+                        <span class="text-[9px] text-gray-600 font-mono w-4 shrink-0">${livres.length - pos}</span>
+                        <p class="text-[11px] font-bold truncate flex-1 ${oculto ? "text-gray-600 line-through" : "text-white"}">${nomeTipoBlocoEditor(x.b.tipo)}</p>
+                        <button onclick="event.stopPropagation(); alternarVisibilidadeCamada(${x.idx})" title="${oculto ? "Mostrar" : "Ocultar"}" class="text-gray-500 hover:text-white shrink-0">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${oculto ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"></path>' : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>'}</svg>
+                        </button>
+                        <button onclick="event.stopPropagation(); trazerParaFrente(${x.idx})" title="Subir camada" class="text-gray-500 hover:text-white text-[10px] px-1 shrink-0">&#9650;</button>
+                        <button onclick="event.stopPropagation(); enviarParaTras(${x.idx})" title="Descer camada" class="text-gray-500 hover:text-white text-[10px] px-1 shrink-0">&#9660;</button>
+                    </div>
+                `;
+            }).join("");
+        }
+        window.selecionarBlocoCamada = function(i) {
+            lpEditorBlocos.forEach((b, j) => { b._colapsado = j !== i; });
+            renderizarEditorBlocos();
+            renderizarPainelCamadas();
+            setTimeout(function() {
+                const alvo = document.getElementById("lped-preview-bloco-" + i);
+                if (alvo) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
+            }, 60);
+        };
+        window.alternarVisibilidadeCamada = function(i) {
+            lpEditorBlocos[i].visivel = lpEditorBlocos[i].visivel === false;
+            renderizarEditorBlocos();
+            renderizarPainelCamadas();
             salvarHistoricoEditor();
         };
         function clonarBlocosEditor() {
@@ -2884,9 +2954,12 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
                 e.preventDefault();
                 desfazerEditor();
-            } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
+} else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
                 e.preventDefault();
                 refazerEditor();
+            } else if (e.altKey && (e.key === "1" || e.code === "Digit1")) {
+                e.preventDefault();
+                alternarPainelCamadas();
             }
         });
         let dispositivoPreviewAtual = "desktop";
