@@ -37,7 +37,7 @@
 
     // Import absoluto (nao relativo) -- evita quebrar quando a URL "fake" tem varios niveis (ex: /teste/lp1)
     const firebaseInit = await import(base + "firebase-init.js");
-    const { doc, getDoc, getDocs, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { doc, getDoc, getDocs, setDoc, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
