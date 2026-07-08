@@ -2005,39 +2005,39 @@ Adicionar Produto
                 </div>
             </div>
         </div>
-        <div class="shrink-0 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-3 flex items-center justify-between gap-4">
-            <div class="flex items-center gap-3 flex-1 min-w-0">
+        <div class="shrink-0 bg-gradient-to-r from-[#0D0E17] via-[#121523] to-[#0B0D15] backdrop-blur-2xl border-b border-white/10 px-8 py-4 flex items-center justify-between gap-6 shadow-[0_25px_80px_rgba(0,0,0,.45)]">
+            <div class="flex items-center gap-5 flex-1 min-w-0">
                 <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
-                <input type="text" id="lped-titulo" class="bg-transparent text-white font-bold text-sm outline-none border-b border-transparent focus:border-[#FF7A45] py-1 flex-1" placeholder="Titulo da pagina" oninput="atualizarUrlPreviewEditor()">
+                <input type="text" id="lped-titulo" class="bg-transparent text-white font-black text-xl tracking-tight outline-none border-b-2 border-transparent focus:border-violet-500 transition-all duration-300 py-2 flex-1">
             </div>
-            <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1 shrink-0">
-                <button onclick="alternarDispositivoPreview('desktop')" id="lped-btn-desktop" class="p-1.5 rounded-md transition-all">
+            <div class="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-lg shrink-0">
+                <button onclick="alternarDispositivoPreview('desktop')" id="lped-btn-desktop" class="p-2.5 rounded-xl hover:bg-white/10 hover:scale-105 transition-all duration-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
                 </button>
-                <button onclick="alternarDispositivoPreview('mobile')" id="lped-btn-mobile" class="p-1.5 rounded-md transition-all">
+                <button onclick="alternarDispositivoPreview('mobile')" id="lped-btn-mobile" class="p-2.5 rounded-xl hover:bg-white/10 hover:scale-105 transition-all duration-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z"></path></svg>
                 </button>
             </div>
-            <div class="flex items-center gap-1 bg-white/5 rounded-lg p-1 shrink-0">
-                <button onclick="alternarModoLayout('empilhado')" id="lped-btn-modo-empilhado" class="px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all">Empilhado</button>
-                <button onclick="alternarModoLayout('livre')" id="lped-btn-modo-livre" class="px-2.5 py-1.5 rounded-md text-[10px] font-bold transition-all">Livre</button>
+            <div class="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-lg shrink-0">
+                <button onclick="alternarModoLayout('empilhado')" id="lped-btn-modo-empilhado" class="px-4 py-2 rounded-xl text-[11px] font-black hover:bg-white/10 transition-all duration-300">Empilhado</button>
+                <button onclick="alternarModoLayout('livre')" id="lped-btn-modo-livre" class="px-4 py-2 rounded-xl text-[11px] font-black hover:bg-white/10 transition-all duration-300">Livre</button>
             </div>
             <div class="flex items-center gap-1 shrink-0">
-                <button onclick="desfazerEditor()" id="lped-btn-desfazer" title="Desfazer (Ctrl+Z)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+                <button onclick="desfazerEditor()" id="lped-btn-desfazer" title="Desfazer (Ctrl+Z)" class="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 15L3 9m0 0l6-6M3 9h12a6 6 0 010 12h-3"></path></svg>
                 </button>
-<button onclick="refazerEditor()" id="lped-btn-refazer" title="Refazer (Ctrl+Y)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+<button onclick="refazerEditor()" id="lped-btn-refazer" title="Refazer (Ctrl+Y)" class="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l6-6m0 0l-6-6m6 6H9a6 6 0 000 12h3"></path></svg>
                 </button>
-                <button onclick="alternarPainelCamadas()" id="lped-btn-camadas" title="Camadas (Alt+1)" class="p-1.5 rounded-md text-gray-400 hover:text-white transition-all">
+                <button onclick="alternarPainelCamadas()" id="lped-btn-camadas" title="Camadas (Alt+1)" class="p-2.5 rounded-xl text-gray-400 hover:text-white hover:bg-white/10 transition-all duration-300">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3l9 5-9 5-9-5 9-5z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 13l9 5 9-5"></path></svg>
                 </button>
             </div>
             <div class="flex items-center gap-2 shrink-0">
-                <span id="lped-status-badge" class="text-[10px] px-2 py-1 rounded-md font-bold uppercase bg-gray-500/10 text-gray-400">Rascunho</span>
-                <button onclick="abrirPreviewEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Abrir</button>
-                <button onclick="salvarEditorLP()" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-lg transition-all">Salvar</button>
-                <button onclick="publicarEditorLP()" id="lped-btn-publicar" class="bg-[#FF7A45] hover:bg-[#ff8a5c] text-white text-xs font-bold px-4 py-2 rounded-lg transition-all">Publicar</button>
+                <span id="lped-status-badge" class="text-[10px] px-3 py-1.5 rounded-full font-black uppercase tracking-widest bg-violet-500/15 text-violet-300 border border-violet-500/20">Rascunho</span>
+                <button onclick="abrirPreviewEditorLP()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.03]">Abrir</button>
+                <button onclick="salvarEditorLP()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.03]">Salvar</button>
+                <button onclick="publicarEditorLP()" id="lped-btn-publicar" class="bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white text-xs font-black px-7 py-2.5 rounded-xl transition-all duration-300 shadow-[0_15px_40px_rgba(99,102,241,.45)] hover:scale-[1.04]">Publicar</button>
             </div>
         </div>
         <div class="flex-1 flex overflow-hidden relative">
