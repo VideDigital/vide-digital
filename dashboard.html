@@ -2957,9 +2957,12 @@ function moverCamada(i, direcao) {
 } else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
                 e.preventDefault();
                 refazerEditor();
-            } else if (e.altKey && (e.key === "1" || e.code === "Digit1")) {
+} else if (e.altKey && (e.key === "1" || e.code === "Digit1")) {
                 e.preventDefault();
                 alternarPainelCamadas();
+            } else if (e.key === "Escape" && blocosSelecionadosLivre.size > 0) {
+                blocosSelecionadosLivre.clear();
+                renderizarPreviewEditor();
             }
         });
         let dispositivoPreviewAtual = "desktop";
@@ -3137,7 +3140,8 @@ function moverCamada(i, direcao) {
                 const largura = bloco.largura || 600;
                 const altura = bloco.altura || 220;
                 const zIndex = bloco.zIndex || 1;
-                return `<div class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTexto}">
+const selecaoLivre = blocosSelecionadosLivre.has(indiceBloco) ? "outline:2px solid #FF7A45; outline-offset:2px;" : "";
+                return `<div class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${selecaoLivre} ${estiloFundo} ${estiloTexto}">
                     ${overlayHtml}
                     <div class="relative w-full h-full overflow-hidden" style="padding-top:${Math.min(paddingTop, 24)}px; padding-bottom:${Math.min(paddingBottom, 24)}px;">${conteudo}</div>
                     <div class="livre-mover absolute inset-0 cursor-move" data-bloco-index="${indiceBloco}" data-modo-redimensionar="mover-livre"></div>
@@ -3222,13 +3226,30 @@ return { x: novoX, y: novoY, guias };
                 return `<div id="lped-preview-bloco-${x.idx}" style="${anelSelecao}">${renderizarBlocoPreview(x.b, x.idx)}</div>`;
             }).join("");
         }
-        let redimensionandoElemento = null;
+let redimensionandoElemento = null;
+        let blocosSelecionadosLivre = new Set();
         document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
             const handle = e.target.closest(".resize-handle, .livre-mover");
-            if (!handle) return;
+            if (!handle) {
+                if (lpEditorModoLayout === "livre" && blocosSelecionadosLivre.size > 0) {
+                    blocosSelecionadosLivre.clear();
+                    renderizarPreviewEditor();
+                }
+                return;
+            }
             e.preventDefault();
             const idx = parseInt(handle.getAttribute("data-bloco-index"));
             const modo = handle.getAttribute("data-modo-redimensionar");
+            if (modo === "mover-livre" && e.shiftKey) {
+                if (blocosSelecionadosLivre.has(idx)) blocosSelecionadosLivre.delete(idx);
+                else blocosSelecionadosLivre.add(idx);
+                renderizarPreviewEditor();
+                return;
+            }
+            if (modo === "mover-livre" && blocosSelecionadosLivre.size > 0 && !blocosSelecionadosLivre.has(idx)) {
+                blocosSelecionadosLivre.clear();
+                renderizarPreviewEditor();
+            }
             redimensionandoElemento = {
                 indiceBloco: idx,
                 modo: modo,
@@ -3240,7 +3261,10 @@ return { x: novoX, y: novoY, guias };
                 larguraLivreInicial: lpEditorBlocos[idx].largura || 600,
                 alturaLivreInicial: lpEditorBlocos[idx].altura || 220,
                 mouseXInicial: e.clientX,
-                mouseYInicial: e.clientY
+                mouseYInicial: e.clientY,
+                posicoesGrupo: (modo === "mover-livre" && blocosSelecionadosLivre.size > 1 && blocosSelecionadosLivre.has(idx))
+                    ? Array.from(blocosSelecionadosLivre).map(j => ({ j, x: lpEditorBlocos[j].x !== undefined ? lpEditorBlocos[j].x : 20, y: lpEditorBlocos[j].y !== undefined ? lpEditorBlocos[j].y : 20 }))
+                    : null
             };
         });
         document.addEventListener("mousemove", function(e) {
@@ -3250,16 +3274,28 @@ return { x: novoX, y: novoY, guias };
             const bloco = lpEditorBlocos[redimensionandoElemento.indiceBloco];
             if (redimensionandoElemento.modo === "imagem-largura") {
                 bloco.props.imagemLargura = Math.round(Math.max(60, redimensionandoElemento.imagemLarguraInicial + dx));
-            } else if (redimensionandoElemento.modo === "mover-livre") {
-                const xBruto = Math.round(Math.max(0, redimensionandoElemento.xInicial + dx));
-                const yBruto = Math.round(Math.max(0, redimensionandoElemento.yInicial + dy));
+} else if (redimensionandoElemento.modo === "mover-livre") {
                 const larguraCanvas = 1440;
-                const resultado = calcularSnapping(xBruto, yBruto, bloco.largura || 600, bloco.altura || 220, redimensionandoElemento.indiceBloco, larguraCanvas);
-                const larguraBloco = bloco.largura || 600;
-                bloco.x = Math.min(Math.max(0, resultado.x), Math.max(0, larguraCanvas - larguraBloco));
-                bloco.y = resultado.y;
-                guiasAlinhamentoAtivas = resultado.guias;
-} else if (redimensionandoElemento.modo === "livre-tamanho") {
+                const grupo = redimensionandoElemento.posicoesGrupo;
+                if (grupo && grupo.length > 1) {
+                    grupo.forEach(p => {
+                        const b2 = lpEditorBlocos[p.j];
+                        if (!b2) return;
+                        const larguraB2 = b2.largura || 600;
+                        b2.x = Math.min(Math.max(0, Math.round(p.x + dx)), Math.max(0, larguraCanvas - larguraB2));
+                        b2.y = Math.max(0, Math.round(p.y + dy));
+                    });
+                    guiasAlinhamentoAtivas = [];
+                } else {
+                    const xBruto = Math.round(Math.max(0, redimensionandoElemento.xInicial + dx));
+                    const yBruto = Math.round(Math.max(0, redimensionandoElemento.yInicial + dy));
+                    const resultado = calcularSnapping(xBruto, yBruto, bloco.largura || 600, bloco.altura || 220, redimensionandoElemento.indiceBloco, larguraCanvas);
+                    const larguraBloco = bloco.largura || 600;
+                    bloco.x = Math.min(Math.max(0, resultado.x), Math.max(0, larguraCanvas - larguraBloco));
+                    bloco.y = resultado.y;
+                    guiasAlinhamentoAtivas = resultado.guias;
+                }
+            } else if (redimensionandoElemento.modo === "livre-tamanho") {
                 const larguraCanvas = 1440;
                 const larguraBruta = Math.round(Math.max(80, redimensionandoElemento.larguraLivreInicial + dx));
                 const alturaBruta = Math.round(Math.max(60, redimensionandoElemento.alturaLivreInicial + dy));
@@ -3968,7 +4004,8 @@ return { x: novoX, y: novoY, guias };
             lpEditorBlocos[novoIndex] = temp;
             renderizarEditorBlocos();
         };
-        window.removerBlocoEditor = function(i) {
+window.removerBlocoEditor = function(i) {
+            blocosSelecionadosLivre.clear();
             const removido = lpEditorBlocos.splice(i, 1)[0];
             if (removido && removido.id) lpEditorRemovidos.push(removido.id);
             renderizarEditorBlocos();
@@ -3986,6 +4023,7 @@ return { x: novoX, y: novoY, guias };
             event.preventDefault();
             const origem = window.dragSourceIndex;
             if (origem === null || origem === undefined || origem === i) return;
+blocosSelecionadosLivre.clear();
             const item = lpEditorBlocos.splice(origem, 1)[0];
             lpEditorBlocos.splice(i, 0, item);
             window.dragSourceIndex = null;
@@ -4078,6 +4116,7 @@ return { x: novoX, y: novoY, guias };
                 novoBloco.altura = 220;
                 novoBloco.zIndex = Math.max(0, ...lpEditorBlocos.map(b => b.zIndex || 0)) + 1;
             }
+blocosSelecionadosLivre.clear();
             lpEditorBlocos.push(novoBloco);
             renderizarEditorBlocos();
             salvarHistoricoEditor();
