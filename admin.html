@@ -1,1173 +1,1718 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full antialiased selection:bg-[#00f2fe] selection:text-black">
+<html lang="pt-br" class="h-full bg-[#030712]">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>VideHub | Super Admin Dashboard</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VideHub | Super Admin</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+
 <style>
-  :root {
-    --sys-primaria: #00f2fe;
-    --sys-destaque: #4facfe;
-    --sys-fundo: #05050A;
-    --sys-texto: #ffffff;
-    --glass-bg: rgba(255, 255, 255, 0.015);
-    --glass-border: rgba(255, 255, 255, 0.05);
-  }
 
-  body { 
-    font-family: 'Plus Jakarta Sans', sans-serif; 
-    background-color: var(--sys-fundo);
-    color: var(--sys-texto);
-    overflow-x: hidden;
-  }
-  
-  h1, h2, h3, .font-display { font-family: 'Space Grotesk', sans-serif; }
-  .font-mono { font-family: 'JetBrains Mono', monospace; }
+body { font-family: 'Inter', sans-serif; }
 
-  /* Background Ambient Glows */
-  .ambient-bg {
-    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; z-index: -1;
-    background: radial-gradient(circle at 15% 0%, rgba(0, 242, 254, 0.08) 0%, transparent 40%),
-                radial-gradient(circle at 85% 100%, rgba(79, 172, 254, 0.05) 0%, transparent 40%);
-    pointer-events: none;
-  }
+h1, h2, h3 { font-family: 'Sora', sans-serif; }
 
-  /* Deep Glassmorphism Components */
-  .glass-card { 
-    background: var(--glass-bg); 
-    backdrop-filter: blur(32px); 
-    -webkit-backdrop-filter: blur(32px);
-    border: 1px solid var(--glass-border); 
-    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-  }
-  .glass-card:hover {
-    border-color: rgba(255,255,255,0.1);
-    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255,255,255,0.1);
-  }
+.glass-card { background: rgba(20,19,43,0.6); backdrop-filter: blur(24px); border: 1px solid rgba(255,255,255,0.05); }
 
-  .glass-input { 
-    background: rgba(255,255,255,0.02); 
-    border: 1px solid rgba(255,255,255,0.08); 
-    color: white;
-    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); 
-  }
-  .glass-input:focus { 
-    background: rgba(255,255,255,0.04);
-    border-color: var(--sys-primaria); 
-    box-shadow: 0 0 0 4px rgba(0,242,254,0.1); 
-    outline: none; 
-  }
+.glass-input { background: rgba(10,9,26,0.8); border: 1px solid rgba(255,255,255,0.07); transition: all 0.2s ease; }
 
-  /* Badges */
-  .status-badge { 
-    display: inline-flex; align-items: center; justify-content: center;
-    padding: 4px 12px; border-radius: 8px; font-size: 11px; font-weight: 700; 
-    text-transform: uppercase; letter-spacing: 0.06em;
-    backdrop-filter: blur(10px);
-  }
+.glass-input:focus { border-color: #5B3DF5; box-shadow: 0 0 20px rgba(91,61,245,0.15); outline: none; }
 
-  /* Modern Tabs */
-  .tabs-container {
-    display: flex; gap: 8px; padding: 6px; background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.05); border-radius: 16px; overflow-x: auto;
-  }
-  .tabs-container::-webkit-scrollbar { display: none; }
-  .tab-btn { 
-    padding: 8px 16px; font-size: 13px; font-weight: 600; color: #888;
-    border-radius: 10px; transition: all 0.3s ease; white-space: nowrap;
-    border: 1px solid transparent; cursor: pointer;
-  }
-  .tab-btn:hover { color: #fff; background: rgba(255,255,255,0.03); }
-  .tab-btn.active { 
-    background: rgba(255,255,255,0.08); color: #fff; 
-    border-color: rgba(255,255,255,0.1);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.2);
-  }
+.status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 10px; border-radius: 999px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 
-  /* Micro Animations */
-  @keyframes fadeUp { 
-    from { opacity: 0; transform: translateY(12px) scale(0.98); } 
-    to { opacity: 1; transform: translateY(0) scale(1); } 
-  }
-  .fade-in { animation: fadeUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-  
-  /* Custom Scrollbar */
-  ::-webkit-scrollbar { width: 6px; height: 6px; }
-  ::-webkit-scrollbar-track { background: transparent; }
-  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 20px; }
-  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
-  .modal-scroll::-webkit-scrollbar { width: 4px; }
+.tab-btn.active { color: #FF7A45; border-bottom: 2px solid #FF7A45; }
 
-  input[type="date"] { color-scheme: dark; }
-  
-  /* System Theme Variables Override Classes */
-  .text-\[\#00f2fe\] { color: var(--sys-primaria) !important; }
-  .bg-\[\#00f2fe\] { background-color: var(--sys-primaria) !important; }
-  .border-\[\#00f2fe\] { border-color: var(--sys-primaria) !important; }
-  .from-\[\#00f2fe\] { --tw-gradient-from: var(--sys-primaria) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
-  
-  /* Tables */
-  table { border-collapse: separate; border-spacing: 0; width: 100%; }
-  th { border-bottom: 1px solid rgba(255,255,255,0.05); }
-  td { border-bottom: 1px solid rgba(255,255,255,0.02); }
-  tr:last-child td { border-bottom: none; }
+@keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+.fade-in { animation: fadeIn 0.3s ease-out; }
+
+.modal-scroll::-webkit-scrollbar { width: 5px; }
+
+.modal-scroll::-webkit-scrollbar-track { background: transparent; }
+
+.modal-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
+
+input[type="date"] { color-scheme: dark; }
+
+.text-\[\#00f2fe\] { color: #5B3DF5 !important; }
+
+:root { --sys-primaria: #5B3DF5; --sys-destaque: #FF7A45; --sys-fundo: #14132B; --sys-texto: #ffffff; }
+.text-white { color: var(--sys-texto, #ffffff) !important; }
+
+.text-\[\#00f2fe\] { color: var(--sys-primaria) !important; }
+
+.bg-\[\#00f2fe\] { background-color: var(--sys-primaria) !important; }
+
+.border-\[\#00f2fe\] { border-color: var(--sys-primaria) !important; }
+
+.from-\[\#00f2fe\] { --tw-gradient-from: var(--sys-primaria) !important; --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, transparent) !important; }
+
+.to-\[\#4facfe\] { --tw-gradient-to: var(--sys-destaque) !important; }
+
+.bg-\[\#030712\], .bg-\[\#0d0d16\], .bg-\[\#0c0c14\] { background-color: var(--sys-fundo) !important; }
+
+.text-cyan-400 { color: var(--sys-primaria) !important; }
+
+.bg-cyan-500\/10 { background-color: rgba(91,61,245,0.1) !important; }
+
+.border-cyan-500\/20 { border-color: rgba(91,61,245,0.2) !important; }
+
+.text-blue-400 { color: var(--sys-destaque) !important; }
+
+.bg-blue-500\/10 { background-color: rgba(255,122,69,0.1) !important; }
+
+.border-blue-500\/20, .border-blue-500\/40 { border-color: rgba(255,122,69,0.3) !important; }
+
+.tab-btn.active { border-bottom-color: var(--sys-destaque) !important; color: var(--sys-destaque) !important; }
+
 </style>
 </head>
-<body class="min-h-full">
-<div class="ambient-bg"></div>
-<div id="toast-container" class="fixed bottom-6 right-6 z-[100] flex flex-col gap-3 pointer-events-none"></div>
+<body class="min-h-full bg-[#030712] text-gray-200">
 
-<header class="sticky top-6 z-40 max-w-7xl mx-auto px-4 sm:px-6 mb-10 transition-all">
-  <div class="glass-card rounded-[24px] px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-4">
-      <div class="h-10 w-10 rounded-[14px] bg-gradient-to-br from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_24px_rgba(0,242,254,0.3)]">
-        <span class="text-black font-display font-bold text-lg">V</span>
-      </div>
-      <div>
-        <h1 class="text-base font-display font-bold text-white tracking-tight flex items-center gap-2">
-          VideHub <span class="px-2 py-0.5 rounded-md bg-white/10 text-[10px] font-mono text-[#00f2fe] border border-[#00f2fe]/20">SUPER ADMIN</span>
-        </h1>
-        <p class="text-xs text-gray-400 font-medium mt-0.5">Centro de Comando Global</p>
-      </div>
-    </div>
-    <div class="flex items-center gap-6">
-      <div class="text-right hidden sm:block">
-        <p class="text-sm font-semibold text-white" id="admin-nome">Autenticando...</p>
-        <p class="text-[11px] text-[#00f2fe] font-mono mt-0.5" id="admin-email-display"></p>
-      </div>
-      <div class="h-8 w-[1px] bg-white/10 hidden sm:block"></div>
-      <button id="btn-logout" class="group flex items-center justify-center h-10 w-10 rounded-xl bg-white/5 border border-white/5 hover:bg-red-500/20 hover:border-red-500/30 transition-all">
-        <svg class="w-4 h-4 text-gray-400 group-hover:text-red-400 transition-colors" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
-      </button>
-    </div>
-  </div>
-</header>
+    <div id="toast-container" class="fixed top-5 right-5 z-50 space-y-2 pointer-events-none"></div>
 
-<main class="max-w-7xl mx-auto px-4 sm:px-6 pb-20 space-y-8">
-  
-  <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-    <div class="glass-card p-6 rounded-[24px] relative overflow-hidden group">
-      <div class="absolute top-0 right-0 p-4 opacity-20 group-hover:opacity-100 transition-opacity"><span class="text-2xl">🌍</span></div>
-      <p class="text-xs text-gray-400 uppercase tracking-widest font-bold">Lojas Registradas</p>
-      <h2 class="text-4xl font-display font-bold text-white mt-3" id="stat-total">—</h2>
-      <p class="text-xs font-mono text-emerald-400 mt-2 flex items-center gap-1.5">
-        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> <span id="stat-total-sub">Ativas</span>
-      </p>
-    </div>
-    <div class="glass-card p-6 rounded-[24px] relative overflow-hidden border-t border-t-amber-500/20">
-      <p class="text-xs text-amber-400/70 uppercase tracking-widest font-bold">Fila de Aprovação</p>
-      <h2 class="text-4xl font-display font-bold text-amber-400 mt-3 drop-shadow-[0_0_12px_rgba(251,191,36,0.3)]" id="stat-pendentes">—</h2>
-      <p class="text-xs text-gray-500 mt-2">Aguardando análise</p>
-    </div>
-    <div class="glass-card p-6 rounded-[24px] relative overflow-hidden border-t border-t-[#00f2fe]/20">
-      <p class="text-xs text-[#00f2fe]/70 uppercase tracking-widest font-bold">Ecossistema Ativo</p>
-      <h2 class="text-4xl font-display font-bold text-[#00f2fe] mt-3 drop-shadow-[0_0_12px_rgba(0,242,254,0.3)]" id="stat-aprovadas">—</h2>
-      <p class="text-xs text-gray-500 mt-2">Lojas em operação</p>
-    </div>
-    <div class="glass-card p-6 rounded-[24px] relative overflow-hidden border-t border-t-red-500/20">
-      <p class="text-xs text-red-400/70 uppercase tracking-widest font-bold">Bloqueadas</p>
-      <h2 class="text-4xl font-display font-bold text-red-400 mt-3" id="stat-inativas">—</h2>
-      <p class="text-xs text-gray-500 mt-2">Suspensas ou negadas</p>
-    </div>
-  </div>
-
-  <div class="flex flex-col lg:flex-row gap-4 items-stretch lg:items-center">
-    <div class="glass-card rounded-[20px] p-2 flex-1 flex flex-col sm:flex-row gap-2 items-center">
-      <div class="relative flex-1 w-full">
-        <span class="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500">
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        </span>
-        <input type="text" id="busca-input" placeholder="Buscar lojas, slugs ou e-mails..." class="w-full bg-transparent border-none py-3.5 pl-12 pr-4 text-sm text-white placeholder-gray-500 focus:ring-0">
-      </div>
-      <div class="h-8 w-[1px] bg-white/10 hidden sm:block"></div>
-      <select id="filtro-status" class="w-full sm:w-auto bg-transparent border-none py-3.5 px-4 text-sm text-gray-300 focus:ring-0 cursor-pointer appearance-none">
-        <option value="todos" class="bg-[#111]">Todos Status</option>
-        <option value="pendente" class="bg-[#111]">Pendentes</option>
-        <option value="aprovado" class="bg-[#111]">Aprovados</option>
-        <option value="inativo" class="bg-[#111]">Inativos</option>
-        <option value="rejeitado" class="bg-[#111]">Rejeitados</option>
-      </select>
-      <div class="h-8 w-[1px] bg-white/10 hidden sm:block"></div>
-      <select id="filtro-plano" class="w-full sm:w-auto bg-transparent border-none py-3.5 px-4 text-sm text-gray-300 focus:ring-0 cursor-pointer appearance-none">
-        <option value="todos" class="bg-[#111]">Todos Planos</option>
-        <option value="starter" class="bg-[#111]">Starter</option>
-        <option value="basico" class="bg-[#111]">Básico</option>
-        <option value="essencial" class="bg-[#111]">Essencial</option>
-        <option value="negocio" class="bg-[#111]">Negócio</option>
-        <option value="profissional" class="bg-[#111]">Profissional</option>
-        <option value="avancado" class="bg-[#111]">Avançado</option>
-        <option value="pro" class="bg-[#111]">Pro</option>
-        <option value="proplus" class="bg-[#111]">Pro+</option>
-        <option value="agencia" class="bg-[#111]">Agência</option>
-        <option value="enterprise" class="bg-[#111]">Enterprise</option>
-        <option value="premium" class="bg-[#111]">Premium</option>
-      </select>
-      <button id="btn-atualizar-usuarios" onclick="atualizarManualmente()" class="w-full sm:w-auto bg-white/10 hover:bg-white/20 text-white p-3.5 rounded-xl transition-all group shrink-0">
-        <svg id="icone-atualizar" class="w-5 h-5 text-gray-300 group-hover:text-white transition-all duration-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-      </button>
-    </div>
-    
-    <div class="glass-card rounded-[20px] p-2 flex flex-col sm:flex-row gap-2 shrink-0 border border-amber-500/20 shadow-[0_0_20px_rgba(251,191,36,0.05)]">
-      <div class="relative flex-1 sm:w-64">
-        <span class="absolute left-3 top-1/2 -translate-y-1/2 text-amber-500/70 text-sm">🔑</span>
-        <input type="text" id="input-acesso-rapido" placeholder="E-mail master..." class="w-full bg-transparent border-none py-3.5 pl-9 pr-4 text-sm text-white placeholder-amber-500/40 focus:ring-0">
-      </div>
-      <button onclick="acessoRapidoMaster()" class="bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 font-semibold px-5 py-3.5 rounded-xl text-sm transition-all whitespace-nowrap">Dashboard</button>
-    </div>
-  </div>
-
-  <div class="tabs-container">
-    <button class="tab-btn active" data-tab="clientes">Overview Clientes</button>
-    <button class="tab-btn" data-tab="lojas">Grid de Lojas</button>
-    <button class="tab-btn flex items-center gap-2" data-tab="pendentes"><span class="w-2 h-2 rounded-full bg-amber-400"></span> Fila</button>
-    <button class="tab-btn flex items-center gap-2" data-tab="suspensos"><span class="w-2 h-2 rounded-full bg-red-400"></span> Suspensos</button>
-    <button class="tab-btn" data-tab="planos">Arquitetura de Planos</button>
-    <button class="tab-btn" data-tab="comparativo">Matriz Comparativa</button>
-    <button class="tab-btn" data-tab="notificacoes">Push & Avisos</button>
-    <button class="tab-btn" data-tab="personalizacoes">Demandas Custom</button>
-    <button id="tab-btn-equipe" class="tab-btn" data-tab="equipe">Staff</button>
-  </div>
-
-  <div id="tab-clientes" class="tab-content fade-in">
-    <div class="glass-card rounded-[24px] overflow-hidden">
-      <div class="overflow-x-auto">
-        <table class="w-full text-left">
-          <thead>
-            <tr class="bg-white/[0.02]">
-              <th class="p-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Identificação</th>
-              <th class="p-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Ativo / Slug</th>
-              <th class="p-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Nível (Plano)</th>
-              <th class="p-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Estado</th>
-              <th class="p-5 text-xs font-bold text-gray-500 uppercase tracking-widest">Entrada</th>
-              <th class="p-5 text-xs font-bold text-gray-500 uppercase tracking-widest text-right">Ação</th>
-            </tr>
-          </thead>
-          <tbody id="tabela-clientes" class="text-sm">
-            <tr><td colspan="6" class="p-16 text-center text-gray-500 font-mono text-xs">Inicializando datagrid...</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div id="tab-lojas" class="tab-content hidden fade-in">
-    <div id="grid-lojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-      <div class="text-center text-gray-500 text-xs p-16 col-span-full font-mono">Buscando instâncias ativas...</div>
-    </div>
-  </div>
-
-  <div id="tab-planos" class="tab-content hidden fade-in space-y-6">
-    <div class="glass-card p-6 rounded-[24px] flex flex-col sm:flex-row justify-between sm:items-center gap-4">
-      <div>
-        <h2 class="text-xl font-display font-bold text-white">Engine de Pricing</h2>
-        <p class="text-sm text-gray-400 mt-1">Ajuste valores e limites dinamicamente no sistema base.</p>
-      </div>
-      <button onclick="salvarConfiguracaoPlanos()" class="bg-white text-black hover:bg-gray-200 font-bold px-6 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(255,255,255,0.2)]">💾 Commit Changes</button>
-    </div>
-    <div id="grid-planos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6"></div>
-  </div>
-
-  <div id="tab-comparativo" class="tab-content hidden fade-in space-y-6">
-    <div class="glass-card rounded-[24px] overflow-hidden p-1">
-      <div class="overflow-x-auto modal-scroll rounded-[20px]">
-        <table id="comparativo-tabela" class="text-left text-sm" style="min-width: 1400px;"></table>
-      </div>
-    </div>
-  </div>
-
-  <div id="tab-notificacoes" class="tab-content hidden fade-in space-y-8">
-    <div class="glass-card rounded-[24px] p-8 space-y-6 border border-[#00f2fe]/10">
-      <div>
-        <h2 class="text-xl font-display font-bold text-white">Push Notification</h2>
-        <p class="text-sm text-gray-400 mt-1">Dispare avisos no dashboard dos clientes (não reflete na storefront).</p>
-      </div>
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="space-y-5">
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Título da Notificação</label>
-            <input type="text" id="notif-titulo" class="w-full glass-input rounded-xl p-4 text-sm" placeholder="Ex: Update v2.0 liberado!">
-          </div>
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Corpo da Mensagem</label>
-            <textarea id="notif-mensagem" rows="4" class="w-full glass-input rounded-xl p-4 text-sm resize-none" placeholder="Detalhes do comunicado..."></textarea>
-          </div>
-          <div class="space-y-2">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Anexo Visual</label>
-            <div class="relative w-full glass-input rounded-xl p-4 border-dashed hover:border-[#00f2fe]/50 transition-colors group cursor-pointer text-center">
-              <input type="file" id="notif-foto-file" accept="image/*" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10">
-              <span class="text-sm text-gray-400 group-hover:text-[#00f2fe] transition-colors">📁 Clique ou arraste uma imagem</span>
+    <!-- HEADER -->
+    <header class="border-b border-white/5 bg-black/60 backdrop-blur-md sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="h-7 w-7 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] flex items-center justify-center shadow-[0_0_20px_rgba(0,242,254,0.4)]">
+                    <span class="text-black font-black text-xs">V</span>
+                </div>
+                <div>
+                    <h1 class="text-sm font-black text-white tracking-tight">VideHub <span class="text-[#00f2fe]">Super Admin</span></h1>
+                    <p class="text-[10px] text-gray-500">Painel de controle exclusivo</p>
+                </div>
             </div>
-            <img id="notif-foto-preview" class="hidden w-full h-32 rounded-xl mt-3 object-cover border border-white/10">
-            <input type="hidden" id="notif-foto-base64">
-          </div>
-        </div>
-        <div class="space-y-5 flex flex-col">
-          <div class="space-y-3 flex-1">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block">Segmentação de Envio</label>
-            <div class="flex gap-6 p-4 rounded-xl bg-white/[0.02] border border-white/5">
-              <label class="flex items-center gap-3 text-sm text-white cursor-pointer">
-                <input type="radio" name="notif-destino" value="todos" checked class="w-4 h-4 accent-[#00f2fe]"> Global (Todos)
-              </label>
-              <label class="flex items-center gap-3 text-sm text-gray-400 cursor-pointer">
-                <input type="radio" name="notif-destino" value="especificos" class="w-4 h-4 accent-[#00f2fe]"> Específicos
-              </label>
+            <div class="flex items-center gap-4">
+                <div class="text-right hidden sm:block">
+                    <p class="text-xs font-bold text-white" id="admin-nome">Carregando...</p>
+                    <p class="text-[10px] text-gray-500" id="admin-email-display"></p>
+                </div>
+                <button id="btn-logout" class="text-xs text-gray-400 hover:text-red-400 transition-colors px-3 py-2 rounded-lg hover:bg-red-500/10">Sair</button>
             </div>
-            <div id="notif-lista-clientes" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-64 overflow-y-auto p-4 rounded-xl bg-white/[0.01] border border-white/5 modal-scroll"></div>
-          </div>
-          <button onclick="enviarNotificacao()" class="w-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-bold py-4 rounded-xl text-sm uppercase tracking-widest hover:opacity-90 transition-opacity shadow-[0_0_20px_rgba(0,242,254,0.3)]">📤 Disparar Push</button>
         </div>
-      </div>
-    </div>
-    
-    <div>
-      <h3 class="text-sm font-bold text-gray-500 uppercase tracking-widest mb-4">Log de Disparos</h3>
-      <div id="lista-notificacoes-enviadas" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div class="col-span-full text-center text-gray-500 text-xs p-8 glass-card rounded-[24px]">Carregando logs...</div>
-      </div>
-    </div>
-  </div>
+    </header>
 
-  <div id="tab-personalizacoes" class="tab-content hidden fade-in space-y-10">
-    <div>
-      <div class="flex items-center gap-3 mb-6">
-        <div class="w-2 h-8 rounded-full bg-amber-400 shadow-[0_0_12px_rgba(251,191,36,0.6)]"></div>
-        <div>
-          <h2 class="text-xl font-display font-bold text-white">Tickets Ativos</h2>
-          <p class="text-sm text-gray-400">Demandas de setup customizado aguardando ação.</p>
-        </div>
-      </div>
-      <div id="lista-personalizacoes" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="text-center text-gray-500 text-xs p-12 glass-card rounded-[24px] col-span-full">Verificando fila...</div>
-      </div>
-    </div>
-    
-    <div class="pt-8 border-t border-white/5">
-      <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-        <div class="flex items-center gap-3">
-          <div class="w-2 h-8 rounded-full bg-gray-600"></div>
-          <h3 class="text-xl font-display font-bold text-white">Arquivo Histórico</h3>
-        </div>
-        <div class="flex flex-wrap gap-2 items-center bg-white/[0.02] p-1.5 rounded-2xl border border-white/5">
-          <select id="filtro-personalizacao-dias" class="glass-input border-none rounded-xl px-4 py-2.5 text-sm text-white cursor-pointer bg-transparent">
-            <option value="7" class="bg-[#111]">Últimos 7 dias</option>
-            <option value="30" selected class="bg-[#111]">Últimos 30 dias</option>
-            <option value="90" class="bg-[#111]">Últimos 90 dias</option>
-            <option value="0" class="bg-[#111]">Todo histórico</option>
-            <option value="custom" class="bg-[#111]">Período exato</option>
-          </select>
-          <div id="filtro-personalizacao-datas-custom" class="hidden flex gap-2 items-center">
-            <input type="date" id="filtro-personalizacao-de" class="glass-input rounded-xl px-3 py-2 text-sm text-white">
-            <span class="text-gray-500 text-xs">→</span>
-            <input type="date" id="filtro-personalizacao-ate" class="glass-input rounded-xl px-3 py-2 text-sm text-white">
-          </div>
-          <button onclick="aplicarFiltroPersonalizacoesHistorico()" class="bg-white/10 hover:bg-white/20 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-all">Filtrar</button>
-        </div>
-      </div>
-      <div id="lista-personalizacoes-historico" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div class="text-center text-gray-500 text-xs p-12 glass-card rounded-[24px] col-span-full">Carregando arquivo...</div>
-      </div>
-    </div>
-  </div>
+    <!-- CONTEÚDO PRINCIPAL -->
+    <main class="max-w-7xl mx-auto px-6 py-8 space-y-8">
 
-  <div id="tab-pendentes" class="tab-content hidden fade-in">
-    <div id="lista-pendentes" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="text-center text-gray-500 text-xs p-16 font-mono col-span-full">Buscando requisições...</div>
-    </div>
-  </div>
-
-  <div id="tab-suspensos" class="tab-content hidden fade-in">
-    <div id="lista-suspensos" class="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <div class="text-center text-gray-500 text-xs p-16 font-mono col-span-full">Buscando instâncias bloqueadas...</div>
-    </div>
-  </div>
-
-  <div id="tab-equipe" class="tab-content hidden fade-in space-y-6">
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      <div class="glass-card rounded-[24px] p-8 space-y-6">
-        <h2 class="text-xl font-display font-bold text-white flex items-center gap-2">🔑 Provisionar Acesso</h2>
-        <div class="space-y-4">
-          <input type="email" id="equipe-email" placeholder="E-mail corporativo" class="glass-input rounded-xl p-4 text-sm w-full">
-          <div class="flex gap-2">
-            <input type="text" id="equipe-senha" placeholder="Token / Senha" class="glass-input rounded-xl p-4 text-sm font-mono flex-1">
-            <button type="button" onclick="gerarSenhaEquipe()" class="bg-white/5 hover:bg-white/10 border border-white/5 text-white px-5 py-4 rounded-xl text-sm font-bold transition-all shrink-0">Gerar Auth</button>
-          </div>
-          <div class="pt-4 border-t border-white/5">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-4">Escopo de Permissões</label>
-            <div class="grid grid-cols-2 gap-3">
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="clientes" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Clientes</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="lojas" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Lojas Ativas</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="pendentes" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Fila (Pendentes)</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="suspensos" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Suspensos</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="planos" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Planos/Preços</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="comparativo" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Comparativo</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="notificacoes" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Push Notif.</label>
-              <label class="flex items-center gap-3 text-sm text-gray-300 bg-white/[0.02] p-3 rounded-xl border border-white/5 cursor-pointer hover:bg-white/[0.04] transition-colors"><input type="checkbox" value="personalizacoes" class="equipe-perm w-4 h-4 accent-[#00f2fe]"> Demandas Custom</label>
+        <!-- CARDS DE MÉTRICAS GLOBAIS -->
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total de Lojas</p>
+                <h2 class="text-3xl font-black text-white mt-2" id="stat-total">—</h2>
+                <p class="text-[10px] text-emerald-400 mt-1" id="stat-total-sub">Ativas na plataforma</p>
             </div>
-          </div>
-          <button onclick="adicionarMembroEquipe()" class="w-full bg-white text-black font-bold py-4 rounded-xl text-sm mt-2 hover:bg-gray-200 transition-colors">Grant Access</button>
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Pendentes</p>
+                <h2 class="text-3xl font-black text-amber-400 mt-2" id="stat-pendentes">—</h2>
+                <p class="text-[10px] text-gray-500 mt-1">Aguardando aprovação</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Aprovadas</p>
+                <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="stat-aprovadas">—</h2>
+                <p class="text-[10px] text-gray-500 mt-1">Lojas ativas</p>
+            </div>
+            <div class="glass-card p-5 rounded-2xl">
+                <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Inativas</p>
+                <h2 class="text-3xl font-black text-red-400 mt-2" id="stat-inativas">—</h2>
+                <p class="text-[10px] text-gray-500 mt-1">Rejeitadas ou suspensas</p>
+            </div>
         </div>
-      </div>
-      
-      <div class="flex flex-col gap-6">
-        <div class="glass-card p-8 rounded-[24px] flex-1 overflow-hidden flex flex-col">
-          <h2 class="text-xl font-display font-bold text-white mb-4">Administradores Ativos</h2>
-          <div id="lista-equipe" class="space-y-3 overflow-y-auto modal-scroll flex-1 pr-2">
-            <div class="text-center text-gray-500 text-xs font-mono p-8">Carregando lista...</div>
-          </div>
+
+        <!-- BARRA DE BUSCA + FILTROS -->
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative flex-1">
+                <input type="text" id="busca-input" placeholder="Buscar por nome, e-mail ou slug..." class="w-full glass-input rounded-xl p-3 pl-10 text-sm text-white">
+                <span class="absolute left-3 top-3.5 text-gray-500 text-sm">🔍</span>
+            </div>
+            <select id="filtro-status" class="glass-input rounded-xl p-3 text-sm text-white min-w-[160px]">
+                <option value="todos">Todos os status</option>
+                <option value="pendente">Pendentes</option>
+                <option value="aprovado">Aprovados</option>
+                <option value="inativo">Inativos</option>
+                <option value="rejeitado">Rejeitados</option>
+            </select>
+            <select id="filtro-plano" class="glass-input rounded-xl p-3 text-sm text-white min-w-[140px]">
+                <option value="todos">Todos os planos</option>
+                <option value="starter">Starter</option>
+                <option value="basico">Básico</option>
+                <option value="essencial">Essencial</option>
+                <option value="negocio">Negócio</option>
+                <option value="profissional">Profissional</option>
+                <option value="avancado">Avançado</option>
+                <option value="pro">Pro</option>
+                <option value="proplus">Pro+</option>
+                <option value="agencia">Agência</option>
+                <option value="enterprise">Enterprise</option>
+                <option value="premium">Premium</option>
+            </select>
+            <button id="btn-atualizar-usuarios" onclick="atualizarManualmente()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold transition-all flex items-center gap-2">
+    <span id="icone-atualizar" class="inline-block transition-transform duration-500">↺</span> Atualizar
+</button>
         </div>
-      </div>
-    </div>
-    
-    <div class="glass-card p-8 rounded-[24px]">
-      <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
-        <div>
-          <h2 class="text-xl font-display font-bold text-white">🎨 Core Design System</h2>
-          <p class="text-sm text-gray-400 mt-1">Variáveis injetadas no Login, Admin e Dashboard global.</p>
+
+        <!-- ACESSO RÁPIDO AO MODO MASTER -->
+        <div class="glass-card rounded-2xl p-4 flex flex-col sm:flex-row gap-3 items-center border border-amber-500/10">
+            <span class="text-xs font-bold text-amber-400 shrink-0 flex items-center gap-1.5">🔑 Acesso rápido:</span>
+            <input type="text" id="input-acesso-rapido" placeholder="Digite o e-mail do cliente..." class="flex-1 w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
+            <button onclick="acessoRapidoMaster()" class="w-full sm:w-auto shrink-0 bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 px-5 py-3 rounded-xl text-xs font-bold transition-all">Entrar no Dashboard</button>
         </div>
-        <button onclick="salvarTemaSistema()" class="bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-bold px-6 py-3 rounded-xl text-sm transition-all shadow-[0_0_20px_rgba(0,242,254,0.3)]">Deploy Design</button>
-      </div>
-      
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.04] transition-colors">
-          <span class="text-sm font-semibold text-gray-300">Primária</span>
-          <div class="p-1 rounded-xl bg-white/10 ring-1 ring-white/10"><input type="color" id="tema-cor-primaria" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer p-0" value="#00f2fe"></div>
+
+        <!-- TABS -->
+        <div class="flex gap-6 border-b border-white/5">
+            <button class="tab-btn active text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="clientes">Clientes</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="lojas">Lojas Ativas</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="pendentes">⚠️ Pendentes</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="suspensos">⏸️ Suspensos</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="planos">⚙️ Planos</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="comparativo">📊 Comparativo</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="notificacoes">🔔 Notificações</button>
+            <button class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="personalizacoes">✨ Personalizações</button>
+            <button id="tab-btn-equipe" class="tab-btn text-xs font-bold pb-3 text-gray-400 transition-colors" data-tab="equipe">🔑 Equipe</button>
         </div>
-        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.04] transition-colors">
-          <span class="text-sm font-semibold text-gray-300">Destaque</span>
-          <div class="p-1 rounded-xl bg-white/10 ring-1 ring-white/10"><input type="color" id="tema-cor-destaque" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer p-0" value="#4facfe"></div>
+
+        <!-- TABELA DE CLIENTES -->
+        <div id="tab-clientes" class="tab-content fade-in">
+            <div class="glass-card rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-500">
+                                <th class="p-4">Cliente</th>
+                                <th class="p-4">Loja / Slug</th>
+                                <th class="p-4">Plano</th>
+                                <th class="p-4">Status</th>
+                                <th class="p-4">Cadastro</th>
+                                <th class="p-4 text-right">Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabela-clientes" class="divide-y divide-white/5 text-xs">
+                            <tr>
+                                <td colspan="6" class="p-12 text-center text-gray-500">Carregando...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.04] transition-colors">
-          <span class="text-sm font-semibold text-gray-300">Background</span>
-          <div class="p-1 rounded-xl bg-white/10 ring-1 ring-white/10"><input type="color" id="tema-cor-fundo" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer p-0" value="#05050A"></div>
+
+        <!-- LOJAS ATIVAS (CARDS) -->
+        <div id="tab-lojas" class="tab-content hidden fade-in">
+            <div id="grid-lojas" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div class="text-center text-gray-500 text-xs p-12 col-span-full">Carregando...</div>
+            </div>
         </div>
-        <div class="bg-white/[0.02] border border-white/5 rounded-2xl p-4 flex items-center justify-between group hover:bg-white/[0.04] transition-colors">
-          <span class="text-sm font-semibold text-gray-300">Texto Base</span>
-          <div class="p-1 rounded-xl bg-white/10 ring-1 ring-white/10"><input type="color" id="tema-cor-texto" class="w-8 h-8 rounded-lg bg-transparent border-0 cursor-pointer p-0" value="#ffffff"></div>
+        
+<!-- CONFIGURAÇÃO DE PLANOS -->
+        <div id="tab-planos" class="tab-content hidden fade-in space-y-4">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h2 class="text-sm font-black text-white">Configuração dos Planos</h2>
+                    <p class="text-xs text-gray-500 mt-1">Altere preços e limites. As mudanças refletem imediatamente no sistema.</p>
+                </div>
+                <button onclick="salvarConfiguracaoPlanos()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">💾 Salvar Alterações</button>
+            </div>
+            <div id="grid-planos" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
         </div>
-      </div>
-    </div>
-  </div>
+
+        <!-- COMPARATIVO ENTRE PLANOS (referência rápida pro admin) -->
+        <div id="tab-comparativo" class="tab-content hidden fade-in space-y-4">
+            <div>
+                <h2 class="text-sm font-black text-white">Comparativo de Planos</h2>
+                <p class="text-xs text-gray-500 mt-1">O que cada plano inclui, não inclui, e pra quem indicar cada um.</p>
+            </div>
+            <div id="comparativo-container" class="glass-card rounded-2xl overflow-hidden">
+                <div class="overflow-x-auto">
+                    <table id="comparativo-tabela" class="text-left border-collapse text-xs" style="min-width: 1400px;"></table>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOTIFICAÇÕES -->
+        <div id="tab-notificacoes" class="tab-content hidden fade-in space-y-6">
+            <div class="glass-card rounded-2xl p-6 space-y-4">
+                <div>
+                    <h2 class="text-sm font-black text-white">Nova Notificação</h2>
+                    <p class="text-xs text-gray-500 mt-1">Aparece só no dashboard dos clientes (não afeta a loja pública deles).</p>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título</label>
+                    <input type="text" id="notif-titulo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Nova funcionalidade disponível!">
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mensagem</label>
+                    <textarea id="notif-mensagem" rows="3" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none resize-none" placeholder="Escreva o comunicado..."></textarea>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Foto (opcional)</label>
+                    <input type="file" id="notif-foto-file" accept="image/*" class="w-full glass-input rounded-xl p-2.5 text-xs text-gray-400 outline-none">
+                    <img id="notif-foto-preview" class="hidden h-24 rounded-xl mt-2 border border-white/10 object-cover">
+                    <input type="hidden" id="notif-foto-base64">
+                </div>
+
+                <div class="space-y-2">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Enviar para</label>
+                    <div class="flex gap-4">
+                        <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                            <input type="radio" name="notif-destino" value="todos" checked class="accent-[#00f2fe]"> Todos os clientes
+                        </label>
+                        <label class="flex items-center gap-2 text-xs text-gray-300 cursor-pointer">
+                            <input type="radio" name="notif-destino" value="especificos" class="accent-[#00f2fe]"> Clientes específicos
+                        </label>
+                    </div>
+                    <div id="notif-lista-clientes" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto pt-2"></div>
+                </div>
+
+                <button onclick="enviarNotificacao()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all">📤 Enviar Notificação</button>
+            </div>
+
+            <div class="space-y-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Envios</h3>
+                <div id="lista-notificacoes-enviadas" class="space-y-3">
+                    <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PERSONALIZAÇÕES -->
+        <div id="tab-personalizacoes" class="tab-content hidden fade-in space-y-8">
+            <div>
+                <h2 class="text-sm font-black text-white">Fila Ativa</h2>
+                <p class="text-xs text-gray-500 mt-1">Pendentes e em andamento — o que precisa da sua atenção agora.</p>
+            </div>
+            <div id="lista-personalizacoes" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
+            </div>
+
+            <div class="pt-4 border-t border-white/5 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
+                    <h3 class="text-sm font-black text-white">Histórico</h3>
+                    <div class="flex flex-wrap gap-2 items-center">
+                        <select id="filtro-personalizacao-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="0">Todos</option>
+                            <option value="custom">Data específica</option>
+                        </select>
+                        <div id="filtro-personalizacao-datas-custom" class="hidden flex gap-2 items-center">
+                            <input type="date" id="filtro-personalizacao-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                            <span class="text-gray-500 text-xs">até</span>
+                            <input type="date" id="filtro-personalizacao-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+                        </div>
+                        <button onclick="aplicarFiltroPersonalizacoesHistorico()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+                    </div>
+                </div>
+                <div id="lista-personalizacoes-historico" class="space-y-3">
+                    <div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Carregando...</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- PENDENTES -->
+        <div id="tab-pendentes" class="tab-content hidden fade-in">
+            <div id="lista-pendentes" class="space-y-3">
+                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+            </div>
+        </div>
+
+        <!-- SUSPENSOS -->
+        <div id="tab-suspensos" class="tab-content hidden fade-in">
+
+<div id="lista-suspensos" class="space-y-3">
+
+<div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+
+</div>
+
+</div>
+
+<div id="tab-equipe" class="tab-content hidden fade-in space-y-6">
+
+<div class="glass-card rounded-2xl p-6 space-y-4">
+
+<h2 class="text-sm font-black text-white">Adicionar Membro da Equipe</h2>
+
+<input type="email" id="equipe-email" placeholder="E-mail do membro" class="glass-input rounded-xl p-3 text-sm text-white outline-none w-full">
+
+<div class="flex gap-2">
+
+<input type="text" id="equipe-senha" placeholder="Senha de acesso" class="glass-input rounded-xl p-3 text-sm text-white outline-none flex-1">
+
+<button type="button" onclick="gerarSenhaEquipe()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white px-4 py-2 rounded-xl text-xs font-bold transition-all shrink-0">Gerar Senha</button>
+
+</div>
+
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="clientes" class="equipe-perm"> Clientes</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="lojas" class="equipe-perm"> Lojas Ativas</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="pendentes" class="equipe-perm"> Pendentes</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="suspensos" class="equipe-perm"> Suspensos</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="planos" class="equipe-perm"> Planos</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="comparativo" class="equipe-perm"> Comparativo</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="notificacoes" class="equipe-perm"> Notificações</label>
+
+<label class="flex items-center gap-2 text-xs text-gray-400"><input type="checkbox" value="personalizacoes" class="equipe-perm"> Personalizações</label>
+
+</div>
+
+<button onclick="adicionarMembroEquipe()" class="bg-white text-black font-bold px-5 py-2.5 rounded-xl text-xs">Adicionar Membro</button>
+
+</div>
+
+<div class="glass-card p-6 rounded-2xl space-y-3">
+                <h2 class="text-sm font-black text-white">Membros Atuais</h2>
+                <div id="lista-equipe" class="space-y-3">
+                    <div class="text-center text-gray-500 text-xs p-8">Carregando...</div>
+                </div>
+            </div>
+
+            <div class="glass-card p-6 rounded-2xl space-y-4">
+                <h2 class="text-sm font-black text-white">🎨 Identidade Visual do Sistema</h2>
+                <p class="text-xs text-gray-400">Essas cores valem pro Login, Admin e Dashboard (não mexe na personalização de cada loja).</p>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    
+                        <span class="text-xs text-gray-400">Cor Primária</span>
+                        <input type="color" id="tema-cor-primaria" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#5B3DF5">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Cor de Destaque</span>
+                        <input type="color" id="tema-cor-destaque" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#FF7A45">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Fundo Escuro</span>
+                        <input type="color" id="tema-cor-fundo" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#14132B">
+                    </div>
+                    <div class="flex items-center justify-between p-3 bg-white/[0.02] rounded-xl border border-white/5">
+                        <span class="text-xs text-gray-400">Cor de Texto</span>
+                        <input type="color" id="tema-cor-texto" class="w-9 h-9 rounded-lg bg-transparent border-0 cursor-pointer" value="#ffffff">
+                    </div>
+                </div>
+                <button onclick="salvarTemaSistema()" class="bg-white hover:bg-gray-200 text-black font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all">Salvar Identidade Visual</button>
+            </div>
+
 </main>
 
-<div id="confirm-modal" class="hidden fixed inset-0 z-[100] flex items-center justify-center p-4 bg-[#05050A]/90 backdrop-blur-xl">
-  <div class="glass-card w-full max-w-sm p-8 rounded-[32px] space-y-6 text-center transform scale-95 transition-transform duration-300">
-    <div class="h-16 w-16 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center justify-center mx-auto text-2xl shadow-[0_0_20px_rgba(251,191,36,0.2)]">⚠️</div>
-    <div>
-      <h3 class="text-xl font-display font-bold text-white">Atenção Necessária</h3>
-      <p id="confirm-modal-texto" class="text-sm text-gray-400 mt-2">Esta ação exige confirmação.</p>
+    <!-- MODAL DE CONFIRMAÇÃO (substitui o confirm() feio do navegador) -->
+    <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
+        <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
+            <div class="h-12 w-12 rounded-full bg-[#00f2fe]/10 border border-[#00f2fe]/30 flex items-center justify-center mx-auto text-xl">⚠️</div>
+            <div>
+                <h3 class="text-sm font-bold text-white">Confirmar ação</h3>
+                <p id="confirm-modal-texto" class="text-xs text-gray-400 mt-2">Tem certeza?</p>
+            </div>
+            <div class="flex gap-3">
+                <button id="confirm-modal-cancelar" class="flex-1 bg-white/5 hover:bg-white/10 text-white px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
+                <button id="confirm-modal-ok" class="flex-1 bg-white hover:bg-gray-200 text-black font-bold px-4 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Confirmar</button>
+            </div>
+        </div>
     </div>
-    <div class="flex gap-3">
-      <button id="confirm-modal-cancelar" class="flex-1 bg-white/5 hover:bg-white/10 text-white py-3.5 rounded-xl text-sm font-bold transition-all">Cancelar</button>
-      <button id="confirm-modal-ok" class="flex-1 bg-white hover:bg-gray-200 text-black py-3.5 rounded-xl text-sm font-bold transition-all">Confirmar</button>
-    </div>
-  </div>
-</div>
 
-<div id="modal-cliente" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#05050A]/90 backdrop-blur-xl">
-  <div class="glass-card w-full max-w-2xl p-8 rounded-[32px] relative shadow-2xl max-h-[90vh] flex flex-col">
-    <button onclick="fecharModal()" class="absolute top-6 right-6 text-gray-500 hover:text-white bg-white/5 p-2 rounded-full transition-colors"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
-    
-    <div class="flex items-center gap-4 mb-6">
-      <div class="w-1.5 h-6 rounded-full bg-[#00f2fe]"></div>
-      <h3 class="text-2xl font-display font-bold text-white tracking-tight">Gerenciamento de Instância</h3>
-    </div>
-    
-    <div class="overflow-y-auto modal-scroll pr-2 flex-1 space-y-6">
-      <div id="modal-info" class="space-y-4"></div>
-      
-      <div class="bg-white/[0.02] p-5 rounded-2xl border border-white/5 space-y-4">
-        <div>
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">Tier da Licença</label>
-          <select id="modal-plano" class="w-full glass-input rounded-xl p-3 text-sm cursor-pointer appearance-none">
-            <option class="bg-[#111]" value="starter">Starter — R$27/mês — 3 produtos</option>
-            <option class="bg-[#111]" value="basico">Básico — R$47/mês — 5 produtos</option>
-            <option class="bg-[#111]" value="essencial">Essencial — R$67/mês — 10 produtos</option>
-            <option class="bg-[#111]" value="negocio">Negócio — R$97/mês — 20 produtos</option>
-            <option class="bg-[#111]" value="profissional">Profissional — R$127/mês — 35 produtos</option>
-            <option class="bg-[#111]" value="avancado">Avançado — R$167/mês — 50 produtos</option>
-            <option class="bg-[#111]" value="pro">Pro — R$197/mês — Ilimitado</option>
-            <option class="bg-[#111]" value="proplus">Pro+ — R$247/mês — IA</option>
-            <option class="bg-[#111]" value="agencia">Agência — R$397/mês — Subcontas</option>
-            <option class="bg-[#111]" value="enterprise">Enterprise — R$597/mês — API</option>
-            <option class="bg-[#111]" value="premium">Premium — R$997/mês — VIP</option>
-          </select>
-        </div>
-        
-        <div>
-          <div class="flex items-center justify-between mb-2">
-            <label class="text-xs font-bold text-gray-500 uppercase tracking-widest">Módulos Ativos (Overrides)</label>
-            <button type="button" onclick="restaurarFeaturesDoPlano()" class="text-[10px] font-bold px-2 py-1 bg-[#00f2fe]/10 text-[#00f2fe] rounded-md hover:bg-[#00f2fe]/20 transition-colors">↺ Reset p/ Plano</button>
-          </div>
-          <div id="modal-override-features" class="grid grid-cols-2 sm:grid-cols-3 gap-2"></div>
-        </div>
-        
-        <div>
-          <label class="text-xs font-bold text-gray-500 uppercase tracking-widest block mb-2">Internal Note (Private)</label>
-          <textarea id="modal-anotacao" rows="2" class="w-full glass-input rounded-xl p-3 text-sm resize-none" placeholder="Anotações internas sobre o lojista..."></textarea>
-        </div>
-      </div>
-    </div>
-    
-    <div class="pt-6 mt-2 border-t border-white/10 flex flex-wrap gap-3">
-      <button id="btn-modal-aprovar" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3.5 rounded-xl text-sm transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">✅ Autorizar</button>
-      <button id="btn-modal-rejeitar" class="flex-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold py-3.5 rounded-xl text-sm transition-all">❌ Negar</button>
-      <button id="btn-modal-inativar" class="flex-1 bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 font-bold py-3.5 rounded-xl text-sm transition-all">⏸️ Bloquear</button>
-      <button id="btn-modal-salvar" class="flex-1 bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-sm transition-all">💾 Update</button>
-    </div>
-  </div>
-</div>
+    <!-- MODAL DE DETALHES DO CLIENTE -->
+    <div id="modal-cliente" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
+        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-5 relative border border-white/5 shadow-2xl max-h-[85vh] overflow-y-auto modal-scroll">
+            <button onclick="fecharModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
+            <h3 class="text-sm font-black text-white tracking-tight">Gerenciar Cliente</h3>
 
-<script type="module">
-// Mantendo 100% da lógica original intacta.
-import { auth, db, firebaseConfig } from "./firebase-init.js";
+            <div id="modal-info" class="space-y-3"></div>
+
+            <div class="space-y-2 pt-2 border-t border-white/5">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Plano do Cliente</label>
+                <select id="modal-plano" class="w-full glass-input rounded-xl p-3 text-sm text-white">
+                    <option value="starter">Starter — R$27/mês — 3 produtos</option>
+                    <option value="basico">Básico — R$47/mês — 5 produtos</option>
+                    <option value="essencial">Essencial — R$67/mês — 10 produtos</option>
+                    <option value="negocio">Negócio — R$97/mês — 20 produtos</option>
+                    <option value="profissional">Profissional — R$127/mês — 35 produtos</option>
+                    <option value="avancado">Avançado — R$167/mês — 50 produtos</option>
+                    <option value="pro">Pro — R$197/mês — Ilimitado</option>
+                    <option value="proplus">Pro+ — R$247/mês — Ilimitado + IA</option>
+                    <option value="agencia">Agência — R$397/mês — Subcontas</option>
+                    <option value="enterprise">Enterprise — R$597/mês — API + Relatórios</option>
+                    <option value="premium">Premium — R$997/mês — Tudo + Suporte VIP</option>
+                </select>
+            </div>
+
+            <div class="space-y-2 pt-2 border-t border-white/5">
+                <div class="flex items-center justify-between">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Funções liberadas para esse cliente</label>
+                    <button type="button" onclick="restaurarFeaturesDoPlano()" class="text-[10px] font-bold text-[#00f2fe] hover:underline">↺ Restaurar padrão do plano</button>
+                </div>
+                <p class="text-[10px] text-gray-500">Já vem marcado com o que o plano atual inclui. Marque ou desmarque à vontade — o que estiver aqui na hora de salvar vira o padrão desse cliente específico.</p>
+                <div id="modal-override-features" class="grid grid-cols-2 gap-2"></div>
+            </div>
+
+            <div class="space-y-2">
+                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Anotação interna (visível só para você)</label>
+                <textarea id="modal-anotacao" rows="2" class="w-full glass-input rounded-xl p-3 text-sm text-white resize-none" placeholder="Ex: Cliente pagou plano Pro em 01/07/2026"></textarea>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3 pt-2">
+                <button id="btn-modal-aprovar" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">✅ Aprovar</button>
+                <button id="btn-modal-rejeitar" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">❌ Rejeitar</button>
+                <button id="btn-modal-inativar" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/10 font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">⏸️ Suspender</button>
+                <button id="btn-modal-salvar" class="bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">💾 Salvar Plano</button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { auth, db, firebaseConfig } from "./firebase-init.js";
+
 import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth as getAuthSecundario, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { initializeApp as initializeAppSecundario, deleteApp as deleteAppSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        
+        const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
 
-const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
-window.addEventListener("pageshow", function(event) { if (event.persisted) window.location.reload(); });
-window.addEventListener("pagehide", function() { signOut(auth).catch(() => {}); });
-let todosUsuarios = []; let clienteSelecionadoUID = null;
-const PLANOS = {
-  starter:      { nome: "Starter",      preco: 27,  produtos: 3,   rascunhos: 5,   cor: "gray",     recomendado: "Quem está começando e ainda testando o modelo de negócio" },
-  basico:       { nome: "Básico",        preco: 47,  produtos: 5,   rascunhos: 10,  cor: "gray",     recomendado: "Catálogo pequeno que já quer pop-up de captura de leads" },
-  essencial:    { nome: "Essencial",     preco: 67,  produtos: 10,  rascunhos: 20,  cor: "blue",     recomendado: "Quem já vende e precisa de carrinho + chat ao vivo" },
-  negocio:      { nome: "Negócio",       preco: 97,  produtos: 20,  rascunhos: 40,  cor: "blue",     recomendado: "Times que usam templates de mensagem e cupons pra converter mais" },
-  profissional: { nome: "Profissional",  preco: 127, produtos: 35,  rascunhos: 70,  cor: "indigo",   recomendado: "Operações com campanhas ativas que acompanham métricas de perto" },
-  avancado:     { nome: "Avançado",      preco: 167, produtos: 50,  rascunhos: 100, cor: "purple",   recomendado: "Marcas com landing page própria, QR Code e temas personalizados" },
-  pro:          { nome: "Pro",           preco: 197, produtos: -1,  rascunhos: -1,  cor: "cyan",     recomendado: "Catálogo ilimitado + atendimento automatizado com chatbot" },
-  proplus:      { nome: "Pro+",          preco: 247, produtos: -1,  rascunhos: -1,  cor: "cyan",     recomendado: "Negócios que usam IA no atendimento, avaliações e agenda" },
-  agencia:      { nome: "Agência",       preco: 397, produtos: -1,  rascunhos: -1,  cor: "emerald",  recomendado: "Agências/times que gerenciam várias contas (subcontas)" },
-  enterprise:   { nome: "Enterprise",    preco: 597, produtos: -1,  rascunhos: -1,  cor: "amber",    recomendado: "Empresas que precisam de API própria e relatórios avançados" },
-  premium:      { nome: "Premium",       preco: 997, produtos: -1,  rascunhos: -1,  cor: "rose",     recomendado: "Contas que querem tudo: domínio próprio, suporte VIP e onboarding" }
-};
-const FEATURES_PLANO = {
-  starter:      ["hub"], basico:       ["hub", "popup"], essencial:    ["hub", "popup", "carrinho", "chat"],
-  negocio:      ["hub", "popup", "carrinho", "chat", "templates", "cupons"],
-  profissional: ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv"],
-  avancado:     ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp1", "qrcode", "temas"],
-  pro:          ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot"],
-  proplus:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda"],
-  agencia:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas"],
-  enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
-  premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
-};
-const FEATURES_OVERRIDE = [
-  { key: "hub", label: "Loja Pública / Hub" }, { key: "popup", label: "Pop-up de Captura" }, { key: "carrinho", label: "Carrinho de Compras" },
-  { key: "chat", label: "Chat ao Vivo" }, { key: "templates", label: "Templates de Mensagens" }, { key: "cupons", label: "Cupons Automáticos" },
-  { key: "campanhas", label: "Campanhas & Ofertas" }, { key: "metricas", label: "Métricas & Performance" }, { key: "csv", label: "Exportar CSV" },
-  { key: "lp1", label: "Landing Page (básica)" }, { key: "qrcode", label: "QR Code" }, { key: "temas", label: "Temas Prontos" },
-  { key: "lp", label: "Landing Pages" }, { key: "chatbot", label: "Chatbot" }, { key: "ia", label: "IA no Chat" },
-  { key: "avaliacoes", label: "Avaliações" }, { key: "agenda", label: "Agenda" }, { key: "mapamental", label: "Mapa Mental" },
-  { key: "subcontas", label: "Subcontas" }, { key: "api", label: "API" }, { key: "relatorios", label: "Relatórios" },
-  { key: "dominio", label: "Domínio Próprio" }, { key: "suporte_vip", label: "Suporte VIP" }, { key: "onboarding", label: "Onboarding Guiado" }
-];
-setPersistence(auth, browserSessionPersistence).catch(err => console.error(err));
-const MINUTOS_INATIVIDADE_ADMIN = 3; const TEMPO_INATIVIDADE_ADMIN_MS = MINUTOS_INATIVIDADE_ADMIN * 60 * 1000;
-let timerInatividadeAdmin = null;
-async function encerrarPorInatividadeAdmin() { try { await signOut(auth); } catch (err) { console.error(err); } window.location.href = "login.html?motivo=inatividade"; }
-function resetarTimerInatividadeAdmin() { clearTimeout(timerInatividadeAdmin); timerInatividadeAdmin = setTimeout(encerrarPorInatividadeAdmin, TEMPO_INATIVIDADE_ADMIN_MS); }
-["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach(evento => { document.addEventListener(evento, resetarTimerInatividadeAdmin, { passive: true }); });
-
-onAuthStateChanged(auth, async (user) => {
-  if (!user) { window.location.href = "login.html"; return; }
-  let permissoesEquipeAtual = null;
-  if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
-    const snapEquipe = await getDocs(collection(db, "equipe_admin"));
-    const membro = snapEquipe.docs.map(d => d.data()).find(m => (m.email || "").toLowerCase() === user.email.toLowerCase());
-    if (!membro) { alert("Acesso negado."); await signOut(auth); window.location.href = "login.html"; return; }
-    permissoesEquipeAtual = membro.permissoes || [];
-    document.getElementById("tab-btn-equipe")?.remove();
-    document.querySelectorAll(".tab-btn").forEach(btn => { if (btn.dataset.tab !== "equipe" && !permissoesEquipeAtual.includes(btn.dataset.tab)) btn.remove(); });
-  }
-  document.getElementById("admin-nome").innerText = user.displayName || "Super Admin";
-  document.getElementById("admin-email-display").innerText = user.email;
-  resetarTimerInatividadeAdmin();
-  await carregarUsuarios();
-  if (!permissoesEquipeAtual) carregarEquipe();
+// Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
+// de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
+window.addEventListener("pageshow", function(event) {
+    if (event.persisted) window.location.reload();
 });
 
-async function carregarEquipe() {
-  const lista = document.getElementById("lista-equipe");
-  lista.innerHTML = "<div class='text-center text-gray-500 text-xs p-8 font-mono'>Carregando registros...</div>";
-  try {
-    const snap = await getDocs(collection(db, "equipe_admin"));
-    if (snap.empty) { lista.innerHTML = "<div class='text-center text-gray-500 text-xs p-8 font-mono'>Nenhuma credencial gerada.</div>"; return; }
-    lista.innerHTML = snap.docs.map(d => {
-      const m = d.data(); const perms = (m.permissoes || []).join(" • ") || "nenhuma";
-      // UI MODIFIED TEMPLATE
-      return `<div class="flex flex-col sm:flex-row sm:items-center justify-between bg-white/[0.02] border border-white/5 rounded-2xl p-5 hover:bg-white/[0.04] transition-colors">
-                <div><p class="text-sm font-bold text-white font-mono">${m.email}</p><p class="text-[10px] text-gray-500 mt-1.5 uppercase tracking-widest">${perms}</p></div>
-                <button onclick="removerMembroEquipe('${d.id}')" class="mt-3 sm:mt-0 text-[11px] font-bold px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors">Revogar Acesso</button>
-              </div>`;
-    }).join("");
-  } catch(err) { console.error(err); }
+// Ao sair da página por QUALQUER motivo (Voltar do navegador, fechar aba, trocar de URL),
+// encerra a sessão na hora — assim "Avançar" nunca reabre o painel já logado.
+window.addEventListener("pagehide", function() {
+    signOut(auth).catch(() => {});
+});
+        let todosUsuarios = [];
+        let clienteSelecionadoUID = null;
+        // DEFINIÇÃO DOS PLANOS — altere aqui os preços e limites
+        const PLANOS = {
+            starter:      { nome: "Starter",      preco: 27,  produtos: 3,   rascunhos: 5,   cor: "gray",     recomendado: "Quem está começando e ainda testando o modelo de negócio" },
+            basico:       { nome: "Básico",        preco: 47,  produtos: 5,   rascunhos: 10,  cor: "gray",     recomendado: "Catálogo pequeno que já quer pop-up de captura de leads" },
+            essencial:    { nome: "Essencial",     preco: 67,  produtos: 10,  rascunhos: 20,  cor: "blue",     recomendado: "Quem já vende e precisa de carrinho + chat ao vivo" },
+            negocio:      { nome: "Negócio",       preco: 97,  produtos: 20,  rascunhos: 40,  cor: "blue",     recomendado: "Times que usam templates de mensagem e cupons pra converter mais" },
+            profissional: { nome: "Profissional",  preco: 127, produtos: 35,  rascunhos: 70,  cor: "indigo",   recomendado: "Operações com campanhas ativas que acompanham métricas de perto" },
+            avancado:     { nome: "Avançado",      preco: 167, produtos: 50,  rascunhos: 100, cor: "purple",   recomendado: "Marcas com landing page própria, QR Code e temas personalizados" },
+            pro:          { nome: "Pro",           preco: 197, produtos: -1,  rascunhos: -1,  cor: "cyan",     recomendado: "Catálogo ilimitado + atendimento automatizado com chatbot" },
+            proplus:      { nome: "Pro+",          preco: 247, produtos: -1,  rascunhos: -1,  cor: "cyan",     recomendado: "Negócios que usam IA no atendimento, avaliações e agenda" },
+            agencia:      { nome: "Agência",       preco: 397, produtos: -1,  rascunhos: -1,  cor: "emerald",  recomendado: "Agências/times que gerenciam várias contas (subcontas)" },
+            enterprise:   { nome: "Enterprise",    preco: 597, produtos: -1,  rascunhos: -1,  cor: "amber",    recomendado: "Empresas que precisam de API própria e relatórios avançados" },
+            premium:      { nome: "Premium",       preco: 997, produtos: -1,  rascunhos: -1,  cor: "rose",     recomendado: "Contas que querem tudo: domínio próprio, suporte VIP e onboarding" }
+        };
+
+        // FEATURES POR PLANO
+        const FEATURES_PLANO = {
+            starter:      ["hub"],
+            basico:       ["hub", "popup"],
+            essencial:    ["hub", "popup", "carrinho", "chat"],
+            negocio:      ["hub", "popup", "carrinho", "chat", "templates", "cupons"],
+            profissional: ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv"],
+            avancado:     ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp1", "qrcode", "temas"],
+            pro:          ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot"],
+            proplus:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda"],
+            agencia:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas"],
+            enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
+            premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
+        };
+
+        // LISTA DE FUNÇÕES QUE PODEM SER LIBERADAS INDIVIDUALMENTE (override manual)
+        const FEATURES_OVERRIDE = [
+            { key: "hub", label: "Loja Pública / Hub" },
+            { key: "popup", label: "Pop-up de Captura" },
+            { key: "carrinho", label: "Carrinho de Compras" },
+            { key: "chat", label: "Chat ao Vivo" },
+            { key: "templates", label: "Templates de Mensagens" },
+            { key: "cupons", label: "Cupons Automáticos" },
+            { key: "campanhas", label: "Campanhas & Ofertas" },
+            { key: "metricas", label: "Métricas & Performance" },
+            { key: "csv", label: "Exportar CSV" },
+            { key: "lp1", label: "Landing Page (básica)" },
+            { key: "qrcode", label: "QR Code" },
+            { key: "temas", label: "Temas Prontos" },
+            { key: "lp", label: "Landing Pages" },
+            { key: "chatbot", label: "Chatbot" },
+            { key: "ia", label: "IA no Chat" },
+            { key: "avaliacoes", label: "Avaliações" },
+            { key: "agenda", label: "Agenda" },
+            { key: "mapamental", label: "Mapa Mental" },
+            { key: "subcontas", label: "Subcontas" },
+            { key: "api", label: "API" },
+            { key: "relatorios", label: "Relatórios" },
+            { key: "dominio", label: "Domínio Próprio" },
+            { key: "suporte_vip", label: "Suporte VIP" },
+            { key: "onboarding", label: "Onboarding Guiado" }
+        ];
+        
+        // SESSÃO NÃO PERSISTENTE: ao fechar a aba/navegador, precisa logar de novo
+// (evita entrar direto colando o link, ex: vindo do histórico do Google)
+
+setPersistence(auth, browserSessionPersistence).catch(err => console.error(err));
+
+// LOGOFF AUTOMÁTICO POR INATIVIDADE (área sensível, timeout bem curto)
+
+const MINUTOS_INATIVIDADE_ADMIN = 3;
+
+const TEMPO_INATIVIDADE_ADMIN_MS = MINUTOS_INATIVIDADE_ADMIN * 60 * 1000;
+
+let timerInatividadeAdmin = null;
+
+async function encerrarPorInatividadeAdmin() {
+
+try { await signOut(auth); } catch (err) { console.error(err); }
+
+window.location.href = "login.html?motivo=inatividade";
+
+}
+
+function resetarTimerInatividadeAdmin() {
+
+clearTimeout(timerInatividadeAdmin);
+
+timerInatividadeAdmin = setTimeout(encerrarPorInatividadeAdmin, TEMPO_INATIVIDADE_ADMIN_MS);
+
+}
+
+["mousemove", "mousedown", "keydown", "scroll", "touchstart", "click"].forEach(evento => {
+
+document.addEventListener(evento, resetarTimerInatividadeAdmin, { passive: true });
+
+});
+
+// PROTEÇÃO: só super admin entra
+
+onAuthStateChanged(auth, async (user) => {
+            if (!user) {
+                window.location.href = "login.html";
+                return;
+            }
+            let permissoesEquipeAtual = null;
+
+if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+
+const snapEquipe = await getDocs(collection(db, "equipe_admin"));
+
+const membro = snapEquipe.docs.map(d => d.data()).find(m => (m.email || "").toLowerCase() === user.email.toLowerCase());
+
+if (!membro) {
+
+alert("Acesso negado. Esta área é exclusiva do administrador do sistema.");
+
+await signOut(auth);
+
+window.location.href = "login.html";
+
+return;
+
+}
+
+permissoesEquipeAtual = membro.permissoes || [];
+
+document.getElementById("tab-btn-equipe")?.remove();
+
+document.querySelectorAll(".tab-btn").forEach(btn => {
+
+if (btn.dataset.tab !== "equipe" && !permissoesEquipeAtual.includes(btn.dataset.tab)) btn.remove();
+
+});
+
+}
+
+document.getElementById("admin-nome").innerText = user.displayName || "Super Admin";
+
+document.getElementById("admin-email-display").innerText = user.email;
+
+resetarTimerInatividadeAdmin();
+
+await carregarUsuarios();
+
+if (!permissoesEquipeAtual) carregarEquipe();
+
+});
+        // TOAST
+        async function carregarEquipe() {
+
+const lista = document.getElementById("lista-equipe");
+
+lista.innerHTML = "<div class='text-center text-gray-500 text-xs p-8'>Carregando...</div>";
+
+try {
+
+const snap = await getDocs(collection(db, "equipe_admin"));
+
+if (snap.empty) {
+
+lista.innerHTML = "<div class='text-center text-gray-500 text-xs p-8'>Nenhum membro adicionado ainda.</div>";
+
+return;
+
+}
+
+lista.innerHTML = snap.docs.map(d => {
+
+const m = d.data();
+
+const perms = (m.permissoes || []).join(", ") || "nenhuma";
+
+return `<div class="flex items-center justify-between bg-white/5 rounded-xl p-4"><div><p class="text-xs font-bold text-white">${m.email}</p><p class="text-[10px] text-gray-500 mt-1">${perms}</p></div><button onclick="removerMembroEquipe('${d.id}')" class="text-red-400 hover:text-red-300 text-xs">Remover</button></div>`;
+
+}).join("");
+
+} catch(err) {
+
+console.error(err);
+
+lista.innerHTML = "<div class='text-center text-red-400 text-xs p-8'>Erro ao carregar equipe.</div>";
+
+}
+
 }
 
 window.gerarSenhaEquipe = function() {
-  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789"; let senha = "";
-  for (let i = 0; i < 12; i++) senha += chars[Math.floor(Math.random() * chars.length)];
-  document.getElementById("equipe-senha").value = senha;
+
+const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
+
+let senha = "";
+
+for (let i = 0; i < 10; i++) senha += chars[Math.floor(Math.random() * chars.length)];
+
+document.getElementById("equipe-senha").value = senha;
+
 };
+
 async function criarContaEquipeAuth(email, senha) {
-  const appSecundario = initializeAppSecundario(firebaseConfig, "equipe-temp-" + Date.now());
-  const authSecundario = getAuthSecundario(appSecundario);
-  try { const cred = await createUserWithEmailAndPassword(authSecundario, email, senha); await signOut(authSecundario); await deleteAppSecundario(appSecundario); return cred.user.uid; } 
-  catch (err) { await deleteAppSecundario(appSecundario).catch(() => {}); throw err; }
+
+const appSecundario = initializeAppSecundario(firebaseConfig, "equipe-temp-" + Date.now());
+
+const authSecundario = getAuthSecundario(appSecundario);
+
+try {
+
+const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
+
+await signOut(authSecundario);
+
+await deleteAppSecundario(appSecundario);
+
+return cred.user.uid;
+
+} catch (err) {
+
+await deleteAppSecundario(appSecundario).catch(() => {});
+
+throw err;
+
 }
+
+}
+
 function aplicarTemaSistemaVars(t) {
-  const root = document.documentElement;
-  if (t.primaria) root.style.setProperty("--sys-primaria", t.primaria);
-  if (t.destaque) root.style.setProperty("--sys-destaque", t.destaque);
-  if (t.fundo) root.style.setProperty("--sys-fundo", t.fundo);
-  if (t.texto) root.style.setProperty("--sys-texto", t.texto);
+    const root = document.documentElement;
+    if (t.primaria) root.style.setProperty("--sys-primaria", t.primaria);
+    if (t.destaque) root.style.setProperty("--sys-destaque", t.destaque);
+    if (t.fundo) root.style.setProperty("--sys-fundo", t.fundo);
+    if (t.texto) root.style.setProperty("--sys-texto", t.texto);
 }
+
 async function carregarTemaSistema() {
-  try {
-    const snap = await getDoc(doc(db, "config", "tema_sistema"));
-    if (!snap.exists()) return; const t = snap.data(); aplicarTemaSistemaVars(t);
-    if (document.getElementById("tema-cor-primaria")) {
-      document.getElementById("tema-cor-primaria").value = t.primaria || "#00f2fe"; document.getElementById("tema-cor-destaque").value = t.destaque || "#4facfe";
-      document.getElementById("tema-cor-fundo").value = t.fundo || "#05050A"; document.getElementById("tema-cor-texto").value = t.texto || "#ffffff";
-    }
-  } catch(err) { console.error(err); }
+    try {
+        const snap = await getDoc(doc(db, "config", "tema_sistema"));
+        if (!snap.exists()) return;
+        const t = snap.data();
+        aplicarTemaSistemaVars(t);
+        if (document.getElementById("tema-cor-primaria")) {
+            document.getElementById("tema-cor-primaria").value = t.primaria || "#5B3DF5";
+            document.getElementById("tema-cor-destaque").value = t.destaque || "#FF7A45";
+            document.getElementById("tema-cor-fundo").value = t.fundo || "#14132B";
+            document.getElementById("tema-cor-texto").value = t.texto || "#ffffff";
+        }
+    } catch(err) { console.error(err); }
 }
 carregarTemaSistema();
+
 window.salvarTemaSistema = async function() {
-  const t = { primaria: document.getElementById("tema-cor-primaria").value, destaque: document.getElementById("tema-cor-destaque").value, fundo: document.getElementById("tema-cor-fundo").value, texto: document.getElementById("tema-cor-texto").value };
-  try { await setDoc(doc(db, "config", "tema_sistema"), t, { merge: true }); aplicarTemaSistemaVars(t); showToast("Identidade visual salva e implantada no core."); } 
-  catch(err) { console.error(err); showToast("Erro no deploy visual.", "error"); }
+    const t = {
+        primaria: document.getElementById("tema-cor-primaria").value,
+        destaque: document.getElementById("tema-cor-destaque").value,
+        fundo: document.getElementById("tema-cor-fundo").value,
+        texto: document.getElementById("tema-cor-texto").value
+    };
+    try {
+        await setDoc(doc(db, "config", "tema_sistema"), t, { merge: true });
+        aplicarTemaSistemaVars(t);
+        showToast("Identidade visual salva! Já aplicada aqui — os outros painéis atualizam no próximo carregamento.");
+    } catch(err) {
+        console.error(err);
+        showToast("Erro ao salvar identidade visual.", "error");
+    }
 };
+
 window.adicionarMembroEquipe = async function() {
-  const email = document.getElementById("equipe-email").value.trim().toLowerCase(); const senha = document.getElementById("equipe-senha").value.trim();
-  if (!email || !senha) { showToast("Credenciais insuficientes.", "error"); return; }
-  const permissoes = Array.from(document.querySelectorAll(".equipe-perm:checked")).map(c => c.value);
-  if (permissoes.length === 0) { showToast("Defina ao menos um nível de acesso.", "error"); return; }
-  try {
-    const novoUID = await criarContaEquipeAuth(email, senha);
-    await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, uid: novoUID, criadoEm: new Date().toISOString() });
-    showToast("Acesso concedido. Credenciais gravadas.");
-    document.getElementById("equipe-email").value = ""; document.getElementById("equipe-senha").value = ""; document.querySelectorAll(".equipe-perm").forEach(c => c.checked = false); carregarEquipe();
-  } catch(err) { console.error(err); showToast("Erro de provisionamento.", "error"); }
+
+const email = document.getElementById("equipe-email").value.trim().toLowerCase();
+
+const senha = document.getElementById("equipe-senha").value.trim();
+
+if (!email || !senha) { showToast("Preencha e-mail e senha.", "error"); return; }
+
+const permissoes = Array.from(document.querySelectorAll(".equipe-perm:checked")).map(c => c.value);
+
+if (permissoes.length === 0) { showToast("Selecione ao menos uma permissão.", "error"); return; }
+
+try {
+
+const novoUID = await criarContaEquipeAuth(email, senha);
+
+await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, uid: novoUID, criadoEm: new Date().toISOString() });
+    
+showToast("Membro adicionado! Já pode fazer login com esse e-mail e senha.");
+
+document.getElementById("equipe-email").value = "";
+
+document.getElementById("equipe-senha").value = "";
+
+document.querySelectorAll(".equipe-perm").forEach(c => c.checked = false);
+
+carregarEquipe();
+
+} catch(err) {
+
+console.error(err);
+
+showToast("Erro ao criar conta: " + (err.message || "tente novamente"), "error");
+
+}
+
 };
+
 window.removerMembroEquipe = async function(id) {
-  abrirConfirmacao("Revogar acesso permanente deste membro?", async () => {
-    try { await deleteDoc(doc(db, "equipe_admin", id)); showToast("Acesso revogado."); carregarEquipe(); } 
-    catch(err) { console.error(err); showToast("Erro de exclusão.", "error"); }
-  });
+
+abrirConfirmacao("Remover esse membro da equipe? Ele perderá o acesso ao admin.", async () => {
+
+try {
+
+await deleteDoc(doc(db, "equipe_admin", id));
+
+showToast("Membro removido.");
+
+carregarEquipe();
+
+} catch(err) {
+
+console.error(err);
+
+showToast("Erro ao remover membro.", "error");
+
+}
+
+});
+
 };
 
 function showToast(msg, tipo = "success") {
-  const c = document.getElementById("toast-container"); const t = document.createElement("div");
-  // UI MODIFIED TEMPLATE
-  t.className = `px-5 py-4 rounded-[16px] text-sm font-semibold shadow-[0_8px_30px_rgba(0,0,0,0.5)] border flex items-center gap-3 backdrop-blur-xl transform translate-y-4 opacity-0 transition-all duration-300 ${tipo === "success" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"}`;
-  t.innerHTML = `<span class="text-xl">${tipo === "success" ? "✓" : "⚠"}</span> ${msg}`;
-  c.appendChild(t); setTimeout(() => t.classList.remove("opacity-0", "translate-y-4"), 10);
-  setTimeout(() => { t.classList.add("opacity-0", "translate-y-4"); setTimeout(() => t.remove(), 300); }, 3500);
-}
+            const c = document.getElementById("toast-container");
+            const t = document.createElement("div");
+            t.className = `px-4 py-3 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-2 backdrop-blur-md transform opacity-0 translate-y-2 transition-all duration-300 pointer-events-auto ${tipo === "success" ? "bg-emerald-950/90 text-emerald-400 border-emerald-500/20" : "bg-red-950/90 text-red-400 border-red-500/20"}`;
+            t.innerText = (tipo === "success" ? "✅ " : "⚠️ ") + msg;
+            c.appendChild(t);
+            setTimeout(() => t.classList.remove("opacity-0", "translate-y-2"), 10);
+            setTimeout(() => { t.classList.add("opacity-0"); setTimeout(() => t.remove(), 300); }, 3500);
+        }
 
-window.carregarUsuarios = async function() {
-  try {
-    const snap = await getDocs(collection(db, "usuarios")); todosUsuarios = []; snap.forEach(d => todosUsuarios.push({ uid: d.id, ...d.data() }));
-    const busca = document.getElementById("busca-input").value.toLowerCase(); const filtroStatus = document.getElementById("filtro-status").value; const filtroPlano = document.getElementById("filtro-plano").value;
-    let filtrados = todosUsuarios.filter(u => {
-      const matchBusca = !busca || (u.nome || "").toLowerCase().includes(busca) || (u.email || "").toLowerCase().includes(busca) || (u.nomeLoja || "").toLowerCase().includes(busca) || (u.urlLoja || "").toLowerCase().includes(busca);
-      const matchStatus = filtroStatus === "todos" || (u.status || "pendente") === filtroStatus; const matchPlano = filtroPlano === "todos" || (u.plano || "basico") === filtroPlano;
-      return matchBusca && matchStatus && matchPlano;
-    });
-    const total = todosUsuarios.length; const pendentes = todosUsuarios.filter(u => (u.status || "pendente") === "pendente").length;
-    const aprovados = todosUsuarios.filter(u => u.status === "aprovado").length; const inativos = todosUsuarios.filter(u => u.status === "inativo" || u.status === "rejeitado").length;
-    document.getElementById("stat-total").innerText = total; document.getElementById("stat-total-sub").innerText = `${aprovados} Ativas`;
-    document.getElementById("stat-pendentes").innerText = pendentes; document.getElementById("stat-aprovadas").innerText = aprovados; document.getElementById("stat-inativas").innerText = inativos;
-    renderTabela(filtrados); renderLojas(filtrados.filter(u => u.status === "aprovado")); renderPendentes(filtrados.filter(u => (u.status || "pendente") === "pendente")); renderSuspensos(filtrados.filter(u => u.status === "inativo"));
-  } catch (err) { console.error(err); showToast("Erro no fetch de usuários.", "error"); }
-};
+        // CARREGAR TODOS OS USUÁRIOS
+        window.carregarUsuarios = async function() {
+            try {
+                const snap = await getDocs(collection(db, "usuarios"));
+                todosUsuarios = [];
+                snap.forEach(d => todosUsuarios.push({ uid: d.id, ...d.data() }));
 
-window.atualizarManualmente = async function() {
-  const btn = document.getElementById("btn-atualizar-usuarios"); const icone = document.getElementById("icone-atualizar");
-  if (btn) btn.disabled = true; if (icone) icone.classList.add("animate-spin");
-  await carregarUsuarios(); const abaAtiva = document.querySelector(".tab-btn.active")?.dataset.tab;
-  if (abaAtiva === "personalizacoes") await carregarPersonalizacoes(); if (abaAtiva === "comparativo") renderizarComparativo(); if (abaAtiva === "planos") renderizarGridPlanos();
-  if (icone) icone.classList.remove("animate-spin"); if (btn) btn.disabled = false;
-  showToast("Dados sincronizados com o core.");
-};
+                const busca = document.getElementById("busca-input").value.toLowerCase();
+                const filtroStatus = document.getElementById("filtro-status").value;
+                const filtroPlano = document.getElementById("filtro-plano").value;
 
-function statusBadge(status) {
-  // UI MODIFIED TEMPLATE
-  const map = { pendente: "bg-amber-500/10 text-amber-400 border border-amber-500/20 shadow-[0_0_10px_rgba(251,191,36,0.1)]", aprovado: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 shadow-[0_0_10px_rgba(16,185,129,0.1)]", inativo: "bg-red-500/10 text-red-400 border border-red-500/20 shadow-[0_0_10px_rgba(239,68,68,0.1)]", rejeitado: "bg-red-900/20 text-red-500 border border-red-900/40" };
-  const label = { pendente: "Aguardando", aprovado: "Operante", inativo: "Bloqueada", rejeitado: "Recusada" };
-  const cls = map[status] || map.pendente;
-  return `<span class="status-badge ${cls}">${label[status] || "Pendente"}</span>`;
-}
-function planoBadge(plano) {
-  // UI MODIFIED TEMPLATE
-  const cores = { starter: "text-gray-400 border-gray-500/20", basico: "text-gray-400 border-gray-500/20", essencial: "text-blue-400 border-blue-500/20", negocio: "text-blue-400 border-blue-500/20", profissional: "text-indigo-400 border-indigo-500/20", avancado: "text-purple-400 border-purple-500/20", pro: "text-[#00f2fe] border-[#00f2fe]/30 shadow-[0_0_10px_rgba(0,242,254,0.1)]", proplus: "text-[#00f2fe] border-[#00f2fe]/30", agencia: "text-emerald-400 border-emerald-500/20", enterprise: "text-amber-400 border-amber-500/20", premium: "text-rose-400 border-rose-500/20" };
-  const p = PLANOS[plano]; const cls = cores[plano] || cores.basico; const label = p ? `${p.nome}` : (plano || "starter").toUpperCase();
-  return `<span class="status-badge bg-white/[0.02] border ${cls}">${label}</span>`;
-}
+                let filtrados = todosUsuarios.filter(u => {
+                    const matchBusca = !busca ||
+                        (u.nome || "").toLowerCase().includes(busca) ||
+                        (u.email || "").toLowerCase().includes(busca) ||
+                        (u.nomeLoja || "").toLowerCase().includes(busca) ||
+                        (u.urlLoja || "").toLowerCase().includes(busca);
+                    const matchStatus = filtroStatus === "todos" || (u.status || "pendente") === filtroStatus;
+                    const matchPlano = filtroPlano === "todos" || (u.plano || "basico") === filtroPlano;
+                    return matchBusca && matchStatus && matchPlano;
+                });
 
-function renderTabela(lista) {
-  const tbody = document.getElementById("tabela-clientes");
-  if (lista.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-16 text-center text-gray-500 font-mono text-xs">0 instâncias detectadas.</td></tr>`; return; }
-  // UI MODIFIED TEMPLATE
-  tbody.innerHTML = lista.map(u => `
-    <tr class="hover:bg-white/[0.02] transition-colors group">
-      <td class="p-5">
-        <div class="flex items-center gap-4">
-          <div class="h-10 w-10 rounded-[14px] bg-gradient-to-br from-white/5 to-white/10 border border-white/10 flex items-center justify-center text-sm font-display font-bold text-white shadow-inner">
-            ${(u.nome || u.email || "?")[0].toUpperCase()}
-          </div>
-          <div><p class="font-bold text-white text-sm">${u.nome || "Não definido"}</p><p class="text-gray-500 text-[11px] font-mono mt-0.5">${u.email || "Sem e-mail"}</p></div>
-        </div>
-      </td>
-      <td class="p-5"><p class="font-bold text-white text-sm">${u.nomeLoja || "—"}</p><p class="text-[#00f2fe] text-[11px] font-mono mt-0.5">${u.urlLoja ? `vd.hub/${u.urlLoja}` : "Sem host"}</p></td>
-      <td class="p-5">${planoBadge(u.plano)}</td>
-      <td class="p-5">${statusBadge(u.status || "pendente")}</td>
-      <td class="p-5 text-gray-500 text-xs font-mono">${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</td>
-      <td class="p-5 text-right"><button onclick="abrirModal('${u.uid}')" class="text-xs font-bold px-4 py-2 rounded-lg bg-white/5 text-gray-300 hover:text-white hover:bg-white/10 transition-all border border-white/5">Configure</button></td>
-    </tr>
-  `).join("");
-}
+                // Stats
+                const total = todosUsuarios.length;
+                const pendentes = todosUsuarios.filter(u => (u.status || "pendente") === "pendente").length;
+                const aprovados = todosUsuarios.filter(u => u.status === "aprovado").length;
+                const inativos = todosUsuarios.filter(u => u.status === "inativo" || u.status === "rejeitado").length;
 
-function renderLojas(lista) {
-  const grid = document.getElementById("grid-lojas");
-  if (lista.length === 0) { grid.innerHTML = `<div class="col-span-full text-center text-gray-500 font-mono text-xs p-16">Sistema vazio.</div>`; return; }
-  // UI MODIFIED TEMPLATE
-  grid.innerHTML = lista.map(u => `
-    <div class="glass-card p-6 rounded-[24px] space-y-5 relative group overflow-hidden">
-      <div class="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-[#00f2fe]/10 to-transparent rounded-full blur-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
-      <div class="flex items-start justify-between gap-3 relative">
-        <div class="flex items-center gap-3">
-          <div class="h-12 w-12 rounded-[16px] bg-[#00f2fe]/10 border border-[#00f2fe]/20 flex items-center justify-center text-lg font-display font-bold text-[#00f2fe] shrink-0 shadow-inner">
-            ${(u.nomeLoja || u.nome || "?")[0].toUpperCase()}
-          </div>
-          <div class="min-w-0">
-            <p class="font-bold text-white text-base truncate font-display">${u.nomeLoja || "Desconhecido"}</p>
-            <p class="text-gray-500 text-[10px] font-mono truncate mt-1">${u.email}</p>
-          </div>
-        </div>
-      </div>
-      <div class="flex gap-2">
-         ${planoBadge(u.plano)} ${statusBadge("aprovado")}
-      </div>
-      <div class="bg-white/[0.02] rounded-xl p-3 space-y-2 border border-white/5 text-xs font-mono text-gray-400">
-        <div class="flex justify-between items-center"><span>Endpoint:</span><span class="text-[#00f2fe] font-semibold">${u.urlLoja || "—"}</span></div>
-        <div class="flex justify-between items-center"><span>Deploy:</span><span class="text-white">${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</span></div>
-      </div>
-      ${u.anotacaoAdmin ? `<div class="bg-amber-500/10 border border-amber-500/20 rounded-xl p-3 text-amber-400/90 text-[11px] leading-relaxed relative z-10">${u.anotacaoAdmin}</div>` : ""}
-      <div class="grid grid-cols-2 gap-2 pt-2 relative z-10">
-        ${u.urlLoja ? `<a href="loja.html?loja=${u.urlLoja}" target="_blank" class="flex items-center justify-center text-xs font-bold py-2.5 rounded-xl bg-white/5 hover:bg-white/10 text-white transition-all border border-white/5">Storefront</a>` : ""}
-        <button onclick="abrirModal('${u.uid}')" class="flex items-center justify-center text-xs font-bold py-2.5 rounded-xl border border-[#00f2fe]/30 text-[#00f2fe] hover:bg-[#00f2fe]/10 transition-all">Setup</button>
-      </div>
-      <div class="flex gap-2 relative z-10">
-        <a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="flex-1 flex items-center justify-center gap-2 text-xs font-bold py-2.5 rounded-xl bg-[#00f2fe] text-black hover:opacity-90 transition-all shadow-[0_0_15px_rgba(0,242,254,0.3)]">🔑 Dashboard Auth</a>
-        <button onclick="copiarLinkMaster('${u.uid}')" class="flex items-center justify-center px-4 rounded-xl bg-white/10 border border-white/10 text-white hover:bg-white/20 transition-all" title="Copiar URL Segura">📋</button>
-      </div>
-    </div>
-  `).join("");
-}
+                document.getElementById("stat-total").innerText = total;
+                document.getElementById("stat-total-sub").innerText = `${aprovados} ativas`;
+                document.getElementById("stat-pendentes").innerText = pendentes;
+                document.getElementById("stat-aprovadas").innerText = aprovados;
+                document.getElementById("stat-inativas").innerText = inativos;
 
-function renderPendentes(lista) {
-  const box = document.getElementById("lista-pendentes");
-  if (lista.length === 0) { box.innerHTML = `<div class="text-center text-gray-500 text-xs font-mono p-16 glass-card rounded-[24px] col-span-full">Nenhum evento de entrada. ✅</div>`; return; }
-  // UI MODIFIED TEMPLATE
-  box.innerHTML = lista.map(u => `
-    <div class="glass-card p-6 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-5 border-l-4 border-l-amber-400">
-      <div class="flex items-center gap-4">
-        <div class="h-12 w-12 rounded-[16px] bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-lg font-display font-bold text-amber-400 shrink-0">
-          ${(u.nome || u.email || "?")[0].toUpperCase()}
-        </div>
-        <div>
-          <p class="font-bold text-white text-base font-display">${u.nome || "Não Identificado"}</p>
-          <p class="text-gray-400 text-xs font-mono mt-0.5">${u.email}</p>
-          <div class="flex items-center gap-3 mt-2 text-[11px]">
-            <span class="bg-white/5 px-2 py-1 rounded text-gray-300">Loja: <strong class="text-white">${u.nomeLoja || "N/A"}</strong></span>
-            <span class="text-gray-500">T: ${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</span>
-          </div>
-        </div>
-      </div>
-      <div class="flex flex-wrap gap-2 shrink-0">
-        <button onclick="aprovarDireto('${u.uid}', '${u.email}')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all shadow-[0_0_15px_rgba(16,185,129,0.3)]">Autorizar</button>
-        <button onclick="rejeitarDireto('${u.uid}')" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all">Drop</button>
-        <button onclick="abrirModal('${u.uid}')" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5 font-bold p-2.5 rounded-xl transition-all">⚙️</button>
-      </div>
-    </div>
-  `).join("");
-}
+                renderTabela(filtrados);
+                renderLojas(filtrados.filter(u => u.status === "aprovado"));
+                renderPendentes(filtrados.filter(u => (u.status || "pendente") === "pendente"));
+                renderSuspensos(filtrados.filter(u => u.status === "inativo"));
 
-function renderSuspensos(lista) {
-  const box = document.getElementById("lista-suspensos"); if (!box) return;
-  if (lista.length === 0) { box.innerHTML = `<div class="text-center text-gray-500 text-xs font-mono p-16 glass-card rounded-[24px] col-span-full">Ambiente seguro. Zero suspensões. ✅</div>`; return; }
-  // UI MODIFIED TEMPLATE
-  box.innerHTML = lista.map(u => `
-    <div class="glass-card p-6 rounded-[24px] flex flex-col sm:flex-row sm:items-center justify-between gap-5 border-l-4 border-l-red-500/50 grayscale-[50%] hover:grayscale-0 transition-all">
-      <div class="flex items-center gap-4">
-        <div class="h-12 w-12 rounded-[16px] bg-red-500/10 border border-red-500/20 flex items-center justify-center text-lg font-display font-bold text-red-400 shrink-0">
-          ${(u.nome || u.email || "?")[0].toUpperCase()}
-        </div>
-        <div>
-          <p class="font-bold text-white text-base font-display line-through opacity-70">${u.nome || "Não Identificado"}</p>
-          <p class="text-gray-400 text-xs font-mono mt-0.5">${u.email}</p>
-          ${u.anotacaoAdmin ? `<p class="text-red-400/80 text-[11px] mt-2 bg-red-500/10 px-2 py-1 rounded-md inline-block border border-red-500/20">${u.anotacaoAdmin}</p>` : ""}
-        </div>
-      </div>
-      <div class="flex gap-2 shrink-0">
-        <button onclick="reativarDireto('${u.uid}')" class="bg-white hover:bg-gray-200 text-black font-bold px-5 py-2.5 rounded-xl text-xs uppercase tracking-widest transition-all">Restaurar</button>
-        <button onclick="abrirModal('${u.uid}')" class="bg-white/5 hover:bg-white/10 text-gray-300 border border-white/5 font-bold px-4 py-2.5 rounded-xl text-xs transition-all">Log</button>
-      </div>
-    </div>
-  `).join("");
-}
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao carregar usuários.", "error");
+            }
+        };
+        window.atualizarManualmente = async function() {
+            const btn = document.getElementById("btn-atualizar-usuarios");
+            const icone = document.getElementById("icone-atualizar");
+            if (btn) btn.disabled = true;
+            if (icone) icone.classList.add("animate-spin");
+            await carregarUsuarios();
+            const abaAtiva = document.querySelector(".tab-btn.active")?.dataset.tab;
+            if (abaAtiva === "personalizacoes") await carregarPersonalizacoes();
+            if (abaAtiva === "comparativo") renderizarComparativo();
+            if (abaAtiva === "planos") renderizarGridPlanos();
+            if (icone) icone.classList.remove("animate-spin");
+            if (btn) btn.disabled = false;
+            showToast("Lista atualizada!");
+        };
 
-window.reativarDireto = async function(uid) { try { await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" }); showToast("Instância restaurada."); await carregarUsuarios(); } catch (err) { console.error(err); showToast("Falha de restauração.", "error"); } };
-window.copiarLinkMaster = function(uid) { const link = `${window.location.origin}${window.location.pathname.replace("admin.html", "")}dashboard.html?masterUID=${uid}`; navigator.clipboard.writeText(link).then(() => showToast("URL de bypass copiada.")); };
-window.acessoRapidoMaster = function() {
-  const termo = document.getElementById("input-acesso-rapido").value.trim().toLowerCase();
-  if (!termo) { showToast("Insira o identificador alvo.", "error"); return; }
-  const encontrado = todosUsuarios.find(u => (u.email || "").toLowerCase() === termo);
-  if (!encontrado) { showToast("Nenhum match na base de dados.", "error"); return; }
-  document.getElementById("input-acesso-rapido").value = ""; window.open(`dashboard.html?masterUID=${encontrado.uid}`, "_blank");
-};
+        function statusBadge(status) {
+            const map = {
+                pendente: "bg-amber-500/10 text-amber-400 border border-amber-500/20",
+                aprovado: "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20",
+                inativo: "bg-red-500/10 text-red-400 border border-red-500/20",
+                rejeitado: "bg-red-900/20 text-red-600 border border-red-900/20"
+            };
+            const label = { pendente: "Pendente", aprovado: "Aprovado", inativo: "Suspenso", rejeitado: "Rejeitado" };
+            const cls = map[status] || map.pendente;
+            return `<span class="status-badge ${cls}">${label[status] || "Pendente"}</span>`;
+        }
 
-window.abrirModal = async function(uid) {
-  clienteSelecionadoUID = uid; const u = todosUsuarios.find(x => x.uid === uid); if (!u) return;
-  // UI MODIFIED TEMPLATE
-  document.getElementById("modal-info").innerHTML = `
-    <div class="grid grid-cols-2 gap-4">
-      <div class="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
-        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Titular</p>
-        <p class="text-white font-bold mt-1.5 text-sm">${u.nome || "—"}</p>
-      </div>
-      <div class="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
-        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Endereço (E-mail)</p>
-        <p class="text-white font-bold mt-1.5 text-xs font-mono truncate">${u.email || "—"}</p>
-      </div>
-      <div class="bg-white/[0.02] border border-white/5 p-4 rounded-2xl">
-        <p class="text-[10px] text-gray-500 uppercase tracking-widest font-bold">Store Name</p>
-        <p class="text-white font-bold mt-1.5 text-sm">${u.nomeLoja || "—"}</p>
-      </div>
-      <div class="bg-[#00f2fe]/5 border border-[#00f2fe]/20 p-4 rounded-2xl shadow-inner">
-        <p class="text-[10px] text-[#00f2fe]/70 uppercase tracking-widest font-bold">Slug/Endpoint</p>
-        <p class="text-[#00f2fe] font-bold mt-1.5 text-xs font-mono truncate">${u.urlLoja || "—"}</p>
-      </div>
-    </div>
-    <div class="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex items-center justify-between">
-      <span class="text-xs text-gray-400 uppercase tracking-widest font-bold">Estado do Sistema</span>
-      ${statusBadge(u.status || "pendente")}
-    </div>
-    <div class="flex flex-col sm:flex-row gap-3 pt-2">
-      <a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="flex-1 text-center text-sm font-bold py-3.5 rounded-xl bg-[#00f2fe] text-black hover:opacity-90 transition-all shadow-[0_0_20px_rgba(0,242,254,0.3)]">🔑 Autenticar como Admin</a>
-      <button onclick="copiarLinkMaster('${u.uid}')" class="text-sm font-bold py-3.5 px-6 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-all">📋 Copiar Token URL</button>
-    </div>
-  `;
-  document.getElementById("modal-plano").value = u.plano || "basico"; document.getElementById("modal-anotacao").value = u.anotacaoAdmin || "";
-  renderizarCheckboxesFeatures(Array.isArray(u.featuresManuais) ? u.featuresManuais : (FEATURES_PLANO[u.plano || "starter"] || []));
-  document.getElementById("modal-cliente").classList.remove("hidden");
-};
+        function planoBadge(plano) {
+            const cores = {
+                starter: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+                basico: "bg-gray-500/10 text-gray-400 border-gray-500/20",
+                essencial: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                negocio: "bg-blue-500/10 text-blue-400 border-blue-500/20",
+                profissional: "bg-indigo-500/10 text-indigo-400 border-indigo-500/20",
+                avancado: "bg-purple-500/10 text-purple-400 border-purple-500/20",
+                pro: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+                proplus: "bg-cyan-500/10 text-cyan-400 border-cyan-500/20",
+                agencia: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+                enterprise: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+                premium: "bg-rose-500/10 text-rose-400 border-rose-500/20"
+            };
+            const p = PLANOS[plano];
+            const cls = cores[plano] || cores.basico;
+            const label = p ? `${p.nome} — R$${p.preco}` : (plano || "starter").toUpperCase();
+            return `<span class="status-badge border ${cls}">${label}</span>`;
+        }
+        function renderTabela(lista) {
+            const tbody = document.getElementById("tabela-clientes");
+            if (lista.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" class="p-12 text-center text-gray-500 text-xs">Nenhum cliente encontrado.</td></tr>`;
+                return;
+            }
+            tbody.innerHTML = lista.map(u => `
+                <tr class="hover:bg-white/[0.01] transition-colors">
+                    <td class="p-4">
+                        <div class="flex items-center gap-3">
+                            <div class="h-8 w-8 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-xs font-black text-[#00f2fe]">
+                                ${(u.nome || u.email || "?")[0].toUpperCase()}
+                            </div>
+                            <div>
+                                <p class="font-bold text-white">${u.nome || "Sem nome"}</p>
+                                <p class="text-gray-500 text-[11px]">${u.email || "Sem e-mail"}</p>
+                            </div>
+                        </div>
+                    </td>
+                    <td class="p-4">
+                        <p class="font-semibold text-white">${u.nomeLoja || "—"}</p>
+                        <p class="text-gray-500 text-[11px]">${u.urlLoja ? `vide.digital/${u.urlLoja}` : "Sem slug"}</p>
+                    </td>
+                    <td class="p-4">${planoBadge(u.plano)}</td>
+                    <td class="p-4">${statusBadge(u.status || "pendente")}</td>
+                    <td class="p-4 text-gray-500">${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</td>
+                    <td class="p-4 text-right">
+                        <button onclick="abrirModal('${u.uid}')" class="text-[11px] font-bold text-[#00f2fe] hover:underline">Gerenciar</button>
+                    </td>
+                </tr>
+            `).join("");
+        }
 
-function renderizarCheckboxesFeatures(featuresAtivasLista) {
-  // UI MODIFIED TEMPLATE
-  document.getElementById("modal-override-features").innerHTML = FEATURES_OVERRIDE.map(f => `
-    <label class="flex items-center gap-3 text-xs text-gray-300 bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 cursor-pointer hover:bg-white/[0.05] transition-all">
-      <input type="checkbox" class="override-feature-checkbox w-4 h-4 accent-[#00f2fe]" value="${f.key}" ${featuresAtivasLista.includes(f.key) ? "checked" : ""}>
-      <span class="truncate">${f.label}</span>
-    </label>
-  `).join("");
-}
+        function renderLojas(lista) {
+            const grid = document.getElementById("grid-lojas");
+            if (lista.length === 0) {
+                grid.innerHTML = `<div class="col-span-full text-center text-gray-500 text-xs p-12">Nenhuma loja ativa ainda.</div>`;
+                return;
+            }
+            grid.innerHTML = lista.map(u => `
+                <div class="glass-card p-5 rounded-2xl space-y-4 hover:border-[#00f2fe]/20 transition-all">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="h-10 w-10 rounded-xl bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-sm font-black text-[#00f2fe] shrink-0">
+                                ${(u.nomeLoja || u.nome || "?")[0].toUpperCase()}
+                            </div>
+                            <div class="min-w-0">
+                                <p class="font-bold text-white text-sm truncate">${u.nomeLoja || "Sem nome"}</p>
+                                <p class="text-gray-500 text-[11px] truncate">${u.email}</p>
+                            </div>
+                        </div>
+                        ${planoBadge(u.plano)}
+                    </div>
 
-window.restaurarFeaturesDoPlano = function() { const planoSelecionado = document.getElementById("modal-plano").value; renderizarCheckboxesFeatures(FEATURES_PLANO[planoSelecionado] || []); showToast("Reset efetuado p/ " + (PLANOS[planoSelecionado]?.nome || planoSelecionado) + ". Salve para aplicar."); };
-document.getElementById("modal-plano").addEventListener("change", () => { const planoSelecionado = document.getElementById("modal-plano").value; renderizarCheckboxesFeatures(FEATURES_PLANO[planoSelecionado] || []); });
-window.fecharModal = function() { document.getElementById("modal-cliente").classList.add("hidden"); clienteSelecionadoUID = null; };
+                    <div class="space-y-1.5 text-[11px]">
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Slug</span>
+                            <span class="text-white font-medium">${u.urlLoja || "—"}</span>
+                        </div>
+                        <div class="flex justify-between">
+                            <span class="text-gray-500">Cadastro</span>
+                            <span class="text-white">${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</span>
+                        </div>
+                        ${u.anotacaoAdmin ? `<div class="bg-amber-500/5 border border-amber-500/10 rounded-lg p-2 text-amber-400/80">${u.anotacaoAdmin}</div>` : ""}
+                    </div>
 
-function abrirConfirmacao(mensagem, callback) {
-  document.getElementById("confirm-modal-texto").innerText = mensagem; document.getElementById("confirm-modal").classList.remove("hidden");
-  const btnOk = document.getElementById("confirm-modal-ok"); const btnCancelar = document.getElementById("confirm-modal-cancelar"); const fechar = () => document.getElementById("confirm-modal").classList.add("hidden");
-  const novoOk = btnOk.cloneNode(true); btnOk.parentNode.replaceChild(novoOk, btnOk); novoOk.addEventListener("click", () => { fechar(); callback(); });
-  const novoCancelar = btnCancelar.cloneNode(true); btnCancelar.parentNode.replaceChild(novoCancelar, btnCancelar); novoCancelar.addEventListener("click", fechar);
-}
+                    <div class="flex gap-2 pt-1">
+                        ${u.urlLoja ? `<a href="loja.html?loja=${u.urlLoja}" target="_blank" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-all">Ver Loja</a>` : ""}
+                        <button onclick="abrirModal('${u.uid}')" class="flex-1 text-[11px] font-bold py-2 rounded-lg border border-[#00f2fe]/20 text-[#00f2fe] hover:bg-[#00f2fe]/5 transition-all">Gerenciar</button>
+                    </div>
+                    <div class="flex gap-2">
+                        <a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="flex-1 text-center text-[11px] font-bold py-2 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard</a>
+                        <button onclick="copiarLinkMaster('${u.uid}')" class="text-[11px] font-bold py-2 px-3 rounded-lg bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all" title="Copiar link direto">📋</button>
+                    </div>
+                </div>
+            `).join("");
+        }
 
-window.aprovarDireto = async function(uid, email) {
-  const u = todosUsuarios.find(x => x.uid === uid); if (u && u.status === "aprovado") { showToast("Já aprovado.", "error"); return; }
-  try { await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" }); showToast("Acesso Liberado."); await carregarUsuarios(); } catch (err) { console.error(err); showToast("Erro de script.", "error"); }
-};
-window.rejeitarDireto = async function(uid) {
-  abrirConfirmacao("Drop imediato da requisição?", async () => {
-    try { await updateDoc(doc(db, "usuarios", uid), { status: "rejeitado" }); showToast("Drop realizado."); await carregarUsuarios(); } catch (err) { console.error(err); showToast("Falha técnica.", "error"); }
-  });
-};
+        function renderPendentes(lista) {
+            const box = document.getElementById("lista-pendentes");
+            if (lista.length === 0) {
+                box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-2xl">Nenhum cadastro pendente. ✅</div>`;
+                return;
+            }
+            box.innerHTML = lista.map(u => `
+                <div class="glass-card p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-l-2 border-amber-500/40">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-sm font-black text-amber-400 shrink-0">
+                            ${(u.nome || u.email || "?")[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-bold text-white">${u.nome || "Sem nome"}</p>
+                            <p class="text-gray-400 text-[11px]">${u.email}</p>
+                            <p class="text-gray-500 text-[11px] mt-0.5">Loja: <span class="text-white">${u.nomeLoja || "Não informada"}</span> — Slug: <span class="text-white">${u.urlLoja || "Não definido"}</span></p>
+                            <p class="text-gray-600 text-[10px] mt-0.5">Cadastrado em: ${u.criadoEm ? new Date(u.criadoEm).toLocaleDateString("pt-BR") : "—"}</p>
+                        </div>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="aprovarDireto('${u.uid}', '${u.email}')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all">✅ Aprovar</button>
+                        <button onclick="rejeitarDireto('${u.uid}')" class="bg-red-500/20 hover:bg-red-500/30 text-red-400 border border-red-500/30 font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all">❌ Rejeitar</button>
+                        <button onclick="abrirModal('${u.uid}')" class="bg-white/5 hover:bg-white/10 text-gray-300 font-bold px-4 py-2 rounded-xl text-xs transition-all">Detalhes</button>
+                    </div>
+                </div>
+            `).join("");
+        }
 
-document.getElementById("btn-modal-aprovar").addEventListener("click", async () => {
-  if (!clienteSelecionadoUID) return; const u = todosUsuarios.find(x => x.uid === clienteSelecionadoUID); if (u && u.status === "aprovado") { showToast("Ação redundante (já ativo).", "error"); return; }
-  try { await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "aprovado" }); showToast("Status: OK."); fecharModal(); await carregarUsuarios(); } catch (err) { showToast("Erro no db.", "error"); }
-});
-document.getElementById("btn-modal-rejeitar").addEventListener("click", () => {
-  if (!clienteSelecionadoUID) return; const uidAlvo = clienteSelecionadoUID;
-  abrirConfirmacao("Negar setup desta instância?", async () => { try { await updateDoc(doc(db, "usuarios", uidAlvo), { status: "rejeitado" }); showToast("Negado."); fecharModal(); await carregarUsuarios(); } catch (err) { showToast("DB Error", "error"); } });
-});
-document.getElementById("btn-modal-inativar").addEventListener("click", () => {
-  if (!clienteSelecionadoUID) return; const u = todosUsuarios.find(x => x.uid === clienteSelecionadoUID); if (u && u.status === "inativo") { showToast("Já bloqueado.", "error"); return; }
-  const uidAlvo = clienteSelecionadoUID; abrirConfirmacao("Bloquear tráfego e acesso desta loja?", async () => { try { await updateDoc(doc(db, "usuarios", uidAlvo), { status: "inativo" }); showToast("Shutdown executado."); fecharModal(); await carregarUsuarios(); } catch (err) { showToast("Falha.", "error"); } });
-});
-document.getElementById("btn-modal-salvar").addEventListener("click", async () => {
-  if (!clienteSelecionadoUID) return;
-  try {
-    const featuresManuais = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
-    await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { plano: document.getElementById("modal-plano").value, anotacaoAdmin: document.getElementById("modal-anotacao").value.trim(), featuresManuais: featuresManuais });
-    showToast("Parâmetros injetados na conta!"); fecharModal(); await carregarUsuarios();
-  } catch (err) { showToast("Write Error.", "error"); }
-});
+        function renderSuspensos(lista) {
+            const box = document.getElementById("lista-suspensos");
+            if (!box) return;
+            if (lista.length === 0) {
+                box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-2xl">Nenhuma loja suspensa no momento. ✅</div>`;
+                return;
+            }
+            box.innerHTML = lista.map(u => `
+                <div class="glass-card p-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-l-2 border-gray-500/40">
+                    <div class="flex items-center gap-4">
+                        <div class="h-10 w-10 rounded-full bg-gray-500/10 border border-gray-500/20 flex items-center justify-center text-sm font-black text-gray-400 shrink-0">
+                            ${(u.nome || u.email || "?")[0].toUpperCase()}
+                        </div>
+                        <div>
+                            <p class="font-bold text-white">${u.nome || "Sem nome"}</p>
+                            <p class="text-gray-400 text-[11px]">${u.email}</p>
+                            <p class="text-gray-500 text-[11px] mt-0.5">Loja: <span class="text-white">${u.nomeLoja || "Não informada"}</span> — Slug: <span class="text-white">${u.urlLoja || "Não definido"}</span></p>
+                            ${u.anotacaoAdmin ? `<p class="text-amber-400/80 text-[10px] mt-1">${u.anotacaoAdmin}</p>` : ""}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="reativarDireto('${u.uid}')" class="bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2 rounded-xl text-xs uppercase tracking-wider transition-all">▶️ Reativar</button>
+                        <button onclick="abrirModal('${u.uid}')" class="bg-white/5 hover:bg-white/10 text-gray-300 font-bold px-4 py-2 rounded-xl text-xs transition-all">Detalhes</button>
+                    </div>
+                </div>
+            `).join("");
+        }
 
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-    document.querySelectorAll(".tab-content").forEach(c => { c.classList.remove("fade-in"); c.classList.add("hidden"); });
-    btn.classList.add("active");
-    const target = document.getElementById("tab-" + btn.dataset.tab);
-    target.classList.remove("hidden");
-    // Trigger re-flow for animation
-    void target.offsetWidth;
-    target.classList.add("fade-in");
-  });
-});
-document.getElementById("busca-input").addEventListener("input", carregarUsuarios);
-document.getElementById("input-acesso-rapido").addEventListener("keydown", (e) => { if (e.key === "Enter") acessoRapidoMaster(); });
-document.getElementById("filtro-status").addEventListener("change", carregarUsuarios);
-document.getElementById("filtro-plano").addEventListener("change", carregarUsuarios);
+        window.reativarDireto = async function(uid) {
+            try {
+                await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
+                showToast("Loja reativada!");
+                await carregarUsuarios();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao reativar.", "error");
+            }
+        };
 
-const FEATURE_LABELS = Object.fromEntries(FEATURES_OVERRIDE.map(f => [f.key, f.label]));
-Object.assign(FEATURE_LABELS, { hub: "Loja Pública", popup: "Pop-up de Captura", carrinho: "Carrinho de Compras", chat: "Chat ao Vivo", cupons: "Cupons Automáticos", csv: "Exportar CSV", lp: "Landing Pages", lp1: "Landing Page (básica)", qrcode: "QR Code", temas: "Temas Prontos", avaliacoes: "Avaliações", suporte_vip: "Suporte VIP", onboarding: "Onboarding Guiado" });
+        window.copiarLinkMaster = function(uid) {
+            const link = `${window.location.origin}${window.location.pathname.replace("admin.html", "")}dashboard.html?masterUID=${uid}`;
+            navigator.clipboard.writeText(link).then(() => showToast("Link copiado! Já pode salvar como favorito."));
+        };
 
-function renderizarComparativo() {
-  const tabela = document.getElementById("comparativo-tabela"); if (!tabela) return;
-  const chavesPlanos = Object.keys(PLANOS); const todasFeatures = FEATURES_PLANO.premium; let html = "";
-  // UI MODIFIED TEMPLATE
-  html += `<thead><tr><th class="p-4 sticky left-0 bg-[#05050A] z-10 font-bold text-gray-500 uppercase tracking-widest text-[10px] border-b border-white/10">Engine Features</th>${chavesPlanos.map(k => `<th class="p-4 text-center min-w-[140px] border-b border-white/10"><div class="text-white font-display font-bold text-sm">${PLANOS[k].nome}</div><div class="text-[#00f2fe] font-mono font-bold text-[11px] mt-1">R$${PLANOS[k].preco}</div></th>`).join("")}</tr></thead><tbody>`;
-  html += `<tr><td class="p-4 sticky left-0 bg-[#05050A] z-10 font-bold text-gray-300 text-xs border-b border-white/5">Storage (Produtos)</td>${chavesPlanos.map(k => `<td class="p-4 text-center text-white font-mono text-xs border-b border-white/5">${PLANOS[k].produtos === -1 ? "Ilimitado" : PLANOS[k].produtos}</td>`).join("")}</tr>`;
-  html += `<tr><td class="p-4 sticky left-0 bg-[#05050A] z-10 font-bold text-gray-300 text-xs border-b border-white/5">Memória (Rascunhos)</td>${chavesPlanos.map(k => `<td class="p-4 text-center text-white font-mono text-xs border-b border-white/5">${PLANOS[k].rascunhos === -1 ? "Ilimitado" : PLANOS[k].rascunhos}</td>`).join("")}</tr>`;
-  todasFeatures.forEach((fk, i) => {
-    html += `<tr class="hover:bg-white/[0.01] transition-colors"><td class="p-4 sticky left-0 bg-[#05050A] z-10 text-gray-400 text-xs border-b border-white/5">${FEATURE_LABELS[fk] || fk}</td>${chavesPlanos.map(k => `<td class="p-4 text-center border-b border-white/5">${FEATURES_PLANO[k].includes(fk) ? '<span class="text-[#00f2fe] font-black text-lg drop-shadow-[0_0_8px_rgba(0,242,254,0.5)]">●</span>' : '<span class="text-white/10 text-lg">○</span>'}</td>`).join("")}</tr>`;
-  });
-  html += `<tr><td class="p-4 sticky left-0 bg-[#05050A] z-10 font-bold text-amber-500/70 uppercase text-[10px] tracking-widest pt-6 border-none">Target Audience</td>${chavesPlanos.map(k => `<td class="p-4 text-center text-gray-500 text-[10px] leading-relaxed pt-6 border-none">${PLANOS[k].recomendado || "—"}</td>`).join("")}</tr></tbody>`;
-  tabela.innerHTML = html;
-}
+        window.acessoRapidoMaster = function() {
+            const termo = document.getElementById("input-acesso-rapido").value.trim().toLowerCase();
+            if (!termo) {
+                showToast("Digite um e-mail pra buscar.", "error");
+                return;
+            }
+            const encontrado = todosUsuarios.find(u => (u.email || "").toLowerCase() === termo);
+            if (!encontrado) {
+                showToast("Nenhum cliente encontrado com esse e-mail.", "error");
+                return;
+            }
+            document.getElementById("input-acesso-rapido").value = "";
+            window.open(`dashboard.html?masterUID=${encontrado.uid}`, "_blank");
+        };
 
-document.getElementById("notif-foto-file").addEventListener("change", (e) => {
-  const file = e.target.files[0]; if (!file) return; const reader = new FileReader();
-  reader.onloadend = () => { document.getElementById("notif-foto-base64").value = reader.result; const preview = document.getElementById("notif-foto-preview"); preview.src = reader.result; preview.classList.remove("hidden"); };
-  reader.readAsDataURL(file);
-});
-document.querySelectorAll('input[name="notif-destino"]').forEach(radio => {
-  radio.addEventListener("change", () => { const box = document.getElementById("notif-lista-clientes"); if (document.querySelector('input[name="notif-destino"]:checked').value === "especificos") { box.classList.remove("hidden"); box.classList.add("fade-in"); } else { box.classList.add("hidden"); } });
-});
+        // ABRIR MODAL
+        window.abrirModal = async function(uid) {
+            clienteSelecionadoUID = uid;
+            const u = todosUsuarios.find(x => x.uid === uid);
+            if (!u) return;
 
-function renderizarChecklistClientes() {
-  const box = document.getElementById("notif-lista-clientes"); if (!box) return;
-  if (todosUsuarios.length === 0) { box.innerHTML = `<p class="text-xs text-gray-500 font-mono col-span-full">Tabela vazia.</p>`; return; }
-  // UI MODIFIED TEMPLATE
-  box.innerHTML = todosUsuarios.map(u => `
-    <label class="flex items-center gap-3 text-xs text-gray-300 bg-white/[0.02] border border-white/5 rounded-xl px-4 py-3 cursor-pointer hover:bg-white/[0.05] transition-all">
-      <input type="checkbox" class="notif-cliente-checkbox w-4 h-4 accent-[#00f2fe]" value="${u.uid}">
-      <span class="truncate font-semibold">${u.nome || u.email}</span>
-    </label>
-  `).join("");
-}
+            document.getElementById("modal-info").innerHTML = `
+                <div class="grid grid-cols-2 gap-3 text-xs">
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">Nome</p>
+                        <p class="text-white font-bold mt-1">${u.nome || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">E-mail</p>
+                        <p class="text-white font-bold mt-1 truncate">${u.email || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">Nome da Loja</p>
+                        <p class="text-white font-bold mt-1">${u.nomeLoja || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl">
+                        <p class="text-gray-500 text-[10px] uppercase tracking-wider">Slug</p>
+                        <p class="text-[#00f2fe] font-bold mt-1">${u.urlLoja || "—"}</p>
+                    </div>
+                    <div class="glass-card p-3 rounded-xl col-span-2 flex items-center justify-between">
+                        <span class="text-gray-500 text-[10px] uppercase tracking-wider">Status atual</span>
+                        ${statusBadge(u.status || "pendente")}
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="flex-1 text-center text-xs font-bold py-3 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard desta Loja</a>
+                    <button onclick="copiarLinkMaster('${u.uid}')" class="text-xs font-bold py-3 px-4 rounded-xl bg-white/5 border border-white/10 text-gray-300 hover:bg-white/10 transition-all" title="Copiar link direto">📋</button>
+                </div>
+            `;
 
-window.enviarNotificacao = async function() {
-  const titulo = document.getElementById("notif-titulo").value.trim(); const mensagem = document.getElementById("notif-mensagem").value.trim(); const foto = document.getElementById("notif-foto-base64").value; const destinoTipo = document.querySelector('input[name="notif-destino"]:checked').value;
-  if (!titulo || !mensagem) { showToast("Payload inválido (título/msg).", "error"); return; }
-  let destinatarios = "todos";
-  if (destinoTipo === "especificos") { destinatarios = Array.from(document.querySelectorAll(".notif-cliente-checkbox:checked")).map(cb => cb.value); if (destinatarios.length === 0) { showToast("Array de targets vazio.", "error"); return; } }
-  try {
-    await setDoc(doc(db, "notificacoes", `notif_${Date.now()}`), { titulo, mensagem, foto: foto || "", destinatarios, lidoPor: [], criadoPor: SUPER_ADMIN_EMAIL, criadoEm: Date.now() });
-    showToast("Push disparado com sucesso na rede.");
-    document.getElementById("notif-titulo").value = ""; document.getElementById("notif-mensagem").value = ""; document.getElementById("notif-foto-base64").value = ""; document.getElementById("notif-foto-preview").classList.add("hidden"); document.querySelectorAll(".notif-cliente-checkbox").forEach(cb => cb.checked = false);
-    await carregarNotificacoesEnviadas();
-  } catch (err) { console.error(err); showToast("Erro na camada de network.", "error"); }
-};
+            document.getElementById("modal-plano").value = u.plano || "basico";
+            document.getElementById("modal-anotacao").value = u.anotacaoAdmin || "";
 
-async function carregarNotificacoesEnviadas() {
-  const box = document.getElementById("lista-notificacoes-enviadas"); if (!box) return;
-  try {
-    const snap = await getDocs(collection(db, "notificacoes")); let lista = []; snap.forEach(d => lista.push({ id: d.id, ...d.data() })); lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
-    if (lista.length === 0) { box.innerHTML = `<div class="text-center text-gray-500 font-mono text-xs p-10 glass-card rounded-[24px] col-span-full">Sem logs recentes.</div>`; return; }
-    // UI MODIFIED TEMPLATE
-    box.innerHTML = lista.map(n => {
-      const destinoTexto = n.destinatarios === "todos" ? "Global" : `${(n.destinatarios || []).length} Nodes`;
-      return `
-        <div class="glass-card rounded-[20px] p-5 flex flex-col justify-between gap-4 border-l-2 border-[#00f2fe]/40">
-          <div class="flex gap-4 items-start">
-            ${n.foto ? `<img src="${n.foto}" class="h-14 w-14 rounded-xl object-cover shrink-0 border border-white/10 shadow-lg">` : `<div class="h-10 w-10 shrink-0 rounded-xl bg-white/5 flex items-center justify-center text-gray-500">📡</div>`}
-            <div class="flex-1 min-w-0">
-              <div class="flex justify-between items-start">
-                 <p class="text-sm font-bold text-white font-display truncate pr-2">${n.titulo}</p>
-                 <button onclick="excluirNotificacao('${n.id}')" class="text-gray-500 hover:text-red-400 bg-white/5 hover:bg-red-500/10 p-1.5 rounded-lg transition-colors shrink-0"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
-              </div>
-              <p class="text-xs text-gray-400 mt-1 line-clamp-2 leading-relaxed">${n.mensagem}</p>
-            </div>
-          </div>
-          <div class="flex items-center justify-between pt-3 border-t border-white/5">
-            <span class="text-[10px] font-bold px-2 py-1 rounded-md bg-[#00f2fe]/10 text-[#00f2fe] uppercase tracking-widest">${destinoTexto}</span>
-            <div class="flex items-center gap-3 font-mono text-[10px] text-gray-500">
-              <span>${n.criadoEm ? new Date(n.criadoEm).toLocaleString("pt-BR") : "—"}</span>
-              <span class="flex items-center gap-1">👁 ${(n.lidoPor || []).length} views</span>
-            </div>
-          </div>
-        </div>
-      `;
-    }).join("");
-  } catch (err) { console.error(err); box.innerHTML = `<div class="text-center text-red-400 font-mono text-xs p-8 col-span-full">Traceback error.</div>`; }
-}
+            renderizarCheckboxesFeatures(Array.isArray(u.featuresManuais) ? u.featuresManuais : (FEATURES_PLANO[u.plano || "starter"] || []));
 
-window.excluirNotificacao = async function(id) { abrirConfirmacao("Deletar permanentemente este registro da CDN?", async () => { try { await deleteDoc(doc(db, "notificacoes", id)); showToast("Drop efetuado."); await carregarNotificacoesEnviadas(); } catch (err) { console.error(err); showToast("Erro na DB.", "error"); } }); };
+            document.getElementById("modal-cliente").classList.remove("hidden");
+        };
 
-let _cachePersonalizacoes = [];
-const MENSAGENS_STATUS_CLIENTE = { em_andamento: { titulo: "Sua personalização está em andamento!", mensagem: "Já começamos a trabalhar na sua loja. Em breve estará pronta!" }, concluido: { titulo: "Personalização concluída! 🎉", mensagem: "Sua loja foi personalizada com sucesso. Dá uma olhada!" }, negado: { titulo: "Sobre sua solicitação de personalização", mensagem: "Não foi possível seguir com sua solicitação no momento. Vamos entrar em contato pra entender melhor." }, pendente: { titulo: "Sua solicitação voltou pra fila", mensagem: "Sua solicitação de personalização está novamente aguardando análise." } };
+        // Desenha os checkboxes de função marcados de acordo com a lista passada
+        function renderizarCheckboxesFeatures(featuresAtivasLista) {
+            document.getElementById("modal-override-features").innerHTML = FEATURES_OVERRIDE.map(f => `
+                <label class="flex items-center gap-2 text-[11px] text-gray-300 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.04] transition-all">
+                    <input type="checkbox" class="override-feature-checkbox accent-[#00f2fe]" value="${f.key}" ${featuresAtivasLista.includes(f.key) ? "checked" : ""}>
+                    ${f.label}
+                </label>
+            `).join("");
+        }
 
-async function carregarPersonalizacoes() {
-  const boxAtivas = document.getElementById("lista-personalizacoes"); if (!boxAtivas) return;
-  try {
-    const snap = await getDocs(collection(db, "solicitacoes_customizacao")); _cachePersonalizacoes = []; snap.forEach(d => _cachePersonalizacoes.push({ id: d.id, ...d.data() })); _cachePersonalizacoes.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
-    const ativas = _cachePersonalizacoes.filter(p => p.status === "pendente" || p.status === "em_andamento" || !p.status);
-    renderizarListaPersonalizacoes(boxAtivas, ativas, "Fila de demandas limpa. ✨"); renderizarHistoricoPersonalizacoes();
-  } catch (err) { console.error(err); boxAtivas.innerHTML = `<div class="text-center text-red-400 font-mono text-xs p-8 col-span-full">Erro interno do servidor.</div>`; }
-}
+        // Botão "Restaurar padrão do plano" — recarrega os checkboxes com base no plano selecionado no <select> agora
+        window.restaurarFeaturesDoPlano = function() {
+            const planoSelecionado = document.getElementById("modal-plano").value;
+            renderizarCheckboxesFeatures(FEATURES_PLANO[planoSelecionado] || []);
+            showToast("Restaurado para o padrão do plano " + (PLANOS[planoSelecionado]?.nome || planoSelecionado) + ". Clique em Salvar Plano pra confirmar.");
+        };
 
-function configurarFiltroPersonalizado(idSelect, idBoxDatas) {
-  const select = document.getElementById(idSelect); const box = document.getElementById(idBoxDatas); if (!select || !box) return;
-  select.addEventListener("change", () => { if (select.value === "custom") { box.classList.remove("hidden"); box.classList.add("fade-in"); } else { box.classList.add("hidden"); } });
-}
-function obterFiltroSelecionado(idSelect, idDe, idAte) {
-  const valor = document.getElementById(idSelect).value;
-  if (valor === "custom") { const de = document.getElementById(idDe).value; const ate = document.getElementById(idAte).value; return { inicio: de ? new Date(de + "T00:00:00").getTime() : 0, fim: ate ? new Date(ate + "T23:59:59").getTime() : Date.now() }; }
-  return parseInt(valor);
-}
-function normalizarIntervalo(filtro) {
-  const agora = Date.now(); if (filtro && typeof filtro === "object") { return { inicio: filtro.inicio || 0, fim: filtro.fim || agora, todos: !filtro.inicio }; }
-  const dias = filtro; return { inicio: dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000), fim: agora, todos: dias === 0 };
-}
-function ligarValidacaoIntervaloDatas(idDe, idAte) {
-  const inputDe = document.getElementById(idDe); const inputAte = document.getElementById(idAte); if (!inputDe || !inputAte) return;
-  inputDe.addEventListener("change", () => { inputAte.min = inputDe.value; if (inputAte.value && inputAte.value < inputDe.value) inputAte.value = inputDe.value; });
-  inputAte.addEventListener("change", () => { inputDe.max = inputAte.value; if (inputDe.value && inputDe.value > inputAte.value) inputDe.value = inputAte.value; });
-}
-configurarFiltroPersonalizado("filtro-personalizacao-dias", "filtro-personalizacao-datas-custom"); ligarValidacaoIntervaloDatas("filtro-personalizacao-de", "filtro-personalizacao-ate");
+        // Trocar o plano no dropdown já atualiza os checkboxes sozinho (sem precisar clicar em Restaurar)
+        document.getElementById("modal-plano").addEventListener("change", () => {
+            const planoSelecionado = document.getElementById("modal-plano").value;
+            renderizarCheckboxesFeatures(FEATURES_PLANO[planoSelecionado] || []);
+        });
 
-function renderizarHistoricoPersonalizacoes() {
-  const boxHistorico = document.getElementById("lista-personalizacoes-historico"); if (!boxHistorico) return 0;
-  const filtro = obterFiltroSelecionado("filtro-personalizacao-dias", "filtro-personalizacao-de", "filtro-personalizacao-ate"); const { inicio, fim, todos } = normalizarIntervalo(filtro);
-  let historico = _cachePersonalizacoes.filter(p => p.status === "concluido" || p.status === "negado");
-  if (!todos) historico = historico.filter(p => (p.criadoEm || Date.now()) >= inicio && (p.criadoEm || Date.now()) <= fim);
-  renderizarListaPersonalizacoes(boxHistorico, historico, "Nenhum trace no período selecionado."); return historico.length;
-}
-window.aplicarFiltroPersonalizacoesHistorico = function() { const total = renderizarHistoricoPersonalizacoes(); showToast(`Query OK! ${total} hits.`); };
+        window.fecharModal = function() {
+            document.getElementById("modal-cliente").classList.add("hidden");
+            clienteSelecionadoUID = null;
+        };
 
-function renderizarListaPersonalizacoes(box, lista, mensagemVazio) {
-  if (lista.length === 0) { box.innerHTML = `<div class="text-center text-gray-500 font-mono text-xs p-16 glass-card rounded-[24px] col-span-full">${mensagemVazio}</div>`; return; }
-  const cliente = (uid) => todosUsuarios.find(u => u.uid === uid);
-  // UI MODIFIED TEMPLATE
-  box.innerHTML = lista.map(p => {
-    const u = cliente(p.uid); const corBorda = p.status === "concluido" ? "border-[#00f2fe]" : p.status === "em_andamento" ? "border-blue-500" : p.status === "negado" ? "border-red-500" : "border-amber-400";
-    return `
-      <div class="glass-card p-6 rounded-[24px] space-y-4 border-l-4 ${corBorda} hover:bg-white/[0.03] transition-colors">
-        <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-4">
-          <div class="min-w-0 flex-1">
-            <h4 class="text-base font-display font-bold text-white tracking-tight">${u?.nomeLoja || u?.nome || p.email}</h4>
-            <div class="flex items-center gap-2 mt-1">
-               <span class="text-[11px] font-mono text-gray-400 bg-black/30 px-2 py-0.5 rounded border border-white/5">${p.email}</span>
-               ${p.whatsapp ? `<span class="text-[11px] text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20">📱 ${p.whatsapp}</span>` : ""}
-            </div>
-            <p class="text-sm text-gray-300 mt-4 leading-relaxed bg-black/20 p-3 rounded-xl border border-white/[0.03] shadow-inner">${p.descricao}</p>
-            <p class="text-[10px] text-gray-600 font-mono mt-2 flex items-center gap-1">⌚ ${p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—"}</p>
-          </div>
-          <div class="flex flex-col gap-3 shrink-0 w-full sm:w-40">
-            <select onchange="atualizarStatusPersonalizacao('${p.id}', this.value)" class="w-full glass-input border-none rounded-xl px-3 py-2.5 text-xs text-white outline-none cursor-pointer font-bold bg-white/5 shadow-inner">
-              <option value="pendente" ${p.status === "pendente" ? "selected" : ""} class="bg-[#111]">⏳ Fila</option>
-              <option value="em_andamento" ${p.status === "em_andamento" ? "selected" : ""} class="bg-[#111]">🛠️ Executando</option>
-              <option value="concluido" ${p.status === "concluido" ? "selected" : ""} class="bg-[#111]">✅ Concluído</option>
-              <option value="negado" ${p.status === "negado" ? "selected" : ""} class="bg-[#111]">❌ Dropped</option>
-            </select>
-            ${u ? `<a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="text-center text-xs font-bold py-2.5 px-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all shadow-sm">Dashboard</a>` : ""}
-          </div>
-        </div>
-        <div class="pt-4 border-t border-white/5">
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block mb-2">Dev Notes (Internal)</label>
-          <textarea onblur="salvarAnotacaoPersonalizacao('${p.id}', this.value)" rows="2" class="w-full bg-black/40 border border-white/5 focus:border-[#00f2fe]/50 rounded-xl p-3 text-xs text-white outline-none resize-none transition-colors" placeholder="Logs operacionais sobre este ticket...">${p.anotacaoAdmin || ""}</textarea>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-window.salvarAnotacaoPersonalizacao = async function(id, texto) { try { await updateDoc(doc(db, "solicitacoes_customizacao", id), { anotacaoAdmin: texto }); showToast("Log arquivado."); } catch (err) { console.error(err); } };
-window.atualizarStatusPersonalizacao = async function(id, status) {
-  try {
-    const item = _cachePersonalizacoes.find(p => p.id === id); await updateDoc(doc(db, "solicitacoes_customizacao", id), { status }); const msg = MENSAGENS_STATUS_CLIENTE[status];
-    if (item && msg) { await setDoc(doc(db, "notificacoes", `notif_${Date.now()}`), { titulo: msg.titulo, mensagem: msg.mensagem, foto: "", destinatarios: [item.uid], lidoPor: [], criadoPor: SUPER_ADMIN_EMAIL, criadoEm: Date.now() }); }
-    showToast("Status propagado e notificado!"); await carregarPersonalizacoes();
-  } catch (err) { console.error(err); showToast("Erro no pipeline.", "error"); }
-};
+        // MOTOR DE CONFIRMAÇÃO CUSTOMIZADO (substitui o confirm() feio do navegador)
+        function abrirConfirmacao(mensagem, callback) {
+            document.getElementById("confirm-modal-texto").innerText = mensagem;
+            document.getElementById("confirm-modal").classList.remove("hidden");
 
-function renderizarGridPlanos() {
-  const grid = document.getElementById("grid-planos"); if (!grid) return;
-  // UI MODIFIED TEMPLATE
-  grid.innerHTML = Object.entries(PLANOS).map(([key, p]) => `
-    <div class="glass-card rounded-[24px] p-6 flex flex-col hover:border-white/10 transition-colors">
-      <div class="flex items-center justify-between mb-6">
-        <span class="text-xl font-display font-bold text-white tracking-tight">${p.nome}</span>
-        ${planoBadge(key)}
-      </div>
-      <div class="space-y-4 flex-1">
-        <div class="space-y-1.5">
-          <label class="text-[10px] font-bold text-gray-500 uppercase tracking-widest block">Valuation (R$/mês)</label>
-          <div class="relative">
-             <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 font-mono text-sm">R$</span>
-             <input type="number" id="plano-preco-${key}" value="${p.preco}" class="w-full glass-input rounded-xl py-3 pl-9 pr-3 text-sm font-bold font-mono">
-          </div>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div class="space-y-1.5">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block" title="-1 = ilimitado">Produtos Ativos</label>
-            <input type="number" id="plano-produtos-${key}" value="${p.produtos}" class="w-full glass-input rounded-xl p-3 text-xs font-mono text-center">
-          </div>
-          <div class="space-y-1.5">
-            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-widest block" title="-1 = ilimitado">Memória (Rasc.)</label>
-            <input type="number" id="plano-rascunhos-${key}" value="${p.rascunhos}" class="w-full glass-input rounded-xl p-3 text-xs font-mono text-center">
-          </div>
-        </div>
-      </div>
-      <div class="pt-6 mt-4 border-t border-white/5">
-        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-widest mb-3 flex items-center justify-between">
-          <span>Engine Core</span>
-          <span class="bg-white/5 text-gray-300 px-1.5 py-0.5 rounded font-mono">${FEATURES_PLANO[key].length} actv.</span>
-        </p>
-        <div class="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto modal-scroll pr-1">
-          ${FEATURES_PLANO[key].map(fk => `<span class="text-[10px] font-semibold px-2 py-1 rounded bg-[#00f2fe]/5 text-[#00f2fe] border border-[#00f2fe]/10">${FEATURE_LABELS[fk] || fk}</span>`).join("")}
-        </div>
-      </div>
-    </div>
-  `).join("");
-}
+            const btnOk = document.getElementById("confirm-modal-ok");
+            const btnCancelar = document.getElementById("confirm-modal-cancelar");
+            const fechar = () => document.getElementById("confirm-modal").classList.add("hidden");
 
-window.salvarConfiguracaoPlanos = async function() {
-  try {
-    const config = {};
-    Object.keys(PLANOS).forEach(key => { config[key] = { ...PLANOS[key], preco: parseInt(document.getElementById(`plano-preco-${key}`)?.value || PLANOS[key].preco), produtos: parseInt(document.getElementById(`plano-produtos-${key}`)?.value || PLANOS[key].produtos), rascunhos: parseInt(document.getElementById(`plano-rascunhos-${key}`)?.value || PLANOS[key].rascunhos), features: FEATURES_PLANO[key] }; });
-    await setDoc(doc(db, "config", "planos"), config); showToast("Arquitetura de planos sincronizada na DB!");
-  } catch(err) { showToast("Falha no commit.", "error"); }
-};
+            const novoOk = btnOk.cloneNode(true);
+            btnOk.parentNode.replaceChild(novoOk, btnOk);
+            novoOk.addEventListener("click", () => { fechar(); callback(); });
 
-document.querySelectorAll(".tab-btn").forEach(btn => {
-  btn.addEventListener("click", () => {
-    if (btn.dataset.tab === "planos") renderizarGridPlanos();
-    if (btn.dataset.tab === "comparativo") renderizarComparativo();
-    if (btn.dataset.tab === "notificacoes") { renderizarChecklistClientes(); carregarNotificacoesEnviadas(); }
-    if (btn.dataset.tab === "personalizacoes") carregarPersonalizacoes();
-  });
-});
-document.getElementById("btn-logout").addEventListener("click", async () => { await signOut(auth); window.location.href = "login.html"; });
-document.getElementById("modal-cliente").addEventListener("click", (e) => { if (e.target === document.getElementById("modal-cliente")) fecharModal(); });
-</script>
+            const novoCancelar = btnCancelar.cloneNode(true);
+            btnCancelar.parentNode.replaceChild(novoCancelar, btnCancelar);
+            novoCancelar.addEventListener("click", fechar);
+        }
+
+        // APROVAR DIRETO (da lista de pendentes)
+        window.aprovarDireto = async function(uid, email) {
+            const u = todosUsuarios.find(x => x.uid === uid);
+            if (u && u.status === "aprovado") {
+                showToast("Esse cliente já está aprovado.", "error");
+                return;
+            }
+            try {
+                await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
+                showToast("Cliente aprovado com sucesso!");
+                await carregarUsuarios();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao aprovar.", "error");
+            }
+        };
+
+        // REJEITAR DIRETO
+        window.rejeitarDireto = async function(uid) {
+            abrirConfirmacao("Confirma a rejeição deste cadastro?", async () => {
+                try {
+                    await updateDoc(doc(db, "usuarios", uid), { status: "rejeitado" });
+                    showToast("Cadastro rejeitado.");
+                    await carregarUsuarios();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao rejeitar.", "error");
+                }
+            });
+        };
+
+        // BOTÕES DO MODAL
+        document.getElementById("btn-modal-aprovar").addEventListener("click", async () => {
+            if (!clienteSelecionadoUID) return;
+            const u = todosUsuarios.find(x => x.uid === clienteSelecionadoUID);
+            if (u && u.status === "aprovado") {
+                showToast("Esse cliente já está aprovado.", "error");
+                return;
+            }
+            try {
+                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "aprovado" });
+                showToast("Cliente aprovado!");
+                fecharModal();
+                await carregarUsuarios();
+            } catch (err) { showToast("Erro ao aprovar.", "error"); }
+        });
+
+        document.getElementById("btn-modal-rejeitar").addEventListener("click", () => {
+            if (!clienteSelecionadoUID) return;
+            const uidAlvo = clienteSelecionadoUID;
+            abrirConfirmacao("Confirma a rejeição?", async () => {
+                try {
+                    await updateDoc(doc(db, "usuarios", uidAlvo), { status: "rejeitado" });
+                    showToast("Cadastro rejeitado.");
+                    fecharModal();
+                    await carregarUsuarios();
+                } catch (err) { showToast("Erro ao rejeitar.", "error"); }
+            });
+        });
+
+        document.getElementById("btn-modal-inativar").addEventListener("click", () => {
+            if (!clienteSelecionadoUID) return;
+            const u = todosUsuarios.find(x => x.uid === clienteSelecionadoUID);
+            if (u && u.status === "inativo") {
+                showToast("Essa loja já está suspensa.", "error");
+                return;
+            }
+            const uidAlvo = clienteSelecionadoUID;
+            abrirConfirmacao("Confirma a suspensão desta loja?", async () => {
+                try {
+                    await updateDoc(doc(db, "usuarios", uidAlvo), { status: "inativo" });
+                    showToast("Loja suspensa.");
+                    fecharModal();
+                    await carregarUsuarios();
+                } catch (err) { showToast("Erro ao suspender.", "error"); }
+            });
+        });
+
+        document.getElementById("btn-modal-salvar").addEventListener("click", async () => {
+            if (!clienteSelecionadoUID) return;
+            try {
+                const featuresManuais = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
+                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), {
+                    plano: document.getElementById("modal-plano").value,
+                    anotacaoAdmin: document.getElementById("modal-anotacao").value.trim(),
+                    featuresManuais: featuresManuais
+                });
+                showToast("Plano, anotação e funções liberadas salvos!");
+                fecharModal();
+                await carregarUsuarios();
+            } catch (err) { showToast("Erro ao salvar.", "error"); }
+        });
+
+        // TABS
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+                document.querySelectorAll(".tab-content").forEach(c => c.classList.add("hidden"));
+                btn.classList.add("active");
+                document.getElementById("tab-" + btn.dataset.tab).classList.remove("hidden");
+            });
+        });
+
+        // BUSCA E FILTROS EM TEMPO REAL
+        document.getElementById("busca-input").addEventListener("input", carregarUsuarios);
+        document.getElementById("input-acesso-rapido").addEventListener("keydown", (e) => {
+            if (e.key === "Enter") acessoRapidoMaster();
+        });
+        document.getElementById("filtro-status").addEventListener("change", carregarUsuarios);
+        document.getElementById("filtro-plano").addEventListener("change", carregarUsuarios);
+
+        // CONFIGURAÇÃO DE PLANOS
+        // Rótulos legíveis pra cada feature técnica (usa o mesmo nome do FEATURES_OVERRIDE quando existir)
+        const FEATURE_LABELS = Object.fromEntries(FEATURES_OVERRIDE.map(f => [f.key, f.label]));
+        Object.assign(FEATURE_LABELS, {
+            hub: "Loja Pública", popup: "Pop-up de Captura", carrinho: "Carrinho de Compras",
+            chat: "Chat ao Vivo", cupons: "Cupons Automáticos", csv: "Exportar CSV",
+            lp: "Landing Pages", lp1: "Landing Page (básica)", qrcode: "QR Code",
+            temas: "Temas Prontos", avaliacoes: "Avaliações", suporte_vip: "Suporte VIP",
+            onboarding: "Onboarding Guiado"
+        });
+
+// COMPARATIVO ENTRE PLANOS (tabela lado a lado, só leitura)
+        function renderizarComparativo() {
+            const tabela = document.getElementById("comparativo-tabela");
+            if (!tabela) return;
+
+            const chavesPlanos = Object.keys(PLANOS);
+            const todasFeatures = FEATURES_PLANO.premium; // premium já tem a lista completa, em ordem
+
+            let html = "";
+
+            // Cabeçalho com nome + preço de cada plano
+            html += `<thead><tr class="border-b border-white/10 bg-white/[0.03]">
+                <th class="p-3 sticky left-0 bg-[#0d0d16] text-gray-500 uppercase tracking-wider font-bold text-[10px]">Recurso</th>
+                ${chavesPlanos.map(k => `<th class="p-3 text-center min-w-[110px]"><div class="text-white font-black text-xs">${PLANOS[k].nome}</div><div class="text-[#00f2fe] font-bold text-[10px] mt-0.5">R$${PLANOS[k].preco}/mês</div></th>`).join("")}
+            </tr></thead>`;
+
+            html += `<tbody>`;
+
+            // Linha de limites
+            html += `<tr class="border-b border-white/5">
+                <td class="p-3 sticky left-0 bg-[#0d0d16] font-bold text-gray-400">Produtos ativos</td>
+                ${chavesPlanos.map(k => `<td class="p-3 text-center text-white font-bold">${PLANOS[k].produtos === -1 ? "Ilimitado" : PLANOS[k].produtos}</td>`).join("")}
+            </tr>`;
+            html += `<tr class="border-b border-white/5 bg-white/[0.01]">
+                <td class="p-3 sticky left-0 bg-[#0d0d16] font-bold text-gray-400">Rascunhos</td>
+                ${chavesPlanos.map(k => `<td class="p-3 text-center text-white font-bold">${PLANOS[k].rascunhos === -1 ? "Ilimitado" : PLANOS[k].rascunhos}</td>`).join("")}
+            </tr>`;
+
+            // Uma linha por feature, com ✅ ou —
+            todasFeatures.forEach((fk, i) => {
+                html += `<tr class="border-b border-white/5 ${i % 2 === 0 ? "" : "bg-white/[0.01]"}">
+                    <td class="p-3 sticky left-0 bg-[#0d0d16] text-gray-300">${FEATURE_LABELS[fk] || fk}</td>
+                    ${chavesPlanos.map(k => `<td class="p-3 text-center">${FEATURES_PLANO[k].includes(fk) ? '<span class="text-emerald-400 font-black">✅</span>' : '<span class="text-gray-700">—</span>'}</td>`).join("")}
+                </tr>`;
+            });
+
+            // Linha final: recomendado para
+            html += `<tr class="bg-[#00f2fe]/5">
+                <td class="p-3 sticky left-0 bg-[#0d0d16] font-bold text-[#00f2fe] uppercase text-[10px] tracking-wider">Recomendado para</td>
+                ${chavesPlanos.map(k => `<td class="p-3 text-center text-gray-300 text-[10px] leading-relaxed">${PLANOS[k].recomendado || "—"}</td>`).join("")}
+            </tr>`;
+
+            html += `</tbody>`;
+            tabela.innerHTML = html;
+        }
+
+        // =============================================
+        // NOTIFICAÇÕES (admin → clientes, só aparece no dashboard deles)
+        // =============================================
+
+        // Upload de foto em base64
+        document.getElementById("notif-foto-file").addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                document.getElementById("notif-foto-base64").value = reader.result;
+                const preview = document.getElementById("notif-foto-preview");
+                preview.src = reader.result;
+                preview.classList.remove("hidden");
+            };
+            reader.readAsDataURL(file);
+        });
+
+        // Alterna entre "Todos" e "Específicos"
+        document.querySelectorAll('input[name="notif-destino"]').forEach(radio => {
+            radio.addEventListener("change", () => {
+                const box = document.getElementById("notif-lista-clientes");
+                if (document.querySelector('input[name="notif-destino"]:checked').value === "especificos") {
+                    box.classList.remove("hidden");
+                } else {
+                    box.classList.add("hidden");
+                }
+            });
+        });
+
+        function renderizarChecklistClientes() {
+            const box = document.getElementById("notif-lista-clientes");
+            if (!box) return;
+            if (todosUsuarios.length === 0) {
+                box.innerHTML = `<p class="text-xs text-gray-500 col-span-full">Nenhum cliente cadastrado ainda.</p>`;
+                return;
+            }
+            box.innerHTML = todosUsuarios.map(u => `
+                <label class="flex items-center gap-2 text-[11px] text-gray-300 bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2 cursor-pointer hover:bg-white/[0.04] transition-all">
+                    <input type="checkbox" class="notif-cliente-checkbox accent-[#00f2fe]" value="${u.uid}">
+                    <span class="truncate">${u.nome || u.email}</span>
+                </label>
+            `).join("");
+        }
+
+        window.enviarNotificacao = async function() {
+            const titulo = document.getElementById("notif-titulo").value.trim();
+            const mensagem = document.getElementById("notif-mensagem").value.trim();
+            const foto = document.getElementById("notif-foto-base64").value;
+            const destinoTipo = document.querySelector('input[name="notif-destino"]:checked').value;
+
+            if (!titulo || !mensagem) {
+                showToast("Preencha título e mensagem.", "error");
+                return;
+            }
+
+            let destinatarios = "todos";
+            if (destinoTipo === "especificos") {
+                destinatarios = Array.from(document.querySelectorAll(".notif-cliente-checkbox:checked")).map(cb => cb.value);
+                if (destinatarios.length === 0) {
+                    showToast("Selecione ao menos um cliente.", "error");
+                    return;
+                }
+            }
+
+            try {
+                await setDoc(doc(db, "notificacoes", `notif_${Date.now()}`), {
+                    titulo, mensagem, foto: foto || "",
+                    destinatarios,
+                    lidoPor: [],
+                    criadoPor: SUPER_ADMIN_EMAIL,
+                    criadoEm: Date.now()
+                });
+                showToast("Notificação enviada!");
+                document.getElementById("notif-titulo").value = "";
+                document.getElementById("notif-mensagem").value = "";
+                document.getElementById("notif-foto-base64").value = "";
+                document.getElementById("notif-foto-preview").classList.add("hidden");
+                document.querySelectorAll(".notif-cliente-checkbox").forEach(cb => cb.checked = false);
+                await carregarNotificacoesEnviadas();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao enviar notificação.", "error");
+            }
+        };
+
+        async function carregarNotificacoesEnviadas() {
+            const box = document.getElementById("lista-notificacoes-enviadas");
+            if (!box) return;
+            try {
+                const snap = await getDocs(collection(db, "notificacoes"));
+                let lista = [];
+                snap.forEach(d => lista.push({ id: d.id, ...d.data() }));
+                lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                if (lista.length === 0) {
+                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">Nenhuma notificação enviada ainda.</div>`;
+                    return;
+                }
+
+                box.innerHTML = lista.map(n => {
+                    const destinoTexto = n.destinatarios === "todos"
+                        ? "Todos os clientes"
+                        : `${(n.destinatarios || []).length} cliente(s) específico(s)`;
+                    return `
+                        <div class="glass-card rounded-xl p-4 flex gap-3 items-start">
+                            ${n.foto ? `<img src="${n.foto}" class="h-12 w-12 rounded-lg object-cover shrink-0 border border-white/10">` : ""}
+                            <div class="flex-1 min-w-0">
+                                <p class="text-xs font-bold text-white">${n.titulo}</p>
+                                <p class="text-[11px] text-gray-400 mt-0.5 line-clamp-2">${n.mensagem}</p>
+                                <div class="flex items-center gap-2 mt-1.5">
+                                    <span class="text-[9px] font-bold px-2 py-0.5 rounded-md bg-[#00f2fe]/10 text-[#00f2fe] uppercase">${destinoTexto}</span>
+                                    <span class="text-[9px] text-gray-600">${n.criadoEm ? new Date(n.criadoEm).toLocaleString("pt-BR") : "—"}</span>
+                                    <span class="text-[9px] text-gray-600">· ${(n.lidoPor || []).length} leitura(s)</span>
+                                </div>
+                            </div>
+                            <button onclick="excluirNotificacao('${n.id}')" class="text-red-400 hover:text-red-300 text-xs shrink-0" title="Excluir">🗑️</button>
+                        </div>
+                    `;
+                }).join("");
+            } catch (err) {
+                console.error(err);
+                box.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar histórico.</div>`;
+            }
+        }
+
+        window.excluirNotificacao = async function(id) {
+            abrirConfirmacao("Excluir esta notificação? Ela some do histórico de todos.", async () => {
+                try {
+                    await deleteDoc(doc(db, "notificacoes", id));
+                    showToast("Notificação excluída.");
+                    await carregarNotificacoesEnviadas();
+                } catch (err) {
+                    console.error(err);
+                    showToast("Erro ao excluir.", "error");
+                }
+            });
+        };
+
+        // =============================================
+        // PERSONALIZAÇÕES (fila de solicitações dos clientes)
+        // =============================================
+        let _cachePersonalizacoes = [];
+
+        const MENSAGENS_STATUS_CLIENTE = {
+            em_andamento: { titulo: "Sua personalização está em andamento!", mensagem: "Já começamos a trabalhar na sua loja. Em breve estará pronta!" },
+            concluido: { titulo: "Personalização concluída! 🎉", mensagem: "Sua loja foi personalizada com sucesso. Dá uma olhada!" },
+            negado: { titulo: "Sobre sua solicitação de personalização", mensagem: "Não foi possível seguir com sua solicitação no momento. Vamos entrar em contato pra entender melhor." },
+            pendente: { titulo: "Sua solicitação voltou pra fila", mensagem: "Sua solicitação de personalização está novamente aguardando análise." }
+        };
+
+        async function carregarPersonalizacoes() {
+            const boxAtivas = document.getElementById("lista-personalizacoes");
+            if (!boxAtivas) return;
+            try {
+                const snap = await getDocs(collection(db, "solicitacoes_customizacao"));
+                _cachePersonalizacoes = [];
+                snap.forEach(d => _cachePersonalizacoes.push({ id: d.id, ...d.data() }));
+                _cachePersonalizacoes.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                const ativas = _cachePersonalizacoes.filter(p => p.status === "pendente" || p.status === "em_andamento" || !p.status);
+                renderizarListaPersonalizacoes(boxAtivas, ativas, "Nenhuma solicitação na fila. ✅");
+
+                renderizarHistoricoPersonalizacoes();
+            } catch (err) {
+                console.error(err);
+                boxAtivas.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar solicitações.</div>`;
+            }
+        }
+
+        function configurarFiltroPersonalizado(idSelect, idBoxDatas) {
+            const select = document.getElementById(idSelect);
+            const box = document.getElementById(idBoxDatas);
+            if (!select || !box) return;
+            select.addEventListener("change", () => {
+                box.classList.toggle("hidden", select.value !== "custom");
+            });
+        }
+        function obterFiltroSelecionado(idSelect, idDe, idAte) {
+            const valor = document.getElementById(idSelect).value;
+            if (valor === "custom") {
+                const de = document.getElementById(idDe).value;
+                const ate = document.getElementById(idAte).value;
+                return {
+                    inicio: de ? new Date(de + "T00:00:00").getTime() : 0,
+                    fim: ate ? new Date(ate + "T23:59:59").getTime() : Date.now()
+                };
+            }
+            return parseInt(valor);
+        }
+        function normalizarIntervalo(filtro) {
+            const agora = Date.now();
+            if (filtro && typeof filtro === "object") {
+                return { inicio: filtro.inicio || 0, fim: filtro.fim || agora, todos: !filtro.inicio };
+            }
+            const dias = filtro;
+            return { inicio: dias === 0 ? 0 : agora - (dias * 24 * 60 * 60 * 1000), fim: agora, todos: dias === 0 };
+        }
+        // Impede escolher a data "até" antes da data "de" (e vice-versa)
+        function ligarValidacaoIntervaloDatas(idDe, idAte) {
+            const inputDe = document.getElementById(idDe);
+            const inputAte = document.getElementById(idAte);
+            if (!inputDe || !inputAte) return;
+            inputDe.addEventListener("change", () => {
+                inputAte.min = inputDe.value;
+                if (inputAte.value && inputAte.value < inputDe.value) inputAte.value = inputDe.value;
+            });
+            inputAte.addEventListener("change", () => {
+                inputDe.max = inputAte.value;
+                if (inputDe.value && inputDe.value > inputAte.value) inputDe.value = inputAte.value;
+            });
+        }
+
+        configurarFiltroPersonalizado("filtro-personalizacao-dias", "filtro-personalizacao-datas-custom");
+        ligarValidacaoIntervaloDatas("filtro-personalizacao-de", "filtro-personalizacao-ate");
+
+        function renderizarHistoricoPersonalizacoes() {
+            const boxHistorico = document.getElementById("lista-personalizacoes-historico");
+            if (!boxHistorico) return 0;
+            const filtro = obterFiltroSelecionado("filtro-personalizacao-dias", "filtro-personalizacao-de", "filtro-personalizacao-ate");
+            const { inicio, fim, todos } = normalizarIntervalo(filtro);
+
+            let historico = _cachePersonalizacoes.filter(p => p.status === "concluido" || p.status === "negado");
+            if (!todos) historico = historico.filter(p => (p.criadoEm || Date.now()) >= inicio && (p.criadoEm || Date.now()) <= fim);
+
+            renderizarListaPersonalizacoes(boxHistorico, historico, "Nenhum item no histórico desse período.");
+            return historico.length;
+        }
+
+        window.aplicarFiltroPersonalizacoesHistorico = function() {
+            const total = renderizarHistoricoPersonalizacoes();
+            showToast(`Filtro aplicado! ${total} item(ns) encontrado(s).`);
+        };
+        function renderizarListaPersonalizacoes(box, lista, mensagemVazio) {
+            if (lista.length === 0) {
+                box.innerHTML = `<div class="text-center text-gray-500 text-xs p-8 glass-card rounded-2xl">${mensagemVazio}</div>`;
+                return;
+            }
+            const cliente = (uid) => todosUsuarios.find(u => u.uid === uid);
+
+            box.innerHTML = lista.map(p => {
+                const u = cliente(p.uid);
+                const corBorda = p.status === "concluido" ? "border-emerald-500/40" : p.status === "em_andamento" ? "border-blue-500/40" : p.status === "negado" ? "border-red-500/40" : "border-amber-500/40";
+                return `
+                    <div class="glass-card p-5 rounded-2xl space-y-3 border-l-2 ${corBorda}">
+                        <div class="flex flex-col sm:flex-row justify-between sm:items-start gap-3">
+                            <div class="min-w-0 flex-1">
+                                <p class="text-sm font-bold text-white">${u?.nomeLoja || u?.nome || p.email}</p>
+                                <p class="text-[11px] text-gray-500">${p.email} ${p.whatsapp ? "· 📱 " + p.whatsapp : ""}</p>
+                                <p class="text-xs text-gray-300 mt-2">${p.descricao}</p>
+                                <p class="text-[10px] text-gray-600 mt-1">${p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—"}</p>
+                            </div>
+                            <div class="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
+                                <select onchange="atualizarStatusPersonalizacao('${p.id}', this.value)" class="glass-input rounded-lg px-3 py-2 text-xs text-white outline-none">
+                                    <option value="pendente" ${p.status === "pendente" ? "selected" : ""}>⏳ Pendente</option>
+                                    <option value="em_andamento" ${p.status === "em_andamento" ? "selected" : ""}>🛠️ Em andamento</option>
+                                    <option value="concluido" ${p.status === "concluido" ? "selected" : ""}>✅ Concluído</option>
+                                    <option value="negado" ${p.status === "negado" ? "selected" : ""}>❌ Negado</option>
+                                </select>
+                                ${u ? `<a href="dashboard.html?masterUID=${u.uid}" target="_blank" class="text-center text-[11px] font-bold py-2 px-3 rounded-lg bg-amber-500/10 border border-amber-500/20 text-amber-400 hover:bg-amber-500/20 transition-all">🔑 Acessar Dashboard</a>` : ""}
+                            </div>
+                        </div>
+                        <div class="pt-2 border-t border-white/5">
+                            <label class="text-[9px] font-bold text-gray-500 uppercase tracking-wider block mb-1">Anotação interna (só você vê)</label>
+                            <textarea onblur="salvarAnotacaoPersonalizacao('${p.id}', this.value)" rows="2" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none resize-none" placeholder="Ex: Já entrei em contato, aguardando fotos dos produtos...">${p.anotacaoAdmin || ""}</textarea>
+                        </div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        window.salvarAnotacaoPersonalizacao = async function(id, texto) {
+            try {
+                await updateDoc(doc(db, "solicitacoes_customizacao", id), { anotacaoAdmin: texto });
+                showToast("Anotação salva!");
+            } catch (err) {
+                console.error(err);
+            }
+        };
+
+        window.atualizarStatusPersonalizacao = async function(id, status) {
+            try {
+                const item = _cachePersonalizacoes.find(p => p.id === id);
+                await updateDoc(doc(db, "solicitacoes_customizacao", id), { status });
+
+                const msg = MENSAGENS_STATUS_CLIENTE[status];
+                if (item && msg) {
+                    await setDoc(doc(db, "notificacoes", `notif_${Date.now()}`), {
+                        titulo: msg.titulo,
+                        mensagem: msg.mensagem,
+                        foto: "",
+                        destinatarios: [item.uid],
+                        lidoPor: [],
+                        criadoPor: SUPER_ADMIN_EMAIL,
+                        criadoEm: Date.now()
+                    });
+                }
+
+                showToast("Status atualizado! Cliente notificado.");
+                await carregarPersonalizacoes();
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao atualizar.", "error");
+            }
+        };
+        
+        function renderizarGridPlanos() {
+            const grid = document.getElementById("grid-planos");
+            if (!grid) return;
+            grid.innerHTML = Object.entries(PLANOS).map(([key, p]) => `
+                <div class="glass-card rounded-xl p-5 space-y-4">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-black text-white">${p.nome}</span>
+                        ${planoBadge(key)}
+                    </div>
+                    <div class="space-y-3">
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Preço (R$/mês)</label>
+                            <input type="number" id="plano-preco-${key}" value="${p.preco}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Produtos Ativos (-1 = ilimitado)</label>
+                            <input type="number" id="plano-produtos-${key}" value="${p.produtos}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Rascunhos (-1 = ilimitado)</label>
+                            <input type="number" id="plano-rascunhos-${key}" value="${p.rascunhos}" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                        </div>
+                    </div>
+                    <div class="pt-2 border-t border-white/5 space-y-2">
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Features incluídas (${FEATURES_PLANO[key].length})</p>
+                        <div class="flex flex-wrap gap-1.5">
+                            ${FEATURES_PLANO[key].map(fk => `<span class="text-[9px] font-bold px-2 py-1 rounded-md bg-[#00f2fe]/10 text-[#00f2fe] border border-[#00f2fe]/20">${FEATURE_LABELS[fk] || fk}</span>`).join("")}
+                        </div>
+                    </div>
+                </div>
+            `).join("");
+        }
+
+        window.salvarConfiguracaoPlanos = async function() {
+            try {
+                const config = {};
+                Object.keys(PLANOS).forEach(key => {
+                    config[key] = {
+                        ...PLANOS[key],
+                        preco: parseInt(document.getElementById(`plano-preco-${key}`)?.value || PLANOS[key].preco),
+                        produtos: parseInt(document.getElementById(`plano-produtos-${key}`)?.value || PLANOS[key].produtos),
+                        rascunhos: parseInt(document.getElementById(`plano-rascunhos-${key}`)?.value || PLANOS[key].rascunhos),
+                        features: FEATURES_PLANO[key]
+                    };
+                });
+                await setDoc(doc(db, "config", "planos"), config);
+                showToast("Configuração dos planos salva!");
+            } catch(err) {
+                showToast("Erro ao salvar.", "error");
+            }
+        };
+
+        // Renderiza grid ao clicar na aba planos
+        document.querySelectorAll(".tab-btn").forEach(btn => {
+            btn.addEventListener("click", () => {
+                if (btn.dataset.tab === "planos") renderizarGridPlanos();
+                if (btn.dataset.tab === "comparativo") renderizarComparativo();
+                if (btn.dataset.tab === "notificacoes") { renderizarChecklistClientes(); carregarNotificacoesEnviadas(); }
+                if (btn.dataset.tab === "personalizacoes") carregarPersonalizacoes();
+            });
+        });
+
+        // LOGOUT
+        document.getElementById("btn-logout").addEventListener("click", async () => {
+            await signOut(auth);
+            window.location.href = "login.html";
+        });
+
+        // FECHAR MODAL CLICANDO FORA
+        document.getElementById("modal-cliente").addEventListener("click", (e) => {
+            if (e.target === document.getElementById("modal-cliente")) fecharModal();
+        });
+    </script>
 </body>
 </html>
