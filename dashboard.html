@@ -4325,13 +4325,20 @@ document.getElementById("lped-preview-canvas").addEventListener("mousedown", fun
                             </div>
                         </div>
                     </div>
-                    <div>
+<div>
                         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Alinhamento</p>
                         <div class="flex gap-2">
                             ${["esquerda", "centro", "direita"].map(op => `
                                 <button onclick="lpEditorBlocos[${i}].design.alinhamento = '${op}'; renderizarEditorBlocos();" class="flex-1 text-[10px] font-bold py-2 rounded-lg transition-all ${d.alinhamento === op ? "bg-white text-black" : "bg-white/5 text-gray-400 hover:bg-white/10"}">${op}</button>
                             `).join("")}
                         </div>
+                    </div>
+                    <div>
+                        <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Animacao de entrada</p>
+                        <select onchange="lpEditorBlocos[${i}].design.animacao = this.value" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
+                            ${[["", "Nenhuma"], ["fade", "Aparecer (fade)"], ["subir", "Subir"], ["esquerda", "Vindo da esquerda"], ["direita", "Vindo da direita"], ["zoom", "Zoom"]].map(op => `<option value="${op[0]}" ${(d.animacao || "") === op[0] ? "selected" : ""}>${op[1]}</option>`).join("")}
+                        </select>
+                        <p class="text-[9px] text-gray-500 mt-1">O efeito acontece quando o bloco entra na tela do visitante (veja na pagina publicada ou na previa de rascunho).</p>
                     </div>
                 </div>
             `;
