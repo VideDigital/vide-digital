@@ -2041,7 +2041,7 @@ Adicionar Produto
             </div>
         </div>
         <div class="flex-1 flex overflow-hidden relative">
-            <div id="lped-painel-lateral" class="w-[420px] shrink-0 border-r border-white/5 overflow-y-auto p-5 space-y-4 transition-all duration-200">
+            <div id="lped-painel-lateral" class="w-[430px] shrink-0 bg-gradient-to-b from-[#0D0F18] via-[#111320] to-[#0A0B14] border-r border-white/10 overflow-y-auto p-6 space-y-5 transition-all duration-300 shadow-[20px_0_60px_rgba(0,0,0,.35)]">
 <div>
                     <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Endereco (slug)</label>
                     <input type="text" id="lped-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none mt-1" placeholder="promocao-inverno" oninput="atualizarUrlPreviewEditor()">
@@ -2051,24 +2051,26 @@ Adicionar Produto
                     <div id="lped-barra-paginas" class="flex items-center gap-1.5 flex-wrap"></div>
                     <p class="text-[9px] text-gray-500 mt-1.5">Pra levar o visitante a outra pagina, use o link ?p=2 (numero da pagina) nos botoes.</p>
                 </div>
-                <div id="lped-blocos-lista" class="space-y-3"></div>
-                <button onclick="abrirPainelBlocos()" class="w-full bg-[#5B3DF5]/10 hover:bg-[#5B3DF5]/20 border border-dashed border-[#5B3DF5]/40 text-[#a996ff] text-xs font-bold py-4 rounded-xl transition-all flex items-center justify-center gap-2">
+                <div id="lped-blocos-lista" class="space-y-4"></div>
+                <button onclick="abrirPainelBlocos()" class="w-full bg-gradient-to-r from-[#5B3DF5]/15 to-[#7C5CFF]/15 hover:from-[#5B3DF5]/25 hover:to-[#7C5CFF]/25 border border-dashed border-[#7C5CFF]/50 text-[#C5BAFF] text-xs font-black py-5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 hover:scale-[1.02]">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Adicionar Bloco
                 </button>
             </div>
-            <button onclick="alternarPainelLateral()" id="lped-btn-colapsar-painel" title="Ocultar/mostrar blocos" class="absolute top-1/2 -translate-y-1/2 z-10 bg-[#1A1935] border border-white/10 rounded-full p-1.5 hover:bg-white/10 transition-all duration-200" style="left:412px;">
+            <button onclick="alternarPainelLateral()" id="lped-btn-colapsar-painel" title="Ocultar/mostrar blocos" class="absolute top-1/2 -translate-y-1/2 z-10 bg-[#171A28] border border-white/10 rounded-full p-2.5 hover:bg-violet-500/20 transition-all duration-300 shadow-xl" style="left:412px;">
                 <svg id="lped-icone-colapsar" class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <div class="flex-1 overflow-y-auto bg-[#08070f] p-8 flex flex-col items-center">
-                <div id="lped-browser-frame" class="w-full max-w-4xl bg-[#14132B] rounded-2xl overflow-hidden shadow-2xl border border-white/5 transition-all duration-300">
-                    <div class="bg-black/40 px-4 py-2.5 flex items-center gap-3 border-b border-white/5">
-                        <div class="flex gap-1.5 shrink-0">
-                            <span class="w-2.5 h-2.5 rounded-full bg-red-500/60"></span>
-                            <span class="w-2.5 h-2.5 rounded-full bg-yellow-500/60"></span>
-                            <span class="w-2.5 h-2.5 rounded-full bg-green-500/60"></span>
+            <div class="relative flex-1 overflow-y-auto bg-gradient-to-br from-[#06070C] via-[#0B0D17] to-[#090A12] p-10 flex flex-col items-center overflow-hidden">
+                <div class="absolute inset-0 opacity-[0.045] pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:32px 32px;"></div>
+<div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(91,61,245,.22),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,.18),transparent_35%)]"></div>
+                <div id="lped-browser-frame" class="w-full max-w-[1450px] bg-[#111320] rounded-[30px] overflow-hidden border border-white/10 shadow-[0_50px_140px_rgba(0,0,0,.55)] backdrop-blur-xl transition-all duration-300">
+                    <div class="bg-gradient-to-r from-[#0E1018] via-[#16192A] to-[#0E1018] px-6 py-3 flex items-center gap-4 border-b border-white/10 backdrop-blur-xl">
+                        <div class="flex gap-2 shrink-0">
+                            <span class="w-3 h-3 rounded-full bg-[#FF5F57] shadow-[0_0_10px_rgba(255,95,87,.5)]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-[0_0_10px_rgba(254,188,46,.5)]"></span>
+                            <span class="w-3 h-3 rounded-full bg-[#28C840] shadow-[0_0_10px_rgba(40,200,64,.5)]"></span>
                         </div>
-                        <div class="flex-1 bg-white/5 rounded-md px-3 py-1 text-[10px] text-gray-400 truncate" id="lped-url-preview">videdigital.github.io/vide-digital/sua-loja/sua-pagina</div>
+                        <div class="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-[11px] text-gray-400 truncate shadow-inner" id="lped-url-preview">videdigital.github.io/vide-digital/sua-loja/sua-pagina</div>
                     </div>
                     <div id="lped-preview-canvas" class="text-white overflow-y-auto" style="max-height: calc(100vh - 220px);"></div>
                 </div>
