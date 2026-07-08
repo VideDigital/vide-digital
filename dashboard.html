@@ -2745,6 +2745,9 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                 <button onclick="alternarPublicacaoLP('${lp.id}', ${!lp.publicado})" title="${lp.publicado ? 'Despublicar' : 'Publicar'}" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${lp.publicado ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>' : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'}</svg>
                                 </button>
+<button onclick="duplicarLP('${lp.id}')" title="Duplicar" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
+                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
+                                </button>
                                 <button onclick="excluirLP('${lp.id}')" title="Excluir" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2 rounded-lg transition-all">
                                     <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
                                 </button>
@@ -4151,6 +4154,44 @@ window.abrirPreviewEditorLP = async function() {
             } catch(err) {
                 console.error(err);
                 showToast("Erro: " + err.message, "error");
+            }
+        };
+window.duplicarLP = async function(id) {
+            try {
+                const snap = await getDoc(doc(db, "landing_pages", id));
+                if (!snap.exists()) return;
+                const lp = snap.data();
+                const todas = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
+                const slugsExistentes = [];
+                todas.forEach(d => slugsExistentes.push(d.data().pagina));
+                let base = (lp.pagina || "").replace(/\d+$/, "");
+                if (!base) base = lp.pagina;
+                let n = 1;
+                while (slugsExistentes.includes(base + n)) n++;
+                const novoSlug = base + n;
+                const tituloBase = (lp.titulo || "").replace(/\s*\d+$/, "");
+                const novoTitulo = tituloBase + " " + n;
+                const novoId = `lp_${Date.now()}`;
+                const novaOrdem = [];
+                let i = 0;
+                for (const blocoId of (lp.ordemBlocos || [])) {
+                    const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
+                    if (!blocoSnap.exists()) continue;
+                    i++;
+                    const novoBlocoId = `lpb_${Date.now()}_${i}`;
+                    await setDoc(doc(db, "landing_pages_blocos", novoBlocoId), { ...blocoSnap.data(), lpId: novoId, donoUID: usuarioUID });
+                    novaOrdem.push(novoBlocoId);
+                }
+                await setDoc(doc(db, "landing_pages", novoId), {
+                    donoUID: usuarioUID, titulo: novoTitulo, pagina: novoSlug, publicado: false,
+                    modoLayout: lp.modoLayout || "empilhado", ordemBlocos: novaOrdem,
+                    criadoEm: Date.now(), atualizadoEm: Date.now()
+                });
+                showToast(`Copia criada: ${novoTitulo} (/${novoSlug})`);
+                carregarLandingPages();
+            } catch(err) {
+                console.error(err);
+                showToast("Erro ao duplicar: " + err.message, "error");
             }
         };
         window.excluirLP = async function(id) {
