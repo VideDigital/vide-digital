@@ -535,15 +535,105 @@ a{ transition:color .2s var(--rd-ease); }
 
     <aside id="admin-sidebar" class="w-full md:w-64 glass-sidebar md:h-screen flex flex-col justify-between p-5 shrink-0 z-40">
     <div class="space-y-8">
-        <div class="flex items-center justify-between md:justify-start gap-3 px-2">
-            <div class="flex items-center gap-2.5">
-                <div id="admin-logo-box" class="h-6 w-6 rounded-md bg-white flex items-center justify-center">
-                    <span class="text-black font-bold text-[10px]">V</span>
-                </div>
-                <h2 class="text-sm font-semibold tracking-tight text-white">Vide Hub</h2>
+        <div class="relative overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-white/10 via-white/5 to-transparent p-5 mb-2">
+
+    <div class="absolute -top-16 -right-16 w-40 h-40 rounded-full blur-3xl opacity-30"
+         style="background:var(--sys-destaque);"></div>
+
+    <div class="absolute -bottom-20 -left-16 w-40 h-40 rounded-full blur-3xl opacity-20"
+         style="background:var(--sys-primaria);"></div>
+
+    <div class="relative flex items-center justify-between">
+
+        <div class="flex items-center gap-4">
+
+            <div id="admin-logo-box"
+                 class="w-14 h-14 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-2xl border border-white/10"
+                 style="background:linear-gradient(135deg,var(--sys-primaria),var(--sys-destaque));">
+
+                V
+
             </div>
-            <button id="mobile-menu-toggle" class="md:hidden text-gray-500 hover:text-white p-1 text-xl">☰</button>
+
+            <div>
+
+                <p class="text-[11px] uppercase tracking-[0.35em] text-gray-500 font-bold">
+                    Enterprise
+                </p>
+
+                <h2 class="text-lg font-black text-white leading-none mt-1">
+                    Vide Hub
+                </h2>
+
+                <p class="text-xs text-gray-400 mt-1">
+                    Premium SaaS Platform
+                </p>
+
+            </div>
+
         </div>
+
+        <button id="mobile-menu-toggle"
+                class="md:hidden h-11 w-11 rounded-2xl border border-white/10 bg-white/5 hover:bg-white/10 transition-all text-white">
+
+            ☰
+
+        </button>
+
+    </div>
+
+</div>
+
+        <div class="glass-card rounded-2xl p-4 mb-5">
+
+    <div class="flex items-center justify-between">
+
+        <div>
+
+            <p class="text-[10px] uppercase tracking-[0.3em] text-gray-500">
+                Workspace
+            </p>
+
+            <h3 class="text-sm font-bold text-white mt-1">
+                Minha Empresa
+            </h3>
+
+        </div>
+
+        <div class="flex items-center gap-2">
+
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+
+            <span class="text-[11px] text-green-400">
+                Online
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="mt-4">
+
+        <div class="flex justify-between text-[11px] text-gray-500">
+
+            <span>Armazenamento</span>
+
+            <span>32%</span>
+
+        </div>
+
+        <div class="mt-2 h-2 rounded-full bg-white/5 overflow-hidden">
+
+            <div class="h-full rounded-full"
+                 style="width:32%;
+                 background:linear-gradient(90deg,var(--sys-primaria),var(--sys-destaque));">
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
         
         <nav class="hidden md:block space-y-1 overflow-y-auto custom-scrollbar flex-1 min-h-0" id="sidebar-nav">
             <p class="px-4 text-[10px] font-semibold text-gray-500 uppercase tracking-widest mb-3">Menu Principal</p>
