@@ -1644,8 +1644,9 @@ Adicionar Produto
                 <p class="text-xs font-bold text-white">Camadas</p>
                 <button onclick="alternarPainelCamadas()" class="text-gray-400 hover:text-white text-sm leading-none">&times;</button>
             </div>
-            <div id="lped-camadas-lista" class="max-h-[60vh] overflow-y-auto p-2 space-y-1"></div>
+<div id="lped-camadas-lista" class="max-h-[60vh] overflow-y-auto p-2 space-y-1"></div>
         </div>
+        <div id="lped-menu-contexto" class="hidden fixed z-[140] w-48 bg-[#14132B] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1"></div>
         <div class="shrink-0 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
@@ -2903,12 +2904,107 @@ function moverCamada(i, direcao) {
                 if (alvo) alvo.scrollIntoView({ behavior: "smooth", block: "start" });
             }, 60);
         };
-        window.alternarVisibilidadeCamada = function(i) {
+window.alternarVisibilidadeCamada = function(i) {
             lpEditorBlocos[i].visivel = lpEditorBlocos[i].visivel === false;
             renderizarEditorBlocos();
             renderizarPainelCamadas();
             salvarHistoricoEditor();
         };
+        let menuContextoIndice = null;
+        function fecharMenuContexto() {
+            const menu = document.getElementById("lped-menu-contexto");
+            if (menu) menu.classList.add("hidden");
+            menuContextoIndice = null;
+        }
+        function abrirMenuContexto(clientX, clientY, idx) {
+            const menu = document.getElementById("lped-menu-contexto");
+            if (!menu || !lpEditorBlocos[idx]) return;
+            menuContextoIndice = idx;
+            if (!blocosSelecionadosLivre.has(idx)) {
+                blocosSelecionadosLivre.clear();
+                blocosSelecionadosLivre.add(idx);
+                renderizarPreviewEditor();
+            }
+            const qtd = blocosSelecionadosLivre.size;
+            const oculto = lpEditorBlocos[idx].visivel === false;
+            const itemCls = "w-full text-left px-3.5 py-2 text-[11px] font-bold text-gray-300 hover:bg-white/5 hover:text-white transition-all";
+            menu.innerHTML = `
+                <button onclick="menuCtxEditar()" class="${itemCls}">Editar conteudo</button>
+                <button onclick="menuCtxDuplicar()" class="${itemCls}">Duplicar${qtd > 1 ? ` (${qtd})` : ""}</button>
+                <div class="h-px bg-white/5 my-1"></div>
+                <button onclick="menuCtxCamada(1)" class="${itemCls}">Subir camada</button>
+                <button onclick="menuCtxCamada(-1)" class="${itemCls}">Descer camada</button>
+                <button onclick="menuCtxOcultar()" class="${itemCls}">${oculto ? "Mostrar" : "Ocultar"}</button>
+                <div class="h-px bg-white/5 my-1"></div>
+                <button onclick="menuCtxExcluir()" class="w-full text-left px-3.5 py-2 text-[11px] font-bold text-red-400 hover:bg-red-500/10 transition-all">Excluir${qtd > 1 ? ` (${qtd})` : ""}</button>
+            `;
+            menu.classList.remove("hidden");
+            menu.style.left = Math.min(clientX, window.innerWidth - 200) + "px";
+            menu.style.top = Math.min(clientY, window.innerHeight - (menu.offsetHeight || 240) - 8) + "px";
+        }
+        window.menuCtxEditar = function() {
+            const i = menuContextoIndice;
+            fecharMenuContexto();
+            if (i !== null) selecionarBlocoCamada(i);
+        };
+        window.menuCtxDuplicar = function() {
+            const indices = Array.from(blocosSelecionadosLivre).sort((a, c) => a - c);
+            fecharMenuContexto();
+            if (indices.length === 0) return;
+            let maxZ = Math.max(0, ...lpEditorBlocos.map(b => b.zIndex || 0));
+            blocosSelecionadosLivre.clear();
+            indices.forEach(i => {
+                const original = lpEditorBlocos[i];
+                if (!original) return;
+                const copia = JSON.parse(JSON.stringify(original));
+                copia.id = `lpb_${Date.now()}_${lpEditorBlocos.length}`;
+                copia._colapsado = true;
+                if (copia.x !== undefined) {
+                    copia.x = Math.min(copia.x + 20, 1440 - (copia.largura || 600));
+                    copia.y = (copia.y || 0) + 20;
+                    maxZ++;
+                    copia.zIndex = maxZ;
+                }
+                lpEditorBlocos.push(copia);
+            });
+            renderizarEditorBlocos();
+            salvarHistoricoEditor();
+        };
+        window.menuCtxCamada = function(direcao) {
+            const i = menuContextoIndice;
+            fecharMenuContexto();
+            if (i !== null) moverCamada(i, direcao);
+        };
+        window.menuCtxOcultar = function() {
+            const i = menuContextoIndice;
+            fecharMenuContexto();
+            if (i !== null) alternarVisibilidadeCamada(i);
+        };
+        window.menuCtxExcluir = function() {
+            const indices = Array.from(blocosSelecionadosLivre).sort((a, c) => c - a);
+            fecharMenuContexto();
+            if (indices.length === 0) return;
+            indices.forEach(i => {
+                const removido = lpEditorBlocos.splice(i, 1)[0];
+                if (removido && removido.id) lpEditorRemovidos.push(removido.id);
+            });
+            blocosSelecionadosLivre.clear();
+            renderizarEditorBlocos();
+            salvarHistoricoEditor();
+        };
+        document.getElementById("lped-preview-canvas").addEventListener("contextmenu", function(e) {
+            if (lpEditorModoLayout !== "livre") return;
+            const handle = e.target.closest(".livre-mover, .resize-handle");
+            if (!handle) { fecharMenuContexto(); return; }
+            e.preventDefault();
+            abrirMenuContexto(e.clientX, e.clientY, parseInt(handle.getAttribute("data-bloco-index")));
+        });
+        document.addEventListener("mousedown", function(e) {
+            const menu = document.getElementById("lped-menu-contexto");
+            if (menu && !menu.classList.contains("hidden") && !e.target.closest("#lped-menu-contexto")) {
+                fecharMenuContexto();
+            }
+        });
         function clonarBlocosEditor() {
             return JSON.parse(JSON.stringify(lpEditorBlocos));
         }
@@ -3228,7 +3324,8 @@ return { x: novoX, y: novoY, guias };
         }
 let redimensionandoElemento = null;
         let blocosSelecionadosLivre = new Set();
-        document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
+document.getElementById("lped-preview-canvas").addEventListener("mousedown", function(e) {
+            if (e.button === 2) return;
             const handle = e.target.closest(".resize-handle, .livre-mover");
             if (!handle) {
                 if (lpEditorModoLayout === "livre" && blocosSelecionadosLivre.size > 0) {
