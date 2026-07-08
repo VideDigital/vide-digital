@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full bg-[#030712]">
 <head>
@@ -163,6 +164,343 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
 #sidebar-nav.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
 
 .tema-claro #sidebar-nav.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
+
+
+/* =========================================================================
+   REDESIGN VISUAL PREMIUM — sobrepõe o CSS acima sem tocar em HTML/JS/IDs.
+   Referências: Stripe · Vercel · Linear · Notion · Raycast · Clerk · Shopify
+   ========================================================================= */
+
+:root{
+  --rd-bg-0:#0A0918;
+  --rd-bg-1:#0F0D24;
+  --rd-bg-2:#141230;
+  --rd-surface:rgba(255,255,255,.028);
+  --rd-surface-2:rgba(255,255,255,.045);
+  --rd-border:rgba(255,255,255,.07);
+  --rd-border-strong:rgba(255,255,255,.14);
+  --rd-text:#F5F5FA;
+  --rd-text-dim:#B4B3C7;
+  --rd-text-mute:#7C7A99;
+  --rd-primary:var(--sys-primaria,#6D4AFF);
+  --rd-accent:var(--sys-destaque,#FF7A45);
+  --rd-success:#22C55E;
+  --rd-warn:#F59E0B;
+  --rd-danger:#EF4444;
+  --rd-info:#38BDF8;
+  --rd-radius:16px;
+  --rd-radius-lg:22px;
+  --rd-radius-xl:28px;
+  --rd-shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --rd-shadow:0 8px 24px -8px rgba(0,0,0,.55);
+  --rd-shadow-lg:0 24px 60px -20px rgba(0,0,0,.65), 0 8px 20px -12px rgba(0,0,0,.5);
+  --rd-glow:0 0 0 1px rgba(255,122,69,.35), 0 8px 32px -8px rgba(255,122,69,.35);
+  --rd-ease:cubic-bezier(.22,1,.36,1);
+}
+
+html,body{background:var(--rd-bg-0) !important;}
+body#admin-body{
+  color:var(--rd-text) !important;
+  font-family:'Inter','Plus Jakarta Sans',system-ui,sans-serif !important;
+  letter-spacing:-.005em;
+  background:
+    radial-gradient(1200px 600px at 90% -10%, rgba(109,74,255,.18), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255,122,69,.14), transparent 60%),
+    var(--rd-bg-0) !important;
+  min-height:100vh;
+}
+h1,h2,h3,h4{font-family:'Sora','Plus Jakarta Sans',sans-serif !important; letter-spacing:-.02em;}
+h1{font-weight:800;} h2{font-weight:800;} h3{font-weight:700;}
+
+/* ===== SIDEBAR PREMIUM (flutuante glass) ===== */
+.glass-sidebar{
+  background:linear-gradient(180deg, rgba(20,18,48,.85), rgba(15,13,36,.85)) !important;
+  border:1px solid var(--rd-border) !important;
+  border-right:1px solid var(--rd-border) !important;
+  border-radius:var(--rd-radius-xl) !important;
+  margin:14px 0 14px 14px;
+  backdrop-filter:blur(24px) saturate(140%);
+  box-shadow:var(--rd-shadow-lg);
+  position:relative;
+  overflow:hidden;
+}
+.glass-sidebar::before{
+  content:"";
+  position:absolute; inset:0;
+  background:radial-gradient(600px 200px at 50% -10%, rgba(109,74,255,.18), transparent 70%);
+  pointer-events:none;
+}
+@media (max-width:768px){
+  .glass-sidebar{ margin:0; border-radius:0 !important; }
+}
+
+/* Nav items — estilo Linear/Raycast */
+.nav-item, #sidebar-nav button, aside button.nav-item{
+  border-radius:12px !important;
+  transition:all .22s var(--rd-ease) !important;
+  position:relative;
+  font-weight:500 !important;
+  color:var(--rd-text-dim) !important;
+  border:1px solid transparent !important;
+}
+.nav-item:hover{
+  background:var(--rd-surface-2) !important;
+  color:var(--rd-text) !important;
+  transform:translateX(2px);
+}
+.nav-item.active{
+  background:linear-gradient(90deg, rgba(255,122,69,.15), rgba(255,122,69,.04)) !important;
+  color:#fff !important;
+  border-color:rgba(255,122,69,.25) !important;
+  box-shadow:0 4px 16px -8px rgba(255,122,69,.5);
+}
+.nav-item.active::before{
+  content:"";
+  position:absolute; left:-6px; top:20%; bottom:20%;
+  width:3px; border-radius:3px;
+  background:var(--rd-accent);
+  box-shadow:0 0 12px var(--rd-accent);
+}
+
+/* ===== TOPBAR ===== */
+header, [id*="topbar"], .topbar{
+  backdrop-filter:blur(18px) saturate(140%);
+}
+
+/* ===== GLASS CARDS — cards premium ===== */
+.glass-card{
+  background:linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,.015)) !important;
+  border:1px solid var(--rd-border) !important;
+  border-radius:var(--rd-radius) !important;
+  box-shadow:var(--rd-shadow-sm), inset 0 1px 0 rgba(255,255,255,.04);
+  transition:transform .28s var(--rd-ease), border-color .28s var(--rd-ease), box-shadow .28s var(--rd-ease) !important;
+  position:relative;
+  overflow:hidden;
+}
+.glass-card:hover{
+  border-color:var(--rd-border-strong) !important;
+  transform:translateY(-2px);
+  box-shadow:var(--rd-shadow);
+}
+.glass-card::after{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:radial-gradient(400px 120px at 100% 0%, rgba(109,74,255,.08), transparent 60%);
+  opacity:0; transition:opacity .3s var(--rd-ease);
+}
+.glass-card:hover::after{opacity:1;}
+
+/* Inputs */
+.glass-input, input:not([type=checkbox]):not([type=radio]):not([type=range]), select, textarea{
+  background:rgba(255,255,255,.035) !important;
+  border:1px solid var(--rd-border) !important;
+  border-radius:12px !important;
+  color:var(--rd-text) !important;
+  transition:all .2s var(--rd-ease) !important;
+  padding:10px 14px;
+  font-size:14px;
+}
+.glass-input:focus, input:focus, select:focus, textarea:focus{
+  border-color:var(--rd-accent) !important;
+  box-shadow:0 0 0 3px rgba(255,122,69,.15) !important;
+  outline:none !important;
+}
+input[type=date]{color-scheme:dark;}
+
+/* Botões — refino global */
+button{ transition:all .2s var(--rd-ease); }
+button:hover{ filter:brightness(1.08); }
+button:active{ transform:scale(.98); }
+
+/* Tab buttons */
+.tab-btn{
+  border-radius:10px !important;
+  transition:all .22s var(--rd-ease) !important;
+  font-weight:600 !important;
+}
+.tab-btn.active{
+  background:rgba(255,255,255,.06) !important;
+  color:#fff !important;
+  border-color:var(--rd-accent) !important;
+  box-shadow:0 0 0 1px rgba(255,122,69,.3), 0 4px 12px -6px rgba(255,122,69,.4);
+}
+
+/* ===== TABELAS PREMIUM ===== */
+table{
+  border-collapse:separate !important;
+  border-spacing:0 !important;
+  width:100%;
+}
+thead th{
+  background:rgba(255,255,255,.035) !important;
+  backdrop-filter:blur(12px);
+  position:sticky; top:0;
+  font-size:11px !important;
+  font-weight:700 !important;
+  text-transform:uppercase;
+  letter-spacing:.08em;
+  color:var(--rd-text-mute) !important;
+  padding:14px 16px !important;
+  border-bottom:1px solid var(--rd-border) !important;
+}
+tbody td{
+  padding:16px !important;
+  border-bottom:1px solid rgba(255,255,255,.04) !important;
+  font-size:14px;
+  color:var(--rd-text-dim);
+  transition:background .2s var(--rd-ease);
+}
+tbody tr{ transition:background .2s var(--rd-ease); }
+tbody tr:hover{ background:rgba(255,255,255,.025); }
+tbody tr:hover td{ color:var(--rd-text); }
+
+/* Badges genéricos por classes utilitárias que já existem */
+[class*="bg-green"], [class*="bg-emerald"]{ }
+.badge-pill, [class*="rounded-full"][class*="text-xs"]{
+  font-weight:700 !important;
+  letter-spacing:.02em;
+}
+
+/* ===== CADEADO BADGE — refino ===== */
+.cadeado-badge{
+  background:linear-gradient(135deg, rgba(255,122,69,.22), rgba(109,74,255,.14)) !important;
+  border:1px solid rgba(255,122,69,.4) !important;
+  color:var(--rd-accent) !important;
+  box-shadow:0 0 12px rgba(255,122,69,.2) !important;
+}
+.nav-item:hover .cadeado-badge{
+  box-shadow:0 0 18px rgba(255,122,69,.5) !important;
+  border-color:rgba(255,122,69,.7) !important;
+}
+
+/* ===== CHART CONTAINERS — glow suave ===== */
+canvas{ border-radius:12px; }
+.glass-card canvas{ padding:4px; }
+
+/* ===== VIEW SECTION FADE ===== */
+.view-section.active{ animation:rdFadeSlide .45s var(--rd-ease); }
+@keyframes rdFadeSlide{
+  from{ opacity:0; transform:translateY(8px); }
+  to  { opacity:1; transform:translateY(0); }
+}
+
+/* Reveal em cards quando entram no viewport (só CSS) */
+.glass-card{ animation:rdCardIn .5s var(--rd-ease) both; }
+@keyframes rdCardIn{
+  from{ opacity:0; transform:translateY(6px) scale(.99); }
+  to  { opacity:1; transform:translateY(0) scale(1); }
+}
+
+/* Loading shimmer utilitário */
+@keyframes rdShimmer{ 0%{background-position:-400px 0} 100%{background-position:400px 0} }
+
+/* ===== SCROLLBAR GLOBAL ===== */
+*::-webkit-scrollbar{ width:8px; height:8px; }
+*::-webkit-scrollbar-track{ background:transparent; }
+*::-webkit-scrollbar-thumb{
+  background:rgba(255,255,255,.08);
+  border-radius:10px;
+  border:2px solid transparent;
+  background-clip:padding-box;
+}
+*::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.18); background-clip:padding-box; }
+
+/* ===== BACKGROUND OVERRIDES para classes hardcoded ===== */
+.bg-\[\#030712\], .bg-\[\#0c0c14\], .bg-\[\#111111\], .bg-\[\#0a0a0a\], .bg-\[\#09090f\], .bg-\[\#0d0d16\]{
+  background-color:transparent !important;
+}
+.bg-black\/40, .bg-black\/50, .bg-black\/60{
+  background-color:rgba(10,9,24,.55) !important;
+  backdrop-filter:blur(20px);
+}
+
+/* Botões primários que usam classes de cor da paleta antiga */
+button[class*="bg-white/10"], button[class*="bg-white/5"]{
+  border-radius:10px !important;
+}
+
+/* ===== METRIC CARDS — tenta detectar cards com números grandes ===== */
+.glass-card h2.text-3xl, .glass-card h2.text-2xl{
+  font-size:32px !important;
+  font-weight:800 !important;
+  letter-spacing:-.03em;
+  background:linear-gradient(180deg, #fff, #d0cee6);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent !important;
+}
+
+/* Divisores mais suaves */
+hr, .divide-y > *{ border-color:var(--rd-border) !important; }
+
+/* ===== SELECT arrow ===== */
+select{
+  appearance:none;
+  background-image:linear-gradient(45deg, transparent 50%, var(--rd-text-mute) 50%), linear-gradient(135deg, var(--rd-text-mute) 50%, transparent 50%);
+  background-position:calc(100% - 18px) 50%, calc(100% - 12px) 50%;
+  background-size:6px 6px, 6px 6px;
+  background-repeat:no-repeat;
+  padding-right:36px !important;
+}
+
+/* ===== LINKS ===== */
+a{ transition:color .2s var(--rd-ease); }
+
+/* ===== MODAIS ===== */
+[id*="modal"], .modal, [class*="fixed"][class*="inset-0"]{
+  animation:rdModalIn .3s var(--rd-ease);
+}
+@keyframes rdModalIn{ from{opacity:0} to{opacity:1} }
+
+/* Cards de produto — hover premium */
+[id*="produto"] .glass-card:hover, [id*="produtos"] .glass-card:hover{
+  transform:translateY(-4px);
+  box-shadow:var(--rd-shadow-lg);
+}
+[id*="produto"] img, [id*="produtos"] img{
+  transition:transform .5s var(--rd-ease);
+  border-radius:12px;
+}
+[id*="produto"] .glass-card:hover img, [id*="produtos"] .glass-card:hover img{
+  transform:scale(1.04);
+}
+
+/* ===== TEMA CLARO — refinamento ===== */
+.tema-claro{
+  background:
+    radial-gradient(1200px 600px at 90% -10%, rgba(109,74,255,.10), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255,122,69,.08), transparent 60%),
+    #F6F5FB !important;
+}
+.tema-claro .glass-sidebar{
+  background:linear-gradient(180deg, rgba(255,255,255,.92), rgba(248,247,253,.88)) !important;
+  border-color:rgba(0,0,0,.06) !important;
+  box-shadow:0 20px 50px -20px rgba(0,0,0,.15);
+}
+.tema-claro .glass-card{
+  background:linear-gradient(180deg, #fff, #fafafd) !important;
+  border-color:rgba(0,0,0,.06) !important;
+  box-shadow:0 4px 12px -4px rgba(0,0,0,.06), 0 1px 3px rgba(0,0,0,.03);
+}
+.tema-claro thead th{
+  background:rgba(0,0,0,.02) !important;
+  color:#64748B !important;
+  border-bottom-color:rgba(0,0,0,.06) !important;
+}
+.tema-claro tbody td{ border-bottom-color:rgba(0,0,0,.05) !important; color:#334155; }
+.tema-claro tbody tr:hover{ background:rgba(0,0,0,.02); }
+.tema-claro .glass-card h2.text-3xl, .tema-claro .glass-card h2.text-2xl{
+  background:linear-gradient(180deg, #0f172a, #475569);
+  -webkit-background-clip:text; background-clip:text;
+  color:transparent !important;
+}
+.tema-claro .nav-item.active{
+  background:linear-gradient(90deg, rgba(255,122,69,.14), rgba(255,122,69,.04)) !important;
+  color:#0f172a !important;
+}
+
+/* Respect motion preferences */
+@media (prefers-reduced-motion:reduce){
+  *, *::before, *::after{ animation:none !important; transition:none !important; }
+}
 
 </style>
 </head>
