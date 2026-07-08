@@ -199,11 +199,11 @@ await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", me
                 mostrarErro();
                 return;
             }
-            const lp = snap.docs[0].data();
+const lp = snap.docs[0].data();
             document.title = "[Rascunho] " + (lp.titulo || "Vide Hub");
             container.className = "min-h-screen";
             container.innerHTML = '<div class="fixed top-0 inset-x-0 z-50 bg-amber-500 text-black text-xs font-bold text-center py-1.5">RASCUNHO -- visivel so pra voce</div><div style="height:32px;"></div>';
-            await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", meta.ordemBlocos || [], meta.modoLayout || "empilhado", meta.paginas || []);
+            await renderizarBlocosNoContainer(container, "landing_pages_blocos", lp.ordemBlocos || [], lp.modoLayout || "empilhado", lp.paginas || []);
         } catch (erro) {
             console.error("Erro ao carregar previa:", erro);
             document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
