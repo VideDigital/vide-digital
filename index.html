@@ -24,6 +24,12 @@
     html { scroll-behavior: smooth; }
     body { font-family: 'Inter', sans-serif; background: #14132B; }
     h1, h2, h3 { font-family: 'Sora', sans-serif; }
+    [data-animacao] { opacity: 0; transition: opacity 0.7s ease, transform 0.7s ease; }
+    [data-animacao="subir"] { transform: translateY(40px); }
+    [data-animacao="esquerda"] { transform: translateX(-40px); }
+    [data-animacao="direita"] { transform: translateX(40px); }
+    [data-animacao="zoom"] { transform: scale(0.92); }
+    [data-animacao].lp-animado { opacity: 1; transform: none; }
 </style>
 </head>
 <body class="min-h-screen text-white">
@@ -106,7 +112,25 @@ function executarScriptsEmElemento(container) {
                 container.insertAdjacentHTML("beforeend", await renderizarBloco(bloco, "empilhado"));
             }
         }
-        executarScriptsEmElemento(container);
+executarScriptsEmElemento(container);
+        ativarAnimacoesDeEntrada(container);
+    }
+    function ativarAnimacoesDeEntrada(container) {
+        const alvos = container.querySelectorAll("[data-animacao]");
+        if (alvos.length === 0) return;
+        if (!("IntersectionObserver" in window)) {
+            alvos.forEach(el => el.classList.add("lp-animado"));
+            return;
+        }
+        const observador = new IntersectionObserver((entradas) => {
+            entradas.forEach(entrada => {
+                if (entrada.isIntersecting) {
+                    entrada.target.classList.add("lp-animado");
+                    observador.unobserve(entrada.target);
+                }
+            });
+        }, { threshold: 0.15 });
+        alvos.forEach(el => observador.observe(el));
     }
     window.enviarFormularioLP = async function(event) {
         event.preventDefault();
@@ -431,12 +455,12 @@ function executarScriptsEmElemento(container) {
             const x = Math.min(Math.max(0, bloco.x !== undefined ? bloco.x : 20), Math.max(0, larguraTela - largura));
             const y = bloco.y !== undefined ? bloco.y : 20;
             const zIndex = bloco.zIndex || 1;
-            return `<section${idSecaoAttr} class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTextoBloco}">
+return `<section${idSecaoAttr}${d.animacao ? ` data-animacao="${d.animacao}"` : ""} class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTextoBloco}">
                 ${overlayHtml}
                 <div class="relative w-full h-full overflow-hidden" style="padding-top:${Math.min(paddingTop, 24)}px; padding-bottom:${Math.min(paddingBottom, 24)}px;">${conteudoHtml}</div>
             </section>`;
         }
-        return `<section${idSecaoAttr} class="relative ${visClasse}" style="${estiloFundo} ${estiloTextoBloco} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
+        return `<section${idSecaoAttr}${d.animacao ? ` data-animacao="${d.animacao}"` : ""} class="relative ${visClasse}" style="${estiloFundo} ${estiloTextoBloco} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
             ${overlayHtml}
             <div class="relative">${conteudoHtml}</div>
         </section>`;
