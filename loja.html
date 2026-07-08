@@ -1,52 +1,289 @@
 <!DOCTYPE html>
-<html lang="pt-br" class="h-full">
+<html lang="pt-br" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="client-tab-title">Carregando Loja...</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Playfair+Display:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Montserrat:wght@400;500;600;700;800&family=Roboto:wght@400;500;700;900&family=Playfair+Display:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
     <style>
-        body { font-family: 'Plus Jakarta Sans', sans-serif; transition: background-color 0.3s ease; }
-        .dynamic-card { transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); border: 1px solid rgba(255,255,255,0.04); }
-        .dynamic-card:hover { transform: translateY(-5px); box-shadow: 0 22px 40px rgba(0,0,0,0.5); }
-        .search-glow:focus { box-shadow: 0 0 25px var(--client-brand); border-color: var(--client-brand); }
+        /* =========================================================
+           DESIGN SYSTEM — Luxury editorial × SaaS premium 2026
+           Tema light (padrão) + dark toggle. Store owner colors
+           override --client-* variables; here we own the "chrome".
+           ========================================================= */
+        :root {
+            --bg: #F7F5F1;
+            --bg-elev: #FFFFFF;
+            --surface: #FFFFFF;
+            --surface-soft: #FBFAF7;
+            --border: rgba(15, 15, 18, 0.08);
+            --border-strong: rgba(15, 15, 18, 0.14);
+            --ink: #0F0F12;
+            --ink-2: #3A3A42;
+            --ink-3: #6B6B75;
+            --ink-4: #9A9AA2;
+            --accent: #B08A55;
+            --accent-ink: #FFFFFF;
+            --danger: #B54334;
+            --success: #2F7A5B;
+            --shadow-sm: 0 1px 2px rgba(15,15,18,0.04), 0 1px 1px rgba(15,15,18,0.03);
+            --shadow-md: 0 8px 24px -12px rgba(15,15,18,0.10), 0 4px 8px -4px rgba(15,15,18,0.05);
+            --shadow-lg: 0 32px 64px -24px rgba(15,15,18,0.18), 0 8px 16px -8px rgba(15,15,18,0.08);
+            --shadow-xl: 0 48px 96px -32px rgba(15,15,18,0.22);
+            --glass-bg: rgba(255,255,255,0.72);
+            --glass-border: rgba(15,15,18,0.06);
+            --footer-bg: #0F0F12;
+            --footer-ink: #B5B5BD;
+            --radius: 14px;
+            --radius-lg: 22px;
+            --ease: cubic-bezier(0.22, 1, 0.36, 1);
+        }
+        html[data-theme="dark"] {
+            --bg: #0A0A0C;
+            --bg-elev: #101014;
+            --surface: #131318;
+            --surface-soft: #17171D;
+            --border: rgba(255,255,255,0.07);
+            --border-strong: rgba(255,255,255,0.14);
+            --ink: #F5F5F7;
+            --ink-2: #D6D6DB;
+            --ink-3: #9A9AA2;
+            --ink-4: #6B6B75;
+            --accent: #C9A46B;
+            --accent-ink: #0A0A0C;
+            --danger: #E86A5C;
+            --success: #4FBF8C;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.4);
+            --shadow-md: 0 8px 24px -12px rgba(0,0,0,0.55), 0 4px 8px -4px rgba(0,0,0,0.35);
+            --shadow-lg: 0 32px 64px -24px rgba(0,0,0,0.65), 0 8px 16px -8px rgba(0,0,0,0.4);
+            --shadow-xl: 0 48px 96px -32px rgba(0,0,0,0.75);
+            --glass-bg: rgba(16,16,20,0.72);
+            --glass-border: rgba(255,255,255,0.06);
+            --footer-bg: #050507;
+            --footer-ink: #7A7A82;
+        }
+
+        html, body { background: var(--bg); }
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            color: var(--ink);
+            transition: background-color .4s var(--ease), color .4s var(--ease);
+            -webkit-font-smoothing: antialiased;
+            font-feature-settings: "ss01", "cv11";
+        }
+        .font-display { font-family: 'Instrument Serif', 'Playfair Display', serif; font-weight: 400; letter-spacing: -0.01em; }
+
+        /* --- Header glass --- */
+        header.site-header {
+            background: var(--glass-bg);
+            border-bottom: 1px solid var(--glass-border);
+            backdrop-filter: blur(20px) saturate(160%);
+            -webkit-backdrop-filter: blur(20px) saturate(160%);
+        }
+
+        /* --- Cards --- */
+        .dynamic-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            transition: transform .5s var(--ease), box-shadow .5s var(--ease), border-color .3s var(--ease);
+            box-shadow: var(--shadow-sm);
+            overflow: hidden;
+        }
+        .dynamic-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-lg);
+            border-color: var(--border-strong);
+        }
+
+        /* --- Search --- */
+        #search-input {
+            background: var(--surface) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--ink) !important;
+            border-radius: 999px !important;
+            padding: 14px 20px 14px 48px !important;
+            font-size: 14px !important;
+            transition: all .3s var(--ease);
+            box-shadow: var(--shadow-sm);
+        }
+        #search-input::placeholder { color: var(--ink-4); }
+        #search-input:focus { border-color: var(--accent) !important; box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 14%, transparent) !important; }
+        .search-glow:focus { box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 14%, transparent) !important; border-color: var(--accent) !important; }
+
+        /* --- Filter chips --- */
+        .filter-badge {
+            border: 1px solid var(--border) !important;
+            background: var(--surface) !important;
+            color: var(--ink-3) !important;
+            border-radius: 999px !important;
+            padding: 9px 16px !important;
+            font-size: 12px !important;
+            font-weight: 600 !important;
+            letter-spacing: 0.01em;
+            transition: all .25s var(--ease);
+            box-shadow: var(--shadow-sm);
+        }
+        .filter-badge:hover { color: var(--ink) !important; border-color: var(--border-strong) !important; transform: translateY(-1px); }
+        /* JS re-writes className with `bg-white/10 text-white` to mark active — style that state too */
+        .filter-badge.bg-white\/10, .filter-badge[class*="bg-white/10"] {
+            background: var(--ink) !important;
+            color: var(--bg) !important;
+            border-color: var(--ink) !important;
+            box-shadow: var(--shadow-md);
+        }
+
+        /* --- Scrollbar --- */
         .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: linear-gradient(180deg, #5B3DF5, #FF7A45); border-radius: 10px; opacity: 0.6; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 999px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--ink-4); }
 
-#vitrine-container .text-white:not(.keep-white),
+        /* --- Vitrine (JS-generated inner cards) --- */
+        /* JS-injected cards use text-white/text-gray-* and bg-black/30 etc — rebind to tokens */
+        #vitrine-container .text-white:not(.keep-white),
+        #vitrine-container .text-gray-200,
+        #vitrine-container .text-gray-300 { color: var(--ink) !important; }
+        #vitrine-container .text-gray-400 { color: var(--ink-2) !important; }
+        #vitrine-container .text-gray-500,
+        #vitrine-container .text-gray-600 { color: var(--ink-3) !important; }
+        #vitrine-container .bg-black\/30 { background: var(--surface-soft) !important; }
+        #vitrine-container .bg-black\/60 { background: rgba(15,15,18,0.72) !important; }
+        #vitrine-container .border-white\/5 { border-color: var(--border) !important; }
+        #vitrine-container .bg-white\/\[0\.01\],
+        #vitrine-container .bg-white\/\[0\.03\],
+        #vitrine-container .bg-white\/5,
+        #vitrine-container .bg-white\/10 { background: var(--surface-soft) !important; }
+        #vitrine-container .animate-pulse { background: var(--surface-soft) !important; border: 1px solid var(--border); }
+        #vitrine-container button[style*="background-color"] {
+            border-radius: 999px !important;
+            letter-spacing: 0.06em !important;
+            padding-top: 14px !important;
+            padding-bottom: 14px !important;
+            transition: transform .2s var(--ease), filter .2s var(--ease), box-shadow .2s var(--ease) !important;
+            box-shadow: var(--shadow-sm);
+        }
+        #vitrine-container button[style*="background-color"]:hover { transform: translateY(-1px); box-shadow: var(--shadow-md); filter: brightness(1.06); }
+        #vitrine-container button[style*="background-color"]:active { transform: translateY(0); }
+        #vitrine-container .line-through { color: var(--ink-4) !important; }
+        #vitrine-container .text-amber-300 { color: var(--accent) !important; }
+        #vitrine-container .text-red-400 { color: var(--danger) !important; }
+        #vitrine-container .bg-red-950\/80 { background: color-mix(in oklch, var(--danger) 12%, transparent) !important; border-color: color-mix(in oklch, var(--danger) 25%, transparent) !important; }
+        #vitrine-container .bg-emerald-600 { background: var(--success) !important; }
+        #vitrine-container h3 { font-family: 'Plus Jakarta Sans', sans-serif; letter-spacing: -0.01em; }
+        #vitrine-container .text-2xl { font-family: 'Instrument Serif', serif !important; font-weight: 400 !important; font-size: 32px !important; letter-spacing: -0.02em !important; line-height: 1 !important; }
 
-#vitrine-container .text-gray-200,
+        /* --- Cart / popups / chat panel skin --- */
+        #carrinho-painel, #chat-window, #popup-captura > div, #popup-campanha > div {
+            background: var(--surface) !important;
+            border-color: var(--border) !important;
+            color: var(--ink);
+        }
+        #carrinho-painel *, #chat-window *, #popup-captura *, #popup-campanha * { border-color: var(--border); }
+        #carrinho-painel .text-white, #chat-window .text-white,
+        #popup-captura .text-white, #popup-campanha .text-white { color: var(--ink) !important; }
+        #carrinho-painel .text-gray-400, #chat-window .text-gray-300,
+        #popup-captura .text-gray-400, #popup-campanha .text-gray-400 { color: var(--ink-2) !important; }
+        #carrinho-painel .text-gray-500, #carrinho-painel .text-gray-600,
+        #popup-captura .text-gray-500, #popup-captura .text-gray-600 { color: var(--ink-3) !important; }
+        #carrinho-painel .bg-black\/30, #carrinho-painel .bg-white\/\[0\.03\], #carrinho-painel .bg-white\/5,
+        #chat-window .bg-white\/\[0\.02\], #chat-window .bg-white\/5,
+        #popup-captura .bg-white\/5, #popup-campanha .bg-white\/5 {
+            background: var(--surface-soft) !important;
+        }
+        #carrinho-overlay { background: rgba(15,15,18,0.55) !important; backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+        #popup-captura, [id="popup-campanha"] { background: rgba(15,15,18,0.65) !important; backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
+        #popup-captura input, #chat-client-input {
+            background: var(--surface-soft) !important;
+            border: 1px solid var(--border) !important;
+            color: var(--ink) !important;
+            border-radius: 12px !important;
+        }
+        #popup-captura input::placeholder, #chat-client-input::placeholder { color: var(--ink-4); }
+        #popup-captura input:focus, #chat-client-input:focus { border-color: var(--accent) !important; outline: none; }
+        #chat-send-btn { background: var(--ink) !important; color: var(--bg) !important; }
+        #btn-finalizar-carrinho { background: var(--ink) !important; color: var(--bg) !important; border-radius: 999px !important; }
+        #btn-finalizar-carrinho:hover { filter: brightness(1.1); }
+        #chat-trigger-btn { border-radius: 999px !important; box-shadow: var(--shadow-lg) !important; color: var(--ink) !important; background: var(--surface) !important; border: 1px solid var(--border); }
 
-#vitrine-container .text-gray-300,
+        /* --- Icon sizing helper --- */
+        [data-lucide] { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; stroke-width: 1.6; }
+        .icon-btn { display: inline-flex; align-items: center; justify-content: center; }
 
-#vitrine-container .text-gray-400,
+        /* --- Small util --- */
+        .divider-hair { height: 1px; background: var(--border); }
+        .accent-line { height: 2px; background: var(--accent); }
+        .kicker { font-size: 10px; letter-spacing: 0.24em; text-transform: uppercase; color: var(--ink-3); font-weight: 700; }
 
-footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
+        /* --- Reduced motion --- */
+        @media (prefers-reduced-motion: reduce) {
+            *, *::before, *::after { transition: none !important; animation: none !important; }
+        }
 
-#vitrine-container .text-gray-500,
+        /* --- Footer band --- */
+        footer.site-footer { background: var(--footer-bg); color: var(--footer-ink); border: 0; }
+        footer.site-footer .text-gray-500 { color: var(--footer-ink) !important; }
+        footer.site-footer a { color: var(--footer-ink); }
+        footer.site-footer a:hover { color: #fff; }
 
-#vitrine-container .text-gray-600 { color: var(--client-texto, #e5e7eb) !important; opacity: 0.65; }
+        /* --- Theme toggle --- */
+        .theme-toggle {
+            height: 36px; width: 36px; border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            display: inline-flex; align-items: center; justify-content: center;
+            transition: all .25s var(--ease);
+        }
+        .theme-toggle:hover { border-color: var(--border-strong); transform: translateY(-1px); }
+        .theme-toggle .lucide-sun { display: none; }
+        html[data-theme="dark"] .theme-toggle .lucide-sun { display: inline-block; }
+        html[data-theme="dark"] .theme-toggle .lucide-moon { display: none; }
 
-</style>
+        /* Cart button */
+        #btn-abrir-carrinho {
+            background: var(--surface) !important;
+            border-color: var(--border) !important;
+            color: var(--ink) !important;
+            border-radius: 999px !important;
+            height: 40px !important; width: 40px !important;
+        }
+        #btn-abrir-carrinho:hover { border-color: var(--border-strong) !important; }
+        #carrinho-contador { background: var(--accent) !important; color: var(--accent-ink) !important; }
+
+        /* Verified badge */
+        .verified-pill {
+            background: color-mix(in oklch, var(--success) 10%, transparent);
+            color: var(--success);
+            border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);
+        }
+
+        /* Hero heading tighter */
+        #client-titulo-hero { font-family: 'Instrument Serif', 'Playfair Display', serif !important; font-weight: 400 !important; letter-spacing: -0.02em !important; line-height: 1.02 !important; }
+    </style>
 </head>
-<body id="client-body" class="bg-[#030712] text-gray-200 min-h-full flex flex-col justify-between pb-16 relative">
+<body id="client-body" class="min-h-full flex flex-col justify-between pb-16 relative">
 
-    <header class="border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-50 transition-all">
+    <header class="site-header sticky top-0 z-50">
         <div class="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
             <div class="flex items-center gap-4">
-                <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] shadow-[0_0_15px_rgba(0,242,254,0.4)]" id="logo-indicator"></div>
-                <img id="logo-foto-cliente" class="hidden h-14 w-14 rounded-full object-cover border-2 border-white/20 shadow-lg" src="" alt="Logo">
-                <h1 id="client-nome-loja" class="text-xl sm:text-2xl font-black tracking-tight text-white uppercase">Carregando Loja...</h1>
+                <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] shadow-[0_0_15px_rgba(0,242,254,0.3)]" id="logo-indicator"></div>
+                <img id="logo-foto-cliente" class="hidden h-12 w-12 rounded-full object-cover" src="" alt="Logo" style="border:1px solid var(--border);">
+                <h1 id="client-nome-loja" class="text-lg sm:text-xl font-semibold tracking-tight uppercase" style="letter-spacing:0.08em;">Carregando Loja...</h1>
             </div>
-            <div class="flex items-center gap-3">
-                <span class="text-[10px] px-3 py-1 bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 rounded-full font-bold uppercase tracking-wider flex items-center gap-1.5">
-                    <span class="h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Loja Verificada
+            <div class="flex items-center gap-2.5">
+                <span class="verified-pill text-[10px] px-3 py-1.5 rounded-full font-semibold uppercase tracking-wider flex items-center gap-1.5">
+                    <i data-lucide="badge-check" style="width:12px;height:12px;stroke-width:2"></i> Loja Verificada
                 </span>
-                <button id="btn-abrir-carrinho" style="display:none;" class="relative h-9 w-9 rounded-xl bg-white/5 border border-white/10 items-center justify-center text-base hover:bg-white/10 transition-all" onclick="abrirCarrinho()">
-                    🛒
-                    <span id="carrinho-contador" class="hidden absolute -top-1.5 -right-1.5 h-4 w-4 rounded-full bg-red-500 text-white text-[9px] font-black flex items-center justify-center">0</span>
+                <button type="button" class="theme-toggle" aria-label="Alternar tema" onclick="(function(){var h=document.documentElement;var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem('lovable-theme',n)}catch(e){}if(window.lucide)lucide.createIcons();})()">
+                    <i data-lucide="moon" style="width:16px;height:16px"></i>
+                    <i data-lucide="sun" style="width:16px;height:16px"></i>
+                </button>
+                <button id="btn-abrir-carrinho" style="display:none;" class="icon-btn relative transition-all" onclick="abrirCarrinho()">
+                    <i data-lucide="shopping-bag" style="width:16px;height:16px"></i>
+                    <span id="carrinho-contador" class="hidden absolute -top-1 -right-1 h-4 w-4 rounded-full text-[9px] font-black flex items-center justify-center">0</span>
                 </button>
             </div>
         </div>
@@ -54,24 +291,27 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
 
 <div id="corpo-vitrine-blocos">
 
-<div id="banners-carrossel" class="hidden relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group layout-block-lp" data-block-id="banners">
+<div id="banners-carrossel" class="hidden relative w-full max-w-6xl mx-auto px-6 pt-8 layout-block-lp" data-block-id="banners">
+    <div class="relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group rounded-3xl" style="border:1px solid var(--border); box-shadow: var(--shadow-md);">
         <div id="banners-track" class="flex h-full transition-transform duration-700 ease-in-out"></div>
-        <button id="banner-seta-anterior" class="hidden absolute left-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">&#8249;</button>
-        <button id="banner-seta-proximo" class="hidden absolute right-3 top-1/2 -translate-y-1/2 h-9 w-9 rounded-full bg-black/50 hover:bg-black/70 backdrop-blur-md text-white text-lg flex items-center justify-center transition-all z-10">&#8250;</button>
-        <div id="banner-indicadores" class="hidden absolute bottom-3 left-1/2 -translate-x-1/2 gap-1.5 z-10"></div>
+        <button id="banner-seta-anterior" class="hidden absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all z-10 icon-btn" style="background:rgba(255,255,255,0.85);color:#0F0F12;border:1px solid rgba(15,15,18,0.08);"><i data-lucide="chevron-left" style="width:18px;height:18px"></i></button>
+        <button id="banner-seta-proximo" class="hidden absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all z-10 icon-btn" style="background:rgba(255,255,255,0.85);color:#0F0F12;border:1px solid rgba(15,15,18,0.08);"><i data-lucide="chevron-right" style="width:18px;height:18px"></i></button>
+        <div id="banner-indicadores" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 gap-1.5 z-10"></div>
     </div>
+</div>
 
-    <section class="max-w-6xl w-full mx-auto px-6 pt-12 text-center md:text-left space-y-6 layout-block-lp" data-block-id="hero">
-        <div class="max-w-3xl space-y-2">
-            <h2 id="client-titulo-hero" class="text-3xl lg:text-4xl font-extrabold text-white tracking-tight leading-none">Solucoes e Treinamentos</h2>
-            <p id="client-subtitulo" class="text-gray-400 text-sm max-w-xl">Escolha uma das ofertas premium abaixo.</p>
+    <section class="max-w-6xl w-full mx-auto px-6 pt-16 pb-4 text-center md:text-left space-y-8 layout-block-lp" data-block-id="hero">
+        <div class="max-w-3xl space-y-4">
+            <p class="kicker">Coleção · Vitrine</p>
+            <h2 id="client-titulo-hero" class="text-5xl lg:text-6xl">Solucoes e Treinamentos</h2>
+            <p id="client-subtitulo" class="text-base max-w-xl" style="color: var(--ink-2);">Escolha uma das ofertas premium abaixo.</p>
         </div>
 
         <div id="links-extras-container" class="flex flex-wrap gap-3 pt-2"></div>
 
         <div class="max-w-2xl pt-2 relative">
-            <input type="text" id="search-input" class="w-full bg-white/5 border border-white/10 rounded-2xl p-4 pl-12 text-sm text-white outline-none search-glow transition-all" placeholder="Buscar um produto...">
-            <span class="absolute left-4 top-6 text-gray-400 text-sm">&#128269;</span>
+            <input type="text" id="search-input" class="w-full search-glow outline-none" placeholder="Buscar um produto...">
+            <span class="absolute left-4 top-1/2 -translate-y-1/2 icon-btn" style="color: var(--ink-4);"><i data-lucide="search" style="width:18px;height:18px"></i></span>
         </div>
 
         <div id="container-filtros" class="flex flex-wrap gap-2 pt-2">
@@ -84,94 +324,123 @@ footer .text-gray-500 { color: var(--client-texto, #e5e7eb) !important; }
         </div>
     </section>
 
-    <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-8 layout-block-lp" data-block-id="produtos">
+    <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10 layout-block-lp" data-block-id="produtos">
         <div id="vitrine-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            <div class="animate-pulse bg-white/5 h-80 rounded-2xl"></div>
-            <div class="animate-pulse bg-white/5 h-80 rounded-2xl"></div>
-            <div class="animate-pulse bg-white/5 h-80 rounded-2xl"></div>
+            <div class="animate-pulse h-80 rounded-2xl"></div>
+            <div class="animate-pulse h-80 rounded-2xl"></div>
+            <div class="animate-pulse h-80 rounded-2xl"></div>
         </div>
     </main>
 
 </div>
 
 <div id="widget-chat-cliente" class="hidden fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        <div id="chat-window" class="hidden w-80 h-96 border border-white/10 rounded-2xl shadow-2xl flex flex-col justify-between overflow-hidden mb-3 bg-[#0c0c14]">
-            <div class="p-4 bg-white/[0.02] border-b border-white/5 text-xs font-bold flex justify-between items-center text-white">
-                <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span> Atendimento Online</span>
-                <button onclick="toggleChatWindow()" class="text-gray-400 hover:text-white text-lg">&times;</button>
+        <div id="chat-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
+            <div class="p-4 border-b text-xs font-semibold flex justify-between items-center" style="border-color: var(--border); background: var(--surface-soft);">
+                <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full animate-pulse" style="background: var(--success);"></span> Atendimento Online</span>
+                <button onclick="toggleChatWindow()" class="icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
             </div>
-            <div id="chat-client-messages" class="p-4 flex-1 overflow-y-auto space-y-2 text-[11px] flex flex-col custom-scrollbar">
-                <div class="bg-white/5 p-3 rounded-2xl border border-white/5 text-gray-300 rounded-tl-none">
+            <div id="chat-client-messages" class="p-4 flex-1 overflow-y-auto space-y-2 text-[12px] flex flex-col custom-scrollbar">
+                <div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">
                     Ola! Digite seu nome completo para iniciarmos o suporte:
                 </div>
             </div>
-            <form id="chat-client-form" class="p-2 bg-black/40 border-t border-white/5 flex gap-1.5">
-                <input type="text" id="chat-client-input" class="flex-1 bg-white/5 border border-white/10 rounded-xl p-2.5 text-xs text-white outline-none" placeholder="Seu nome...">
-                <button type="submit" id="chat-send-btn" class="bg-white text-black font-bold px-4 rounded-xl text-xs">OK</button>
+            <form id="chat-client-form" class="p-2 border-t flex gap-1.5" style="border-color: var(--border);">
+                <input type="text" id="chat-client-input" class="flex-1 rounded-xl p-2.5 text-xs outline-none" placeholder="Seu nome...">
+                <button type="submit" id="chat-send-btn" class="font-bold px-4 rounded-xl text-xs">OK</button>
             </form>
         </div>
-        <button onclick="toggleChatWindow()" id="chat-trigger-btn" class="h-14 w-14 rounded-full shadow-2xl flex items-center justify-center text-xl transition-transform hover:scale-110 active:scale-95 text-black bg-[#00f2fe]">
-            &#128172;
+        <button onclick="toggleChatWindow()" id="chat-trigger-btn" class="h-14 w-14 icon-btn transition-transform hover:scale-105 active:scale-95">
+            <i data-lucide="message-circle" style="width:22px;height:22px;stroke-width:1.6"></i>
         </button>
     </div>
-<div id="carrinho-overlay" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm" onclick="fecharCarrinho()"></div>
+<div id="carrinho-overlay" class="hidden fixed inset-0 z-50" onclick="fecharCarrinho()"></div>
 
-    <div id="carrinho-painel" class="fixed top-0 right-0 z-50 h-full w-full sm:w-96 bg-[#0c0c14] border-l border-white/10 translate-x-full transition-transform duration-300 flex flex-col shadow-2xl">
+    <div id="carrinho-painel" class="fixed top-0 right-0 z-50 h-full w-full sm:w-[26rem] translate-x-full transition-transform duration-300 flex flex-col" style="border-left: 1px solid var(--border); box-shadow: var(--shadow-xl);">
 
-<div class="h-1 w-full shrink-0" style="background: linear-gradient(90deg, #5B3DF5, #FF7A45);"></div>
-        <div class="p-5 border-b border-white/5 flex items-center justify-between">
-            <div>
-                <h3 class="text-sm font-bold text-white uppercase tracking-wider">🛒 Seu Carrinho</h3>
-                <p class="text-[10px] text-gray-500 mt-0.5">Revise seus itens antes de finalizar</p>
+<div class="h-[3px] w-full shrink-0" style="background: var(--accent);"></div>
+        <div class="p-6 border-b flex items-center justify-between" style="border-color: var(--border);">
+            <div class="flex items-center gap-3">
+                <span class="icon-btn h-9 w-9 rounded-full" style="background: var(--surface-soft); color: var(--ink);"><i data-lucide="shopping-bag" style="width:16px;height:16px"></i></span>
+                <div>
+                    <h3 class="text-[11px] font-bold uppercase tracking-[0.18em]" style="color: var(--ink);">Seu Carrinho</h3>
+                    <p class="text-[11px] mt-0.5" style="color: var(--ink-3);">Revise seus itens antes de finalizar</p>
+                </div>
             </div>
-            <button onclick="fecharCarrinho()" class="text-gray-400 hover:text-white text-2xl leading-none">&times;</button>
+            <button onclick="fecharCarrinho()" class="icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:20px;height:20px"></i></button>
         </div>
 
-        <div id="carrinho-lista" class="flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar"></div>
+        <div id="carrinho-lista" class="flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar"></div>
 
-        <div class="p-5 border-t border-white/5 space-y-4 bg-black/30">
-            <div class="flex justify-between items-center">
-                <span class="text-xs text-gray-400 font-bold uppercase tracking-wider">Total do Pedido</span>
-                <span id="carrinho-total" class="text-xl font-black text-white">R$ 0,00</span>
+        <div class="p-6 border-t space-y-4" style="border-color: var(--border); background: var(--surface-soft);">
+            <div class="flex justify-between items-baseline">
+                <span class="text-[10px] font-bold uppercase tracking-[0.18em]" style="color: var(--ink-3);">Total do Pedido</span>
+                <span id="carrinho-total" class="text-2xl font-display" style="color: var(--ink); font-family:'Instrument Serif',serif;">R$ 0,00</span>
             </div>
-            <button id="btn-finalizar-carrinho" class="w-full text-center font-black text-xs uppercase tracking-widest py-4 rounded-xl text-black bg-emerald-400 hover:brightness-110 transition-all flex items-center justify-center gap-2">
-                <span>💬</span> Finalizar pelo WhatsApp
+            <button id="btn-finalizar-carrinho" class="w-full text-center font-semibold text-xs uppercase tracking-[0.2em] py-4 transition-all flex items-center justify-center gap-2">
+                <i data-lucide="message-circle" style="width:14px;height:14px"></i> Finalizar pelo WhatsApp
             </button>
-            <p class="text-[10px] text-center text-gray-600">Você será redirecionado para o WhatsApp com seu pedido completo</p>
+            <p class="text-[10px] text-center" style="color: var(--ink-4);">Você será redirecionado para o WhatsApp com seu pedido completo</p>
         </div>
     </div>
+
     <!-- POP-UP CAPTURA DE LEAD -->
-    <div id="popup-captura" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+    <div id="popup-captura" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
 
-<div class="relative w-full max-w-md bg-[#0c0c14] border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-5 overflow-hidden">
+<div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5 overflow-hidden" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
 
-<div class="absolute top-0 left-0 h-1 w-full" style="background: linear-gradient(90deg, #5B3DF5, #FF7A45);"></div>
-            <button onclick="fecharPopup()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">&times;</button>
-            <div class="text-4xl">🎁</div>
-            <h2 class="text-xl font-black text-white">Espera! Temos um presente pra você</h2>
-            <p class="text-sm text-gray-400">Deixe seu WhatsApp e receba um cupom exclusivo de desconto agora mesmo.</p>
-            <div class="space-y-3">
-                <input type="text" id="popup-nome" placeholder="Seu nome completo" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-white/30 transition-all">
-                <input type="text" id="popup-whatsapp" placeholder="Seu WhatsApp (com DDD)" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white outline-none focus:border-white/30 transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
+<div class="absolute top-0 left-0 h-[3px] w-full" style="background: var(--accent);"></div>
+            <button onclick="fecharPopup()" class="absolute top-4 right-4 icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+            <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--accent);"><i data-lucide="gift" style="width:24px;height:24px"></i></div>
+            <h2 class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">Um presente para você.</h2>
+            <p class="text-sm" style="color: var(--ink-2);">Deixe seu WhatsApp e receba um cupom exclusivo de desconto agora mesmo.</p>
+            <div class="space-y-3 pt-2">
+                <input type="text" id="popup-nome" placeholder="Seu nome completo" class="w-full p-3.5 text-sm outline-none transition-all">
+                <input type="text" id="popup-whatsapp" placeholder="Seu WhatsApp (com DDD)" class="w-full p-3.5 text-sm outline-none transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
             </div>
-            <button onclick="enviarLeadPopup()" class="w-full font-black text-sm uppercase tracking-widest py-4 rounded-xl transition-all hover:brightness-110" style="background-color: var(--client-brand, #00f2fe); color: #000;">
-                Quero meu desconto agora!
+            <button onclick="enviarLeadPopup()" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all hover:brightness-110" style="background-color: var(--client-brand, var(--ink)); color: var(--client-texto-botao, var(--bg));">
+                Quero meu desconto agora
             </button>
-            <p class="text-[10px] text-gray-600">Sem spam. Seus dados são protegidos e não serão compartilhados.</p>
+            <p class="text-[10px]" style="color: var(--ink-4);">Sem spam. Seus dados são protegidos e não serão compartilhados.</p>
         </div>
     </div>
-    
-    <footer class="border-t border-white/5 py-6 bg-black/20 mt-12">
-        <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px] text-gray-500">
+
+    <footer class="site-footer py-10 mt-16">
+        <div class="max-w-6xl mx-auto px-6 flex flex-col sm:flex-row justify-between items-center gap-4 text-[11px]">
             <p id="client-footer-text">2026 Todos os direitos reservados.</p>
 
-<p class="flex items-center gap-1.5">&#128274; Conexao Criptografada</p>
+<p class="flex items-center gap-1.5"><i data-lucide="lock" style="width:12px;height:12px"></i> Conexao Criptografada</p>
 
-<a href="https://videdigital.github.io/vide-digital/" target="_blank" class="flex items-center gap-1.5 hover:text-white transition-colors">Feito com <span class="font-bold" style="background: linear-gradient(90deg, #5B3DF5, #FF7A45); -webkit-background-clip: text; background-clip: text; color: transparent;">Vide Hub</span></a>
+<a href="https://videdigital.github.io/vide-digital/" target="_blank" class="flex items-center gap-1.5 transition-colors">Feito com <span class="font-bold" style="background: linear-gradient(90deg, #C9A46B, #E8C99B); -webkit-background-clip: text; background-clip: text; color: transparent;">Vide Hub</span></a>
 
 </div>
 
 </footer>
+
+    <script>
+        // Theme bootstrap (before Firebase) — respects saved preference, defaults to light
+        (function(){
+            try {
+                var saved = localStorage.getItem('lovable-theme');
+                if (saved === 'dark' || saved === 'light') {
+                    document.documentElement.setAttribute('data-theme', saved);
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                }
+            } catch(e){}
+        })();
+
+        // Auto-render Lucide icons on any DOM mutation (covers JS-injected content)
+        function renderLucide(){ if (window.lucide && lucide.createIcons) { try { lucide.createIcons(); } catch(e){} } }
+        renderLucide();
+        var _lucideRAF = null;
+        var _obs = new MutationObserver(function(){
+            if (_lucideRAF) return;
+            _lucideRAF = requestAnimationFrame(function(){ _lucideRAF = null; renderLucide(); });
+        });
+        _obs.observe(document.body, { childList: true, subtree: true });
+        window.addEventListener('load', renderLucide);
+    </script>
 
     <script type="module">
         import { db } from "./firebase-init.js";
@@ -243,26 +512,29 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     document.getElementById("client-subtitulo").innerText = dados.subtituloHero || "Selecione um item.";
                     document.getElementById("client-footer-text").innerText = "2026 " + (dados.nomeLoja || "MinhaLoja") + ". Todos os direitos reservados.";
 
-                    const brandColor = dados.corClientBrand || "#00f2fe";
-                    const fundoColor = dados.corClientFundo || "#030712";
-                    const cardColor = dados.corClientCard || "#0c0c14";
-                    const secundariaColor = dados.corClientSecundaria || "#4facfe";
-                    const textoColor = dados.corClientTexto || "#e5e7eb";
-                    const textoBotaoColor = dados.corClientTextoBotao || "#000000";
+                    const brandColor = dados.corClientBrand || "#B08A55";
+                    const fundoColor = dados.corClientFundo || "";
+                    const cardColor = dados.corClientCard || "";
+                    const secundariaColor = dados.corClientSecundaria || "#C9A46B";
+                    const textoColor = dados.corClientTexto || "";
+                    const textoBotaoColor = dados.corClientTextoBotao || "#ffffff";
                     const fonteEscolhida = dados.fonteVitrine || "Plus Jakarta Sans";
 
                     document.documentElement.style.setProperty("--client-brand", brandColor);
                     document.documentElement.style.setProperty("--client-secundaria", secundariaColor);
                     document.documentElement.style.setProperty("--client-texto-botao", textoBotaoColor);
-                    document.documentElement.style.setProperty("--client-texto", textoColor);
-                    document.getElementById("client-body").style.backgroundColor = fundoColor;
-                    document.getElementById("client-body").style.color = textoColor;
+                    if (textoColor) document.documentElement.style.setProperty("--client-texto", textoColor);
+                    if (fundoColor) document.getElementById("client-body").style.backgroundColor = fundoColor;
+                    if (textoColor) document.getElementById("client-body").style.color = textoColor;
                     document.getElementById("client-body").style.fontFamily = "'" + fonteEscolhida + "', sans-serif";
-                    document.getElementById("client-nome-loja").style.color = textoColor;
-                    document.getElementById("client-titulo-hero").style.color = textoColor;
-                    document.getElementById("client-subtitulo").style.color = textoColor;
-                    document.getElementById("client-subtitulo").style.opacity = "0.75";
+                    if (textoColor) {
+                        document.getElementById("client-nome-loja").style.color = textoColor;
+                        document.getElementById("client-titulo-hero").style.color = textoColor;
+                        document.getElementById("client-subtitulo").style.color = textoColor;
+                    }
+                    document.getElementById("client-subtitulo").style.opacity = "0.85";
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
+                    document.getElementById("chat-trigger-btn").style.color = textoBotaoColor;
                     document.getElementById("logo-indicator").style.background = "linear-gradient(to top right, " + brandColor + ", " + secundariaColor + ")";
 
                     if (dados.fotoPerfilB64) {
@@ -273,10 +545,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
                     const linksBox = document.getElementById("links-extras-container");
                     if (dados.link1Titulo && dados.link1Url) {
-                        linksBox.innerHTML += '<a href="' + dados.link1Url + '" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ' + brandColor + '; color: ' + brandColor + ';">' + (dados.link1Icone || "&#128279;") + " " + dados.link1Titulo + "</a>";
+                        linksBox.innerHTML += '<a href="' + dados.link1Url + '" target="_blank" class="text-xs font-semibold px-4 py-2.5 rounded-full border transition-all hover:brightness-110 inline-flex items-center gap-2" style="border-color: ' + brandColor + '; color: ' + brandColor + ';"><i data-lucide="link-2" style="width:12px;height:12px"></i> ' + dados.link1Titulo + "</a>";
                     }
                     if (dados.link2Titulo && dados.link2Url) {
-                        linksBox.innerHTML += '<a href="' + dados.link2Url + '" target="_blank" class="text-xs font-bold px-4 py-2.5 rounded-xl border transition-all hover:brightness-110" style="border-color: ' + brandColor + '; color: ' + brandColor + ';">' + (dados.link2Icone || "&#128279;") + " " + dados.link2Titulo + "</a>";
+                        linksBox.innerHTML += '<a href="' + dados.link2Url + '" target="_blank" class="text-xs font-semibold px-4 py-2.5 rounded-full border transition-all hover:brightness-110 inline-flex items-center gap-2" style="border-color: ' + brandColor + '; color: ' + brandColor + ';"><i data-lucide="link-2" style="width:12px;height:12px"></i> ' + dados.link2Titulo + "</a>";
                     }
 
                     let listaBannersVitrine = [];
@@ -295,13 +567,13 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
                         listaBannersVitrine.forEach(function(imgSrc, i) {
                             const slide = document.createElement("div");
-                            slide.className = "w-full h-full shrink-0 bg-black/40";
-                            slide.style.cssText = "width:100%;height:100%;flex-shrink:0;background:rgba(0,0,0,0.4)";
+                            slide.className = "w-full h-full shrink-0";
+                            slide.style.cssText = "width:100%;height:100%;flex-shrink:0;";
                             slide.innerHTML = '<img src="' + imgSrc + '" style="width:100%;height:100%;object-fit:cover" class="w-full h-full object-cover">';
                             track.appendChild(slide);
 
                             const ponto = document.createElement("button");
-                            ponto.className = "h-1.5 rounded-full bg-white/40 transition-all";
+                            ponto.className = "h-1.5 rounded-full bg-white/60 transition-all";
                             ponto.style.width = "6px";
                             ponto.dataset.index = i;
                             indicadoresBox.appendChild(ponto);
@@ -314,8 +586,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                             indexAtual = (novoIndex + listaBannersVitrine.length) % listaBannersVitrine.length;
                             track.style.transform = "translateX(-" + (indexAtual * 100) + "%)";
                             document.querySelectorAll("#banner-indicadores button").forEach(function(ponto, i) {
-                                ponto.style.width = (i === indexAtual) ? "18px" : "6px";
-                                ponto.style.backgroundColor = (i === indexAtual) ? brandColor : "rgba(255,255,255,0.4)";
+                                ponto.style.width = (i === indexAtual) ? "22px" : "6px";
+                                ponto.style.backgroundColor = (i === indexAtual) ? brandColor : "rgba(255,255,255,0.6)";
                             });
                         }
 
@@ -361,7 +633,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     renderizarCatalogoFiltros();
 
                 } else {
-                    document.getElementById("vitrine-container").innerHTML = '<div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl"><p class="text-gray-500 text-sm">Loja nao encontrada.</p></div>';
+                    document.getElementById("vitrine-container").innerHTML = '<div class="col-span-full text-center p-12 rounded-2xl" style="border:1px dashed var(--border);"><p class="text-sm" style="color: var(--ink-3);">Loja nao encontrada.</p></div>';
                 }
             } catch (err) {
                 console.error("Erro ao carregar vitrine:", err);
@@ -390,14 +662,14 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             });
 
             if (produtosFiltrados.length === 0) {
-                container.innerHTML = '<div class="col-span-full text-center p-12 bg-white/[0.01] rounded-2xl border border-white/5"><p class="text-xs text-gray-500">Nenhum produto encontrado.</p></div>';
+                container.innerHTML = '<div class="col-span-full text-center p-16 rounded-2xl" style="border:1px dashed var(--border);"><p class="text-sm" style="color: var(--ink-3);">Nenhum produto encontrado.</p></div>';
                 return;
             }
 
             produtosFiltrados.forEach(function(prod) {
                 const card = document.createElement("div");
-                card.className = "dynamic-card rounded-2xl overflow-hidden flex flex-col justify-between group";
-                card.style.backgroundColor = prod.corDoCard;
+                card.className = "dynamic-card flex flex-col justify-between group";
+                if (prod.corDoCard) card.style.backgroundColor = prod.corDoCard;
 
                 const inputPreco = parseFloat(prod.preco || 0);
 
@@ -410,8 +682,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 const precoFinal = cupomValido ? inputPreco * (1 - prod.cupomDesconto / 100) : inputPreco;
                 const precoFormatado = precoFinal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
                 const precoOriginal = inputPreco.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-                const imgFinal = prod.imagemB64 || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect width='100%25' height='100%25' fill='%2309090f'/></svg>";
-                const estrelas = prod.avaliacao ? "&#11088;".repeat(Math.round(prod.avaliacao)) + " (" + prod.avaliacao + ")" : "";
+                const imgFinal = prod.imagemB64 || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect width='100%25' height='100%25' fill='%23f5f3ee'/></svg>";
+                const estrelas = prod.avaliacao ? '<i data-lucide="star" style="width:12px;height:12px;fill:currentColor"></i> ' + prod.avaliacao : "";
                 const nomeSafe = (prod.nome || "").replace(/'/g, "\\'").replace(/"/g, "&quot;");
                 const destSafe = (prod.destinoValue || "").replace(/'/g, "\\'");
 
@@ -422,36 +694,36 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 }
 
                 card.innerHTML =
-                    '<div class="relative h-52 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">' +
-                        '<img src="' + imgFinal + '" alt="' + nomeSafe + '" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">' +
-                        '<div class="absolute top-3 left-3 flex flex-wrap gap-1">' +
-                            '<span class="text-[9px] font-bold text-white keep-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider">' + (prod.subnicho || "Geral") + "</span>" +
-                            (prod.badgeCustom ? '<span class="text-[9px] font-black text-black px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md" style="background-color: ' + prod.corDestaque + '">' + prod.badgeCustom + "</span>" : "") +
-                            (prod.freteGratis ? '<span class="text-[9px] font-black text-white keep-white bg-emerald-600 px-2.5 py-1 rounded-md uppercase tracking-wider shadow-md">Frete Gratis</span>' : "") +
+                    '<div class="relative h-64 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">' +
+                        '<img src="' + imgFinal + '" alt="' + nomeSafe + '" class="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-700">' +
+                        '<div class="absolute top-4 left-4 flex flex-wrap gap-1.5">' +
+                            '<span class="text-[9px] font-bold text-white keep-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full uppercase tracking-[0.14em]">' + (prod.subnicho || "Geral") + "</span>" +
+                            (prod.badgeCustom ? '<span class="text-[9px] font-black text-black px-2.5 py-1 rounded-full uppercase tracking-[0.14em] shadow-md" style="background-color: ' + prod.corDestaque + '">' + prod.badgeCustom + "</span>" : "") +
+                            (prod.freteGratis ? '<span class="text-[9px] font-black text-white keep-white bg-emerald-600 px-2.5 py-1 rounded-full uppercase tracking-[0.14em] shadow-md">Frete Gratis</span>' : "") +
                         "</div>" +
-                        (prod.vagasTag ? '<span class="absolute bottom-3 right-3 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-500/20 backdrop-blur-md px-2.5 py-1 rounded-md uppercase tracking-wider animate-pulse">' + prod.vagasTag + "</span>" : "") +
+                        (prod.vagasTag ? '<span class="absolute bottom-4 right-4 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-500/20 backdrop-blur-md px-2.5 py-1 rounded-full uppercase tracking-[0.14em] animate-pulse">' + prod.vagasTag + "</span>" : "") +
                     "</div>" +
-                    '<div class="p-6 flex-1 flex flex-col justify-between space-y-4">' +
-                        '<div class="space-y-1.5">' +
-                            '<h3 class="text-base font-bold text-white tracking-tight line-clamp-1">' + prod.nome + "</h3>" +
-                            (estrelas ? '<p class="text-[11px] text-amber-300 font-semibold">' + estrelas + "</p>" : "") +
+                    '<div class="p-7 flex-1 flex flex-col justify-between space-y-5">' +
+                        '<div class="space-y-2">' +
+                            '<h3 class="text-base font-semibold text-white tracking-tight line-clamp-1">' + prod.nome + "</h3>" +
+                            (estrelas ? '<p class="text-[11px] text-amber-300 font-semibold inline-flex items-center gap-1">' + estrelas + "</p>" : "") +
                             '<p class="text-xs text-gray-400 line-clamp-2 leading-relaxed">' + (prod.descricao || "Sem especificacoes.") + "</p>" +
-                            (prod.videoUrl ? '<a href="' + prod.videoUrl + '" target="_blank" class="text-[11px] font-bold underline" style="color: ' + prod.corDestaque + '">Assistir video de apresentacao</a>' : "") +
+                            (prod.videoUrl ? '<a href="' + prod.videoUrl + '" target="_blank" class="text-[11px] font-semibold inline-flex items-center gap-1 mt-1" style="color: ' + prod.corDestaque + '"><i data-lucide="play-circle" style="width:12px;height:12px"></i> Assistir apresentação</a>' : "") +
                         "</div>" +
                         '<div class="space-y-3">' +
-                            (cupomValido ? '<span class="inline-block text-[9px] font-black text-black px-2 py-1 rounded-md uppercase tracking-wider" style="background-color: ' + prod.corDestaque + '">Cupom ' + (prod.cupomCodigo || "CUPOM") + " - " + prod.cupomDesconto + "% OFF</span>" : "") +
+                            (cupomValido ? '<span class="inline-flex items-center gap-1 text-[9px] font-black text-black px-2.5 py-1 rounded-full uppercase tracking-[0.14em]" style="background-color: ' + prod.corDestaque + '"><i data-lucide="ticket" style="width:11px;height:11px"></i> ' + (prod.cupomCodigo || "CUPOM") + " · " + prod.cupomDesconto + "% OFF</span>" : "") +
                             '<div>' +
                                 '<p class="text-2xl font-black text-white tracking-tight">' + precoFormatado + "</p>" +
                                 (cupomValido ? '<p class="text-xs text-gray-500 line-through mt-0.5">De ' + precoOriginal + "</p>" : (prod.precoDe ? '<p class="text-xs text-gray-500 line-through mt-0.5">De R$ ' + parseFloat(prod.precoDe).toFixed(2) + "</p>" : "")) +
                             "</div>" +
                             '<div class="flex flex-col gap-1">' +
-                                (prod.garantiaDias ? '<span class="text-[10px] font-semibold text-gray-400">Garantia de ' + prod.garantiaDias + " dias</span>" : "") +
-                                ((prod.estoque !== "" && prod.estoque !== undefined) ? '<span class="text-[10px] font-semibold text-gray-400">' + prod.estoque + " unid. disponiveis</span>" : "") +
-                                '<span class="text-[10px] font-semibold text-gray-500" id="views-' + prod.id + '">carregando...</span>' +
+                                (prod.garantiaDias ? '<span class="text-[10px] font-semibold text-gray-400 inline-flex items-center gap-1"><i data-lucide="shield-check" style="width:11px;height:11px"></i> Garantia de ' + prod.garantiaDias + " dias</span>" : "") +
+                                ((prod.estoque !== "" && prod.estoque !== undefined) ? '<span class="text-[10px] font-semibold text-gray-400 inline-flex items-center gap-1"><i data-lucide="package" style="width:11px;height:11px"></i> ' + prod.estoque + " unid. disponiveis</span>" : "") +
+                                '<span class="text-[10px] font-semibold text-gray-500 inline-flex items-center gap-1" id="views-' + prod.id + '"><i data-lucide="eye" style="width:11px;height:11px"></i> carregando...</span>' +
                             "</div>" +
-                            '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + '\')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-4 rounded-xl transition-all hover:brightness-110" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #000);">Obter Oferta</button>' +
-                            (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-bold text-xs uppercase tracking-wider py-3 rounded-xl border transition-all hover:bg-white/5 mt-1" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';">🛒 Adicionar ao Carrinho</button>' : '') +
-                            (prod.seloConfianca ? '<p class="text-[10px] text-center text-gray-500">&#128274; ' + prod.seloConfianca + "</p>" : "") +
+                            '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-4 rounded-full transition-all" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #fff);">Obter Oferta</button>' +
+                            (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-3 rounded-full border transition-all hover:bg-white/5 mt-1 inline-flex items-center justify-center gap-2" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';"><i data-lucide="shopping-bag" style="width:12px;height:12px"></i> Adicionar ao Carrinho</button>' : '') +
+                            (prod.seloConfianca ? '<p class="text-[10px] text-center text-gray-500 inline-flex items-center justify-center gap-1"><i data-lucide="lock" style="width:11px;height:11px"></i> ' + prod.seloConfianca + "</p>" : "") +
                         "</div>" +
                     "</div>";
 
@@ -461,7 +733,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     const el = document.getElementById("views-" + prod.id);
                     if (el) {
                         const total = snap.exists() ? (snap.data().visualizacoes || 0) : 0;
-                        el.innerText = total + " visualizac" + (total === 1 ? "ao" : "oes");
+                        el.innerHTML = '<i data-lucide="eye" style="width:11px;height:11px"></i> ' + total + " visualizac" + (total === 1 ? "ao" : "oes");
+                        if (window.lucide) lucide.createIcons();
                     }
                 });
             });
@@ -528,7 +801,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (!lista) return;
 
             if (itensCarrinho.length === 0) {
-                lista.innerHTML = '<div class="flex flex-col items-center justify-center h-48 gap-3"><span class="text-4xl">🛒</span><p class="text-xs text-gray-500 text-center">Seu carrinho está vazio.<br>Adicione produtos para continuar.</p></div>';
+                lista.innerHTML = '<div class="flex flex-col items-center justify-center h-56 gap-4 text-center"><span class="h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--ink-3);"><i data-lucide="shopping-bag" style="width:22px;height:22px"></i></span><p class="text-xs" style="color: var(--ink-3);">Seu carrinho está vazio.<br>Adicione produtos para continuar.</p></div>';
                 if (totalEl) totalEl.innerText = "R$ 0,00";
                 return;
             }
@@ -537,25 +810,26 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             lista.innerHTML = itensCarrinho.map(function(item, index) {
                 const subtotal = item.preco * item.quantidade;
                 totalGeral += subtotal;
-                return '<div class="flex items-center gap-3 bg-white/[0.03] border border-white/5 p-3 rounded-xl">' +
-                    '<img src="' + item.img + '" class="h-14 w-14 rounded-xl object-cover shrink-0 border border-white/10">' +
+                return '<div class="flex items-center gap-3 p-3 rounded-2xl" style="background: var(--surface-soft); border: 1px solid var(--border);">' +
+                    '<img src="' + item.img + '" class="h-16 w-16 rounded-xl object-cover shrink-0" style="border:1px solid var(--border);">' +
                     '<div class="flex-1 min-w-0">' +
-                        '<p class="text-xs font-bold text-white truncate">' + item.nome + "</p>" +
-                        '<p class="text-[11px] text-gray-400 mt-0.5">R$ ' + item.preco.toFixed(2) + " cada</p>" +
-                        '<div class="flex items-center gap-2 mt-1.5">' +
-                            '<button onclick="alterarQuantidade(' + index + ', -1)" class="h-5 w-5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-all">-</button>' +
-                            '<span class="text-xs font-bold text-white w-4 text-center">' + item.quantidade + "</span>" +
-                            '<button onclick="alterarQuantidade(' + index + ', 1)" class="h-5 w-5 rounded-md bg-white/10 hover:bg-white/20 text-white text-xs flex items-center justify-center transition-all">+</button>' +
+                        '<p class="text-xs font-semibold truncate" style="color: var(--ink);">' + item.nome + "</p>" +
+                        '<p class="text-[11px] mt-0.5" style="color: var(--ink-3);">R$ ' + item.preco.toFixed(2) + " cada</p>" +
+                        '<div class="flex items-center gap-2 mt-2">' +
+                            '<button onclick="alterarQuantidade(' + index + ', -1)" class="h-6 w-6 rounded-full text-sm flex items-center justify-center transition-all" style="background: var(--surface); border: 1px solid var(--border); color: var(--ink);">−</button>' +
+                            '<span class="text-xs font-semibold w-5 text-center" style="color: var(--ink);">' + item.quantidade + "</span>" +
+                            '<button onclick="alterarQuantidade(' + index + ', 1)" class="h-6 w-6 rounded-full text-sm flex items-center justify-center transition-all" style="background: var(--surface); border: 1px solid var(--border); color: var(--ink);">+</button>' +
                         "</div>" +
                     "</div>" +
                     '<div class="flex flex-col items-end gap-2 shrink-0">' +
-                        '<p class="text-xs font-black text-white">R$ ' + subtotal.toFixed(2) + "</p>" +
-                        '<button onclick="removerDoCarrinho(' + index + ')" class="text-red-400 hover:text-red-300 transition-colors text-sm" title="Remover">🗑️</button>' +
+                        '<p class="text-sm font-display" style="font-family:\'Instrument Serif\',serif; color: var(--ink);">R$ ' + subtotal.toFixed(2) + "</p>" +
+                        '<button onclick="removerDoCarrinho(' + index + ')" class="transition-colors" style="color: var(--ink-4);" title="Remover"><i data-lucide="trash-2" style="width:14px;height:14px"></i></button>' +
                     "</div>" +
                 "</div>";
             }).join("");
 
             if (totalEl) totalEl.innerText = totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            if (window.lucide) lucide.createIcons();
         }
 
         window.abrirCarrinho = function() {
@@ -600,7 +874,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             renderizarCarrinho();
             fecharCarrinho();
         });
-        
+
         window.irParaOferta = async function(destinoValue, tipoDestino, nomeProd) {
             const payloadMetricas = { totalCliques: increment(1) };
             payloadMetricas["produtosInteresse." + nomeProd] = increment(1);
@@ -654,7 +928,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         document.addEventListener("mouseleave", (e) => {
             if (e.clientY < 10) exibirPopup();
         });
-        
+
 // OFERTA RELÂMPAGO
         async function verificarCampanha() {
             if (!fornecedorEmail) return;
@@ -670,29 +944,32 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
                 const popup = document.createElement("div");
                 popup.id = "popup-campanha";
-                popup.className = "fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md";
+                popup.className = "fixed inset-0 z-[70] flex items-center justify-center p-4";
+                popup.style.background = "rgba(15,15,18,0.65)";
+                popup.style.backdropFilter = "blur(12px)";
                 popup.innerHTML = `
-                    <div class="relative w-full max-w-md bg-[#0c0c14] border border-white/10 rounded-2xl p-8 shadow-2xl text-center space-y-4">
-                        <button onclick="fecharCampanha()" class="absolute top-4 right-4 text-gray-500 hover:text-white text-xl">&times;</button>
-                        <div class="text-4xl">⚡</div>
-                        <h2 class="text-xl font-black text-white">${c.titulo}</h2>
-                        <p class="text-sm text-gray-400">${c.texto || ""}</p>
+                    <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5" style="background: var(--surface); border:1px solid var(--border); box-shadow: var(--shadow-xl);">
+                        <button onclick="fecharCampanha()" class="absolute top-4 right-4 icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+                        <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--accent);"><i data-lucide="zap" style="width:24px;height:24px"></i></div>
+                        <h2 class="text-3xl" style="font-family:'Instrument Serif',serif; color: var(--ink);">${c.titulo}</h2>
+                        <p class="text-sm" style="color: var(--ink-2);">${c.texto || ""}</p>
                         <div class="flex items-center justify-center gap-3 py-2">
-                            <div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
-                                <span id="camp-min" class="text-3xl font-black text-white">00</span>
-                                <p class="text-[9px] text-gray-500 uppercase mt-1">Min</p>
+                            <div class="rounded-2xl px-5 py-3 text-center" style="background: var(--surface-soft); border:1px solid var(--border);">
+                                <span id="camp-min" class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">00</span>
+                                <p class="text-[9px] uppercase mt-1 tracking-[0.18em]" style="color: var(--ink-3);">Min</p>
                             </div>
-                            <span class="text-2xl font-black text-white">:</span>
-                            <div class="bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-center">
-                                <span id="camp-seg" class="text-3xl font-black text-white">00</span>
-                                <p class="text-[9px] text-gray-500 uppercase mt-1">Seg</p>
+                            <span class="text-2xl font-black" style="color: var(--ink-3);">:</span>
+                            <div class="rounded-2xl px-5 py-3 text-center" style="background: var(--surface-soft); border:1px solid var(--border);">
+                                <span id="camp-seg" class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">00</span>
+                                <p class="text-[9px] uppercase mt-1 tracking-[0.18em]" style="color: var(--ink-3);">Seg</p>
                             </div>
                         </div>
-                        ${c.link ? `<a href="${c.link}" target="_blank" onclick="fecharCampanha()" class="block w-full font-black text-sm uppercase tracking-widest py-4 rounded-xl transition-all hover:brightness-110 text-black" style="background-color: var(--client-brand, #00f2fe)">${c.btnTexto || "Aproveitar agora!"}</a>` : ""}
-                        <button onclick="fecharCampanha()" class="text-xs text-gray-600 hover:text-gray-400 transition-colors">Não tenho interesse</button>
+                        ${c.link ? `<a href="${c.link}" target="_blank" onclick="fecharCampanha()" class="block w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all hover:brightness-110" style="background-color: var(--client-brand, var(--ink)); color: var(--client-texto-botao, var(--bg));">${c.btnTexto || "Aproveitar agora"}</a>` : ""}
+                        <button onclick="fecharCampanha()" class="text-xs transition-colors" style="color: var(--ink-4);">Não tenho interesse</button>
                     </div>
                 `;
                 document.body.appendChild(popup);
+                if (window.lucide) lucide.createIcons();
 
                 const intervalo = setInterval(() => {
                     const resto = fimMs - Date.now();
@@ -744,13 +1021,14 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     data: Date.now()
                 });
                 document.getElementById("popup-captura").innerHTML = `
-                    <div class="text-center space-y-4 p-8">
-                        <div class="text-5xl">✅</div>
-                        <h2 class="text-xl font-black text-white">Cupom enviado!</h2>
-                        <p class="text-sm text-gray-400">Obrigado, <strong class="text-white">${nome}</strong>! Em breve você receberá seu desconto exclusivo no WhatsApp.</p>
-                        <button onclick="fecharPopup()" class="w-full font-bold text-sm py-3 rounded-xl bg-white/10 text-white hover:bg-white/20 transition-all mt-2">Continuar comprando</button>
+                    <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5 mx-auto" style="background: var(--surface); border:1px solid var(--border); box-shadow: var(--shadow-xl);">
+                        <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--success);"><i data-lucide="check" style="width:24px;height:24px"></i></div>
+                        <h2 class="text-3xl" style="font-family:'Instrument Serif',serif; color: var(--ink);">Cupom enviado.</h2>
+                        <p class="text-sm" style="color: var(--ink-2);">Obrigado, <strong style="color: var(--ink);">${nome}</strong>. Em breve você receberá seu desconto exclusivo no WhatsApp.</p>
+                        <button onclick="fecharPopup()" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all mt-2" style="background: var(--ink); color: var(--bg);">Continuar comprando</button>
                     </div>
                 `;
+                if (window.lucide) lucide.createIcons();
                 sessionStorage.setItem("popupFechado", "1");
             } catch(err) {
                 console.error(err);
@@ -773,7 +1051,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 input.value = "";
                 input.placeholder = "Escreva sua mensagem...";
                 document.getElementById("chat-send-btn").innerText = "Enviar";
-                document.getElementById("chat-client-messages").innerHTML += '<div class="bg-emerald-950/40 text-emerald-400 border border-emerald-500/10 p-2.5 rounded-xl text-center font-bold">Conectado como ' + clienteNome + ".</div>";
+                document.getElementById("chat-client-messages").innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" style="background: color-mix(in oklch, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);">Conectado como ' + clienteNome + ".</div>";
 
                 onSnapshot(query(collection(db, "chats/" + salaChatId + "/mensagens"), orderBy("timestamp", "asc")), function(snapshot) {
                     const box = document.getElementById("chat-client-messages");
@@ -781,7 +1059,12 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     snapshot.forEach(function(docM) {
                         const m = docM.data();
                         const bubble = document.createElement("div");
-                        bubble.className = "p-3 rounded-2xl max-w-[85%] " + (m.sender === "admin" ? "bg-white text-black self-start rounded-tl-none" : "bg-white/5 text-gray-200 self-end rounded-tr-none border border-white/5");
+                        bubble.className = "p-3 rounded-2xl max-w-[85%] text-[12px]";
+                        if (m.sender === "admin") {
+                            bubble.style.cssText = "background: var(--surface-soft); color: var(--ink); border: 1px solid var(--border); align-self: flex-start; border-top-left-radius: 4px;";
+                        } else {
+                            bubble.style.cssText = "background: var(--ink); color: var(--bg); align-self: flex-end; border-top-right-radius: 4px;";
+                        }
                         bubble.innerText = m.texto;
                         box.appendChild(bubble);
                         if (m.sender === "admin") clearTimeout(timeoutRedirecionamentoWhats);
