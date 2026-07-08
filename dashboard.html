@@ -1683,7 +1683,7 @@ Adicionar Produto
                     Adicionar Bloco
                 </button>
             </div>
-            <div class="flex-1 overflow-y-auto bg-[#08070f] p-8 flex flex-col items-center">
+            <div class="flex-1 overflow-auto bg-[#08070f] p-8 flex flex-col items-center">
                 <div id="lped-browser-frame" class="w-full max-w-4xl bg-[#14132B] rounded-2xl overflow-hidden shadow-2xl border border-white/5 transition-all duration-300">
                     <div class="bg-black/40 px-4 py-2.5 flex items-center gap-3 border-b border-white/5">
                         <div class="flex gap-1.5 shrink-0">
@@ -3082,6 +3082,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 return;
             }
             if (lpEditorModoLayout === "livre") {
+                document.getElementById("lped-browser-frame").style.width = "1440px";
+                document.getElementById("lped-browser-frame").classList.remove("max-w-4xl");
                 const alturaCanvas = Math.max(400, ...visiveis.map(x => (x.b.y || 20) + (x.b.altura || 220) + 40));
                 const guiasHtml = guiasAlinhamentoAtivas.map(g => g.tipo === "vertical"
                     ? `<div class="absolute top-0 bottom-0 pointer-events-none" style="left:${g.posicao}px; width:1px; background:#FF7A45; z-index:9999;"></div>`
@@ -3127,8 +3129,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             } else if (redimensionandoElemento.modo === "mover-livre") {
                 const xBruto = Math.round(Math.max(0, redimensionandoElemento.xInicial + dx));
                 const yBruto = Math.round(Math.max(0, redimensionandoElemento.yInicial + dy));
-                const canvasEl = document.getElementById("lped-preview-canvas");
-                const larguraCanvas = canvasEl ? canvasEl.clientWidth : 900;
+                const larguraCanvas = 1440;
                 const resultado = calcularSnapping(xBruto, yBruto, bloco.largura || 600, bloco.altura || 220, redimensionandoElemento.indiceBloco, larguraCanvas);
                 const larguraBloco = bloco.largura || 600;
                 bloco.x = Math.min(Math.max(0, resultado.x), Math.max(0, larguraCanvas - larguraBloco));
