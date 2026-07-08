@@ -2287,7 +2287,7 @@ window.addEventListener("pageshow", function(event) {
                 <button onclick="window.location.href='dashboard.html?masterUID=${u.uid}'" class="w-full text-left flex items-center justify-between gap-3 p-3 rounded-xl border border-white/5 hover:border-amber-500/30 hover:bg-amber-500/5 transition-all">
                     <div class="min-w-0">
                         <p class="text-xs font-bold text-white truncate">${u.nomeLoja || u.nome || "Sem nome"}</p>
-                        <p class="text-[10px] text-gray-500 truncate">${u.email || ""}</p>
+                        <p class="text-xs text-violet-300/70 truncate tracking-wide">${u.email || ""}</p>
                     </div>
                     <span class="text-[9px] font-bold px-2 py-0.5 rounded-md uppercase shrink-0 ${u.status === "aprovado" ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"}">${u.status || "pendente"}</span>
                 </button>
