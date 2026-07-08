@@ -317,7 +317,7 @@ function executarScriptsEmElemento(container) {
                 </div>`;
         } else if (bloco.tipo === "codigo_iframe") {
             conteudoHtml = bloco.props.htmlCustom
-                ? `<div class="max-w-5xl mx-auto px-6">${bloco.props.htmlCustom}</div>`
+                ? `<div class="max-w-5xl mx-auto px-6"><iframe srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
                 : (bloco.props.url
                     ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
                     : "");
