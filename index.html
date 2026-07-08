@@ -64,15 +64,24 @@
         return null;
     }
 
-    async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos, modoLayout) {
-        const blocosCarregados = [];
-        for (const blocoId of ordemBlocos) {
-            const blocoSnap = await getDoc(doc(db, colecaoBlocos, blocoId));
-            if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
-                blocosCarregados.push(blocoSnap.data());
-            }
+function executarScriptsEmElemento(container) {
+    const scripts = container.querySelectorAll("script");
+    scripts.forEach(scriptAntigo => {
+        const scriptNovo = document.createElement("script");
+        Array.from(scriptAntigo.attributes).forEach(attr => scriptNovo.setAttribute(attr.name, attr.value));
+        scriptNovo.textContent = scriptAntigo.textContent;
+        scriptAntigo.parentNode.replaceChild(scriptNovo, scriptAntigo);
+    });
+}
+async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos, modoLayout) {
+    const blocosCarregados = [];
+    for (const blocoId of ordemBlocos) {
+        const blocoSnap = await getDoc(doc(db, colecaoBlocos, blocoId));
+        if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
+            blocosCarregados.push(blocoSnap.data());
         }
-        if (modoLayout === "livre") {
+    }
+    if (modoLayout === "livre") {
             const alturaCanvas = Math.max(400, ...blocosCarregados.map(b => (b.y || 20) + (b.altura || 220) + 40));
             const canvasDiv = document.createElement("div");
             canvasDiv.className = "relative";
