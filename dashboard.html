@@ -2991,10 +2991,12 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-3">${bloco.props.titulo}</h2>` : ""}
                         <div class="text-gray-300 text-sm space-y-2">${paragrafos.map(p => `<p>${p}</p>`).join("")}</div>
                     </div>`;
-            } else if (bloco.tipo === "codigo_iframe") {
-                conteudo = bloco.props.url
-                    ? `<div class="max-w-3xl mx-auto px-6"><div class="bg-white/5 border border-dashed border-white/20 rounded-xl p-6 text-center text-xs text-gray-500">Incorporado: ${bloco.props.url}</div></div>`
-                    : `<div class="max-w-3xl mx-auto px-6"><p class="text-xs text-gray-500 text-center">Nenhuma URL definida ainda.</p></div>`;
+} else if (bloco.tipo === "codigo_iframe") {
+                conteudo = bloco.props.htmlCustom
+                    ? `<div class="max-w-3xl mx-auto px-6"><iframe srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
+                    : (bloco.props.url
+                        ? `<div class="max-w-3xl mx-auto px-6"><div class="bg-white/5 border border-dashed border-white/20 rounded-xl p-6 text-center text-xs text-gray-500">Incorporado: ${bloco.props.url}</div></div>`
+                        : `<div class="max-w-3xl mx-auto px-6"><p class="text-xs text-gray-500 text-center">Nenhuma URL definida ainda.</p></div>`);
             } else if (bloco.tipo === "carrossel_banners") {
                 const banners = bloco.props.banners || [];
                 conteudo = `<div class="max-w-3xl mx-auto px-6"><div class="flex gap-2 overflow-x-auto">${banners.length === 0 ? '<p class="text-xs text-gray-500">Sem banners ainda.</p>' : banners.map(b => `<img src="${b.imagemB64}" class="shrink-0 w-40 h-20 object-cover rounded-xl">`).join("")}</div></div>`;
