@@ -1984,7 +1984,27 @@ Adicionar Produto
             </div>
 <div id="lped-camadas-lista" class="max-h-[60vh] overflow-y-auto p-2 space-y-1"></div>
         </div>
-        <div id="lped-menu-contexto" class="hidden fixed z-[140] w-48 bg-[#14132B] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1"></div>
+<div id="lped-menu-contexto" class="hidden fixed z-[140] w-48 bg-[#14132B] border border-white/10 rounded-xl shadow-2xl overflow-hidden py-1"></div>
+        <div id="lped-modal-renomear-pagina" class="hidden fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-4">
+            <div class="bg-[#14132B] border border-white/10 rounded-2xl p-5 w-full max-w-xs">
+                <p class="text-xs font-bold text-white mb-3">Renomear pagina</p>
+                <input type="text" id="lped-input-renomear-pagina" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" maxlength="40">
+                <div class="flex gap-2 mt-4">
+                    <button onclick="fecharModalRenomearPagina()" class="flex-1 text-[11px] font-bold py-2.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-all">Cancelar</button>
+                    <button onclick="confirmarRenomearPagina()" class="flex-1 text-[11px] font-bold py-2.5 rounded-lg bg-[#FF7A45] text-white hover:opacity-90 transition-all">Salvar</button>
+                </div>
+            </div>
+        </div>
+        <div id="lped-modal-excluir-pagina" class="hidden fixed inset-0 z-[150] bg-black/60 flex items-center justify-center p-4">
+            <div class="bg-[#14132B] border border-white/10 rounded-2xl p-5 w-full max-w-xs">
+                <p class="text-xs font-bold text-white mb-1.5">Excluir pagina?</p>
+                <p class="text-[11px] text-gray-400 mb-3">Esta pagina e todos os blocos dela serao excluidos.</p>
+                <div class="flex gap-2">
+                    <button onclick="fecharModalExcluirPagina()" class="flex-1 text-[11px] font-bold py-2.5 rounded-lg bg-white/5 text-gray-300 hover:bg-white/10 transition-all">Cancelar</button>
+                    <button onclick="confirmarExcluirPagina()" class="flex-1 text-[11px] font-bold py-2.5 rounded-lg bg-red-500/80 text-white hover:bg-red-500 transition-all">Excluir</button>
+                </div>
+            </div>
+        </div>
         <div class="shrink-0 bg-[#14132B]/95 backdrop-blur-md border-b border-white/5 px-6 py-3 flex items-center justify-between gap-4">
             <div class="flex items-center gap-3 flex-1 min-w-0">
                 <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
@@ -3348,6 +3368,80 @@ document.addEventListener("mousedown", function(e) {
                 fecharMenuContexto();
             }
         });
+        window.trocarPaginaLP = function(id) {
+            lpEditorPaginaAtual = id;
+            blocosSelecionadosLivre.clear();
+            renderizarBarraPaginas();
+            renderizarEditorBlocos();
+        };
+        window.adicionarPaginaLP = function() {
+            const nova = { id: `pg_${Date.now()}`, nome: `Pagina ${lpEditorPaginas.length + 1}` };
+            lpEditorPaginas.push(nova);
+            trocarPaginaLP(nova.id);
+        };
+        let paginaEmRenomeacao = null;
+        window.renomearPaginaLP = function(id) {
+            const pg = lpEditorPaginas.find(p => p.id === id);
+            if (!pg) return;
+            paginaEmRenomeacao = id;
+            document.getElementById("lped-input-renomear-pagina").value = pg.nome;
+            document.getElementById("lped-modal-renomear-pagina").classList.remove("hidden");
+            setTimeout(() => document.getElementById("lped-input-renomear-pagina").select(), 50);
+        };
+        window.fecharModalRenomearPagina = function() {
+            document.getElementById("lped-modal-renomear-pagina").classList.add("hidden");
+            paginaEmRenomeacao = null;
+        };
+        window.confirmarRenomearPagina = function() {
+            const pg = lpEditorPaginas.find(p => p.id === paginaEmRenomeacao);
+            const nome = document.getElementById("lped-input-renomear-pagina").value.trim();
+            if (pg && nome) { pg.nome = nome; renderizarBarraPaginas(); }
+            fecharModalRenomearPagina();
+        };
+        document.getElementById("lped-input-renomear-pagina").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") confirmarRenomearPagina();
+            else if (e.key === "Escape") fecharModalRenomearPagina();
+        });
+        let paginaEmExclusao = null;
+        window.excluirPaginaLP = function(id) {
+            if (lpEditorPaginas.length <= 1) { showToast("A LP precisa ter pelo menos uma pagina.", "error"); return; }
+            const temBlocos = lpEditorBlocos.some(b => b.paginaId === id);
+            if (!temBlocos) { executarExclusaoPagina(id); return; }
+            paginaEmExclusao = id;
+            document.getElementById("lped-modal-excluir-pagina").classList.remove("hidden");
+        };
+        window.fecharModalExcluirPagina = function() {
+            document.getElementById("lped-modal-excluir-pagina").classList.add("hidden");
+            paginaEmExclusao = null;
+        };
+        window.confirmarExcluirPagina = function() {
+            const id = paginaEmExclusao;
+            fecharModalExcluirPagina();
+            if (id) executarExclusaoPagina(id);
+        };
+        function executarExclusaoPagina(id) {
+            for (let i = lpEditorBlocos.length - 1; i >= 0; i--) {
+                if (lpEditorBlocos[i].paginaId === id) {
+                    const removido = lpEditorBlocos.splice(i, 1)[0];
+                    if (removido && removido.id) lpEditorRemovidos.push(removido.id);
+                }
+            }
+            lpEditorPaginas = lpEditorPaginas.filter(p => p.id !== id);
+            if (lpEditorPaginaAtual === id) lpEditorPaginaAtual = lpEditorPaginas[0].id;
+            blocosSelecionadosLivre.clear();
+            renderizarBarraPaginas();
+            renderizarEditorBlocos();
+            salvarHistoricoEditor();
+        }
+        function renderizarBarraPaginas() {
+            const barra = document.getElementById("lped-barra-paginas");
+            if (!barra) return;
+            barra.innerHTML = lpEditorPaginas.map(p => `
+                <button onclick="trocarPaginaLP('${p.id}')" ondblclick="renomearPaginaLP('${p.id}')" title="Clique 2x pra renomear" class="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${p.id === lpEditorPaginaAtual ? "bg-[#FF7A45] text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}">
+                    ${p.nome}${lpEditorPaginas.length > 1 ? `<span onclick="event.stopPropagation(); excluirPaginaLP('${p.id}')" title="Excluir pagina" class="opacity-60 hover:opacity-100 leading-none">&times;</span>` : ""}
+                </button>
+            `).join("") + `<button onclick="adicionarPaginaLP()" title="Adicionar pagina" class="shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all">+</button>`;
+        }
         window.trocarPaginaLP = function(id) {
             lpEditorPaginaAtual = id;
             blocosSelecionadosLivre.clear();
