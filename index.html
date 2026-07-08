@@ -88,13 +88,22 @@ function executarScriptsEmElemento(container) {
             scriptAntigo.parentNode.replaceChild(scriptNovo, scriptAntigo);
         });
     }
-    async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos, modoLayout) {
-        const blocosCarregados = [];
+async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos, modoLayout, paginas) {
+        let blocosCarregados = [];
         for (const blocoId of ordemBlocos) {
             const blocoSnap = await getDoc(doc(db, colecaoBlocos, blocoId));
             if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
                 blocosCarregados.push(blocoSnap.data());
             }
+        }
+        if (paginas && paginas.length > 0) {
+            const paramP = parseInt(new URLSearchParams(window.location.search).get("p") || "1");
+            const numeroPagina = Math.min(Math.max(1, isNaN(paramP) ? 1 : paramP), paginas.length);
+            const paginaAlvo = paginas[numeroPagina - 1].id;
+            blocosCarregados = blocosCarregados.filter(b => {
+                const pid = b.paginaId && paginas.some(p => p.id === b.paginaId) ? b.paginaId : paginas[0].id;
+                return pid === paginaAlvo;
+            });
         }
         if (modoLayout === "livre") {
             const alturaCanvas = Math.max(400, ...blocosCarregados.map(b => (b.y || 20) + (b.altura || 220) + 40));
@@ -170,7 +179,7 @@ executarScriptsEmElemento(container);
             document.title = meta.titulo || "Vide Hub";
             container.className = "min-h-screen";
             container.innerHTML = "";
-            await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", meta.ordemBlocos || [], meta.modoLayout || "empilhado");
+await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", meta.ordemBlocos || [], meta.modoLayout || "empilhado", meta.paginas || []);
         } catch (erro) {
             console.error("Erro ao carregar landing page:", erro);
             document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
@@ -194,7 +203,7 @@ executarScriptsEmElemento(container);
             document.title = "[Rascunho] " + (lp.titulo || "Vide Hub");
             container.className = "min-h-screen";
             container.innerHTML = '<div class="fixed top-0 inset-x-0 z-50 bg-amber-500 text-black text-xs font-bold text-center py-1.5">RASCUNHO -- visivel so pra voce</div><div style="height:32px;"></div>';
-            await renderizarBlocosNoContainer(container, "landing_pages_blocos", lp.ordemBlocos || [], lp.modoLayout || "empilhado");
+            await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", meta.ordemBlocos || [], meta.modoLayout || "empilhado", meta.paginas || []);
         } catch (erro) {
             console.error("Erro ao carregar previa:", erro);
             document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
