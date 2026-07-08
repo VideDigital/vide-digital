@@ -3442,49 +3442,7 @@ document.addEventListener("mousedown", function(e) {
                 </button>
             `).join("") + `<button onclick="adicionarPaginaLP()" title="Adicionar pagina" class="shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all">+</button>`;
         }
-        window.trocarPaginaLP = function(id) {
-            lpEditorPaginaAtual = id;
-            blocosSelecionadosLivre.clear();
-            renderizarBarraPaginas();
-            renderizarEditorBlocos();
-        };
-        window.adicionarPaginaLP = function() {
-            const nova = { id: `pg_${Date.now()}`, nome: `Pagina ${lpEditorPaginas.length + 1}` };
-            lpEditorPaginas.push(nova);
-            trocarPaginaLP(nova.id);
-        };
-        window.renomearPaginaLP = function(id) {
-            const pg = lpEditorPaginas.find(p => p.id === id);
-            if (!pg) return;
-            const nome = prompt("Nome da pagina:", pg.nome);
-            if (nome && nome.trim()) { pg.nome = nome.trim(); renderizarBarraPaginas(); }
-        };
-        window.excluirPaginaLP = function(id) {
-            if (lpEditorPaginas.length <= 1) { showToast("A LP precisa ter pelo menos uma pagina.", "error"); return; }
-            const temBlocos = lpEditorBlocos.some(b => b.paginaId === id);
-            if (temBlocos && !confirm("Excluir esta pagina e todos os blocos dela?")) return;
-            for (let i = lpEditorBlocos.length - 1; i >= 0; i--) {
-                if (lpEditorBlocos[i].paginaId === id) {
-                    const removido = lpEditorBlocos.splice(i, 1)[0];
-                    if (removido && removido.id) lpEditorRemovidos.push(removido.id);
-                }
-            }
-            lpEditorPaginas = lpEditorPaginas.filter(p => p.id !== id);
-            if (lpEditorPaginaAtual === id) lpEditorPaginaAtual = lpEditorPaginas[0].id;
-            blocosSelecionadosLivre.clear();
-            renderizarBarraPaginas();
-            renderizarEditorBlocos();
-            salvarHistoricoEditor();
-        };
-        function renderizarBarraPaginas() {
-            const barra = document.getElementById("lped-barra-paginas");
-            if (!barra) return;
-            barra.innerHTML = lpEditorPaginas.map(p => `
-                <button onclick="trocarPaginaLP('${p.id}')" ondblclick="renomearPaginaLP('${p.id}')" title="Clique 2x pra renomear" class="shrink-0 inline-flex items-center gap-1.5 text-[10px] font-bold px-3 py-1.5 rounded-lg transition-all ${p.id === lpEditorPaginaAtual ? "bg-[#FF7A45] text-white" : "bg-white/5 text-gray-400 hover:bg-white/10"}">
-                    ${p.nome}${lpEditorPaginas.length > 1 ? `<span onclick="event.stopPropagation(); excluirPaginaLP('${p.id}')" title="Excluir pagina" class="opacity-60 hover:opacity-100 leading-none">&times;</span>` : ""}
-                </button>
-            `).join("") + `<button onclick="adicionarPaginaLP()" title="Adicionar pagina" class="shrink-0 text-[10px] font-bold px-2.5 py-1.5 rounded-lg bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white transition-all">+</button>`;
-        }
+
         function clonarBlocosEditor() {
             return JSON.parse(JSON.stringify(lpEditorBlocos));
         }
