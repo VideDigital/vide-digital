@@ -2041,18 +2041,69 @@ Adicionar Produto
             </div>
         </div>
         <div class="flex-1 flex overflow-hidden relative">
-            <div id="lped-painel-lateral" class="w-[430px] shrink-0 bg-gradient-to-b from-[#0D0F18] via-[#111320] to-[#0A0B14] border-r border-white/10 overflow-y-auto p-6 space-y-5 transition-all duration-300 shadow-[20px_0_60px_rgba(0,0,0,.35)]">
+<div id="lped-painel-lateral" class="w-[430px] shrink-0 bg-gradient-to-b from-[#090B12] via-[#111320] to-[#090B12] border-r border-white/10 overflow-y-auto transition-all duration-300 shadow-[25px_0_80px_rgba(0,0,0,.45)]">
+
+<div class="sticky top-0 z-20 bg-[#0F1220]/90 backdrop-blur-xl border-b border-white/10 px-6 py-5">
+
+<div class="flex items-center justify-between">
+
 <div>
-                    <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider">Endereco (slug)</label>
-                    <input type="text" id="lped-slug" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none mt-1" placeholder="promocao-inverno" oninput="atualizarUrlPreviewEditor()">
-                </div>
-                <div>
-                    <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Paginas</p>
-                    <div id="lped-barra-paginas" class="flex items-center gap-1.5 flex-wrap"></div>
-                    <p class="text-[9px] text-gray-500 mt-1.5">Pra levar o visitante a outra pagina, use o link ?p=2 (numero da pagina) nos botoes.</p>
-                </div>
-                <div id="lped-blocos-lista" class="space-y-4"></div>
-                <button onclick="abrirPainelBlocos()" class="w-full bg-gradient-to-r from-[#5B3DF5]/15 to-[#7C5CFF]/15 hover:from-[#5B3DF5]/25 hover:to-[#7C5CFF]/25 border border-dashed border-[#7C5CFF]/50 text-[#C5BAFF] text-xs font-black py-5 rounded-2xl transition-all duration-300 flex items-center justify-center gap-3 hover:scale-[1.02]">
+
+<h3 class="text-white text-lg font-black tracking-tight">Componentes</h3>
+
+<p class="text-xs text-violet-300/70 mt-1">Estruture sua Landing visualmente</p>
+
+</div>
+
+<button class="w-10 h-10 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center transition-all duration-300">
+
+<svg class="w-5 h-5 text-violet-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12h18M12 3v18"/>
+
+</svg>
+
+</button>
+
+</div>
+
+<div class="mt-5">
+
+<label class="text-[11px] font-black uppercase tracking-[.25em] text-violet-300">Slug</label>
+
+<input type="text" id="lped-slug" class="w-full mt-2 glass-input rounded-2xl px-4 py-3 text-sm text-white outline-none border border-white/10 bg-white/5 focus:border-violet-500 transition-all" placeholder="promocao-inverno" oninput="atualizarUrlPreviewEditor()">
+
+</div>
+
+<div class="mt-5">
+
+<label class="text-[11px] font-black uppercase tracking-[.25em] text-violet-300">Páginas</label>
+
+<div id="lped-barra-paginas" class="flex items-center gap-2 flex-wrap mt-3"></div>
+
+<p class="text-[11px] text-gray-500 mt-3 leading-5">Use <span class="text-violet-300 font-bold">?p=2</span> para navegar entre páginas pelos botões.</p>
+
+</div>
+
+</div>
+
+<div class="px-6 py-6">
+
+<div id="lped-blocos-lista" class="space-y-4"></div>
+
+<button onclick="abrirPainelBlocos()" class="mt-6 w-full bg-gradient-to-r from-violet-600/15 to-indigo-600/15 hover:from-violet-600/25 hover:to-indigo-600/25 border border-dashed border-violet-500/40 rounded-2xl py-5 flex items-center justify-center gap-3 text-sm font-black text-violet-200 transition-all duration-300 hover:scale-[1.02]">
+
+<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+
+<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+
+</svg>
+
+Adicionar Novo Bloco
+
+</button>
+
+</div>
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
                     Adicionar Bloco
                 </button>
@@ -3159,11 +3210,11 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const icone = document.getElementById("lped-icone-colapsar");
             const colapsado = painel.style.width === "0px";
             if (colapsado) {
-                painel.style.width = "420px";
+                painel.style.width = "430px";
                 painel.style.padding = "";
                 painel.style.opacity = "1";
                 painel.style.overflow = "auto";
-                btn.style.left = "412px";
+                btn.style.left = "422px";
                 icone.setAttribute("d", "M15 19l-7-7 7-7");
             } else {
                 painel.style.width = "0px";
