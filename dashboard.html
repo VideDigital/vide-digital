@@ -3950,8 +3950,9 @@ return { x: novoX, y: novoY, guias };
                         ${corpoHtml}
                     </div>
                 `;
-            }).join("") || '<p class="text-xs text-gray-500 text-center py-8">Nenhum bloco ainda. Adicione um abaixo.</p>';
+}).join("") || '<p class="text-xs text-gray-500 text-center py-8">Nenhum bloco ainda. Adicione um abaixo.</p>';
             renderizarPreviewEditor();
+            renderizarPainelCamadas();
         }
         window.alternarCampoFormEditor = function(i, campo, marcado) {
             if (!lpEditorBlocos[i].props.campos) lpEditorBlocos[i].props.campos = [];
