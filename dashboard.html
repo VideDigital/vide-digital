@@ -3097,7 +3097,29 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 else if (Math.abs(baixo - oBaixo) < limiar) { novoY = oBaixo - altura; guias.push({ tipo: "horizontal", posicao: oBaixo }); }
                 else if (Math.abs(centroY - oCentroY) < limiar) { novoY = oCentroY - altura / 2; guias.push({ tipo: "horizontal", posicao: oCentroY }); }
             });
-            return { x: novoX, y: novoY, guias };
+return { x: novoX, y: novoY, guias };
+        }
+        function calcularSnappingRedimensionar(x, y, largura, altura, indiceIgnorar, larguraCanvas) {
+            const limiar = 6;
+            let novaLargura = largura, novaAltura = altura;
+            const guias = [];
+            const direita = x + largura;
+            const baixo = y + altura;
+            const centroCanvasX = larguraCanvas / 2;
+            if (Math.abs(direita - centroCanvasX) < limiar) { novaLargura = centroCanvasX - x; guias.push({ tipo: "vertical", posicao: centroCanvasX }); }
+            else if (Math.abs(direita - larguraCanvas) < limiar) { novaLargura = larguraCanvas - x; guias.push({ tipo: "vertical", posicao: larguraCanvas }); }
+            lpEditorBlocos.forEach((outro, idx) => {
+                if (idx === indiceIgnorar || outro.visivel === false || outro.x === undefined) return;
+                const oEsquerda = outro.x, oDireita = outro.x + (outro.largura || 600), oCentroX = outro.x + (outro.largura || 600) / 2;
+                const oTopo = outro.y, oBaixo = outro.y + (outro.altura || 220), oCentroY = outro.y + (outro.altura || 220) / 2;
+                if (Math.abs(direita - oEsquerda) < limiar) { novaLargura = oEsquerda - x; guias.push({ tipo: "vertical", posicao: oEsquerda }); }
+                else if (Math.abs(direita - oDireita) < limiar) { novaLargura = oDireita - x; guias.push({ tipo: "vertical", posicao: oDireita }); }
+                else if (Math.abs(direita - oCentroX) < limiar) { novaLargura = oCentroX - x; guias.push({ tipo: "vertical", posicao: oCentroX }); }
+                if (Math.abs(baixo - oTopo) < limiar) { novaAltura = oTopo - y; guias.push({ tipo: "horizontal", posicao: oTopo }); }
+                else if (Math.abs(baixo - oBaixo) < limiar) { novaAltura = oBaixo - y; guias.push({ tipo: "horizontal", posicao: oBaixo }); }
+                else if (Math.abs(baixo - oCentroY) < limiar) { novaAltura = oCentroY - y; guias.push({ tipo: "horizontal", posicao: oCentroY }); }
+            });
+            return { largura: novaLargura, altura: novaAltura, guias };
         }
         function renderizarPreviewEditor() {
             const canvas = document.getElementById("lped-preview-canvas");
@@ -3161,9 +3183,16 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 bloco.x = Math.min(Math.max(0, resultado.x), Math.max(0, larguraCanvas - larguraBloco));
                 bloco.y = resultado.y;
                 guiasAlinhamentoAtivas = resultado.guias;
-            } else if (redimensionandoElemento.modo === "livre-tamanho") {
-                bloco.largura = Math.round(Math.max(80, redimensionandoElemento.larguraLivreInicial + dx));
-                bloco.altura = Math.round(Math.max(60, redimensionandoElemento.alturaLivreInicial + dy));
+} else if (redimensionandoElemento.modo === "livre-tamanho") {
+                const larguraCanvas = 1440;
+                const larguraBruta = Math.round(Math.max(80, redimensionandoElemento.larguraLivreInicial + dx));
+                const alturaBruta = Math.round(Math.max(60, redimensionandoElemento.alturaLivreInicial + dy));
+                const xAtual = bloco.x !== undefined ? bloco.x : 20;
+                const yAtual = bloco.y !== undefined ? bloco.y : 20;
+                const resultado = calcularSnappingRedimensionar(xAtual, yAtual, larguraBruta, alturaBruta, redimensionandoElemento.indiceBloco, larguraCanvas);
+                bloco.largura = Math.round(Math.min(Math.max(80, resultado.largura), larguraCanvas - xAtual));
+                bloco.altura = Math.round(Math.max(60, resultado.altura));
+                guiasAlinhamentoAtivas = resultado.guias;
             } else {
                 bloco.props.largura = Math.round(Math.max(20, redimensionandoElemento.larguraInicial + dx));
                 if (bloco.props.tipoForma !== "linha") {
