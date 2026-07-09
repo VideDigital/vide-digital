@@ -6287,25 +6287,174 @@ textarea:focus{
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
                 <div>
                     <h1 class="text-2xl font-black text-white tracking-tight">Pedidos</h1>
-                    <p class="text-gray-400 text-xs mt-1">Registre e acompanhe os pedidos confirmados pelo carrinho ou WhatsApp.</p>
-                </div>
-                <button onclick="abrirModalPedido()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Pedido</button>
-            </div>
+<section id="view-pedidos" class="view-section space-y-6 max-w-6xl mx-auto">
 
-            <div class="flex flex-wrap gap-2 items-center">
-                <select id="filtro-pedido-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <option value="7">Últimos 7 dias</option>
-                    <option value="30" selected>Últimos 30 dias</option>
-                    <option value="90">Últimos 90 dias</option>
-                    <option value="0">Todos</option>
-                    <option value="custom">Data específica</option>
-                </select>
-                <div id="filtro-pedido-datas-custom" class="hidden flex gap-2 items-center">
-                    <input type="date" id="filtro-pedido-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <span class="text-gray-500 text-xs">até</span>
-                    <input type="date" id="filtro-pedido-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+            <div class="aura-orders-header">
+
+                <div class="aura-orders-header-glow aura-orders-header-glow-primary"></div>
+                <div class="aura-orders-header-glow aura-orders-header-glow-accent"></div>
+
+                <div class="relative z-[2] flex flex-col xl:flex-row xl:items-center xl:justify-between gap-7">
+
+                    <div class="flex items-start gap-4">
+
+                        <div class="aura-orders-header-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M6 4h12v17H6z"></path>
+                                <path d="M9 4a3 3 0 0 1 6 0"></path>
+                                <path d="M9 9h6M9 13h6M9 17h4"></path>
+
+                            </svg>
+
+                        </div>
+
+                        <div>
+
+                            <div class="flex flex-wrap items-center gap-2">
+
+                                <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">
+
+                                    Aura Flow
+
+                                </p>
+
+                                <span class="aura-orders-live-badge">
+
+                                    Operação em tempo real
+
+                                </span>
+
+                            </div>
+
+                            <h1 class="text-2xl sm:text-3xl font-black text-white tracking-[-0.04em] mt-1">
+
+                                Central de pedidos
+
+                            </h1>
+
+                            <p class="text-gray-400 text-xs sm:text-sm mt-2 max-w-xl leading-relaxed">
+
+                                Registre, acompanhe e atualize pedidos realizados pelo carrinho ou atendimento no WhatsApp.
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <button onclick="abrirModalPedido()"
+                            class="aura-orders-new-button">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M12 5v14M5 12h14"></path>
+
+                        </svg>
+
+                        <span>Novo pedido</span>
+
+                    </button>
+
                 </div>
-                <button onclick="aplicarFiltroPedidos()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+
+                <div class="aura-orders-header-divider"></div>
+
+                <div class="relative z-[2] flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+                    <div class="aura-orders-filter-bar">
+
+                        <div class="aura-orders-filter-field">
+
+                            <span class="aura-orders-filter-icon">
+
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor">
+
+                                    <rect x="3"
+                                          y="5"
+                                          width="18"
+                                          height="16"
+                                          rx="2">
+                                    </rect>
+
+                                    <path d="M16 3v4M8 3v4M3 10h18"></path>
+
+                                </svg>
+
+                            </span>
+
+                            <select id="filtro-pedido-dias"
+                                    class="glass-input">
+
+                                <option value="7">Últimos 7 dias</option>
+                                <option value="30" selected>Últimos 30 dias</option>
+                                <option value="90">Últimos 90 dias</option>
+                                <option value="0">Todos</option>
+                                <option value="custom">Data específica</option>
+
+                            </select>
+
+                        </div>
+
+                        <div id="filtro-pedido-datas-custom"
+                             class="hidden aura-orders-custom-dates">
+
+                            <input type="date"
+                                   id="filtro-pedido-de"
+                                   class="glass-input">
+
+                            <span class="aura-orders-date-separator">
+
+                                até
+
+                            </span>
+
+                            <input type="date"
+                                   id="filtro-pedido-ate"
+                                   class="glass-input">
+
+                        </div>
+
+                        <button onclick="aplicarFiltroPedidos()"
+                                class="aura-orders-filter-button">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M4 6h16M7 12h10M10 18h4"></path>
+
+                            </svg>
+
+                            <span>Aplicar filtro</span>
+
+                        </button>
+
+                    </div>
+
+                    <div class="aura-orders-sync-status">
+
+                        <span class="aura-orders-sync-dot"></span>
+
+                        <div>
+
+                            <small>Sincronização</small>
+
+                            <strong>Firebase conectado</strong>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
 
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block" data-block-id="estatisticas-pedidos" data-block-nome="Estatísticas de Pedidos">
