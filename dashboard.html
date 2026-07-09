@@ -3248,15 +3248,92 @@ textarea:focus{
     </div>
 
 </div>
-    <div class="hidden md:block px-2" id="box-logout">
-        <button id="btn-painel-master" onclick="window.location.href='admin.html'" class="hidden items-center gap-3 px-4 py-2.5 text-xs font-bold text-amber-400 hover:text-amber-300 rounded-lg transition-colors w-full text-left mb-1">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
-            Painel Master
-        </button>
-        <button id="btn-logout" class="flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-500 hover:text-white rounded-lg transition-colors w-full text-left">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
-            Sair da Conta
-        </button>
+    <div class="hidden md:block px-1 pt-3" id="box-logout">
+
+        <div class="aura-sidebar-account-actions">
+
+            <button id="btn-painel-master"
+                    onclick="window.location.href='admin.html'"
+                    class="aura-sidebar-account-button aura-sidebar-master hidden">
+
+                <span class="aura-sidebar-account-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <circle cx="15" cy="8" r="5"></circle>
+
+                        <path d="m11.5 11.5-8 8V22H6l1.5-1.5L9 22l2-2-1.5-1.5 5-5"></path>
+
+                    </svg>
+
+                </span>
+
+                <span class="aura-sidebar-account-text">
+
+                    <strong>Painel Master</strong>
+
+                    <small>Administração geral</small>
+
+                </span>
+
+                <span class="aura-sidebar-account-arrow">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m9 6 6 6-6 6"></path>
+
+                    </svg>
+
+                </span>
+
+            </button>
+
+            <button id="btn-logout"
+                    class="aura-sidebar-account-button aura-sidebar-logout">
+
+                <span class="aura-sidebar-account-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M14 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2v-3"></path>
+
+                        <path d="M10 12h11"></path>
+                        <path d="m18 9 3 3-3 3"></path>
+
+                    </svg>
+
+                </span>
+
+                <span class="aura-sidebar-account-text">
+
+                    <strong>Sair da conta</strong>
+
+                    <small>Encerrar esta sessão</small>
+
+                </span>
+
+                <span class="aura-sidebar-account-arrow">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m9 6 6 6-6 6"></path>
+
+                    </svg>
+
+                </span>
+
+            </button>
+
+        </div>
+
     </div>
 </aside>
 
