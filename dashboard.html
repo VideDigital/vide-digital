@@ -3577,6 +3577,517 @@ textarea:focus{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — PRODUCT STUDIO MODAL
+   Apenas visual: não altera IDs, campos, formulário ou JavaScript.
+   ========================================================================= */
+
+#produto-modal{
+  padding:18px !important;
+  background:
+    radial-gradient(
+      700px 450px at 80% 0%,
+      color-mix(in srgb, var(--aura-primary) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      600px 400px at 0% 100%,
+      color-mix(in srgb, var(--aura-accent) 12%, transparent),
+      transparent 72%
+    ),
+    rgba(3,3,9,.84) !important;
+  backdrop-filter:blur(26px) saturate(125%) !important;
+  -webkit-backdrop-filter:blur(26px) saturate(125%) !important;
+}
+
+#produto-modal > .glass-card{
+  position:relative;
+  isolation:isolate;
+  width:min(940px,100%) !important;
+  max-width:940px !important;
+  max-height:calc(100dvh - 36px) !important;
+  padding:0 !important;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  border-radius:28px !important;
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 20%,
+      var(--aura-border)
+    ) !important;
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--aura-surface-strong) 92%, transparent),
+      color-mix(in srgb, var(--aura-background) 94%, black 6%)
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 60px 140px -55px rgba(0,0,0,.95),
+    0 30px 80px -55px
+      color-mix(in srgb, var(--aura-primary) 65%, transparent) !important;
+  animation:auraProductModalIn .48s var(--rd-ease);
+}
+
+#produto-modal > .glass-card::before{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:520px;
+  height:520px;
+  top:-410px;
+  right:-210px;
+  border-radius:999px;
+  pointer-events:none;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 22%,
+      transparent
+    );
+  filter:blur(90px);
+}
+
+#produto-modal > .glass-card::after{
+  content:"";
+  position:absolute;
+  z-index:-1;
+  width:380px;
+  height:380px;
+  left:-240px;
+  bottom:-280px;
+  border-radius:999px;
+  pointer-events:none;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-accent) 16%,
+      transparent
+    ) !important;
+  filter:blur(80px);
+  opacity:.8 !important;
+}
+
+@keyframes auraProductModalIn{
+  from{
+    opacity:0;
+    transform:translateY(24px) scale(.97);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+/* Cabeçalho fixo do modal */
+
+#produto-modal #modal-titulo{
+  position:sticky;
+  top:0;
+  z-index:12;
+  display:flex;
+  align-items:center;
+  min-height:92px;
+  margin:0 !important;
+  padding:25px 84px 25px 78px;
+  color:var(--aura-text) !important;
+  font-family:'Sora',sans-serif;
+  font-size:19px !important;
+  line-height:1.25;
+  font-weight:800 !important;
+  letter-spacing:-.035em;
+  border-bottom:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--aura-background) 92%, transparent),
+      color-mix(in srgb, var(--aura-background) 82%, transparent)
+    );
+  backdrop-filter:blur(25px) saturate(140%);
+  -webkit-backdrop-filter:blur(25px) saturate(140%);
+}
+
+#produto-modal #modal-titulo::before{
+  content:"";
+  position:absolute;
+  left:25px;
+  display:block;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 28%,
+      transparent
+    );
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-primary) 20%, transparent),
+      color-mix(in srgb, var(--aura-accent) 9%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 16px 32px -22px
+      color-mix(in srgb, var(--aura-primary) 78%, transparent);
+}
+
+#produto-modal #modal-titulo::after{
+  content:"";
+  position:absolute;
+  left:38px;
+  width:16px;
+  height:16px;
+  border:1.8px solid var(--aura-primary);
+  border-radius:4px;
+  transform:rotate(45deg);
+  box-shadow:
+    inset 0 0 0 3px
+      color-mix(in srgb, var(--aura-accent) 75%, transparent);
+}
+
+/* Fechar */
+
+#produto-modal #modal-fechar{
+  position:sticky !important;
+  float:right;
+  top:23px !important;
+  right:25px !important;
+  z-index:20;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  margin-bottom:-42px;
+  border-radius:14px;
+  color:var(--aura-text-muted) !important;
+  font-size:0 !important;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 70%,
+      transparent
+    );
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  transition:
+    transform .25s var(--rd-ease),
+    color .25s ease,
+    border-color .25s ease,
+    background .25s ease;
+}
+
+#produto-modal #modal-fechar::before,
+#produto-modal #modal-fechar::after{
+  content:"";
+  position:absolute;
+  width:15px;
+  height:1.6px;
+  border-radius:999px;
+  background:currentColor;
+}
+
+#produto-modal #modal-fechar::before{
+  transform:rotate(45deg);
+}
+
+#produto-modal #modal-fechar::after{
+  transform:rotate(-45deg);
+}
+
+#produto-modal #modal-fechar:hover{
+  transform:rotate(5deg) scale(1.05);
+  color:#FB7185 !important;
+  border-color:rgba(251,113,133,.25);
+  background:rgba(251,113,133,.08);
+}
+
+/* Corpo do formulário */
+
+#produto-modal #produto-form{
+  position:relative;
+  z-index:2;
+  padding:25px 27px 30px;
+}
+
+#produto-modal #produto-form > div{
+  position:relative;
+}
+
+#produto-modal #produto-form label{
+  color:var(--aura-text-muted) !important;
+  font-size:9px !important;
+  line-height:1.3;
+  font-weight:800 !important;
+  letter-spacing:.1em !important;
+}
+
+#produto-modal #produto-form input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+#produto-modal #produto-form select,
+#produto-modal #produto-form textarea{
+  min-height:46px;
+  border-radius:14px !important;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 66%,
+      transparent
+    ) !important;
+  border:1px solid var(--aura-border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+#produto-modal #produto-form textarea{
+  min-height:110px;
+  resize:vertical;
+}
+
+#produto-modal #produto-form input:focus,
+#produto-modal #produto-form select:focus,
+#produto-modal #produto-form textarea:focus{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 55%,
+      transparent
+    ) !important;
+  box-shadow:
+    0 0 0 4px
+      color-mix(
+        in srgb,
+        var(--aura-primary) 12%,
+        transparent
+      ),
+    0 15px 38px -28px
+      color-mix(
+        in srgb,
+        var(--aura-primary) 75%,
+        transparent
+      ) !important;
+}
+
+/* Grupos internos que já possuem fundo e borda */
+
+#produto-modal #produto-form
+[class*="bg-white/"][class*="border"]{
+  padding:18px !important;
+  border-radius:18px !important;
+  border-color:var(--aura-border) !important;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface) 52%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 35%, transparent)
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+/* Abas Checkout / WhatsApp */
+
+#produto-modal #tab-checkout,
+#produto-modal #tab-whatsapp{
+  min-height:42px;
+  border-radius:12px !important;
+  font-size:9px !important;
+  letter-spacing:.08em;
+  transition:
+    color .25s ease,
+    background .25s var(--rd-ease),
+    border-color .25s var(--rd-ease),
+    box-shadow .25s var(--rd-ease),
+    transform .25s var(--rd-ease) !important;
+}
+
+#produto-modal #tab-checkout:hover,
+#produto-modal #tab-whatsapp:hover{
+  transform:translateY(-1px);
+}
+
+/* Upload de imagem */
+
+#produto-modal #prod-imagem-file{
+  min-height:48px;
+  padding:9px !important;
+  cursor:pointer;
+}
+
+#produto-modal #prod-imagem-file::file-selector-button{
+  min-height:30px;
+  margin-right:10px;
+  padding:0 12px;
+  border:0;
+  border-radius:9px;
+  color:#FFFFFF;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  cursor:pointer;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+/* Checkboxes */
+
+#produto-modal input[type="checkbox"]{
+  width:17px;
+  height:17px;
+  accent-color:var(--aura-accent);
+  cursor:pointer;
+}
+
+/* Rodapé e botões */
+
+#produto-modal #produto-form button[type="submit"]{
+  min-height:48px;
+  border-radius:15px !important;
+  color:#FFFFFF !important;
+  font-size:10px !important;
+  font-weight:900 !important;
+  letter-spacing:.08em;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    ) !important;
+  box-shadow:
+    0 18px 38px -23px
+      color-mix(in srgb, var(--aura-accent) 78%, transparent);
+  transition:
+    transform .25s var(--rd-ease),
+    box-shadow .25s var(--rd-ease),
+    filter .25s ease !important;
+}
+
+#produto-modal #produto-form button[type="submit"]:hover{
+  transform:translateY(-2px);
+  box-shadow:
+    0 23px 45px -24px
+      color-mix(in srgb, var(--aura-accent) 90%, transparent);
+}
+
+#produto-modal #btn-deletar-produto{
+  min-height:44px;
+  border-radius:14px !important;
+  color:#FB7185 !important;
+  border:1px solid rgba(251,113,133,.2) !important;
+  background:rgba(251,113,133,.07) !important;
+}
+
+#produto-modal #btn-deletar-produto:hover{
+  border-color:rgba(251,113,133,.4) !important;
+  background:rgba(251,113,133,.12) !important;
+}
+
+/* Scrollbar exclusiva */
+
+#produto-modal > .glass-card::-webkit-scrollbar{
+  width:7px;
+}
+
+#produto-modal > .glass-card::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+#produto-modal > .glass-card::-webkit-scrollbar-thumb{
+  border:2px solid transparent;
+  border-radius:999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 36%,
+      transparent
+    );
+  background-clip:padding-box;
+}
+
+/* Tema claro */
+
+.tema-claro #produto-modal{
+  background:
+    radial-gradient(
+      700px 450px at 80% 0%,
+      color-mix(in srgb, var(--aura-primary) 10%, transparent),
+      transparent 70%
+    ),
+    rgba(15,23,42,.42) !important;
+}
+
+.tema-claro #produto-modal > .glass-card{
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255,255,255,.98),
+      rgba(248,250,252,.95)
+    ) !important;
+}
+
+.tema-claro #produto-modal #modal-titulo{
+  color:#0F172A !important;
+  background:rgba(255,255,255,.9);
+}
+
+.tema-claro #produto-modal #produto-form label{
+  color:#64748B !important;
+}
+
+/* Responsividade */
+
+@media (max-width:639px){
+  #produto-modal{
+    align-items:flex-end !important;
+    padding:0 !important;
+  }
+
+  #produto-modal > .glass-card{
+    width:100% !important;
+    max-height:94dvh !important;
+    border-radius:25px 25px 0 0 !important;
+  }
+
+  #produto-modal #modal-titulo{
+    min-height:80px;
+    padding:20px 68px 20px 68px;
+    font-size:16px !important;
+  }
+
+  #produto-modal #modal-titulo::before{
+    left:18px;
+    width:38px;
+    height:38px;
+    border-radius:12px;
+  }
+
+  #produto-modal #modal-titulo::after{
+    left:30px;
+    width:14px;
+    height:14px;
+  }
+
+  #produto-modal #modal-fechar{
+    top:18px !important;
+    right:17px !important;
+    width:38px;
+    height:38px;
+  }
+
+  #produto-modal #produto-form{
+    padding:20px 17px 28px;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
