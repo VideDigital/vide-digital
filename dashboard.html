@@ -497,9 +497,232 @@ a{ transition:color .2s var(--rd-ease); }
   color:#0f172a !important;
 }
 
+/* =========================================================================
+   VIDE AURA OS — CAMADA SEMÂNTICA DE TEMA
+   Mantém vidro, profundidade e iluminação, mas conecta o redesign
+   às cores escolhidas na Personalização do Sistema.
+   ========================================================================= */
+
+:root{
+  --aura-background:var(--sys-fundo, #14132B);
+  --aura-primary:var(--sys-primaria, #5B3DF5);
+  --aura-accent:var(--sys-destaque, #FF7A45);
+  --aura-text:var(--sys-texto, #FFFFFF);
+
+  --aura-surface:
+    color-mix(in srgb, var(--aura-background) 82%, white 18%);
+
+  --aura-surface-soft:
+    color-mix(in srgb, var(--aura-background) 90%, white 10%);
+
+  --aura-surface-strong:
+    color-mix(in srgb, var(--aura-background) 74%, white 26%);
+
+  --aura-border:
+    color-mix(in srgb, var(--aura-text) 9%, transparent);
+
+  --aura-border-strong:
+    color-mix(in srgb, var(--aura-text) 17%, transparent);
+
+  --aura-text-secondary:
+    color-mix(in srgb, var(--aura-text) 70%, transparent);
+
+  --aura-text-muted:
+    color-mix(in srgb, var(--aura-text) 46%, transparent);
+}
+
+html,
+body{
+  background-color:var(--aura-background) !important;
+}
+
+body#admin-body{
+  color:var(--aura-text) !important;
+  background:
+    radial-gradient(
+      900px 520px at 88% -12%,
+      color-mix(in srgb, var(--aura-primary) 22%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      760px 520px at -8% 108%,
+      color-mix(in srgb, var(--aura-accent) 16%, transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-background) 96%, black 4%),
+      var(--aura-background)
+    ) !important;
+  background-attachment:fixed !important;
+}
+
+.glass-sidebar{
+  background:
+    radial-gradient(
+      420px 240px at 50% -8%,
+      color-mix(in srgb, var(--aura-primary) 17%, transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--aura-background) 86%, white 14%),
+      color-mix(in srgb, var(--aura-background) 94%, black 6%)
+    ) !important;
+
+  border-color:var(--aura-border) !important;
+}
+
+.glass-sidebar::before{
+  background:
+    radial-gradient(
+      600px 220px at 50% -12%,
+      color-mix(in srgb, var(--aura-primary) 19%, transparent),
+      transparent 72%
+    ) !important;
+}
+
+.glass-card{
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--aura-surface) 86%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 66%, transparent)
+    ) !important;
+
+  border-color:var(--aura-border) !important;
+}
+
+.glass-card:hover{
+  border-color:var(--aura-border-strong) !important;
+}
+
+.glass-card::after{
+  background:
+    radial-gradient(
+      420px 150px at 100% 0%,
+      color-mix(in srgb, var(--aura-primary) 12%, transparent),
+      transparent 66%
+    ) !important;
+}
+
+.glass-input,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea{
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 76%, transparent) !important;
+
+  border-color:var(--aura-border) !important;
+  color:var(--aura-text) !important;
+}
+
+.glass-input::placeholder,
+input::placeholder,
+textarea::placeholder{
+  color:var(--aura-text-muted) !important;
+}
+
+.glass-input:focus,
+input:focus,
+select:focus,
+textarea:focus{
+  border-color:var(--aura-accent) !important;
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--aura-accent) 17%, transparent),
+    0 12px 36px -20px color-mix(in srgb, var(--aura-accent) 55%, transparent) !important;
+}
+
+.nav-item.active{
+  background:
+    linear-gradient(
+      90deg,
+      color-mix(in srgb, var(--aura-accent) 18%, transparent),
+      color-mix(in srgb, var(--aura-accent) 4%, transparent)
+    ) !important;
+
+  border-color:
+    color-mix(in srgb, var(--aura-accent) 32%, transparent) !important;
+}
+
+.nav-item.active::before{
+  background:var(--aura-accent) !important;
+  box-shadow:
+    0 0 14px color-mix(in srgb, var(--aura-accent) 75%, transparent) !important;
+}
+
+#admin-logo-box{
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    ) !important;
+
+  box-shadow:
+    0 18px 45px -20px color-mix(in srgb, var(--aura-primary) 72%, transparent),
+    inset 0 1px 0 rgba(255,255,255,.24) !important;
+}
+
+/* Tema claro conectado aos mesmos tokens */
+
+.tema-claro{
+  --aura-surface:
+    color-mix(in srgb, var(--aura-background) 96%, black 4%);
+
+  --aura-surface-soft:
+    color-mix(in srgb, var(--aura-background) 98%, black 2%);
+
+  --aura-border:
+    color-mix(in srgb, #0F172A 9%, transparent);
+
+  --aura-border-strong:
+    color-mix(in srgb, #0F172A 16%, transparent);
+
+  --aura-text-secondary:#475569;
+  --aura-text-muted:#64748B;
+}
+
+.tema-claro .glass-card{
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255,255,255,.94),
+      color-mix(in srgb, var(--aura-background) 96%, white 4%)
+    ) !important;
+
+  border-color:var(--aura-border) !important;
+}
+
+.tema-claro .glass-sidebar{
+  background:
+    radial-gradient(
+      430px 220px at 50% -8%,
+      color-mix(in srgb, var(--aura-primary) 10%, transparent),
+      transparent 72%
+    ),
+    rgba(255,255,255,.88) !important;
+
+  border-color:var(--aura-border) !important;
+}
+
+.tema-claro .glass-input,
+.tema-claro input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+.tema-claro select,
+.tema-claro textarea{
+  background:rgba(255,255,255,.88) !important;
+  color:#0F172A !important;
+}
+
 /* Respect motion preferences */
+
 @media (prefers-reduced-motion:reduce){
-  *, *::before, *::after{ animation:none !important; transition:none !important; }
+  *,
+  *::before,
+  *::after{
+    animation:none !important;
+    transition:none !important;
+  }
 }
 
 </style>
@@ -740,18 +963,245 @@ a{ transition:color .2s var(--rd-ease); }
     <main class="flex-1 md:h-screen overflow-y-auto p-4 sm:p-8 lg:p-12 relative z-10 w-full">
         
         <section id="view-dashboard" class="view-section active space-y-6 max-w-6xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-end gap-4 border-b border-white/5 pb-5">
-                <div>
-                    <h1 id="txt-preview-nome-loja" class="text-xl font-medium text-white tracking-tight">Dashboard</h1>
-                    <p class="text-gray-500 text-xs mt-1">Métricas de performance e conversão em tempo real.</p>
+            <div class="relative overflow-hidden rounded-[30px] border border-white/10 px-5 py-6 sm:px-8 sm:py-8">
+
+                <div class="absolute inset-0 pointer-events-none"
+                     style="background:
+                     radial-gradient(520px 240px at 0% 0%, color-mix(in srgb, var(--sys-primaria) 24%, transparent), transparent 70%),
+                     radial-gradient(440px 240px at 100% 100%, color-mix(in srgb, var(--sys-destaque) 18%, transparent), transparent 72%),
+                     linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.012));">
                 </div>
-                <button id="btn-abrir-criacao" class="bg-white text-black font-medium px-4 py-2 rounded-md text-xs hover:bg-gray-200 transition-all shrink-0">
 
-Adicionar Produto
+                <div class="absolute inset-x-8 top-0 h-px pointer-events-none"
+                     style="background:linear-gradient(90deg, transparent, color-mix(in srgb, var(--sys-primaria) 70%, white 30%), transparent);">
+                </div>
 
-</button>
+                <div class="relative flex flex-col xl:flex-row xl:items-center xl:justify-between gap-7">
 
-</div>         
+                    <div class="max-w-2xl">
+
+                        <div class="flex flex-wrap items-center gap-2 mb-4">
+
+                            <span class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.045] text-[10px] font-bold uppercase tracking-[0.18em] text-gray-300">
+
+                                <span class="relative flex h-2 w-2">
+
+                                    <span class="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-60 animate-ping"></span>
+
+                                    <span class="relative inline-flex h-2 w-2 rounded-full bg-emerald-400"></span>
+
+                                </span>
+
+                                Workspace online
+
+                            </span>
+
+                            <span class="inline-flex items-center px-3 py-1.5 rounded-full border border-white/10 bg-white/[0.025] text-[10px] font-semibold tracking-wide text-gray-400">
+
+                                Visão operacional
+
+                            </span>
+
+                        </div>
+
+                        <p class="text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.28em] text-gray-500 mb-2">
+
+                            Central de comando
+
+                        </p>
+
+                        <h1 id="txt-preview-nome-loja"
+                            class="text-3xl sm:text-4xl lg:text-[44px] leading-[1.05] font-black text-white tracking-[-0.045em]">
+
+                            Dashboard
+
+                        </h1>
+
+                        <p class="text-gray-400 text-sm sm:text-[15px] leading-relaxed mt-4 max-w-xl">
+
+                            Acompanhe sua operação, publique produtos e identifique oportunidades em um único ambiente.
+
+                        </p>
+
+                    </div>
+
+                    <div class="flex flex-col sm:flex-row xl:flex-col 2xl:flex-row gap-3 shrink-0">
+
+                        <a id="link-minha-loja-cockpit"
+                           href="#"
+                           target="_blank"
+                           class="group inline-flex items-center justify-center gap-2.5 min-h-[46px] px-5 rounded-2xl border border-white/10 bg-white/[0.045] hover:bg-white/[0.08] text-xs font-bold text-white transition-all">
+
+                            <svg class="w-4 h-4 text-gray-400 group-hover:text-white transition-colors"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M14 3h7m0 0v7m0-7L10 14M5 5h5M5 5v14h14v-5">
+                                </path>
+
+                            </svg>
+
+                            Abrir loja
+
+                        </a>
+
+                        <button id="btn-abrir-criacao"
+                                class="group relative overflow-hidden inline-flex items-center justify-center gap-2.5 min-h-[46px] px-5 rounded-2xl text-xs font-black text-white transition-all hover:-translate-y-0.5 active:translate-y-0"
+                                style="background:linear-gradient(135deg,var(--sys-primaria),var(--sys-destaque)); box-shadow:0 16px 36px -18px color-mix(in srgb,var(--sys-destaque) 80%,transparent);">
+
+                            <span class="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                                  style="background:linear-gradient(110deg,transparent 20%,rgba(255,255,255,.18) 50%,transparent 80%);">
+                            </span>
+
+                            <svg class="relative w-4 h-4"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2.4"
+                                      d="M12 5v14M5 12h14">
+                                </path>
+
+                            </svg>
+
+                            <span class="relative">Adicionar produto</span>
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div class="relative grid grid-cols-1 sm:grid-cols-3 gap-3 mt-7 pt-6 border-t border-white/[0.07]">
+
+                    <div class="flex items-center gap-3 min-w-0">
+
+                        <div class="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.045] flex items-center justify-center shrink-0">
+
+                            <svg class="w-4 h-4 text-emerald-400"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M5 12l4 4L19 6">
+                                </path>
+
+                            </svg>
+
+                        </div>
+
+                        <div class="min-w-0">
+
+                            <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
+
+                                Sistema
+
+                            </p>
+
+                            <p class="text-xs font-semibold text-white mt-0.5 truncate">
+
+                                Operação disponível
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="flex items-center gap-3 min-w-0">
+
+                        <div class="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.045] flex items-center justify-center shrink-0">
+
+                            <svg class="w-4 h-4"
+                                 style="color:var(--sys-primaria);"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M4 6h16M4 12h16M4 18h10">
+                                </path>
+
+                            </svg>
+
+                        </div>
+
+                        <div class="min-w-0">
+
+                            <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
+
+                                Ambiente
+
+                            </p>
+
+                            <p class="text-xs font-semibold text-white mt-0.5 truncate">
+
+                                Painel principal
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                    <div class="flex items-center gap-3 min-w-0">
+
+                        <div class="h-9 w-9 rounded-xl border border-white/10 bg-white/[0.045] flex items-center justify-center shrink-0">
+
+                            <svg class="w-4 h-4"
+                                 style="color:var(--sys-destaque);"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M12 6v6l4 2">
+                                </path>
+
+                                <circle cx="12"
+                                        cy="12"
+                                        r="9"
+                                        stroke-width="2">
+                                </circle>
+
+                            </svg>
+
+                        </div>
+
+                        <div class="min-w-0">
+
+                            <p class="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
+
+                                Atualização
+
+                            </p>
+
+                            <p class="text-xs font-semibold text-white mt-0.5 truncate">
+
+                                Dados em tempo real
+
+                            </p>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>        
 
 <script>
 (function() {
@@ -762,9 +1212,23 @@ Adicionar Produto
             var elTitulo = document.getElementById("txt-preview-nome-loja");
             var elUrlPreview = document.getElementById("url-loja-preview");
             var elLink = document.getElementById("link-minha-loja");
-            if (elTitulo && perfil.nomeLoja) elTitulo.innerText = perfil.nomeLoja;
-            if (elUrlPreview && perfil.urlLoja) elUrlPreview.innerText = "vide.digital/" + perfil.urlLoja;
-            if (elLink && perfil.urlLoja) elLink.href = "loja.html?loja=" + perfil.urlLoja;
+            var elLinkCockpit = document.getElementById("link-minha-loja-cockpit");
+
+            if (elTitulo && perfil.nomeLoja) {
+                elTitulo.innerText = perfil.nomeLoja;
+            }
+
+            if (elUrlPreview && perfil.urlLoja) {
+                elUrlPreview.innerText = "vide.digital/" + perfil.urlLoja;
+            }
+
+            if (elLink && perfil.urlLoja) {
+                elLink.href = "loja.html?loja=" + perfil.urlLoja;
+            }
+
+            if (elLinkCockpit && perfil.urlLoja) {
+                elLinkCockpit.href = "loja.html?loja=" + perfil.urlLoja;
+            }
         }
     } catch(e) {}
 })();
@@ -814,28 +1278,217 @@ Adicionar Produto
 
 <!-- Estatísticas -->
 
-<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/5 layout-block" data-block-id="estatisticas" data-block-nome="Estatísticas">
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Receita Total</span>
-                    <div class="flex items-baseline gap-2 mt-2">
-                        <h3 class="text-2xl font-medium text-white">R$ 0,00</h3>
-                        <span class="text-[10px] text-emerald-400 font-medium">+0% hoje</span>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-white/5 layout-block"
+     data-block-id="estatisticas"
+     data-block-nome="Estatísticas">
+
+                <div class="glass-card group p-5 sm:p-6 rounded-2xl min-h-[170px] flex flex-col justify-between">
+
+                    <div class="flex items-start justify-between gap-4">
+
+                        <div>
+
+                            <span class="text-[10px] text-gray-500 uppercase tracking-[0.18em] font-bold">
+
+                                Receita total
+
+                            </span>
+
+                            <p class="text-[11px] text-gray-500 mt-1">
+
+                                Resultado acumulado
+
+                            </p>
+
+                        </div>
+
+                        <div class="h-10 w-10 rounded-2xl border border-emerald-500/20 bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+
+                            <svg class="w-5 h-5"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M12 8c-2.2 0-4 .9-4 2s1.8 2 4 2 4 .9 4 2-1.8 2-4 2m0-8V6m0 10v2m8-6a8 8 0 11-16 0 8 8 0 0116 0z">
+                                </path>
+
+                            </svg>
+
+                        </div>
+
                     </div>
-                </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Custo por Aquisição (CPA)</span>
-                    <div class="flex items-baseline gap-2 mt-2">
-                        <h3 class="text-2xl font-medium text-white">R$ 0,00</h3>
-                        <span class="text-[10px] text-gray-500 font-medium">Médio</span>
+
+                    <div class="mt-7">
+
+                        <div class="flex items-end justify-between gap-3">
+
+                            <h3 class="text-2xl sm:text-[28px] leading-none font-black text-white tracking-[-0.04em]">
+
+                                R$ 0,00
+
+                            </h3>
+
+                            <span class="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold px-2 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/15">
+
+                                +0% hoje
+
+                            </span>
+
+                        </div>
+
+                        <div class="h-1.5 rounded-full bg-white/[0.05] overflow-hidden mt-4">
+
+                            <div class="h-full w-[18%] rounded-full bg-gradient-to-r from-emerald-500 to-teal-400"></div>
+
+                        </div>
+
                     </div>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Retorno em Ads (ROAS)</span>
-                    <div class="flex items-baseline gap-2 mt-2">
-                        <h3 class="text-2xl font-medium text-white">0.00x</h3>
-                        <span class="text-[10px] text-gray-500 font-medium">Geral</span>
+
+                <div class="glass-card group p-5 sm:p-6 rounded-2xl min-h-[170px] flex flex-col justify-between">
+
+                    <div class="flex items-start justify-between gap-4">
+
+                        <div>
+
+                            <span class="text-[10px] text-gray-500 uppercase tracking-[0.18em] font-bold">
+
+                                Custo por aquisição
+
+                            </span>
+
+                            <p class="text-[11px] text-gray-500 mt-1">
+
+                                Investimento médio por venda
+
+                            </p>
+
+                        </div>
+
+                        <div class="h-10 w-10 rounded-2xl border border-white/10 bg-white/[0.045] flex items-center justify-center"
+                             style="color:var(--sys-primaria);">
+
+                            <svg class="w-5 h-5"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M12 6v6l4 2M21 12a9 9 0 11-18 0 9 9 0 0118 0z">
+                                </path>
+
+                            </svg>
+
+                        </div>
+
                     </div>
+
+                    <div class="mt-7">
+
+                        <div class="flex items-end justify-between gap-3">
+
+                            <h3 class="text-2xl sm:text-[28px] leading-none font-black text-white tracking-[-0.04em]">
+
+                                R$ 0,00
+
+                            </h3>
+
+                            <span class="text-[10px] text-gray-500 font-bold px-2 py-1 rounded-full bg-white/[0.04] border border-white/[0.06]">
+
+                                Médio
+
+                            </span>
+
+                        </div>
+
+                        <div class="h-1.5 rounded-full bg-white/[0.05] overflow-hidden mt-4">
+
+                            <div class="h-full w-[8%] rounded-full"
+                                 style="background:linear-gradient(90deg,var(--sys-primaria),color-mix(in srgb,var(--sys-primaria) 55%,white 45%));">
+                            </div>
+
+                        </div>
+
+                    </div>
+
                 </div>
+
+                <div class="glass-card group p-5 sm:p-6 rounded-2xl min-h-[170px] flex flex-col justify-between">
+
+                    <div class="flex items-start justify-between gap-4">
+
+                        <div>
+
+                            <span class="text-[10px] text-gray-500 uppercase tracking-[0.18em] font-bold">
+
+                                Retorno em anúncios
+
+                            </span>
+
+                            <p class="text-[11px] text-gray-500 mt-1">
+
+                                Eficiência do investimento
+
+                            </p>
+
+                        </div>
+
+                        <div class="h-10 w-10 rounded-2xl border border-white/10 bg-white/[0.045] flex items-center justify-center"
+                             style="color:var(--sys-destaque);">
+
+                            <svg class="w-5 h-5"
+                                 fill="none"
+                                 stroke="currentColor"
+                                 viewBox="0 0 24 24">
+
+                                <path stroke-linecap="round"
+                                      stroke-linejoin="round"
+                                      stroke-width="2"
+                                      d="M5 12l4 4L19 6">
+                                </path>
+
+                            </svg>
+
+                        </div>
+
+                    </div>
+
+                    <div class="mt-7">
+
+                        <div class="flex items-end justify-between gap-3">
+
+                            <h3 class="text-2xl sm:text-[28px] leading-none font-black text-white tracking-[-0.04em]">
+
+                                0.00x
+
+                            </h3>
+
+                            <span class="text-[10px] text-gray-500 font-bold px-2 py-1 rounded-full bg-white/[0.04] border border-white/[0.06]">
+
+                                Geral
+
+                            </span>
+
+                        </div>
+
+                        <div class="h-1.5 rounded-full bg-white/[0.05] overflow-hidden mt-4">
+
+                            <div class="h-full w-[12%] rounded-full"
+                                 style="background:linear-gradient(90deg,var(--sys-destaque),color-mix(in srgb,var(--sys-destaque) 55%,white 45%));">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
 
             <!-- Gráfico -->
@@ -3012,8 +3665,17 @@ btn.classList.add("opacity-40");
             document.getElementById(id).addEventListener('input', () => {
                 const slugValue = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
                 document.getElementById("link-minha-loja").href = `loja.html?loja=${slugValue || 'vitrine'}`;
+
+                const linkCockpit = document.getElementById("link-minha-loja-cockpit");
+
+                if (linkCockpit) {
+                    linkCockpit.href = `loja.html?loja=${slugValue || 'vitrine'}`;
+                }
+
                 document.getElementById("url-loja-preview").innerText = `vide.digital/${slugValue || 'vitrine'}`;
-                document.getElementById("txt-preview-nome-loja").innerText = document.getElementById("perf-nome-loja").value || "Visão Geral";
+
+                document.getElementById("txt-preview-nome-loja").innerText =
+                    document.getElementById("perf-nome-loja").value || "Visão Geral";
             });
         });
 
