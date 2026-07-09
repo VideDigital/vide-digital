@@ -867,51 +867,54 @@ textarea:focus{
     border-color .3s ease;
 }
 
-/* Esconde somente a aparência dos emojis, sem remover o HTML */
+/* Ícones SVG individuais de cada módulo */
 #grid-hub-modulos > div > span:first-child{
   position:absolute !important;
   left:29px;
   top:28px;
   z-index:2;
+  display:flex !important;
+  align-items:center;
+  justify-content:center;
   width:18px;
   height:18px;
-  overflow:hidden;
-  color:transparent !important;
+  overflow:visible;
+  color:var(--aura-primary) !important;
   font-size:0 !important;
   user-select:none;
+  transition:
+    color .3s var(--rd-ease),
+    transform .3s var(--rd-ease);
 }
 
-/* Ícone geométrico central criado sem biblioteca externa */
 #grid-hub-modulos > div > span:first-child::before,
 #grid-hub-modulos > div > span:first-child::after{
-  content:"";
-  position:absolute;
-  box-sizing:border-box;
+  display:none !important;
+  content:none !important;
 }
 
-#grid-hub-modulos > div > span:first-child::before{
-  left:1px;
-  top:1px;
-  width:16px;
-  height:16px;
-  border:1.7px solid var(--aura-primary);
-  border-radius:5px;
-  transform:rotate(45deg);
-  opacity:.95;
+#grid-hub-modulos > div > span:first-child svg{
+  display:block;
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  overflow:visible;
 }
 
-#grid-hub-modulos > div > span:first-child::after{
-  left:6px;
-  top:6px;
-  width:6px;
-  height:6px;
-  border-radius:2px;
-  background:var(--aura-accent);
-  box-shadow:
-    0 0 12px
-      color-mix(in srgb, var(--aura-accent) 65%, transparent);
+#grid-hub-modulos > div:nth-child(3n + 2) > span:first-child{
+  color:var(--aura-accent) !important;
 }
 
+#grid-hub-modulos > div:nth-child(3n + 3) > span:first-child{
+  color:#34D399 !important;
+}
+
+#grid-hub-modulos > div:hover > span:first-child{
+  color:var(--aura-text) !important;
+  transform:scale(1.08);
+}
 #grid-hub-modulos > div > span:last-child{
   position:relative;
   display:block;
@@ -1052,6 +1055,259 @@ textarea:focus{
   #grid-hub-modulos > div > span:last-child{
     font-size:11px !important;
     padding-right:16px;
+  }
+}
+
+/* =========================================================================
+   VIDE AURA OS — PRODUCT COMMAND DECK
+   ========================================================================= */
+
+.aura-product-deck{
+  position:relative;
+}
+
+.aura-product-toolbar{
+  overflow:hidden !important;
+  isolation:isolate;
+}
+
+.aura-product-toolbar::before{
+  content:"";
+  position:absolute;
+  width:360px;
+  height:360px;
+  right:-210px;
+  bottom:-260px;
+  border-radius:999px;
+  pointer-events:none;
+  background:
+    color-mix(in srgb, var(--aura-accent) 18%, transparent);
+  filter:blur(75px);
+  opacity:.75;
+}
+
+.aura-product-symbol{
+  color:var(--aura-text);
+  border:1px solid
+    color-mix(in srgb, var(--aura-accent) 30%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-accent) 19%, transparent),
+      color-mix(in srgb, var(--aura-primary) 9%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 16px 32px -22px
+      color-mix(in srgb, var(--aura-accent) 80%, transparent);
+}
+
+.aura-product-status{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:22px;
+  padding:0 9px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-product-status::before{
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-product-counter{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:170px;
+  padding:11px 14px;
+  border-radius:16px;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 68%, transparent);
+}
+
+.aura-product-counter-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:11px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 22%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-primary) 10%, transparent);
+}
+
+.aura-product-counter-icon svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-product-divider{
+  height:1px;
+  width:100%;
+  margin:22px 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--aura-border-strong) 14%,
+      var(--aura-border-strong) 86%,
+      transparent
+    );
+}
+
+.aura-product-filters{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  padding:5px;
+  border-radius:15px;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 55%, transparent);
+}
+
+.aura-product-filter{
+  position:relative;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:38px;
+  padding:0 13px;
+  border-radius:11px !important;
+  border:1px solid transparent;
+  font-size:11px;
+  line-height:1;
+  font-weight:750;
+  white-space:nowrap;
+  transition:
+    color .22s var(--rd-ease),
+    background .22s var(--rd-ease),
+    border-color .22s var(--rd-ease),
+    transform .22s var(--rd-ease) !important;
+}
+
+.aura-product-filter svg{
+  width:14px;
+  height:14px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-product-filter:hover{
+  background:rgba(255,255,255,.045);
+  border-color:var(--aura-border);
+  transform:translateY(-1px);
+}
+
+.aura-product-filter.bg-white\/5{
+  color:var(--aura-text) !important;
+  border-color:
+    color-mix(in srgb, var(--aura-accent) 30%, transparent) !important;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--aura-accent) 15%, transparent),
+      color-mix(in srgb, var(--aura-primary) 7%, transparent)
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 8px 20px -16px
+      color-mix(in srgb, var(--aura-accent) 70%, transparent);
+}
+
+.aura-product-filter.bg-white\/5 svg{
+  color:var(--aura-accent);
+}
+
+.aura-product-hint{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  font-weight:600;
+}
+
+.aura-product-hint-dot{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 10px
+      color-mix(in srgb, var(--aura-primary) 65%, transparent);
+}
+
+.aura-products-grid{
+  min-height:120px;
+}
+
+.aura-products-grid > .col-span-full{
+  min-height:210px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border-radius:24px !important;
+  border-color:var(--aura-border) !important;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface) 58%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 40%, transparent)
+    ) !important;
+}
+
+.tema-claro .aura-product-filters,
+.tema-claro .aura-product-counter{
+  background:rgba(255,255,255,.72);
+}
+
+.tema-claro .aura-product-filter:hover{
+  background:rgba(15,23,42,.04);
+}
+
+@media (max-width:767px){
+  .aura-product-filters{
+    width:100%;
+    overflow-x:auto;
+    justify-content:flex-start;
+    padding-bottom:6px;
+  }
+
+  .aura-product-filter{
+    flex-shrink:0;
+  }
+
+  .aura-product-counter{
+    width:100%;
+  }
+
+  .aura-product-hint{
+    display:none;
   }
 }
 
@@ -1691,24 +1947,324 @@ textarea:focus{
 </div>
 </div>
 
-<div class="layout-block space-y-4" data-block-id="filtros-produtos" data-block-nome="Filtros e Produtos">
+<script>
+(function configurarIconesDoHub() {
+    const iconesModulos = {
+        "view-perfil": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+                <path d="M19.4 15a1.8 1.8 0 0 0 .36 1.98l.06.06-2.12 2.12-.06-.06a1.8 1.8 0 0 0-1.98-.36 1.8 1.8 0 0 0-1.1 1.65V20.5h-3v-.11a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-1.98.36l-.06.06-2.12-2.12.06-.06A1.8 1.8 0 0 0 6.6 15a1.8 1.8 0 0 0-1.65-1.1H4.5v-3h.45A1.8 1.8 0 0 0 6.6 9.8a1.8 1.8 0 0 0-.36-1.98l-.06-.06 2.12-2.12.06.06a1.8 1.8 0 0 0 1.98.36 1.8 1.8 0 0 0 1.1-1.65V4.3h3v.11a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 1.98-.36l.06-.06 2.12 2.12-.06.06a1.8 1.8 0 0 0-.36 1.98 1.8 1.8 0 0 0 1.65 1.1h.45v3h-.45A1.8 1.8 0 0 0 19.4 15Z"></path>
+            </svg>
+        `,
 
-<!-- Filtros -->
+        "view-dominios": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M10.5 13.5a4 4 0 0 0 5.66 0l2.34-2.34a4 4 0 0 0-5.66-5.66l-1.34 1.34"></path>
+                <path d="M13.5 10.5a4 4 0 0 0-5.66 0L5.5 12.84a4 4 0 0 0 5.66 5.66l1.34-1.34"></path>
+            </svg>
+        `,
 
-<div class="flex flex-wrap items-center justify-between gap-4">
-                <div class="flex gap-2">
-                    <button id="filtro-todos" class="text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all">Todos</button>
-                    <button id="filtro-fisicos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Físicos</button>
-                    <button id="filtro-digitais" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all">Digitais</button>
-                    <button id="filtro-rascunhos" class="text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white transition-all border-l border-white/10 ml-1 pl-3">🗂️ Rascunhos</button>
+        "view-leads": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="9" cy="8" r="3"></circle>
+                <path d="M3.5 19a5.5 5.5 0 0 1 11 0"></path>
+                <circle cx="17" cy="9" r="2.3"></circle>
+                <path d="M15.5 14.8A4.6 4.6 0 0 1 21 19"></path>
+            </svg>
+        `,
+
+        "view-automacao-leads": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M13.2 2.8 5.5 13h6l-.7 8.2L18.5 11h-6l.7-8.2Z"></path>
+            </svg>
+        `,
+
+        "view-templates": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M5 5.5h14a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-7l-4.5 3v-3H5a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"></path>
+                <path d="M7.5 10h9M7.5 13h6"></path>
+            </svg>
+        `,
+
+        "view-campanhas": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m4 13 13-5v8L4 12v1Z"></path>
+                <path d="M7 13.5 8.5 19h3L10 14.5M18 10a4 4 0 0 1 0 4"></path>
+            </svg>
+        `,
+
+        "view-landing-pages": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+                <path d="M3 8h18M8 21h8M12 18v3"></path>
+            </svg>
+        `,
+
+        "view-pedidos": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M6 4h12v17H6z"></path>
+                <path d="M9 4a3 3 0 0 1 6 0M9 9h6M9 13h6M9 17h4"></path>
+            </svg>
+        `,
+
+        "view-metricas": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 20V10M10 20V4M16 20v-7M22 20H2"></path>
+            </svg>
+        `,
+
+        "view-notificacoes": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                <path d="M10 21h4"></path>
+            </svg>
+        `,
+
+        "view-personalizacao": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M12 3a9 9 0 1 0 0 18h1.2a1.8 1.8 0 0 0 0-3.6h-.7a1.5 1.5 0 0 1 0-3H15a6 6 0 0 0 6-6c0-3-3.8-5.4-9-5.4Z"></path>
+                <circle cx="7.5" cy="10" r=".8" fill="currentColor" stroke="none"></circle>
+                <circle cx="10" cy="6.8" r=".8" fill="currentColor" stroke="none"></circle>
+                <circle cx="14" cy="6.8" r=".8" fill="currentColor" stroke="none"></circle>
+                <circle cx="17" cy="9.5" r=".8" fill="currentColor" stroke="none"></circle>
+            </svg>
+        `,
+
+        "view-guia": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 5.5A3.5 3.5 0 0 1 7.5 2H12v17H7.5A3.5 3.5 0 0 0 4 22V5.5Z"></path>
+                <path d="M20 5.5A3.5 3.5 0 0 0 16.5 2H12v17h4.5A3.5 3.5 0 0 1 20 22V5.5Z"></path>
+            </svg>
+        `,
+
+        "view-funcionarios": `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="8" cy="8" r="3"></circle>
+                <circle cx="17" cy="9" r="2.5"></circle>
+                <path d="M2.8 20a5.2 5.2 0 0 1 10.4 0M13.5 15.5A4.7 4.7 0 0 1 21 19.3"></path>
+            </svg>
+        `
+    };
+
+    document.querySelectorAll("#grid-hub-modulos > div").forEach(function(card) {
+        const onclickAtual = card.getAttribute("onclick") || "";
+        const resultado = onclickAtual.match(/ativarAba\('([^']+)'\)/);
+
+        if (!resultado) {
+            return;
+        }
+
+        const destino = resultado[1];
+        const spanIcone = card.querySelector("span:first-child");
+
+        if (!spanIcone || !iconesModulos[destino]) {
+            return;
+        }
+
+        spanIcone.classList.add("aura-module-icon");
+        spanIcone.innerHTML = iconesModulos[destino];
+        spanIcone.setAttribute("aria-hidden", "true");
+    });
+})();
+</script>
+
+<div class="aura-product-deck layout-block space-y-5"
+     data-block-id="filtros-produtos"
+     data-block-nome="Filtros e Produtos">
+
+    <div class="aura-product-toolbar glass-card rounded-[26px] p-5 sm:p-6">
+
+        <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
+
+            <div class="flex items-start gap-4">
+
+                <div class="aura-product-symbol h-12 w-12 rounded-2xl flex items-center justify-center shrink-0">
+
+                    <svg class="w-5 h-5"
+                         fill="none"
+                         stroke="currentColor"
+                         viewBox="0 0 24 24">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="1.8"
+                              d="M4 7.5 12 3l8 4.5-8 4.5-8-4.5Z">
+                        </path>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="1.8"
+                              d="m4 12 8 4.5 8-4.5M4 16.5l8 4.5 8-4.5">
+                        </path>
+
+                    </svg>
+
                 </div>
-                <span class="text-[11px] text-gray-500 font-medium" id="contador-produtos">0 Ativos</span>
+
+                <div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+
+                        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">
+
+                            Catálogo operacional
+
+                        </p>
+
+                        <span class="aura-product-status">
+
+                            Sincronizado
+
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-lg sm:text-xl font-black text-white tracking-[-0.03em] mt-1">
+
+                        Produtos da sua operação
+
+                    </h3>
+
+                    <p class="text-xs sm:text-sm text-gray-400 mt-1.5 max-w-xl leading-relaxed">
+
+                        Visualize, filtre e gerencie todos os itens publicados ou salvos como rascunho.
+
+                    </p>
+
+                </div>
+
             </div>
 
-            <!-- GRID DE PRODUTOS -->
-            <div id="produtos-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+            <div class="aura-product-counter">
 
-</div>
+                <div class="aura-product-counter-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M4 5h16v14H4zM8 9h8M8 13h5">
+                        </path>
+
+                    </svg>
+
+                </div>
+
+                <div>
+
+                    <p class="text-[9px] uppercase tracking-[0.16em] text-gray-500 font-bold">
+
+                        Resultado atual
+
+                    </p>
+
+                    <span class="text-xs font-black text-white"
+                          id="contador-produtos">
+
+                        0 Ativos
+
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="aura-product-divider"></div>
+
+        <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+
+            <div class="aura-product-filters">
+
+                <button id="filtro-todos"
+                        class="aura-product-filter bg-white/5 text-white border border-white/10">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <rect x="4" y="4" width="6" height="6" rx="1.5"></rect>
+                        <rect x="14" y="4" width="6" height="6" rx="1.5"></rect>
+                        <rect x="4" y="14" width="6" height="6" rx="1.5"></rect>
+                        <rect x="14" y="14" width="6" height="6" rx="1.5"></rect>
+
+                    </svg>
+
+                    <span>Todos</span>
+
+                </button>
+
+                <button id="filtro-fisicos"
+                        class="aura-product-filter text-gray-400 hover:text-white">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m4 7 8-4 8 4-8 4-8-4Z"></path>
+                        <path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"></path>
+                        <path d="M12 11v10"></path>
+
+                    </svg>
+
+                    <span>Físicos</span>
+
+                </button>
+
+                <button id="filtro-digitais"
+                        class="aura-product-filter text-gray-400 hover:text-white">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+                        <path d="M8 21h8M12 18v3M8 9h8M8 13h5"></path>
+
+                    </svg>
+
+                    <span>Digitais</span>
+
+                </button>
+
+                <button id="filtro-rascunhos"
+                        class="aura-product-filter text-gray-400 hover:text-white">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 6h6l2 2h8v11H4V6Z"></path>
+                        <path d="M8 13h8M8 16h5"></path>
+
+                    </svg>
+
+                    <span>Rascunhos</span>
+
+                </button>
+
+            </div>
+
+            <div class="aura-product-hint">
+
+                <span class="aura-product-hint-dot"></span>
+
+                <span>Alterações são atualizadas em tempo real</span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="produtos-container"
+         class="aura-products-grid grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+
+    </div>
 
 </div>
 
