@@ -8272,7 +8272,10 @@ textarea:focus{
                 <p class="text-gray-400 text-xs mt-1">Filtre e aplique ações em vários leads de uma vez só.</p>
             </div>
 
-            <div class="glass-card rounded-2xl p-5 space-y-4 layout-block" data-block-id="filtros-automacao-leads" data-block-nome="Filtros de Automação de Leads">
+<div class="glass-card rounded-2xl p-5 space-y-4 layout-block"
+     data-block-id="filtros-automacao-leads"
+     data-block-nome="Filtros de Automação de Leads"
+     data-layout-obrigatorio="true">
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Data</label>
@@ -8416,7 +8419,10 @@ textarea:focus{
                 <button onclick="restaurarDaLixeira()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">♻️ Restaurar</button>
                 <button onclick="excluirPermanentemente()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗑️ Excluir Permanentemente</button>
             </div>
-            <div class="glass-card rounded-xl overflow-hidden border border-white/5 layout-block" data-block-id="tabela-automacao-leads" data-block-nome="Tabela de Automação de Leads">
+            <div class="glass-card rounded-xl overflow-hidden border border-white/5 layout-block"
+     data-block-id="tabela-automacao-leads"
+     data-block-nome="Tabela de Automação de Leads"
+     data-layout-obrigatorio="true">
                 <div class="overflow-x-auto">
                     <table class="w-full text-left border-collapse">
                         <thead>
@@ -9533,7 +9539,20 @@ function aplicarLayoutSalvoDaAba(targetId) {
     config.forEach(item => {
         const el = secao.querySelector(`.layout-block[data-block-id="${item.id}"]`);
         if (!el) return;
-        el.classList.toggle("hidden", item.visivel === false);
+        const blocoObrigatorio =
+            el.getAttribute("data-layout-obrigatorio") === "true";
+
+        const deveOcultar =
+            item.visivel === false &&
+            !blocoObrigatorio;
+
+        el.classList.toggle("hidden", deveOcultar);
+
+        if (blocoObrigatorio) {
+            el.classList.remove("layout-block-oculto");
+            el.style.display = "";
+        }
+
         secao.appendChild(el);
     });
 }
@@ -9594,6 +9613,60 @@ function ativarAba(targetId) {
             if (secaoAlvo) secaoAlvo.classList.add("active");
 
             aplicarLayoutSalvoDaAba(targetId);
+
+            /*
+             * RECUPERAÇÃO DA AUTOMAÇÃO DE LEADS
+             * Caso uma configuração antiga tenha escondido todos os blocos,
+             * a aba volta a exibir os filtros e a tabela automaticamente.
+             */
+            if (targetId === "view-automacao-leads") {
+                const secaoAutomacao =
+                    document.getElementById("view-automacao-leads");
+
+                if (secaoAutomacao) {
+                    const blocosAutomacao =
+                        Array.from(
+                            secaoAutomacao.querySelectorAll(
+                                ".layout-block"
+                            )
+                        );
+
+                    const todosEstaoOcultos =
+                        blocosAutomacao.length > 0 &&
+                        blocosAutomacao.every(function(bloco) {
+                            return (
+                                bloco.classList.contains("hidden") ||
+                                bloco.classList.contains(
+                                    "layout-block-oculto"
+                                )
+                            );
+                        });
+
+                    if (todosEstaoOcultos) {
+                        blocosAutomacao.forEach(function(bloco) {
+                            bloco.classList.remove(
+                                "hidden",
+                                "layout-block-oculto"
+                            );
+
+                            bloco.style.display = "";
+                        });
+
+                        if (
+                            window._layoutPorAbaSalvo &&
+                            window._layoutPorAbaSalvo[
+                                "view-automacao-leads"
+                            ]
+                        ) {
+                            window._layoutPorAbaSalvo[
+                                "view-automacao-leads"
+                            ].forEach(function(item) {
+                                item.visivel = true;
+                            });
+                        }
+                    }
+                }
+            }
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
