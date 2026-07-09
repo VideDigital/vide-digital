@@ -1311,6 +1311,344 @@ textarea:focus{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — ANALYTICS COCKPIT
+   ========================================================================= */
+
+.aura-analytics-panel{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden !important;
+  padding:22px;
+  border-radius:28px !important;
+}
+
+.aura-analytics-glow{
+  position:absolute;
+  border-radius:999px;
+  pointer-events:none;
+  filter:blur(90px);
+  opacity:.55;
+}
+
+.aura-analytics-glow-primary{
+  width:420px;
+  height:420px;
+  top:-320px;
+  left:-160px;
+  background:
+    color-mix(in srgb, var(--aura-primary) 28%, transparent);
+}
+
+.aura-analytics-glow-accent{
+  width:360px;
+  height:360px;
+  right:-230px;
+  bottom:-260px;
+  background:
+    color-mix(in srgb, var(--aura-accent) 20%, transparent);
+}
+
+.aura-analytics-symbol{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:48px;
+  height:48px;
+  flex-shrink:0;
+  border-radius:16px;
+  color:var(--aura-text);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 30%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-primary) 21%, transparent),
+      color-mix(in srgb, var(--aura-accent) 8%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.11),
+    0 18px 38px -25px
+      color-mix(in srgb, var(--aura-primary) 85%, transparent);
+}
+
+.aura-analytics-symbol svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-analytics-live{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:22px;
+  padding:0 9px;
+  border-radius:999px;
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-strong) 50%, transparent);
+}
+
+.aura-analytics-live::before{
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:var(--aura-accent);
+  box-shadow:
+    0 0 10px
+      color-mix(in srgb, var(--aura-accent) 70%, transparent);
+}
+
+.aura-analytics-period{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:190px;
+  padding:11px 14px;
+  border-radius:16px;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 68%, transparent);
+}
+
+.aura-analytics-period-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:11px;
+  flex-shrink:0;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb, var(--aura-accent) 22%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-accent) 9%, transparent);
+}
+
+.aura-analytics-period-icon svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-analytics-divider{
+  width:100%;
+  height:1px;
+  margin:22px 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--aura-border-strong) 14%,
+      var(--aura-border-strong) 86%,
+      transparent
+    );
+}
+
+.aura-analytics-mini-card{
+  position:relative;
+  overflow:hidden;
+  min-height:116px;
+  padding:15px;
+  border-radius:17px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface) 67%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 48%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035);
+  transition:
+    transform .25s var(--rd-ease),
+    border-color .25s var(--rd-ease),
+    background .25s var(--rd-ease);
+}
+
+.aura-analytics-mini-card::after{
+  content:"";
+  position:absolute;
+  width:80px;
+  height:80px;
+  top:-52px;
+  right:-40px;
+  border-radius:999px;
+  background:
+    color-mix(in srgb, var(--aura-primary) 13%, transparent);
+  filter:blur(20px);
+}
+
+.aura-analytics-mini-card:hover{
+  transform:translateY(-3px);
+  border-color:
+    color-mix(in srgb, var(--aura-primary) 30%, transparent);
+}
+
+.aura-analytics-mini-label{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+}
+
+.aura-analytics-mini-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:25px;
+  height:25px;
+  border-radius:8px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 18%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-primary) 8%, transparent);
+}
+
+.aura-analytics-mini-icon-success{
+  color:#34D399;
+  border-color:rgba(52,211,153,.17);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-analytics-mini-icon svg{
+  width:13px;
+  height:13px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-analytics-mini-value{
+  margin-top:13px;
+  color:var(--aura-text);
+  font-family:'Sora',sans-serif;
+  font-size:18px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:-.035em;
+}
+
+.aura-analytics-mini-note{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:600;
+}
+
+.aura-analytics-positive{
+  color:#34D399;
+}
+
+.aura-chart-shell{
+  position:relative;
+  overflow:hidden;
+  padding:17px 17px 10px;
+  border-radius:21px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--aura-surface-soft) 74%, transparent),
+      color-mix(in srgb, var(--aura-background) 68%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.aura-chart-shell::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent 49.8%,
+      color-mix(in srgb, var(--aura-text) 2%, transparent) 50%,
+      transparent 50.2%
+    );
+  opacity:.5;
+}
+
+.aura-chart-topline{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+
+.aura-chart-legend-dot{
+  width:8px;
+  height:8px;
+  border-radius:999px;
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 12px
+      color-mix(in srgb, var(--aura-primary) 75%, transparent);
+}
+
+.aura-chart-status-dot{
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:#34D399;
+}
+
+.tema-claro .aura-analytics-period,
+.tema-claro .aura-analytics-mini-card,
+.tema-claro .aura-chart-shell{
+  background:rgba(255,255,255,.75);
+}
+
+@media (max-width:767px){
+  .aura-analytics-panel{
+    padding:18px;
+    border-radius:22px !important;
+  }
+
+  .aura-analytics-period{
+    width:100%;
+  }
+
+  .aura-analytics-mini-card{
+    min-height:105px;
+    padding:13px;
+  }
+
+  .aura-analytics-mini-value{
+    font-size:15px;
+  }
+
+  .aura-chart-shell{
+    padding:14px 10px 8px;
+  }
+
+  .aura-chart-topline{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -2485,17 +2823,303 @@ textarea:focus{
 
             <!-- Gráfico -->
 
-<div class="glass-card p-6 rounded-xl layout-block" data-block-id="grafico" data-block-nome="Gráfico">
+<div class="aura-analytics-panel glass-card layout-block"
+     data-block-id="grafico"
+     data-block-nome="Gráfico">
 
-<div class="flex items-center justify-between mb-4">
+    <div class="aura-analytics-glow aura-analytics-glow-primary"></div>
+    <div class="aura-analytics-glow aura-analytics-glow-accent"></div>
 
-<span class="text-[11px] text-gray-500 uppercase tracking-widest font-semibold">Conversões & Cliques</span>
-                    <span class="text-[11px] text-gray-400 font-mono">Últimos 7 dias</span>
+    <div class="relative z-[2]">
+
+        <div class="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-6">
+
+            <div class="flex items-start gap-4">
+
+                <div class="aura-analytics-symbol">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 19V9"></path>
+                        <path d="M10 19V5"></path>
+                        <path d="M16 19v-7"></path>
+                        <path d="M22 19H2"></path>
+
+                    </svg>
+
                 </div>
-                <div class="relative w-full h-52">
-                    <canvas id="graficoVendas"></canvas>
+
+                <div>
+
+                    <div class="flex flex-wrap items-center gap-2">
+
+                        <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">
+
+                            Aura Analytics
+
+                        </p>
+
+                        <span class="aura-analytics-live">
+
+                            Visual demonstrativo
+
+                        </span>
+
+                    </div>
+
+                    <h3 class="text-lg sm:text-xl font-black text-white tracking-[-0.03em] mt-1">
+
+                        Desempenho da operação
+
+                    </h3>
+
+                    <p class="text-xs sm:text-sm text-gray-400 leading-relaxed mt-1.5 max-w-xl">
+
+                        Uma leitura visual do comportamento da sua loja durante os últimos sete dias.
+
+                    </p>
+
                 </div>
+
             </div>
+
+            <div class="aura-analytics-period">
+
+                <div class="aura-analytics-period-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+                        <path d="M16 3v4M8 3v4M3 10h18"></path>
+
+                    </svg>
+
+                </div>
+
+                <div>
+
+                    <p class="text-[9px] font-bold uppercase tracking-[0.16em] text-gray-500">
+
+                        Período analisado
+
+                    </p>
+
+                    <p class="text-xs font-black text-white mt-0.5">
+
+                        Últimos 7 dias
+
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="aura-analytics-divider"></div>
+
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+
+            <div class="aura-analytics-mini-card">
+
+                <div class="flex items-center justify-between gap-3">
+
+                    <span class="aura-analytics-mini-label">
+
+                        Maior resultado
+
+                    </span>
+
+                    <span class="aura-analytics-mini-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="m5 15 4-4 3 3 7-7"></path>
+                            <path d="M14 7h5v5"></path>
+
+                        </svg>
+
+                    </span>
+
+                </div>
+
+                <p class="aura-analytics-mini-value">
+
+                    R$ 4.100
+
+                </p>
+
+                <p class="aura-analytics-mini-note">
+
+                    Sexta-feira
+
+                </p>
+
+            </div>
+
+            <div class="aura-analytics-mini-card">
+
+                <div class="flex items-center justify-between gap-3">
+
+                    <span class="aura-analytics-mini-label">
+
+                        Média diária
+
+                    </span>
+
+                    <span class="aura-analytics-mini-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <circle cx="12" cy="12" r="8"></circle>
+                            <path d="M12 8v4l3 2"></path>
+
+                        </svg>
+
+                    </span>
+
+                </div>
+
+                <p class="aura-analytics-mini-value">
+
+                    R$ 2.614
+
+                </p>
+
+                <p class="aura-analytics-mini-note">
+
+                    Média demonstrativa
+
+                </p>
+
+            </div>
+
+            <div class="aura-analytics-mini-card">
+
+                <div class="flex items-center justify-between gap-3">
+
+                    <span class="aura-analytics-mini-label">
+
+                        Tendência
+
+                    </span>
+
+                    <span class="aura-analytics-mini-icon aura-analytics-mini-icon-success">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M5 16 10 11l3 3 6-7"></path>
+
+                        </svg>
+
+                    </span>
+
+                </div>
+
+                <p class="aura-analytics-mini-value">
+
+                    Positiva
+
+                </p>
+
+                <p class="aura-analytics-mini-note aura-analytics-positive">
+
+                    Crescimento visual
+
+                </p>
+
+            </div>
+
+            <div class="aura-analytics-mini-card">
+
+                <div class="flex items-center justify-between gap-3">
+
+                    <span class="aura-analytics-mini-label">
+
+                        Atualização
+
+                    </span>
+
+                    <span class="aura-analytics-mini-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M20 6v5h-5"></path>
+                            <path d="M4 18v-5h5"></path>
+                            <path d="M18.5 9A7 7 0 0 0 6 6.5L4 9"></path>
+                            <path d="M5.5 15A7 7 0 0 0 18 17.5l2-2.5"></path>
+
+                        </svg>
+
+                    </span>
+
+                </div>
+
+                <p class="aura-analytics-mini-value">
+
+                    Semanal
+
+                </p>
+
+                <p class="aura-analytics-mini-note">
+
+                    Domingo a sábado
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="aura-chart-shell">
+
+            <div class="aura-chart-topline">
+
+                <div class="flex items-center gap-2">
+
+                    <span class="aura-chart-legend-dot"></span>
+
+                    <span class="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">
+
+                        Vendas demonstrativas
+
+                    </span>
+
+                </div>
+
+                <div class="flex items-center gap-2 text-[10px] text-gray-500">
+
+                    <span class="aura-chart-status-dot"></span>
+
+                    <span>Chart.js conectado</span>
+
+                </div>
+
+            </div>
+
+            <div class="relative w-full h-[260px] sm:h-[320px]">
+
+                <canvas id="graficoVendas"></canvas>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
         </section>
         <section id="view-templates" class="view-section space-y-6 max-w-4xl mx-auto">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
@@ -7842,50 +8466,328 @@ carregarProdutos();
     }
 });
 
-// --- INICIALIZAR GRÁFICO PREMIUM (ESTILO STRIPE/LINEAR) ---
+// --- INICIALIZAR GRÁFICO AURA ANALYTICS ---
         function inicializarGrafico() {
-            const ctx = document.getElementById('graficoVendas');
-            if (!ctx) return;
+            const canvas = document.getElementById("graficoVendas");
 
-            // Destrói o gráfico existente para evitar duplicados ao recarregar
-            if (window.meuGrafico) window.meuGrafico.destroy();
+            if (!canvas || typeof Chart === "undefined") {
+                return;
+            }
 
-            window.meuGrafico = new Chart(ctx, {
-                type: 'line',
+            if (window.meuGrafico) {
+                window.meuGrafico.destroy();
+            }
+
+            const estilosDocumento = getComputedStyle(document.documentElement);
+
+            const corPrimaria =
+                estilosDocumento.getPropertyValue("--sys-primaria").trim() ||
+                "#5B3DF5";
+
+            const corDestaque =
+                estilosDocumento.getPropertyValue("--sys-destaque").trim() ||
+                "#FF7A45";
+
+            const temaClaro =
+                document.body.classList.contains("tema-claro");
+
+            const corTextoSecundario =
+                temaClaro
+                    ? "rgba(15, 23, 42, 0.48)"
+                    : "rgba(255, 255, 255, 0.42)";
+
+            const corGrade =
+                temaClaro
+                    ? "rgba(15, 23, 42, 0.055)"
+                    : "rgba(255, 255, 255, 0.045)";
+
+            const contexto = canvas.getContext("2d");
+
+            const gradienteArea =
+                contexto.createLinearGradient(
+                    0,
+                    0,
+                    0,
+                    canvas.parentElement?.clientHeight || 320
+                );
+
+            gradienteArea.addColorStop(
+                0,
+                converterHexParaRgba(corPrimaria, 0.34)
+            );
+
+            gradienteArea.addColorStop(
+                0.55,
+                converterHexParaRgba(corDestaque, 0.10)
+            );
+
+            gradienteArea.addColorStop(
+                1,
+                converterHexParaRgba(corPrimaria, 0)
+            );
+
+            const gradienteLinha =
+                contexto.createLinearGradient(
+                    0,
+                    0,
+                    canvas.parentElement?.clientWidth || 900,
+                    0
+                );
+
+            gradienteLinha.addColorStop(0, corPrimaria);
+            gradienteLinha.addColorStop(1, corDestaque);
+
+            window.meuGrafico = new Chart(contexto, {
+                type: "line",
+
                 data: {
-                    labels: ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'],
+                    labels: [
+                        "Dom",
+                        "Seg",
+                        "Ter",
+                        "Qua",
+                        "Qui",
+                        "Sex",
+                        "Sáb"
+                    ],
+
                     datasets: [{
-                        label: 'Vendas (R$)',
-                        data: [1200, 1900, 3200, 1500, 2800, 4100, 3600], // Dados fictícios para teste visual
-                        borderColor: '#ffffff',
-                        borderWidth: 1.5,
-                        pointBackgroundColor: '#ffffff',
+                        label: "Vendas demonstrativas",
+
+                        data: [
+                            1200,
+                            1900,
+                            3200,
+                            1500,
+                            2800,
+                            4100,
+                            3600
+                        ],
+
+                        borderColor: gradienteLinha,
+                        backgroundColor: gradienteArea,
+
+                        borderWidth: 2.4,
+                        fill: true,
+                        tension: 0.42,
+
                         pointRadius: 0,
-                        pointHoverRadius: 4,
-                        lineTension: 0.2,
-                        fill: false
+                        pointHoverRadius: 6,
+                        pointHitRadius: 22,
+
+                        pointBackgroundColor: corDestaque,
+                        pointBorderColor:
+                            temaClaro ? "#FFFFFF" : "#14132B",
+
+                        pointBorderWidth: 3
                     }]
                 },
+
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    plugins: { legend: { display: false } },
+                    interaction: {
+                        intersect: false,
+                        mode: "index"
+                    },
+
+                    animation: {
+                        duration: 950,
+                        easing: "easeOutQuart"
+                    },
+
+                    layout: {
+                        padding: {
+                            top: 16,
+                            right: 12,
+                            bottom: 2,
+                            left: 4
+                        }
+                    },
+
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+
+                        tooltip: {
+                            enabled: true,
+                            displayColors: false,
+
+                            backgroundColor:
+                                temaClaro
+                                    ? "rgba(255,255,255,.96)"
+                                    : "rgba(15,13,36,.96)",
+
+                            titleColor:
+                                temaClaro
+                                    ? "#0F172A"
+                                    : "#FFFFFF",
+
+                            bodyColor:
+                                temaClaro
+                                    ? "#475569"
+                                    : "#B4B3C7",
+
+                            borderColor:
+                                converterHexParaRgba(corPrimaria, 0.28),
+
+                            borderWidth: 1,
+                            padding: 13,
+                            cornerRadius: 12,
+
+                            titleFont: {
+                                family: "Sora",
+                                size: 11,
+                                weight: "700"
+                            },
+
+                            bodyFont: {
+                                family: "Inter",
+                                size: 11,
+                                weight: "600"
+                            },
+
+                            callbacks: {
+                                title: function(itens) {
+                                    return itens[0]?.label || "";
+                                },
+
+                                label: function(contextoTooltip) {
+                                    const valor =
+                                        Number(
+                                            contextoTooltip.parsed.y || 0
+                                        );
+
+                                    return valor.toLocaleString(
+                                        "pt-BR",
+                                        {
+                                            style: "currency",
+                                            currency: "BRL"
+                                        }
+                                    );
+                                },
+
+                                afterLabel: function() {
+                                    return "Valor demonstrativo";
+                                }
+                            }
+                        }
+                    },
+
                     scales: {
                         x: {
-                            grid: { display: false },
-                            ticks: { color: '#666666', font: { size: 10, family: 'Plus Jakarta Sans' } }
+                            border: {
+                                display: false
+                            },
+
+                            grid: {
+                                display: false
+                            },
+
+                            ticks: {
+                                color: corTextoSecundario,
+
+                                padding: 12,
+
+                                font: {
+                                    size: 10,
+                                    family: "Inter",
+                                    weight: "600"
+                                }
+                            }
                         },
+
                         y: {
-                            grid: { color: 'rgba(255, 255, 255, 0.03)' },
-                            ticks: { color: '#666666', font: { size: 10, family: 'Plus Jakarta Sans' } }
+                            beginAtZero: true,
+
+                            border: {
+                                display: false
+                            },
+
+                            grid: {
+                                color: corGrade,
+                                drawTicks: false
+                            },
+
+                            ticks: {
+                                color: corTextoSecundario,
+
+                                padding: 12,
+
+                                maxTicksLimit: 5,
+
+                                font: {
+                                    size: 10,
+                                    family: "Inter",
+                                    weight: "600"
+                                },
+
+                                callback: function(valor) {
+                                    if (valor >= 1000) {
+                                        return "R$ " +
+                                            (valor / 1000)
+                                                .toFixed(1)
+                                                .replace(".", ",") +
+                                            "k";
+                                    }
+
+                                    return "R$ " + valor;
+                                }
+                            }
                         }
                     }
                 }
             });
         }
 
+        function converterHexParaRgba(cor, opacidade) {
+            if (!cor) {
+                return `rgba(91, 61, 245, ${opacidade})`;
+            }
+
+            if (cor.startsWith("rgb")) {
+                const valores =
+                    cor.match(/\d+(\.\d+)?/g);
+
+                if (!valores || valores.length < 3) {
+                    return cor;
+                }
+
+                return `rgba(${valores[0]}, ${valores[1]}, ${valores[2]}, ${opacidade})`;
+            }
+
+            let hexadecimal =
+                cor.replace("#", "").trim();
+
+            if (hexadecimal.length === 3) {
+                hexadecimal =
+                    hexadecimal
+                        .split("")
+                        .map(function(caractere) {
+                            return caractere + caractere;
+                        })
+                        .join("");
+            }
+
+            if (hexadecimal.length !== 6) {
+                return cor;
+            }
+
+            const vermelho =
+                parseInt(hexadecimal.substring(0, 2), 16);
+
+            const verde =
+                parseInt(hexadecimal.substring(2, 4), 16);
+
+            const azul =
+                parseInt(hexadecimal.substring(4, 6), 16);
+
+            return `rgba(${vermelho}, ${verde}, ${azul}, ${opacidade})`;
+        }
+
         // Força a renderização inicial do gráfico de forma segura
-        setTimeout(inicializarGrafico, 500);        
+        setTimeout(inicializarGrafico, 500);     
         // =============================================
         // C1 — MÉTRICAS REAIS
         // =============================================
