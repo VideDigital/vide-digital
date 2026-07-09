@@ -1649,6 +1649,370 @@ textarea:focus{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — NOTIFICATION ORB
+   ========================================================================= */
+
+.aura-notification-orb{
+  position:fixed;
+  width:48px;
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  border-radius:17px;
+  color:var(--aura-text);
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface-strong) 82%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 68%, transparent)
+    );
+  backdrop-filter:blur(22px) saturate(145%);
+  -webkit-backdrop-filter:blur(22px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 18px 42px -22px rgba(0,0,0,.8);
+  overflow:visible;
+  transition:
+    transform .28s var(--rd-ease),
+    border-color .28s var(--rd-ease),
+    box-shadow .28s var(--rd-ease);
+}
+
+.aura-notification-orb::before{
+  content:"";
+  position:absolute;
+  inset:0;
+  border-radius:inherit;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.11),
+      transparent 42%
+    );
+  opacity:.75;
+}
+
+.aura-notification-orb:hover{
+  transform:translateY(-3px) rotate(-2deg);
+  border-color:
+    color-mix(in srgb, var(--aura-primary) 38%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 22px 48px -24px
+      color-mix(in srgb, var(--aura-primary) 48%, rgba(0,0,0,.85));
+}
+
+.aura-notification-orb:active{
+  transform:translateY(-1px) scale(.96);
+}
+
+.aura-notification-orb-glow{
+  position:absolute;
+  inset:7px;
+  border-radius:12px;
+  pointer-events:none;
+  background:
+    radial-gradient(
+      circle at 50% 15%,
+      color-mix(in srgb, var(--aura-primary) 28%, transparent),
+      transparent 68%
+    );
+  opacity:.8;
+  transition:opacity .25s ease;
+}
+
+.aura-notification-orb:hover .aura-notification-orb-glow{
+  opacity:1;
+}
+
+.aura-notification-icon{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.aura-notification-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.85;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  transition:
+    transform .3s var(--rd-ease),
+    color .3s ease;
+}
+
+.aura-notification-orb:hover .aura-notification-icon svg{
+  color:var(--aura-accent);
+  transform:rotate(8deg);
+}
+
+.aura-notification-pulse{
+  position:absolute;
+  width:7px;
+  height:7px;
+  right:9px;
+  top:9px;
+  z-index:3;
+  border-radius:999px;
+  background:#34D399;
+  border:2px solid
+    color-mix(in srgb, var(--aura-background) 86%, black 14%);
+  box-shadow:
+    0 0 12px rgba(52,211,153,.8);
+}
+
+#badge-notif-count{
+  min-width:20px;
+  height:20px;
+  padding:0 5px;
+  border-radius:999px;
+  color:#FFFFFF !important;
+  font-size:9px;
+  line-height:1;
+  font-family:'JetBrains Mono',monospace;
+  font-weight:800;
+  background:
+    linear-gradient(135deg,#FB7185,#EF4444);
+  border:2px solid
+    color-mix(in srgb, var(--aura-background) 88%, black 12%);
+  box-shadow:
+    0 7px 18px -7px rgba(239,68,68,.9),
+    0 0 12px rgba(239,68,68,.35);
+}
+
+#badge-notif-count:not(.hidden) ~ .aura-notification-pulse{
+  display:none;
+}
+
+.tema-claro .aura-notification-orb{
+  background:rgba(255,255,255,.86);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 16px 36px -22px rgba(15,23,42,.32);
+}
+
+.tema-claro .aura-notification-pulse,
+.tema-claro #badge-notif-count{
+  border-color:#FFFFFF;
+}
+
+@media (max-width:767px){
+  .aura-notification-orb{
+    width:44px;
+    height:44px;
+    border-radius:15px;
+    top:14px !important;
+    right:14px !important;
+  }
+}
+
+/* =========================================================================
+   VIDE AURA OS — TOAST ENGINE
+   ========================================================================= */
+
+.aura-toast{
+  --toast-color:var(--aura-primary);
+  position:relative;
+  display:grid;
+  grid-template-columns:42px minmax(0,1fr) 30px;
+  align-items:center;
+  gap:12px;
+  width:min(390px,calc(100vw - 30px));
+  min-height:78px;
+  padding:14px 14px 14px 15px;
+  overflow:hidden;
+  border-radius:19px;
+  border:1px solid
+    color-mix(in srgb, var(--toast-color) 24%, var(--aura-border));
+  color:var(--aura-text);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface-strong) 93%, transparent),
+      color-mix(in srgb, var(--aura-background) 88%, transparent)
+    );
+  backdrop-filter:blur(24px) saturate(145%);
+  -webkit-backdrop-filter:blur(24px) saturate(145%);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 26px 58px -28px rgba(0,0,0,.9),
+    0 15px 30px -24px
+      color-mix(in srgb, var(--toast-color) 60%, transparent);
+  transform:translateX(42px) scale(.96);
+  opacity:0;
+  transition:
+    transform .38s var(--rd-ease),
+    opacity .3s ease;
+}
+
+.aura-toast::before{
+  content:"";
+  position:absolute;
+  width:120px;
+  height:120px;
+  left:-65px;
+  top:-74px;
+  border-radius:999px;
+  background:
+    color-mix(in srgb, var(--toast-color) 20%, transparent);
+  filter:blur(26px);
+  pointer-events:none;
+}
+
+.aura-toast-success{
+  --toast-color:#34D399;
+}
+
+.aura-toast-error{
+  --toast-color:#FB7185;
+}
+
+.aura-toast-visible{
+  transform:translateX(0) scale(1);
+  opacity:1;
+}
+
+.aura-toast-exit{
+  transform:translateX(36px) scale(.97);
+  opacity:0;
+}
+
+.aura-toast-icon{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  color:var(--toast-color);
+  border:1px solid
+    color-mix(in srgb, var(--toast-color) 24%, transparent);
+  background:
+    color-mix(in srgb, var(--toast-color) 10%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.aura-toast-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:2;
+}
+
+.aura-toast-content{
+  position:relative;
+  z-index:2;
+  min-width:0;
+}
+
+.aura-toast-title{
+  color:var(--aura-text) !important;
+  font-family:'Sora',sans-serif;
+  font-size:11px;
+  line-height:1.2;
+  font-weight:800;
+  letter-spacing:-.01em;
+}
+
+.aura-toast-message{
+  margin-top:5px;
+  color:var(--aura-text-secondary) !important;
+  font-size:10px;
+  line-height:1.5;
+  font-weight:500;
+  text-transform:none;
+  letter-spacing:0;
+  overflow-wrap:anywhere;
+}
+
+.aura-toast-close{
+  position:relative;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:30px;
+  height:30px;
+  border-radius:10px;
+  color:var(--aura-text-muted);
+  border:1px solid transparent;
+  transition:
+    color .2s ease,
+    background .2s ease,
+    border-color .2s ease;
+}
+
+.aura-toast-close:hover{
+  color:var(--aura-text);
+  border-color:var(--aura-border);
+  background:rgba(255,255,255,.05);
+}
+
+.aura-toast-close svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
+
+.aura-toast-progress{
+  position:absolute;
+  left:0;
+  bottom:0;
+  height:2px;
+  width:100%;
+  transform-origin:left center;
+  background:
+    linear-gradient(
+      90deg,
+      var(--toast-color),
+      color-mix(in srgb, var(--toast-color) 45%, white 55%)
+    );
+  animation:auraToastProgress 4s linear forwards;
+}
+
+@keyframes auraToastProgress{
+  from{
+    transform:scaleX(1);
+  }
+
+  to{
+    transform:scaleX(0);
+  }
+}
+
+.tema-claro .aura-toast{
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.94)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 24px 52px -28px rgba(15,23,42,.3);
+}
+
+@media (max-width:639px){
+  #toast-container{
+    top:68px !important;
+    left:15px !important;
+    right:15px !important;
+  }
+
+  .aura-toast{
+    width:100%;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -1684,11 +2048,48 @@ textarea:focus{
         </div>
     </div>
 
-   <div id="toast-container" class="fixed top-6 right-6 z-[130] space-y-3 pointer-events-none"></div>
+   <div id="toast-container"
+        class="fixed top-5 right-5 sm:top-6 sm:right-6 z-[130] space-y-3 pointer-events-none">
+   </div>
 
-    <button id="btn-notificacoes" onclick="abrirNotifModal()" class="fixed top-5 right-20 sm:right-24 z-40 h-10 w-10 rounded-full bg-[#111111] border border-white/10 hover:border-white/20 flex items-center justify-center text-base transition-all">
-        🔔
-        <span id="badge-notif-count" class="hidden absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 text-white text-[10px] font-black items-center justify-center">0</span>
+    <button id="btn-notificacoes"
+            onclick="abrirNotifModal()"
+            aria-label="Abrir central de notificações"
+            title="Notificações"
+            class="aura-notification-orb fixed top-5 right-5 sm:right-7 z-40">
+
+        <span class="aura-notification-orb-glow"></span>
+
+        <span class="aura-notification-icon">
+
+            <svg viewBox="0 0 24 24"
+                 fill="none"
+                 stroke="currentColor"
+                 aria-hidden="true">
+
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M18 9a6 6 0 0 0-12 0c0 6.5-3 7-3 9h18c0-2-3-2.5-3-9Z">
+                </path>
+
+                <path stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M10 21h4">
+                </path>
+
+            </svg>
+
+        </span>
+
+        <span class="aura-notification-pulse"></span>
+
+        <span id="badge-notif-count"
+              class="hidden absolute -top-1 -right-1 items-center justify-center">
+
+            0
+
+        </span>
+
     </button>
 
     <aside id="admin-sidebar" class="w-full md:w-64 glass-sidebar md:h-screen flex flex-col justify-between p-5 shrink-0 z-40">
@@ -5259,20 +5660,121 @@ btn.classList.add("opacity-40");
         // Isso evita que uma aba bloqueada apareça por um instante antes do cadeado.
         window._abaSalva = localStorage.getItem("abaAtivaDashboard");
 
-        // TOAST ENGINE
+        // TOAST ENGINE — VIDE AURA OS
         function showToast(message, type = "success") {
             const container = document.getElementById("toast-container");
+
+            if (!container) {
+                return;
+            }
+
+            const ehSucesso = type === "success";
+
             const toast = document.createElement("div");
-            toast.className = `p-4 rounded-xl text-xs font-bold uppercase tracking-wider shadow-2xl border flex items-center gap-3 backdrop-blur-md transform translate-x-10 opacity-0 transition-all duration-300 pointer-events-auto ${
-                type === 'success' ? 'bg-emerald-950/90 text-emerald-400 border-emerald-500/20' : 'bg-red-950/90 text-red-400 border-red-500/20'
-            }`;
-            toast.innerHTML = `<span class="no-contrast">${type === 'success' ? '✨' : '⚠️'}</span> <span class="no-contrast">${message}</span>`;
+
+            toast.className =
+                `aura-toast aura-toast-${ehSucesso ? "success" : "error"} pointer-events-auto`;
+
+            const icone = ehSucesso
+                ? `
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="m5 12 4 4L19 6">
+                        </path>
+
+                    </svg>
+                `
+                : `
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 8v5">
+                        </path>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 17h.01">
+                        </path>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M10.3 3.9 2.7 17a2 2 0 0 0 1.73 3h15.14a2 2 0 0 0 1.73-3L13.7 3.9a2 2 0 0 0-3.4 0Z">
+                        </path>
+
+                    </svg>
+                `;
+
+            toast.innerHTML = `
+                <div class="aura-toast-icon">
+                    ${icone}
+                </div>
+
+                <div class="aura-toast-content">
+
+                    <p class="aura-toast-title no-contrast">
+                        ${ehSucesso ? "Operação concluída" : "Atenção necessária"}
+                    </p>
+
+                    <p class="aura-toast-message no-contrast"></p>
+
+                </div>
+
+                <button type="button"
+                        class="aura-toast-close"
+                        aria-label="Fechar mensagem">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="m6 6 12 12M18 6 6 18">
+                        </path>
+
+                    </svg>
+
+                </button>
+
+                <div class="aura-toast-progress"></div>
+            `;
+
+            const mensagemElemento =
+                toast.querySelector(".aura-toast-message");
+
+            mensagemElemento.textContent = message;
+
+            const removerToast = function() {
+                if (toast.dataset.removendo === "true") {
+                    return;
+                }
+
+                toast.dataset.removendo = "true";
+                toast.classList.add("aura-toast-exit");
+
+                setTimeout(function() {
+                    toast.remove();
+                }, 350);
+            };
+
+            toast
+                .querySelector(".aura-toast-close")
+                .addEventListener("click", removerToast);
+
             container.appendChild(toast);
-            setTimeout(() => toast.classList.remove("translate-x-10", "opacity-0"), 10);
-            setTimeout(() => {
-                toast.classList.add("translate-x-10", "opacity-0");
-                setTimeout(() => toast.remove(), 300);
-            }, 3000);
+
+            requestAnimationFrame(function() {
+                toast.classList.add("aura-toast-visible");
+            });
+
+            setTimeout(removerToast, 4000);
         }
 
         // ELEMENTOS EM TEMPO REAL (MUDANÇA INSTANTÂNEA)
