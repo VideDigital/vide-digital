@@ -2894,6 +2894,689 @@ textarea:focus{
   background:rgba(15,23,42,.035);
 }
 
+/* =========================================================================
+   VIDE AURA OS — PRODUCT CARDS
+   ========================================================================= */
+
+.aura-commerce-card{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+  overflow:hidden;
+  border-radius:23px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in srgb, var(--aura-surface) 78%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 54%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.045),
+    0 20px 42px -34px rgba(0,0,0,.9);
+  opacity:0;
+  transform:translateY(12px);
+  animation:
+    auraCommerceCardIn
+    .55s
+    var(--rd-ease)
+    var(--product-delay,0ms)
+    forwards;
+  transition:
+    transform .35s var(--rd-ease),
+    border-color .35s var(--rd-ease),
+    box-shadow .35s var(--rd-ease);
+}
+
+@keyframes auraCommerceCardIn{
+  to{
+    opacity:1;
+    transform:translateY(0);
+  }
+}
+
+.aura-commerce-card:hover{
+  transform:translateY(-6px);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 30%,
+      transparent
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 34px 62px -38px
+      color-mix(
+        in srgb,
+        var(--aura-primary) 45%,
+        rgba(0,0,0,.9)
+      );
+}
+
+.aura-commerce-media{
+  position:relative;
+  height:220px;
+  overflow:hidden;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-background) 88%,
+      black 12%
+    );
+}
+
+.aura-commerce-image{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  border-radius:0 !important;
+  transform:scale(1.002);
+  transition:
+    transform .65s var(--rd-ease),
+    filter .4s ease !important;
+}
+
+.aura-commerce-card:hover .aura-commerce-image{
+  transform:scale(1.065) !important;
+}
+
+.aura-commerce-media-overlay{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(0,0,0,.22) 0%,
+      transparent 38%,
+      rgba(0,0,0,.1) 58%,
+      rgba(0,0,0,.76) 100%
+    );
+}
+
+.aura-commerce-topbar,
+.aura-commerce-media-bottom{
+  position:absolute;
+  z-index:2;
+  left:14px;
+  right:14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.aura-commerce-topbar{
+  top:14px;
+}
+
+.aura-commerce-media-bottom{
+  bottom:14px;
+  align-items:flex-end;
+}
+
+.aura-commerce-status,
+.aura-commerce-type,
+.aura-commerce-discount{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  min-height:27px;
+  padding:0 9px;
+  border-radius:10px;
+  color:#FFFFFF !important;
+  font-size:8px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  border:1px solid rgba(255,255,255,.13);
+  background:rgba(10,10,14,.62);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+}
+
+.aura-commerce-status-dot{
+  width:6px;
+  height:6px;
+  border-radius:999px;
+}
+
+.aura-commerce-status-online
+.aura-commerce-status-dot{
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.8);
+}
+
+.aura-commerce-status-draft
+.aura-commerce-status-dot{
+  background:#FBBF24;
+  box-shadow:0 0 10px rgba(251,191,36,.7);
+}
+
+.aura-commerce-type svg{
+  width:13px;
+  height:13px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-commerce-discount{
+  color:#FFFFFF !important;
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-accent) 42%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-accent) 72%,
+      rgba(10,10,14,.7)
+    );
+}
+
+.aura-commerce-edit-button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  padding:0 !important;
+  border-radius:12px;
+  color:#FFFFFF;
+  border:1px solid rgba(255,255,255,.13);
+  background:rgba(10,10,14,.62);
+  backdrop-filter:blur(14px);
+  -webkit-backdrop-filter:blur(14px);
+  transition:
+    transform .25s var(--rd-ease),
+    color .25s ease,
+    background .25s ease,
+    border-color .25s ease;
+}
+
+.aura-commerce-edit-button:hover{
+  transform:translateY(-2px) rotate(-3deg);
+  color:var(--aura-accent);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-accent) 42%,
+      transparent
+    );
+  background:rgba(10,10,14,.82);
+}
+
+.aura-commerce-edit-button svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  pointer-events:none;
+}
+
+.aura-commerce-content{
+  display:flex;
+  flex:1;
+  flex-direction:column;
+  padding:18px;
+}
+
+.aura-commerce-category-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.aura-commerce-category,
+.aura-commerce-free-shipping{
+  display:inline-flex;
+  align-items:center;
+  min-height:23px;
+  padding:0 8px;
+  border-radius:8px;
+  font-size:8px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+.aura-commerce-category{
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 18%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 7%,
+      transparent
+    );
+}
+
+.aura-commerce-free-shipping{
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.16);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-commerce-copy{
+  margin-top:15px;
+}
+
+.aura-commerce-title{
+  min-width:0;
+  color:var(--aura-text) !important;
+  font-family:'Sora',sans-serif;
+  font-size:14px;
+  line-height:1.35;
+  font-weight:800;
+  letter-spacing:-.025em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+
+.aura-commerce-description{
+  display:-webkit-box;
+  min-height:36px;
+  margin-top:7px;
+  overflow:hidden;
+  color:var(--aura-text-muted) !important;
+  font-size:10px;
+  line-height:1.55;
+  font-weight:500;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+}
+
+.aura-commerce-information{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+  min-height:47px;
+  margin-top:15px;
+}
+
+.aura-commerce-info-item{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:94px;
+  padding:7px 9px;
+  border-radius:12px;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 58%,
+      transparent
+    );
+}
+
+.aura-commerce-info-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:27px;
+  height:27px;
+  flex-shrink:0;
+  border-radius:9px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-commerce-info-icon svg{
+  width:13px;
+  height:13px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-commerce-info-rating{
+  color:#FBBF24;
+  background:rgba(251,191,36,.08);
+}
+
+.aura-commerce-info-item > span:last-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-commerce-info-item small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  line-height:1;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.aura-commerce-info-item strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  line-height:1;
+  font-weight:800;
+}
+
+.aura-commerce-stock-low{
+  border-color:rgba(251,113,133,.18);
+}
+
+.aura-commerce-stock-low
+.aura-commerce-info-icon{
+  color:#FB7185;
+  background:rgba(251,113,133,.08);
+}
+
+.aura-commerce-info-empty{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:600;
+}
+
+.aura-commerce-info-empty svg{
+  width:13px;
+  height:13px;
+  stroke-width:1.8;
+}
+
+.aura-commerce-footer{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:auto;
+  padding-top:17px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-commerce-price{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-commerce-price small{
+  min-height:12px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1;
+  font-weight:600;
+}
+
+.aura-commerce-price strong{
+  margin-top:5px;
+  color:var(--aura-text) !important;
+  font-family:'Sora',sans-serif;
+  font-size:18px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:-.04em;
+}
+
+.aura-commerce-manage{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:38px;
+  padding:0 12px;
+  border-radius:12px;
+  color:#FFFFFF;
+  font-size:9px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 12px 28px -18px
+      color-mix(
+        in srgb,
+        var(--aura-accent) 75%,
+        transparent
+      );
+  transition:
+    transform .25s var(--rd-ease),
+    box-shadow .25s var(--rd-ease),
+    filter .25s ease;
+}
+
+.aura-commerce-manage:hover{
+  transform:translateY(-2px);
+  box-shadow:
+    0 17px 32px -18px
+      color-mix(
+        in srgb,
+        var(--aura-accent) 88%,
+        transparent
+      );
+}
+
+.aura-commerce-manage svg{
+  width:13px;
+  height:13px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  pointer-events:none;
+}
+
+/* Estado vazio */
+
+.aura-products-empty{
+  position:relative;
+  isolation:isolate;
+  min-height:310px !important;
+  overflow:hidden;
+  padding:38px 24px !important;
+  text-align:center;
+}
+
+.aura-products-empty-glow{
+  position:absolute;
+  z-index:-1;
+  width:260px;
+  height:260px;
+  border-radius:999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 17%,
+      transparent
+    );
+  filter:blur(75px);
+  pointer-events:none;
+}
+
+.aura-products-empty-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:62px;
+  height:62px;
+  border-radius:20px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 24%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 9%,
+      transparent
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07);
+}
+
+.aura-products-empty-icon svg{
+  width:25px;
+  height:25px;
+  stroke-width:1.7;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-products-empty-eyebrow{
+  margin-top:18px;
+  color:var(--aura-primary) !important;
+  font-size:8px !important;
+  font-weight:800 !important;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+
+.aura-products-empty-title{
+  margin-top:7px;
+  color:var(--aura-text) !important;
+  font-family:'Sora',sans-serif;
+  font-size:18px;
+  font-weight:800;
+}
+
+.aura-products-empty-description{
+  max-width:390px;
+  margin:8px auto 0;
+  color:var(--aura-text-muted) !important;
+  font-size:10px !important;
+  line-height:1.6;
+}
+
+.aura-products-empty-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  margin-top:20px;
+  padding:0 15px;
+  border-radius:13px;
+  color:#FFFFFF;
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-products-empty-action svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
+
+/* Estado de erro */
+
+.aura-products-error{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:13px;
+  min-height:130px;
+  padding:25px;
+  border-radius:20px;
+  border:1px solid rgba(251,113,133,.18);
+  background:rgba(251,113,133,.055);
+}
+
+.aura-products-error-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  flex-shrink:0;
+  border-radius:13px;
+  color:#FB7185;
+  background:rgba(251,113,133,.09);
+}
+
+.aura-products-error-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.9;
+}
+
+.aura-products-error h4{
+  color:var(--aura-text) !important;
+  font-size:11px;
+  font-weight:800;
+}
+
+.aura-products-error p{
+  margin-top:4px;
+  color:var(--aura-text-muted) !important;
+  font-size:9px;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-commerce-card{
+  background:
+    linear-gradient(
+      160deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.91)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.95),
+    0 20px 42px -34px rgba(15,23,42,.28);
+}
+
+.tema-claro .aura-commerce-info-item{
+  background:rgba(15,23,42,.025);
+}
+
+/* Responsividade */
+
+@media (max-width:639px){
+  .aura-commerce-media{
+    height:245px;
+  }
+
+  .aura-commerce-content{
+    padding:16px;
+  }
+
+  .aura-commerce-footer{
+    align-items:center;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
