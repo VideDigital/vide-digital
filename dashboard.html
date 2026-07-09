@@ -11713,62 +11713,151 @@ function ativarAba(targetId) {
             const botaoAlvo = document.querySelector(`#sidebar-nav button[data-target="${targetId}"]`);
             if (botaoAlvo) botaoAlvo.classList.add("active");
 
-            document.querySelectorAll(".view-section").forEach(section => section.classList.remove("active"));
+            document.querySelectorAll(".view-section").forEach(section => {
+                section.classList.remove("active");
+                section.style.removeProperty("display");
+                section.style.removeProperty("visibility");
+                section.style.removeProperty("opacity");
+            });
+
             const secaoAlvo = document.getElementById(targetId);
-            if (secaoAlvo) secaoAlvo.classList.add("active");
+
+            if (secaoAlvo) {
+                secaoAlvo.classList.add("active");
+
+                secaoAlvo.style.setProperty(
+                    "display",
+                    "block",
+                    "important"
+                );
+
+                secaoAlvo.style.setProperty(
+                    "visibility",
+                    "visible",
+                    "important"
+                );
+
+                secaoAlvo.style.setProperty(
+                    "opacity",
+                    "1",
+                    "important"
+                );
+            }
 
             aplicarLayoutSalvoDaAba(targetId);
 
             /*
-             * RECUPERAÇÃO DA AUTOMAÇÃO DE LEADS
-             * Caso uma configuração antiga tenha escondido todos os blocos,
-             * a aba volta a exibir os filtros e a tabela automaticamente.
+            /*
+             * RECUPERAÇÃO DEFINITIVA DA AUTOMAÇÃO DE LEADS
+             * Impede configurações antigas de esconderem a seção.
              */
             if (targetId === "view-automacao-leads") {
                 const secaoAutomacao =
-                    document.getElementById("view-automacao-leads");
+                    document.getElementById(
+                        "view-automacao-leads"
+                    );
 
                 if (secaoAutomacao) {
-                    const blocosAutomacao =
-                        Array.from(
-                            secaoAutomacao.querySelectorAll(
-                                ".layout-block"
-                            )
+                    secaoAutomacao.classList.add("active");
+
+                    secaoAutomacao.style.setProperty(
+                        "display",
+                        "block",
+                        "important"
+                    );
+
+                    secaoAutomacao.style.setProperty(
+                        "visibility",
+                        "visible",
+                        "important"
+                    );
+
+                    secaoAutomacao.style.setProperty(
+                        "opacity",
+                        "1",
+                        "important"
+                    );
+
+                    secaoAutomacao.style.setProperty(
+                        "min-height",
+                        "300px"
+                    );
+
+                    Array.from(
+                        secaoAutomacao.children
+                    ).forEach(function(elemento) {
+                        elemento.classList.remove(
+                            "hidden",
+                            "layout-block-oculto"
                         );
 
-                    const todosEstaoOcultos =
-                        blocosAutomacao.length > 0 &&
-                        blocosAutomacao.every(function(bloco) {
-                            return (
-                                bloco.classList.contains("hidden") ||
-                                bloco.classList.contains(
-                                    "layout-block-oculto"
-                                )
-                            );
-                        });
+                        elemento.style.removeProperty(
+                            "display"
+                        );
 
-                    if (todosEstaoOcultos) {
-                        blocosAutomacao.forEach(function(bloco) {
+                        elemento.style.setProperty(
+                            "visibility",
+                            "visible",
+                            "important"
+                        );
+
+                        elemento.style.setProperty(
+                            "opacity",
+                            "1",
+                            "important"
+                        );
+                    });
+
+                    secaoAutomacao
+                        .querySelectorAll(
+                            ".layout-block"
+                        )
+                        .forEach(function(bloco) {
                             bloco.classList.remove(
                                 "hidden",
                                 "layout-block-oculto"
                             );
 
-                            bloco.style.display = "";
+                            bloco.style.setProperty(
+                                "display",
+                                "block",
+                                "important"
+                            );
+
+                            bloco.style.setProperty(
+                                "visibility",
+                                "visible",
+                                "important"
+                            );
+
+                            bloco.style.setProperty(
+                                "opacity",
+                                "1",
+                                "important"
+                            );
                         });
 
-                        if (
-                            window._layoutPorAbaSalvo &&
-                            window._layoutPorAbaSalvo[
-                                "view-automacao-leads"
-                            ]
-                        ) {
-                            window._layoutPorAbaSalvo[
-                                "view-automacao-leads"
-                            ].forEach(function(item) {
-                                item.visivel = true;
-                            });
-                        }
+                    const barraAcoes =
+                        document.getElementById(
+                            "auto-lead-barra-acoes"
+                        );
+
+                    const barraLixeira =
+                        document.getElementById(
+                            "auto-lead-barra-lixeira"
+                        );
+
+                    /*
+                     * Essas duas barras devem continuar escondidas
+                     * até algum lead ser selecionado ou a lixeira
+                     * ser ativada.
+                     */
+                    if (barraAcoes) {
+                        barraAcoes.classList.add("hidden");
+                    }
+
+                    if (barraLixeira) {
+                        barraLixeira.classList.add("hidden");
                     }
                 }
             }
