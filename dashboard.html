@@ -7017,6 +7017,42 @@ input:checked +
   }
 }
 
+/* =========================================================================
+   CORREÇÃO DEFINITIVA — VISIBILIDADE DA AUTOMAÇÃO DE LEADS
+   ========================================================================= */
+
+#view-automacao-leads.active{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+  min-height:300px !important;
+}
+
+#view-automacao-leads.active > div:not(.hidden){
+  visibility:visible !important;
+  opacity:1 !important;
+}
+
+#view-automacao-leads.active
+.layout-block{
+  display:block !important;
+  visibility:visible !important;
+  opacity:1 !important;
+}
+
+#view-automacao-leads.active
+.layout-block.hidden{
+  display:block !important;
+}
+
+/* As barras operacionais só aparecem quando o JS solicitar */
+#view-automacao-leads
+#auto-lead-barra-acoes.hidden,
+#view-automacao-leads
+#auto-lead-barra-lixeira.hidden{
+  display:none !important;
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
