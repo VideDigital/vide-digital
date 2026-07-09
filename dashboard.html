@@ -5880,6 +5880,403 @@ textarea:focus{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — SIDEBAR DESKTOP FIX
+   Corrige textos pequenos e o corte do box Workspace.
+   ========================================================================= */
+
+@media (min-width:1200px){
+
+  /* SIDEBAR */
+  #admin-sidebar{
+    width:362px !important;
+    min-width:362px !important;
+    padding:22px !important;
+    margin:14px 0 14px 14px !important;
+  }
+
+  #admin-sidebar > div:first-child{
+    gap:20px !important;
+  }
+
+  /* =========================================================
+     CARD SUPERIOR DA MARCA
+     ========================================================= */
+
+  #admin-sidebar > div:first-child > div:first-child{
+    min-height:118px !important;
+    padding:22px !important;
+    border-radius:24px !important;
+  }
+
+  #admin-logo-box{
+    width:66px !important;
+    height:66px !important;
+    min-width:66px !important;
+    border-radius:18px !important;
+    font-size:26px !important;
+  }
+
+  #admin-sidebar > div:first-child > div:first-child h2,
+  #admin-sidebar > div:first-child > div:first-child h3{
+    font-size:19px !important;
+    line-height:1.18 !important;
+  }
+
+  #admin-sidebar > div:first-child > div:first-child p{
+    font-size:12px !important;
+    line-height:1.45 !important;
+  }
+
+  /* =========================================================
+     WORKSPACE — CORREÇÃO DO CORTE
+     ========================================================= */
+
+  #admin-sidebar > div:first-child > div:nth-child(2){
+    min-height:138px !important;
+    height:auto !important;
+    padding:18px !important;
+    border-radius:20px !important;
+    overflow:visible !important;
+    display:flex !important;
+    flex-direction:column !important;
+    justify-content:space-between !important;
+  }
+
+  #admin-sidebar > div:first-child > div:nth-child(2) *{
+    overflow:visible !important;
+  }
+
+  #admin-sidebar > div:first-child > div:nth-child(2) h3,
+  #admin-sidebar > div:first-child > div:nth-child(2) h4,
+  #admin-sidebar > div:first-child > div:nth-child(2) strong{
+    font-size:14px !important;
+    line-height:1.25 !important;
+  }
+
+  #admin-sidebar > div:first-child > div:nth-child(2) p,
+  #admin-sidebar > div:first-child > div:nth-child(2) span,
+  #admin-sidebar > div:first-child > div:nth-child(2) small{
+    font-size:10px !important;
+    line-height:1.35 !important;
+  }
+
+  /* =========================================================
+     CABEÇALHO DA NAVEGAÇÃO
+     ========================================================= */
+
+  .aura-sidebar-navigation{
+    min-height:280px !important;
+    padding:0 10px 16px 5px !important;
+  }
+
+  .aura-sidebar-navigation-header{
+    margin-top:4px !important;
+    padding:4px 8px 13px !important;
+  }
+
+  .aura-sidebar-navigation-header p{
+    font-size:10px !important;
+  }
+
+  .aura-sidebar-navigation-header h3{
+    font-size:14px !important;
+    line-height:1.25 !important;
+  }
+
+  .aura-sidebar-navigation-badge{
+    min-width:42px !important;
+    height:26px !important;
+    font-size:8px !important;
+  }
+
+  /* BUSCA */
+  .aura-sidebar-search{
+    min-height:50px !important;
+    margin:0 3px 14px !important;
+    border-radius:15px !important;
+  }
+
+  .aura-sidebar-search input{
+    min-height:48px !important;
+    padding-left:44px !important;
+    padding-right:58px !important;
+    font-size:12px !important;
+  }
+
+  .aura-sidebar-search > svg{
+    width:18px !important;
+    height:18px !important;
+    left:14px !important;
+  }
+
+  .aura-sidebar-search kbd{
+    min-width:35px !important;
+    height:28px !important;
+    font-size:8px !important;
+  }
+
+  /* =========================================================
+     GRUPOS
+     ========================================================= */
+
+  .aura-sidebar-navigation-groups{
+    gap:9px !important;
+    padding-bottom:12px !important;
+  }
+
+  .aura-sidebar-group-header{
+    min-height:52px !important;
+    padding:8px 10px !important;
+    border-radius:15px !important;
+  }
+
+  .aura-sidebar-group-title{
+    gap:12px !important;
+  }
+
+  .aura-sidebar-group-icon{
+    width:38px !important;
+    height:38px !important;
+    min-width:38px !important;
+    border-radius:12px !important;
+  }
+
+  .aura-sidebar-group-icon svg{
+    width:18px !important;
+    height:18px !important;
+  }
+
+  .aura-sidebar-group-title strong{
+    font-size:11px !important;
+    letter-spacing:.07em !important;
+  }
+
+  .aura-sidebar-group-title small{
+    margin-top:3px !important;
+    font-size:8.5px !important;
+    line-height:1.25 !important;
+  }
+
+  .aura-sidebar-group-chevron{
+    width:30px !important;
+    height:30px !important;
+  }
+
+  .aura-sidebar-group-chevron svg{
+    width:15px !important;
+    height:15px !important;
+  }
+
+  /* ITENS DENTRO DOS GRUPOS */
+  .aura-sidebar-group-content{
+    max-height:700px !important;
+    padding:4px 0 6px !important;
+  }
+
+  .aura-sidebar-group-content > button{
+    min-height:48px !important;
+    margin-top:5px !important;
+    padding:11px 12px !important;
+    border-radius:13px !important;
+    font-size:12px !important;
+    line-height:1.2 !important;
+  }
+
+  .aura-sidebar-group-content > button svg{
+    width:18px !important;
+    height:18px !important;
+    min-width:18px !important;
+  }
+
+  .aura-sidebar-group-collapsed
+  .aura-sidebar-group-content{
+    max-height:0 !important;
+    padding-top:0 !important;
+    padding-bottom:0 !important;
+    margin:0 !important;
+    opacity:0 !important;
+  }
+
+  .aura-sidebar-group-collapsed
+  .aura-sidebar-group-content > button{
+    margin:0 !important;
+    pointer-events:none !important;
+  }
+
+  /* =========================================================
+     STATUS DA LOJA
+     ========================================================= */
+
+  .aura-store-status-card{
+    padding:14px !important;
+    border-radius:18px !important;
+  }
+
+  .aura-store-status-title{
+    font-size:12px !important;
+    line-height:1.2 !important;
+  }
+
+  .aura-store-status-badge{
+    height:24px !important;
+    padding:0 9px !important;
+    font-size:8px !important;
+  }
+
+  .aura-store-status-link{
+    grid-template-columns:36px minmax(0,1fr) 25px !important;
+    gap:10px !important;
+    margin-top:12px !important;
+    padding:9px 10px !important;
+    border-radius:13px !important;
+  }
+
+  .aura-store-status-link-icon{
+    width:36px !important;
+    height:36px !important;
+    border-radius:11px !important;
+  }
+
+  .aura-store-status-link-icon svg{
+    width:16px !important;
+    height:16px !important;
+  }
+
+  .aura-store-status-address strong{
+    font-size:10px !important;
+    line-height:1.3 !important;
+  }
+
+  #box-atalho .badge-plano-atual{
+    min-height:31px !important;
+    margin-top:10px !important;
+    font-size:8px !important;
+    border-radius:11px !important;
+  }
+
+  /* =========================================================
+     AÇÕES INFERIORES
+     ========================================================= */
+
+  #box-logout{
+    padding:10px 0 0 !important;
+  }
+
+  .aura-sidebar-account-actions{
+    gap:6px !important;
+    padding-top:10px !important;
+  }
+
+  .aura-sidebar-account-button{
+    min-height:52px !important;
+    padding:8px 10px !important;
+    gap:11px !important;
+    border-radius:14px !important;
+  }
+
+  .aura-sidebar-account-icon{
+    width:37px !important;
+    height:37px !important;
+    min-width:37px !important;
+    border-radius:12px !important;
+  }
+
+  .aura-sidebar-account-icon svg{
+    width:17px !important;
+    height:17px !important;
+  }
+
+  .aura-sidebar-account-text strong{
+    font-size:11px !important;
+    line-height:1.2 !important;
+  }
+
+  .aura-sidebar-account-text small{
+    display:block !important;
+    margin-top:3px !important;
+    font-size:8px !important;
+    line-height:1.2 !important;
+  }
+
+  .aura-sidebar-account-arrow{
+    width:24px !important;
+    height:24px !important;
+  }
+
+  /* =========================================================
+     CONTEÚDO PRINCIPAL
+     ========================================================= */
+
+  body#admin-body > main{
+    padding:42px 50px 50px !important;
+  }
+
+  .view-section h1{
+    font-size:34px !important;
+    line-height:1.1 !important;
+  }
+
+  .view-section h2{
+    font-size:24px !important;
+  }
+
+  .view-section p{
+    font-size:13px !important;
+  }
+}
+
+/* MONITORES MUITO LARGOS */
+@media (min-width:1600px){
+  #admin-sidebar{
+    width:376px !important;
+    min-width:376px !important;
+  }
+}
+
+/* DESKTOP COM MENOS ALTURA */
+@media (min-width:1200px) and (max-height:820px){
+
+  #admin-sidebar{
+    padding-top:16px !important;
+    padding-bottom:16px !important;
+  }
+
+  #admin-sidebar > div:first-child{
+    gap:14px !important;
+  }
+
+  #admin-sidebar > div:first-child > div:first-child{
+    min-height:100px !important;
+    padding:18px !important;
+  }
+
+  #admin-sidebar > div:first-child > div:nth-child(2){
+    min-height:126px !important;
+    padding:15px !important;
+  }
+
+  .aura-sidebar-navigation{
+    min-height:190px !important;
+  }
+
+  .aura-sidebar-group-header{
+    min-height:46px !important;
+  }
+
+  .aura-sidebar-group-content > button{
+    min-height:43px !important;
+  }
+
+  .aura-store-status-card{
+    padding:12px !important;
+  }
+
+  .aura-sidebar-account-button{
+    min-height:46px !important;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
