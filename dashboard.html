@@ -714,6 +714,347 @@ textarea:focus{
   color:#0F172A !important;
 }
 
+/* =========================================================================
+   VIDE AURA OS — CENTRAL DE MÓDULOS
+   ========================================================================= */
+
+.aura-module-hub{
+  isolation:isolate;
+  overflow:hidden !important;
+}
+
+.aura-module-hub::before{
+  content:"";
+  position:absolute;
+  width:420px;
+  height:420px;
+  top:-300px;
+  right:-160px;
+  border-radius:999px;
+  pointer-events:none;
+  background:
+    color-mix(in srgb, var(--aura-primary) 22%, transparent);
+  filter:blur(80px);
+  opacity:.65;
+}
+
+.aura-hub-symbol{
+  position:relative;
+  color:var(--aura-text);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 32%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-primary) 22%, transparent),
+      color-mix(in srgb, var(--aura-accent) 10%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.12),
+    0 16px 32px -20px
+      color-mix(in srgb, var(--aura-primary) 80%, transparent);
+}
+
+.aura-hub-symbol::after{
+  content:"";
+  position:absolute;
+  inset:7px;
+  border-radius:11px;
+  border:1px solid rgba(255,255,255,.06);
+  pointer-events:none;
+}
+
+.aura-hub-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:0 9px;
+  border-radius:999px;
+  font-size:9px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-strong) 55%, transparent);
+}
+
+.aura-hub-divider{
+  height:1px;
+  width:100%;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--aura-border-strong) 15%,
+      var(--aura-border-strong) 85%,
+      transparent
+    );
+}
+
+.aura-hub-search input{
+  min-height:48px;
+}
+
+#grid-hub-modulos > div{
+  position:relative;
+  isolation:isolate;
+  min-height:132px;
+  padding:18px !important;
+  align-items:flex-start !important;
+  justify-content:flex-end !important;
+  text-align:left !important;
+  gap:12px !important;
+  border-radius:18px !important;
+  overflow:hidden;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface) 78%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 56%, transparent)
+    ) !important;
+  border:1px solid var(--aura-border) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035),
+    0 12px 30px -25px rgba(0,0,0,.8) !important;
+  transition:
+    transform .3s var(--rd-ease),
+    border-color .3s var(--rd-ease),
+    box-shadow .3s var(--rd-ease),
+    background .3s var(--rd-ease) !important;
+}
+
+#grid-hub-modulos > div::before{
+  content:"";
+  position:absolute;
+  width:90px;
+  height:90px;
+  top:-50px;
+  right:-38px;
+  z-index:-1;
+  border-radius:999px;
+  background:
+    color-mix(in srgb, var(--aura-primary) 18%, transparent);
+  filter:blur(22px);
+  transition:
+    transform .45s var(--rd-ease),
+    opacity .3s ease;
+  opacity:.75;
+}
+
+#grid-hub-modulos > div::after{
+  content:"";
+  position:absolute;
+  left:18px;
+  top:18px;
+  width:40px;
+  height:40px;
+  border-radius:13px;
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 24%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-primary) 17%, transparent),
+      color-mix(in srgb, var(--aura-accent) 7%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08);
+  transition:
+    transform .3s var(--rd-ease),
+    border-color .3s ease;
+}
+
+/* Esconde somente a aparência dos emojis, sem remover o HTML */
+#grid-hub-modulos > div > span:first-child{
+  position:absolute !important;
+  left:29px;
+  top:28px;
+  z-index:2;
+  width:18px;
+  height:18px;
+  overflow:hidden;
+  color:transparent !important;
+  font-size:0 !important;
+  user-select:none;
+}
+
+/* Ícone geométrico central criado sem biblioteca externa */
+#grid-hub-modulos > div > span:first-child::before,
+#grid-hub-modulos > div > span:first-child::after{
+  content:"";
+  position:absolute;
+  box-sizing:border-box;
+}
+
+#grid-hub-modulos > div > span:first-child::before{
+  left:1px;
+  top:1px;
+  width:16px;
+  height:16px;
+  border:1.7px solid var(--aura-primary);
+  border-radius:5px;
+  transform:rotate(45deg);
+  opacity:.95;
+}
+
+#grid-hub-modulos > div > span:first-child::after{
+  left:6px;
+  top:6px;
+  width:6px;
+  height:6px;
+  border-radius:2px;
+  background:var(--aura-accent);
+  box-shadow:
+    0 0 12px
+      color-mix(in srgb, var(--aura-accent) 65%, transparent);
+}
+
+#grid-hub-modulos > div > span:last-child{
+  position:relative;
+  display:block;
+  width:100%;
+  padding-right:20px;
+  color:var(--aura-text) !important;
+  font-size:12px !important;
+  line-height:1.45;
+  font-weight:750 !important;
+  letter-spacing:-.01em;
+}
+
+#grid-hub-modulos > div > span:last-child::after{
+  content:"↗";
+  position:absolute;
+  right:0;
+  bottom:0;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  font-family:'Inter',sans-serif;
+  transition:
+    transform .3s var(--rd-ease),
+    color .3s ease;
+}
+
+#grid-hub-modulos > div:hover{
+  transform:translateY(-5px) !important;
+  border-color:
+    color-mix(in srgb, var(--aura-primary) 34%, transparent) !important;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-surface-strong) 76%, transparent),
+      color-mix(in srgb, var(--aura-primary) 8%, var(--aura-surface-soft))
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 26px 48px -30px
+      color-mix(in srgb, var(--aura-primary) 58%, rgba(0,0,0,.8)) !important;
+}
+
+#grid-hub-modulos > div:hover::before{
+  transform:scale(1.45);
+  opacity:1;
+}
+
+#grid-hub-modulos > div:hover::after{
+  transform:scale(1.06) rotate(-3deg);
+  border-color:
+    color-mix(in srgb, var(--aura-accent) 45%, transparent);
+}
+
+#grid-hub-modulos > div:hover > span:last-child::after{
+  color:var(--aura-accent);
+  transform:translate(2px,-2px);
+}
+
+#grid-hub-modulos > div:active{
+  transform:translateY(-2px) scale(.985) !important;
+}
+
+/* Itens filtrados pelo JavaScript continuam desaparecendo normalmente */
+#grid-hub-modulos > div.hidden{
+  display:none !important;
+}
+
+/* Variações sutis para impedir que os cards pareçam repetidos */
+#grid-hub-modulos > div:nth-child(3n + 2)::before{
+  background:
+    color-mix(in srgb, var(--aura-accent) 16%, transparent);
+}
+
+#grid-hub-modulos > div:nth-child(3n + 2)::after{
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-accent) 15%, transparent),
+      color-mix(in srgb, var(--aura-primary) 8%, transparent)
+    );
+}
+
+#grid-hub-modulos > div:nth-child(3n + 3)::before{
+  background:
+    color-mix(in srgb, #22C55E 12%, transparent);
+}
+
+/* Tema claro */
+
+.tema-claro #grid-hub-modulos > div{
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.96),
+      color-mix(in srgb, var(--aura-background) 96%, white 4%)
+    ) !important;
+  box-shadow:
+    0 12px 32px -24px rgba(15,23,42,.2),
+    inset 0 1px 0 rgba(255,255,255,.9) !important;
+}
+
+.tema-claro #grid-hub-modulos > div:hover{
+  border-color:
+    color-mix(in srgb, var(--aura-primary) 28%, transparent) !important;
+  box-shadow:
+    0 22px 44px -26px
+      color-mix(in srgb, var(--aura-primary) 30%, rgba(15,23,42,.18)) !important;
+}
+
+/* Mobile */
+
+@media (max-width:639px){
+  .aura-module-hub{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  #grid-hub-modulos{
+    gap:10px !important;
+  }
+
+  #grid-hub-modulos > div{
+    min-height:120px;
+    padding:15px !important;
+  }
+
+  #grid-hub-modulos > div::after{
+    left:15px;
+    top:15px;
+    width:36px;
+    height:36px;
+  }
+
+  #grid-hub-modulos > div > span:first-child{
+    left:24px;
+    top:24px;
+  }
+
+  #grid-hub-modulos > div > span:last-child{
+    font-size:11px !important;
+    padding-right:16px;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -1235,10 +1576,105 @@ textarea:focus{
 </script>
 
 <!-- HUB DE MÓDULOS -->
-<div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="hub-modulos" data-block-nome="Hub de Módulos">
-<h3 class="text-sm font-bold text-white uppercase tracking-wider">🧭 Hub de Módulos</h3>
-<input type="text" id="busca-hub-modulos" oninput="filtrarHubModulos(this.value)" placeholder="Buscar um módulo..." class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
-<div id="grid-hub-modulos" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+<div class="glass-card aura-module-hub rounded-[26px] p-5 sm:p-6 space-y-5 layout-block"
+     data-block-id="hub-modulos"
+     data-block-nome="Hub de Módulos">
+
+    <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-5">
+
+        <div class="flex items-start gap-4">
+
+            <div class="aura-hub-symbol h-12 w-12 rounded-2xl flex items-center justify-center shrink-0">
+
+                <svg class="w-5 h-5"
+                     fill="none"
+                     stroke="currentColor"
+                     viewBox="0 0 24 24">
+
+                    <path stroke-linecap="round"
+                          stroke-linejoin="round"
+                          stroke-width="1.8"
+                          d="M4 7.5A3.5 3.5 0 017.5 4h2A3.5 3.5 0 0113 7.5v2A3.5 3.5 0 019.5 13h-2A3.5 3.5 0 014 9.5v-2zM15 6h5M17.5 3.5v5M15 15.5a3.5 3.5 0 013.5-3.5h.5a3 3 0 013 3v3.5a3.5 3.5 0 01-3.5 3H18a3 3 0 01-3-3v-3zM4 18h7M7.5 14.5v7">
+                    </path>
+
+                </svg>
+
+            </div>
+
+            <div>
+
+                <div class="flex flex-wrap items-center gap-2">
+
+                    <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">
+
+                        Navegação inteligente
+
+                    </p>
+
+                    <span class="aura-hub-badge">
+
+                        13 módulos
+
+                    </span>
+
+                </div>
+
+                <h3 class="text-lg sm:text-xl font-black text-white tracking-[-0.03em] mt-1">
+
+                    Central de módulos
+
+                </h3>
+
+                <p class="text-xs sm:text-sm text-gray-400 mt-1.5 max-w-xl leading-relaxed">
+
+                    Acesse rapidamente qualquer área da operação sem percorrer o menu lateral.
+
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="aura-hub-search relative w-full lg:w-[330px] shrink-0">
+
+            <svg class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-500 pointer-events-none"
+                 fill="none"
+                 stroke="currentColor"
+                 viewBox="0 0 24 24">
+
+                <circle cx="11"
+                        cy="11"
+                        r="7"
+                        stroke-width="2">
+                </circle>
+
+                <path stroke-linecap="round"
+                      stroke-width="2"
+                      d="M20 20l-3.6-3.6">
+                </path>
+
+            </svg>
+
+            <input type="text"
+                   id="busca-hub-modulos"
+                   oninput="filtrarHubModulos(this.value)"
+                   placeholder="Pesquisar módulo..."
+                   autocomplete="off"
+                   class="w-full glass-input rounded-2xl py-3.5 pl-11 pr-16 text-sm text-white outline-none">
+
+            <span class="absolute right-3 top-1/2 -translate-y-1/2 h-7 min-w-7 px-2 rounded-lg border border-white/10 bg-white/[0.04] flex items-center justify-center text-[9px] font-bold text-gray-500 pointer-events-none">
+
+                HUB
+
+            </span>
+
+        </div>
+
+    </div>
+
+    <div class="aura-hub-divider"></div>
+
+<div id="grid-hub-modulos" class="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3">
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="configurações da loja perfil identidade" onclick="ativarAba('view-perfil')"><span class="text-2xl">⚙️</span><span class="text-xs font-bold text-white">Configurações da Loja</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="pixels domínio dominio" onclick="ativarAba('view-dominios')"><span class="text-2xl">🔗</span><span class="text-xs font-bold text-white">Pixels &amp; Domínio</span></div>
 <div class="glass-card rounded-xl p-4 cursor-pointer hover:border-white/20 transition-all flex flex-col items-center text-center gap-2" data-nome="leads capturas" onclick="ativarAba('view-leads')"><span class="text-2xl">👥</span><span class="text-xs font-bold text-white">Leads (Capturas)</span></div>
