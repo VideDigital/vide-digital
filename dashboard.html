@@ -6565,6 +6565,458 @@ textarea:focus{
   margin-bottom:0 !important;
 }
 
+/* =========================================================================
+   VIDE AURA OS — LEAD AUTOMATION COCKPIT
+   ========================================================================= */
+
+.aura-automation-header{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  padding:25px;
+  border-radius:28px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--aura-surface) 80%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 54%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 24px 55px -42px rgba(0,0,0,.9);
+}
+
+.aura-automation-glow{
+  position:absolute;
+  border-radius:999px;
+  pointer-events:none;
+  filter:blur(90px);
+  opacity:.62;
+}
+
+.aura-automation-glow-primary{
+  width:430px;
+  height:430px;
+  left:-280px;
+  top:-320px;
+  background:
+    color-mix(in srgb, var(--aura-primary) 26%, transparent);
+}
+
+.aura-automation-glow-accent{
+  width:380px;
+  height:380px;
+  right:-240px;
+  bottom:-300px;
+  background:
+    color-mix(in srgb, var(--aura-accent) 20%, transparent);
+}
+
+.aura-automation-main-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:52px;
+  height:52px;
+  flex-shrink:0;
+  border-radius:18px;
+  color:var(--aura-text);
+  border:1px solid
+    color-mix(in srgb, var(--aura-accent) 34%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-accent) 22%, transparent),
+      color-mix(in srgb, var(--aura-primary) 11%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.11),
+    0 20px 42px -27px
+      color-mix(in srgb, var(--aura-accent) 82%, transparent);
+}
+
+.aura-automation-main-icon svg{
+  width:23px;
+  height:23px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-automation-live{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:23px;
+  padding:0 9px;
+  border-radius:999px;
+  color:var(--aura-accent);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border:1px solid
+    color-mix(in srgb, var(--aura-accent) 24%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-accent) 8%, transparent);
+}
+
+.aura-automation-live::before{
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:var(--aura-accent);
+  box-shadow:
+    0 0 11px
+      color-mix(in srgb, var(--aura-accent) 82%, transparent);
+}
+
+.aura-automation-summary{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:205px;
+  padding:12px 14px;
+  border-radius:16px;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 66%, transparent);
+}
+
+.aura-automation-summary-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:35px;
+  height:35px;
+  flex-shrink:0;
+  border-radius:11px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 22%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-primary) 9%, transparent);
+}
+
+.aura-automation-summary-icon svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-automation-summary div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-automation-summary small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:700;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-automation-summary strong{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:10px;
+  font-weight:800;
+}
+
+/* Painel de filtros */
+
+.aura-automation-filter-card{
+  padding:22px !important;
+  border-radius:25px !important;
+  overflow:visible !important;
+}
+
+.aura-automation-filter-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.aura-automation-filter-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:39px;
+  height:39px;
+  flex-shrink:0;
+  border-radius:13px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 21%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-primary) 8%, transparent);
+}
+
+.aura-automation-filter-header-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-automation-filter-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 10px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.025);
+}
+
+.aura-automation-divider{
+  width:100%;
+  height:1px;
+  margin:19px 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--aura-border-strong) 14%,
+      var(--aura-border-strong) 86%,
+      transparent
+    );
+}
+
+/* Campos já existentes dentro do painel */
+
+.aura-automation-filter-card
+.grid > div{
+  position:relative;
+}
+
+.aura-automation-filter-card label{
+  margin-bottom:6px;
+  color:var(--aura-text-muted) !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+  letter-spacing:.09em !important;
+}
+
+.aura-automation-filter-card select,
+.aura-automation-filter-card
+input:not([type="checkbox"]){
+  width:100%;
+  min-height:46px;
+  padding-left:13px !important;
+  border-radius:13px !important;
+  font-size:10px !important;
+  font-weight:600;
+}
+
+.aura-automation-filter-card
+input[type="number"]{
+  font-family:'JetBrains Mono',monospace;
+}
+
+.aura-automation-filter-card
+#auto-lead-busca{
+  min-height:48px;
+  padding-left:15px !important;
+}
+
+/* Rodapé dos filtros */
+
+.aura-automation-filter-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  margin-top:20px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-automation-archive-toggle{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin:0 !important;
+  cursor:pointer;
+  user-select:none;
+}
+
+.aura-automation-archive-toggle
+input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-automation-checkbox{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:21px;
+  height:21px;
+  flex-shrink:0;
+  border-radius:7px;
+  color:transparent;
+  border:1px solid var(--aura-border-strong);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 75%, transparent);
+  transition:
+    color .2s ease,
+    background .2s ease,
+    border-color .2s ease,
+    box-shadow .2s ease;
+}
+
+.aura-automation-checkbox svg{
+  width:13px;
+  height:13px;
+  stroke-width:2.4;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-automation-archive-toggle
+input:checked +
+.aura-automation-checkbox{
+  color:#FFFFFF;
+  border-color:var(--aura-primary);
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 0 3px
+      color-mix(in srgb, var(--aura-primary) 14%, transparent);
+}
+
+.aura-automation-archive-toggle > span:last-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-automation-archive-toggle strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  line-height:1.2;
+  font-weight:800;
+}
+
+.aura-automation-archive-toggle small{
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1.25;
+  font-weight:500;
+}
+
+.aura-automation-filter-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.aura-automation-trash-button,
+.aura-automation-apply-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:43px;
+  padding:0 14px;
+  border-radius:13px;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.aura-automation-trash-button{
+  color:#FB7185;
+  border:1px solid rgba(251,113,133,.18);
+  background:rgba(251,113,133,.065);
+}
+
+.aura-automation-trash-button:hover{
+  border-color:rgba(251,113,133,.38);
+  background:rgba(251,113,133,.11);
+}
+
+.aura-automation-apply-button{
+  color:#FFFFFF;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 16px 34px -21px
+      color-mix(in srgb, var(--aura-accent) 80%, transparent);
+}
+
+.aura-automation-trash-button svg,
+.aura-automation-apply-button svg{
+  width:15px;
+  height:15px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.tema-claro .aura-automation-header,
+.tema-claro .aura-automation-summary{
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255,255,255,.96),
+      rgba(248,250,252,.9)
+    );
+}
+
+@media (max-width:767px){
+  .aura-automation-header{
+    padding:18px;
+    border-radius:22px;
+  }
+
+  .aura-automation-summary{
+    width:100%;
+  }
+
+  .aura-automation-filter-card{
+    padding:17px !important;
+    border-radius:21px !important;
+  }
+
+  .aura-automation-filter-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-automation-filter-footer{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aura-automation-filter-actions{
+    width:100%;
+  }
+
+  .aura-automation-trash-button,
+  .aura-automation-apply-button{
+    flex:1;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -9953,15 +10405,76 @@ textarea:focus{
                         <input type="text" id="auto-lead-busca" class="w-full glass-input rounded-xl px-3 py-2 text-xs text-white outline-none" placeholder="Digite pra buscar...">
                     </div>
                 </div>
-                <div class="flex items-center gap-2 pt-2 flex-wrap">
-                    <label class="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
-                        <input type="checkbox" id="auto-lead-incluir-arquivados" class="accent-[#00f2fe]">
-                        Incluir arquivados
-                    </label>
-                    <button id="btn-toggle-lixeira" onclick="alternarModoLixeira()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs font-bold px-4 py-2.5 rounded-xl transition-all">🗑️ Ver Lixeira</button>
-                    <button onclick="aplicarFiltroAutomacaoLeads()" class="ml-auto bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-5 py-2.5 rounded-xl transition-all">🔍 Filtrar</button>
-                </div>
+        <div class="aura-automation-filter-footer">
+
+            <label class="aura-automation-archive-toggle">
+
+                <input type="checkbox"
+                       id="auto-lead-incluir-arquivados">
+
+                <span class="aura-automation-checkbox">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m5 12 4 4L19 6"></path>
+
+                    </svg>
+
+                </span>
+
+                <span>
+
+                    <strong>Incluir arquivados</strong>
+
+                    <small>Mostrar também leads fora da operação ativa</small>
+
+                </span>
+
+            </label>
+
+            <div class="aura-automation-filter-actions">
+
+                <button id="btn-toggle-lixeira"
+                        onclick="alternarModoLixeira()"
+                        class="aura-automation-trash-button">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 7h16"></path>
+                        <path d="M9 7V4h6v3"></path>
+                        <path d="m7 7 1 14h8l1-14"></path>
+                        <path d="M10 11v6M14 11v6"></path>
+
+                    </svg>
+
+                    <span>Ver lixeira</span>
+
+                </button>
+
+                <button onclick="aplicarFiltroAutomacaoLeads()"
+                        class="aura-automation-apply-button">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 6h16M7 12h10M10 18h4"></path>
+
+                    </svg>
+
+                    <span>Aplicar filtros</span>
+
+                </button>
+
             </div>
+
+        </div>
+
+    </div>
 
             <div id="auto-lead-barra-acoes" class="hidden glass-card rounded-2xl p-4 flex flex-wrap items-center gap-3 border border-[#00f2fe]/20 bg-[#00f2fe]/5">
                 <span class="text-xs font-bold text-[#00f2fe] w-full sm:w-auto"><span id="auto-lead-contador-selecionados">0</span> selecionado(s)</span>
