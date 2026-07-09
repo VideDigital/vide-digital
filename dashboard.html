@@ -10143,21 +10143,7 @@ window.atualizarStatusLead = async function(leadId, novoStatus) {
         
         // GESTÃO DO CATÁLOGO DE PRODUTOS
         function alternarVisualFiltro(botaoAtivo) {
-            const btnTodos = document.getElementById("filtro-todos");
-            const btnFisicos = document.getElementById("filtro-fisicos");
-            const btnDigitais = document.getElementById("filtro-digitais");
-            const btnRascunhos = document.getElementById("filtro-rascunhos");
 
-            const classeAtivo = "text-xs font-medium px-3 py-1.5 rounded-md bg-white/5 text-white border border-white/10 transition-all";
-            const classeInativo = "text-xs font-medium px-3 py-1.5 rounded-md text-gray-400 hover:text-white border border-transparent transition-all bg-transparent";
-            const classeRascunhoAtivo = classeAtivo + " border-l ml-1 pl-3";
-            const classeRascunhoInativo = classeInativo + " border-l border-white/10 ml-1 pl-3";
-
-            btnTodos.className = (botaoAtivo === 'todos') ? classeAtivo : classeInativo;
-            btnFisicos.className = (botaoAtivo === 'fisico') ? classeAtivo : classeInativo;
-            btnDigitais.className = (botaoAtivo === 'digital') ? classeAtivo : classeInativo;
-            btnRascunhos.className = (botaoAtivo === 'rascunhos') ? classeRascunhoAtivo : classeRascunhoInativo;
-        }
 
         document.getElementById("filtro-rascunhos").addEventListener("click", (e) => {
 
@@ -10203,82 +10189,533 @@ carregarProdutos();
         });
 
         async function carregarProdutos() {
-    try {
-        const q = query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID));
-        const querySnapshot = await getDocs(q);
-        produtosContainer.innerHTML = "";
+            try {
+                const q = query(
+                    collection(db, "produtos"),
+                    where("criadoPor", "==", usuarioUID)
+                );
+
+                const querySnapshot = await getDocs(q);
+
+                produtosContainer.innerHTML = "";
 
                 totalProdutosAtual = 0;
                 totalRascunhosAtual = 0;
+
                 let produtosFiltrados = [];
 
                 querySnapshot.forEach(docSnap => {
                     const data = docSnap.data();
-                    data.id = docSnap.id;
-                    const ehRascunho = data.statusProduto === "rascunho";
-                    if (ehRascunho) { totalRascunhosAtual++; } else { totalProdutosAtual++; }
 
-                    const statusBate = verRascunhos ? ehRascunho : !ehRascunho;
-                    if (statusBate && (filtroLogistico === "todos" || data.tipo === filtroLogistico)) {
+                    data.id = docSnap.id;
+
+                    const ehRascunho =
+                        data.statusProduto === "rascunho";
+
+                    if (ehRascunho) {
+                        totalRascunhosAtual++;
+                    } else {
+                        totalProdutosAtual++;
+                    }
+
+                    const statusBate =
+                        verRascunhos
+                            ? ehRascunho
+                            : !ehRascunho;
+
+                    const tipoBate =
+                        filtroLogistico === "todos" ||
+                        data.tipo === filtroLogistico;
+
+                    if (statusBate && tipoBate) {
                         produtosFiltrados.push(data);
                     }
                 });
 
-                document.getElementById("contador-produtos").innerText = verRascunhos
-                    ? `${produtosFiltrados.length} Rascunho(s)`
-                    : `${produtosFiltrados.length} Ativo(s)`;
+                document
+                    .getElementById("contador-produtos")
+                    .innerText = verRascunhos
+                        ? `${produtosFiltrados.length} Rascunho(s)`
+                        : `${produtosFiltrados.length} Ativo(s)`;
 
                 if (produtosFiltrados.length === 0) {
+                    const tituloVazio = verRascunhos
+                        ? "Nenhum rascunho encontrado"
+                        : "Seu catálogo está vazio";
+
+                    const textoVazio = verRascunhos
+                        ? "Produtos salvos como rascunho aparecerão aqui."
+                        : "Cadastre seu primeiro produto para começar a montar sua operação.";
+
                     produtosContainer.innerHTML = `
-                        <div class="col-span-full text-center p-12 bg-white/[0.01] border border-dashed border-white/5 rounded-2xl">
-                            <p class="text-gray-500 text-xs">${verRascunhos ? "Nenhum rascunho salvo." : "Nenhum produto cadastrado."}</p>
-                        </div>`;
+                        <div class="aura-products-empty col-span-full">
+
+                            <div class="aura-products-empty-glow"></div>
+
+                            <div class="aura-products-empty-icon">
+
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor">
+
+                                    <path d="m4 7 8-4 8 4-8 4-8-4Z"></path>
+
+                                    <path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"></path>
+
+                                    <path d="M12 11v10"></path>
+
+                                </svg>
+
+                            </div>
+
+                            <p class="aura-products-empty-eyebrow">
+                                Catálogo
+                            </p>
+
+                            <h4 class="aura-products-empty-title">
+                                ${tituloVazio}
+                            </h4>
+
+                            <p class="aura-products-empty-description">
+                                ${textoVazio}
+                            </p>
+
+                            <button type="button"
+                                    class="aura-products-empty-action"
+                                    onclick="document.getElementById('btn-abrir-criacao').click()">
+
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor">
+
+                                    <path d="M12 5v14M5 12h14"></path>
+
+                                </svg>
+
+                                <span>Adicionar produto</span>
+
+                            </button>
+
+                        </div>
+                    `;
+
                     return;
                 }
 
-                produtosFiltrados.forEach((prod) => {
-                    const precoFormatado = parseFloat(prod.preco).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-                    const imagemSrc = prod.imagemB64 || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%2309090f'/></svg>";
+                produtosFiltrados.forEach((prod, indiceProduto) => {
+                    const precoNumerico =
+                        Number.parseFloat(prod.preco);
 
-                    const tipoLabel = prod.tipo === 'digital' ? '⚡ Digital' : '📦 Físico';
-                    const estoqueChip = (prod.estoque !== "" && prod.estoque !== undefined) ? `<span class="text-[9px] font-bold text-sky-300 bg-sky-500/10 border border-sky-500/20 px-2 py-0.5 rounded-md">📦 ${prod.estoque} un.</span>` : '';
-                    const avaliacaoChip = prod.avaliacao ? `<span class="text-[9px] font-bold text-yellow-300 bg-yellow-500/10 border border-yellow-500/20 px-2 py-0.5 rounded-md">⭐ ${prod.avaliacao}</span>` : '';
-                    const freteChip = prod.freteGratis ? `<span class="text-[9px] font-bold text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md">Frete Grátis</span>` : '';
-                    const rascunhoChip = prod.statusProduto === "rascunho" ? `<span class="text-[9px] font-bold text-amber-300 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-md uppercase">🗂️ Rascunho</span>` : '';
+                    const precoFormatado =
+                        Number.isFinite(precoNumerico)
+                            ? precoNumerico.toLocaleString(
+                                "pt-BR",
+                                {
+                                    style: "currency",
+                                    currency: "BRL"
+                                }
+                            )
+                            : "Preço não definido";
 
-                    const card = document.createElement("div");
-                    card.className = "glass-card rounded-2xl overflow-hidden flex flex-col justify-between border border-white/5 relative group hover:scale-[1.02] transition-transform";
+                    const precoDeNumerico =
+                        Number.parseFloat(prod.precoDe);
+
+                    const possuiPrecoDe =
+                        Number.isFinite(precoDeNumerico) &&
+                        Number.isFinite(precoNumerico) &&
+                        precoDeNumerico > precoNumerico;
+
+                    const precoDeFormatado =
+                        possuiPrecoDe
+                            ? precoDeNumerico.toLocaleString(
+                                "pt-BR",
+                                {
+                                    style: "currency",
+                                    currency: "BRL"
+                                }
+                            )
+                            : "";
+
+                    const descontoPercentual =
+                        possuiPrecoDe
+                            ? Math.round(
+                                (
+                                    (
+                                        precoDeNumerico -
+                                        precoNumerico
+                                    ) /
+                                    precoDeNumerico
+                                ) * 100
+                            )
+                            : 0;
+
+                    const imagemSrc =
+                        prod.imagemB64 ||
+                        "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='900' height='700' viewBox='0 0 900 700'><rect width='900' height='700' fill='%2309090f'/><path d='M360 285h180v130H360z' fill='none' stroke='%236b7280' stroke-width='12'/><circle cx='420' cy='335' r='24' fill='%236b7280'/><path d='m370 400 55-55 40 40 35-35 40 50' fill='none' stroke='%236b7280' stroke-width='12'/></svg>";
+
+                    const ehDigital =
+                        prod.tipo === "digital";
+
+                    const ehRascunho =
+                        prod.statusProduto === "rascunho";
+
+                    const possuiEstoque =
+                        prod.estoque !== "" &&
+                        prod.estoque !== undefined &&
+                        prod.estoque !== null;
+
+                    const estoqueNumerico =
+                        possuiEstoque
+                            ? Number(prod.estoque)
+                            : null;
+
+                    const estoqueBaixo =
+                        Number.isFinite(estoqueNumerico) &&
+                        estoqueNumerico <= 5;
+
+                    const possuiAvaliacao =
+                        prod.avaliacao !== "" &&
+                        prod.avaliacao !== undefined &&
+                        prod.avaliacao !== null;
+
+                    const statusClasse =
+                        ehRascunho
+                            ? "aura-commerce-status-draft"
+                            : "aura-commerce-status-online";
+
+                    const statusTexto =
+                        ehRascunho
+                            ? "Rascunho"
+                            : "Publicado";
+
+                    const tipoTexto =
+                        ehDigital
+                            ? "Produto digital"
+                            : "Produto físico";
+
+                    const tipoIcone =
+                        ehDigital
+                            ? `
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor">
+
+                                    <rect x="3"
+                                          y="4"
+                                          width="18"
+                                          height="14"
+                                          rx="2">
+                                    </rect>
+
+                                    <path d="M8 21h8M12 18v3"></path>
+
+                                </svg>
+                            `
+                            : `
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor">
+
+                                    <path d="m4 7 8-4 8 4-8 4-8-4Z"></path>
+
+                                    <path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"></path>
+
+                                    <path d="M12 11v10"></path>
+
+                                </svg>
+                            `;
+
+                    const card =
+                        document.createElement("article");
+
+                    card.className =
+                        "aura-commerce-card";
+
+                    card.style.setProperty(
+                        "--product-delay",
+                        `${Math.min(indiceProduto * 55, 330)}ms`
+                    );
+
                     card.innerHTML = `
-                        <div class="relative h-52 w-full bg-black/50 overflow-hidden flex items-center justify-center border-b border-white/5">
-                            <img src="${imagemSrc}" alt="${prod.nome}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div class="absolute top-3 left-3 flex flex-wrap gap-1 max-w-[85%]">
-                                <span class="text-[9px] font-bold text-[#00f2fe] bg-[#00f2fe]/10 border border-[#00f2fe]/20 px-2 py-0.5 rounded-md uppercase tracking-wider">${prod.subnicho || 'Geral'}</span>
-                                <span class="text-[9px] font-bold text-white bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md uppercase tracking-wider">${tipoLabel}</span>
-                                ${rascunhoChip}
-                            </div>
-                        </div>
-                        <div class="p-5 flex-1 flex flex-col justify-between space-y-3">
-                            <div class="space-y-1.5">
-                                <h4 class="text-sm font-bold text-white tracking-tight truncate">${prod.nome}</h4>
-                                <p class="text-[11px] text-gray-500 line-clamp-2">${prod.descricao || 'Sem descrição.'}</p>
-                                <div class="flex flex-wrap gap-1.5 pt-1">${avaliacaoChip}${estoqueChip}${freteChip}</div>
-                            </div>
-                            <div>
-                                <p class="text-xl font-extrabold text-white">${precoFormatado}</p>
-                                <button type="button" class="btn-gerenciar w-full bg-white hover:bg-gray-200 text-black text-[11px] font-bold uppercase tracking-wider py-3 rounded-xl transition-all mt-3" data-id="${prod.id}">
-                                    Gerenciar Oferta
+                        <div class="aura-commerce-media">
+
+                            <img src="${imagemSrc}"
+                                 alt=""
+                                 loading="lazy"
+                                 class="aura-commerce-image">
+
+                            <div class="aura-commerce-media-overlay"></div>
+
+                            <div class="aura-commerce-topbar">
+
+                                <span class="aura-commerce-status ${statusClasse}">
+
+                                    <span class="aura-commerce-status-dot"></span>
+
+                                    ${statusTexto}
+
+                                </span>
+
+                                <button type="button"
+                                        class="aura-commerce-edit-button btn-gerenciar"
+                                        data-id="${prod.id}"
+                                        aria-label="Gerenciar ${prod.nome || "produto"}"
+                                        title="Gerenciar produto">
+
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor">
+
+                                        <path d="M12 20h9"></path>
+
+                                        <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4L16.5 3.5Z"></path>
+
+                                    </svg>
+
                                 </button>
+
                             </div>
+
+                            <div class="aura-commerce-media-bottom">
+
+                                <span class="aura-commerce-type">
+
+                                    ${tipoIcone}
+
+                                    ${tipoTexto}
+
+                                </span>
+
+                                ${
+                                    descontoPercentual > 0
+                                        ? `
+                                            <span class="aura-commerce-discount">
+                                                −${descontoPercentual}%
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                        </div>
+
+                        <div class="aura-commerce-content">
+
+                            <div class="aura-commerce-category-row">
+
+                                <span class="aura-commerce-category">
+                                    ${prod.subnicho || "Geral"}
+                                </span>
+
+                                ${
+                                    prod.freteGratis
+                                        ? `
+                                            <span class="aura-commerce-free-shipping">
+                                                Frete grátis
+                                            </span>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                            <div class="aura-commerce-copy">
+
+                                <h4 class="aura-commerce-title">
+                                    ${prod.nome || "Produto sem nome"}
+                                </h4>
+
+                                <p class="aura-commerce-description">
+                                    ${prod.descricao || "Nenhuma descrição adicionada a este produto."}
+                                </p>
+
+                            </div>
+
+                            <div class="aura-commerce-information">
+
+                                ${
+                                    possuiAvaliacao
+                                        ? `
+                                            <div class="aura-commerce-info-item">
+
+                                                <span class="aura-commerce-info-icon aura-commerce-info-rating">
+
+                                                    <svg viewBox="0 0 24 24"
+                                                         fill="none"
+                                                         stroke="currentColor">
+
+                                                        <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>
+
+                                                    </svg>
+
+                                                </span>
+
+                                                <span>
+
+                                                    <small>Avaliação</small>
+
+                                                    <strong>${prod.avaliacao}</strong>
+
+                                                </span>
+
+                                            </div>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    possuiEstoque
+                                        ? `
+                                            <div class="aura-commerce-info-item ${estoqueBaixo ? "aura-commerce-stock-low" : ""}">
+
+                                                <span class="aura-commerce-info-icon">
+
+                                                    <svg viewBox="0 0 24 24"
+                                                         fill="none"
+                                                         stroke="currentColor">
+
+                                                        <path d="m4 7 8-4 8 4-8 4-8-4Z"></path>
+
+                                                        <path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"></path>
+
+                                                    </svg>
+
+                                                </span>
+
+                                                <span>
+
+                                                    <small>Estoque</small>
+
+                                                    <strong>
+                                                        ${prod.estoque} un.
+                                                    </strong>
+
+                                                </span>
+
+                                            </div>
+                                        `
+                                        : ""
+                                }
+
+                                ${
+                                    !possuiAvaliacao &&
+                                    !possuiEstoque
+                                        ? `
+                                            <div class="aura-commerce-info-empty">
+
+                                                <svg viewBox="0 0 24 24"
+                                                     fill="none"
+                                                     stroke="currentColor">
+
+                                                    <path d="M5 12h14"></path>
+
+                                                </svg>
+
+                                                Sem informações adicionais
+
+                                            </div>
+                                        `
+                                        : ""
+                                }
+
+                            </div>
+
+                            <div class="aura-commerce-footer">
+
+                                <div class="aura-commerce-price">
+
+                                    ${
+                                        possuiPrecoDe
+                                            ? `
+                                                <small>
+                                                    ${precoDeFormatado}
+                                                </small>
+                                            `
+                                            : `
+                                                <small>
+                                                    Preço atual
+                                                </small>
+                                            `
+                                    }
+
+                                    <strong>
+                                        ${precoFormatado}
+                                    </strong>
+
+                                </div>
+
+                                <button type="button"
+                                        class="aura-commerce-manage btn-gerenciar"
+                                        data-id="${prod.id}">
+
+                                    <span>Gerenciar</span>
+
+                                    <svg viewBox="0 0 24 24"
+                                         fill="none"
+                                         stroke="currentColor">
+
+                                        <path d="M5 12h14"></path>
+
+                                        <path d="m14 7 5 5-5 5"></path>
+
+                                    </svg>
+
+                                </button>
+
+                            </div>
+
                         </div>
                     `;
+
                     produtosContainer.appendChild(card);
                 });
 
-                document.querySelectorAll(".btn-gerenciar").forEach(btn => {
-                    btn.addEventListener("click", (e) => abrirModalEdicao(e.target.getAttribute("data-id")));
-                });
+                document
+                    .querySelectorAll(".btn-gerenciar")
+                    .forEach(btn => {
+                        btn.addEventListener("click", event => {
+                            const botao =
+                                event.currentTarget;
+
+                            abrirModalEdicao(
+                                botao.getAttribute("data-id")
+                            );
+                        });
+                    });
+
             } catch (err) {
                 console.error(err);
+
+                produtosContainer.innerHTML = `
+                    <div class="aura-products-error col-span-full">
+
+                        <div class="aura-products-error-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M12 8v5"></path>
+
+                                <path d="M12 17h.01"></path>
+
+                                <path d="M10.3 3.9 2.7 17a2 2 0 0 0 1.73 3h15.14a2 2 0 0 0 1.73-3L13.7 3.9a2 2 0 0 0-3.4 0Z"></path>
+
+                            </svg>
+
+                        </div>
+
+                        <div>
+
+                            <h4>Não foi possível carregar os produtos</h4>
+
+                            <p>Recarregue a página e tente novamente.</p>
+
+                        </div>
+
+                    </div>
+                `;
             }
         }
 
