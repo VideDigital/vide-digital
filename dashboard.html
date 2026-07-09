@@ -4088,6 +4088,593 @@ textarea:focus{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — ORDERS FLOW
+   ========================================================================= */
+
+.aura-orders-header{
+  position:relative;
+  isolation:isolate;
+  overflow:hidden;
+  padding:24px;
+  border-radius:28px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--aura-surface) 78%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 54%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 24px 54px -42px rgba(0,0,0,.9);
+}
+
+.aura-orders-header-glow{
+  position:absolute;
+  border-radius:999px;
+  pointer-events:none;
+  filter:blur(85px);
+  opacity:.6;
+}
+
+.aura-orders-header-glow-primary{
+  width:420px;
+  height:420px;
+  left:-260px;
+  top:-310px;
+  background:
+    color-mix(in srgb, var(--aura-primary) 25%, transparent);
+}
+
+.aura-orders-header-glow-accent{
+  width:360px;
+  height:360px;
+  right:-220px;
+  bottom:-280px;
+  background:
+    color-mix(in srgb, var(--aura-accent) 18%, transparent);
+}
+
+.aura-orders-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:50px;
+  height:50px;
+  flex-shrink:0;
+  border-radius:17px;
+  color:var(--aura-text);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 30%, transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb, var(--aura-primary) 21%, transparent),
+      color-mix(in srgb, var(--aura-accent) 8%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 18px 38px -25px
+      color-mix(in srgb, var(--aura-primary) 80%, transparent);
+}
+
+.aura-orders-header-icon svg{
+  width:22px;
+  height:22px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-orders-live-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:22px;
+  padding:0 9px;
+  border-radius:999px;
+  color:#34D399;
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  border:1px solid rgba(52,211,153,.17);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-orders-live-badge::before{
+  content:"";
+  width:5px;
+  height:5px;
+  border-radius:999px;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.8);
+}
+
+.aura-orders-new-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:46px;
+  padding:0 17px;
+  border-radius:15px;
+  color:#FFFFFF;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 18px 38px -23px
+      color-mix(in srgb, var(--aura-accent) 80%, transparent);
+}
+
+.aura-orders-new-button:hover{
+  transform:translateY(-2px);
+}
+
+.aura-orders-new-button svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-orders-header-divider{
+  position:relative;
+  z-index:2;
+  height:1px;
+  margin:23px 0;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      var(--aura-border-strong) 14%,
+      var(--aura-border-strong) 86%,
+      transparent
+    );
+}
+
+.aura-orders-filter-bar{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.aura-orders-filter-field{
+  position:relative;
+  min-width:205px;
+}
+
+.aura-orders-filter-field select{
+  min-height:44px;
+  width:100%;
+  padding-left:40px !important;
+  font-size:10px !important;
+  font-weight:650;
+}
+
+.aura-orders-filter-icon{
+  position:absolute;
+  left:13px;
+  top:50%;
+  z-index:2;
+  transform:translateY(-50%);
+  display:flex;
+  color:var(--aura-primary);
+  pointer-events:none;
+}
+
+.aura-orders-filter-icon svg{
+  width:15px;
+  height:15px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-orders-custom-dates{
+  align-items:center;
+  gap:7px;
+}
+
+.aura-orders-custom-dates:not(.hidden){
+  display:flex;
+}
+
+.aura-orders-custom-dates input{
+  min-height:44px;
+  width:145px;
+  font-size:10px !important;
+}
+
+.aura-orders-date-separator{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:700;
+}
+
+.aura-orders-filter-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:44px;
+  padding:0 14px;
+  border-radius:13px;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 65%, transparent);
+}
+
+.aura-orders-filter-button:hover{
+  color:var(--aura-text);
+  border-color:
+    color-mix(in srgb, var(--aura-primary) 34%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-primary) 8%, transparent);
+}
+
+.aura-orders-filter-button svg{
+  width:14px;
+  height:14px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-orders-sync-status{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:9px 12px;
+  border-radius:14px;
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb, var(--aura-surface-soft) 55%, transparent);
+}
+
+.aura-orders-sync-dot{
+  width:7px;
+  height:7px;
+  border-radius:999px;
+  background:#34D399;
+  box-shadow:0 0 12px rgba(52,211,153,.8);
+}
+
+.aura-orders-sync-status div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-orders-sync-status small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.aura-orders-sync-status strong{
+  margin-top:3px;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+}
+
+/* Métricas */
+
+.aura-order-metric{
+  --order-metric-color:var(--aura-primary);
+  position:relative;
+  overflow:hidden;
+  min-height:165px;
+  padding:17px;
+  border-radius:20px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb, var(--aura-surface) 74%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 48%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04);
+  transition:
+    transform .28s var(--rd-ease),
+    border-color .28s var(--rd-ease);
+}
+
+.aura-order-metric::after{
+  content:"";
+  position:absolute;
+  width:120px;
+  height:120px;
+  right:-70px;
+  top:-75px;
+  border-radius:999px;
+  background:
+    color-mix(in srgb, var(--order-metric-color) 18%, transparent);
+  filter:blur(30px);
+}
+
+.aura-order-metric:hover{
+  transform:translateY(-4px);
+  border-color:
+    color-mix(in srgb, var(--order-metric-color) 30%, transparent);
+}
+
+.aura-order-metric-warning{
+  --order-metric-color:#FBBF24;
+}
+
+.aura-order-metric-primary{
+  --order-metric-color:var(--aura-accent);
+}
+
+.aura-order-metric-success{
+  --order-metric-color:#34D399;
+}
+
+.aura-order-metric-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.aura-order-metric-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:35px;
+  height:35px;
+  border-radius:11px;
+  color:var(--order-metric-color);
+  border:1px solid
+    color-mix(in srgb, var(--order-metric-color) 22%, transparent);
+  background:
+    color-mix(in srgb, var(--order-metric-color) 8%, transparent);
+}
+
+.aura-order-metric-icon svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-order-metric-status{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.aura-order-metric-label{
+  margin-top:18px;
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+  font-weight:800 !important;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.aura-order-metric-value{
+  margin-top:8px !important;
+  color:var(--aura-text) !important;
+  font-family:'Sora',sans-serif;
+  font-size:28px !important;
+  line-height:1;
+  font-weight:800 !important;
+  letter-spacing:-.045em;
+  background:none !important;
+  -webkit-text-fill-color:initial !important;
+}
+
+.aura-order-metric-value-money{
+  font-size:20px !important;
+}
+
+.aura-order-metric-line{
+  height:3px;
+  margin-top:17px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.045);
+}
+
+.aura-order-metric-line span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:
+    linear-gradient(
+      90deg,
+      var(--order-metric-color),
+      color-mix(in srgb, var(--order-metric-color) 45%, white 55%)
+    );
+}
+
+/* Tabela */
+
+.aura-orders-table-card{
+  overflow:hidden;
+  border-radius:24px;
+  border:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(in srgb, var(--aura-surface) 75%, transparent),
+      color-mix(in srgb, var(--aura-surface-soft) 52%, transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 20px 45px -38px rgba(0,0,0,.9);
+}
+
+.aura-orders-table-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:18px 20px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-orders-table-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:37px;
+  height:37px;
+  border-radius:12px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb, var(--aura-primary) 20%, transparent);
+  background:
+    color-mix(in srgb, var(--aura-primary) 8%, transparent);
+}
+
+.aura-orders-table-header-icon svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-orders-table-header-badge{
+  display:inline-flex;
+  min-height:24px;
+  align-items:center;
+  padding:0 9px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.025);
+}
+
+.aura-orders-table-scroll{
+  overflow-x:auto;
+}
+
+.aura-orders-table{
+  min-width:920px;
+}
+
+.aura-orders-table thead th{
+  padding:14px 17px !important;
+}
+
+.aura-orders-column{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+}
+
+.aura-orders-column svg{
+  width:13px;
+  height:13px;
+  color:var(--aura-primary);
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-orders-header,
+.tema-claro .aura-order-metric,
+.tema-claro .aura-orders-table-card{
+  background:
+    linear-gradient(
+      155deg,
+      rgba(255,255,255,.96),
+      rgba(248,250,252,.9)
+    );
+}
+
+.tema-claro .aura-orders-filter-button,
+.tema-claro .aura-orders-sync-status{
+  background:rgba(15,23,42,.025);
+}
+
+/* Mobile */
+
+@media (max-width:639px){
+  .aura-orders-header{
+    padding:18px;
+    border-radius:22px;
+  }
+
+  .aura-orders-new-button{
+    width:100%;
+  }
+
+  .aura-orders-filter-bar{
+    width:100%;
+  }
+
+  .aura-orders-filter-field{
+    width:100%;
+  }
+
+  .aura-orders-custom-dates{
+    width:100%;
+    flex-wrap:wrap;
+  }
+
+  .aura-orders-custom-dates input{
+    flex:1;
+    min-width:125px;
+  }
+
+  .aura-orders-filter-button{
+    width:100%;
+  }
+
+  .aura-orders-sync-status{
+    width:100%;
+  }
+
+  .aura-order-metric{
+    min-height:148px;
+    padding:14px;
+  }
+
+  .aura-order-metric-value{
+    font-size:23px !important;
+  }
+
+  .aura-order-metric-value-money{
+    font-size:16px !important;
+  }
+
+  .aura-orders-table-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -6457,45 +7044,177 @@ textarea:focus{
 
             </div>
 
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block" data-block-id="estatisticas-pedidos" data-block-nome="Estatísticas de Pedidos">
-                <div class="glass-card p-5 rounded-xl">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Total de Pedidos</p>
-                    <h2 class="text-3xl font-black text-white mt-2" id="ped-total">0</h2>
+            <div class="aura-orders-metrics grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block"
+                 data-block-id="estatisticas-pedidos"
+                 data-block-nome="Estatísticas de Pedidos">
+
+                <div class="aura-order-metric">
+
+                    <div class="aura-order-metric-top">
+
+                        <span class="aura-order-metric-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M6 4h12v17H6z"></path>
+                                <path d="M9 9h6M9 13h6M9 17h4"></path>
+
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-order-metric-status">
+                            Total
+                        </span>
+
+                    </div>
+
+                    <p class="aura-order-metric-label">
+                        Total de pedidos
+                    </p>
+
+                    <h2 class="aura-order-metric-value"
+                        id="ped-total">
+                        0
+                    </h2>
+
+                    <div class="aura-order-metric-line">
+
+                        <span style="width:24%;"></span>
+
+                    </div>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Aguardando</p>
-                    <h2 class="text-3xl font-black text-amber-400 mt-2" id="ped-aguardando">0</h2>
+
+                <div class="aura-order-metric aura-order-metric-warning">
+
+                    <div class="aura-order-metric-top">
+
+                        <span class="aura-order-metric-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <circle cx="12"
+                                        cy="12"
+                                        r="9">
+                                </circle>
+
+                                <path d="M12 7v5l3 2"></path>
+
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-order-metric-status">
+                            Pendente
+                        </span>
+
+                    </div>
+
+                    <p class="aura-order-metric-label">
+                        Aguardando
+                    </p>
+
+                    <h2 class="aura-order-metric-value"
+                        id="ped-aguardando">
+                        0
+                    </h2>
+
+                    <div class="aura-order-metric-line">
+
+                        <span style="width:18%;"></span>
+
+                    </div>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Confirmados</p>
-                    <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="ped-confirmados">0</h2>
+
+                <div class="aura-order-metric aura-order-metric-primary">
+
+                    <div class="aura-order-metric-top">
+
+                        <span class="aura-order-metric-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="m5 12 4 4L19 6"></path>
+
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-order-metric-status">
+                            Processados
+                        </span>
+
+                    </div>
+
+                    <p class="aura-order-metric-label">
+                        Confirmados
+                    </p>
+
+                    <h2 class="aura-order-metric-value"
+                        id="ped-confirmados">
+                        0
+                    </h2>
+
+                    <div class="aura-order-metric-line">
+
+                        <span style="width:30%;"></span>
+
+                    </div>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <p class="text-[10px] text-gray-500 uppercase tracking-wider font-bold">Receita Total</p>
-                    <h2 class="text-2xl font-black text-emerald-400 mt-2" id="ped-receita">R$ 0,00</h2>
+
+                <div class="aura-order-metric aura-order-metric-success">
+
+                    <div class="aura-order-metric-top">
+
+                        <span class="aura-order-metric-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M12 8c-2.2 0-4 .9-4 2s1.8 2 4 2 4 .9 4 2-1.8 2-4 2"></path>
+                                <path d="M12 6v12"></path>
+
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-order-metric-status">
+                            Recebido
+                        </span>
+
+                    </div>
+
+                    <p class="aura-order-metric-label">
+                        Receita total
+                    </p>
+
+                    <h2 class="aura-order-metric-value aura-order-metric-value-money"
+                        id="ped-receita">
+                        R$ 0,00
+                    </h2>
+
+                    <div class="aura-order-metric-line">
+
+                        <span style="width:36%;"></span>
+
+                    </div>
+
                 </div>
+
             </div>
 
             <div class="glass-card rounded-xl overflow-hidden layout-block" data-block-id="tabela-pedidos" data-block-nome="Tabela de Pedidos">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
-                        <thead>
-                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                <th class="p-4">👤 Cliente</th>
-                                <th class="p-4">📦 Produto(s)</th>
-                                <th class="p-4">💰 Valor</th>
-                                <th class="p-4">🏷️ Status</th>
-                                <th class="p-4">📅 Data</th>
-                                <th class="p-4">📝 Obs.</th>
-                                <th class="p-4 text-right">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody id="pedidos-table-body" class="text-xs divide-y divide-white/5">
-                            <tr><td colspan="7" class="text-center p-12 text-gray-500">Nenhum pedido registrado ainda.</td></tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
+
         </section>
 <section id="view-metricas" class="view-section space-y-8 max-w-6xl mx-auto">
             <div class="border-b border-white/5 pb-6">
