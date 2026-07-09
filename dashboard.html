@@ -10826,7 +10826,38 @@ window.atualizarStatusLead = async function(leadId, novoStatus) {
         
         // GESTÃO DO CATÁLOGO DE PRODUTOS
         function alternarVisualFiltro(botaoAtivo) {
+            const botoesFiltro = {
+                todos: document.getElementById("filtro-todos"),
+                fisico: document.getElementById("filtro-fisicos"),
+                digital: document.getElementById("filtro-digitais"),
+                rascunhos: document.getElementById("filtro-rascunhos")
+            };
 
+            Object.entries(botoesFiltro).forEach(([nomeFiltro, botao]) => {
+                if (!botao) {
+                    return;
+                }
+
+                const estaAtivo = nomeFiltro === botaoAtivo;
+
+                botao.classList.add("aura-product-filter");
+
+                botao.classList.toggle("bg-white/5", estaAtivo);
+                botao.classList.toggle("text-white", estaAtivo);
+                botao.classList.toggle("border", estaAtivo);
+                botao.classList.toggle("border-white/10", estaAtivo);
+
+                botao.classList.toggle("text-gray-400", !estaAtivo);
+                botao.classList.toggle("hover:text-white", !estaAtivo);
+                botao.classList.toggle("border-transparent", !estaAtivo);
+                botao.classList.toggle("bg-transparent", !estaAtivo);
+
+                botao.setAttribute(
+                    "aria-pressed",
+                    estaAtivo ? "true" : "false"
+                );
+            });
+        }
 
         document.getElementById("filtro-rascunhos").addEventListener("click", (e) => {
 
