@@ -266,10 +266,121 @@ h1{font-weight:800;} h2{font-weight:800;} h3{font-weight:700;}
    VIDE AURA OS — SIDEBAR INTELIGENTE
    ========================================================================= */
 
+/* A coluna principal da sidebar ocupa toda a altura disponível */
+#admin-sidebar{
+  overflow:hidden;
+}
+
+/* Primeiro bloco: identidade + workspace + navegação + status */
+#admin-sidebar > div:first-child{
+  display:flex;
+  flex-direction:column;
+  flex:1 1 auto;
+  min-height:0;
+  gap:20px;
+}
+
+/* A navegação usa apenas o espaço restante e passa a rolar */
 .aura-sidebar-navigation{
   position:relative;
-  padding:0 4px 18px;
+  flex:1 1 auto;
+  min-height:120px;
+  overflow-x:hidden !important;
+  overflow-y:auto !important;
+  padding:0 7px 20px 4px;
   overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+  scroll-behavior:smooth;
+  mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      black 12px,
+      black calc(100% - 18px),
+      transparent 100%
+    );
+  -webkit-mask-image:
+    linear-gradient(
+      to bottom,
+      transparent 0,
+      black 12px,
+      black calc(100% - 18px),
+      transparent 100%
+    );
+}
+
+/* Espaço interno para o primeiro e último conteúdo não sumirem no degradê */
+.aura-sidebar-navigation-header{
+  margin-top:8px;
+}
+
+.aura-sidebar-navigation-groups{
+  padding-bottom:12px;
+}
+
+/* Scrollbar própria da navegação */
+.aura-sidebar-navigation::-webkit-scrollbar{
+  width:5px;
+}
+
+.aura-sidebar-navigation::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+.aura-sidebar-navigation::-webkit-scrollbar-thumb{
+  border-radius:999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-text) 14%,
+      transparent
+    );
+}
+
+.aura-sidebar-navigation::-webkit-scrollbar-thumb:hover{
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 38%,
+      transparent
+    );
+}
+
+.aura-sidebar-navigation{
+  scrollbar-width:thin;
+  scrollbar-color:
+    color-mix(
+      in srgb,
+      var(--aura-text) 14%,
+      transparent
+    )
+    transparent;
+}
+
+/* Status e logout nunca são comprimidos */
+#box-atalho,
+#box-logout{
+  flex-shrink:0;
+}
+
+@media (max-width:767px){
+  #admin-sidebar{
+    max-height:100dvh;
+    overflow-y:auto;
+  }
+
+  #admin-sidebar > div:first-child{
+    display:block;
+  }
+
+  .aura-sidebar-navigation{
+    max-height:none;
+    min-height:0;
+    overflow:visible !important;
+    mask-image:none;
+    -webkit-mask-image:none;
+    padding-right:4px;
+  }
 }
 
 .aura-sidebar-navigation-header{
@@ -3054,19 +3165,89 @@ textarea:focus{
     } catch(e) {}
 })();
 </script>
-<div class="hidden md:block px-4" id="box-atalho">
-            <div class="bg-[#111111] border border-white/5 p-4 rounded-xl">
-                <p class="text-[10px] text-gray-500 uppercase font-semibold mb-1">Status da Loja</p>
-                <div class="flex items-center gap-2 mb-2">
-                    <span id="admin-online-dot" class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                    <span class="text-xs text-white">Online</span>
-                </div>
-                <a id="link-minha-loja" href="#" target="_blank" class="text-[11px] text-gray-400 hover:text-white underline decoration-white/20 underline-offset-2 transition-all block truncate">
-                    <span id="url-loja-preview">Carregando endereço...</span>
-                </a>
+<div class="hidden md:block px-1" id="box-atalho">
+
+    <div class="aura-store-status-card">
+
+        <div class="aura-store-status-light"></div>
+
+        <div class="aura-store-status-header">
+
+            <div>
+
+                <p class="aura-store-status-eyebrow">
+
+                    Publicação
+
+                </p>
+
+                <h4 class="aura-store-status-title">
+
+                    Status da loja
+
+                </h4>
+
             </div>
+
+            <span class="aura-store-status-badge">
+
+                <span id="admin-online-dot"></span>
+
+                Online
+
+            </span>
+
         </div>
+
+        <a id="link-minha-loja"
+           href="#"
+           target="_blank"
+           class="aura-store-status-link">
+
+            <span class="aura-store-status-link-icon">
+
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor">
+
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M3 12h18"></path>
+                    <path d="M12 3a15 15 0 0 1 0 18"></path>
+                    <path d="M12 3a15 15 0 0 0 0 18"></path>
+
+                </svg>
+
+            </span>
+
+            <span class="aura-store-status-address">
+
+                <small>Endereço público</small>
+
+                <strong id="url-loja-preview">
+                    Carregando endereço...
+                </strong>
+
+            </span>
+
+            <span class="aura-store-status-arrow">
+
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor">
+
+                    <path d="M14 5h5v5"></path>
+                    <path d="m19 5-8 8"></path>
+                    <path d="M19 14v4a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1V6a1 1 0 0 1 1-1h4"></path>
+
+                </svg>
+
+            </span>
+
+        </a>
+
     </div>
+
+</div>
     <div class="hidden md:block px-2" id="box-logout">
         <button id="btn-painel-master" onclick="window.location.href='admin.html'" class="hidden items-center gap-3 px-4 py-2.5 text-xs font-bold text-amber-400 hover:text-amber-300 rounded-lg transition-colors w-full text-left mb-1">
             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"></path></svg>
