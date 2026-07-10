@@ -1488,6 +1488,470 @@ textarea:focus{
     color-mix(in srgb, #22C55E 12%, transparent);
 }
 
+/* AGENDA COMERCIAL DE FOLLOW-UPS */
+
+.aura-leads-agenda{
+  margin-top:18px;
+}
+
+.aura-leads-agenda.hidden{
+  display:none !important;
+}
+
+.aura-followup-summary-grid{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+}
+
+.aura-followup-summary-grid > div{
+  min-height:96px;
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:15px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.aura-followup-summary-grid small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-followup-summary-grid strong{
+  display:block;
+  margin-top:9px;
+  color:var(--aura-text);
+  font-size:23px;
+}
+
+.aura-followup-summary-grid span{
+  display:block;
+  margin-top:6px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-followup-summary-grid
+[data-state="overdue"] strong{
+  color:#F87171;
+}
+
+.aura-followup-summary-grid
+[data-state="today"] strong{
+  color:#FBBF24;
+}
+
+.aura-followup-groups{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:11px;
+  margin-top:12px;
+}
+
+.aura-followup-group{
+  min-height:250px;
+  padding:13px;
+  border:1px solid var(--aura-border);
+  border-radius:17px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 46%,
+      transparent
+    );
+}
+
+.aura-followup-group > header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding-bottom:11px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-followup-group > header > div{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.aura-followup-group > header > div > span{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 9px
+    color-mix(
+      in srgb,
+      var(--aura-primary) 60%,
+      transparent
+    );
+}
+
+.aura-followup-group[data-group="overdue"]
+> header > div > span{
+  background:#F87171;
+  box-shadow:0 0 9px rgba(248,113,113,.55);
+}
+
+.aura-followup-group[data-group="today"]
+> header > div > span{
+  background:#FBBF24;
+  box-shadow:0 0 9px rgba(251,191,36,.55);
+}
+
+.aura-followup-group header strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+}
+
+.aura-followup-group header small{
+  display:block;
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-followup-group header b{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:27px;
+  height:24px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  font-size:8px;
+}
+
+.aura-followup-list{
+  display:flex;
+  max-height:390px;
+  margin-top:10px;
+  flex-direction:column;
+  gap:8px;
+  overflow-y:auto;
+}
+
+.aura-followup-card{
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-strong) 58%,
+      transparent
+    );
+  cursor:pointer;
+}
+
+.aura-followup-card:hover{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 31%,
+      transparent
+    );
+}
+
+.aura-followup-card[data-priority="alta"]{
+  border-left:3px solid #F87171;
+}
+
+.aura-followup-card[data-priority="normal"]{
+  border-left:3px solid #FBBF24;
+}
+
+.aura-followup-card[data-priority="baixa"]{
+  border-left:3px solid #60A5FA;
+}
+
+.aura-followup-card-top,
+.aura-followup-date,
+.aura-followup-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.aura-followup-person{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:0;
+}
+
+.aura-followup-person > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:33px;
+  height:33px;
+  border-radius:10px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+  font-size:9px;
+  font-weight:850;
+}
+
+.aura-followup-person strong,
+.aura-followup-person small{
+  display:block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-followup-person strong{
+  color:var(--aura-text-secondary);
+  font-size:9px;
+}
+
+.aura-followup-person small{
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-followup-priority{
+  padding:5px 7px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  font-size:6px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-followup-date{
+  margin-top:11px;
+  padding:9px;
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+
+.aura-followup-date span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.aura-followup-date svg{
+  width:13px;
+  height:13px;
+}
+
+.aura-followup-date strong{
+  color:var(--aura-primary);
+  font-size:9px;
+}
+
+.aura-followup-card > p{
+  margin-top:9px;
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+  line-height:1.5;
+}
+
+.aura-followup-actions{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-followup-whatsapp,
+.aura-followup-complete,
+.aura-followup-no-whatsapp{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:33px;
+  padding:0 10px;
+  border-radius:9px;
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-followup-whatsapp{
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.2);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-followup-complete{
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 23%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 7%,
+      transparent
+    );
+}
+
+.aura-followup-no-whatsapp{
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+}
+
+.aura-followup-empty{
+  display:flex;
+  min-height:100px;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+/* Campos no painel do Lead */
+
+.aura-lead-followup-icon{
+  color:#FBBF24;
+  border-color:rgba(251,191,36,.18);
+  background:rgba(251,191,36,.08);
+}
+
+.aura-lead-followup-summary{
+  margin-top:13px;
+  padding:10px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-muted) !important;
+  background:rgba(255,255,255,.025);
+  font-size:8px !important;
+}
+
+.aura-lead-followup-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:11px;
+}
+
+.aura-lead-followup-grid label,
+.aura-lead-followup-field{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.aura-lead-followup-grid label > span,
+.aura-lead-followup-field > span{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+}
+
+.aura-lead-followup-grid input,
+.aura-lead-followup-field select{
+  min-height:41px !important;
+  font-size:9px !important;
+}
+
+.aura-lead-followup-field{
+  margin-top:10px;
+}
+
+.aura-lead-followup-field textarea{
+  min-height:80px;
+  padding:10px !important;
+  font-size:9px !important;
+  resize:vertical;
+}
+
+.aura-lead-followup-actions{
+  display:flex;
+  gap:8px;
+  margin-top:10px;
+}
+
+.aura-lead-followup-clear,
+.aura-lead-followup-save{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:39px;
+  border-radius:11px;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lead-followup-clear{
+  min-width:90px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:var(--aura-surface-soft);
+}
+
+.aura-lead-followup-save{
+  flex:1;
+  color:#fff;
+  border:0;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-lead-followup-save svg{
+  width:14px;
+  height:14px;
+}
+
+@media (max-width:850px){
+
+  .aura-followup-summary-grid{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .aura-followup-groups{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media (max-width:520px){
+
+  .aura-followup-summary-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-lead-followup-grid{
+    grid-template-columns:1fr;
+  }
+
+}
+    
 /* Tema claro */
 
 .tema-claro #grid-hub-modulos > div{
@@ -27528,27 +27992,36 @@ body.aura-command-open{
 
                     <div class="aura-leads-view-controls">
 
-    <div class="aura-leads-view-switch">
+<div class="aura-leads-view-switch">
 
-        <button
-            type="button"
-            id="btn-leads-table-view"
-            class="aura-leads-view-button is-active"
-            onclick="alternarVisualLeads('tabela')"
-        >
-            Tabela
-        </button>
+    <button
+        type="button"
+        id="btn-leads-table-view"
+        class="aura-leads-view-button is-active"
+        onclick="alternarVisualLeads('tabela')"
+    >
+        Tabela
+    </button>
 
-        <button
-            type="button"
-            id="btn-leads-kanban-view"
-            class="aura-leads-view-button"
-            onclick="alternarVisualLeads('kanban')"
-        >
-            Kanban
-        </button>
+    <button
+        type="button"
+        id="btn-leads-kanban-view"
+        class="aura-leads-view-button"
+        onclick="alternarVisualLeads('kanban')"
+    >
+        Kanban
+    </button>
 
-    </div>
+    <button
+        type="button"
+        id="btn-leads-agenda-view"
+        class="aura-leads-view-button"
+        onclick="alternarVisualLeads('agenda')"
+    >
+        Agenda
+    </button>
+
+</div>
 
     <span class="aura-leads-section-badge aura-leads-section-badge-live">
         <i></i>
@@ -27592,10 +28065,15 @@ body.aura-command-open{
 
                 </div>
 
-                <div
-                    id="leads-kanban-board"
-                    class="hidden aura-leads-kanban-board"
-                ></div>
+<div
+    id="leads-kanban-board"
+    class="hidden aura-leads-kanban-board"
+></div>
+
+<div
+    id="leads-agenda-view"
+    class="hidden aura-leads-agenda"
+></div>
 
             </div>
         </section>
@@ -28208,6 +28686,120 @@ body.aura-command-open{
             </select>
 
             <input type="hidden" id="lead-painel-id">
+
+        </div>
+
+        <div class="glass-card aura-lead-drawer-card aura-lead-followup-card">
+
+            <div class="aura-lead-drawer-card-header">
+
+                <span class="aura-lead-drawer-card-icon aura-lead-followup-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+                        <path d="M16 3v4"></path>
+                        <path d="M8 3v4"></path>
+                        <path d="M3 10h18"></path>
+                        <path d="M12 14v3"></path>
+                        <path d="M10.5 15.5h3"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Agenda comercial</small>
+                    <h4>Próximo contato</h4>
+                </div>
+
+            </div>
+
+            <p
+                id="lead-followup-resumo"
+                class="aura-lead-followup-summary"
+            >
+                Nenhum contato agendado.
+            </p>
+
+            <div class="aura-lead-followup-grid">
+
+                <label>
+                    <span>Data</span>
+
+                    <input
+                        type="date"
+                        id="lead-followup-data"
+                        class="glass-input"
+                    >
+                </label>
+
+                <label>
+                    <span>Horário</span>
+
+                    <input
+                        type="time"
+                        id="lead-followup-hora"
+                        class="glass-input"
+                        value="09:00"
+                    >
+                </label>
+
+            </div>
+
+            <label class="aura-lead-followup-field">
+
+                <span>Prioridade</span>
+
+                <select
+                    id="lead-followup-prioridade"
+                    class="glass-input"
+                >
+                    <option value="baixa">Baixa</option>
+                    <option value="normal" selected>Normal</option>
+                    <option value="alta">Alta</option>
+                </select>
+
+            </label>
+
+            <label class="aura-lead-followup-field">
+
+                <span>Motivo do contato</span>
+
+                <textarea
+                    id="lead-followup-motivo"
+                    rows="3"
+                    class="glass-input"
+                    placeholder="Ex: Confirmar interesse, enviar proposta ou verificar pagamento."
+                ></textarea>
+
+            </label>
+
+            <div class="aura-lead-followup-actions">
+
+                <button
+                    type="button"
+                    onclick="limparFollowupLead()"
+                    class="aura-lead-followup-clear"
+                >
+                    Limpar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="salvarFollowupLead()"
+                    class="aura-lead-followup-save"
+                >
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 4h12l2 2v14H5V4Z"></path>
+                        <path d="M8 4v6h8V4"></path>
+                        <path d="M9 20v-6h6v6"></path>
+                    </svg>
+
+                    Salvar agenda
+
+                </button>
+
+            </div>
 
         </div>
 
@@ -35756,12 +36348,13 @@ throw errBanners;
                 if (elTiktok) elTiktok.innerText = countOrigem.tiktok;
                 if (elInsta) elInsta.innerText = countOrigem.instagram;
 
-                window._leadsVisiveis =
-                    leads;
+window._leadsVisiveis =
+    leads;
 
-                renderizarKanbanLeads();
+renderizarKanbanLeads();
+renderizarAgendaLeads();
 
-                alternarVisualLeads(
+alternarVisualLeads(
                     window._modoVisualLeads ||
                     localStorage.getItem(
                         "visualLeadsPreferido"
@@ -35843,8 +36436,129 @@ document.getElementById("lead-painel-email").value = lead.email || "";
 document.getElementById("lead-painel-interesse").value = lead.produtoInteresse || "";
             document.getElementById("lead-painel-tempo").innerText = (lead.tempoRetencao || 0) + "s";
             document.getElementById("lead-painel-data").innerText = lead.data ? new Date(lead.data).toLocaleDateString("pt-BR") : "Hoje";
-            document.getElementById("lead-painel-status").value = lead.statusLead || "novo";
-            document.getElementById("lead-painel-anotacao").value = lead.anotacao || "";
+document.getElementById("lead-painel-status").value =
+    lead.statusLead || "novo";
+
+document.getElementById("lead-painel-anotacao").value =
+    lead.anotacao || "";
+
+const followupData =
+    document.getElementById(
+        "lead-followup-data"
+    );
+
+const followupHora =
+    document.getElementById(
+        "lead-followup-hora"
+    );
+
+const followupPrioridade =
+    document.getElementById(
+        "lead-followup-prioridade"
+    );
+
+const followupMotivo =
+    document.getElementById(
+        "lead-followup-motivo"
+    );
+
+const followupResumo =
+    document.getElementById(
+        "lead-followup-resumo"
+    );
+
+let followupTimestamp =
+    lead.proximoContatoEm || 0;
+
+if (
+    typeof followupTimestamp?.toMillis ===
+    "function"
+) {
+    followupTimestamp =
+        followupTimestamp.toMillis();
+}
+
+if (
+    typeof followupTimestamp?.seconds ===
+    "number"
+) {
+    followupTimestamp =
+        followupTimestamp.seconds * 1000;
+}
+
+followupTimestamp =
+    Number(followupTimestamp || 0);
+
+if (followupTimestamp) {
+
+    const dataFollowup =
+        new Date(followupTimestamp);
+
+    const dataLocal =
+        new Date(
+            dataFollowup.getTime() -
+            dataFollowup.getTimezoneOffset() *
+            60000
+        )
+        .toISOString();
+
+    if (followupData) {
+        followupData.value =
+            dataLocal.slice(0, 10);
+    }
+
+    if (followupHora) {
+        followupHora.value =
+            dataLocal.slice(11, 16);
+    }
+
+    if (followupResumo) {
+
+        followupResumo.textContent =
+            `Agendado para ${
+                dataFollowup.toLocaleDateString(
+                    "pt-BR"
+                )
+            } às ${
+                dataFollowup.toLocaleTimeString(
+                    "pt-BR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                )
+            }`;
+
+    }
+
+} else {
+
+    if (followupData) {
+        followupData.value = "";
+    }
+
+    if (followupHora) {
+        followupHora.value = "09:00";
+    }
+
+    if (followupResumo) {
+        followupResumo.textContent =
+            "Nenhum contato agendado.";
+    }
+
+}
+
+if (followupPrioridade) {
+    followupPrioridade.value =
+        lead.prioridadeLead ||
+        "normal";
+}
+
+if (followupMotivo) {
+    followupMotivo.value =
+        lead.motivoFollowup ||
+        "";
+}
             const btnWhats = document.getElementById("lead-painel-whatsapp-btn");
             if (lead.whatsapp) {
                 btnWhats.onclick = () => window.open("https://wa.me/55" + lead.whatsapp, "_blank");
@@ -36367,6 +37081,11 @@ window.alternarVisualLeads = function(modo) {
             "leads-kanban-board"
         );
 
+    const agenda =
+        document.getElementById(
+            "leads-agenda-view"
+        );
+
     const botaoTabela =
         document.getElementById(
             "btn-leads-table-view"
@@ -36377,40 +37096,64 @@ window.alternarVisualLeads = function(modo) {
             "btn-leads-kanban-view"
         );
 
-    const usarKanban =
-        modo === "kanban";
+    const botaoAgenda =
+        document.getElementById(
+            "btn-leads-agenda-view"
+        );
+
+    const modoValido =
+        ["tabela", "kanban", "agenda"]
+            .includes(modo)
+            ? modo
+            : "tabela";
 
     window._modoVisualLeads =
-        usarKanban
-            ? "kanban"
-            : "tabela";
+        modoValido;
 
     localStorage.setItem(
         "visualLeadsPreferido",
-        window._modoVisualLeads
+        modoValido
     );
 
     tabela?.classList.toggle(
         "hidden",
-        usarKanban
+        modoValido !== "tabela"
     );
 
     kanban?.classList.toggle(
         "hidden",
-        !usarKanban
+        modoValido !== "kanban"
+    );
+
+    agenda?.classList.toggle(
+        "hidden",
+        modoValido !== "agenda"
     );
 
     botaoTabela?.classList.toggle(
         "is-active",
-        !usarKanban
+        modoValido === "tabela"
     );
 
     botaoKanban?.classList.toggle(
         "is-active",
-        usarKanban
+        modoValido === "kanban"
     );
 
-    if (usarKanban) {
+    botaoAgenda?.classList.toggle(
+        "is-active",
+        modoValido === "agenda"
+    );
+
+    if (modoValido === "kanban") {
+        renderizarKanbanLeads();
+    }
+
+    if (modoValido === "agenda") {
+        renderizarAgendaLeads();
+    }
+
+};
         renderizarKanbanLeads();
     }
 
@@ -36904,6 +37647,868 @@ function renderizarKanbanLeads() {
 
 window.renderizarKanbanLeads =
     renderizarKanbanLeads;
+
+/* =========================================================
+   AGENDA COMERCIAL DE FOLLOW-UPS
+   ========================================================= */
+
+function obterTimestampFollowup(valor) {
+
+    if (!valor) return 0;
+
+    if (
+        typeof valor.toMillis ===
+        "function"
+    ) {
+        return valor.toMillis();
+    }
+
+    if (
+        typeof valor.seconds ===
+        "number"
+    ) {
+        return valor.seconds * 1000;
+    }
+
+    const numero =
+        Number(valor);
+
+    return Number.isFinite(numero)
+        ? numero
+        : 0;
+
+}
+
+function renderizarAgendaLeads() {
+
+    const container =
+        document.getElementById(
+            "leads-agenda-view"
+        );
+
+    if (!container) return;
+
+    const leads =
+        Array.isArray(
+            window._leadsVisiveis
+        )
+            ? window._leadsVisiveis
+            : [];
+
+    const escapar = valor =>
+        String(valor || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    const inicioHoje =
+        new Date();
+
+    inicioHoje.setHours(
+        0,
+        0,
+        0,
+        0
+    );
+
+    const fimHoje =
+        new Date(inicioHoje);
+
+    fimHoje.setHours(
+        23,
+        59,
+        59,
+        999
+    );
+
+    const fimSeteDias =
+        new Date(fimHoje);
+
+    fimSeteDias.setDate(
+        fimSeteDias.getDate() + 7
+    );
+
+    const prioridadePeso = {
+        alta: 0,
+        normal: 1,
+        baixa: 2
+    };
+
+    const ordenar = lista =>
+        [...lista].sort(
+            (a, b) => {
+
+                const dataA =
+                    obterTimestampFollowup(
+                        a.proximoContatoEm
+                    );
+
+                const dataB =
+                    obterTimestampFollowup(
+                        b.proximoContatoEm
+                    );
+
+                if (
+                    Boolean(dataA) !==
+                    Boolean(dataB)
+                ) {
+                    return dataA
+                        ? -1
+                        : 1;
+                }
+
+                if (dataA !== dataB) {
+                    return dataA - dataB;
+                }
+
+                return (
+                    prioridadePeso[
+                        a.prioridadeLead ||
+                        "normal"
+                    ] -
+                    prioridadePeso[
+                        b.prioridadeLead ||
+                        "normal"
+                    ]
+                );
+
+            }
+        );
+
+    const grupos = [
+
+        {
+            id: "overdue",
+            titulo: "Atrasados",
+            descricao:
+                "Contatos que já deveriam ter sido realizados",
+            leads: leads.filter(lead => {
+
+                const data =
+                    obterTimestampFollowup(
+                        lead.proximoContatoEm
+                    );
+
+                return (
+                    data > 0 &&
+                    data < inicioHoje.getTime()
+                );
+
+            })
+        },
+
+        {
+            id: "today",
+            titulo: "Hoje",
+            descricao:
+                "Follow-ups programados para o dia",
+            leads: leads.filter(lead => {
+
+                const data =
+                    obterTimestampFollowup(
+                        lead.proximoContatoEm
+                    );
+
+                return (
+                    data >= inicioHoje.getTime() &&
+                    data <= fimHoje.getTime()
+                );
+
+            })
+        },
+
+        {
+            id: "week",
+            titulo: "Próximos 7 dias",
+            descricao:
+                "Contatos agendados para esta semana",
+            leads: leads.filter(lead => {
+
+                const data =
+                    obterTimestampFollowup(
+                        lead.proximoContatoEm
+                    );
+
+                return (
+                    data > fimHoje.getTime() &&
+                    data <= fimSeteDias.getTime()
+                );
+
+            })
+        },
+
+        {
+            id: "later",
+            titulo: "Futuros",
+            descricao:
+                "Follow-ups agendados após sete dias",
+            leads: leads.filter(lead => {
+
+                const data =
+                    obterTimestampFollowup(
+                        lead.proximoContatoEm
+                    );
+
+                return (
+                    data >
+                    fimSeteDias.getTime()
+                );
+
+            })
+        }
+
+    ];
+
+    const totalAgendados =
+        grupos.reduce(
+            (total, grupo) =>
+                total + grupo.leads.length,
+            0
+        );
+
+    const totalAtrasados =
+        grupos[0].leads.length;
+
+    const totalHoje =
+        grupos[1].leads.length;
+
+    const semAgendamento =
+        leads.filter(
+            lead =>
+                !obterTimestampFollowup(
+                    lead.proximoContatoEm
+                )
+        ).length;
+
+    const formatarData = timestamp => {
+
+        const data =
+            new Date(timestamp);
+
+        return {
+            data:
+                data.toLocaleDateString(
+                    "pt-BR"
+                ),
+
+            hora:
+                data.toLocaleTimeString(
+                    "pt-BR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                )
+        };
+
+    };
+
+    const renderizarCard = lead => {
+
+        const timestamp =
+            obterTimestampFollowup(
+                lead.proximoContatoEm
+            );
+
+        const horario =
+            formatarData(timestamp);
+
+        const prioridade =
+            lead.prioridadeLead ||
+            "normal";
+
+        const whatsapp =
+            String(
+                lead.whatsapp || ""
+            ).replace(/\D/g, "");
+
+        return `
+            <article
+                class="aura-followup-card"
+                data-priority="${prioridade}"
+                onclick="abrirLeadDaAgenda('${escapar(lead.id)}')"
+            >
+
+                <div class="aura-followup-card-top">
+
+                    <div class="aura-followup-person">
+
+                        <span>
+                            ${escapar(
+                                (
+                                    lead.nome ||
+                                    "L"
+                                )
+                                .charAt(0)
+                                .toUpperCase()
+                            )}
+                        </span>
+
+                        <div>
+
+                            <strong>
+                                ${escapar(
+                                    lead.nome ||
+                                    "Lead anônimo"
+                                )}
+                            </strong>
+
+                            <small>
+                                ${escapar(
+                                    lead.origem ||
+                                    "Origem direta"
+                                )}
+                            </small>
+
+                        </div>
+
+                    </div>
+
+                    <span
+                        class="aura-followup-priority"
+                    >
+                        ${prioridade}
+                    </span>
+
+                </div>
+
+                <div class="aura-followup-date">
+
+                    <span>
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+                            <path d="M16 3v4"></path>
+                            <path d="M8 3v4"></path>
+                            <path d="M3 10h18"></path>
+                        </svg>
+
+                        ${horario.data}
+
+                    </span>
+
+                    <strong>
+                        ${horario.hora}
+                    </strong>
+
+                </div>
+
+                <p>
+                    ${escapar(
+                        lead.motivoFollowup ||
+                        "Motivo não informado."
+                    )}
+                </p>
+
+                <div class="aura-followup-actions">
+
+                    ${
+                        whatsapp.length >= 10
+                            ? `
+                                <button
+                                    type="button"
+                                    onclick="event.stopPropagation(); abrirWhatsFollowup('${escapar(lead.id)}')"
+                                    class="aura-followup-whatsapp"
+                                >
+                                    WhatsApp
+                                </button>
+                            `
+                            : `
+                                <span class="aura-followup-no-whatsapp">
+                                    Sem WhatsApp
+                                </span>
+                            `
+                    }
+
+                    <button
+                        type="button"
+                        onclick="event.stopPropagation(); concluirFollowupLead('${escapar(lead.id)}')"
+                        class="aura-followup-complete"
+                    >
+                        Concluir
+                    </button>
+
+                </div>
+
+            </article>
+        `;
+
+    };
+
+    const gruposHTML =
+        grupos.map(grupo => {
+
+            const leadsOrdenados =
+                ordenar(grupo.leads);
+
+            return `
+                <section
+                    class="aura-followup-group"
+                    data-group="${grupo.id}"
+                >
+
+                    <header>
+
+                        <div>
+
+                            <span></span>
+
+                            <div>
+                                <strong>
+                                    ${grupo.titulo}
+                                </strong>
+
+                                <small>
+                                    ${grupo.descricao}
+                                </small>
+                            </div>
+
+                        </div>
+
+                        <b>
+                            ${leadsOrdenados.length}
+                        </b>
+
+                    </header>
+
+                    <div class="aura-followup-list">
+
+                        ${
+                            leadsOrdenados.length
+                                ? leadsOrdenados
+                                    .map(renderizarCard)
+                                    .join("")
+                                : `
+                                    <div class="aura-followup-empty">
+                                        Nenhum contato nesta etapa.
+                                    </div>
+                                `
+                        }
+
+                    </div>
+
+                </section>
+            `;
+
+        }).join("");
+
+    container.innerHTML = `
+
+        <div class="aura-followup-summary-grid">
+
+            <div data-state="all">
+                <small>Total agendado</small>
+                <strong>${totalAgendados}</strong>
+                <span>Contatos futuros</span>
+            </div>
+
+            <div data-state="overdue">
+                <small>Atrasados</small>
+                <strong>${totalAtrasados}</strong>
+                <span>Exigem atenção</span>
+            </div>
+
+            <div data-state="today">
+                <small>Para hoje</small>
+                <strong>${totalHoje}</strong>
+                <span>Agenda do dia</span>
+            </div>
+
+            <div data-state="empty">
+                <small>Sem agenda</small>
+                <strong>${semAgendamento}</strong>
+                <span>Leads sem próximo contato</span>
+            </div>
+
+        </div>
+
+        <div class="aura-followup-groups">
+
+            ${gruposHTML}
+
+        </div>
+    `;
+
+}
+
+window.renderizarAgendaLeads =
+    renderizarAgendaLeads;
+
+window.abrirLeadDaAgenda =
+function(leadId) {
+
+    const lead =
+        window._leadsVisiveis
+            ?.find(
+                item =>
+                    item.id === leadId
+            );
+
+    if (
+        lead &&
+        typeof window.abrirPainelLead ===
+        "function"
+    ) {
+        window.abrirPainelLead(lead);
+    }
+
+};
+
+window.abrirWhatsFollowup =
+function(leadId) {
+
+    const lead =
+        window._leadsVisiveis
+            ?.find(
+                item =>
+                    item.id === leadId
+            );
+
+    if (!lead) return;
+
+    let numero =
+        String(
+            lead.whatsapp || ""
+        ).replace(/\D/g, "");
+
+    if (numero.length < 10) {
+        return showToast(
+            "Este lead não possui WhatsApp válido.",
+            "error"
+        );
+    }
+
+    if (!numero.startsWith("55")) {
+        numero = `55${numero}`;
+    }
+
+    window.open(
+        `https://wa.me/${numero}`,
+        "_blank",
+        "noopener,noreferrer"
+    );
+
+};
+
+window.salvarFollowupLead =
+async function() {
+
+    const leadId =
+        document.getElementById(
+            "lead-painel-id"
+        )?.value;
+
+    const data =
+        document.getElementById(
+            "lead-followup-data"
+        )?.value;
+
+    const hora =
+        document.getElementById(
+            "lead-followup-hora"
+        )?.value || "09:00";
+
+    const prioridade =
+        document.getElementById(
+            "lead-followup-prioridade"
+        )?.value || "normal";
+
+    const motivo =
+        document.getElementById(
+            "lead-followup-motivo"
+        )?.value.trim() || "";
+
+    if (!leadId) {
+        return;
+    }
+
+    if (!data) {
+
+        return showToast(
+            "Escolha a data do próximo contato.",
+            "error"
+        );
+
+    }
+
+    const timestamp =
+        new Date(
+            `${data}T${hora}:00`
+        ).getTime();
+
+    if (
+        !Number.isFinite(timestamp)
+    ) {
+
+        return showToast(
+            "Data ou horário inválido.",
+            "error"
+        );
+
+    }
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                proximoContatoEm:
+                    timestamp,
+
+                prioridadeLead:
+                    prioridade,
+
+                motivoFollowup:
+                    motivo,
+
+                followupAtualizadoEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        const lead =
+            window._leadsVisiveis
+                ?.find(
+                    item =>
+                        item.id === leadId
+                );
+
+        if (lead) {
+
+            lead.proximoContatoEm =
+                timestamp;
+
+            lead.prioridadeLead =
+                prioridade;
+
+            lead.motivoFollowup =
+                motivo;
+
+        }
+
+        const resumo =
+            document.getElementById(
+                "lead-followup-resumo"
+            );
+
+        const dataFormatada =
+            new Date(timestamp);
+
+        if (resumo) {
+
+            resumo.textContent =
+                `Agendado para ${
+                    dataFormatada
+                        .toLocaleDateString(
+                            "pt-BR"
+                        )
+                } às ${
+                    dataFormatada
+                        .toLocaleTimeString(
+                            "pt-BR",
+                            {
+                                hour: "2-digit",
+                                minute: "2-digit"
+                            }
+                        )
+                }`;
+
+        }
+
+        renderizarAgendaLeads();
+        renderizarKanbanLeads();
+
+        showToast(
+            "Próximo contato agendado!"
+        );
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        showToast(
+            "Erro ao salvar o agendamento.",
+            "error"
+        );
+
+    }
+
+};
+
+window.limparFollowupLead =
+async function() {
+
+    const leadId =
+        document.getElementById(
+            "lead-painel-id"
+        )?.value;
+
+    if (!leadId) return;
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                proximoContatoEm:
+                    null,
+
+                motivoFollowup:
+                    "",
+
+                followupAtualizadoEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        const lead =
+            window._leadsVisiveis
+                ?.find(
+                    item =>
+                        item.id === leadId
+                );
+
+        if (lead) {
+
+            lead.proximoContatoEm =
+                null;
+
+            lead.motivoFollowup =
+                "";
+
+        }
+
+        const data =
+            document.getElementById(
+                "lead-followup-data"
+            );
+
+        const hora =
+            document.getElementById(
+                "lead-followup-hora"
+            );
+
+        const motivo =
+            document.getElementById(
+                "lead-followup-motivo"
+            );
+
+        const resumo =
+            document.getElementById(
+                "lead-followup-resumo"
+            );
+
+        if (data) data.value = "";
+        if (hora) hora.value = "09:00";
+        if (motivo) motivo.value = "";
+
+        if (resumo) {
+            resumo.textContent =
+                "Nenhum contato agendado.";
+        }
+
+        renderizarAgendaLeads();
+
+        showToast(
+            "Agendamento removido."
+        );
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        showToast(
+            "Erro ao remover o agendamento.",
+            "error"
+        );
+
+    }
+
+};
+
+window.concluirFollowupLead =
+async function(leadId) {
+
+    const lead =
+        window._leadsVisiveis
+            ?.find(
+                item =>
+                    item.id === leadId
+            );
+
+    if (!lead) return;
+
+    const agendamentoAnterior =
+        lead.proximoContatoEm;
+
+    lead.proximoContatoEm =
+        null;
+
+    renderizarAgendaLeads();
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                proximoContatoEm:
+                    null,
+
+                ultimoContatoEm:
+                    Date.now(),
+
+                followupConcluidoEm:
+                    Date.now(),
+
+                followupAtualizadoEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        showToast(
+            "Follow-up concluído!"
+        );
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        lead.proximoContatoEm =
+            agendamentoAnterior;
+
+        renderizarAgendaLeads();
+
+        showToast(
+            "Erro ao concluir o follow-up.",
+            "error"
+        );
+
+    }
+
+};
 
 window.moverLeadKanban =
 async function(
