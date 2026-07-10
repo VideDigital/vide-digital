@@ -13162,6 +13162,67 @@ span{
   }
 }
 
+/* Pesquisa da Central de Módulos sem associação com login ou senha */
+
+.aura-hub-searchbox{
+  width:100%;
+  min-height:46px;
+  display:flex;
+  align-items:center;
+  padding:0 64px 0 42px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  color:var(--aura-text);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 76%,
+      transparent
+    );
+  font-size:13px;
+  font-weight:500;
+  line-height:1.4;
+  white-space:nowrap;
+  outline:none;
+  transition:
+    border-color .2s var(--rd-ease),
+    box-shadow .2s var(--rd-ease),
+    background .2s var(--rd-ease);
+}
+
+.aura-hub-searchbox:empty::before{
+  content:attr(data-placeholder);
+  color:var(--aura-text-muted);
+  pointer-events:none;
+}
+
+.aura-hub-searchbox:focus{
+  border-color:var(--aura-accent);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-strong) 72%,
+      transparent
+    );
+  box-shadow:
+    0 0 0 3px
+    color-mix(
+      in srgb,
+      var(--aura-accent) 15%,
+      transparent
+    );
+}
+
+.tema-claro .aura-hub-searchbox{
+  color:#0F172A;
+  background:rgba(255,255,255,.88);
+}
+
+.tema-claro .aura-hub-searchbox:empty::before{
+  color:#64748B;
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -14368,20 +14429,17 @@ span{
             </svg>
 
             <input
-                type="search"
-                id="busca-hub-modulos"
-                name="videhub-pesquisa-de-modulos"
-                oninput="filtrarHubModulos(this.value)"
-                onfocus="this.removeAttribute('readonly')"
-                placeholder="Pesquisar módulo..."
-                autocomplete="new-password"
-                autocorrect="off"
-                autocapitalize="off"
-                spellcheck="false"
-                data-lpignore="true"
-                data-1p-ignore="true"
-                readonly
-                class="w-full glass-input rounded-2xl py-3.5 pl-11 pr-16 text-sm text-white outline-none"
+<div
+    id="busca-hub-modulos"
+    class="aura-hub-searchbox"
+    contenteditable="true"
+    role="searchbox"
+    aria-label="Pesquisar módulo"
+    data-placeholder="Pesquisar módulo..."
+    spellcheck="false"
+    oninput="filtrarHubModulos(this.textContent)"
+    onkeydown="if(event.key === 'Enter'){ event.preventDefault(); }"
+></div>
             >
 
             <span class="absolute right-3 top-1/2 -translate-y-1/2 h-7 min-w-7 px-2 rounded-lg border border-white/10 bg-white/[0.04] flex items-center justify-center text-[9px] font-bold text-gray-500 pointer-events-none">
@@ -20185,61 +20243,33 @@ window.salvarLayoutVisaoGeral = async function() {
 };
 
 window.filtrarHubModulos = function(termo) {
-    const campo =
-        document.getElementById("busca-hub-modulos");
-
-    let valor =
-        String(termo || "").trim();
-
-    const pareceEmail =
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
-
-    if (pareceEmail) {
-        valor = "";
-
-        if (campo) {
-            campo.value = "";
-        }
-    }
-
-    const t =
-        valor.toLowerCase();
+    const valor = String(termo || "")
+        .replace(/\s+/g, " ")
+        .trim()
+        .toLowerCase();
 
     document
         .querySelectorAll("#grid-hub-modulos > div")
         .forEach(card => {
-            const nome =
-                (card.getAttribute("data-nome") || "")
-                    .toLowerCase();
+            const nome = String(
+                card.getAttribute("data-nome") || ""
+            ).toLowerCase();
 
             card.classList.toggle(
                 "hidden",
-                t !== "" && !nome.includes(t)
+                valor !== "" && !nome.includes(valor)
             );
         });
 };
 
 window.addEventListener("pageshow", () => {
-    setTimeout(() => {
-        const campo =
-            document.getElementById("busca-hub-modulos");
+    const campo =
+        document.getElementById("busca-hub-modulos");
 
-        if (!campo) return;
+    if (!campo) return;
 
-        const valor =
-            campo.value.trim();
-
-        const pareceEmail =
-            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
-
-        if (pareceEmail) {
-            campo.value = "";
-        }
-
-        window.filtrarHubModulos(
-            pareceEmail ? "" : campo.value
-        );
-    }, 350);
+    campo.textContent = "";
+    window.filtrarHubModulos("");
 });
 
 function ativarAba(targetId) {
