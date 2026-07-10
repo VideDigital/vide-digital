@@ -1,4 +1,5 @@
 
+
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full bg-[#030712]">
 <head>
@@ -164,7 +165,6 @@ h1, h2, h3 { font-family: 'Sora', sans-serif; }
 #sidebar-nav.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 10px; }
 
 .tema-claro #sidebar-nav.custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.15); }
-
 
 /* =========================================================================
    REDESIGN VISUAL PREMIUM — sobrepõe o CSS acima sem tocar em HTML/JS/IDs.
@@ -7017,42 +7017,6 @@ input:checked +
   }
 }
 
-/* =========================================================================
-   CORREÇÃO DEFINITIVA — VISIBILIDADE DA AUTOMAÇÃO DE LEADS
-   ========================================================================= */
-
-#view-automacao-leads.active{
-  display:block !important;
-  visibility:visible !important;
-  opacity:1 !important;
-  min-height:300px !important;
-}
-
-#view-automacao-leads.active > div:not(.hidden){
-  visibility:visible !important;
-  opacity:1 !important;
-}
-
-#view-automacao-leads.active
-.layout-block{
-  display:block !important;
-  visibility:visible !important;
-  opacity:1 !important;
-}
-
-#view-automacao-leads.active
-.layout-block.hidden{
-  display:block !important;
-}
-
-/* As barras operacionais só aparecem quando o JS solicitar */
-#view-automacao-leads
-#auto-lead-barra-acoes.hidden,
-#view-automacao-leads
-#auto-lead-barra-lixeira.hidden{
-  display:none !important;
-}
-
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -7233,7 +7197,7 @@ input:checked +
     </div>
 
 </div>
-        
+
         <nav class="aura-sidebar-navigation hidden md:block overflow-y-auto custom-scrollbar flex-1 min-h-0"
              id="sidebar-nav">
 
@@ -7905,7 +7869,7 @@ input:checked +
 </aside>
 
     <main class="flex-1 md:h-screen overflow-y-auto p-4 sm:p-8 lg:p-12 relative z-10 w-full">
-        
+
         <section id="view-dashboard" class="view-section active space-y-6 max-w-6xl mx-auto">
             <div class="relative overflow-hidden rounded-[30px] border border-white/10 px-5 py-6 sm:px-8 sm:py-8">
 
@@ -8145,7 +8109,7 @@ input:checked +
 
                 </div>
 
-            </div>        
+            </div>
 
 <script>
 (function() {
@@ -9737,7 +9701,7 @@ input:checked +
                 <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
             </div>
         </section>
-        
+
         <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto">
             <!-- Cabeçalho Principal -->
             <div class="border-b border-white/5 pb-5">
@@ -9748,7 +9712,7 @@ input:checked +
             <!-- BOX 1: Identidade Primária (Foto, Nome, Slug e Títulos) -->
             <div class="glass-card rounded-xl p-6 space-y-5 layout-block" data-block-id="identidade" data-block-nome="Identidade Primária">
                 <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🏪</span> Identidade Primária</h3>
-                
+
                 <div class="flex flex-col sm:flex-row items-center gap-5 bg-white/[0.01] p-4 rounded-xl border border-white/5">
                     <div class="relative h-20 w-20 rounded-full border border-white/10 overflow-hidden bg-black flex items-center justify-center group shrink-0">
                         <img id="preview-foto-perfil" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect fill='%23111'/></svg>" class="h-full w-full object-cover">
@@ -9786,7 +9750,7 @@ input:checked +
             <div class="glass-card rounded-xl p-6 space-y-4 layout-block" data-block-id="banners-config" data-block-nome="Banners Promocionais">
                 <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🖼️</span> Banners Promocionais (Galeria)</h3>
                 <p class="text-gray-400 text-xs">Suba quantas imagens quiser direto do seu computador ou celular. Elas vão rotacionar automaticamente na sua loja. Recomendado: 1920x450px.</p>
-                
+
                 <label for="input-banners-upload" class="flex flex-col items-center justify-center gap-2 border-2 border-dashed border-white/10 hover:border-[#00f2fe]/40 rounded-xl p-6 cursor-pointer transition-all text-center">
                     <span class="text-2xl">📤</span>
                     <span class="text-xs font-bold text-white">Clique para adicionar imagens</span>
@@ -9871,7 +9835,7 @@ input:checked +
                     <input type="text" id="perf-carrinho-mensagem" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Olá! Gostaria de fazer um pedido:">
                 </div>
             </div>
-            
+
             <!-- BOX 5: Chat ao Vivo -->
             <div class="glass-card rounded-xl p-6 space-y-4 layout-block" data-block-id="chat-config" data-block-nome="Chat ao Vivo">
                 <div class="flex items-center justify-between border-b border-white/5 pb-3">
@@ -9898,7 +9862,7 @@ input:checked +
 <!-- BOX 6: Controle de Aparência, Cores e Tipografia -->
             <div class="glass-card rounded-xl p-6 space-y-5 layout-block" data-block-id="aparencia-cores" data-block-nome="Controle de Aparência">
                 <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🎨</span> Controle de Aparência</h3>
-                
+
                 <div class="space-y-2">
                     <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Aba de Entrada Padrão</label>
                     <select id="perf-aba-padrao" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
@@ -10004,7 +9968,7 @@ input:checked +
             </div>
             <div class="glass-card rounded-xl p-6 space-y-5">
                 <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🎨</span> Controle de Aparência</h3>
-                
+
                 <!-- Botões de Ação Unificados -->
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                     <button type="button" id="btn-resetar-cores" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs uppercase tracking-widest font-bold py-3.5 rounded-xl transition-all">
@@ -10027,26 +9991,7 @@ input:checked +
             </div>
         </section>
 
-        <section id="view-leads" class="view-section space-y-6 max-w-6xl mx-auto">
-        <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
-                <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Leads Capturados</h1>
-                    <p class="text-gray-400 text-xs mt-1">Gerencie os contatos que demonstraram interesse em seus produtos.</p>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <select id="filtro-lead-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <option value="7">Últimos 7 dias</option>
-                        <option value="30" selected>Últimos 30 dias</option>
-                        <option value="90">Últimos 90 dias</option>
-                        <option value="0">Todos</option>
-                        <option value="custom">Data específica</option>
-                    </select>
-                    <div id="filtro-lead-datas-custom" class="hidden flex gap-2 items-center">
-                        <input type="date" id="filtro-lead-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                        <span class="text-gray-500 text-xs">até</span>
-                        <input type="date" id="filtro-lead-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    </div>
-<section id="view-leads"
+        <section id="view-leads"
          class="view-section space-y-6 max-w-6xl mx-auto">
 
     <div class="aura-crm-header">
@@ -10644,9 +10589,9 @@ input:checked +
     <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-2xl p-6 sm:p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
             <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
-            
+
             <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-6">Configurar Oferta do Produto</h3>
-            
+
             <form id="produto-form" class="space-y-5">
                 <input type="hidden" id="form-id-produto">
 
@@ -10709,7 +10654,7 @@ input:checked +
                     </label>
                     <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">📦 Marcar como Frete Grátis</span>
                 </div>
-                
+
                 <div class="flex items-center gap-3 bg-white/[0.01] p-4 rounded-xl border border-white/5">
                     <label class="relative inline-flex items-center cursor-pointer">
                         <input type="checkbox" id="prod-carrinho-permitido" class="sr-only peer">
@@ -11138,7 +11083,7 @@ Adicionar Novo Bloco
             </div>
         </div>
     </div>
-    
+
     <script type="module">
         import { auth, db, firebaseConfig } from "./firebase-init.js";
 
@@ -11176,7 +11121,7 @@ window.addEventListener("pageshow", function(event) {
         let totalRascunhosAtual = 0;
         let verRascunhos = false;
         let temFeature = () => true; // fica atualizado de verdade assim que o plano carrega
-        
+
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
         const form = document.getElementById("produto-form");
@@ -11199,9 +11144,9 @@ window.addEventListener("pageshow", function(event) {
             const g = parseInt(hex.substring(2, 4), 16);
             const b = parseInt(hex.substring(4, 6), 16);
             const brilho = (r * 299 + g * 587 + b * 114) / 1000;
-            
+
             const bodyEl = document.getElementById("admin-body");
-            if (brilho > 175) { 
+            if (brilho > 175) {
                 bodyEl.classList.add("tema-claro");
             } else {
                 bodyEl.classList.remove("tema-claro");
@@ -11596,7 +11541,7 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
                 showToast("Erro ao atualizar.", "error");
             }
         };
-        
+
         // GESTOR DE ABAS SPA REATIVAS
         let modoEdicaoLayoutAtivo = false;
 let blocoArrastando = null;
@@ -11754,149 +11699,13 @@ function ativarAba(targetId) {
                 section.style.removeProperty("display");
                 section.style.removeProperty("visibility");
                 section.style.removeProperty("opacity");
+                section.style.removeProperty("min-height");
             });
 
             const secaoAlvo = document.getElementById(targetId);
-
-            if (secaoAlvo) {
-                secaoAlvo.classList.add("active");
-
-                secaoAlvo.style.setProperty(
-                    "display",
-                    "block",
-                    "important"
-                );
-
-                secaoAlvo.style.setProperty(
-                    "visibility",
-                    "visible",
-                    "important"
-                );
-
-                secaoAlvo.style.setProperty(
-                    "opacity",
-                    "1",
-                    "important"
-                );
-            }
+            if (secaoAlvo) secaoAlvo.classList.add("active");
 
             aplicarLayoutSalvoDaAba(targetId);
-
-            /*
-            /*
-             * RECUPERAÇÃO DEFINITIVA DA AUTOMAÇÃO DE LEADS
-             * Impede configurações antigas de esconderem a seção.
-             */
-            if (targetId === "view-automacao-leads") {
-                const secaoAutomacao =
-                    document.getElementById(
-                        "view-automacao-leads"
-                    );
-
-                if (secaoAutomacao) {
-                    secaoAutomacao.classList.add("active");
-
-                    secaoAutomacao.style.setProperty(
-                        "display",
-                        "block",
-                        "important"
-                    );
-
-                    secaoAutomacao.style.setProperty(
-                        "visibility",
-                        "visible",
-                        "important"
-                    );
-
-                    secaoAutomacao.style.setProperty(
-                        "opacity",
-                        "1",
-                        "important"
-                    );
-
-                    secaoAutomacao.style.setProperty(
-                        "min-height",
-                        "300px"
-                    );
-
-                    Array.from(
-                        secaoAutomacao.children
-                    ).forEach(function(elemento) {
-                        elemento.classList.remove(
-                            "hidden",
-                            "layout-block-oculto"
-                        );
-
-                        elemento.style.removeProperty(
-                            "display"
-                        );
-
-                        elemento.style.setProperty(
-                            "visibility",
-                            "visible",
-                            "important"
-                        );
-
-                        elemento.style.setProperty(
-                            "opacity",
-                            "1",
-                            "important"
-                        );
-                    });
-
-                    secaoAutomacao
-                        .querySelectorAll(
-                            ".layout-block"
-                        )
-                        .forEach(function(bloco) {
-                            bloco.classList.remove(
-                                "hidden",
-                                "layout-block-oculto"
-                            );
-
-                            bloco.style.setProperty(
-                                "display",
-                                "block",
-                                "important"
-                            );
-
-                            bloco.style.setProperty(
-                                "visibility",
-                                "visible",
-                                "important"
-                            );
-
-                            bloco.style.setProperty(
-                                "opacity",
-                                "1",
-                                "important"
-                            );
-                        });
-
-                    const barraAcoes =
-                        document.getElementById(
-                            "auto-lead-barra-acoes"
-                        );
-
-                    const barraLixeira =
-                        document.getElementById(
-                            "auto-lead-barra-lixeira"
-                        );
-
-                    /*
-                     * Essas duas barras devem continuar escondidas
-                     * até algum lead ser selecionado ou a lixeira
-                     * ser ativada.
-                     */
-                    if (barraAcoes) {
-                        barraAcoes.classList.add("hidden");
-                    }
-
-                    if (barraLixeira) {
-                        barraLixeira.classList.add("hidden");
-                    }
-                }
-            }
 
             localStorage.setItem("abaAtivaDashboard", targetId);
 
@@ -11962,7 +11771,7 @@ btn.classList.add("opacity-40");
                 }
             }, true);
         });
-        
+
         document.querySelectorAll("#sidebar-nav button").forEach(button => {
             button.addEventListener("click", () => {
                 ativarAba(button.getAttribute("data-target"));
@@ -14141,7 +13950,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
             }
         }
         ["perf-social-whatsapp-central", "perf-social-whatsapp-chat", "prod-whatsapp", "personalizacao-whatsapp"].forEach(aplicarMascaraNumerica);
-        
+
         // COMPRIME A IMAGEM NO NAVEGADOR ANTES DE VIRAR BASE64 (evita estourar o limite do Firestore)
         function comprimirImagem(file, maxLargura = 1200, qualidade = 0.75) {
             return new Promise((resolve, reject) => {
@@ -14430,7 +14239,7 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                 const userSnap = userSnap2;
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
-                    
+
                     document.getElementById("perf-nome-loja").value = dados.nomeLoja || "";
                     document.getElementById("perf-slug").value = dados.urlLoja || "";
                     document.getElementById("perf-titulo").value = dados.tituloHero || "";
@@ -14446,13 +14255,13 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                     document.getElementById("perf-link2-url").value = dados.link2Url || "";
                     document.getElementById("perf-link2-icone").value = dados.link2Icone || "🔗";
                     document.getElementById("perf-aba-padrao").value = dados.abaPadrao || "fisicos";
-                    
+
                     // Número do Chat e Botão Ativo
                     document.getElementById("perf-social-whatsapp-chat").value = dados.whatsappChat || "";
                     document.getElementById("perf-chat-ativo").checked = dados.chatAtivo || false;
                     document.getElementById("perf-carrinho-ativo").checked = dados.carrinhoAtivo || false;
                     document.getElementById("perf-carrinho-mensagem").value = dados.carrinhoMensagem || "";
-                    
+
                     // Cores Cliente
                     document.getElementById("perf-cor-destaque").value = dados.corDestaque || "#00f2fe";
                     document.getElementById("perf-cor-fundo").value = dados.corFundo || "#030712";
@@ -14462,7 +14271,7 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                     document.getElementById("perf-cor-texto-botao").value = dados.corTextoBotao || "#000000";
                     document.getElementById("perf-cor-borda").value = dados.corBorda || "#ffffff";
                     document.getElementById("perf-fonte-vitrine").value = dados.fonteVitrine || "Plus Jakarta Sans";
-                    
+
                     // Cores Admin
                     const bgAdminSalvo = dados.adminCorFundo || "#030712";
                     document.getElementById("perf-admin-cor-fundo").value = bgAdminSalvo;
@@ -14478,7 +14287,7 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                     document.documentElement.style.setProperty("--sys-texto", dados.adminCorTexto || "#e5e7eb");
                     document.getElementById("admin-body").style.backgroundColor = bgAdminSalvo;
                     verificarContrasteFundo(bgAdminSalvo);
-                    
+
                     if (dados.fotoPerfilB64) {
                         document.getElementById("preview-foto-perfil").src = dados.fotoPerfilB64;
                         document.getElementById("perfil-foto-base64").value = dados.fotoPerfilB64;
@@ -14564,7 +14373,7 @@ listaBanners = [];
                 window.location.href = "login.html";
             }
         });
-        
+
 // RESTAURAR CORES PADRÃO DO PROJETO (SOMENTE VISUAL, PRECISA SALVAR DEPOIS)
         document.getElementById("btn-resetar-cores").addEventListener("click", () => {
             const coresPadrao = {
@@ -14638,7 +14447,7 @@ renderizarLayoutLoja();
 document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
             abrirConfirmacao("Deseja salvar todas as alterações da sua vitrine?", executarSalvamento);
         });
-        
+
         // MOTOR GENÉRICO DO MODAL DE CONFIRMAÇÃO (substitui window.confirm)
         function abrirConfirmacao(mensagem, callback) {
             document.getElementById("confirm-modal-texto").innerText = mensagem;
@@ -14779,7 +14588,6 @@ throw errBanners;
             }
         }
 
-
         // CARREGAR E RENDERIZAR LEADS ENTERPRISE ORIGINAIS
         async function carregarLeads(filtroDataDias = 30, filtroStatus = "todos", filtroOrigem = "todos", filtroBusca = "") {
             const tableBody = document.getElementById("leads-table-body");
@@ -14893,7 +14701,7 @@ throw errBanners;
                 console.error("Erro leads:", err);
             }
         }
-        
+
 window.abrirPainelLead = async function(lead) {
             document.getElementById("lead-painel-id").value = lead.id;
             document.getElementById("lead-painel-avatar").innerText = (lead.nome || "?")[0].toUpperCase();
@@ -15012,7 +14820,7 @@ window.atualizarStatusLead = async function(leadId, novoStatus) {
         console.error(err);
     }
 };
-        
+
         // GESTÃO DO CATÁLOGO DE PRODUTOS
         function alternarVisualFiltro(botaoAtivo) {
             const botoesFiltro = {
@@ -16078,7 +15886,7 @@ carregarProdutos();
         }
 
         // Força a renderização inicial do gráfico de forma segura
-        setTimeout(inicializarGrafico, 500);     
+        setTimeout(inicializarGrafico, 500);
         // =============================================
         // C1 — MÉTRICAS REAIS
         // =============================================
@@ -17120,7 +16928,7 @@ window.editarTemplate = async function(id) {
         ligarValidacaoIntervaloDatas("filtro-metricas-de", "filtro-metricas-ate");
         ligarValidacaoIntervaloDatas("filtro-campanha-de", "filtro-campanha-ate");
         ligarValidacaoIntervaloDatas("auto-lead-de", "auto-lead-ate");
-        
+
         function formatarDataChave(d) {
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
         }
