@@ -16528,6 +16528,219 @@ span{
   min-width:150px;
 }
 
+/* Fluxo automático dos templates */
+
+.aura-template-flow{
+  margin-top:17px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.aura-template-flow-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+}
+
+.aura-template-flow-header small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-flow-header h4{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:11px;
+  font-weight:800;
+}
+
+.aura-template-flow-header p{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.aura-template-flow-toggle{
+  position:relative;
+  display:block;
+  width:43px;
+  height:24px;
+  flex-shrink:0;
+}
+
+.aura-template-flow-toggle input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-template-flow-toggle span{
+  position:absolute;
+  inset:0;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  background:var(--aura-surface-soft);
+  cursor:pointer;
+}
+
+.aura-template-flow-toggle span::after{
+  content:"";
+  position:absolute;
+  top:3px;
+  left:3px;
+  width:16px;
+  height:16px;
+  border-radius:50%;
+  background:var(--aura-text-muted);
+  transition:.2s ease;
+}
+
+.aura-template-flow-toggle
+input:checked + span{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 40%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 18%,
+      transparent
+    );
+}
+
+.aura-template-flow-toggle
+input:checked + span::after{
+  left:21px;
+  background:var(--aura-primary);
+}
+
+.aura-template-flow-config{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-template-flow-config.hidden{
+  display:none !important;
+}
+
+.aura-template-flow-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.aura-template-flow-grid label{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+}
+
+.aura-template-flow-grid label > span{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+}
+
+.aura-template-flow-grid select{
+  min-height:42px;
+  font-size:9px !important;
+}
+
+.aura-template-flow-note{
+  grid-column:1 / -1;
+}
+
+.aura-template-flow-note textarea{
+  min-height:75px !important;
+  padding:10px !important;
+  font-size:9px !important;
+}
+
+.aura-template-flow-info{
+  display:flex;
+  align-items:flex-start;
+  gap:8px;
+  margin-top:11px;
+  padding:10px;
+  border-radius:11px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 6%,
+      transparent
+    );
+}
+
+.aura-template-flow-info svg{
+  width:15px;
+  height:15px;
+  min-width:15px;
+}
+
+.aura-template-flow-info span{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1.45;
+}
+
+.aura-template-card-flags{
+  display:flex;
+  align-items:center;
+  gap:6px;
+}
+
+.aura-template-flow-badge,
+.aura-template-lead-flow{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 8px;
+  border:1px solid rgba(52,211,153,.2);
+  border-radius:999px;
+  color:#34D399;
+  background:rgba(52,211,153,.07);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-lead-flow{
+  margin-top:10px;
+  min-height:23px;
+}
+
+@media (max-width:600px){
+
+  .aura-template-flow-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-template-flow-note{
+    grid-column:auto;
+  }
+
+  .aura-template-card-meta{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+}
+
 /* Tema claro */
 
 .tema-claro .aura-templates-header,
@@ -29892,6 +30105,139 @@ body.aura-command-open{
 
             </div>
 
+            <div class="aura-template-flow">
+
+                <div class="aura-template-flow-header">
+
+                    <div>
+
+                        <small>
+                            Automação do atendimento
+                        </small>
+
+                        <h4>
+                            Fluxo automático do lead
+                        </h4>
+
+                        <p>
+                            Execute ações no lead quando esta mensagem for enviada.
+                        </p>
+
+                    </div>
+
+                    <label class="aura-template-flow-toggle">
+
+                        <input
+                            type="checkbox"
+                            id="tpl-fluxo-ativo"
+                            onchange="atualizarEstadoFluxoTemplate()"
+                        >
+
+                        <span></span>
+
+                    </label>
+
+                </div>
+
+                <div
+                    id="tpl-fluxo-config"
+                    class="hidden aura-template-flow-config"
+                >
+
+                    <div class="aura-template-flow-grid">
+
+                        <label>
+
+                            <span>
+                                Alterar status
+                            </span>
+
+                            <select
+                                id="tpl-fluxo-status"
+                                class="glass-input"
+                            >
+                                <option value="nenhum">Não alterar</option>
+                                <option value="novo">Novo</option>
+                                <option value="contato">Em contato</option>
+                                <option value="convertido">Convertido</option>
+                                <option value="perdido">Perdido</option>
+                            </select>
+
+                        </label>
+
+                        <label>
+
+                            <span>
+                                Agendar retorno
+                            </span>
+
+                            <select
+                                id="tpl-fluxo-followup"
+                                class="glass-input"
+                            >
+                                <option value="0">Não agendar</option>
+                                <option value="1">Daqui a 1 dia</option>
+                                <option value="2">Daqui a 2 dias</option>
+                                <option value="3">Daqui a 3 dias</option>
+                                <option value="7">Daqui a 7 dias</option>
+                                <option value="14">Daqui a 14 dias</option>
+                                <option value="30">Daqui a 30 dias</option>
+                            </select>
+
+                        </label>
+
+                        <label>
+
+                            <span>
+                                Prioridade do retorno
+                            </span>
+
+                            <select
+                                id="tpl-fluxo-prioridade"
+                                class="glass-input"
+                            >
+                                <option value="baixa">Baixa</option>
+                                <option value="normal" selected>Normal</option>
+                                <option value="alta">Alta</option>
+                            </select>
+
+                        </label>
+
+                        <label class="aura-template-flow-note">
+
+                            <span>
+                                Anotação automática
+                            </span>
+
+                            <textarea
+                                id="tpl-fluxo-anotacao"
+                                rows="3"
+                                class="glass-input"
+                                placeholder="Ex: Proposta enviada pelo WhatsApp."
+                            ></textarea>
+
+                        </label>
+
+                    </div>
+
+                    <div class="aura-template-flow-info">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 8h.01"></path>
+                            <path d="M11 12h1v4h1"></path>
+                        </svg>
+
+                        <span>
+                            O último contato será registrado automaticamente sempre que o template for enviado.
+                        </span>
+
+                    </div>
+
+                </div>
+
+            </div>
+
             <div class="aura-template-modal-actions">
 
                 <button
@@ -37281,6 +37627,34 @@ window.abrirTemplatesDoLead = async function() {
                     categorias[template.categoria] ||
                     categorias.geral;
 
+                const fluxo =
+                    template.fluxo || {};
+
+                const totalAcoesFluxo =
+                    fluxo.ativo
+                        ? 1 +
+                          (
+                              fluxo.statusLead &&
+                              fluxo.statusLead !== "nenhum"
+                                  ? 1
+                                  : 0
+                          ) +
+                          (
+                              Number(
+                                  fluxo.followupDias || 0
+                              ) > 0
+                                  ? 1
+                                  : 0
+                          ) +
+                          (
+                              String(
+                                  fluxo.anotacao || ""
+                              ).trim()
+                                  ? 1
+                                  : 0
+                          )
+                        : 0;
+
                 return `
                     <div
                         class="glass-card aura-template-lead-item"
@@ -37319,6 +37693,16 @@ window.abrirTemplatesDoLead = async function() {
                                     template.mensagemFinal
                                 )}
                             </p>
+
+                            ${
+                                totalAcoesFluxo > 0
+                                    ? `
+                                        <span class="aura-template-lead-flow">
+                                            Fluxo ativo · ${totalAcoesFluxo} ação(ões)
+                                        </span>
+                                    `
+                                    : ""
+                            }
 
                         </div>
 
@@ -37419,6 +37803,211 @@ window.abrirTemplatesDoLead = async function() {
 
             });
 
+        window.executarFluxoTemplateNoLead =
+        async function(template) {
+
+            const fluxo =
+                template?.fluxo || {};
+
+            if (!fluxo.ativo) {
+                return;
+            }
+
+            const leadId =
+                document.getElementById(
+                    "lead-painel-id"
+                )?.value;
+
+            if (!leadId) {
+                return;
+            }
+
+            const agora =
+                Date.now();
+
+            const leadLocal =
+                window._leadsVisiveis
+                    ?.find(
+                        lead =>
+                            lead.id === leadId
+                    );
+
+            const atualizacoes = {
+
+                ultimoContatoEm:
+                    agora,
+
+                ultimoTemplateId:
+                    template.id || "",
+
+                ultimoTemplateTitulo:
+                    template.titulo || "",
+
+                fluxoTemplateExecutadoEm:
+                    agora
+
+            };
+
+            if (
+                fluxo.statusLead &&
+                fluxo.statusLead !== "nenhum"
+            ) {
+
+                atualizacoes.statusLead =
+                    fluxo.statusLead;
+
+            }
+
+            const followupDias =
+                Number(
+                    fluxo.followupDias || 0
+                );
+
+            if (followupDias > 0) {
+
+                atualizacoes.proximoContatoEm =
+                    agora +
+                    followupDias *
+                    24 *
+                    60 *
+                    60 *
+                    1000;
+
+                atualizacoes.prioridadeLead =
+                    fluxo.prioridade ||
+                    "normal";
+
+                atualizacoes.motivoFollowup =
+                    fluxo.anotacao ||
+                    `Retorno após o template ${
+                        template.titulo ||
+                        "enviado"
+                    }`;
+
+            }
+
+            const anotacaoAutomatica =
+                String(
+                    fluxo.anotacao || ""
+                ).trim();
+
+            if (anotacaoAutomatica) {
+
+                const anotacaoAtual =
+                    String(
+                        document.getElementById(
+                            "lead-painel-anotacao"
+                        )?.value ||
+                        leadLocal?.anotacao ||
+                        ""
+                    ).trim();
+
+                atualizacoes.anotacao =
+                    [
+                        anotacaoAtual,
+                        anotacaoAutomatica
+                    ]
+                    .filter(Boolean)
+                    .join("\n\n");
+
+            }
+
+            await setDoc(
+                doc(
+                    db,
+                    "leads",
+                    leadId
+                ),
+                atualizacoes,
+                {
+                    merge: true
+                }
+            );
+
+            if (leadLocal) {
+
+                Object.assign(
+                    leadLocal,
+                    atualizacoes
+                );
+
+            }
+
+            if (atualizacoes.statusLead) {
+
+                const statusCampo =
+                    document.getElementById(
+                        "lead-painel-status"
+                    );
+
+                if (statusCampo) {
+
+                    statusCampo.value =
+                        atualizacoes.statusLead;
+
+                }
+
+            }
+
+            if (atualizacoes.anotacao) {
+
+                const anotacaoCampo =
+                    document.getElementById(
+                        "lead-painel-anotacao"
+                    );
+
+                if (anotacaoCampo) {
+
+                    anotacaoCampo.value =
+                        atualizacoes.anotacao;
+
+                }
+
+            }
+
+            if (atualizacoes.proximoContatoEm) {
+
+                const resumo =
+                    document.getElementById(
+                        "lead-followup-resumo"
+                    );
+
+                if (resumo) {
+
+                    const data =
+                        new Date(
+                            atualizacoes
+                                .proximoContatoEm
+                        );
+
+                    resumo.textContent =
+                        `Agendado para ${
+                            data.toLocaleDateString(
+                                "pt-BR"
+                            )
+                        } às ${
+                            data.toLocaleTimeString(
+                                "pt-BR",
+                                {
+                                    hour: "2-digit",
+                                    minute: "2-digit"
+                                }
+                            )
+                        }`;
+
+                }
+
+            }
+
+            window.renderizarKanbanLeads?.();
+            window.renderizarAgendaLeads?.();
+
+            showToast(
+                "Fluxo do template aplicado ao lead!"
+            );
+
+        };
+
         lista
             .querySelectorAll(
                 ".aura-template-lead-send"
@@ -37446,6 +38035,22 @@ window.abrirTemplatesDoLead = async function() {
                         ) {
                             return;
                         }
+
+                        void executarFluxoTemplateNoLead(
+                            template
+                        ).catch(erro => {
+
+                            console.error(
+                                "Erro ao executar fluxo:",
+                                erro
+                            );
+
+                            showToast(
+                                "A mensagem foi aberta, mas o fluxo não pôde ser concluído.",
+                                "error"
+                            );
+
+                        });
 
                         const url =
                             `https://wa.me/${whatsappCompleto}?text=${
@@ -42449,15 +43054,29 @@ const status = payload.ativa
 
                                     </span>
 
-                                    ${
-                                        (t.mensagem || "").includes("{nome}")
-                                            ? `
-                                                <span class="aura-template-variable">
-                                                    {nome}
-                                                </span>
-                                            `
-                                            : ""
-                                    }
+                                    <div class="aura-template-card-flags">
+
+                                        ${
+                                            (t.mensagem || "").includes("{nome}")
+                                                ? `
+                                                    <span class="aura-template-variable">
+                                                        {nome}
+                                                    </span>
+                                                `
+                                                : ""
+                                        }
+
+                                        ${
+                                            t.fluxo?.ativo
+                                                ? `
+                                                    <span class="aura-template-flow-badge">
+                                                        Fluxo ativo
+                                                    </span>
+                                                `
+                                                : ""
+                                        }
+
+                                    </div>
 
                                 </div>
 
@@ -42528,40 +43147,140 @@ const status = payload.ativa
             }
         }
 
-        window.abrirModalTemplate = function() {
-            document.getElementById("tpl-id-edicao").value = "";
-            document.getElementById("tpl-titulo").value = "";
-            document.getElementById("tpl-mensagem").value = "";
-            document.getElementById("tpl-categoria").value = "geral";
+window.atualizarEstadoFluxoTemplate =
+function() {
 
-            const tituloModal =
-                document.getElementById("template-modal-titulo");
+    const ativo =
+        document.getElementById(
+            "tpl-fluxo-ativo"
+        )?.checked;
 
-            if (tituloModal) {
-                tituloModal.innerText = "Novo template";
-            }
+    document
+        .getElementById(
+            "tpl-fluxo-config"
+        )
+        ?.classList.toggle(
+            "hidden",
+            !ativo
+        );
 
-            document
-                .getElementById("template-modal")
-                .classList.remove("hidden");
+};
 
-            setTimeout(() => {
-                document
-                    .getElementById("tpl-titulo")
-                    ?.focus();
-            }, 80);
-        };
+window.limparFluxoTemplateForm =
+function() {
 
-        window.fecharModalTemplate = function() {
-            document
-                .getElementById("template-modal")
-                .classList.add("hidden");
+    const ativo =
+        document.getElementById(
+            "tpl-fluxo-ativo"
+        );
 
-            document.getElementById("tpl-id-edicao").value = "";
-            document.getElementById("tpl-titulo").value = "";
-            document.getElementById("tpl-mensagem").value = "";
-            document.getElementById("tpl-categoria").value = "geral";
-        };
+    const status =
+        document.getElementById(
+            "tpl-fluxo-status"
+        );
+
+    const followup =
+        document.getElementById(
+            "tpl-fluxo-followup"
+        );
+
+    const prioridade =
+        document.getElementById(
+            "tpl-fluxo-prioridade"
+        );
+
+    const anotacao =
+        document.getElementById(
+            "tpl-fluxo-anotacao"
+        );
+
+    if (ativo) ativo.checked = false;
+    if (status) status.value = "nenhum";
+    if (followup) followup.value = "0";
+    if (prioridade) prioridade.value = "normal";
+    if (anotacao) anotacao.value = "";
+
+    atualizarEstadoFluxoTemplate();
+
+};
+
+window.abrirModalTemplate =
+function() {
+
+    document.getElementById(
+        "tpl-id-edicao"
+    ).value = "";
+
+    document.getElementById(
+        "tpl-titulo"
+    ).value = "";
+
+    document.getElementById(
+        "tpl-mensagem"
+    ).value = "";
+
+    document.getElementById(
+        "tpl-categoria"
+    ).value = "geral";
+
+    limparFluxoTemplateForm();
+
+    const tituloModal =
+        document.getElementById(
+            "template-modal-titulo"
+        );
+
+    if (tituloModal) {
+        tituloModal.innerText =
+            "Novo template";
+    }
+
+    document
+        .getElementById(
+            "template-modal"
+        )
+        .classList.remove("hidden");
+
+    setTimeout(() => {
+
+        document
+            .getElementById(
+                "tpl-titulo"
+            )
+            ?.focus();
+
+    }, 80);
+
+};
+
+window.fecharModalTemplate =
+function() {
+
+    document
+        .getElementById(
+            "template-modal"
+        )
+        .classList.add("hidden");
+
+    document.getElementById(
+        "tpl-id-edicao"
+    ).value = "";
+
+    document.getElementById(
+        "tpl-titulo"
+    ).value = "";
+
+    document.getElementById(
+        "tpl-mensagem"
+    ).value = "";
+
+    document.getElementById(
+        "tpl-categoria"
+    ).value = "geral";
+
+    limparFluxoTemplateForm();
+
+};
 
         window.aplicarFiltroTemplates = async function() {
             const filtro = obterFiltroSelecionado(
@@ -42601,37 +43320,94 @@ const status = payload.ativa
             }
         };
 
-        window.editarTemplate = async function(id) {
-            const snap =
-                await getDoc(doc(db, "templates", id));
+window.editarTemplate =
+async function(id) {
 
-            if (!snap.exists()) return;
+    const snap =
+        await getDoc(
+            doc(
+                db,
+                "templates",
+                id
+            )
+        );
 
-            const template = snap.data();
+    if (!snap.exists()) return;
 
-            document.getElementById("tpl-titulo").value =
-                template.titulo || "";
+    const template =
+        snap.data();
 
-            document.getElementById("tpl-mensagem").value =
-                template.mensagem || "";
+    const fluxo =
+        template.fluxo || {};
 
-            document.getElementById("tpl-categoria").value =
-                template.categoria || "geral";
+    document.getElementById(
+        "tpl-titulo"
+    ).value =
+        template.titulo || "";
 
-            document.getElementById("tpl-id-edicao").value =
-                id;
+    document.getElementById(
+        "tpl-mensagem"
+    ).value =
+        template.mensagem || "";
 
-            const tituloModal =
-                document.getElementById("template-modal-titulo");
+    document.getElementById(
+        "tpl-categoria"
+    ).value =
+        template.categoria || "geral";
 
-            if (tituloModal) {
-                tituloModal.innerText = "Editar template";
-            }
+    document.getElementById(
+        "tpl-id-edicao"
+    ).value =
+        id;
 
-            document
-                .getElementById("template-modal")
-                .classList.remove("hidden");
-        };
+    document.getElementById(
+        "tpl-fluxo-ativo"
+    ).checked =
+        Boolean(fluxo.ativo);
+
+    document.getElementById(
+        "tpl-fluxo-status"
+    ).value =
+        fluxo.statusLead ||
+        "nenhum";
+
+    document.getElementById(
+        "tpl-fluxo-followup"
+    ).value =
+        String(
+            fluxo.followupDias || 0
+        );
+
+    document.getElementById(
+        "tpl-fluxo-prioridade"
+    ).value =
+        fluxo.prioridade ||
+        "normal";
+
+    document.getElementById(
+        "tpl-fluxo-anotacao"
+    ).value =
+        fluxo.anotacao || "";
+
+    atualizarEstadoFluxoTemplate();
+
+    const tituloModal =
+        document.getElementById(
+            "template-modal-titulo"
+        );
+
+    if (tituloModal) {
+        tituloModal.innerText =
+            "Editar template";
+    }
+
+    document
+        .getElementById(
+            "template-modal"
+        )
+        .classList.remove("hidden");
+
+};
 
         window.excluirTemplate = async function(id) {
             abrirConfirmacao(
@@ -42657,58 +43433,138 @@ const status = payload.ativa
             );
         };
 
-        window.salvarTemplate = async function() {
-            const titulo =
-                document
-                    .getElementById("tpl-titulo")
-                    .value
-                    .trim();
+window.salvarTemplate =
+async function() {
 
-            const mensagem =
-                document
-                    .getElementById("tpl-mensagem")
-                    .value
-                    .trim();
+    const titulo =
+        document
+            .getElementById(
+                "tpl-titulo"
+            )
+            .value
+            .trim();
 
-            const categoria =
-                document.getElementById("tpl-categoria").value;
+    const mensagem =
+        document
+            .getElementById(
+                "tpl-mensagem"
+            )
+            .value
+            .trim();
 
-            const idEdicao =
-                document.getElementById("tpl-id-edicao").value;
+    const categoria =
+        document.getElementById(
+            "tpl-categoria"
+        ).value;
 
-            if (!titulo || !mensagem) {
-                return showToast(
-                    "Preencha título e mensagem.",
-                    "error"
-                );
-            }
+    const idEdicao =
+        document.getElementById(
+            "tpl-id-edicao"
+        ).value;
 
-            try {
-                const docId =
-                    idEdicao || `tpl_${Date.now()}`;
+    const fluxoAtivo =
+        document.getElementById(
+            "tpl-fluxo-ativo"
+        )?.checked || false;
 
-                await setDoc(
-                    doc(db, "templates", docId),
-                    {
-                        titulo,
-                        mensagem,
-                        categoria,
-                        criadoPor: usuarioUID,
-                        criadoEm: Date.now()
-                    }
-                );
+    const fluxo = {
 
-                fecharModalTemplate();
+        ativo:
+            fluxoAtivo,
 
-                await carregarTemplates();
+        statusLead:
+            document.getElementById(
+                "tpl-fluxo-status"
+            )?.value || "nenhum",
 
-                showToast("Template salvo!");
+        followupDias:
+            Number(
+                document.getElementById(
+                    "tpl-fluxo-followup"
+                )?.value || 0
+            ),
 
-            } catch (err) {
-                console.error(err);
-                showToast("Erro ao salvar.", "error");
-            }
+        prioridade:
+            document.getElementById(
+                "tpl-fluxo-prioridade"
+            )?.value || "normal",
+
+        anotacao:
+            document.getElementById(
+                "tpl-fluxo-anotacao"
+            )?.value.trim() || ""
+
+    };
+
+    if (!titulo || !mensagem) {
+
+        return showToast(
+            "Preencha título e mensagem.",
+            "error"
+        );
+
+    }
+
+    try {
+
+        const docId =
+            idEdicao ||
+            `tpl_${Date.now()}`;
+
+        const dados = {
+
+            titulo,
+            mensagem,
+            categoria,
+            fluxo,
+
+            criadoPor:
+                usuarioUID,
+
+            atualizadoEm:
+                Date.now()
+
         };
+
+        if (!idEdicao) {
+            dados.criadoEm =
+                Date.now();
+        }
+
+        await setDoc(
+            doc(
+                db,
+                "templates",
+                docId
+            ),
+            dados,
+            {
+                merge: true
+            }
+        );
+
+        fecharModalTemplate();
+
+        await carregarTemplates();
+
+        showToast(
+            fluxoAtivo
+                ? "Template e fluxo salvos!"
+                : "Template salvo!"
+        );
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        showToast(
+            "Erro ao salvar.",
+            "error"
+        );
+
+    }
+
+};
 
         
         window.abrirModalPedido = function() {
