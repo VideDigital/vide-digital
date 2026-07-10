@@ -14928,6 +14928,375 @@ span{
   text-align:center;
 }
 
+/* PIPELINE KANBAN DE LEADS */
+
+.aura-leads-view-controls{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.aura-leads-view-switch{
+  display:flex;
+  align-items:center;
+  padding:4px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 62%,
+      transparent
+    );
+}
+
+.aura-leads-view-button{
+  min-height:29px;
+  padding:0 10px;
+  border-radius:8px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-leads-view-button.is-active{
+  color:#fff;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-leads-kanban-board{
+  display:grid;
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(265px,1fr)
+    );
+  gap:11px;
+  margin-top:18px;
+  padding-bottom:5px;
+  overflow-x:auto;
+  overscroll-behavior-x:contain;
+}
+
+.aura-leads-kanban-board.hidden{
+  display:none !important;
+}
+
+.aura-lead-kanban-column{
+  min-height:460px;
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:17px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 46%,
+      transparent
+    );
+  transition:
+    border-color .2s ease,
+    background .2s ease;
+}
+
+.aura-lead-kanban-column.is-drag-over{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 48%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      var(--aura-surface-soft)
+    );
+}
+
+.aura-lead-kanban-column-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.aura-lead-kanban-column-header > div{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.aura-lead-kanban-column-header strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:850;
+}
+
+.aura-lead-kanban-column-dot{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#60A5FA;
+  box-shadow:0 0 9px rgba(96,165,250,.55);
+}
+
+.aura-lead-kanban-column[data-kanban-status="contato"]
+.aura-lead-kanban-column-dot{
+  background:#FBBF24;
+  box-shadow:0 0 9px rgba(251,191,36,.55);
+}
+
+.aura-lead-kanban-column[data-kanban-status="convertido"]
+.aura-lead-kanban-column-dot{
+  background:#34D399;
+  box-shadow:0 0 9px rgba(52,211,153,.55);
+}
+
+.aura-lead-kanban-column[data-kanban-status="perdido"]
+.aura-lead-kanban-column-dot{
+  background:#F87171;
+  box-shadow:0 0 9px rgba(248,113,113,.55);
+}
+
+.aura-lead-kanban-count{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:27px;
+  height:24px;
+  padding:0 7px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  background:rgba(255,255,255,.035);
+  font-size:8px;
+  font-weight:850;
+}
+
+.aura-lead-kanban-column-description{
+  margin:5px 0 11px;
+  color:var(--aura-text-muted) !important;
+  font-size:7px !important;
+}
+
+.aura-lead-kanban-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  min-height:370px;
+}
+
+.aura-lead-kanban-card{
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(
+        in srgb,
+        var(--aura-surface-strong) 67%,
+        transparent
+      ),
+      color-mix(
+        in srgb,
+        var(--aura-surface-soft) 48%,
+        transparent
+      )
+    );
+  cursor:pointer;
+  user-select:none;
+  transition:
+    transform .2s ease,
+    opacity .2s ease,
+    border-color .2s ease;
+}
+
+.aura-lead-kanban-card:hover{
+  transform:translateY(-2px);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 31%,
+      transparent
+    );
+}
+
+.aura-lead-kanban-card.is-dragging{
+  opacity:.45;
+  transform:rotate(2deg) scale(.98);
+}
+
+.aura-lead-kanban-card-top,
+.aura-lead-kanban-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.aura-lead-kanban-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:31px;
+  height:31px;
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 24%,
+      transparent
+    );
+  border-radius:10px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+  font-size:9px;
+  font-weight:850;
+}
+
+.aura-lead-kanban-origin{
+  max-width:130px;
+  padding:5px 7px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:rgba(255,255,255,.03);
+  font-size:7px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.aura-lead-kanban-content{
+  display:flex;
+  margin-top:11px;
+  flex-direction:column;
+}
+
+.aura-lead-kanban-content strong{
+  overflow:hidden;
+  color:var(--aura-text);
+  font-size:10px;
+  font-weight:850;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-lead-kanban-content span{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-lead-kanban-interest{
+  display:flex;
+  margin-top:11px;
+  padding:9px;
+  flex-direction:column;
+  border:1px solid var(--aura-border);
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+
+.aura-lead-kanban-interest small{
+  color:var(--aura-text-muted);
+  font-size:6px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lead-kanban-interest span{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:8px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-lead-kanban-footer{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-lead-kanban-footer > span{
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-lead-kanban-status{
+  min-height:29px !important;
+  max-width:112px;
+  padding:0 23px 0 8px !important;
+  border-radius:8px !important;
+  font-size:7px !important;
+}
+
+.aura-lead-kanban-empty{
+  display:flex;
+  min-height:110px;
+  padding:15px;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-align:center;
+}
+
+.tema-claro .aura-lead-kanban-column,
+.tema-claro .aura-lead-kanban-card{
+  background:rgba(248,250,252,.82);
+}
+
+@media (max-width:639px){
+
+  .aura-leads-view-controls{
+    width:100%;
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aura-leads-view-switch{
+    width:100%;
+  }
+
+  .aura-leads-view-button{
+    flex:1;
+  }
+
+  .aura-leads-kanban-board{
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(82vw,82vw)
+      );
+  }
+
+  .aura-lead-kanban-column{
+    min-height:420px;
+  }
+
+}
+
 /* Tema claro */
 
 .tema-claro .aura-leads-kpi,
@@ -27157,14 +27526,40 @@ body.aura-command-open{
 
                     </div>
 
-                    <span class="aura-leads-section-badge aura-leads-section-badge-live">
-                        <i></i>
-                        Sincronizado
-                    </span>
+                    <div class="aura-leads-view-controls">
+
+    <div class="aura-leads-view-switch">
+
+        <button
+            type="button"
+            id="btn-leads-table-view"
+            class="aura-leads-view-button is-active"
+            onclick="alternarVisualLeads('tabela')"
+        >
+            Tabela
+        </button>
+
+        <button
+            type="button"
+            id="btn-leads-kanban-view"
+            class="aura-leads-view-button"
+            onclick="alternarVisualLeads('kanban')"
+        >
+            Kanban
+        </button>
+
+    </div>
+
+    <span class="aura-leads-section-badge aura-leads-section-badge-live">
+        <i></i>
+        Sincronizado
+    </span>
+
+</div>
 
                 </div>
 
-                <div class="aura-leads-table-scroll">
+                <div id="leads-table-view" class="aura-leads-table-scroll">
 
                     <table class="aura-leads-table">
 
@@ -27196,6 +27591,11 @@ body.aura-command-open{
                     </table>
 
                 </div>
+
+                <div
+                    id="leads-kanban-board"
+                    class="hidden aura-leads-kanban-board"
+                ></div>
 
             </div>
         </section>
@@ -35356,6 +35756,19 @@ throw errBanners;
                 if (elTiktok) elTiktok.innerText = countOrigem.tiktok;
                 if (elInsta) elInsta.innerText = countOrigem.instagram;
 
+                window._leadsVisiveis =
+                    leads;
+
+                renderizarKanbanLeads();
+
+                alternarVisualLeads(
+                    window._modoVisualLeads ||
+                    localStorage.getItem(
+                        "visualLeadsPreferido"
+                    ) ||
+                    "tabela"
+                );
+
                 if (totalLeads === 0) {
                     tableBody.innerHTML = `
     <tr>
@@ -35930,15 +36343,724 @@ window.fecharModalTemplatesLead = function() {
     }
 };
 
-window.atualizarStatusLead = async function(leadId, novoStatus) {
-    try {
-        await setDoc(doc(db, "leads", leadId), { statusLead: novoStatus }, { merge: true });
-        showToast("Status atualizado!");
-        if (typeof window.aplicarFiltrosLeads === "function") window.aplicarFiltrosLeads(false);
-    } catch(err) {
-        console.error(err);
+/* =========================================================
+   PIPELINE KANBAN DE LEADS
+   ========================================================= */
+
+window._leadsVisiveis =
+    window._leadsVisiveis || [];
+
+window._modoVisualLeads =
+    localStorage.getItem(
+        "visualLeadsPreferido"
+    ) || "tabela";
+
+window.alternarVisualLeads = function(modo) {
+
+    const tabela =
+        document.getElementById(
+            "leads-table-view"
+        );
+
+    const kanban =
+        document.getElementById(
+            "leads-kanban-board"
+        );
+
+    const botaoTabela =
+        document.getElementById(
+            "btn-leads-table-view"
+        );
+
+    const botaoKanban =
+        document.getElementById(
+            "btn-leads-kanban-view"
+        );
+
+    const usarKanban =
+        modo === "kanban";
+
+    window._modoVisualLeads =
+        usarKanban
+            ? "kanban"
+            : "tabela";
+
+    localStorage.setItem(
+        "visualLeadsPreferido",
+        window._modoVisualLeads
+    );
+
+    tabela?.classList.toggle(
+        "hidden",
+        usarKanban
+    );
+
+    kanban?.classList.toggle(
+        "hidden",
+        !usarKanban
+    );
+
+    botaoTabela?.classList.toggle(
+        "is-active",
+        !usarKanban
+    );
+
+    botaoKanban?.classList.toggle(
+        "is-active",
+        usarKanban
+    );
+
+    if (usarKanban) {
+        renderizarKanbanLeads();
     }
+
 };
+
+function renderizarKanbanLeads() {
+
+    const board =
+        document.getElementById(
+            "leads-kanban-board"
+        );
+
+    if (!board) return;
+
+    const leads =
+        Array.isArray(
+            window._leadsVisiveis
+        )
+            ? window._leadsVisiveis
+            : [];
+
+    const escapar = valor =>
+        String(valor || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    const formatarData = valor => {
+
+        if (!valor) {
+            return "Hoje";
+        }
+
+        if (
+            typeof valor.toMillis ===
+            "function"
+        ) {
+            valor = valor.toMillis();
+        }
+
+        if (
+            typeof valor.seconds ===
+            "number"
+        ) {
+            valor =
+                valor.seconds * 1000;
+        }
+
+        const data =
+            new Date(valor);
+
+        if (
+            Number.isNaN(
+                data.getTime()
+            )
+        ) {
+            return "Data não informada";
+        }
+
+        return data.toLocaleDateString(
+            "pt-BR"
+        );
+
+    };
+
+    const colunas = [
+
+        {
+            id: "novo",
+            titulo: "Novos",
+            descricao: "Aguardando atendimento"
+        },
+
+        {
+            id: "contato",
+            titulo: "Em contato",
+            descricao: "Negociação em andamento"
+        },
+
+        {
+            id: "convertido",
+            titulo: "Convertidos",
+            descricao: "Oportunidades concluídas"
+        },
+
+        {
+            id: "perdido",
+            titulo: "Perdidos",
+            descricao: "Oportunidades encerradas"
+        }
+
+    ];
+
+    const cardHTML = lead => {
+
+        const nome =
+            lead.nome || "Lead anônimo";
+
+        const whatsapp =
+            lead.whatsapp || "";
+
+        const email =
+            lead.email || "";
+
+        const contato =
+            whatsapp ||
+            email ||
+            "Contato não informado";
+
+        const origem =
+            lead.origem ||
+            "Direto";
+
+        const interesse =
+            lead.produtoInteresse ||
+            "Interesse não informado";
+
+        const status =
+            lead.statusLead ||
+            "novo";
+
+        return `
+            <div
+                class="aura-lead-kanban-card"
+                draggable="true"
+                role="button"
+                tabindex="0"
+                data-lead-id="${escapar(lead.id)}"
+            >
+
+                <div class="aura-lead-kanban-card-top">
+
+                    <span class="aura-lead-kanban-avatar">
+                        ${escapar(nome.charAt(0).toUpperCase())}
+                    </span>
+
+                    <span class="aura-lead-kanban-origin">
+                        ${escapar(origem)}
+                    </span>
+
+                </div>
+
+                <div class="aura-lead-kanban-content">
+
+                    <strong>
+                        ${escapar(nome)}
+                    </strong>
+
+                    <span>
+                        ${escapar(contato)}
+                    </span>
+
+                </div>
+
+                <div class="aura-lead-kanban-interest">
+
+                    <small>Interesse</small>
+
+                    <span>
+                        ${escapar(interesse)}
+                    </span>
+
+                </div>
+
+                <div class="aura-lead-kanban-footer">
+
+                    <span>
+                        ${formatarData(lead.data)}
+                    </span>
+
+                    <select
+                        class="aura-lead-kanban-status"
+                        data-lead-status="${escapar(lead.id)}"
+                        aria-label="Alterar status do lead"
+                    >
+                        <option
+                            value="novo"
+                            ${status === "novo" ? "selected" : ""}
+                        >
+                            Novo
+                        </option>
+
+                        <option
+                            value="contato"
+                            ${status === "contato" ? "selected" : ""}
+                        >
+                            Em contato
+                        </option>
+
+                        <option
+                            value="convertido"
+                            ${status === "convertido" ? "selected" : ""}
+                        >
+                            Convertido
+                        </option>
+
+                        <option
+                            value="perdido"
+                            ${status === "perdido" ? "selected" : ""}
+                        >
+                            Perdido
+                        </option>
+                    </select>
+
+                </div>
+
+            </div>
+        `;
+
+    };
+
+    board.innerHTML =
+        colunas.map(coluna => {
+
+            const leadsColuna =
+                leads.filter(lead =>
+                    (
+                        lead.statusLead ||
+                        "novo"
+                    ) === coluna.id
+                );
+
+            return `
+                <div
+                    class="aura-lead-kanban-column"
+                    data-kanban-status="${coluna.id}"
+                >
+
+                    <div class="aura-lead-kanban-column-header">
+
+                        <div>
+
+                            <span class="aura-lead-kanban-column-dot"></span>
+
+                            <strong>
+                                ${coluna.titulo}
+                            </strong>
+
+                        </div>
+
+                        <span class="aura-lead-kanban-count">
+                            ${leadsColuna.length}
+                        </span>
+
+                    </div>
+
+                    <p class="aura-lead-kanban-column-description">
+                        ${coluna.descricao}
+                    </p>
+
+                    <div class="aura-lead-kanban-list">
+
+                        ${
+                            leadsColuna.length
+                                ? leadsColuna
+                                    .map(cardHTML)
+                                    .join("")
+                                : `
+                                    <div class="aura-lead-kanban-empty">
+                                        Nenhum lead nesta etapa
+                                    </div>
+                                `
+                        }
+
+                    </div>
+
+                </div>
+            `;
+
+        }).join("");
+
+    board
+        .querySelectorAll(
+            ".aura-lead-kanban-card"
+        )
+        .forEach(card => {
+
+            const leadId =
+                card.dataset.leadId;
+
+            card.addEventListener(
+                "click",
+                evento => {
+
+                    if (
+                        evento.target.closest(
+                            "select"
+                        )
+                    ) {
+                        return;
+                    }
+
+                    const lead =
+                        window
+                            ._leadsVisiveis
+                            .find(
+                                item =>
+                                    item.id ===
+                                    leadId
+                            );
+
+                    if (
+                        lead &&
+                        typeof abrirPainelLead ===
+                        "function"
+                    ) {
+                        abrirPainelLead(lead);
+                    }
+
+                }
+            );
+
+            card.addEventListener(
+                "keydown",
+                evento => {
+
+                    if (
+                        evento.key !== "Enter" &&
+                        evento.key !== " "
+                    ) {
+                        return;
+                    }
+
+                    evento.preventDefault();
+                    card.click();
+
+                }
+            );
+
+            card.addEventListener(
+                "dragstart",
+                evento => {
+
+                    if (
+                        evento.target.closest(
+                            "select"
+                        )
+                    ) {
+                        evento.preventDefault();
+                        return;
+                    }
+
+                    evento.dataTransfer
+                        .setData(
+                            "text/plain",
+                            leadId
+                        );
+
+                    evento.dataTransfer
+                        .effectAllowed =
+                        "move";
+
+                    card.classList.add(
+                        "is-dragging"
+                    );
+
+                }
+            );
+
+            card.addEventListener(
+                "dragend",
+                () => {
+
+                    card.classList.remove(
+                        "is-dragging"
+                    );
+
+                    board
+                        .querySelectorAll(
+                            ".aura-lead-kanban-column"
+                        )
+                        .forEach(coluna =>
+                            coluna.classList.remove(
+                                "is-drag-over"
+                            )
+                        );
+
+                }
+            );
+
+        });
+
+    board
+        .querySelectorAll(
+            ".aura-lead-kanban-status"
+        )
+        .forEach(select => {
+
+            select.addEventListener(
+                "click",
+                evento =>
+                    evento.stopPropagation()
+            );
+
+            select.addEventListener(
+                "change",
+                evento => {
+
+                    evento.stopPropagation();
+
+                    moverLeadKanban(
+                        select.dataset.leadStatus,
+                        select.value
+                    );
+
+                }
+            );
+
+        });
+
+    board
+        .querySelectorAll(
+            ".aura-lead-kanban-column"
+        )
+        .forEach(coluna => {
+
+            coluna.addEventListener(
+                "dragover",
+                evento => {
+
+                    evento.preventDefault();
+
+                    evento.dataTransfer
+                        .dropEffect =
+                        "move";
+
+                    coluna.classList.add(
+                        "is-drag-over"
+                    );
+
+                }
+            );
+
+            coluna.addEventListener(
+                "dragleave",
+                evento => {
+
+                    if (
+                        coluna.contains(
+                            evento.relatedTarget
+                        )
+                    ) {
+                        return;
+                    }
+
+                    coluna.classList.remove(
+                        "is-drag-over"
+                    );
+
+                }
+            );
+
+            coluna.addEventListener(
+                "drop",
+                evento => {
+
+                    evento.preventDefault();
+
+                    coluna.classList.remove(
+                        "is-drag-over"
+                    );
+
+                    const leadId =
+                        evento.dataTransfer
+                            .getData(
+                                "text/plain"
+                            );
+
+                    const novoStatus =
+                        coluna.dataset
+                            .kanbanStatus;
+
+                    if (
+                        leadId &&
+                        novoStatus
+                    ) {
+                        moverLeadKanban(
+                            leadId,
+                            novoStatus
+                        );
+                    }
+
+                }
+            );
+
+        });
+
+}
+
+window.renderizarKanbanLeads =
+    renderizarKanbanLeads;
+
+window.moverLeadKanban =
+async function(
+    leadId,
+    novoStatus
+) {
+
+    const lead =
+        window
+            ._leadsVisiveis
+            .find(
+                item =>
+                    item.id === leadId
+            );
+
+    if (!lead) return;
+
+    const statusAnterior =
+        lead.statusLead ||
+        "novo";
+
+    if (
+        statusAnterior === novoStatus
+    ) {
+        return;
+    }
+
+    lead.statusLead =
+        novoStatus;
+
+    renderizarKanbanLeads();
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                statusLead: novoStatus,
+                statusAtualizadoEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        showToast(
+            "Lead movido no pipeline!"
+        );
+
+        if (
+            typeof window
+                .aplicarFiltrosLeads ===
+            "function"
+        ) {
+            window
+                .aplicarFiltrosLeads(
+                    false
+                );
+        }
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        lead.statusLead =
+            statusAnterior;
+
+        renderizarKanbanLeads();
+
+        showToast(
+            "Não foi possível mover o lead.",
+            "error"
+        );
+
+    }
+
+};
+
+window.atualizarStatusLead =
+async function(
+    leadId,
+    novoStatus
+) {
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                statusLead: novoStatus,
+                statusAtualizadoEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        const leadLocal =
+            window
+                ._leadsVisiveis
+                ?.find(
+                    item =>
+                        item.id === leadId
+                );
+
+        if (leadLocal) {
+            leadLocal.statusLead =
+                novoStatus;
+        }
+
+        renderizarKanbanLeads();
+
+        showToast(
+            "Status atualizado!"
+        );
+
+        if (
+            typeof window
+                .aplicarFiltrosLeads ===
+            "function"
+        ) {
+            window
+                .aplicarFiltrosLeads(
+                    false
+                );
+        }
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        showToast(
+            "Erro ao atualizar o status.",
+            "error"
+        );
+
+    }
+
+};
+
+setTimeout(() => {
+
+    alternarVisualLeads(
+        window._modoVisualLeads
+    );
+
+}, 100);
 
         // GESTÃO DO CATÁLOGO DE PRODUTOS
         function alternarVisualFiltro(botaoAtivo) {
