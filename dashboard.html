@@ -467,22 +467,38 @@ h1{font-weight:800;} h2{font-weight:800;} h3{font-weight:700;}
   pointer-events:none;
 }
 
-.aura-sidebar-search input{
+.aura-sidebar-search-editor{
+  display:flex;
+  align-items:center;
   width:100%;
+  min-width:0;
   min-height:41px;
-  padding:0 51px 0 38px !important;
-  border:0 !important;
-  border-radius:14px !important;
-  color:var(--aura-text) !important;
-  font-size:10px !important;
+  padding:0 51px 0 38px;
+  overflow:hidden;
+  border:0;
+  border-radius:14px;
+  color:var(--aura-text);
+  background:transparent;
+  font-size:10px;
+  line-height:1.3;
   font-weight:600;
-  background:transparent !important;
-  box-shadow:none !important;
-  outline:none !important;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  outline:none;
 }
 
-.aura-sidebar-search input::placeholder{
-  color:var(--aura-text-muted) !important;
+.aura-sidebar-search-editor:empty::before{
+  content:attr(data-placeholder);
+  color:var(--aura-text-muted);
+  pointer-events:none;
+}
+
+.tema-claro .aura-sidebar-search-editor{
+  color:#0f172a;
+}
+
+.tema-claro .aura-sidebar-search-editor:empty::before{
+  color:#64748b;
 }
 
 .aura-sidebar-search kbd{
@@ -13449,11 +13465,20 @@ span{
 
                 </svg>
 
-                <input type="text"
-                       id="busca-sidebar-modulos"
-                       placeholder="Buscar módulo..."
-                       autocomplete="off"
-                       aria-label="Buscar módulo no menu">
+                <div
+                    id="busca-sidebar-modulos"
+                    class="aura-sidebar-search-editor"
+                    contenteditable="true"
+                    role="searchbox"
+                    aria-label="Buscar módulo no menu"
+                    aria-autocomplete="none"
+                    data-placeholder="Buscar módulo..."
+                    data-form-type="other"
+                    data-lpignore="true"
+                    data-1p-ignore="true"
+                    spellcheck="false"
+                    onkeydown="if(event.key === 'Enter'){ event.preventDefault(); }"
+                ></div>
 
                 <kbd>⌘ K</kbd>
 
@@ -13782,7 +13807,9 @@ span{
     }
 
     function aplicarBusca() {
-        const termo = normalizarTexto(campoBusca.value);
+        const termo =
+            normalizarTexto(campoBusca.textContent);
+
         let quantidadeVisivel = 0;
 
         areaGrupos
@@ -13848,6 +13875,11 @@ span{
         }
     }
 
+    function limparBuscaSidebar() {
+        campoBusca.textContent = "";
+        aplicarBusca();
+    }
+
     campoBusca.addEventListener("input", aplicarBusca);
 
     document.addEventListener("keydown", function(evento) {
@@ -13871,7 +13903,17 @@ span{
 
             setTimeout(function() {
                 campoBusca.focus();
-                campoBusca.select();
+
+                const selecao =
+                    window.getSelection();
+
+                const intervalo =
+                    document.createRange();
+
+                intervalo.selectNodeContents(campoBusca);
+
+                selecao.removeAllRanges();
+                selecao.addRange(intervalo);
             }, 80);
         }
 
@@ -13879,10 +13921,15 @@ span{
             evento.key === "Escape" &&
             document.activeElement === campoBusca
         ) {
-            campoBusca.value = "";
-            aplicarBusca();
+            limparBuscaSidebar();
             campoBusca.blur();
         }
+    });
+
+    limparBuscaSidebar();
+
+    window.addEventListener("pageshow", function() {
+        setTimeout(limparBuscaSidebar, 100);
     });
 })();
 </script>
