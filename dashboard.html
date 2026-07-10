@@ -17843,6 +17843,506 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — PRODUCT OFFER MODAL
+   ========================================================================= */
+
+.aura-product-modal-overlay{
+  padding:22px;
+  background:rgba(3,7,18,.76) !important;
+  backdrop-filter:blur(12px) saturate(125%);
+}
+
+.aura-product-modal-shell{
+  position:relative;
+  display:flex;
+  width:100%;
+  max-width:940px;
+  max-height:92vh;
+  padding:0 !important;
+  flex-direction:column;
+  overflow:hidden !important;
+  border-radius:27px !important;
+  border-color:var(--aura-border-strong) !important;
+  box-shadow:
+    0 42px 100px -35px rgba(0,0,0,.92),
+    0 0 0 1px rgba(255,255,255,.025),
+    inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.aura-product-modal-shell:hover{
+  transform:none !important;
+}
+
+.aura-product-modal-header{
+  position:relative;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:106px;
+  padding:20px 70px 20px 23px;
+  flex-shrink:0;
+  border-bottom:1px solid var(--aura-border);
+  background:
+    radial-gradient(
+      390px 160px at 95% 0%,
+      color-mix(in srgb,var(--aura-primary) 19%,transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 82%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  backdrop-filter:blur(22px);
+}
+
+.aura-product-modal-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:49px;
+  height:49px;
+  min-width:49px;
+  border-radius:16px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-primary) 15%,transparent),
+      color-mix(in srgb,var(--aura-accent) 7%,transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.07),
+    0 16px 35px -25px
+      color-mix(in srgb,var(--aura-primary) 85%,transparent);
+}
+
+.aura-product-modal-header-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-product-modal-header > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-product-modal-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-product-modal-header h3{
+  margin-top:6px;
+  color:var(--aura-text);
+  font-size:17px;
+  line-height:1.25;
+  font-weight:850;
+  letter-spacing:-.03em;
+}
+
+.aura-product-modal-header p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.aura-product-modal-close{
+  position:absolute;
+  top:20px;
+  right:20px;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:37px;
+  height:37px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 66%,transparent);
+}
+
+.aura-product-modal-close:hover{
+  color:var(--aura-text);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 36%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 9%,transparent);
+}
+
+.aura-product-modal-close svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+/* Formulário */
+
+.aura-product-form{
+  flex:1;
+  display:flex;
+  padding:21px 22px 24px;
+  flex-direction:column;
+  gap:13px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+.aura-product-form > div:not(.aura-product-modal-actions){
+  padding:15px !important;
+  border:1px solid var(--aura-border) !important;
+  border-radius:17px !important;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface) 58%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 44%,transparent)
+    ) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+.aura-product-form label{
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+  line-height:1.4;
+  font-weight:850 !important;
+  letter-spacing:.08em !important;
+}
+
+.aura-product-form input:not([type="checkbox"]):not([type="file"]),
+.aura-product-form select{
+  min-height:44px;
+  border-radius:12px !important;
+  color:var(--aura-text) !important;
+  font-size:10px !important;
+}
+
+.aura-product-form textarea{
+  min-height:100px;
+  padding:12px !important;
+  border-radius:12px !important;
+  color:var(--aura-text) !important;
+  font-size:10px !important;
+  line-height:1.55;
+}
+
+.aura-product-form input[type="file"]{
+  min-height:48px;
+  padding:8px !important;
+  border-radius:12px !important;
+  color:var(--aura-text-muted) !important;
+  font-size:9px !important;
+}
+
+.aura-product-form input[type="file"]::file-selector-button{
+  min-height:31px;
+  margin-right:10px;
+  padding:0 11px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 25%,transparent);
+  border-radius:9px;
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-size:8px;
+  font-weight:800;
+  cursor:pointer;
+}
+
+/* Blocos com interruptores */
+
+.aura-product-form > .flex.items-center.gap-3{
+  min-height:72px;
+  padding:14px 16px !important;
+}
+
+.aura-product-form > .flex.items-center.gap-3 > label{
+  flex-shrink:0;
+}
+
+.aura-product-form > .flex.items-center.gap-3 > span,
+.aura-product-form > .flex.items-center.gap-3 > div > span{
+  color:var(--aura-text-secondary) !important;
+  font-size:9px !important;
+  font-weight:850 !important;
+  letter-spacing:.055em;
+}
+
+.aura-product-form > .flex.items-center.gap-3 p{
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+  line-height:1.45;
+}
+
+/* Interruptores */
+
+#prod-frete-gratis + div,
+#prod-carrinho-permitido + div,
+#prod-rascunho + div,
+#prod-cupom-ativo + div{
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 58%,transparent) !important;
+}
+
+#prod-frete-gratis:checked + div,
+#prod-cupom-ativo:checked + div{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 38%,transparent);
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    ) !important;
+}
+
+#prod-carrinho-permitido:checked + div{
+  border-color:rgba(52,211,153,.36);
+  background:
+    linear-gradient(
+      135deg,
+      #10B981,
+      #34D399
+    ) !important;
+}
+
+#prod-rascunho:checked + div{
+  border-color:rgba(251,191,36,.36);
+  background:
+    linear-gradient(
+      135deg,
+      #D97706,
+      #FBBF24
+    ) !important;
+}
+
+/* Estratégia de destino */
+
+.aura-product-form
+.grid.grid-cols-2.gap-2{
+  padding:4px !important;
+  border:1px solid var(--aura-border) !important;
+  border-radius:13px !important;
+  background:
+    color-mix(in srgb,var(--aura-background) 75%,transparent) !important;
+}
+
+#tab-checkout,
+#tab-whatsapp{
+  min-height:37px;
+  border-radius:10px !important;
+  color:var(--aura-text-muted) !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+}
+
+#tab-checkout.bg-white\/10,
+#tab-whatsapp.bg-white\/10{
+  color:var(--aura-text) !important;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 10%,transparent) !important;
+}
+
+/* Ações finais */
+
+.aura-product-modal-actions{
+  position:sticky;
+  z-index:4;
+  bottom:-24px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin:5px -22px -24px;
+  padding:15px 22px 18px;
+  border-top:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-background) 91%,transparent);
+  backdrop-filter:blur(22px);
+}
+
+.aura-product-modal-actions-right{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  margin-left:auto;
+}
+
+.aura-product-delete-button,
+.aura-product-cancel-button,
+.aura-product-save-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:43px;
+  padding:0 15px;
+  border-radius:12px;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.aura-product-delete-button{
+  color:#F87171;
+  border:1px solid rgba(248,113,113,.2);
+  background:rgba(248,113,113,.07);
+}
+
+.aura-product-cancel-button{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 63%,transparent);
+}
+
+.aura-product-save-button{
+  color:#fff !important;
+  border:0;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 16px 34px -22px
+      color-mix(in srgb,var(--aura-primary) 90%,transparent);
+}
+
+.aura-product-delete-button svg,
+.aura-product-save-button svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-product-modal-shell{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.99),
+      rgba(248,250,252,.96)
+    ) !important;
+}
+
+.tema-claro .aura-product-modal-header{
+  background:
+    radial-gradient(
+      390px 160px at 95% 0%,
+      color-mix(in srgb,var(--aura-primary) 9%,transparent),
+      transparent 70%
+    ),
+    rgba(255,255,255,.96);
+}
+
+.tema-claro
+.aura-product-form
+>
+div:not(.aura-product-modal-actions){
+  background:rgba(248,250,252,.78) !important;
+}
+
+.tema-claro .aura-product-modal-actions{
+  background:rgba(255,255,255,.92);
+}
+
+.tema-claro .aura-product-modal-header h3{
+  color:#0F172A !important;
+}
+
+.tema-claro .aura-product-form input,
+.tema-claro .aura-product-form textarea,
+.tema-claro .aura-product-form select{
+  color:#0F172A !important;
+}
+
+/* Responsividade */
+
+@media (max-width:767px){
+  .aura-product-modal-overlay{
+    padding:8px;
+  }
+
+  .aura-product-modal-shell{
+    max-height:96vh;
+    border-radius:22px !important;
+  }
+
+  .aura-product-modal-header{
+    min-height:94px;
+    padding:16px 58px 16px 17px;
+  }
+
+  .aura-product-modal-header-icon{
+    width:42px;
+    height:42px;
+    min-width:42px;
+  }
+
+  .aura-product-form{
+    padding:15px;
+  }
+
+  .aura-product-modal-actions{
+    align-items:stretch;
+    flex-direction:column;
+    margin:4px -15px -15px;
+    padding:13px 15px 15px;
+  }
+
+  .aura-product-modal-actions-right{
+    width:100%;
+  }
+
+  .aura-product-delete-button,
+  .aura-product-cancel-button,
+  .aura-product-save-button{
+    flex:1;
+  }
+}
+
+@media (max-width:520px){
+  .aura-product-modal-header p{
+    display:none;
+  }
+
+  .aura-product-modal-actions-right{
+    flex-direction:column;
+  }
+
+  .aura-product-delete-button,
+  .aura-product-cancel-button,
+  .aura-product-save-button{
+    width:100%;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -24507,13 +25007,52 @@ span{
     onclick="fecharPainelLead()"
 ></div>
         <div id="lead-painel-overlay" class="hidden fixed inset-0 z-40 bg-black/50" onclick="fecharPainelLead()"></div>
-    <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-2xl p-6 sm:p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
-            <button id="modal-fechar" class="absolute top-5 right-5 text-gray-400 hover:text-white text-2xl font-light">&times;</button>
+    <div
+    id="produto-modal"
+    class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl aura-product-modal-overlay"
+>
+        <div class="glass-card aura-product-modal-shell">
+            <button
+                type="button"
+                id="modal-fechar"
+                class="aura-product-modal-close"
+                aria-label="Fechar modal"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m6 6 12 12"></path>
+                    <path d="M18 6 6 18"></path>
+                </svg>
+            </button>
 
-            <h3 id="modal-titulo" class="text-xl font-bold text-white tracking-tight mb-6">Configurar Oferta do Produto</h3>
+            <div class="aura-product-modal-header">
 
-            <form id="produto-form" class="space-y-5">
+                <span class="aura-product-modal-header-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 3 3 8l9 5 9-5-9-5Z"></path>
+                        <path d="m3 12 9 5 9-5"></path>
+                        <path d="m3 16 9 5 9-5"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>Catálogo operacional</small>
+
+                    <h3 id="modal-titulo">
+                        Configurar oferta do produto
+                    </h3>
+
+                    <p>
+                        Preencha as informações comerciais, logísticas e de conversão da sua oferta.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <form id="produto-form" class="aura-product-form">
                 <input type="hidden" id="form-id-produto">
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -24573,7 +25112,7 @@ span{
                         <input type="checkbox" id="prod-frete-gratis" class="sr-only peer">
                         <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
                     </label>
-                    <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">📦 Marcar como Frete Grátis</span>
+                    <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Marcar como frete grátis</span>
                 </div>
 
                 <div class="flex items-center gap-3 bg-white/[0.01] p-4 rounded-xl border border-white/5">
@@ -24582,7 +25121,7 @@ span{
                         <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
                     </label>
                     <div>
-                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🛒 Permitir adicionar ao Carrinho</span>
+                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Permitir adicionar ao carrinho</span>
                         <p class="text-[10px] text-gray-500 mt-0.5">Só aparece se o carrinho estiver ativo nas configurações da loja.</p>
                     </div>
                 </div>
@@ -24593,7 +25132,7 @@ span{
                         <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
                     </label>
                     <div>
-                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🗂️ Salvar como Rascunho</span>
+                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Salvar como rascunho</span>
                         <p class="text-[10px] text-gray-500 mt-0.5">Rascunhos não aparecem na sua loja pública. Use pra deixar algo pronto sem publicar ainda.</p>
                     </div>
                 </div>
@@ -24604,7 +25143,7 @@ span{
                             <input type="checkbox" id="prod-cupom-ativo" class="sr-only peer">
                             <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
                         </label>
-                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">🎟️ Ativar Cupom de Desconto Automático</span>
+                        <span class="text-xs font-bold text-gray-300 uppercase tracking-wider">Ativar cupom de desconto automático</span>
                     </div>
                     <p class="text-[11px] text-gray-500">Quando ativo, o desconto é aplicado automaticamente na loja, sem o cliente precisar digitar código.</p>
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -24627,8 +25166,8 @@ span{
                     <div class="space-y-1.5">
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Formato logístico</label>
                         <select id="prod-tipo" class="w-full glass-input rounded-xl p-3 text-white text-sm outline-none">
-                            <option value="fisico">📦 Produto Físico</option>
-                            <option value="digital">⚡ Infoproduto / Curso Digital</option>
+                            <option value="fisico">Produto físico</option>
+<option value="digital">Infoproduto / Curso digital</option>
                         </select>
                     </div>
                     <div class="space-y-1.5">
@@ -24672,10 +25211,54 @@ span{
                     <textarea id="prod-descricao" rows="3" class="w-full glass-input rounded-xl p-3 text-sm text-white placeholder-gray-700 outline-none resize-none" placeholder="Insira os principais benefícios do produto..."></textarea>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-white/5">
-                    <button type="button" id="btn-deletar-produto" class="hidden bg-red-500/10 hover:bg-red-500/20 text-red-400 px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all mr-auto">Remover Produto</button>
-                    <button type="button" id="modal-cancelar" class="bg-white/5 hover:bg-white/10 text-white px-5 py-3 rounded-xl text-xs font-bold uppercase tracking-wider transition-all">Cancelar</button>
-                    <button type="submit" id="btn-salvar" class="bg-white hover:bg-gray-100 text-black font-bold px-6 py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Produto</button>
+                <div class="aura-product-modal-actions">
+
+                    <button
+                        type="button"
+                        id="btn-deletar-produto"
+                        class="hidden aura-product-delete-button"
+                    >
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M4 7h16"></path>
+                            <path d="M10 11v6"></path>
+                            <path d="M14 11v6"></path>
+                            <path d="m6 7 1 14h10l1-14"></path>
+                            <path d="M9 7V4h6v3"></path>
+                        </svg>
+
+                        Remover produto
+
+                    </button>
+
+                    <div class="aura-product-modal-actions-right">
+
+                        <button
+                            type="button"
+                            id="modal-cancelar"
+                            class="aura-product-cancel-button"
+                        >
+                            Cancelar
+                        </button>
+
+                        <button
+                            type="submit"
+                            id="btn-salvar"
+                            class="aura-product-save-button"
+                        >
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M5 4h12l2 2v14H5V4Z"></path>
+                                <path d="M8 4v6h8V4"></path>
+                                <path d="M9 20v-6h6v6"></path>
+                            </svg>
+
+                            Salvar produto
+
+                        </button>
+
+                    </div>
+
                 </div>
             </form>
         </div>
