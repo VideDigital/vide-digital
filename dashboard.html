@@ -14982,6 +14982,806 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — MESSAGE TEMPLATE LIBRARY
+   ========================================================================= */
+
+#view-templates{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-templates-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:25px;
+  min-height:178px;
+  padding:30px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      550px 230px at 92% 2%,
+      color-mix(in srgb,var(--aura-primary) 20%,transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      370px 200px at 68% 115%,
+      color-mix(in srgb,var(--aura-accent) 11%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 84%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+}
+
+.aura-templates-header::before{
+  content:"";
+  position:absolute;
+  top:-120px;
+  right:80px;
+  width:290px;
+  height:290px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 17%,transparent);
+  pointer-events:none;
+}
+
+.aura-templates-header-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+}
+
+.aura-templates-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 11px;
+  margin-bottom:12px;
+  border-radius:999px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-templates-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(27px,3vw,36px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-templates-header p{
+  max-width:620px;
+  margin-top:11px;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.aura-templates-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:15px;
+}
+
+.aura-templates-tags span{
+  min-height:25px;
+  padding:6px 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:750;
+}
+
+.aura-templates-header-panel{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:13px;
+  min-width:310px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:19px;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 70%,transparent);
+}
+
+.aura-templates-header-icon,
+.aura-templates-summary-icon,
+.aura-templates-library-title > span,
+.aura-template-card-icon,
+.aura-template-modal-header > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  min-width:44px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-templates-header-icon svg,
+.aura-templates-summary-icon svg,
+.aura-templates-library-title svg,
+.aura-template-card-icon svg,
+.aura-template-modal-header svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-templates-header-panel > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-templates-header-panel small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-templates-header-panel strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  font-weight:800;
+}
+
+.aura-templates-header-panel > div > span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  color:#34D399;
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-templates-header-panel i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-templates-new-button,
+.aura-templates-filter-button,
+.aura-template-save-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  padding:0 15px;
+  border:0;
+  border-radius:13px;
+  color:#fff !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  font-size:9px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-templates-new-button{
+  grid-column:1 / -1;
+}
+
+.aura-templates-new-button svg,
+.aura-templates-filter-button svg,
+.aura-template-save-button svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-templates-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.aura-templates-summary-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:110px;
+  padding:17px;
+  border:1px solid var(--aura-border);
+  border-radius:20px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+}
+
+.aura-templates-summary-card > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-templates-summary-card small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-templates-summary-card strong{
+  margin-top:5px;
+  color:var(--aura-text);
+  font-size:24px;
+  line-height:1;
+  font-weight:850;
+}
+
+.aura-templates-summary-card > div > span{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.aura-templates-summary-sales .aura-templates-summary-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-templates-summary-support .aura-templates-summary-icon{
+  color:#60A5FA;
+  border-color:rgba(96,165,250,.18);
+  background:rgba(96,165,250,.08);
+}
+
+.aura-templates-library{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:25px !important;
+}
+
+.aura-templates-library:hover{
+  transform:none !important;
+}
+
+.aura-templates-library-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-templates-library-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.aura-templates-library-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-templates-library-title small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-templates-library-title h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:14px;
+  font-weight:800;
+}
+
+.aura-templates-filter{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+  gap:8px;
+}
+
+.aura-templates-filter select,
+.aura-templates-filter input{
+  min-height:42px;
+  border-radius:13px !important;
+  font-size:10px !important;
+}
+
+.aura-templates-custom-dates{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.aura-templates-custom-dates.hidden{
+  display:none !important;
+}
+
+.aura-templates-custom-dates span{
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.aura-templates-grid{
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:13px;
+  min-height:220px;
+  padding-top:18px;
+}
+
+.aura-template-card{
+  display:flex;
+  min-height:245px;
+  padding:18px !important;
+  flex-direction:column;
+  justify-content:space-between;
+  border-radius:19px !important;
+}
+
+.aura-template-card-top,
+.aura-template-card-actions,
+.aura-template-card-meta{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+}
+
+.aura-template-category,
+.aura-template-variable{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-card[data-category="sales"]
+.aura-template-category{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-template-card[data-category="support"]
+.aura-template-category{
+  color:#60A5FA;
+  border-color:rgba(96,165,250,.18);
+  background:rgba(96,165,250,.07);
+}
+
+.aura-template-card[data-category="billing"]
+.aura-template-category{
+  color:#FBBF24;
+  border-color:rgba(251,191,36,.18);
+  background:rgba(251,191,36,.07);
+}
+
+.aura-template-card-content{
+  flex:1;
+  margin-top:17px;
+}
+
+.aura-template-card-content h3{
+  color:var(--aura-text);
+  font-size:14px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-template-card-content p{
+  display:-webkit-box;
+  margin-top:8px;
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.65;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:4;
+}
+
+.aura-template-card-meta{
+  margin-top:16px;
+}
+
+.aura-template-card-meta > span:first-child{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.aura-template-card-meta svg{
+  width:12px;
+  height:12px;
+  stroke-width:2;
+}
+
+.aura-template-variable{
+  color:var(--aura-primary);
+  text-transform:none;
+}
+
+.aura-template-card-actions{
+  margin-top:14px;
+  padding-top:14px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-template-copy-button,
+.aura-template-edit-button,
+.aura-template-delete-button,
+.aura-template-cancel-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:38px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-template-copy-button{
+  flex:1;
+}
+
+.aura-template-edit-button,
+.aura-template-delete-button{
+  width:38px;
+}
+
+.aura-template-delete-button{
+  color:#F87171;
+  border-color:rgba(248,113,113,.18);
+  background:rgba(248,113,113,.06);
+}
+
+.aura-template-card-actions svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
+
+.aura-templates-empty,
+.aura-templates-loading,
+.aura-templates-error{
+  grid-column:1 / -1;
+  display:flex;
+  min-height:230px;
+  padding:30px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:19px;
+  color:var(--aura-text-muted);
+  text-align:center;
+}
+
+.aura-templates-empty > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:50px;
+  height:50px;
+  border-radius:16px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-templates-empty svg{
+  width:22px;
+  height:22px;
+}
+
+.aura-templates-empty strong{
+  margin-top:14px;
+  color:var(--aura-text-secondary);
+  font-size:13px;
+}
+
+.aura-templates-empty p{
+  margin-top:6px;
+  font-size:10px;
+}
+
+.aura-templates-empty button{
+  min-height:38px;
+  margin-top:14px;
+  padding:0 13px;
+  border-radius:11px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 24%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-templates-error{
+  color:#F87171;
+}
+
+.aura-template-modal{
+  position:relative;
+  width:100%;
+  max-width:620px;
+  max-height:88vh;
+  padding:24px !important;
+  overflow-y:auto !important;
+  border-radius:25px !important;
+}
+
+.aura-template-modal:hover{
+  transform:none !important;
+}
+
+.aura-template-modal-close{
+  position:absolute;
+  top:17px;
+  right:17px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+}
+
+.aura-template-modal-close svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+}
+
+.aura-template-modal-header{
+  display:flex;
+  align-items:flex-start;
+  gap:13px;
+  padding-right:45px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-template-modal-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-modal-header h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:800;
+}
+
+.aura-template-modal-header p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+}
+
+.aura-template-modal-fields{
+  display:flex;
+  flex-direction:column;
+  gap:14px;
+  margin-top:18px;
+}
+
+.aura-template-field label{
+  display:block;
+  margin-bottom:7px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.aura-template-field input,
+.aura-template-field select{
+  min-height:47px;
+  font-size:11px !important;
+}
+
+.aura-template-field textarea{
+  min-height:150px;
+  padding:14px !important;
+  font-size:11px !important;
+  resize:vertical;
+}
+
+.aura-template-variable-hint{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-top:8px;
+}
+
+.aura-template-variable-hint span{
+  padding:5px 8px;
+  border-radius:8px;
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-template-variable-hint p{
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.aura-template-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+  margin-top:19px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-template-cancel-button,
+.aura-template-save-button{
+  min-width:150px;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-templates-header,
+.tema-claro .aura-templates-summary-card,
+.tema-claro .aura-templates-library,
+.tema-claro .aura-template-modal{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-templates-header-panel > div > span{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-template-card{
+  background:rgba(248,250,252,.78) !important;
+}
+
+/* Responsividade */
+
+@media (max-width:900px){
+  .aura-templates-header{
+    align-items:flex-start;
+  }
+
+  .aura-templates-library-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-templates-filter{
+    width:100%;
+    justify-content:flex-start;
+  }
+}
+
+@media (max-width:767px){
+  .aura-templates-header{
+    flex-direction:column;
+    min-height:0;
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .aura-templates-header-panel{
+    width:100%;
+    min-width:0;
+  }
+
+  .aura-templates-summary{
+    grid-template-columns:1fr;
+  }
+
+  .aura-templates-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-templates-library{
+    padding:18px !important;
+  }
+
+  .aura-templates-filter,
+  .aura-templates-custom-dates{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aura-templates-filter select,
+  .aura-templates-filter input,
+  .aura-templates-filter-button{
+    width:100%;
+  }
+
+  .aura-template-modal{
+    padding:19px !important;
+  }
+
+  .aura-template-modal-actions{
+    flex-direction:column;
+  }
+
+  .aura-template-cancel-button,
+  .aura-template-save-button{
+    width:100%;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -17099,32 +17899,226 @@ span{
 
 </div>
         </section>
-        <section id="view-templates" class="view-section space-y-6 max-w-4xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
-                <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Templates de Mensagens</h1>
-                    <p class="text-gray-400 text-xs mt-1">Crie mensagens pré-prontas para enviar rapidamente pelo WhatsApp.</p>
+        <section
+            id="view-templates"
+            class="view-section space-y-6 max-w-6xl mx-auto aura-templates-view"
+        >
+
+            <div class="aura-templates-header">
+
+                <div class="aura-templates-header-copy">
+
+                    <span class="aura-templates-kicker">
+                        Comunicação rápida
+                    </span>
+
+                    <h1>Templates de Mensagens</h1>
+
+                    <p>
+                        Crie respostas reutilizáveis para agilizar atendimentos, vendas, cobranças e contatos pelo WhatsApp.
+                    </p>
+
+                    <div class="aura-templates-tags">
+                        <span>Vendas</span>
+                        <span>Suporte</span>
+                        <span>Follow-up</span>
+                        <span>Cobrança</span>
+                    </div>
+
                 </div>
-                <button onclick="abrirModalTemplate()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all">+ Novo Template</button>
-            </div>
-            <div class="flex flex-wrap gap-2 items-center">
-                <select id="filtro-template-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <option value="7">Últimos 7 dias</option>
-                    <option value="30">Últimos 30 dias</option>
-                    <option value="90">Últimos 90 dias</option>
-                    <option value="0" selected>Todos</option>
-                    <option value="custom">Data específica</option>
-                </select>
-                <div id="filtro-template-datas-custom" class="hidden flex gap-2 items-center">
-                    <input type="date" id="filtro-template-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <span class="text-gray-500 text-xs">até</span>
-                    <input type="date" id="filtro-template-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+
+                <div class="aura-templates-header-panel">
+
+                    <span class="aura-templates-header-icon">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                            <path d="M8 9h8"></path>
+                            <path d="M8 13h5"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+                        <small>Biblioteca comercial</small>
+                        <strong>Respostas prontas para sua equipe</strong>
+
+                        <span>
+                            <i></i>
+                            Sincronização com Firebase
+                        </span>
+                    </div>
+
+                    <button
+                        onclick="abrirModalTemplate()"
+                        class="aura-templates-new-button"
+                    >
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M12 5v14"></path>
+                            <path d="M5 12h14"></path>
+                        </svg>
+
+                        Novo template
+
+                    </button>
+
                 </div>
-                <button onclick="aplicarFiltroTemplates()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+
             </div>
-            <div id="templates-container" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template criado ainda.</div>
+
+            <div class="aura-templates-summary">
+
+                <div class="aura-templates-summary-card">
+
+                    <span class="aura-templates-summary-icon">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                            <path d="M8 9h8"></path>
+                            <path d="M8 13h5"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+                        <small>Total encontrado</small>
+                        <strong id="template-total-count">—</strong>
+                        <span>Templates no período</span>
+                    </div>
+
+                </div>
+
+                <div class="aura-templates-summary-card aura-templates-summary-sales">
+
+                    <span class="aura-templates-summary-icon">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M4 17 10 11l4 4 6-8"></path>
+                            <path d="M15 7h5v5"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+                        <small>Vendas</small>
+                        <strong id="template-vendas-count">—</strong>
+                        <span>Mensagens comerciais</span>
+                    </div>
+
+                </div>
+
+                <div class="aura-templates-summary-card aura-templates-summary-support">
+
+                    <span class="aura-templates-summary-icon">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M9.5 9a2.7 2.7 0 0 1 5 1.4c0 2-2.5 2.1-2.5 4"></path>
+                            <path d="M12 18h.01"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+                        <small>Suporte</small>
+                        <strong id="template-suporte-count">—</strong>
+                        <span>Respostas de atendimento</span>
+                    </div>
+
+                </div>
+
             </div>
+
+            <div class="glass-card aura-templates-library">
+
+                <div class="aura-templates-library-header">
+
+                    <div class="aura-templates-library-title">
+
+                        <span>
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M4 6h16"></path>
+                                <path d="M4 12h16"></path>
+                                <path d="M4 18h10"></path>
+                            </svg>
+
+                        </span>
+
+                        <div>
+                            <small>Biblioteca de conteúdo</small>
+                            <h3>Mensagens cadastradas</h3>
+                        </div>
+
+                    </div>
+
+                    <div class="aura-templates-filter">
+
+                        <select
+                            id="filtro-template-dias"
+                            class="glass-input"
+                        >
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30">Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="0" selected>Todos</option>
+                            <option value="custom">Data específica</option>
+                        </select>
+
+                        <div
+                            id="filtro-template-datas-custom"
+                            class="hidden aura-templates-custom-dates"
+                        >
+
+                            <input
+                                type="date"
+                                id="filtro-template-de"
+                                class="glass-input"
+                            >
+
+                            <span>até</span>
+
+                            <input
+                                type="date"
+                                id="filtro-template-ate"
+                                class="glass-input"
+                            >
+
+                        </div>
+
+                        <button
+                            onclick="aplicarFiltroTemplates()"
+                            class="aura-templates-filter-button"
+                        >
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M4 5h16"></path>
+                                <path d="M7 12h10"></path>
+                                <path d="M10 19h4"></path>
+                            </svg>
+
+                            Filtrar
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <div
+                    id="templates-container"
+                    class="aura-templates-grid"
+                >
+
+                    <div class="aura-templates-loading">
+                        Carregando templates...
+                    </div>
+
+                </div>
+
+            </div>
+
         </section>
 
         <section id="view-campanhas" class="view-section space-y-6 max-w-6xl mx-auto">
@@ -21186,34 +22180,149 @@ span{
             <div id="template-lead-lista" class="flex-1 overflow-y-auto space-y-3"></div>
         </div>
     </div>
-    <div id="template-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
-            <button onclick="document.getElementById('template-modal').classList.add('hidden'); document.getElementById('tpl-id-edicao').value = '';" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-sm font-black text-white">Novo Template</h3>
-            <div class="space-y-3">
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título do Template</label>
-                    <input type="hidden" id="tpl-id-edicao">
-                    <input type="text" id="tpl-titulo" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Boas-vindas, Follow-up, Promoção...">
+    <div
+        id="template-modal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+        onclick="if(event.target === this) fecharModalTemplate()"
+    >
+
+        <div class="glass-card aura-template-modal">
+
+            <button
+                type="button"
+                onclick="fecharModalTemplate()"
+                class="aura-template-modal-close"
+                aria-label="Fechar"
+            >
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m6 6 12 12"></path>
+                    <path d="M18 6 6 18"></path>
+                </svg>
+
+            </button>
+
+            <div class="aura-template-modal-header">
+
+                <span>
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h5"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Biblioteca de mensagens</small>
+
+                    <h3 id="template-modal-titulo">
+                        Novo template
+                    </h3>
+
+                    <p>
+                        Cadastre uma mensagem para reutilizar durante seus atendimentos.
+                    </p>
                 </div>
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Categoria</label>
-                    <select id="tpl-categoria" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+
+            </div>
+
+            <input type="hidden" id="tpl-id-edicao">
+
+            <div class="aura-template-modal-fields">
+
+                <div class="aura-template-field">
+
+                    <label for="tpl-titulo">
+                        Título do template
+                    </label>
+
+                    <input
+                        type="text"
+                        id="tpl-titulo"
+                        class="w-full glass-input"
+                        placeholder="Ex: Boas-vindas, Follow-up, Promoção..."
+                    >
+
+                </div>
+
+                <div class="aura-template-field">
+
+                    <label for="tpl-categoria">
+                        Categoria
+                    </label>
+
+                    <select
+                        id="tpl-categoria"
+                        class="w-full glass-input"
+                    >
                         <option value="geral">Geral</option>
                         <option value="vendas">Vendas</option>
                         <option value="suporte">Suporte</option>
                         <option value="followup">Follow-up</option>
                         <option value="cobranca">Cobrança</option>
                     </select>
+
                 </div>
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Mensagem</label>
-                    <textarea id="tpl-mensagem" rows="5" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none" placeholder="Olá {nome}! Tudo bem? Vim te avisar sobre..."></textarea>
-                    <p class="text-[10px] text-gray-600">Dica: use {nome} para inserir o nome do lead automaticamente.</p>
+
+                <div class="aura-template-field">
+
+                    <label for="tpl-mensagem">
+                        Mensagem
+                    </label>
+
+                    <textarea
+                        id="tpl-mensagem"
+                        rows="6"
+                        class="w-full glass-input"
+                        placeholder="Olá {nome}! Tudo bem? Vim te avisar sobre..."
+                    ></textarea>
+
+                    <div class="aura-template-variable-hint">
+
+                        <span>{nome}</span>
+
+                        <p>
+                            Use essa variável para inserir automaticamente o nome do lead.
+                        </p>
+
+                    </div>
+
                 </div>
+
             </div>
-            <button onclick="salvarTemplate()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Template</button>
+
+            <div class="aura-template-modal-actions">
+
+                <button
+                    type="button"
+                    onclick="fecharModalTemplate()"
+                    class="aura-template-cancel-button"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="salvarTemplate()"
+                    class="aura-template-save-button"
+                >
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 4h12l2 2v14H5V4Z"></path>
+                        <path d="M8 4v6h8V4"></path>
+                        <path d="M9 20v-6h6v6"></path>
+                    </svg>
+
+                    Salvar template
+
+                </button>
+
+            </div>
+
         </div>
+
     </div>
     <div id="pedido-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
@@ -27261,99 +28370,460 @@ const status = payload.ativa
         // TEMPLATES
         async function carregarTemplates(filtroDataDias = 0) {
             if (!usuarioUID) return;
-            try {
-                const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", usuarioUID)));
-                const container = document.getElementById("templates-container");
-                let templates = [];
-                snap.forEach(d => templates.push({ id: d.id, ...d.data() }));
 
-                const { inicio, fim, todos } = normalizarIntervalo(filtroDataDias);
+            const container =
+                document.getElementById("templates-container");
+
+            const totalElemento =
+                document.getElementById("template-total-count");
+
+            const vendasElemento =
+                document.getElementById("template-vendas-count");
+
+            const suporteElemento =
+                document.getElementById("template-suporte-count");
+
+            if (!container) return;
+
+            try {
+                const snap = await getDocs(
+                    query(
+                        collection(db, "templates"),
+                        where("criadoPor", "==", usuarioUID)
+                    )
+                );
+
+                let templates = [];
+
+                snap.forEach(d => {
+                    templates.push({
+                        id: d.id,
+                        ...d.data()
+                    });
+                });
+
+                const { inicio, fim, todos } =
+                    normalizarIntervalo(filtroDataDias);
+
                 if (!todos) {
-                    templates = templates.filter(t => (t.criadoEm || Date.now()) >= inicio && (t.criadoEm || Date.now()) <= fim);
+                    templates = templates.filter(t => {
+                        const data = t.criadoEm || Date.now();
+
+                        return data >= inicio && data <= fim;
+                    });
                 }
-                templates.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
+
+                templates.sort(
+                    (a, b) =>
+                        (b.criadoEm || 0) -
+                        (a.criadoEm || 0)
+                );
+
+                const total = templates.length;
+
+                const totalVendas =
+                    templates.filter(
+                        t => t.categoria === "vendas"
+                    ).length;
+
+                const totalSuporte =
+                    templates.filter(
+                        t => t.categoria === "suporte"
+                    ).length;
+
+                if (totalElemento) {
+                    totalElemento.innerText = total;
+                }
+
+                if (vendasElemento) {
+                    vendasElemento.innerText = totalVendas;
+                }
+
+                if (suporteElemento) {
+                    suporteElemento.innerText = totalSuporte;
+                }
 
                 if (templates.length === 0) {
-                    container.innerHTML = `<div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template encontrado para esse período.</div>`;
+                    container.innerHTML = `
+                        <div class="aura-templates-empty">
+
+                            <span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 13h5"></path>
+                                </svg>
+                            </span>
+
+                            <strong>
+                                Nenhum template encontrado
+                            </strong>
+
+                            <p>
+                                Crie uma mensagem ou altere o período selecionado.
+                            </p>
+
+                            <button onclick="abrirModalTemplate()">
+                                Criar primeiro template
+                            </button>
+
+                        </div>
+                    `;
+
                     return;
                 }
-                container.innerHTML = templates.map(t => `
-                    <div class="glass-card rounded-xl p-5 space-y-3 flex flex-col justify-between">
-                        <div class="space-y-1.5">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-white">${t.titulo}</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${t.categoria === 'vendas' ? 'bg-emerald-500/10 text-emerald-400' : t.categoria === 'suporte' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}">${t.categoria || 'geral'}</span>
+
+                const categorias = {
+                    geral: {
+                        label: "Geral",
+                        state: "general"
+                    },
+
+                    vendas: {
+                        label: "Vendas",
+                        state: "sales"
+                    },
+
+                    suporte: {
+                        label: "Suporte",
+                        state: "support"
+                    },
+
+                    followup: {
+                        label: "Follow-up",
+                        state: "followup"
+                    },
+
+                    cobranca: {
+                        label: "Cobrança",
+                        state: "billing"
+                    }
+                };
+
+                container.innerHTML =
+                    templates.map(t => {
+                        const categoria =
+                            categorias[t.categoria] ||
+                            categorias.geral;
+
+                        const dataFormatada =
+                            t.criadoEm
+                                ? new Date(
+                                    t.criadoEm
+                                ).toLocaleDateString("pt-BR")
+                                : "Data não informada";
+
+                        return `
+                            <div
+                                class="glass-card aura-template-card"
+                                data-category="${categoria.state}"
+                            >
+
+                                <div class="aura-template-card-top">
+
+                                    <span class="aura-template-card-icon">
+
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                                            <path d="M8 9h8"></path>
+                                            <path d="M8 13h5"></path>
+                                        </svg>
+
+                                    </span>
+
+                                    <span class="aura-template-category">
+                                        ${categoria.label}
+                                    </span>
+
+                                </div>
+
+                                <div class="aura-template-card-content">
+
+                                    <h3>
+                                        ${t.titulo || "Template sem título"}
+                                    </h3>
+
+                                    <p>
+                                        ${t.mensagem || ""}
+                                    </p>
+
+                                </div>
+
+                                <div class="aura-template-card-meta">
+
+                                    <span>
+
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <circle cx="12" cy="12" r="9"></circle>
+                                            <path d="M12 7v5l3 2"></path>
+                                        </svg>
+
+                                        ${dataFormatada}
+
+                                    </span>
+
+                                    ${
+                                        (t.mensagem || "").includes("{nome}")
+                                            ? `
+                                                <span class="aura-template-variable">
+                                                    {nome}
+                                                </span>
+                                            `
+                                            : ""
+                                    }
+
+                                </div>
+
+                                <div class="aura-template-card-actions">
+
+                                    <button
+                                        onclick="copiarTemplate('${t.id}')"
+                                        class="aura-template-copy-button"
+                                    >
+
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+                                            <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                                        </svg>
+
+                                        Copiar
+
+                                    </button>
+
+                                    <button
+                                        onclick="editarTemplate('${t.id}')"
+                                        class="aura-template-edit-button"
+                                        aria-label="Editar template"
+                                    >
+
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
+                                            <path d="m13.5 6.5 4 4"></path>
+                                        </svg>
+
+                                    </button>
+
+                                    <button
+                                        onclick="excluirTemplate('${t.id}')"
+                                        class="aura-template-delete-button"
+                                        aria-label="Excluir template"
+                                    >
+
+                                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                            <path d="M4 7h16"></path>
+                                            <path d="M10 11v6"></path>
+                                            <path d="M14 11v6"></path>
+                                            <path d="m6 7 1 14h10l1-14"></path>
+                                            <path d="M9 7V4h6v3"></path>
+                                        </svg>
+
+                                    </button>
+
+                                </div>
+
                             </div>
-                            <p class="text-xs text-gray-400 leading-relaxed line-clamp-3">${t.mensagem}</p>
-                        </div>
-                        <div class="flex gap-2 pt-2 border-t border-white/5">
-                            <button onclick="copiarTemplate('${t.id}')" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">📋 Copiar</button>
-                            <button onclick="editarTemplate('${t.id}')" class="bg-white/5 hover:bg-white/10 text-white text-xs font-bold px-3 py-2 rounded-xl transition-all">✏️</button>
-                            <button onclick="excluirTemplate('${t.id}')" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 text-xs font-bold px-3 py-2 rounded-xl transition-all">🗑️</button>
-                        </div>
+                        `;
+
+                    }).join("");
+
+            } catch (err) {
+                console.error(err);
+
+                if (totalElemento) totalElemento.innerText = "—";
+                if (vendasElemento) vendasElemento.innerText = "—";
+                if (suporteElemento) suporteElemento.innerText = "—";
+
+                container.innerHTML = `
+                    <div class="aura-templates-error">
+                        Não foi possível carregar os templates.
                     </div>
-                `).join("");
-            } catch(err) { console.error(err); }
+                `;
+            }
         }
 
         window.abrirModalTemplate = function() {
-            document.getElementById("template-modal").classList.remove("hidden");
+            document.getElementById("tpl-id-edicao").value = "";
+            document.getElementById("tpl-titulo").value = "";
+            document.getElementById("tpl-mensagem").value = "";
+            document.getElementById("tpl-categoria").value = "geral";
+
+            const tituloModal =
+                document.getElementById("template-modal-titulo");
+
+            if (tituloModal) {
+                tituloModal.innerText = "Novo template";
+            }
+
+            document
+                .getElementById("template-modal")
+                .classList.remove("hidden");
+
+            setTimeout(() => {
+                document
+                    .getElementById("tpl-titulo")
+                    ?.focus();
+            }, 80);
+        };
+
+        window.fecharModalTemplate = function() {
+            document
+                .getElementById("template-modal")
+                .classList.add("hidden");
+
+            document.getElementById("tpl-id-edicao").value = "";
+            document.getElementById("tpl-titulo").value = "";
+            document.getElementById("tpl-mensagem").value = "";
+            document.getElementById("tpl-categoria").value = "geral";
         };
 
         window.aplicarFiltroTemplates = async function() {
-            const filtro = obterFiltroSelecionado("filtro-template-dias", "filtro-template-de", "filtro-template-ate");
+            const filtro = obterFiltroSelecionado(
+                "filtro-template-dias",
+                "filtro-template-de",
+                "filtro-template-ate"
+            );
+
             await carregarTemplates(filtro);
-            const total = document.querySelectorAll("#templates-container > div.glass-card").length;
-            showToast(`Filtro aplicado! ${total} template(s) encontrado(s).`);
+
+            const total =
+                document.querySelectorAll(
+                    "#templates-container > .aura-template-card"
+                ).length;
+
+            showToast(
+                `Filtro aplicado! ${total} template(s) encontrado(s).`
+            );
         };
 
         window.copiarTemplate = async function(id) {
-            const snap = await getDoc(doc(db, "templates", id));
-            if (snap.exists()) {
-                navigator.clipboard.writeText(snap.data().mensagem);
+            try {
+                const snap =
+                    await getDoc(doc(db, "templates", id));
+
+                if (!snap.exists()) return;
+
+                await navigator.clipboard.writeText(
+                    snap.data().mensagem || ""
+                );
+
                 showToast("Template copiado!");
+
+            } catch (err) {
+                console.error(err);
+                showToast("Não foi possível copiar.", "error");
             }
         };
-window.editarTemplate = async function(id) {
-            const snap = await getDoc(doc(db, "templates", id));
+
+        window.editarTemplate = async function(id) {
+            const snap =
+                await getDoc(doc(db, "templates", id));
+
             if (!snap.exists()) return;
-            const t = snap.data();
-            document.getElementById("tpl-titulo").value = t.titulo;
-            document.getElementById("tpl-mensagem").value = t.mensagem;
-            document.getElementById("tpl-categoria").value = t.categoria || "geral";
-            document.getElementById("tpl-id-edicao").value = id;
-            document.getElementById("template-modal").classList.remove("hidden");
+
+            const template = snap.data();
+
+            document.getElementById("tpl-titulo").value =
+                template.titulo || "";
+
+            document.getElementById("tpl-mensagem").value =
+                template.mensagem || "";
+
+            document.getElementById("tpl-categoria").value =
+                template.categoria || "geral";
+
+            document.getElementById("tpl-id-edicao").value =
+                id;
+
+            const tituloModal =
+                document.getElementById("template-modal-titulo");
+
+            if (tituloModal) {
+                tituloModal.innerText = "Editar template";
+            }
+
+            document
+                .getElementById("template-modal")
+                .classList.remove("hidden");
         };
+
         window.excluirTemplate = async function(id) {
-    abrirConfirmacao("Excluir este template? Essa ação não pode ser desfeita.", async () => {
-        try {
-            await deleteDoc(doc(db, "templates", id));
-            carregarTemplates();
-            showToast("Template excluído.");
-        } catch(err) { console.error(err); }
-    });
-};
+            abrirConfirmacao(
+                "Excluir este template? Essa ação não pode ser desfeita.",
+                async () => {
+                    try {
+                        await deleteDoc(
+                            doc(db, "templates", id)
+                        );
+
+                        await carregarTemplates();
+
+                        showToast("Template excluído.");
+
+                    } catch (err) {
+                        console.error(err);
+                        showToast(
+                            "Erro ao excluir o template.",
+                            "error"
+                        );
+                    }
+                }
+            );
+        };
 
         window.salvarTemplate = async function() {
-            const titulo = document.getElementById("tpl-titulo").value.trim();
-            const mensagem = document.getElementById("tpl-mensagem").value.trim();
-            const categoria = document.getElementById("tpl-categoria").value;
-            const idEdicao = document.getElementById("tpl-id-edicao").value;
-            if (!titulo || !mensagem) return showToast("Preencha título e mensagem.", "error");
+            const titulo =
+                document
+                    .getElementById("tpl-titulo")
+                    .value
+                    .trim();
+
+            const mensagem =
+                document
+                    .getElementById("tpl-mensagem")
+                    .value
+                    .trim();
+
+            const categoria =
+                document.getElementById("tpl-categoria").value;
+
+            const idEdicao =
+                document.getElementById("tpl-id-edicao").value;
+
+            if (!titulo || !mensagem) {
+                return showToast(
+                    "Preencha título e mensagem.",
+                    "error"
+                );
+            }
+
             try {
-                const docId = idEdicao || `tpl_${Date.now()}`;
-                await setDoc(doc(db, "templates", docId), {
-                    titulo, mensagem, categoria,
-                    criadoPor: usuarioUID,
-                    criadoEm: Date.now()
-                });
-                document.getElementById("template-modal").classList.add("hidden");
-                document.getElementById("tpl-titulo").value = "";
-                document.getElementById("tpl-mensagem").value = "";
-                carregarTemplates();
+                const docId =
+                    idEdicao || `tpl_${Date.now()}`;
+
+                await setDoc(
+                    doc(db, "templates", docId),
+                    {
+                        titulo,
+                        mensagem,
+                        categoria,
+                        criadoPor: usuarioUID,
+                        criadoEm: Date.now()
+                    }
+                );
+
+                fecharModalTemplate();
+
+                await carregarTemplates();
+
                 showToast("Template salvo!");
-            } catch(err) { showToast("Erro ao salvar.", "error"); }
+
+            } catch (err) {
+                console.error(err);
+                showToast("Erro ao salvar.", "error");
+            }
         };
+
+        
         window.abrirModalPedido = function() {
             document.getElementById("pedido-modal").classList.remove("hidden");
         };
