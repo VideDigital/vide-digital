@@ -30191,29 +30191,41 @@ function ativarAba(targetId) {
     }
 
     document
-        .querySelectorAll("#sidebar-nav button")
-        .forEach(button => button.classList.remove("active"));
+const secaoAlvo =
+    document.getElementById(targetId);
 
-    const botaoAlvo = document.querySelector(
+/* Não desativa a tela atual quando o destino não existe. */
+if (!secaoAlvo) {
+    console.warn(
+        "Aba não encontrada:",
+        targetId
+    );
+
+    return false;
+}
+
+document
+    .querySelectorAll("#sidebar-nav button")
+    .forEach(button =>
+        button.classList.remove("active")
+    );
+
+const botaoAlvo =
+    document.querySelector(
         `#sidebar-nav button[data-target="${targetId}"]`
     );
 
-    if (botaoAlvo) {
-        botaoAlvo.classList.add("active");
-    }
+if (botaoAlvo) {
+    botaoAlvo.classList.add("active");
+}
 
-    document
-        .querySelectorAll(".view-section")
-        .forEach(section => section.classList.remove("active"));
+document
+    .querySelectorAll(".view-section")
+    .forEach(section =>
+        section.classList.remove("active")
+    );
 
-    const secaoAlvo = document.getElementById(targetId);
-
-    if (!secaoAlvo) {
-        console.warn("Aba não encontrada:", targetId);
-        return;
-    }
-
-    secaoAlvo.classList.add("active");
+secaoAlvo.classList.add("active");
     aplicarLayoutSalvoDaAba(targetId);
     localStorage.setItem("abaAtivaDashboard", targetId);
 
@@ -30684,15 +30696,15 @@ window.ativarAba = ativarAba;
 
                 "novo-produto": () => {
 
-                    abrirDepois(
-                        "view-produtos",
-                        () =>
-                            document
-                                .getElementById(
-                                    "btn-abrir-criacao"
-                                )
-                                ?.click()
-                    );
+abrirDepois(
+    "view-dashboard",
+    () =>
+        document
+            .getElementById(
+                "btn-abrir-criacao"
+            )
+            ?.click()
+);
 
                 },
 
@@ -37792,16 +37804,16 @@ function renderizarCentralOperacional(
                     "view-leads"
                 ),
 
-            "novo-produto": () =>
-                abrirModulo(
-                    "view-produtos",
-                    () =>
-                        document
-                            .getElementById(
-                                "btn-abrir-criacao"
-                            )
-                            ?.click()
-                ),
+"novo-produto": () =>
+    abrirModulo(
+        "view-dashboard",
+        () =>
+            document
+                .getElementById(
+                    "btn-abrir-criacao"
+                )
+                ?.click()
+    ),
 
             "novo-pedido": () =>
                 abrirModulo(
