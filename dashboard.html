@@ -23304,6 +23304,771 @@ body.aura-command-open{
 
 }
 
+/* =========================================================
+   CENTRAL INTELIGENTE DE CATÁLOGO
+   ========================================================= */
+
+.aura-catalog-command{
+  padding:20px !important;
+  overflow:visible !important;
+  border-radius:24px !important;
+}
+
+.aura-catalog-command:hover{
+  transform:none !important;
+}
+
+.aura-catalog-command-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:16px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-catalog-command-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.aura-catalog-command-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  min-width:44px;
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 28%,
+      transparent
+    );
+  border-radius:14px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-catalog-command-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-catalog-command-title small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-catalog-command-title h4{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:13px;
+  font-weight:850;
+}
+
+.aura-catalog-command-title p{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.aura-catalog-result-count{
+  display:flex;
+  align-items:center;
+  min-height:29px;
+  padding:0 10px;
+  flex-shrink:0;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 58%,
+      transparent
+    );
+  font-size:8px;
+  font-weight:800;
+}
+
+.aura-catalog-summary{
+  display:grid;
+  grid-template-columns:
+    repeat(4,minmax(0,1fr));
+  gap:9px;
+  margin-top:16px;
+}
+
+.aura-catalog-summary-card{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  min-height:93px;
+  padding:13px;
+  border:1px solid var(--aura-border);
+  border-radius:15px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 50%,
+      transparent
+    );
+}
+
+.aura-catalog-summary-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  min-width:36px;
+  border-radius:11px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-catalog-summary-icon svg{
+  width:16px;
+  height:16px;
+  stroke-width:1.8;
+}
+
+.aura-catalog-summary-card.is-warning
+.aura-catalog-summary-icon{
+  color:#FBBF24;
+  background:rgba(251,191,36,.08);
+}
+
+.aura-catalog-summary-card.is-success
+.aura-catalog-summary-icon{
+  color:#34D399;
+  background:rgba(52,211,153,.08);
+}
+
+.aura-catalog-summary-card > div{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+
+.aura-catalog-summary-card small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-catalog-summary-card strong{
+  margin-top:5px;
+  overflow:hidden;
+  color:var(--aura-text);
+  font-size:16px;
+  font-weight:850;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-catalog-summary-card span{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-catalog-tools{
+  display:grid;
+  grid-template-columns:
+    minmax(240px,1fr)
+    minmax(190px,.42fr)
+    auto
+    auto;
+  align-items:center;
+  gap:9px;
+  margin-top:11px;
+}
+
+.aura-catalog-search{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:45px;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 55%,
+      transparent
+    );
+}
+
+.aura-catalog-search > svg{
+  position:absolute;
+  left:13px;
+  width:16px;
+  height:16px;
+  color:var(--aura-text-muted);
+  stroke-width:1.8;
+  pointer-events:none;
+}
+
+.aura-catalog-search input{
+  width:100%;
+  min-height:43px !important;
+  padding:0 43px 0 39px !important;
+  border:0 !important;
+  background:transparent !important;
+  box-shadow:none !important;
+  font-size:9px !important;
+}
+
+.aura-catalog-search > button{
+  position:absolute;
+  right:7px;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  width:29px;
+  height:29px;
+  border-radius:8px;
+  color:var(--aura-text-muted);
+}
+
+.aura-catalog-search > button.is-visible{
+  display:flex;
+}
+
+.aura-catalog-search > button:hover{
+  color:#F87171;
+  background:rgba(248,113,113,.07);
+}
+
+.aura-catalog-search > button svg{
+  width:13px;
+  height:13px;
+}
+
+.aura-catalog-sort{
+  position:relative;
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+
+.aura-catalog-sort > span{
+  position:absolute;
+  top:5px;
+  left:12px;
+  z-index:2;
+  color:var(--aura-text-muted);
+  font-size:6px;
+  font-weight:850;
+  text-transform:uppercase;
+  pointer-events:none;
+}
+
+.aura-catalog-sort select{
+  width:100%;
+  min-height:45px !important;
+  padding-top:15px !important;
+  padding-bottom:4px !important;
+  font-size:8px !important;
+}
+
+.aura-catalog-view-switch{
+  display:flex;
+  padding:4px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 58%,
+      transparent
+    );
+}
+
+.aura-catalog-view-switch button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:35px;
+  border-radius:9px;
+  color:var(--aura-text-muted);
+}
+
+.aura-catalog-view-switch button.is-active{
+  color:#fff;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-catalog-view-switch svg{
+  width:15px;
+  height:15px;
+  stroke-width:1.8;
+}
+
+.aura-catalog-selection-toggle{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:45px;
+  padding:0 12px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 58%,
+      transparent
+    );
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-catalog-selection-toggle svg{
+  width:15px;
+  height:15px;
+  stroke-width:1.8;
+}
+
+.aura-catalog-selection-toggle.is-active{
+  color:var(--aura-primary);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 32%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-catalog-bulk-bar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  margin-top:11px;
+  padding:11px;
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 25%,
+      transparent
+    );
+  border-radius:14px;
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(
+        in srgb,
+        var(--aura-primary) 9%,
+        var(--aura-surface-soft)
+      ),
+      color-mix(
+        in srgb,
+        var(--aura-surface-soft) 70%,
+        transparent
+      )
+    );
+}
+
+.aura-catalog-bulk-bar.hidden{
+  display:none !important;
+}
+
+.aura-catalog-bulk-info{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.aura-catalog-bulk-check{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:33px;
+  height:33px;
+  border-radius:10px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 10%,
+      transparent
+    );
+}
+
+.aura-catalog-bulk-check svg{
+  width:15px;
+  height:15px;
+  stroke-width:2.2;
+}
+
+.aura-catalog-bulk-info > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-catalog-bulk-info strong{
+  color:var(--aura-text-secondary);
+  font-size:9px;
+}
+
+.aura-catalog-bulk-info small{
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-catalog-bulk-actions{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.aura-catalog-bulk-actions button{
+  min-height:34px;
+  padding:0 10px;
+  border-radius:9px;
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-catalog-bulk-actions button:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+  filter:none;
+}
+
+.aura-catalog-bulk-secondary{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:var(--aura-surface-soft);
+}
+
+.aura-catalog-bulk-publish{
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.2);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-catalog-bulk-draft{
+  color:#FBBF24;
+  border:1px solid rgba(251,191,36,.2);
+  background:rgba(251,191,36,.07);
+}
+
+.aura-catalog-bulk-delete{
+  color:#F87171;
+  border:1px solid rgba(248,113,113,.2);
+  background:rgba(248,113,113,.07);
+}
+
+.aura-catalog-bulk-clear{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  padding:0 !important;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+}
+
+.aura-catalog-bulk-clear svg{
+  width:13px;
+  height:13px;
+}
+
+/* Seleção dos cards */
+
+.aura-commerce-card{
+  position:relative;
+}
+
+.aura-catalog-card-selector{
+  position:absolute;
+  top:13px;
+  left:13px;
+  z-index:12;
+  display:flex;
+  opacity:0;
+  visibility:hidden;
+  transform:scale(.85);
+  transition:
+    opacity .2s ease,
+    visibility .2s ease,
+    transform .2s ease;
+}
+
+.is-selection-mode
+.aura-catalog-card-selector{
+  opacity:1;
+  visibility:visible;
+  transform:scale(1);
+}
+
+.aura-catalog-card-selector input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-catalog-card-selector > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:31px;
+  height:31px;
+  border:1px solid rgba(255,255,255,.2);
+  border-radius:10px;
+  color:transparent;
+  background:rgba(6,10,22,.75);
+  backdrop-filter:blur(12px);
+  cursor:pointer;
+}
+
+.aura-catalog-card-selector svg{
+  width:15px;
+  height:15px;
+  stroke-width:2.4;
+}
+
+.aura-catalog-card-selector
+input:checked + span{
+  color:#fff;
+  border-color:var(--aura-primary);
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.is-selection-mode
+.aura-commerce-topbar{
+  padding-left:40px;
+}
+
+.aura-commerce-card.is-selected{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 55%,
+      transparent
+    ) !important;
+  box-shadow:
+    0 0 0 2px
+      color-mix(
+        in srgb,
+        var(--aura-primary) 18%,
+        transparent
+      ),
+    0 20px 45px -28px
+      color-mix(
+        in srgb,
+        var(--aura-primary) 70%,
+        transparent
+      ) !important;
+}
+
+.catalogo-filtrado-oculto{
+  display:none !important;
+}
+
+/* Modo lista */
+
+#produtos-container.is-list-view{
+  display:flex !important;
+  flex-direction:column;
+  gap:10px !important;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-card{
+  display:grid;
+  grid-template-columns:235px minmax(0,1fr);
+  min-height:205px;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-media{
+  min-height:205px;
+  height:100%;
+  border-radius:inherit;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-image{
+  height:100%;
+  min-height:205px;
+  object-fit:cover;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-content{
+  display:grid;
+  grid-template-columns:
+    minmax(0,1fr)
+    minmax(180px,.48fr);
+  grid-template-rows:auto 1fr auto;
+  gap:11px 18px;
+  padding:18px;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-category-row{
+  grid-column:1 / -1;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-copy{
+  grid-column:1;
+  grid-row:2;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-information{
+  grid-column:2;
+  grid-row:2;
+  align-self:start;
+}
+
+#produtos-container.is-list-view
+.aura-commerce-footer{
+  grid-column:1 / -1;
+  grid-row:3;
+  margin-top:0;
+}
+
+.tema-claro
+.aura-catalog-card-selector > span{
+  background:rgba(255,255,255,.9);
+  border-color:rgba(15,23,42,.15);
+}
+
+/* Responsividade */
+
+@media (max-width:1000px){
+
+  .aura-catalog-summary{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .aura-catalog-tools{
+    grid-template-columns:
+      minmax(220px,1fr)
+      minmax(180px,.55fr)
+      auto;
+  }
+
+  .aura-catalog-selection-toggle{
+    grid-column:1 / -1;
+  }
+
+  .aura-catalog-bulk-bar{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-catalog-bulk-actions{
+    width:100%;
+    flex-wrap:wrap;
+  }
+
+}
+
+@media (max-width:760px){
+
+  .aura-catalog-command{
+    padding:15px !important;
+  }
+
+  .aura-catalog-command-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-catalog-summary{
+    grid-template-columns:1fr;
+  }
+
+  .aura-catalog-tools{
+    grid-template-columns:1fr;
+  }
+
+  .aura-catalog-view-switch{
+    width:100%;
+  }
+
+  .aura-catalog-view-switch button{
+    flex:1;
+  }
+
+  .aura-catalog-selection-toggle{
+    grid-column:auto;
+  }
+
+  .aura-catalog-bulk-actions{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+  }
+
+  .aura-catalog-bulk-clear{
+    width:100%;
+  }
+
+  #produtos-container.is-list-view
+  .aura-commerce-card{
+    display:block;
+    min-height:0;
+  }
+
+  #produtos-container.is-list-view
+  .aura-commerce-media{
+    min-height:230px;
+  }
+
+  #produtos-container.is-list-view
+  .aura-commerce-content{
+    display:block;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -24892,6 +25657,430 @@ body.aura-command-open{
                 <span class="aura-product-hint-dot"></span>
 
                 <span>Alterações são atualizadas em tempo real</span>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="glass-card aura-catalog-command">
+
+        <div class="aura-catalog-command-header">
+
+            <div class="aura-catalog-command-title">
+
+                <span class="aura-catalog-command-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 6h16"></path>
+                        <path d="M4 12h16"></path>
+                        <path d="M4 18h10"></path>
+                        <circle cx="18" cy="18" r="3"></circle>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Controle operacional
+                    </small>
+
+                    <h4>
+                        Central inteligente de catálogo
+                    </h4>
+
+                    <p>
+                        Pesquise, organize e gerencie vários produtos em uma única área.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <span
+                id="catalogo-resultados-visiveis"
+                class="aura-catalog-result-count"
+            >
+                0 produtos visíveis
+            </span>
+
+        </div>
+
+        <div class="aura-catalog-summary">
+
+            <div class="aura-catalog-summary-card">
+
+                <span class="aura-catalog-summary-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+                        <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+                        <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+                        <rect x="14" y="14" width="6" height="6" rx="1"></rect>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Resultado visível
+                    </small>
+
+                    <strong id="catalogo-resumo-total">
+                        0
+                    </strong>
+
+                    <span>
+                        Produtos encontrados
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="aura-catalog-summary-card">
+
+                <span class="aura-catalog-summary-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 7v10"></path>
+                        <path d="M9 9.5c0-1.3 1.3-2.2 3-2.2s3 .9 3 2.2-1.3 2.2-3 2.2-3 .9-3 2.2 1.3 2.2 3 2.2 3-.9 3-2.2"></path>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Preço médio
+                    </small>
+
+                    <strong id="catalogo-resumo-preco">
+                        R$ 0,00
+                    </strong>
+
+                    <span>
+                        Média dos itens visíveis
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="aura-catalog-summary-card is-warning">
+
+                <span class="aura-catalog-summary-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m4 7 8-4 8 4-8 4-8-4Z"></path>
+                        <path d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"></path>
+                        <path d="M12 11v10"></path>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Estoque baixo
+                    </small>
+
+                    <strong id="catalogo-resumo-estoque">
+                        0
+                    </strong>
+
+                    <span>
+                        Produtos com até 5 unidades
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div class="aura-catalog-summary-card is-success">
+
+                <span class="aura-catalog-summary-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 12 12 4h7v7l-8 8-7-7Z"></path>
+                        <circle cx="16" cy="8" r="1"></circle>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Com desconto
+                    </small>
+
+                    <strong id="catalogo-resumo-descontos">
+                        0
+                    </strong>
+
+                    <span>
+                        Ofertas promocionais
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="aura-catalog-tools">
+
+            <label class="aura-catalog-search">
+
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor">
+
+                    <circle cx="11" cy="11" r="7"></circle>
+                    <path d="m20 20-4-4"></path>
+
+                </svg>
+
+                <input
+                    type="search"
+                    id="catalogo-busca"
+                    placeholder="Pesquisar nome, categoria, descrição ou tipo..."
+                    autocomplete="off"
+                >
+
+                <button
+                    type="button"
+                    id="catalogo-limpar-busca"
+                    onclick="limparBuscaCatalogo()"
+                    aria-label="Limpar pesquisa"
+                >
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m7 7 10 10"></path>
+                        <path d="M17 7 7 17"></path>
+
+                    </svg>
+                </button>
+
+            </label>
+
+            <label class="aura-catalog-sort">
+
+                <span>
+                    Ordenar
+                </span>
+
+                <select id="catalogo-ordenacao">
+
+                    <option value="recentes">
+                        Atualizados recentemente
+                    </option>
+
+                    <option value="nome-asc">
+                        Nome: A até Z
+                    </option>
+
+                    <option value="nome-desc">
+                        Nome: Z até A
+                    </option>
+
+                    <option value="preco-desc">
+                        Maior preço
+                    </option>
+
+                    <option value="preco-asc">
+                        Menor preço
+                    </option>
+
+                    <option value="estoque-asc">
+                        Menor estoque
+                    </option>
+
+                </select>
+
+            </label>
+
+            <div class="aura-catalog-view-switch">
+
+                <button
+                    type="button"
+                    id="catalogo-view-grid"
+                    class="is-active"
+                    onclick="alternarVisualCatalogo('grade')"
+                    aria-label="Visualização em grade"
+                >
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <rect x="4" y="4" width="6" height="6" rx="1"></rect>
+                        <rect x="14" y="4" width="6" height="6" rx="1"></rect>
+                        <rect x="4" y="14" width="6" height="6" rx="1"></rect>
+                        <rect x="14" y="14" width="6" height="6" rx="1"></rect>
+
+                    </svg>
+
+                </button>
+
+                <button
+                    type="button"
+                    id="catalogo-view-list"
+                    onclick="alternarVisualCatalogo('lista')"
+                    aria-label="Visualização em lista"
+                >
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M9 6h11"></path>
+                        <path d="M9 12h11"></path>
+                        <path d="M9 18h11"></path>
+                        <circle cx="5" cy="6" r="1"></circle>
+                        <circle cx="5" cy="12" r="1"></circle>
+                        <circle cx="5" cy="18" r="1"></circle>
+
+                    </svg>
+
+                </button>
+
+            </div>
+
+            <button
+                type="button"
+                id="catalogo-selection-toggle"
+                class="aura-catalog-selection-toggle"
+                onclick="alternarSelecaoCatalogo()"
+            >
+
+                <svg viewBox="0 0 24 24"
+                     fill="none"
+                     stroke="currentColor">
+
+                    <rect x="4" y="4" width="16" height="16" rx="3"></rect>
+                    <path d="m8 12 3 3 5-6"></path>
+
+                </svg>
+
+                <span>
+                    Selecionar
+                </span>
+
+            </button>
+
+        </div>
+
+        <div
+            id="catalogo-bulk-bar"
+            class="hidden aura-catalog-bulk-bar"
+        >
+
+            <div class="aura-catalog-bulk-info">
+
+                <span class="aura-catalog-bulk-check">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m7 12 3 3 7-7"></path>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <strong id="catalogo-selecionados-count">
+                        0 selecionados
+                    </strong>
+
+                    <small>
+                        A ação será aplicada aos produtos marcados
+                    </small>
+
+                </div>
+
+            </div>
+
+            <div class="aura-catalog-bulk-actions">
+
+                <button
+                    type="button"
+                    onclick="selecionarProdutosVisiveis()"
+                    class="aura-catalog-bulk-secondary"
+                >
+                    Selecionar visíveis
+                </button>
+
+                <button
+                    type="button"
+                    onclick="executarAcaoMassaCatalogo('publicar')"
+                    class="aura-catalog-bulk-publish"
+                >
+                    Publicar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="executarAcaoMassaCatalogo('rascunho')"
+                    class="aura-catalog-bulk-draft"
+                >
+                    Enviar para rascunhos
+                </button>
+
+                <button
+                    type="button"
+                    onclick="executarAcaoMassaCatalogo('excluir')"
+                    class="aura-catalog-bulk-delete"
+                >
+                    Excluir
+                </button>
+
+                <button
+                    type="button"
+                    onclick="limparSelecaoCatalogo()"
+                    class="aura-catalog-bulk-clear"
+                    aria-label="Limpar seleção"
+                >
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="m7 7 10 10"></path>
+                        <path d="M17 7 7 17"></path>
+
+                    </svg>
+
+                </button>
 
             </div>
 
@@ -41577,6 +42766,916 @@ carregarProdutos();
             carregarProdutos();
         });
 
+        /* =====================================================
+           CENTRAL INTELIGENTE DE CATÁLOGO
+           ===================================================== */
+
+        window._catalogoSelecionados =
+            window._catalogoSelecionados ||
+            new Set();
+
+        window._catalogoSelecaoAtiva =
+            false;
+
+        window._catalogoModoVisual =
+            localStorage.getItem(
+                "catalogoModoVisual"
+            ) || "grade";
+
+        function normalizarTextoCatalogo(valor) {
+
+            return String(valor || "")
+                .normalize("NFD")
+                .replace(
+                    /[\u0300-\u036f]/g,
+                    ""
+                )
+                .toLowerCase()
+                .trim();
+
+        }
+
+        function obterCardsCatalogo() {
+
+            return [
+                ...document.querySelectorAll(
+                    "#produtos-container .aura-commerce-card"
+                )
+            ];
+
+        }
+
+        function formatarMoedaCatalogo(valor) {
+
+            return Number(valor || 0)
+                .toLocaleString(
+                    "pt-BR",
+                    {
+                        style: "currency",
+                        currency: "BRL"
+                    }
+                );
+
+        }
+
+        window.aplicarFerramentasCatalogo =
+        function() {
+
+            const container =
+                document.getElementById(
+                    "produtos-container"
+                );
+
+            if (!container) {
+                return;
+            }
+
+            const termo =
+                normalizarTextoCatalogo(
+                    document.getElementById(
+                        "catalogo-busca"
+                    )?.value
+                );
+
+            const ordenacao =
+                document.getElementById(
+                    "catalogo-ordenacao"
+                )?.value ||
+                "recentes";
+
+            const cards =
+                obterCardsCatalogo();
+
+            cards.forEach(card => {
+
+                const conteudo =
+                    normalizarTextoCatalogo(
+                        [
+                            card.dataset.nome,
+                            card.dataset.descricao,
+                            card.dataset.categoria,
+                            card.dataset.tipo
+                        ].join(" ")
+                    );
+
+                const visivel =
+                    !termo ||
+                    conteudo.includes(termo);
+
+                card.classList.toggle(
+                    "catalogo-filtrado-oculto",
+                    !visivel
+                );
+
+            });
+
+            const compararTexto = (
+                valorA,
+                valorB
+            ) => {
+
+                return String(valorA || "")
+                    .localeCompare(
+                        String(valorB || ""),
+                        "pt-BR",
+                        {
+                            sensitivity:
+                                "base"
+                        }
+                    );
+
+            };
+
+            cards.sort((cardA, cardB) => {
+
+                if (
+                    ordenacao ===
+                    "nome-asc"
+                ) {
+
+                    return compararTexto(
+                        cardA.dataset.nome,
+                        cardB.dataset.nome
+                    );
+
+                }
+
+                if (
+                    ordenacao ===
+                    "nome-desc"
+                ) {
+
+                    return compararTexto(
+                        cardB.dataset.nome,
+                        cardA.dataset.nome
+                    );
+
+                }
+
+                if (
+                    ordenacao ===
+                    "preco-desc"
+                ) {
+
+                    return (
+                        Number(
+                            cardB.dataset.preco ||
+                            0
+                        ) -
+                        Number(
+                            cardA.dataset.preco ||
+                            0
+                        )
+                    );
+
+                }
+
+                if (
+                    ordenacao ===
+                    "preco-asc"
+                ) {
+
+                    return (
+                        Number(
+                            cardA.dataset.preco ||
+                            0
+                        ) -
+                        Number(
+                            cardB.dataset.preco ||
+                            0
+                        )
+                    );
+
+                }
+
+                if (
+                    ordenacao ===
+                    "estoque-asc"
+                ) {
+
+                    const estoqueA =
+                        cardA.dataset.estoque ===
+                        ""
+                            ? Number.MAX_SAFE_INTEGER
+                            : Number(
+                                cardA.dataset.estoque
+                            );
+
+                    const estoqueB =
+                        cardB.dataset.estoque ===
+                        ""
+                            ? Number.MAX_SAFE_INTEGER
+                            : Number(
+                                cardB.dataset.estoque
+                            );
+
+                    return estoqueA - estoqueB;
+
+                }
+
+                return (
+                    Number(
+                        cardB.dataset.atualizado ||
+                        0
+                    ) -
+                    Number(
+                        cardA.dataset.atualizado ||
+                        0
+                    )
+                );
+
+            });
+
+            cards.forEach(card => {
+                container.appendChild(card);
+            });
+
+            atualizarResumoCatalogo();
+
+        };
+
+        window.atualizarResumoCatalogo =
+        function() {
+
+            const cardsVisiveis =
+                obterCardsCatalogo()
+                    .filter(
+                        card =>
+                            !card.classList.contains(
+                                "catalogo-filtrado-oculto"
+                            )
+                    );
+
+            const precos =
+                cardsVisiveis
+                    .map(
+                        card =>
+                            Number(
+                                card.dataset.preco ||
+                                0
+                            )
+                    )
+                    .filter(
+                        valor =>
+                            Number.isFinite(
+                                valor
+                            )
+                    );
+
+            const precoMedio =
+                precos.length
+                    ? precos.reduce(
+                        (total, valor) =>
+                            total + valor,
+                        0
+                    ) / precos.length
+                    : 0;
+
+            const estoqueBaixo =
+                cardsVisiveis.filter(card => {
+
+                    if (
+                        card.dataset.estoque ===
+                        ""
+                    ) {
+                        return false;
+                    }
+
+                    const estoque =
+                        Number(
+                            card.dataset.estoque
+                        );
+
+                    return (
+                        Number.isFinite(
+                            estoque
+                        ) &&
+                        estoque <= 5
+                    );
+
+                }).length;
+
+            const comDesconto =
+                cardsVisiveis.filter(
+                    card =>
+                        Number(
+                            card.dataset.desconto ||
+                            0
+                        ) > 0
+                ).length;
+
+            const definirTexto = (
+                id,
+                valor
+            ) => {
+
+                const elemento =
+                    document.getElementById(id);
+
+                if (elemento) {
+                    elemento.textContent =
+                        valor;
+                }
+
+            };
+
+            definirTexto(
+                "catalogo-resumo-total",
+                cardsVisiveis.length
+            );
+
+            definirTexto(
+                "catalogo-resumo-preco",
+                formatarMoedaCatalogo(
+                    precoMedio
+                )
+            );
+
+            definirTexto(
+                "catalogo-resumo-estoque",
+                estoqueBaixo
+            );
+
+            definirTexto(
+                "catalogo-resumo-descontos",
+                comDesconto
+            );
+
+            definirTexto(
+                "catalogo-resultados-visiveis",
+                cardsVisiveis.length === 1
+                    ? "1 produto visível"
+                    : `${cardsVisiveis.length} produtos visíveis`
+            );
+
+            const limparBusca =
+                document.getElementById(
+                    "catalogo-limpar-busca"
+                );
+
+            const campoBusca =
+                document.getElementById(
+                    "catalogo-busca"
+                );
+
+            limparBusca?.classList.toggle(
+                "is-visible",
+                Boolean(
+                    campoBusca?.value.trim()
+                )
+            );
+
+        };
+
+        window.alternarVisualCatalogo =
+        function(modo) {
+
+            const modoFinal =
+                modo === "lista"
+                    ? "lista"
+                    : "grade";
+
+            window._catalogoModoVisual =
+                modoFinal;
+
+            localStorage.setItem(
+                "catalogoModoVisual",
+                modoFinal
+            );
+
+            const container =
+                document.getElementById(
+                    "produtos-container"
+                );
+
+            container?.classList.toggle(
+                "is-list-view",
+                modoFinal === "lista"
+            );
+
+            document
+                .getElementById(
+                    "catalogo-view-grid"
+                )
+                ?.classList.toggle(
+                    "is-active",
+                    modoFinal === "grade"
+                );
+
+            document
+                .getElementById(
+                    "catalogo-view-list"
+                )
+                ?.classList.toggle(
+                    "is-active",
+                    modoFinal === "lista"
+                );
+
+        };
+
+        window.limparBuscaCatalogo =
+        function() {
+
+            const campo =
+                document.getElementById(
+                    "catalogo-busca"
+                );
+
+            if (campo) {
+                campo.value = "";
+                campo.focus();
+            }
+
+            aplicarFerramentasCatalogo();
+
+        };
+
+        window.alternarSelecaoCatalogo =
+        function() {
+
+            window._catalogoSelecaoAtiva =
+                !window._catalogoSelecaoAtiva;
+
+            if (
+                !window._catalogoSelecaoAtiva
+            ) {
+
+                window
+                    ._catalogoSelecionados
+                    .clear();
+
+            }
+
+            atualizarSelecaoCatalogo();
+
+        };
+
+        window.atualizarSelecaoCatalogo =
+        function() {
+
+            const container =
+                document.getElementById(
+                    "produtos-container"
+                );
+
+            container?.classList.toggle(
+                "is-selection-mode",
+                window._catalogoSelecaoAtiva
+            );
+
+            const botaoSelecao =
+                document.getElementById(
+                    "catalogo-selection-toggle"
+                );
+
+            botaoSelecao?.classList.toggle(
+                "is-active",
+                window._catalogoSelecaoAtiva
+            );
+
+            if (botaoSelecao) {
+
+                const texto =
+                    botaoSelecao.querySelector(
+                        "span"
+                    );
+
+                if (texto) {
+
+                    texto.textContent =
+                        window._catalogoSelecaoAtiva
+                            ? "Finalizar seleção"
+                            : "Selecionar";
+
+                }
+
+            }
+
+            obterCardsCatalogo()
+                .forEach(card => {
+
+                    const produtoId =
+                        card.dataset.produtoId;
+
+                    const selecionado =
+                        window
+                            ._catalogoSelecionados
+                            .has(produtoId);
+
+                    card.classList.toggle(
+                        "is-selected",
+                        selecionado
+                    );
+
+                    const checkbox =
+                        card.querySelector(
+                            ".aura-catalog-card-checkbox"
+                        );
+
+                    if (checkbox) {
+
+                        checkbox.checked =
+                            selecionado;
+
+                    }
+
+                });
+
+            const quantidade =
+                window
+                    ._catalogoSelecionados
+                    .size;
+
+            const contador =
+                document.getElementById(
+                    "catalogo-selecionados-count"
+                );
+
+            if (contador) {
+
+                contador.textContent =
+                    quantidade === 1
+                        ? "1 selecionado"
+                        : `${quantidade} selecionados`;
+
+            }
+
+            const barra =
+                document.getElementById(
+                    "catalogo-bulk-bar"
+                );
+
+            barra?.classList.toggle(
+                "hidden",
+                !window._catalogoSelecaoAtiva
+            );
+
+            barra
+                ?.querySelectorAll(
+                    ".aura-catalog-bulk-actions button:not(.aura-catalog-bulk-secondary):not(.aura-catalog-bulk-clear)"
+                )
+                .forEach(botao => {
+
+                    botao.disabled =
+                        quantidade === 0;
+
+                });
+
+        };
+
+        window.alternarProdutoSelecionado =
+        function(produtoId, selecionado) {
+
+            if (selecionado) {
+
+                window
+                    ._catalogoSelecionados
+                    .add(produtoId);
+
+            } else {
+
+                window
+                    ._catalogoSelecionados
+                    .delete(produtoId);
+
+            }
+
+            atualizarSelecaoCatalogo();
+
+        };
+
+        window.selecionarProdutosVisiveis =
+        function() {
+
+            obterCardsCatalogo()
+                .filter(
+                    card =>
+                        !card.classList.contains(
+                            "catalogo-filtrado-oculto"
+                        )
+                )
+                .forEach(card => {
+
+                    window
+                        ._catalogoSelecionados
+                        .add(
+                            card.dataset
+                                .produtoId
+                        );
+
+                });
+
+            atualizarSelecaoCatalogo();
+
+        };
+
+        window.limparSelecaoCatalogo =
+        function() {
+
+            window
+                ._catalogoSelecionados
+                .clear();
+
+            atualizarSelecaoCatalogo();
+
+        };
+
+        window.executarAcaoMassaCatalogo =
+        async function(acao) {
+
+            const ids =
+                [
+                    ...window
+                        ._catalogoSelecionados
+                ];
+
+            if (!ids.length) {
+
+                showToast(
+                    "Selecione ao menos um produto.",
+                    "error"
+                );
+
+                return;
+
+            }
+
+            const cardsSelecionados =
+                obterCardsCatalogo()
+                    .filter(
+                        card =>
+                            window
+                                ._catalogoSelecionados
+                                .has(
+                                    card.dataset
+                                        .produtoId
+                                )
+                    );
+
+            const executar = async () => {
+
+                try {
+
+                    if (
+                        acao === "publicar"
+                    ) {
+
+                        const quantidadePublicar =
+                            cardsSelecionados
+                                .filter(
+                                    card =>
+                                        card.dataset.status ===
+                                        "rascunho"
+                                )
+                                .length;
+
+                        if (
+                            limiteProdutosGlobal !== -1 &&
+                            totalProdutosAtual +
+                            quantidadePublicar >
+                            limiteProdutosGlobal
+                        ) {
+
+                            showToast(
+                                `Seu plano permite até ${limiteProdutosGlobal} produtos ativos.`,
+                                "error"
+                            );
+
+                            return;
+
+                        }
+
+                        await Promise.all(
+                            ids.map(produtoId =>
+                                setDoc(
+                                    doc(
+                                        db,
+                                        "produtos",
+                                        produtoId
+                                    ),
+                                    {
+                                        statusProduto:
+                                            "ativo",
+
+                                        atualizadoEm:
+                                            new Date()
+                                                .toISOString()
+                                    },
+                                    {
+                                        merge: true
+                                    }
+                                )
+                            )
+                        );
+
+                        showToast(
+                            `${ids.length} produto(s) publicado(s)!`
+                        );
+
+                    }
+
+                    if (
+                        acao === "rascunho"
+                    ) {
+
+                        const quantidadeMover =
+                            cardsSelecionados
+                                .filter(
+                                    card =>
+                                        card.dataset.status !==
+                                        "rascunho"
+                                )
+                                .length;
+
+                        if (
+                            limiteRascunhosGlobal !== -1 &&
+                            totalRascunhosAtual +
+                            quantidadeMover >
+                            limiteRascunhosGlobal
+                        ) {
+
+                            showToast(
+                                `Seu plano permite até ${limiteRascunhosGlobal} rascunhos.`,
+                                "error"
+                            );
+
+                            return;
+
+                        }
+
+                        await Promise.all(
+                            ids.map(produtoId =>
+                                setDoc(
+                                    doc(
+                                        db,
+                                        "produtos",
+                                        produtoId
+                                    ),
+                                    {
+                                        statusProduto:
+                                            "rascunho",
+
+                                        atualizadoEm:
+                                            new Date()
+                                                .toISOString()
+                                    },
+                                    {
+                                        merge: true
+                                    }
+                                )
+                            )
+                        );
+
+                        showToast(
+                            `${ids.length} produto(s) movido(s) para rascunhos.`
+                        );
+
+                    }
+
+                    if (
+                        acao === "excluir"
+                    ) {
+
+                        await Promise.all(
+                            ids.map(produtoId =>
+                                deleteDoc(
+                                    doc(
+                                        db,
+                                        "produtos",
+                                        produtoId
+                                    )
+                                )
+                            )
+                        );
+
+                        showToast(
+                            `${ids.length} produto(s) excluído(s).`
+                        );
+
+                    }
+
+                    window
+                        ._catalogoSelecionados
+                        .clear();
+
+                    await carregarProdutos();
+
+                    atualizarSelecaoCatalogo();
+
+                } catch (erro) {
+
+                    console.error(
+                        "Erro na ação em massa:",
+                        erro
+                    );
+
+                    showToast(
+                        "Não foi possível concluir a ação.",
+                        "error"
+                    );
+
+                }
+
+            };
+
+            if (
+                acao === "excluir"
+            ) {
+
+                abrirConfirmacao(
+                    `Excluir permanentemente ${ids.length} produto(s)? Essa ação não pode ser desfeita.`,
+                    executar
+                );
+
+                return;
+
+            }
+
+            await executar();
+
+        };
+
+        window.sincronizarCatalogoAvancado =
+        function() {
+
+            alternarVisualCatalogo(
+                window._catalogoModoVisual
+            );
+
+            atualizarSelecaoCatalogo();
+
+            aplicarFerramentasCatalogo();
+
+        };
+
+        (function iniciarCatalogoAvancado() {
+
+            const iniciar = () => {
+
+                const busca =
+                    document.getElementById(
+                        "catalogo-busca"
+                    );
+
+                const ordenacao =
+                    document.getElementById(
+                        "catalogo-ordenacao"
+                    );
+
+                let temporizador =
+                    null;
+
+                busca?.addEventListener(
+                    "input",
+                    () => {
+
+                        clearTimeout(
+                            temporizador
+                        );
+
+                        temporizador =
+                            setTimeout(
+                                aplicarFerramentasCatalogo,
+                                90
+                            );
+
+                    }
+                );
+
+                ordenacao?.addEventListener(
+                    "change",
+                    aplicarFerramentasCatalogo
+                );
+
+                alternarVisualCatalogo(
+                    window._catalogoModoVisual
+                );
+
+                atualizarSelecaoCatalogo();
+
+            };
+
+            if (
+                document.readyState ===
+                "loading"
+            ) {
+
+                document.addEventListener(
+                    "DOMContentLoaded",
+                    iniciar,
+                    {
+                        once: true
+                    }
+                );
+
+            } else {
+
+                iniciar();
+
+            }
+
+        })();
+
         async function carregarProdutos() {
             try {
                 const q = query(
@@ -41693,6 +43792,13 @@ if (
 
                         </div>
                     `;
+
+                    window
+                        ._catalogoSelecionados
+                        .clear();
+
+                    atualizarResumoCatalogo();
+                    atualizarSelecaoCatalogo();
 
                     return;
                 }
@@ -41825,6 +43931,65 @@ if (
 
                     card.className =
                         "aura-commerce-card";
+
+                    card.dataset.produtoId =
+                        prod.id;
+
+                    card.dataset.nome =
+                        prod.nome || "";
+
+                    card.dataset.descricao =
+                        prod.descricao || "";
+
+                    card.dataset.categoria =
+                        prod.subnicho || "Geral";
+
+                    card.dataset.tipo =
+                        prod.tipo || "";
+
+                    card.dataset.status =
+                        ehRascunho
+                            ? "rascunho"
+                            : "ativo";
+
+                    card.dataset.preco =
+                        Number.isFinite(
+                            precoNumerico
+                        )
+                            ? String(
+                                precoNumerico
+                            )
+                            : "0";
+
+                    card.dataset.desconto =
+                        String(
+                            descontoPercentual
+                        );
+
+                    card.dataset.estoque =
+                        Number.isFinite(
+                            estoqueNumerico
+                        )
+                            ? String(
+                                estoqueNumerico
+                            )
+                            : "";
+
+                    const atualizadoEm =
+                        new Date(
+                            prod.atualizadoEm ||
+                            prod.criadoEm ||
+                            0
+                        ).getTime();
+
+                    card.dataset.atualizado =
+                        Number.isFinite(
+                            atualizadoEm
+                        )
+                            ? String(
+                                atualizadoEm
+                            )
+                            : "0";
 
                     card.style.setProperty(
                         "--product-delay",
@@ -42063,6 +44228,70 @@ if (
                         </div>
                     `;
 
+                    const seletorCatalogo =
+                        document.createElement(
+                            "label"
+                        );
+
+                    seletorCatalogo.className =
+                        "aura-catalog-card-selector";
+
+                    seletorCatalogo.innerHTML = `
+
+                        <input
+                            type="checkbox"
+                            class="aura-catalog-card-checkbox"
+                            aria-label="Selecionar ${
+                                prod.nome ||
+                                "produto"
+                            }"
+                        >
+
+                        <span>
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                            >
+                                <path d="m7 12 3 3 7-7"></path>
+                            </svg>
+
+                        </span>
+                    `;
+
+                    seletorCatalogo.addEventListener(
+                        "click",
+                        evento => {
+
+                            evento.stopPropagation();
+
+                        }
+                    );
+
+                    const checkboxCatalogo =
+                        seletorCatalogo.querySelector(
+                            "input"
+                        );
+
+                    checkboxCatalogo
+                        ?.addEventListener(
+                            "change",
+                            () => {
+
+                                alternarProdutoSelecionado(
+                                    prod.id,
+                                    checkboxCatalogo
+                                        .checked
+                                );
+
+                            }
+                        );
+
+                    card.prepend(
+                        seletorCatalogo
+                    );
+
                     produtosContainer.appendChild(card);
                 });
 
@@ -42078,6 +44307,8 @@ if (
                             );
                         });
                     });
+
+                sincronizarCatalogoAvancado();
 
             } catch (err) {
                 console.error(err);
