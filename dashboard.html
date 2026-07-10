@@ -17238,6 +17238,611 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — LEAD DETAIL DRAWER
+   ========================================================================= */
+
+.aura-lead-drawer{
+  overflow:hidden;
+  border-left:1px solid var(--aura-border-strong);
+  background:
+    radial-gradient(
+      480px 260px at 80% -5%,
+      color-mix(in srgb,var(--aura-primary) 18%,transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      color-mix(in srgb,var(--aura-background) 88%,white 12%),
+      color-mix(in srgb,var(--aura-background) 96%,black 4%)
+    );
+  box-shadow:
+    -30px 0 80px -35px rgba(0,0,0,.9),
+    inset 1px 0 0 rgba(255,255,255,.03);
+  animation:auraLeadDrawerIn .32s var(--rd-ease);
+}
+
+@keyframes auraLeadDrawerIn{
+  from{
+    opacity:0;
+    transform:translateX(30px);
+  }
+
+  to{
+    opacity:1;
+    transform:translateX(0);
+  }
+}
+
+.aura-lead-drawer-overlay{
+  background:rgba(3,7,18,.65);
+  backdrop-filter:blur(5px);
+}
+
+.aura-lead-drawer-header{
+  position:relative;
+  z-index:3;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  min-height:102px;
+  padding:19px 20px;
+  border-bottom:1px solid var(--aura-border);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb,var(--aura-surface-strong) 82%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  backdrop-filter:blur(22px);
+  box-shadow:0 16px 35px -32px rgba(0,0,0,.9);
+}
+
+.aura-lead-profile{
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+
+.aura-lead-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:51px;
+  height:51px;
+  min-width:51px;
+  border-radius:17px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 27%,transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-primary) 17%,transparent),
+      color-mix(in srgb,var(--aura-accent) 8%,transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.08),
+    0 14px 30px -22px
+      color-mix(in srgb,var(--aura-primary) 85%,transparent);
+  font-family:'Sora',sans-serif;
+  font-size:14px;
+  font-weight:850;
+}
+
+.aura-lead-profile-copy{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-lead-profile-eyebrow{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-lead-profile-copy h3{
+  max-width:280px;
+  margin-top:6px;
+  overflow:hidden;
+  color:var(--aura-text);
+  font-size:16px;
+  line-height:1.25;
+  font-weight:850;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-lead-profile-copy p{
+  max-width:280px;
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-primary);
+  font-size:9px;
+  line-height:1.3;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-overflow:ellipsis;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.aura-lead-drawer-close{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:37px;
+  height:37px;
+  min-width:37px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 65%,transparent);
+}
+
+.aura-lead-drawer-close:hover{
+  color:var(--aura-text);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 35%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lead-drawer-close svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.aura-lead-drawer-body{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  gap:13px;
+  padding:17px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+.aura-lead-drawer-card{
+  padding:17px !important;
+  overflow:visible !important;
+  border-radius:19px !important;
+}
+
+.aura-lead-drawer-card:hover{
+  transform:none !important;
+}
+
+.aura-lead-drawer-card-header{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding-bottom:14px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-lead-drawer-card-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  min-width:38px;
+  border-radius:12px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lead-status-icon{
+  color:#FBBF24;
+  border-color:rgba(251,191,36,.18);
+  background:rgba(251,191,36,.08);
+}
+
+.aura-lead-note-icon{
+  color:var(--aura-accent);
+  border-color:
+    color-mix(in srgb,var(--aura-accent) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+}
+
+.aura-lead-chat-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-lead-drawer-card-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-lead-drawer-card-header > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-lead-drawer-card-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.aura-lead-drawer-card-header h4{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:12px;
+  line-height:1.3;
+  font-weight:800;
+}
+
+.aura-lead-contact-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:14px;
+}
+
+.aura-lead-contact-row{
+  display:grid;
+  grid-template-columns:115px minmax(0,1fr);
+  align-items:center;
+  gap:10px;
+  min-height:47px;
+  padding:6px 7px 6px 11px;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 54%,transparent);
+}
+
+.aura-lead-contact-label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-lead-contact-label svg{
+  width:14px;
+  height:14px;
+  color:var(--aura-primary);
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-lead-contact-row input{
+  min-width:0;
+  min-height:34px !important;
+  padding:0 9px !important;
+  border:1px solid transparent !important;
+  border-radius:9px !important;
+  color:var(--aura-text-secondary) !important;
+  background:transparent !important;
+  font-size:10px !important;
+  font-weight:700;
+  text-align:right;
+}
+
+.aura-lead-contact-row input:hover{
+  border-color:var(--aura-border) !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 54%,transparent) !important;
+}
+
+.aura-lead-contact-row input:focus{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 35%,transparent) !important;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent) !important;
+}
+
+.aura-lead-context-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+
+.aura-lead-context-item{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:64px;
+  padding:10px;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 51%,transparent);
+}
+
+.aura-lead-context-item > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:31px;
+  height:31px;
+  min-width:31px;
+  border-radius:10px;
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lead-context-time > span{
+  color:#FBBF24;
+  background:rgba(251,191,36,.08);
+}
+
+.aura-lead-context-item svg{
+  width:14px;
+  height:14px;
+  stroke-width:1.9;
+}
+
+.aura-lead-context-item > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-lead-context-item small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-lead-context-item strong{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-lead-status-select{
+  width:100%;
+  min-height:46px;
+  margin-top:14px;
+  border-radius:13px !important;
+  color:var(--aura-text) !important;
+  font-size:10px !important;
+  font-weight:750;
+}
+
+.aura-lead-note-field{
+  width:100%;
+  min-height:112px;
+  margin-top:14px;
+  padding:12px !important;
+  border-radius:13px !important;
+  color:var(--aura-text) !important;
+  font-size:10px !important;
+  line-height:1.55;
+  resize:vertical;
+}
+
+.aura-lead-save-note{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  width:100%;
+  min-height:41px;
+  margin-top:9px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 24%,transparent);
+  border-radius:12px;
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+  font-size:9px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lead-save-note:hover{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 42%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 12%,transparent);
+}
+
+.aura-lead-save-note svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
+
+.aura-lead-chat-history{
+  display:flex;
+  min-height:110px;
+  max-height:230px;
+  margin-top:14px;
+  padding:11px;
+  flex-direction:column;
+  gap:8px;
+  overflow-y:auto;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 48%,transparent);
+  font-size:9px;
+  line-height:1.5;
+}
+
+.aura-lead-chat-history:empty::before{
+  content:"Nenhuma conversa registrada para este lead.";
+  display:flex;
+  flex:1;
+  align-items:center;
+  justify-content:center;
+  min-height:85px;
+  padding:15px;
+  text-align:center;
+}
+
+.aura-lead-drawer-footer{
+  position:relative;
+  z-index:3;
+  display:grid;
+  grid-template-columns:1fr 1.15fr;
+  gap:9px;
+  padding:14px 17px 17px;
+  border-top:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-background) 88%,transparent);
+  backdrop-filter:blur(22px);
+}
+
+.aura-lead-template-button,
+.aura-lead-whatsapp-button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:46px;
+  border-radius:13px;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+.aura-lead-template-button{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+}
+
+.aura-lead-whatsapp-button{
+  color:#04130D;
+  border:1px solid rgba(52,211,153,.4);
+  background:
+    linear-gradient(
+      135deg,
+      #10B981,
+      #34D399
+    );
+  box-shadow:
+    0 16px 34px -22px rgba(52,211,153,.8);
+}
+
+.aura-lead-template-button svg,
+.aura-lead-whatsapp-button svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-lead-drawer{
+  background:
+    radial-gradient(
+      480px 260px at 80% -5%,
+      color-mix(in srgb,var(--aura-primary) 9%,transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      180deg,
+      #FFFFFF,
+      #F8FAFC
+    );
+  border-left-color:rgba(15,23,42,.1);
+}
+
+.tema-claro .aura-lead-drawer-header,
+.tema-claro .aura-lead-drawer-footer{
+  background:rgba(255,255,255,.91);
+}
+
+.tema-claro .aura-lead-drawer-card{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.98),
+      rgba(248,250,252,.94)
+    ) !important;
+}
+
+.tema-claro .aura-lead-contact-row,
+.tema-claro .aura-lead-context-item,
+.tema-claro .aura-lead-chat-history{
+  background:rgba(248,250,252,.78);
+}
+
+.tema-claro .aura-lead-profile-copy h3,
+.tema-claro .aura-lead-drawer-card-header h4{
+  color:#0F172A !important;
+}
+
+.tema-claro .aura-lead-contact-row input{
+  color:#334155 !important;
+}
+
+/* Responsividade */
+
+@media (max-width:639px){
+  .aura-lead-drawer{
+    width:100% !important;
+  }
+
+  .aura-lead-drawer-header{
+    min-height:92px;
+    padding:16px;
+  }
+
+  .aura-lead-drawer-body{
+    padding:13px;
+  }
+
+  .aura-lead-drawer-card{
+    padding:15px !important;
+  }
+
+  .aura-lead-contact-row{
+    grid-template-columns:105px minmax(0,1fr);
+  }
+
+  .aura-lead-context-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-lead-drawer-footer{
+    grid-template-columns:1fr;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -23566,53 +24171,341 @@ span{
     <button type="button" id="btn-salvar-layout" onclick="salvarLayoutVisaoGeral()" class="hidden bg-emerald-500 hover:bg-emerald-400 text-black font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">💾 Salvar</button>
     <button type="button" id="btn-restaurar-layout" onclick="restaurarLayoutOriginal()" class="hidden bg-red-500/90 hover:bg-red-500 text-white font-bold px-4 py-2.5 rounded-full text-xs shadow-2xl transition-all shrink-0">↺ Restaurar</button>
 </div>
-<div id="lead-painel" class="hidden fixed top-0 right-0 h-full w-full sm:w-[420px] bg-[#0a0a0a] border-l border-white/10 z-50 flex flex-col shadow-2xl">
-            <div class="p-5 border-b border-white/5 flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div id="lead-painel-avatar" class="h-10 w-10 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-sm font-black text-[#00f2fe]">?</div>
-                    <div>
-                        <h3 id="lead-painel-nome" class="text-sm font-bold text-white">Lead</h3>
-                        <p id="lead-painel-origem" class="text-[10px] text-gray-500 uppercase font-bold mt-0.5">Origem</p>
-                    </div>
-                </div>
-                <button onclick="fecharPainelLead()" class="text-gray-500 hover:text-white text-2xl leading-none">&times;</button>
+<div
+    id="lead-painel"
+    class="hidden fixed top-0 right-0 h-full w-full sm:w-[460px] z-50 flex flex-col aura-lead-drawer"
+>
+
+    <div class="aura-lead-drawer-header">
+
+        <div class="aura-lead-profile">
+
+            <div id="lead-painel-avatar" class="aura-lead-avatar">
+                ?
             </div>
-            <div class="flex-1 overflow-y-auto p-5 space-y-4">
-                <div class="glass-card rounded-xl p-4 space-y-3">
-                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Contato</h4>
-                    <div class="space-y-2">
-                        <div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500 shrink-0">WhatsApp</span><input id="lead-painel-whatsapp" onblur="salvarCampoLead('whatsapp', this.value)" class="text-xs font-bold text-emerald-400 bg-transparent text-right outline-none w-32"></div>
-<div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500 shrink-0">E-mail</span><input id="lead-painel-email" onblur="salvarCampoLead('email', this.value)" class="text-xs text-gray-300 bg-transparent text-right outline-none w-32"></div>
-<div class="flex justify-between items-center gap-2"><span class="text-xs text-gray-500 shrink-0">Interesse</span><input id="lead-painel-interesse" onblur="salvarCampoLead('produtoInteresse', this.value)" class="text-xs text-[#00f2fe] font-medium bg-transparent text-right outline-none w-32"></div>
-                        <div class="flex justify-between"><span class="text-xs text-gray-500">Data</span><span id="lead-painel-data" class="text-xs text-gray-400">—</span></div>
-                        <div class="flex justify-between"><span class="text-xs text-gray-500">Tempo na página</span><span id="lead-painel-tempo" class="text-xs text-amber-400">—</span></div>
-                    </div>
-                </div>
-                <div class="glass-card rounded-xl p-4 space-y-3">
-                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Status</h4>
-                    <select id="lead-painel-status" onchange="atualizarStatusLead(document.getElementById('lead-painel-id').value, this.value)" class="w-full glass-input rounded-xl p-2.5 text-xs text-white outline-none">
-                        <option value="novo">🔵 Novo</option>
-                        <option value="contato">🟡 Em Contato</option>
-                        <option value="convertido">🟢 Convertido</option>
-                        <option value="perdido">🔴 Perdido</option>
-                    </select>
-                    <input type="hidden" id="lead-painel-id">
-                </div>
-                <div class="glass-card rounded-xl p-4 space-y-3">
-                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Anotação</h4>
-                    <textarea id="lead-painel-anotacao" rows="3" placeholder="Observação sobre este lead..." class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none"></textarea>
-                    <button onclick="salvarAnotacaoLead(document.getElementById('lead-painel-id').value, document.getElementById('lead-painel-anotacao').value)" class="w-full bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">Salvar Anotação</button>
-                </div>
-                <div class="glass-card rounded-xl p-4 space-y-3">
-                    <h4 class="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Histórico do Chat</h4>
-                    <div id="lead-painel-chat" class="space-y-2 max-h-48 overflow-y-auto text-xs text-gray-500"></div>
-                </div>
+
+            <div class="aura-lead-profile-copy">
+
+                <span class="aura-lead-profile-eyebrow">
+                    Detalhes do contato
+                </span>
+
+                <h3 id="lead-painel-nome">
+                    Lead
+                </h3>
+
+                <p id="lead-painel-origem">
+                    Origem
+                </p>
+
             </div>
-            <div class="p-4 border-t border-white/5 space-y-2">
-                <button onclick="abrirTemplatesDoLead()" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs uppercase tracking-wider py-3 rounded-xl transition-all">📋 Usar Template</button>
-                <button id="lead-painel-whatsapp-btn" class="w-full bg-emerald-500 hover:bg-emerald-400 text-black font-black text-xs uppercase tracking-wider py-3 rounded-xl transition-all">💬 Abrir WhatsApp</button>
-            </div>
+
         </div>
+
+        <button
+            type="button"
+            onclick="fecharPainelLead()"
+            class="aura-lead-drawer-close"
+            aria-label="Fechar painel"
+        >
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m6 6 12 12"></path>
+                <path d="M18 6 6 18"></path>
+            </svg>
+
+        </button>
+
+    </div>
+
+    <div class="aura-lead-drawer-body">
+
+        <div class="glass-card aura-lead-drawer-card">
+
+            <div class="aura-lead-drawer-card-header">
+
+                <span class="aura-lead-drawer-card-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M19 8v6"></path>
+                        <path d="M16 11h6"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Dados principais</small>
+                    <h4>Informações do contato</h4>
+                </div>
+
+            </div>
+
+            <div class="aura-lead-contact-list">
+
+                <label class="aura-lead-contact-row">
+
+                    <span class="aura-lead-contact-label">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M5 4h3l2 5-2 1.5a14 14 0 0 0 5.5 5.5L15 14l5 2v3c0 1.1-.9 2-2 2C9.7 21 3 14.3 3 6c0-1.1.9-2 2-2Z"></path>
+                        </svg>
+
+                        WhatsApp
+
+                    </span>
+
+                    <input
+                        type="text"
+                        id="lead-painel-whatsapp"
+                        onblur="salvarCampoLead('whatsapp', this.value)"
+                        placeholder="Não informado"
+                    >
+
+                </label>
+
+                <label class="aura-lead-contact-row">
+
+                    <span class="aura-lead-contact-label">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="3" y="5" width="18" height="14" rx="2"></rect>
+                            <path d="m3 7 9 6 9-6"></path>
+                        </svg>
+
+                        E-mail
+
+                    </span>
+
+                    <input
+                        type="email"
+                        id="lead-painel-email"
+                        onblur="salvarCampoLead('email', this.value)"
+                        placeholder="Não informado"
+                    >
+
+                </label>
+
+                <label class="aura-lead-contact-row">
+
+                    <span class="aura-lead-contact-label">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M3 12h18"></path>
+                            <path d="m15 6 6 6-6 6"></path>
+                        </svg>
+
+                        Interesse
+
+                    </span>
+
+                    <input
+                        type="text"
+                        id="lead-painel-interesse"
+                        onblur="salvarCampoLead('produtoInteresse', this.value)"
+                        placeholder="Não informado"
+                    >
+
+                </label>
+
+            </div>
+
+            <div class="aura-lead-context-grid">
+
+                <div class="aura-lead-context-item">
+
+                    <span>
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <rect x="3" y="5" width="18" height="16" rx="3"></rect>
+                            <path d="M16 3v4"></path>
+                            <path d="M8 3v4"></path>
+                            <path d="M3 10h18"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+                        <small>Capturado em</small>
+                        <strong id="lead-painel-data">—</strong>
+                    </div>
+
+                </div>
+
+                <div class="aura-lead-context-item aura-lead-context-time">
+
+                    <span>
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 7v5l3 2"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+                        <small>Tempo na página</small>
+                        <strong id="lead-painel-tempo">—</strong>
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="glass-card aura-lead-drawer-card">
+
+            <div class="aura-lead-drawer-card-header">
+
+                <span class="aura-lead-drawer-card-icon aura-lead-status-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="m8 12 2.5 2.5L16 9"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Etapa comercial</small>
+                    <h4>Status do lead</h4>
+                </div>
+
+            </div>
+
+            <select
+                id="lead-painel-status"
+                onchange="atualizarStatusLead(document.getElementById('lead-painel-id').value, this.value)"
+                class="aura-lead-status-select"
+            >
+                <option value="novo">Novo</option>
+                <option value="contato">Em contato</option>
+                <option value="convertido">Convertido</option>
+                <option value="perdido">Perdido</option>
+            </select>
+
+            <input type="hidden" id="lead-painel-id">
+
+        </div>
+
+        <div class="glass-card aura-lead-drawer-card">
+
+            <div class="aura-lead-drawer-card-header">
+
+                <span class="aura-lead-drawer-card-icon aura-lead-note-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
+                        <path d="m13.5 6.5 4 4"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Informação interna</small>
+                    <h4>Anotação comercial</h4>
+                </div>
+
+            </div>
+
+            <textarea
+                id="lead-painel-anotacao"
+                rows="4"
+                placeholder="Registre observações, necessidades ou próximos passos deste contato."
+                class="aura-lead-note-field"
+            ></textarea>
+
+            <button
+                type="button"
+                onclick="salvarAnotacaoLead(document.getElementById('lead-painel-id').value, document.getElementById('lead-painel-anotacao').value)"
+                class="aura-lead-save-note"
+            >
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 4h12l2 2v14H5V4Z"></path>
+                    <path d="M8 4v6h8V4"></path>
+                    <path d="M9 20v-6h6v6"></path>
+                </svg>
+
+                Salvar anotação
+
+            </button>
+
+        </div>
+
+        <div class="glass-card aura-lead-drawer-card aura-lead-chat-card">
+
+            <div class="aura-lead-drawer-card-header">
+
+                <span class="aura-lead-drawer-card-icon aura-lead-chat-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                        <path d="M8 9h8"></path>
+                        <path d="M8 13h5"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Relacionamento</small>
+                    <h4>Histórico do chat</h4>
+                </div>
+
+            </div>
+
+            <div
+                id="lead-painel-chat"
+                class="aura-lead-chat-history"
+            ></div>
+
+        </div>
+
+    </div>
+
+    <div class="aura-lead-drawer-footer">
+
+        <button
+            type="button"
+            onclick="abrirTemplatesDoLead()"
+            class="aura-lead-template-button"
+        >
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                <path d="M8 9h8"></path>
+                <path d="M8 13h5"></path>
+            </svg>
+
+            Usar template
+
+        </button>
+
+        <button
+            type="button"
+            id="lead-painel-whatsapp-btn"
+            class="aura-lead-whatsapp-button"
+        >
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M5 4h3l2 5-2 1.5a14 14 0 0 0 5.5 5.5L15 14l5 2v3c0 1.1-.9 2-2 2C9.7 21 3 14.3 3 6c0-1.1.9-2 2-2Z"></path>
+            </svg>
+
+            Abrir WhatsApp
+
+        </button>
+
+    </div>
+
+</div>
+
+<div
+    id="lead-painel-overlay"
+    class="hidden fixed inset-0 z-40 aura-lead-drawer-overlay"
+    onclick="fecharPainelLead()"
+></div>
         <div id="lead-painel-overlay" class="hidden fixed inset-0 z-40 bg-black/50" onclick="fecharPainelLead()"></div>
     <div id="produto-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
         <div class="glass-card w-full max-w-2xl p-6 sm:p-8 rounded-2xl max-h-[90vh] overflow-y-auto relative border border-white/5 shadow-2xl">
