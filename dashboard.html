@@ -15782,6 +15782,836 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — LANDING PAGE COMMAND CENTER
+   ========================================================================= */
+
+#view-landing-pages{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-lp-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:25px;
+  min-height:178px;
+  padding:30px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      550px 230px at 92% 2%,
+      color-mix(in srgb,var(--aura-primary) 20%,transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      370px 200px at 68% 115%,
+      color-mix(in srgb,var(--aura-accent) 11%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 84%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  box-shadow:
+    0 28px 65px -40px rgba(0,0,0,.82),
+    inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.aura-lp-header::before{
+  content:"";
+  position:absolute;
+  top:-120px;
+  right:80px;
+  width:290px;
+  height:290px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 17%,transparent);
+  pointer-events:none;
+}
+
+.aura-lp-header-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+}
+
+.aura-lp-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 11px;
+  margin-bottom:12px;
+  border-radius:999px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-lp-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(27px,3vw,36px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-lp-header p{
+  max-width:620px;
+  margin-top:11px;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.aura-lp-header-tags{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:15px;
+}
+
+.aura-lp-header-tags span{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:750;
+}
+
+.aura-lp-header-panel{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:13px;
+  min-width:310px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:19px;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 70%,transparent);
+}
+
+.aura-lp-header-icon,
+.aura-lp-summary-icon,
+.aura-lp-library-title > span,
+.aura-lp-card-icon,
+.aura-lp-modal-header > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  min-width:44px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lp-header-icon svg,
+.aura-lp-summary-icon svg,
+.aura-lp-library-title svg,
+.aura-lp-card-icon svg,
+.aura-lp-modal-header svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-lp-header-panel > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-lp-header-panel small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-lp-header-panel strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  font-weight:800;
+}
+
+.aura-lp-header-panel > div > span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  color:#34D399;
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-lp-header-panel i,
+.aura-lp-library-status i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-lp-new-button,
+.aura-lp-save-button{
+  grid-column:1 / -1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:42px;
+  padding:0 15px;
+  border:0;
+  border-radius:13px;
+  color:#fff !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  font-size:9px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lp-new-button svg,
+.aura-lp-save-button svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-lp-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.aura-lp-summary-card{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:110px;
+  padding:17px;
+  border:1px solid var(--aura-border);
+  border-radius:20px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+}
+
+.aura-lp-summary-card > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-lp-summary-card small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-lp-summary-card strong{
+  margin-top:5px;
+  color:var(--aura-text);
+  font-size:24px;
+  line-height:1;
+  font-weight:850;
+}
+
+.aura-lp-summary-card > div > span{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.aura-lp-summary-published .aura-lp-summary-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-lp-summary-draft .aura-lp-summary-icon{
+  color:#FBBF24;
+  border-color:rgba(251,191,36,.18);
+  background:rgba(251,191,36,.08);
+}
+
+.aura-lp-library{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:25px !important;
+}
+
+.aura-lp-library:hover{
+  transform:none !important;
+}
+
+.aura-lp-library-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-lp-library-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.aura-lp-library-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-lp-library-title small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-lp-library-title h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:14px;
+  font-weight:800;
+}
+
+.aura-lp-library-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-lp-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:13px;
+  min-height:230px;
+  padding-top:18px;
+}
+
+.aura-lp-card{
+  display:flex;
+  min-height:278px;
+  padding:18px !important;
+  flex-direction:column;
+  border-radius:19px !important;
+}
+
+.aura-lp-card.is-published{
+  border-color:
+    color-mix(in srgb,#34D399 20%,var(--aura-border)) !important;
+}
+
+.aura-lp-card-top,
+.aura-lp-card-info,
+.aura-lp-card-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:9px;
+}
+
+.aura-lp-card-status{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:25px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:#FBBF24;
+  background:rgba(251,191,36,.07);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lp-card-status i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 8px currentColor;
+}
+
+.aura-lp-card.is-published .aura-lp-card-status{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-lp-card-content{
+  flex:1;
+  margin-top:17px;
+}
+
+.aura-lp-card-content h3{
+  color:var(--aura-text);
+  font-size:14px;
+  line-height:1.4;
+  font-weight:800;
+}
+
+.aura-lp-card-url{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  margin-top:10px;
+  min-width:0;
+  color:var(--aura-text-muted);
+}
+
+.aura-lp-card-url svg{
+  width:14px;
+  height:14px;
+  min-width:14px;
+  stroke-width:1.9;
+}
+
+.aura-lp-card-url span{
+  overflow:hidden;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-lp-card-info{
+  justify-content:flex-start;
+  flex-wrap:wrap;
+  margin-top:15px;
+}
+
+.aura-lp-card-info span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.aura-lp-card-info svg{
+  width:12px;
+  height:12px;
+  stroke-width:2;
+}
+
+.aura-lp-card-actions{
+  margin-top:17px;
+  padding-top:14px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-lp-edit-button,
+.aura-lp-icon-button,
+.aura-lp-cancel-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:38px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-lp-edit-button{
+  flex:1;
+  color:var(--aura-primary);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 23%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+}
+
+.aura-lp-icon-button{
+  width:38px;
+  min-width:38px;
+}
+
+.aura-lp-edit-button svg,
+.aura-lp-icon-button svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
+
+.aura-lp-publish-button{
+  color:#34D399;
+}
+
+.aura-lp-delete-button{
+  color:#F87171;
+  border-color:rgba(248,113,113,.18);
+  background:rgba(248,113,113,.06);
+}
+
+.aura-lp-empty,
+.aura-lp-loading,
+.aura-lp-error{
+  grid-column:1 / -1;
+  display:flex;
+  min-height:230px;
+  padding:30px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:19px;
+  color:var(--aura-text-muted);
+  text-align:center;
+}
+
+.aura-lp-empty > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:50px;
+  height:50px;
+  border-radius:16px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lp-empty svg{
+  width:22px;
+  height:22px;
+}
+
+.aura-lp-empty strong{
+  margin-top:14px;
+  color:var(--aura-text-secondary);
+  font-size:13px;
+}
+
+.aura-lp-empty p{
+  max-width:420px;
+  margin-top:6px;
+  font-size:10px;
+  line-height:1.55;
+}
+
+.aura-lp-empty button{
+  min-height:38px;
+  margin-top:14px;
+  padding:0 13px;
+  border-radius:11px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 24%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-lp-error{
+  color:#F87171;
+}
+
+/* Modal */
+
+.aura-lp-modal{
+  position:relative;
+  width:100%;
+  max-width:590px;
+  max-height:88vh;
+  padding:24px !important;
+  overflow-y:auto !important;
+  border-radius:25px !important;
+}
+
+.aura-lp-modal:hover{
+  transform:none !important;
+}
+
+.aura-lp-modal-close{
+  position:absolute;
+  top:17px;
+  right:17px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+}
+
+.aura-lp-modal-close svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+}
+
+.aura-lp-modal-header{
+  display:flex;
+  align-items:flex-start;
+  gap:13px;
+  padding-right:45px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-lp-modal-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lp-modal-header h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:800;
+}
+
+.aura-lp-modal-header p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+}
+
+.aura-lp-modal-fields{
+  display:flex;
+  flex-direction:column;
+  gap:15px;
+  margin-top:18px;
+}
+
+.aura-lp-field label{
+  display:block;
+  margin-bottom:7px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.aura-lp-field input{
+  min-height:47px;
+  font-size:11px !important;
+}
+
+.aura-lp-field > p{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.45;
+}
+
+.aura-lp-slug-field{
+  position:relative;
+}
+
+.aura-lp-slug-field > span{
+  position:absolute;
+  top:50%;
+  left:15px;
+  z-index:2;
+  color:var(--aura-primary);
+  font-family:'JetBrains Mono',monospace;
+  font-size:15px;
+  font-weight:850;
+  transform:translateY(-50%);
+}
+
+.aura-lp-slug-field input{
+  padding-left:31px !important;
+}
+
+.aura-lp-modal-note{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-top:17px;
+  padding:13px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 20%,transparent);
+  border-radius:14px;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent);
+}
+
+.aura-lp-modal-note svg{
+  width:17px;
+  height:17px;
+  min-width:17px;
+  color:var(--aura-primary);
+  stroke-width:1.9;
+}
+
+.aura-lp-modal-note p{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.5;
+}
+
+.aura-lp-modal-actions{
+  display:flex;
+  justify-content:flex-end;
+  gap:9px;
+  margin-top:19px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-lp-cancel-button,
+.aura-lp-save-button{
+  min-width:165px;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-lp-header,
+.tema-claro .aura-lp-summary-card,
+.tema-claro .aura-lp-library,
+.tema-claro .aura-lp-modal{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-lp-header-panel > div > span,
+.tema-claro .aura-lp-library-status,
+.tema-claro .aura-lp-card.is-published .aura-lp-card-status{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-lp-card{
+  background:rgba(248,250,252,.78) !important;
+}
+
+/* Responsividade */
+
+@media (max-width:1000px){
+  .aura-lp-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width:900px){
+  .aura-lp-header{
+    align-items:flex-start;
+  }
+}
+
+@media (max-width:767px){
+  .aura-lp-header{
+    flex-direction:column;
+    min-height:0;
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .aura-lp-header-panel{
+    width:100%;
+    min-width:0;
+  }
+
+  .aura-lp-summary{
+    grid-template-columns:1fr;
+  }
+
+  .aura-lp-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-lp-library{
+    padding:18px !important;
+  }
+
+  .aura-lp-modal{
+    padding:19px !important;
+  }
+
+  .aura-lp-modal-actions{
+    flex-direction:column;
+  }
+
+  .aura-lp-cancel-button,
+  .aura-lp-save-button{
+    width:100%;
+  }
+}
+
+@media (max-width:520px){
+  .aura-lp-library-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-lp-card-actions{
+    flex-wrap:wrap;
+  }
+
+  .aura-lp-edit-button{
+    width:100%;
+    flex-basis:100%;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -18362,21 +19192,179 @@ span{
             </div>
 
         </section>
-<section id="view-landing-pages" class="view-section space-y-6 max-w-6xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
+<section
+    id="view-landing-pages"
+    class="view-section space-y-6 max-w-6xl mx-auto aura-lp-view"
+>
+
+    <div class="aura-lp-header">
+
+        <div class="aura-lp-header-copy">
+
+            <span class="aura-lp-kicker">
+                Conversão e campanhas
+            </span>
+
+            <h1>Landing Pages</h1>
+
+            <p>
+                Crie páginas focadas em ofertas, lançamentos e captação de contatos com um endereço exclusivo.
+            </p>
+
+            <div class="aura-lp-header-tags">
+                <span>Editor visual</span>
+                <span>Formulários</span>
+                <span>Publicação</span>
+                <span>Link exclusivo</span>
+            </div>
+
+        </div>
+
+        <div class="aura-lp-header-panel">
+
+            <span class="aura-lp-header-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+                    <path d="M3 8h18"></path>
+                    <path d="M8 21h8"></path>
+                    <path d="M12 18v3"></path>
+                </svg>
+
+            </span>
+
+            <div>
+                <small>Construtor de páginas</small>
+                <strong>Crie experiências de alta conversão</strong>
+
+                <span>
+                    <i></i>
+                    Editor conectado
+                </span>
+            </div>
+
+            <button
+                onclick="abrirModalLP()"
+                class="aura-lp-new-button"
+            >
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M12 5v14"></path>
+                    <path d="M5 12h14"></path>
+                </svg>
+
+                Nova Landing Page
+
+            </button>
+
+        </div>
+
+    </div>
+
+    <div class="aura-lp-summary">
+
+        <div class="aura-lp-summary-card">
+
+            <span class="aura-lp-summary-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+                    <path d="M8 8h8"></path>
+                    <path d="M8 12h8"></path>
+                    <path d="M8 16h5"></path>
+                </svg>
+
+            </span>
+
+            <div>
+                <small>Total de páginas</small>
+                <strong id="lp-total-count">—</strong>
+                <span>Landing Pages cadastradas</span>
+            </div>
+
+        </div>
+
+        <div class="aura-lp-summary-card aura-lp-summary-published">
+
+            <span class="aura-lp-summary-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="m8 12 2.5 2.5L16 9"></path>
+                </svg>
+
+            </span>
+
+            <div>
+                <small>Publicadas</small>
+                <strong id="lp-publicadas-count">—</strong>
+                <span>Disponíveis para visitantes</span>
+            </div>
+
+        </div>
+
+        <div class="aura-lp-summary-card aura-lp-summary-draft">
+
+            <span class="aura-lp-summary-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
+                    <path d="m13.5 6.5 4 4"></path>
+                </svg>
+
+            </span>
+
+            <div>
+                <small>Rascunhos</small>
+                <strong id="lp-rascunhos-count">—</strong>
+                <span>Páginas ainda não publicadas</span>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div class="glass-card aura-lp-library">
+
+        <div class="aura-lp-library-header">
+
+            <div class="aura-lp-library-title">
+
+                <span>
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 6h16"></path>
+                        <path d="M4 12h16"></path>
+                        <path d="M4 18h10"></path>
+                    </svg>
+
+                </span>
+
                 <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Landing Pages</h1>
-                    <p class="text-gray-400 text-xs mt-1">Crie paginas de conversao pra suas campanhas, com o seu proprio link.</p>
+                    <small>Gerenciamento de páginas</small>
+                    <h3>Suas Landing Pages</h3>
                 </div>
-                <button onclick="abrirModalLP()" class="bg-[#FF7A45] hover:bg-[#ff8a5c] text-white font-bold px-4 py-2.5 rounded-xl text-xs transition-all flex items-center gap-2 shrink-0">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path></svg>
-                    Nova LP
-                </button>
+
             </div>
-            <div id="lps-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                <p class="col-span-full text-center text-xs text-gray-500 py-8">Carregando...</p>
+
+            <span class="aura-lp-library-status">
+                <i></i>
+                Sincronizado
+            </span>
+
+        </div>
+
+        <div id="lps-grid" class="aura-lp-grid">
+
+            <div class="aura-lp-loading">
+                Carregando Landing Pages...
             </div>
-        </section>
+
+        </div>
+
+    </div>
+
+</section>
 <section id="view-pedidos" class="view-section space-y-6 max-w-6xl mx-auto">
 
             <div class="aura-orders-header">
@@ -22358,22 +23346,151 @@ span{
             <button onclick="salvarPedido()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Pedido</button>
         </div>
     </div>
-    <div id="lp-modal" class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-md rounded-2xl relative border border-white/5 shadow-2xl p-6 space-y-4">
-            <button onclick="document.getElementById('lp-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-sm font-black text-white" id="lp-modal-titulo">Nova Landing Page</h3>
+    <div
+        id="lp-modal"
+        class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+        onclick="if(event.target === this) fecharModalLP()"
+    >
+
+        <div class="glass-card aura-lp-modal">
+
+            <button
+                type="button"
+                onclick="fecharModalLP()"
+                class="aura-lp-modal-close"
+                aria-label="Fechar"
+            >
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m6 6 12 12"></path>
+                    <path d="M18 6 6 18"></path>
+                </svg>
+
+            </button>
+
+            <div class="aura-lp-modal-header">
+
+                <span>
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+                        <path d="M3 8h18"></path>
+                        <path d="M8 21h8"></path>
+                        <path d="M12 18v3"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Construtor de páginas</small>
+
+                    <h3 id="lp-modal-titulo">
+                        Nova Landing Page
+                    </h3>
+
+                    <p>
+                        Defina o nome e o endereço inicial da sua página.
+                    </p>
+                </div>
+
+            </div>
+
             <input type="hidden" id="lp-id-edicao">
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Titulo da Pagina</label>
-                <input type="text" id="lp-titulo" placeholder="Ex: Promocao de Inverno" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
+
+            <div class="aura-lp-modal-fields">
+
+                <div class="aura-lp-field">
+
+                    <label for="lp-titulo">
+                        Título da página
+                    </label>
+
+                    <input
+                        type="text"
+                        id="lp-titulo"
+                        class="w-full glass-input"
+                        placeholder="Ex: Promoção de Inverno"
+                    >
+
+                    <p>
+                        Esse nome será utilizado para identificar a página no seu painel.
+                    </p>
+
+                </div>
+
+                <div class="aura-lp-field">
+
+                    <label for="lp-slug">
+                        Endereço da página
+                    </label>
+
+                    <div class="aura-lp-slug-field">
+
+                        <span>/</span>
+
+                        <input
+                            type="text"
+                            id="lp-slug"
+                            class="w-full glass-input"
+                            placeholder="promocao-inverno"
+                            autocomplete="off"
+                            autocapitalize="none"
+                            spellcheck="false"
+                        >
+
+                    </div>
+
+                    <p>
+                        Use somente letras minúsculas, números, hífen ou underline.
+                    </p>
+
+                </div>
+
             </div>
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Endereco (slug)</label>
-                <input type="text" id="lp-slug" placeholder="promocao-inverno" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
-                <p class="text-[10px] text-gray-500">So letras minusculas, numeros e hifen.</p>
+
+            <div class="aura-lp-modal-note">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="12" r="9"></circle>
+                    <path d="M12 8h.01"></path>
+                    <path d="M11 12h1v4h1"></path>
+                </svg>
+
+                <p>
+                    Após criar a página, o editor visual será liberado para adicionar textos, imagens, formulários e outros blocos.
+                </p>
+
             </div>
-            <button onclick="salvarLP()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar</button>
+
+            <div class="aura-lp-modal-actions">
+
+                <button
+                    type="button"
+                    onclick="fecharModalLP()"
+                    class="aura-lp-cancel-button"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="salvarLP()"
+                    class="aura-lp-save-button"
+                >
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                    </svg>
+
+                    Criar Landing Page
+
+                </button>
+
+            </div>
+
         </div>
+
     </div>
 <div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col">
         <div id="lped-painel-camadas" class="hidden fixed right-4 top-20 z-[130] w-72 bg-[#14132B] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
@@ -24494,65 +25611,317 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         // LANDING PAGES (7.6 - Fase B: tela de gestao)
         // =============================================
        async function carregarLandingPages() {
-            const grid = document.getElementById("lps-grid");
+            const grid =
+                document.getElementById("lps-grid");
+
+            const totalElemento =
+                document.getElementById("lp-total-count");
+
+            const publicadasElemento =
+                document.getElementById("lp-publicadas-count");
+
+            const rascunhosElemento =
+                document.getElementById("lp-rascunhos-count");
+
             if (!grid) return;
+
             try {
-                const snap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
+                const snap = await getDocs(
+                    query(
+                        collection(db, "landing_pages"),
+                        where("donoUID", "==", usuarioUID)
+                    )
+                );
+
                 let lps = [];
-                snap.forEach(d => lps.push({ id: d.id, ...d.data() }));
-                lps.sort((a, b) => (b.atualizadoEm || 0) - (a.atualizadoEm || 0));
+
+                snap.forEach(d => {
+                    lps.push({
+                        id: d.id,
+                        ...d.data()
+                    });
+                });
+
+                lps.sort(
+                    (a, b) =>
+                        (b.atualizadoEm || 0) -
+                        (a.atualizadoEm || 0)
+                );
+
+                const total = lps.length;
+
+                const publicadas =
+                    lps.filter(lp => lp.publicado).length;
+
+                const rascunhos =
+                    total - publicadas;
+
+                if (totalElemento) {
+                    totalElemento.innerText = total;
+                }
+
+                if (publicadasElemento) {
+                    publicadasElemento.innerText = publicadas;
+                }
+
+                if (rascunhosElemento) {
+                    rascunhosElemento.innerText = rascunhos;
+                }
+
                 if (lps.length === 0) {
                     grid.innerHTML = `
-                        <div class="col-span-full text-center py-16">
-                            <svg class="w-12 h-12 mx-auto text-gray-600 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <p class="text-sm text-gray-400 mb-1">Nenhuma Landing Page ainda</p>
-                            <p class="text-xs text-gray-600 mb-4">Crie sua primeira pagina de conversao em segundos.</p>
-                            <button onclick="abrirModalLP()" class="bg-[#FF7A45] hover:bg-[#ff8a5c] text-white font-bold px-5 py-2.5 rounded-xl text-xs transition-all">+ Criar primeira LP</button>
+                        <div class="aura-lp-empty">
+
+                            <span>
+
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="4" y="3" width="16" height="18" rx="2"></rect>
+                                    <path d="M8 8h8"></path>
+                                    <path d="M8 12h8"></path>
+                                    <path d="M8 16h5"></path>
+                                </svg>
+
+                            </span>
+
+                            <strong>
+                                Nenhuma Landing Page criada
+                            </strong>
+
+                            <p>
+                                Crie sua primeira página para começar a construir uma experiência focada em conversão.
+                            </p>
+
+                            <button onclick="abrirModalLP()">
+                                Criar primeira página
+                            </button>
+
                         </div>
                     `;
+
                     return;
                 }
+
                 grid.innerHTML = lps.map(lp => {
-                    const url = `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lp.pagina}`;
+                    const url =
+                        `https://videdigital.github.io/vide-digital/${slugAtualSalvo}/${lp.pagina}`;
+
+                    const dataFormatada =
+                        lp.atualizadoEm
+                            ? new Date(
+                                lp.atualizadoEm
+                            ).toLocaleDateString("pt-BR")
+                            : "Data não informada";
+
+                    const quantidadeBlocos =
+                        Array.isArray(lp.ordemBlocos)
+                            ? lp.ordemBlocos.length
+                            : 0;
+
                     return `
-                        <div class="glass-card rounded-2xl p-5 border border-white/5 border-l-2 border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5] transition-all space-y-3">
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="min-w-0">
-                                    <h3 class="text-sm font-bold text-white truncate">${lp.titulo}</h3>
-                                    <p class="text-[11px] text-gray-500 truncate">/${lp.pagina}</p>
+                        <div class="glass-card aura-lp-card ${lp.publicado ? "is-published" : "is-draft"}">
+
+                            <div class="aura-lp-card-top">
+
+                                <span class="aura-lp-card-icon">
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="3" y="4" width="18" height="14" rx="2"></rect>
+                                        <path d="M3 8h18"></path>
+                                        <path d="M8 21h8"></path>
+                                        <path d="M12 18v3"></path>
+                                    </svg>
+
+                                </span>
+
+                                <span class="aura-lp-card-status">
+
+                                    <i></i>
+
+                                    ${lp.publicado ? "Publicada" : "Rascunho"}
+
+                                </span>
+
+                            </div>
+
+                            <div class="aura-lp-card-content">
+
+                                <h3>
+                                    ${lp.titulo || "Landing Page sem título"}
+                                </h3>
+
+                                <div class="aura-lp-card-url">
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M10.5 13.5a4 4 0 0 0 5.66 0l2.34-2.34a4 4 0 0 0-5.66-5.66l-1.34 1.34"></path>
+                                        <path d="M13.5 10.5a4 4 0 0 0-5.66 0L5.5 12.84a4 4 0 0 0 5.66 5.66l1.34-1.34"></path>
+                                    </svg>
+
+                                    <span>
+                                        /${lp.pagina}
+                                    </span>
+
                                 </div>
-                                <span class="shrink-0 text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${lp.publicado ? 'bg-emerald-500/10 text-emerald-400' : 'bg-gray-500/10 text-gray-400'}">${lp.publicado ? 'Publicada' : 'Rascunho'}</span>
+
                             </div>
-                            <p class="text-[10px] text-gray-600">Atualizado em ${lp.atualizadoEm ? new Date(lp.atualizadoEm).toLocaleDateString('pt-BR') : '-'}</p>
-                            <div class="flex items-center gap-1.5 pt-2 border-t border-white/5">
-                                <button onclick="editarLP('${lp.id}')" class="flex-1 bg-[#5B3DF5]/10 hover:bg-[#5B3DF5]/20 text-[#a996ff] text-[11px] font-bold px-3 py-2 rounded-lg transition-all">Editar</button>
-                                <button onclick="window.open('${url}', '_blank')" title="Abrir" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
-                                </button>
-                                <button onclick="alternarPublicacaoLP('${lp.id}', ${!lp.publicado})" title="${lp.publicado ? 'Despublicar' : 'Publicar'}" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">${lp.publicado ? '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"></path>' : '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>'}</svg>
-                                </button>
-<button onclick="duplicarLP('${lp.id}')" title="Duplicar" class="bg-white/5 hover:bg-white/10 text-white p-2 rounded-lg transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path></svg>
-                                </button>
-                                <button onclick="excluirLP('${lp.id}')" title="Excluir" class="bg-red-500/10 hover:bg-red-500/20 text-red-400 p-2 rounded-lg transition-all">
-                                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
-                                </button>
+
+                            <div class="aura-lp-card-info">
+
+                                <span>
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <circle cx="12" cy="12" r="9"></circle>
+                                        <path d="M12 7v5l3 2"></path>
+                                    </svg>
+
+                                    ${dataFormatada}
+
+                                </span>
+
+                                <span>
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M12 3 3 8l9 5 9-5-9-5Z"></path>
+                                        <path d="m3 12 9 5 9-5"></path>
+                                    </svg>
+
+                                    ${quantidadeBlocos} bloco(s)
+
+                                </span>
+
                             </div>
+
+                            <div class="aura-lp-card-actions">
+
+                                <button
+                                    onclick="editarLP('${lp.id}')"
+                                    class="aura-lp-edit-button"
+                                >
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
+                                        <path d="m13.5 6.5 4 4"></path>
+                                    </svg>
+
+                                    Abrir editor
+
+                                </button>
+
+                                <button
+                                    onclick="window.open('${url}', '_blank')"
+                                    title="Abrir página"
+                                    class="aura-lp-icon-button"
+                                >
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M14 5h5v5"></path>
+                                        <path d="M10 14 19 5"></path>
+                                        <path d="M19 13v6H5V5h6"></path>
+                                    </svg>
+
+                                </button>
+
+                                <button
+                                    onclick="alternarPublicacaoLP('${lp.id}', ${!lp.publicado})"
+                                    title="${lp.publicado ? "Despublicar" : "Publicar"}"
+                                    class="aura-lp-icon-button aura-lp-publish-button"
+                                >
+
+                                    ${
+                                        lp.publicado
+                                            ? `
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <circle cx="12" cy="12" r="9"></circle>
+                                                    <path d="M9.5 9v6"></path>
+                                                    <path d="M14.5 9v6"></path>
+                                                </svg>
+                                            `
+                                            : `
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <circle cx="12" cy="12" r="9"></circle>
+                                                    <path d="m10 8 6 4-6 4V8Z"></path>
+                                                </svg>
+                                            `
+                                    }
+
+                                </button>
+
+                                <button
+                                    onclick="duplicarLP('${lp.id}')"
+                                    title="Duplicar"
+                                    class="aura-lp-icon-button"
+                                >
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+                                        <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                                    </svg>
+
+                                </button>
+
+                                <button
+                                    onclick="excluirLP('${lp.id}')"
+                                    title="Excluir"
+                                    class="aura-lp-icon-button aura-lp-delete-button"
+                                >
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M4 7h16"></path>
+                                        <path d="M10 11v6"></path>
+                                        <path d="M14 11v6"></path>
+                                        <path d="m6 7 1 14h10l1-14"></path>
+                                        <path d="M9 7V4h6v3"></path>
+                                    </svg>
+
+                                </button>
+
+                            </div>
+
                         </div>
                     `;
+
                 }).join("");
+
             } catch(err) {
                 console.error(err);
-                grid.innerHTML = `<p class="col-span-full text-center text-xs text-red-400 py-8">Erro ao carregar: ${err.message}</p>`;
+
+                if (totalElemento) totalElemento.innerText = "—";
+                if (publicadasElemento) publicadasElemento.innerText = "—";
+                if (rascunhosElemento) rascunhosElemento.innerText = "—";
+
+                grid.innerHTML = `
+                    <div class="aura-lp-error">
+                        Não foi possível carregar as Landing Pages.
+                    </div>
+                `;
             }
         }
         window.abrirModalLP = function() {
-            document.getElementById("lp-modal-titulo").innerText = "Nova Landing Page";
+            document.getElementById("lp-modal-titulo").innerText =
+                "Nova Landing Page";
+
             document.getElementById("lp-id-edicao").value = "";
             document.getElementById("lp-titulo").value = "";
             document.getElementById("lp-slug").value = "";
-            document.getElementById("lp-modal").classList.remove("hidden");
+
+            document
+                .getElementById("lp-modal")
+                .classList.remove("hidden");
+
+            setTimeout(() => {
+                document
+                    .getElementById("lp-titulo")
+                    ?.focus();
+            }, 80);
+        };
+
+        window.fecharModalLP = function() {
+            document
+                .getElementById("lp-modal")
+                .classList.add("hidden");
+
+            document.getElementById("lp-id-edicao").value = "";
+            document.getElementById("lp-titulo").value = "";
+            document.getElementById("lp-slug").value = "";
         };
         let lpEditorId = null;
         let lpEditorBlocos = [];
@@ -26201,7 +27570,7 @@ window.abrirPreviewEditorLP = async function() {
                     });
                     showToast("Landing Page criada! Ja da pra publicar.");
                 }
-                document.getElementById("lp-modal").classList.add("hidden");
+                fecharModalLP();
                 carregarLandingPages();
             } catch(err) {
                 console.error(err);
