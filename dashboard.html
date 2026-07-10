@@ -29722,7 +29722,90 @@ body.aura-command-open{
 
         </div>
 
+        <div class="glass-card aura-lead-drawer-card aura-lead-timeline-card">
+
+            <div class="aura-lead-drawer-card-header">
+
+                <span class="aura-lead-drawer-card-icon aura-lead-timeline-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <circle cx="12" cy="12" r="9"></circle>
+                        <path d="M12 7v5l3 2"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+                    <small>Histórico operacional</small>
+                    <h4>Linha do tempo do lead</h4>
+                </div>
+
+                <button
+                    type="button"
+                    class="aura-lead-timeline-refresh"
+                    onclick="carregarHistoricoLead(document.getElementById('lead-painel-id').value)"
+                    aria-label="Atualizar histórico"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M20 7v5h-5"></path>
+                        <path d="M4 17v-5h5"></path>
+                        <path d="M6.1 9a7 7 0 0 1 11.2-2L20 10"></path>
+                        <path d="M17.9 15a7 7 0 0 1-11.2 2L4 14"></path>
+                    </svg>
+                </button>
+
+            </div>
+
+            <div class="aura-lead-timeline-filters">
+
+                <button
+                    type="button"
+                    class="aura-lead-history-filter is-active"
+                    onclick="filtrarHistoricoLead('todos', this)"
+                >
+                    Todos
+                </button>
+
+                <button
+                    type="button"
+                    class="aura-lead-history-filter"
+                    onclick="filtrarHistoricoLead('status', this)"
+                >
+                    Status
+                </button>
+
+                <button
+                    type="button"
+                    class="aura-lead-history-filter"
+                    onclick="filtrarHistoricoLead('contato', this)"
+                >
+                    Contato
+                </button>
+
+                <button
+                    type="button"
+                    class="aura-lead-history-filter"
+                    onclick="filtrarHistoricoLead('automacao', this)"
+                >
+                    Automação
+                </button>
+
+            </div>
+
+            <div
+                id="lead-activity-list"
+                class="aura-lead-timeline-list"
+            >
+                <div class="aura-lead-timeline-loading">
+                    Carregando histórico...
+                </div>
+            </div>
+
+        </div>
+
         <div class="glass-card aura-lead-drawer-card aura-lead-chat-card">
+
+            <div class="aura-lead-drawer-card-header">
 
                 <span class="aura-lead-drawer-card-icon aura-lead-chat-icon">
 
@@ -29787,11 +29870,11 @@ body.aura-command-open{
 </div>
 
 <div
+<div
     id="lead-painel-overlay"
     class="hidden fixed inset-0 z-40 aura-lead-drawer-overlay"
     onclick="fecharPainelLead()"
 ></div>
-        <div id="lead-painel-overlay" class="hidden fixed inset-0 z-40 bg-black/50" onclick="fecharPainelLead()"></div>
     <div
     id="produto-modal"
     class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl aura-product-modal-overlay"
