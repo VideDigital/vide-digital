@@ -19374,6 +19374,133 @@ div:not(.aura-product-modal-actions){
 
 }
 
+/* CENTRAL DE NOTIFICAÇÕES */
+
+#notif-modal{
+  background:rgba(3,7,18,.76);
+  backdrop-filter:blur(10px);
+}
+
+.notif-center-modal{
+  position:relative;
+  width:100%;
+  max-width:580px;
+  max-height:82vh;
+  padding:0 !important;
+  overflow:hidden !important;
+  border-radius:24px !important;
+}
+
+.notif-center-modal:hover{
+  transform:none !important;
+}
+
+.notif-center-view{
+  max-height:82vh;
+  padding:21px;
+  overflow-y:auto;
+}
+
+.notif-center-close{
+  position:absolute;
+  top:17px;
+  right:17px;
+  z-index:5;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:35px;
+  height:35px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-muted);
+  background:var(--aura-surface-soft);
+}
+
+.notif-center-close svg,
+.notif-center-back svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+}
+
+.notif-center-header{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:2px 45px 17px 0;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.notif-center-header > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  border-radius:13px;
+  color:var(--aura-primary);
+  background:color-mix(in srgb,var(--aura-primary) 9%,transparent);
+}
+
+.notif-center-header svg{
+  width:18px;
+  height:18px;
+}
+
+.notif-center-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.notif-center-header h3{
+  margin-top:3px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:800;
+}
+
+.notif-center-list{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:16px;
+}
+
+#notif-modal-lista > button{
+  border-color:var(--aura-border) !important;
+  background:color-mix(in srgb,var(--aura-surface-soft) 58%,transparent);
+}
+
+#notif-modal-lista > button:hover{
+  border-color:var(--aura-border-strong) !important;
+  background:color-mix(in srgb,var(--aura-primary) 6%,transparent) !important;
+}
+
+.notif-center-back{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-bottom:17px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  font-weight:700;
+}
+
+#notif-modal-detalhe-conteudo h3{
+  color:var(--aura-text) !important;
+}
+
+#notif-modal-detalhe-conteudo > p{
+  color:var(--aura-text-secondary) !important;
+}
+
+#notif-modal-detalhe-conteudo label{
+  color:var(--aura-text-muted) !important;
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -27145,22 +27272,64 @@ Adicionar Novo Bloco
             <div id="lp-blocos-grid" class="flex-1 overflow-y-auto p-5 grid grid-cols-2 gap-3 content-start"></div>
         </div>
     </div>
-    <!-- MODAL CENTRAL DE NOTIFICAÇÕES (lista + detalhe na mesma caixa) -->
-    <div id="notif-modal" class="hidden fixed inset-0 z-[65] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl" onclick="if(event.target === this) fecharNotifModal()">
-        <div class="glass-card w-full max-w-lg rounded-2xl relative border border-white/5 shadow-2xl max-h-[80vh] flex flex-col overflow-hidden">
-            <button onclick="fecharNotifModal()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl z-10">&times;</button>
+    <!-- MODAL CENTRAL DE NOTIFICAÇÕES -->
+    <div
+        id="notif-modal"
+        class="hidden fixed inset-0 z-[65] flex items-center justify-center p-4"
+        onclick="if(event.target === this) fecharNotifModal()"
+    >
+        <div class="glass-card notif-center-modal">
 
-            <!-- VISÃO EM LISTA -->
-            <div id="notif-modal-lista-view" class="p-6 overflow-y-auto">
-                <h3 class="text-sm font-black text-white mb-4">🔔 Notificações</h3>
-                <div id="notif-modal-lista" class="space-y-2"></div>
+            <button
+                type="button"
+                onclick="fecharNotifModal()"
+                class="notif-center-close"
+                aria-label="Fechar"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m6 6 12 12"></path>
+                    <path d="M18 6 6 18"></path>
+                </svg>
+            </button>
+
+            <div id="notif-modal-lista-view" class="notif-center-view">
+
+                <div class="notif-center-header">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                            <path d="M10 21h4"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Central de comunicação</small>
+                        <h3>Notificações</h3>
+                    </div>
+                </div>
+
+                <div id="notif-modal-lista" class="notif-center-list"></div>
+
             </div>
 
-            <!-- VISÃO DE DETALHE (uma notificação, maior) -->
-            <div id="notif-modal-detalhe-view" class="hidden p-6 overflow-y-auto">
-                <button onclick="voltarListaNotifModal()" class="text-xs text-gray-400 hover:text-white mb-4 flex items-center gap-1.5">← Voltar</button>
+            <div id="notif-modal-detalhe-view" class="hidden notif-center-view">
+
+                <button
+                    type="button"
+                    onclick="voltarListaNotifModal()"
+                    class="notif-center-back"
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="m15 18-6-6 6-6"></path>
+                    </svg>
+
+                    Voltar
+                </button>
+
                 <div id="notif-modal-detalhe-conteudo"></div>
+
             </div>
+
         </div>
     </div>
 
