@@ -12146,6 +12146,1022 @@ span{
 
 }
 
+/* =========================================================================
+   VIDE AURA OS — TEAM ACCESS CENTER
+   ========================================================================= */
+
+#view-funcionarios{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-team-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  min-height:158px;
+  padding:28px 30px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      520px 220px at 92% 4%,
+      color-mix(in srgb,var(--aura-primary) 20%,transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      340px 180px at 70% 115%,
+      color-mix(in srgb,var(--aura-accent) 10%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 84%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  box-shadow:
+    0 28px 65px -40px rgba(0,0,0,.82),
+    inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.aura-team-header::before{
+  content:"";
+  position:absolute;
+  top:-115px;
+  right:80px;
+  width:275px;
+  height:275px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 16%,transparent);
+  pointer-events:none;
+}
+
+.aura-team-header-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+}
+
+.aura-team-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 11px;
+  margin-bottom:12px;
+  border-radius:999px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-team-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(27px,3vw,36px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-team-header p{
+  max-width:620px;
+  margin-top:11px;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.aura-team-new-button,
+.aura-team-save-button{
+  position:relative;
+  z-index:2;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:48px;
+  padding:0 18px;
+  border:0;
+  border-radius:14px;
+  color:#fff !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 18px 38px -24px
+      color-mix(in srgb,var(--aura-primary) 85%,transparent);
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+.aura-team-new-button:hover,
+.aura-team-save-button:hover{
+  transform:translateY(-2px);
+  filter:brightness(1.08);
+}
+
+.aura-team-new-button svg,
+.aura-team-save-button svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.aura-team-summary-card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:112px;
+  padding:17px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:20px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface) 68%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 50%,transparent)
+    );
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+  transition:
+    transform .25s var(--rd-ease),
+    border-color .25s var(--rd-ease);
+}
+
+.aura-team-summary-card:hover{
+  transform:translateY(-3px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 27%,transparent);
+}
+
+.aura-team-summary-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:43px;
+  height:43px;
+  min-width:43px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-team-summary-active .aura-team-summary-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-team-summary-inactive .aura-team-summary-icon{
+  color:#94A3B8;
+}
+
+.aura-team-summary-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-summary-card > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-team-summary-card small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-team-summary-card strong{
+  margin-top:5px;
+  color:var(--aura-text);
+  font-family:'Sora',sans-serif;
+  font-size:25px;
+  line-height:1;
+  font-weight:850;
+}
+
+.aura-team-summary-card > div > span{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.35;
+  font-weight:600;
+}
+
+.aura-team-panel{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:25px !important;
+}
+
+.aura-team-panel:hover{
+  transform:none !important;
+}
+
+.aura-team-panel-header{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-team-panel-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.aura-team-panel-title > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-team-panel-title svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-panel-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-team-panel-title small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-team-panel-title h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:14px;
+  font-weight:800;
+}
+
+.aura-team-panel-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:30px;
+  padding:0 11px;
+  border-radius:999px;
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.aura-team-panel-status i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-team-list{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+  min-height:220px;
+  padding-top:18px;
+}
+
+.aura-team-member{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(210px,.55fr) auto;
+  align-items:center;
+  gap:18px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:18px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface) 62%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 47%,transparent)
+    );
+  transition:
+    transform .24s var(--rd-ease),
+    border-color .24s var(--rd-ease);
+}
+
+.aura-team-member:hover{
+  transform:translateY(-2px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 28%,transparent);
+}
+
+.aura-team-member.is-inactive{
+  opacity:.68;
+}
+
+.aura-team-member.is-inactive:hover{
+  opacity:1;
+}
+
+.aura-team-member-profile{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.aura-team-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:47px;
+  height:47px;
+  min-width:47px;
+  border-radius:15px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 24%,transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-primary) 15%,transparent),
+      color-mix(in srgb,var(--aura-accent) 8%,transparent)
+    );
+  font-family:'Sora',sans-serif;
+  font-size:12px;
+  font-weight:850;
+}
+
+.aura-team-member-profile > div{
+  min-width:0;
+}
+
+.aura-team-member-name{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.aura-team-member-name strong{
+  overflow:hidden;
+  color:var(--aura-text);
+  font-size:13px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-team-member-name span{
+  display:inline-flex;
+  align-items:center;
+  min-height:22px;
+  padding:0 8px;
+  border-radius:999px;
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-team-member.is-inactive .aura-team-member-name span{
+  color:#94A3B8;
+  border-color:rgba(148,163,184,.18);
+  background:rgba(148,163,184,.07);
+}
+
+.aura-team-member-profile p{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-team-member-profile small{
+  display:block;
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:700;
+}
+
+.aura-team-member-access{
+  display:flex;
+  gap:8px;
+}
+
+.aura-team-member-access > span{
+  display:flex;
+  min-width:94px;
+  min-height:54px;
+  padding:9px 10px;
+  flex-direction:column;
+  justify-content:center;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 58%,transparent);
+  font-size:8px;
+  line-height:1.3;
+  font-weight:700;
+}
+
+.aura-team-member-access strong{
+  margin-bottom:3px;
+  color:var(--aura-text);
+  font-size:15px;
+  line-height:1;
+}
+
+.aura-team-member-actions{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.aura-team-action-edit,
+.aura-team-action-status{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:36px;
+  padding:0 11px;
+  border-radius:11px;
+  font-size:9px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.aura-team-action-edit{
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+}
+
+.aura-team-action-status{
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 58%,transparent);
+}
+
+.aura-team-action-edit svg{
+  width:14px;
+  height:14px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-loading,
+.aura-team-error,
+.aura-team-empty{
+  display:flex;
+  min-height:230px;
+  padding:32px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:20px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 40%,transparent);
+  font-size:11px;
+}
+
+.aura-team-error{
+  color:#F87171;
+}
+
+.aura-team-empty > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:52px;
+  height:52px;
+  border-radius:17px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-team-empty svg{
+  width:23px;
+  height:23px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-empty strong{
+  margin-top:14px;
+  color:var(--aura-text-secondary);
+  font-size:13px;
+}
+
+.aura-team-empty p{
+  max-width:390px;
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.55;
+}
+
+.aura-team-empty button{
+  min-height:38px;
+  margin-top:15px;
+  padding:0 14px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 24%,transparent);
+  border-radius:12px;
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-team-modal{
+  position:relative;
+  width:100%;
+  max-width:680px;
+  max-height:88vh;
+  padding:24px !important;
+  overflow-y:auto !important;
+  border-radius:25px !important;
+  box-shadow:
+    0 28px 80px -28px rgba(0,0,0,.85) !important;
+}
+
+.aura-team-modal:hover{
+  transform:none !important;
+}
+
+.aura-team-modal-close{
+  position:absolute;
+  top:17px;
+  right:17px;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 66%,transparent);
+}
+
+.aura-team-modal-close svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.aura-team-modal-header{
+  display:flex;
+  align-items:flex-start;
+  gap:13px;
+  padding-right:45px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-team-modal-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:45px;
+  height:45px;
+  min-width:45px;
+  border-radius:15px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-team-modal-icon svg{
+  width:20px;
+  height:20px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-modal-header > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-team-modal-header small,
+.aura-team-permissions > div:first-child small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-team-modal-header h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:800;
+}
+
+.aura-team-modal-header p,
+.aura-team-permissions > div:first-child p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.aura-team-modal-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:13px;
+  margin-top:18px;
+}
+
+.aura-team-field{
+  margin-top:15px;
+}
+
+.aura-team-modal-grid .aura-team-field{
+  margin-top:0;
+}
+
+.aura-team-field label{
+  display:block;
+  margin-bottom:7px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.aura-team-field input{
+  min-height:47px;
+  border-radius:14px !important;
+  font-size:11px !important;
+}
+
+.aura-team-field > p{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.45;
+}
+
+.aura-team-password-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:9px;
+}
+
+.aura-team-password-field{
+  position:relative;
+}
+
+.aura-team-password-field input{
+  padding-right:48px !important;
+}
+
+.aura-team-password-toggle{
+  position:absolute;
+  top:50%;
+  right:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  border:0;
+  border-radius:10px;
+  color:var(--aura-text-muted);
+  background:transparent;
+  transform:translateY(-50%);
+}
+
+.aura-team-password-toggle.is-visible{
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-team-password-toggle svg,
+.aura-team-generate-button svg{
+  width:15px;
+  height:15px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-team-generate-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:47px;
+  padding:0 13px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-team-permissions{
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-team-permissions h4{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:13px;
+  font-weight:800;
+}
+
+.aura-team-permissions-grid{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  margin-top:13px;
+}
+
+.aura-team-permission-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  min-height:48px;
+  padding:8px 10px 8px 13px;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 54%,transparent);
+}
+
+.aura-team-permission-name{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:750;
+}
+
+.aura-team-permission-options{
+  display:flex;
+  gap:7px;
+}
+
+.aura-team-permission-options label{
+  position:relative;
+  display:flex;
+  align-items:center;
+  cursor:pointer;
+}
+
+.aura-team-permission-options input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-team-permission-options label span{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:55px;
+  min-height:30px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:10px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 64%,transparent);
+  font-size:9px;
+  font-weight:800;
+  transition:all .2s var(--rd-ease);
+}
+
+.aura-team-permission-options input:checked + span{
+  color:var(--aura-primary);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 30%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 10%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04);
+}
+
+.aura-team-save-button{
+  width:100%;
+  margin-top:18px;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-team-header,
+.tema-claro .aura-team-summary-card,
+.tema-claro .aura-team-panel,
+.tema-claro .aura-team-modal{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-team-kicker,
+.tema-claro .aura-team-summary-icon,
+.tema-claro .aura-team-panel-title > span,
+.tema-claro .aura-team-avatar,
+.tema-claro .aura-team-modal-icon,
+.tema-claro .aura-team-empty > span{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-team-summary-active .aura-team-summary-icon,
+.tema-claro .aura-team-panel-status,
+.tema-claro .aura-team-member-name span{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-team-member,
+.tema-claro .aura-team-member-access > span,
+.tema-claro .aura-team-permission-row{
+  background:rgba(248,250,252,.74);
+}
+
+/* Responsividade */
+
+@media (max-width:900px){
+  .aura-team-member{
+    grid-template-columns:minmax(0,1fr) auto;
+  }
+
+  .aura-team-member-access{
+    grid-column:1 / -1;
+  }
+}
+
+@media (max-width:767px){
+  .aura-team-header{
+    flex-direction:column;
+    align-items:flex-start;
+    min-height:0;
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .aura-team-new-button{
+    width:100%;
+  }
+
+  .aura-team-summary{
+    grid-template-columns:1fr;
+  }
+
+  .aura-team-panel{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-team-member{
+    grid-template-columns:1fr;
+  }
+
+  .aura-team-member-actions{
+    width:100%;
+  }
+
+  .aura-team-action-edit,
+  .aura-team-action-status{
+    flex:1;
+  }
+
+  .aura-team-modal{
+    padding:19px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-team-modal-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-team-password-row{
+    grid-template-columns:1fr;
+  }
+}
+
+@media (max-width:520px){
+  .aura-team-panel-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-team-member-access{
+    flex-direction:column;
+  }
+
+  .aura-team-member-access > span{
+    width:100%;
+  }
+
+  .aura-team-permission-row{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-team-permission-options{
+    width:100%;
+  }
+
+  .aura-team-permission-options label{
+    flex:1;
+  }
+
+  .aura-team-permission-options label span{
+    width:100%;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -16228,17 +17244,7 @@ span{
         </section>
 
         <section id="view-funcionarios" class="view-section space-y-6 max-w-5xl mx-auto">
-            <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
-                <div>
-                    <h1 class="text-2xl font-black text-white tracking-tight">Funcionários</h1>
-                    <p class="text-gray-400 text-xs mt-1">Dê acesso à sua equipe, com permissões específicas pra cada um.</p>
-                </div>
-                <button onclick="abrirModalFuncionario()" class="bg-white text-black font-bold px-4 py-2 rounded-xl text-xs hover:bg-gray-200 transition-all shrink-0">+ Novo Funcionário</button>
-            </div>
-            <div id="lista-funcionarios" class="space-y-3">
-                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
-            </div>
-        </section>
+
 
         <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto">
             <!-- Cabeçalho Principal -->
@@ -17717,42 +18723,7 @@ Adicionar Novo Bloco
     </div>
 
     <!-- MODAL DE FUNCIONÁRIO -->
-    <div id="funcionario-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-5 relative border border-white/5 shadow-2xl max-h-[85vh] overflow-y-auto">
-            <button onclick="fecharModalFuncionario()" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 id="funcionario-modal-titulo" class="text-sm font-black text-white">Novo Funcionário</h3>
-            <input type="hidden" id="funcionario-uid-edicao">
 
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome</label>
-                <input type="text" id="funcionario-nome" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">E-mail</label>
-                <input type="email" id="funcionario-email" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none">
-            </div>
-            <div id="funcionario-senha-box" class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Senha Temporária</label>
-                <div class="flex gap-2">
-                    <input type="text" id="funcionario-senha" class="flex-1 glass-input rounded-xl p-3 text-sm text-white outline-none">
-                    <button type="button" onclick="gerarSenhaAleatoria()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 rounded-xl transition-all shrink-0">🎲 Gerar</button>
-                </div>
-                <p class="text-[10px] text-gray-500">Combine com ele por fora — ele vai poder trocar essa senha depois.</p>
-            </div>
-            <div class="space-y-1.5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Cargo</label>
-                <input type="text" id="funcionario-cargo" class="w-full glass-input rounded-xl p-3 text-sm text-white outline-none" placeholder="Ex: Atendente, Vendedor...">
-            </div>
-
-            <div class="space-y-2 pt-2 border-t border-white/5">
-                <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Permissões</label>
-                <p class="text-[10px] text-gray-500">"Ver" mostra a aba pra ele. "Editar" libera criar/alterar coisas nela.</p>
-                <div id="funcionario-permissoes-grid" class="space-y-2"></div>
-            </div>
-
-            <button onclick="salvarFuncionario()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Funcionário</button>
-        </div>
-    </div>
 <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
         <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
             <div class="h-12 w-12 rounded-full bg-[#00f2fe]/10 border border-[#00f2fe]/30 flex items-center justify-center mx-auto text-xl">⚠️</div>
@@ -18450,37 +19421,150 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
 
         async function carregarFuncionarios() {
             if (!usuarioUID) return;
+
             const box = document.getElementById("lista-funcionarios");
             if (!box) return;
+
+            const totalElemento = document.getElementById("funcionario-total-count");
+            const ativosElemento = document.getElementById("funcionario-active-count");
+            const inativosElemento = document.getElementById("funcionario-inactive-count");
+
             try {
-                const snap = await getDocs(query(collection(db, "funcionarios"), where("donoUID", "==", usuarioUID)));
+                const snap = await getDocs(
+                    query(
+                        collection(db, "funcionarios"),
+                        where("donoUID", "==", usuarioUID)
+                    )
+                );
+
                 let funcionarios = [];
                 snap.forEach(d => funcionarios.push({ id: d.id, ...d.data() }));
 
+                funcionarios.sort((a, b) => {
+                    if (a.status === b.status) {
+                        return (a.nome || "").localeCompare(b.nome || "", "pt-BR");
+                    }
+
+                    return a.status === "ativo" ? -1 : 1;
+                });
+
+                const ativos = funcionarios.filter(f => f.status === "ativo").length;
+                const inativos = funcionarios.length - ativos;
+
+                if (totalElemento) totalElemento.innerText = funcionarios.length;
+                if (ativosElemento) ativosElemento.innerText = ativos;
+                if (inativosElemento) inativosElemento.innerText = inativos;
+
                 if (funcionarios.length === 0) {
-                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-2xl">Nenhum funcionário cadastrado ainda.</div>`;
+                    box.innerHTML = `
+                        <div class="aura-team-empty">
+                            <span>
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path d="M19 8v6"></path>
+                                    <path d="M16 11h6"></path>
+                                </svg>
+                            </span>
+
+                            <strong>Nenhum funcionário cadastrado</strong>
+
+                            <p>
+                                Crie o primeiro acesso da sua equipe para começar a distribuir permissões.
+                            </p>
+
+                            <button onclick="abrirModalFuncionario()">
+                                Adicionar funcionário
+                            </button>
+                        </div>
+                    `;
+
                     return;
                 }
 
-                box.innerHTML = funcionarios.map(f => `
-                    <div class="glass-card p-5 rounded-2xl flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                        <div class="flex items-center gap-3 min-w-0">
-                            <div class="h-10 w-10 rounded-full bg-gradient-to-tr from-[#00f2fe]/20 to-[#4facfe]/20 border border-white/10 flex items-center justify-center text-sm font-black text-[#00f2fe] shrink-0">${(f.nome || "?")[0].toUpperCase()}</div>
-                            <div class="min-w-0">
-                                <p class="text-sm font-bold text-white truncate">${f.nome}</p>
-                                <p class="text-[11px] text-gray-500 truncate">${f.email} ${f.cargo ? "· " + f.cargo : ""}</p>
+                box.innerHTML = funcionarios.map(f => {
+                    const permissoesVer = f.permissoes?.ver || [];
+                    const permissoesEditar = f.permissoes?.editar || [];
+
+                    const iniciais = (f.nome || "?")
+                        .split(" ")
+                        .filter(Boolean)
+                        .slice(0, 2)
+                        .map(parte => parte[0])
+                        .join("")
+                        .toUpperCase();
+
+                    return `
+                        <div class="aura-team-member ${f.status === "ativo" ? "is-active" : "is-inactive"}">
+
+                            <div class="aura-team-member-profile">
+                                <span class="aura-team-avatar">
+                                    ${iniciais}
+                                </span>
+
+                                <div>
+                                    <div class="aura-team-member-name">
+                                        <strong>${f.nome || "Sem nome"}</strong>
+                                        <span>${f.status === "ativo" ? "Ativo" : "Inativo"}</span>
+                                    </div>
+
+                                    <p>${f.email || "E-mail não informado"}</p>
+
+                                    <small>
+                                        ${f.cargo || "Cargo não informado"}
+                                    </small>
+                                </div>
                             </div>
+
+                            <div class="aura-team-member-access">
+                                <span>
+                                    <strong>${permissoesVer.length}</strong>
+                                    módulos visíveis
+                                </span>
+
+                                <span>
+                                    <strong>${permissoesEditar.length}</strong>
+                                    com edição
+                                </span>
+                            </div>
+
+                            <div class="aura-team-member-actions">
+                                <button
+                                    onclick='abrirModalFuncionario(${JSON.stringify(f).replace(/'/g, "&apos;")})'
+                                    class="aura-team-action-edit"
+                                >
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M4 20h4l11-11a2.8 2.8 0 0 0-4-4L4 16v4Z"></path>
+                                        <path d="m13.5 6.5 4 4"></path>
+                                    </svg>
+
+                                    Editar
+                                </button>
+
+                                <button
+                                    onclick="alternarStatusFuncionario('${f.id}', '${f.status}')"
+                                    class="aura-team-action-status"
+                                >
+                                    ${f.status === "ativo" ? "Desativar" : "Ativar"}
+                                </button>
+                            </div>
+
                         </div>
-                        <div class="flex items-center gap-2 shrink-0">
-                            <span class="text-[9px] font-bold px-2 py-1 rounded-md uppercase ${f.status === "ativo" ? "bg-emerald-500/10 text-emerald-400" : "bg-gray-500/10 text-gray-400"}">${f.status === "ativo" ? "Ativo" : "Inativo"}</span>
-                            <button onclick='abrirModalFuncionario(${JSON.stringify(f).replace(/'/g, "&apos;")})' class="text-[11px] font-bold text-[#00f2fe] hover:underline">Editar</button>
-                            <button onclick="alternarStatusFuncionario('${f.id}', '${f.status}')" class="text-[11px] font-bold text-gray-400 hover:text-white">${f.status === "ativo" ? "Desativar" : "Ativar"}</button>
-                        </div>
-                    </div>
-                `).join("");
+                    `;
+                }).join("");
+
             } catch (err) {
                 console.error(err);
-                box.innerHTML = `<div class="text-center text-red-400 text-xs p-8">Erro ao carregar funcionários.</div>`;
+
+                if (totalElemento) totalElemento.innerText = "—";
+                if (ativosElemento) ativosElemento.innerText = "—";
+                if (inativosElemento) inativosElemento.innerText = "—";
+
+                box.innerHTML = `
+                    <div class="aura-team-error">
+                        Não foi possível carregar os funcionários.
+                    </div>
+                `;
             }
         }
 
@@ -18488,23 +19572,75 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
             const box = document.getElementById("funcionario-permissoes-grid");
             const ver = permissoesAtuais?.ver || [];
             const editar = permissoesAtuais?.editar || [];
+
             box.innerHTML = MODULOS_PERMISSAO.map(m => `
-                <div class="flex items-center justify-between bg-white/[0.02] border border-white/5 rounded-lg px-3 py-2">
-                    <span class="text-xs text-gray-300">${m.label}</span>
-                    <div class="flex gap-3">
-                        <label class="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer">
-                            <input type="checkbox" class="permissao-ver accent-[#00f2fe]" data-modulo="${m.key}" ${ver.includes(m.key) ? "checked" : ""}> Ver
+                <div class="aura-team-permission-row">
+
+                    <span class="aura-team-permission-name">
+                        ${m.label}
+                    </span>
+
+                    <div class="aura-team-permission-options">
+
+                        <label>
+                            <input
+                                type="checkbox"
+                                class="permissao-ver"
+                                data-modulo="${m.key}"
+                                ${ver.includes(m.key) ? "checked" : ""}
+                            >
+
+                            <span>Ver</span>
                         </label>
-                        <label class="flex items-center gap-1.5 text-[10px] text-gray-400 cursor-pointer">
-                            <input type="checkbox" class="permissao-editar accent-[#00f2fe]" data-modulo="${m.key}" ${editar.includes(m.key) ? "checked" : ""}> Editar
+
+                        <label>
+                            <input
+                                type="checkbox"
+                                class="permissao-editar"
+                                data-modulo="${m.key}"
+                                ${editar.includes(m.key) ? "checked" : ""}
+                            >
+
+                            <span>Editar</span>
                         </label>
+
                     </div>
+
                 </div>
             `).join("");
+
+            box.querySelectorAll(".permissao-editar").forEach(checkbox => {
+                checkbox.addEventListener("change", () => {
+                    if (!checkbox.checked) return;
+
+                    const modulo = checkbox.getAttribute("data-modulo");
+
+                    const permissaoVer = box.querySelector(
+                        `.permissao-ver[data-modulo="${modulo}"]`
+                    );
+
+                    if (permissaoVer) {
+                        permissaoVer.checked = true;
+                    }
+                });
+            });
         }
 
         window.abrirModalFuncionario = function(funcionario) {
             document.getElementById("funcionario-modal").classList.remove("hidden");
+
+            const inputSenha = document.getElementById("funcionario-senha");
+            const botaoSenha = document.querySelector(".aura-team-password-toggle");
+
+            if (inputSenha) {
+                inputSenha.type = "password";
+            }
+
+            if (botaoSenha) {
+                botaoSenha.classList.remove("is-visible");
+                botaoSenha.setAttribute("aria-label", "Mostrar senha");
+            }
+
             if (funcionario && funcionario.id) {
                 document.getElementById("funcionario-modal-titulo").innerText = "Editar Funcionário";
                 document.getElementById("funcionario-uid-edicao").value = funcionario.id;
@@ -18534,8 +19670,38 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
         window.gerarSenhaAleatoria = function() {
             const chars = "ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789";
             let senha = "";
-            for (let i = 0; i < 10; i++) senha += chars[Math.floor(Math.random() * chars.length)];
-            document.getElementById("funcionario-senha").value = senha;
+
+            for (let i = 0; i < 10; i++) {
+                senha += chars[Math.floor(Math.random() * chars.length)];
+            }
+
+            const input = document.getElementById("funcionario-senha");
+            const botao = document.querySelector(".aura-team-password-toggle");
+
+            input.value = senha;
+            input.type = "text";
+
+            if (botao) {
+                botao.classList.add("is-visible");
+                botao.setAttribute("aria-label", "Ocultar senha");
+            }
+        };
+
+        window.alternarVisibilidadeSenhaFuncionario = function(botao) {
+            const input = document.getElementById("funcionario-senha");
+
+            if (!input) return;
+
+            const mostrar = input.type === "password";
+
+            input.type = mostrar ? "text" : "password";
+
+            botao.classList.toggle("is-visible", mostrar);
+
+            botao.setAttribute(
+                "aria-label",
+                mostrar ? "Ocultar senha" : "Mostrar senha"
+            );
         };
 
         // Cria a conta de login do funcionário usando um app Firebase SECUNDÁRIO e temporário,
