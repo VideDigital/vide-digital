@@ -7487,6 +7487,805 @@ input:checked +
   .aura-automation-table-header{align-items:flex-start;flex-direction:column;}
 }
 
+    /* =========================================================================
+   CORREÇÕES DE COMPATIBILIDADE — CAMPANHAS
+   ========================================================================= */
+
+/* O controle criado automaticamente pelo Editor de Layout precisa
+   ocupar a linha inteira do card de status. */
+#campanha-status-box > .layout-block-controle{
+  grid-column:1 / -1;
+  width:100%;
+  position:relative;
+  z-index:3;
+}
+
+/* Preserva a hierarquia visual e as cores no tema claro. */
+.tema-claro .aura-campaign-kicker,
+.tema-claro .aura-campaign-header-icon,
+.tema-claro .aura-campaign-history-title > span{
+  color:var(--aura-accent) !important;
+}
+
+.tema-claro .aura-campaign-builder-icon{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-campaign-builder-title > div > span,
+.tema-claro .aura-campaign-status-copy > span{
+  color:var(--aura-text-muted) !important;
+}
+
+.tema-claro .aura-campaign-status-icon{
+  color:var(--aura-text-muted) !important;
+}
+
+.tema-claro
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-icon,
+.tema-claro
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-badge{
+  color:#059669 !important;
+}
+
+.tema-claro
+#campanhas-historico-lista
+.text-emerald-400{
+  color:#059669 !important;
+}
+
+.tema-claro
+#campanhas-historico-lista
+.text-gray-400{
+  color:#475569 !important;
+}
+
+/* =========================================================================
+   VIDE AURA OS — CAMPAIGN COMMAND CENTER
+   ========================================================================= */
+
+#view-campanhas{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-campaign-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:24px;
+  min-height:155px;
+  padding:27px 29px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:27px;
+  background:
+    radial-gradient(
+      520px 190px at 93% 5%,
+      color-mix(in srgb,var(--aura-accent) 18%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 82%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 70%,transparent)
+    );
+  box-shadow:
+    0 24px 60px -35px rgba(0,0,0,.78),
+    inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.aura-campaign-header::before{
+  content:"";
+  position:absolute;
+  top:-82px;
+  right:80px;
+  width:220px;
+  height:220px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 16%,transparent);
+  pointer-events:none;
+}
+
+.aura-campaign-header-copy{
+  position:relative;
+  z-index:1;
+  max-width:620px;
+}
+
+.aura-campaign-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:0 10px;
+  margin-bottom:11px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 24%,transparent);
+  border-radius:999px;
+  color:var(--aura-accent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 7%,transparent);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(24px,3vw,34px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-campaign-header p{
+  max-width:590px;
+  margin-top:10px;
+  color:var(--aura-text-muted);
+  font-size:11px;
+  line-height:1.65;
+}
+
+.aura-campaign-header-badge{
+  position:relative;
+  z-index:1;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:285px;
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:18px;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 68%,transparent);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.aura-campaign-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:43px;
+  height:43px;
+  min-width:43px;
+  border-radius:14px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 24%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+}
+
+.aura-campaign-header-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-campaign-header-badge > span:last-child{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-campaign-header-badge small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:750;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-header-badge strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-campaign-builder{
+  position:relative;
+  padding:27px !important;
+  overflow:hidden;
+  border-radius:25px !important;
+  background:
+    linear-gradient(
+      150deg,
+      color-mix(in srgb,var(--aura-surface-strong) 85%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 70%,transparent)
+    ) !important;
+}
+
+.aura-campaign-builder::before{
+  content:"";
+  position:absolute;
+  top:0;
+  left:30px;
+  right:30px;
+  height:1px;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb,var(--aura-primary) 58%,transparent),
+      color-mix(in srgb,var(--aura-accent) 45%,transparent),
+      transparent
+    );
+}
+
+.aura-campaign-builder-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-campaign-builder-title{
+  display:flex;
+  align-items:center;
+  gap:13px;
+}
+
+.aura-campaign-builder-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:45px;
+  height:45px;
+  min-width:45px;
+  border-radius:15px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 25%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-campaign-builder-icon svg{
+  width:20px;
+  height:20px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-campaign-builder-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-campaign-builder-title > div > span{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-builder-title h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:14px;
+  line-height:1.2;
+  font-weight:800;
+}
+
+.aura-campaign-builder-description{
+  max-width:760px;
+  margin:0 !important;
+  color:var(--aura-text-muted) !important;
+  font-size:10px !important;
+  line-height:1.65;
+}
+
+.aura-campaign-toggle{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-height:49px;
+  padding:7px 8px 7px 13px;
+  cursor:pointer;
+  border:1px solid var(--aura-border);
+  border-radius:15px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 72%,transparent);
+}
+
+.aura-campaign-toggle-copy{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-campaign-toggle-copy small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:750;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-toggle-copy strong{
+  margin-top:3px;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-campaign-toggle input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-campaign-toggle-track{
+  position:relative;
+  display:block;
+  width:43px;
+  height:25px;
+  min-width:43px;
+  padding:3px;
+  border-radius:999px;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.055);
+  transition:
+    background .22s var(--rd-ease),
+    border-color .22s var(--rd-ease);
+}
+
+.aura-campaign-toggle-track > span{
+  display:block;
+  width:17px;
+  height:17px;
+  border-radius:50%;
+  background:var(--aura-text-muted);
+  box-shadow:0 3px 8px rgba(0,0,0,.35);
+  transition:
+    transform .25s var(--rd-ease),
+    background .25s var(--rd-ease);
+}
+
+.aura-campaign-toggle
+input:checked
++
+.aura-campaign-toggle-track{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 45%,transparent);
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-campaign-toggle
+input:checked
++
+.aura-campaign-toggle-track
+>
+span{
+  transform:translateX(18px);
+  background:#fff;
+}
+
+#view-campanhas
+[data-block-id="campanha-oferta"]
+label:not(.aura-campaign-toggle){
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+  font-weight:800 !important;
+  letter-spacing:.08em !important;
+}
+
+#view-campanhas
+[data-block-id="campanha-oferta"]
+input:not([type="checkbox"]),
+#view-campanhas
+[data-block-id="campanha-oferta"]
+textarea{
+  min-height:47px;
+  padding:0 14px !important;
+  border-radius:14px !important;
+  border-color:var(--aura-border) !important;
+  color:var(--aura-text) !important;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 76%,
+      transparent
+    ) !important;
+}
+
+#view-campanhas
+[data-block-id="campanha-oferta"]
+textarea{
+  min-height:92px;
+  padding-top:13px !important;
+  padding-bottom:13px !important;
+}
+
+#view-campanhas
+[data-block-id="campanha-oferta"]
+input:focus,
+#view-campanhas
+[data-block-id="campanha-oferta"]
+textarea:focus{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 48%,transparent) !important;
+  box-shadow:
+    0 0 0 3px
+    color-mix(in srgb,var(--aura-primary) 10%,transparent);
+}
+
+#view-campanhas button[onclick="salvarCampanha()"]{
+  min-height:51px;
+  border:0 !important;
+  border-radius:15px !important;
+  color:#fff !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    ) !important;
+  box-shadow:
+    0 18px 38px -23px
+    color-mix(in srgb,var(--aura-accent) 85%,transparent);
+}
+
+#view-campanhas button[onclick="salvarCampanha()"]:hover{
+  transform:translateY(-1px);
+  filter:brightness(1.08);
+}
+
+.aura-campaign-status{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:15px;
+  min-height:103px;
+  padding:19px 21px !important;
+  border-radius:22px !important;
+}
+
+.aura-campaign-status-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:45px;
+  height:45px;
+  border-radius:15px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 68%,transparent);
+}
+
+.aura-campaign-status-icon svg{
+  width:20px;
+  height:20px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-campaign-status-copy{
+  min-width:0;
+}
+
+.aura-campaign-status-copy > span{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-status-copy h3{
+  margin-top:4px;
+  color:var(--aura-text-secondary) !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+}
+
+.aura-campaign-status-copy p{
+  margin-top:5px;
+  color:var(--aura-text-muted) !important;
+  font-size:9px !important;
+  line-height:1.45;
+}
+
+.aura-campaign-status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:28px;
+  padding:0 10px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 65%,transparent);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-status-badge > span{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--aura-text-muted);
+}
+
+.aura-campaign-status[data-state="ativa"]{
+  border-color:
+    color-mix(in srgb,#22C55E 25%,transparent) !important;
+}
+
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.2);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-badge{
+  color:#34D399;
+  border-color:rgba(52,211,153,.2);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-badge > span{
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-campaign-history{
+  padding:23px !important;
+  border-radius:24px !important;
+}
+
+.aura-campaign-history-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  padding-bottom:17px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-campaign-history-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.aura-campaign-history-title > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:40px;
+  height:40px;
+  min-width:40px;
+  border-radius:13px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 7%,transparent);
+}
+
+.aura-campaign-history-title svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-campaign-history-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-campaign-history-title small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-campaign-history-title h3{
+  margin-top:4px;
+  color:var(--aura-text-secondary) !important;
+  font-size:11px !important;
+  font-weight:800 !important;
+}
+
+.aura-campaign-history-filters{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.aura-campaign-history-filters select,
+.aura-campaign-history-filters input{
+  min-height:38px;
+  border-radius:12px !important;
+  border-color:var(--aura-border) !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 72%,transparent) !important;
+}
+
+.aura-campaign-history-filters button{
+  min-height:38px;
+  padding:0 14px !important;
+  border-radius:12px !important;
+}
+
+#campanhas-historico-lista{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+  padding-top:4px;
+}
+
+#campanhas-historico-lista > div{
+  min-height:62px;
+  padding:12px 14px !important;
+  border-radius:15px !important;
+  border-color:var(--aura-border) !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent) !important;
+  transition:
+    transform .22s var(--rd-ease),
+    border-color .22s var(--rd-ease),
+    background .22s var(--rd-ease);
+}
+
+#campanhas-historico-lista > div:hover{
+  transform:translateY(-1px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 24%,transparent) !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 68%,transparent) !important;
+}
+
+/* Controle inserido automaticamente pelo Editor de Layout */
+
+#campanha-status-box > .layout-block-controle{
+  grid-column:1 / -1;
+  width:100%;
+  position:relative;
+  z-index:3;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-campaign-header,
+.tema-claro .aura-campaign-builder,
+.tema-claro .aura-campaign-status,
+.tema-claro .aura-campaign-history{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.91)
+    ) !important;
+}
+
+.tema-claro .aura-campaign-kicker,
+.tema-claro .aura-campaign-header-icon,
+.tema-claro .aura-campaign-history-title > span{
+  color:var(--aura-accent) !important;
+}
+
+.tema-claro .aura-campaign-builder-icon{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-campaign-builder-title > div > span,
+.tema-claro .aura-campaign-status-copy > span{
+  color:var(--aura-text-muted) !important;
+}
+
+.tema-claro .aura-campaign-status-icon{
+  color:var(--aura-text-muted) !important;
+}
+
+.tema-claro
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-icon,
+.tema-claro
+.aura-campaign-status[data-state="ativa"]
+.aura-campaign-status-badge{
+  color:#059669 !important;
+}
+
+.tema-claro
+#campanhas-historico-lista
+.text-emerald-400{
+  color:#059669 !important;
+}
+
+.tema-claro
+#campanhas-historico-lista
+.text-gray-400{
+  color:#475569 !important;
+}
+
+/* Responsividade */
+
+@media (max-width:767px){
+  .aura-campaign-header{
+    align-items:flex-start;
+    flex-direction:column;
+    min-height:0;
+    padding:20px;
+    border-radius:22px;
+  }
+
+  .aura-campaign-header-badge{
+    width:100%;
+    min-width:0;
+  }
+
+  .aura-campaign-builder{
+    padding:19px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-campaign-builder-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-campaign-toggle{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .aura-campaign-status{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .aura-campaign-status-badge{
+    grid-column:1 / -1;
+    justify-content:center;
+  }
+
+  .aura-campaign-history-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-campaign-history-filters{
+    width:100%;
+  }
+
+  .aura-campaign-history-filters select,
+  .aura-campaign-history-filters button{
+    flex:1;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -9647,25 +10446,246 @@ input:checked +
                 <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
                     <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Campanhas</h3>
                     <div class="flex flex-wrap gap-2 items-center">
-                        <select id="filtro-campanha-dias" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+<section id="view-campanhas" class="view-section space-y-6 max-w-6xl mx-auto">
+
+            <div class="aura-campaign-header">
+                <div class="aura-campaign-header-copy">
+                    <span class="aura-campaign-kicker">
+                        Campanhas inteligentes
+                    </span>
+
+                    <h1>Campanhas & Ofertas</h1>
+
+                    <p>
+                        Crie ofertas de alto impacto com contagem regressiva e acompanhe todo o histórico de ativações.
+                    </p>
+                </div>
+
+                <div class="aura-campaign-header-badge">
+                    <span class="aura-campaign-header-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 7v5l3 2"></path>
+                        </svg>
+                    </span>
+
+                    <span>
+                        <small>Modo de exibição</small>
+                        <strong>Oferta com contagem regressiva</strong>
+                    </span>
+                </div>
+            </div>
+
+            <div
+                class="glass-card rounded-xl p-6 space-y-5 layout-block aura-campaign-builder"
+                data-block-id="campanha-oferta"
+                data-block-nome="Oferta Relâmpago"
+            >
+                <div class="aura-campaign-builder-header">
+                    <div class="aura-campaign-builder-title">
+                        <span class="aura-campaign-builder-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="m13 2-9 12h7l-1 8 10-13h-7V2Z"></path>
+                            </svg>
+                        </span>
+
+                        <div>
+                            <span>Construtor de campanha</span>
+                            <h3>Oferta Relâmpago</h3>
+                        </div>
+                    </div>
+
+                    <label class="aura-campaign-toggle">
+                        <span class="aura-campaign-toggle-copy">
+                            <small>Status</small>
+                            <strong>Ativar campanha</strong>
+                        </span>
+
+                        <input type="checkbox" id="campanha-ativa">
+
+                        <span class="aura-campaign-toggle-track">
+                            <span></span>
+                        </span>
+                    </label>
+                </div>
+
+                <p class="aura-campaign-builder-description">
+                    Quando ativada, a oferta aparece automaticamente para os visitantes da sua loja com uma contagem regressiva.
+                </p>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                            Título da Oferta
+                        </label>
+
+                        <input
+                            type="text"
+                            id="campanha-titulo"
+                            class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none"
+                            placeholder="Ex: Oferta Exclusiva por Tempo Limitado!"
+                        >
+                    </div>
+
+                    <div class="space-y-1.5">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                            Tempo do Countdown (minutos)
+                        </label>
+
+                        <input
+                            type="number"
+                            id="campanha-tempo"
+                            min="1"
+                            max="60"
+                            class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none"
+                            placeholder="Ex: 10"
+                        >
+                    </div>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        Texto da Oferta
+                    </label>
+
+                    <textarea
+                        id="campanha-texto"
+                        rows="2"
+                        class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none"
+                        placeholder="Ex: Aproveite 30% OFF em todos os produtos hoje!"
+                    ></textarea>
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        Link do Botão (opcional)
+                    </label>
+
+                    <input
+                        type="url"
+                        id="campanha-link"
+                        class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none"
+                        placeholder="Ex: https://pay.kiwify.com.br/..."
+                    >
+                </div>
+
+                <div class="space-y-1.5">
+                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                        Texto do Botão
+                    </label>
+
+                    <input
+                        type="text"
+                        id="campanha-btn-texto"
+                        class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none"
+                        placeholder="Ex: Quero aproveitar agora!"
+                    >
+                </div>
+
+                <button
+                    onclick="salvarCampanha()"
+                    class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all"
+                >
+                    Salvar e Ativar Campanha
+                </button>
+            </div>
+
+            <div
+                class="glass-card rounded-xl p-5 layout-block aura-campaign-status"
+                id="campanha-status-box"
+                data-block-id="campanha-status"
+                data-block-nome="Status da Campanha"
+                data-state="inativa"
+            >
+                <span class="aura-campaign-status-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M4 12h3l2-7 4 14 2-7h5"></path>
+                    </svg>
+                </span>
+
+                <div class="aura-campaign-status-copy">
+                    <span>Monitoramento em tempo real</span>
+                    <h3>Status atual</h3>
+
+                    <p id="campanha-status-texto">
+                        Nenhuma campanha ativa no momento.
+                    </p>
+                </div>
+
+                <span class="aura-campaign-status-badge">
+                    <span></span>
+                    Sistema operacional
+                </span>
+            </div>
+
+            <div
+                class="glass-card rounded-xl p-5 space-y-4 layout-block aura-campaign-history"
+                data-block-id="campanha-historico"
+                data-block-nome="Histórico de Campanhas"
+            >
+                <div class="aura-campaign-history-header">
+                    <div class="aura-campaign-history-title">
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                                <path d="M3 4v5h5"></path>
+                                <path d="M12 7v5l3 2"></path>
+                            </svg>
+                        </span>
+
+                        <div>
+                            <small>Registro de atividade</small>
+                            <h3>Histórico de Campanhas</h3>
+                        </div>
+                    </div>
+
+                    <div class="aura-campaign-history-filters">
+                        <select
+                            id="filtro-campanha-dias"
+                            class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none"
+                        >
                             <option value="7">Últimos 7 dias</option>
                             <option value="30" selected>Últimos 30 dias</option>
                             <option value="90">Últimos 90 dias</option>
                             <option value="0">Todos</option>
                             <option value="custom">Data específica</option>
                         </select>
-                        <div id="filtro-campanha-datas-custom" class="hidden flex gap-2 items-center">
-                            <input type="date" id="filtro-campanha-de" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+
+                        <div
+                            id="filtro-campanha-datas-custom"
+                            class="hidden flex gap-2 items-center"
+                        >
+                            <input
+                                type="date"
+                                id="filtro-campanha-de"
+                                class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none"
+                            >
+
                             <span class="text-gray-500 text-xs">até</span>
-                            <input type="date" id="filtro-campanha-ate" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
+
+                            <input
+                                type="date"
+                                id="filtro-campanha-ate"
+                                class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none"
+                            >
                         </div>
-                        <button onclick="aplicarFiltroCampanhas()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Filtrar</button>
+
+                        <button
+                            onclick="aplicarFiltroCampanhas()"
+                            class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all"
+                        >
+                            Filtrar
+                        </button>
                     </div>
                 </div>
+
                 <div id="campanhas-historico-lista" class="space-y-2">
-                    <p class="text-xs text-gray-500">Carregando histórico...</p>
+                    <p class="text-xs text-gray-500">
+                        Carregando histórico...
+                    </p>
                 </div>
             </div>
+
         </section>
 <section id="view-landing-pages" class="view-section space-y-6 max-w-6xl mx-auto">
             <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-4 border-b border-white/5 pb-6">
@@ -16598,8 +17618,19 @@ carregarProdutos();
                     document.getElementById("campanha-tempo").value = d.tempo || 10;
                     document.getElementById("campanha-link").value = d.link || "";
                     document.getElementById("campanha-btn-texto").value = d.btnTexto || "";
-                    const status = d.ativa ? `✅ Campanha ativa — "${d.titulo}"` : "❌ Campanha desativada.";
-                    document.getElementById("campanha-status-texto").innerText = status;
+const status = d.ativa
+                        ? `Campanha ativa — "${d.titulo}"`
+                        : "Campanha desativada.";
+
+                    const statusBox =
+                        document.getElementById("campanha-status-box");
+
+                    statusBox.dataset.state =
+                        d.ativa ? "ativa" : "inativa";
+
+                    document.getElementById(
+                        "campanha-status-texto"
+                    ).innerText = status;
                 }
             } catch(err) { console.error(err); }
         }
@@ -16624,8 +17655,19 @@ carregarProdutos();
                     dataCriacao: Date.now()
                 });
 
-                const status = payload.ativa ? `✅ Campanha ativa — "${payload.titulo}"` : "❌ Campanha desativada.";
-                document.getElementById("campanha-status-texto").innerText = status;
+const status = payload.ativa
+                    ? `Campanha ativa — "${payload.titulo}"`
+                    : "Campanha desativada.";
+
+                const statusBox =
+                    document.getElementById("campanha-status-box");
+
+                statusBox.dataset.state =
+                    payload.ativa ? "ativa" : "inativa";
+
+                document.getElementById(
+                    "campanha-status-texto"
+                ).innerText = status;
                 showToast(payload.ativa ? "Campanha ativada na vitrine!" : "Campanha desativada.");
                 carregarHistoricoCampanhas(obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate"));
             } catch(err) {
