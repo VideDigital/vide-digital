@@ -2122,7 +2122,7 @@ abrirDepois(
             evento => {
 
                 const teclaK =
-                    evento.key
+                    String(evento?.key || "")
                         .toLowerCase() === "k";
 
                 if (
@@ -3883,10 +3883,10 @@ document.addEventListener("mousedown", function(e) {
         document.addEventListener("keydown", function(e) {
             const modal = document.getElementById("lp-editor-modal");
             if (!modal || modal.classList.contains("hidden")) return;
-            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+            if ((e.ctrlKey || e.metaKey) && !e.shiftKey && String(e?.key || "").toLowerCase() === "z") {
                 e.preventDefault();
                 desfazerEditor();
-} else if ((e.ctrlKey || e.metaKey) && (e.key.toLowerCase() === "y" || (e.shiftKey && e.key.toLowerCase() === "z"))) {
+} else if ((e.ctrlKey || e.metaKey) && (String(e?.key || "").toLowerCase() === "y" || (e.shiftKey && String(e?.key || "").toLowerCase() === "z"))) {
                 e.preventDefault();
                 refazerEditor();
 } else if (e.altKey && (e.key === "1" || e.code === "Digit1")) {
