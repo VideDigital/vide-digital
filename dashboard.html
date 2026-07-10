@@ -20557,6 +20557,379 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 
 }
 
+/* =========================================================
+   AURA COMMAND CENTER
+   ========================================================= */
+
+.aura-sidebar-search kbd{
+  cursor:pointer;
+}
+
+body.aura-command-open{
+  overflow:hidden !important;
+}
+
+.aura-command-overlay{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center;
+  padding:11vh 18px 30px;
+  background:rgba(2,6,18,.76);
+  backdrop-filter:blur(12px) saturate(125%);
+}
+
+.aura-command-overlay.hidden{
+  display:none !important;
+}
+
+.aura-command-shell{
+  width:100%;
+  max-width:680px;
+  max-height:72vh;
+  overflow:hidden;
+  border:1px solid var(--aura-border-strong);
+  border-radius:22px;
+  background:
+    linear-gradient(
+      155deg,
+      color-mix(
+        in srgb,
+        var(--aura-surface-strong) 96%,
+        #080B14 4%
+      ),
+      color-mix(
+        in srgb,
+        var(--aura-background) 96%,
+        black 4%
+      )
+    );
+  box-shadow:
+    0 45px 110px -35px rgba(0,0,0,.95),
+    inset 0 1px 0 rgba(255,255,255,.045);
+  animation:auraCommandEnter .22s ease-out;
+}
+
+@keyframes auraCommandEnter{
+  from{
+    opacity:0;
+    transform:translateY(-12px) scale(.985);
+  }
+
+  to{
+    opacity:1;
+    transform:translateY(0) scale(1);
+  }
+}
+
+.aura-command-search{
+  position:relative;
+  display:flex;
+  align-items:center;
+  min-height:66px;
+  padding:0 16px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-command-search > svg{
+  width:20px;
+  height:20px;
+  min-width:20px;
+  color:var(--aura-primary);
+  stroke-width:1.8;
+}
+
+#aura-command-input{
+  flex:1;
+  min-width:0;
+  min-height:64px;
+  padding:0 15px;
+  border:0;
+  color:var(--aura-text);
+  background:transparent;
+  font-size:14px;
+  font-weight:650;
+  outline:none;
+}
+
+#aura-command-input::placeholder{
+  color:var(--aura-text-muted);
+}
+
+#aura-command-close{
+  min-height:29px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:8px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 65%,
+      transparent
+    );
+  font-size:8px;
+  font-weight:850;
+}
+
+.aura-command-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:14px 17px 11px;
+}
+
+.aura-command-heading > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-command-heading small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-command-heading strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  font-weight:800;
+}
+
+#aura-command-count{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:750;
+}
+
+.aura-command-list{
+  max-height:48vh;
+  padding:0 10px 10px;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+}
+
+.aura-command-group{
+  padding:11px 9px 7px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-command-item{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  width:100%;
+  min-height:58px;
+  padding:9px 11px;
+  border:1px solid transparent;
+  border-radius:13px;
+  color:var(--aura-text-secondary);
+  text-align:left;
+}
+
+.aura-command-item:hover,
+.aura-command-item.is-selected{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 30%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-command-item-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:36px;
+  height:36px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+  font-size:17px;
+  font-weight:500;
+}
+
+.aura-command-item-icon::before{
+  content:"›";
+}
+
+.aura-command-item[data-command-kind="action"]
+.aura-command-item-icon::before{
+  content:"+";
+}
+
+.aura-command-item-copy{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+
+.aura-command-item-copy strong{
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-command-item-copy small{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-command-item-badge{
+  display:flex;
+  align-items:center;
+  min-height:24px;
+  padding:0 8px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 61%,
+      transparent
+    );
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-command-item.is-selected
+.aura-command-item-badge{
+  color:var(--aura-primary);
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 25%,
+      transparent
+    );
+}
+
+.aura-command-empty{
+  display:flex;
+  min-height:190px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:var(--aura-text-muted);
+  text-align:center;
+}
+
+.aura-command-empty strong{
+  color:var(--aura-text-secondary);
+  font-size:11px;
+}
+
+.aura-command-empty span{
+  margin-top:6px;
+  font-size:8px;
+}
+
+.aura-command-footer{
+  display:flex;
+  align-items:center;
+  gap:16px;
+  min-height:45px;
+  padding:0 16px;
+  border-top:1px solid var(--aura-border);
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-background) 85%,
+      transparent
+    );
+  font-size:7px;
+}
+
+.aura-command-footer span{
+  display:flex;
+  align-items:center;
+  gap:5px;
+}
+
+.aura-command-footer kbd{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:22px;
+  min-height:21px;
+  padding:0 5px;
+  border:1px solid var(--aura-border);
+  border-radius:6px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 62%,
+      transparent
+    );
+  font-size:7px;
+  font-weight:800;
+}
+
+@media (max-width:600px){
+
+  .aura-command-overlay{
+    align-items:flex-start;
+    padding:16px 8px;
+  }
+
+  .aura-command-shell{
+    max-height:92vh;
+    border-radius:18px;
+  }
+
+  .aura-command-list{
+    max-height:68vh;
+  }
+
+  .aura-command-item-badge{
+    display:none;
+  }
+
+  .aura-command-item{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .aura-command-footer{
+    gap:9px;
+    overflow-x:auto;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -29910,6 +30283,850 @@ if (targetId === "view-metricas") {
 }
 
 window.ativarAba = ativarAba;
+
+/* =========================================================
+   AURA COMMAND CENTER
+   Navegação global e ações rápidas com Ctrl/Cmd + K.
+   ========================================================= */
+
+(function prepararAuraCommandCenter() {
+
+    if (window.__auraCommandCenterReady) {
+        return;
+    }
+
+    window.__auraCommandCenterReady = true;
+
+    const iniciar = () => {
+
+        if (
+            document.getElementById(
+                "aura-command-modal"
+            )
+        ) {
+            return;
+        }
+
+        document.body.insertAdjacentHTML(
+            "beforeend",
+            `
+                <div
+                    id="aura-command-modal"
+                    class="hidden aura-command-overlay"
+                    aria-hidden="true"
+                >
+
+                    <div
+                        class="aura-command-shell"
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Central de comandos"
+                    >
+
+                        <div class="aura-command-search">
+
+                            <svg
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                            >
+                                <circle
+                                    cx="11"
+                                    cy="11"
+                                    r="7"
+                                ></circle>
+
+                                <path
+                                    d="m20 20-4-4"
+                                ></path>
+                            </svg>
+
+                            <input
+                                type="text"
+                                id="aura-command-input"
+                                placeholder="Pesquisar módulo ou ação..."
+                                autocomplete="off"
+                                spellcheck="false"
+                            >
+
+                            <button
+                                type="button"
+                                id="aura-command-close"
+                                aria-label="Fechar central"
+                            >
+                                ESC
+                            </button>
+
+                        </div>
+
+                        <div class="aura-command-heading">
+
+                            <div>
+                                <small>
+                                    Navegação inteligente
+                                </small>
+
+                                <strong>
+                                    Central de comandos
+                                </strong>
+                            </div>
+
+                            <span id="aura-command-count">
+                                0 resultados
+                            </span>
+
+                        </div>
+
+                        <div
+                            id="aura-command-list"
+                            class="aura-command-list"
+                        ></div>
+
+                        <div class="aura-command-footer">
+
+                            <span>
+                                <kbd>↑</kbd>
+                                <kbd>↓</kbd>
+                                Navegar
+                            </span>
+
+                            <span>
+                                <kbd>Enter</kbd>
+                                Abrir
+                            </span>
+
+                            <span>
+                                <kbd>Esc</kbd>
+                                Fechar
+                            </span>
+
+                        </div>
+
+                    </div>
+
+                </div>
+            `
+        );
+
+        const modal =
+            document.getElementById(
+                "aura-command-modal"
+            );
+
+        const input =
+            document.getElementById(
+                "aura-command-input"
+            );
+
+        const lista =
+            document.getElementById(
+                "aura-command-list"
+            );
+
+        const contador =
+            document.getElementById(
+                "aura-command-count"
+            );
+
+        const fecharBotao =
+            document.getElementById(
+                "aura-command-close"
+            );
+
+        const itens = [
+
+            {
+                titulo: "Visão Geral",
+                descricao: "Dashboard e central operacional",
+                grupo: "Navegação",
+                view: "view-dashboard",
+                palavras: "inicio painel dashboard cockpit"
+            },
+
+            {
+                titulo: "Produtos",
+                descricao: "Catálogo, estoque e ofertas",
+                grupo: "Navegação",
+                view: "view-produtos",
+                palavras: "produto catalogo oferta estoque"
+            },
+
+            {
+                titulo: "Configurações da Loja",
+                descricao: "Identidade, cores e vitrine",
+                grupo: "Navegação",
+                view: "view-perfil",
+                palavras: "configuracao loja perfil cores visual"
+            },
+
+            {
+                titulo: "Pixels e Domínio",
+                descricao: "Integrações e endereço da loja",
+                grupo: "Navegação",
+                view: "view-dominios",
+                palavras: "pixel dominio integracao url"
+            },
+
+            {
+                titulo: "Leads",
+                descricao: "Contatos e oportunidades",
+                grupo: "Navegação",
+                view: "view-leads",
+                palavras: "lead contato cliente crm captura"
+            },
+
+            {
+                titulo: "Automação de Leads",
+                descricao: "Regras e jornadas comerciais",
+                grupo: "Navegação",
+                view: "view-automacao-leads",
+                palavras: "automacao fluxo regra jornada"
+            },
+
+            {
+                titulo: "Templates",
+                descricao: "Mensagens prontas",
+                grupo: "Navegação",
+                view: "view-templates",
+                palavras: "template mensagem whatsapp resposta"
+            },
+
+            {
+                titulo: "Campanhas",
+                descricao: "Ofertas e ações comerciais",
+                grupo: "Navegação",
+                view: "view-campanhas",
+                palavras: "campanha marketing oferta promocao"
+            },
+
+            {
+                titulo: "Landing Pages",
+                descricao: "Páginas de conversão",
+                grupo: "Navegação",
+                view: "view-landing-pages",
+                palavras: "landing page pagina conversao editor"
+            },
+
+            {
+                titulo: "Pedidos",
+                descricao: "Vendas e pagamentos",
+                grupo: "Navegação",
+                view: "view-pedidos",
+                palavras: "pedido venda pagamento financeiro"
+            },
+
+            {
+                titulo: "Métricas",
+                descricao: "Resultados e desempenho",
+                grupo: "Navegação",
+                view: "view-metricas",
+                palavras: "metrica relatorio resultado analytics"
+            },
+
+            {
+                titulo: "Notificações",
+                descricao: "Avisos da operação",
+                grupo: "Navegação",
+                view: "view-notificacoes",
+                palavras: "notificacao aviso alerta"
+            },
+
+            {
+                titulo: "Personalização Premium",
+                descricao: "Aparência avançada do painel",
+                grupo: "Navegação",
+                view: "view-personalizacao",
+                palavras: "personalizacao visual painel tema"
+            },
+
+            {
+                titulo: "Guia do Plano",
+                descricao: "Recursos disponíveis",
+                grupo: "Navegação",
+                view: "view-guia",
+                palavras: "guia plano recurso ajuda"
+            },
+
+            {
+                titulo: "Funcionários",
+                descricao: "Equipe e permissões",
+                grupo: "Navegação",
+                view: "view-funcionarios",
+                palavras: "funcionario equipe acesso permissao"
+            },
+
+            {
+                titulo: "Cadastrar produto",
+                descricao: "Criar uma nova oferta",
+                grupo: "Ações rápidas",
+                acao: "novo-produto",
+                palavras: "novo criar cadastrar produto oferta"
+            },
+
+            {
+                titulo: "Registrar pedido",
+                descricao: "Adicionar uma nova venda",
+                grupo: "Ações rápidas",
+                acao: "novo-pedido",
+                palavras: "novo criar registrar pedido venda"
+            },
+
+            {
+                titulo: "Criar template",
+                descricao: "Cadastrar uma mensagem pronta",
+                grupo: "Ações rápidas",
+                acao: "novo-template",
+                palavras: "novo criar template mensagem"
+            },
+
+            {
+                titulo: "Criar Landing Page",
+                descricao: "Iniciar uma nova página",
+                grupo: "Ações rápidas",
+                acao: "nova-landing-page",
+                palavras: "novo criar landing page pagina"
+            }
+
+        ];
+
+        let resultados = [];
+        let selecionado = 0;
+
+        const normalizar = valor =>
+            String(valor || "")
+                .normalize("NFD")
+                .replace(
+                    /[\u0300-\u036f]/g,
+                    ""
+                )
+                .toLowerCase()
+                .trim();
+
+        const abrirView = viewId => {
+
+            const botaoMenu =
+                document.querySelector(
+                    `.nav-item[data-target="${viewId}"]`
+                );
+
+            if (botaoMenu) {
+                botaoMenu.click();
+                return;
+            }
+
+            if (
+                typeof window.ativarAba ===
+                "function"
+            ) {
+                window.ativarAba(viewId);
+            }
+
+        };
+
+        const abrirDepois = (
+            viewId,
+            callback
+        ) => {
+
+            abrirView(viewId);
+
+            setTimeout(() => {
+
+                const view =
+                    document.getElementById(
+                        viewId
+                    );
+
+                if (
+                    view &&
+                    !view.classList.contains(
+                        "active"
+                    )
+                ) {
+                    return;
+                }
+
+                callback?.();
+
+            }, 220);
+
+        };
+
+        const fechar = () => {
+
+            modal.classList.add(
+                "hidden"
+            );
+
+            modal.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            document.body.classList.remove(
+                "aura-command-open"
+            );
+
+        };
+
+        const executar = item => {
+
+            if (!item) return;
+
+            fechar();
+
+            if (item.view) {
+                abrirView(item.view);
+                return;
+            }
+
+            const acoes = {
+
+                "novo-produto": () => {
+
+                    abrirDepois(
+                        "view-produtos",
+                        () =>
+                            document
+                                .getElementById(
+                                    "btn-abrir-criacao"
+                                )
+                                ?.click()
+                    );
+
+                },
+
+                "novo-pedido": () => {
+
+                    abrirDepois(
+                        "view-pedidos",
+                        () =>
+                            window
+                                .abrirModalPedido?.()
+                    );
+
+                },
+
+                "novo-template": () => {
+
+                    abrirDepois(
+                        "view-templates",
+                        () =>
+                            window
+                                .abrirModalTemplate?.()
+                    );
+
+                },
+
+                "nova-landing-page": () => {
+
+                    abrirDepois(
+                        "view-landing-pages",
+                        () =>
+                            window
+                                .abrirModalLP?.()
+                    );
+
+                }
+
+            };
+
+            acoes[item.acao]?.();
+
+        };
+
+        const atualizarSelecionado = () => {
+
+            const botoes = [
+                ...lista.querySelectorAll(
+                    ".aura-command-item"
+                )
+            ];
+
+            if (!botoes.length) {
+                selecionado = 0;
+                return;
+            }
+
+            selecionado =
+                Math.max(
+                    0,
+                    Math.min(
+                        selecionado,
+                        botoes.length - 1
+                    )
+                );
+
+            botoes.forEach(
+                (botao, indice) => {
+
+                    botao.classList.toggle(
+                        "is-selected",
+                        indice === selecionado
+                    );
+
+                }
+            );
+
+            botoes[selecionado]
+                ?.scrollIntoView({
+                    block: "nearest"
+                });
+
+        };
+
+        const renderizar = termoOriginal => {
+
+            const termo =
+                normalizar(termoOriginal);
+
+            resultados =
+                itens.filter(item => {
+
+                    if (
+                        item.view &&
+                        !document.getElementById(
+                            item.view
+                        )
+                    ) {
+                        return false;
+                    }
+
+                    const conteudo =
+                        normalizar(
+                            [
+                                item.titulo,
+                                item.descricao,
+                                item.grupo,
+                                item.palavras
+                            ].join(" ")
+                        );
+
+                    return (
+                        !termo ||
+                        conteudo.includes(termo)
+                    );
+
+                });
+
+            selecionado = 0;
+
+            contador.textContent =
+                resultados.length === 1
+                    ? "1 resultado"
+                    : `${resultados.length} resultados`;
+
+            if (!resultados.length) {
+
+                lista.innerHTML = `
+                    <div class="aura-command-empty">
+
+                        <strong>
+                            Nenhum resultado encontrado
+                        </strong>
+
+                        <span>
+                            Tente pesquisar outro módulo ou ação.
+                        </span>
+
+                    </div>
+                `;
+
+                return;
+
+            }
+
+            let grupoAtual = "";
+
+            lista.innerHTML =
+                resultados
+                    .map((item, indice) => {
+
+                        const cabecalho =
+                            item.grupo !== grupoAtual
+                                ? `
+                                    <div class="aura-command-group">
+                                        ${item.grupo}
+                                    </div>
+                                `
+                                : "";
+
+                        grupoAtual = item.grupo;
+
+                        return `
+                            ${cabecalho}
+
+                            <button
+                                type="button"
+                                class="aura-command-item"
+                                data-command-index="${indice}"
+                                data-command-kind="${
+                                    item.acao
+                                        ? "action"
+                                        : "navigation"
+                                }"
+                            >
+
+                                <span class="aura-command-item-icon"></span>
+
+                                <span class="aura-command-item-copy">
+
+                                    <strong>
+                                        ${item.titulo}
+                                    </strong>
+
+                                    <small>
+                                        ${item.descricao}
+                                    </small>
+
+                                </span>
+
+                                <span class="aura-command-item-badge">
+
+                                    ${
+                                        item.acao
+                                            ? "Executar"
+                                            : "Abrir"
+                                    }
+
+                                </span>
+
+                            </button>
+                        `;
+
+                    })
+                    .join("");
+
+            atualizarSelecionado();
+
+        };
+
+        const abrir = () => {
+
+            modal.classList.remove(
+                "hidden"
+            );
+
+            modal.setAttribute(
+                "aria-hidden",
+                "false"
+            );
+
+            document.body.classList.add(
+                "aura-command-open"
+            );
+
+            input.value = "";
+
+            renderizar("");
+
+            setTimeout(() => {
+                input.focus();
+            }, 50);
+
+        };
+
+        input.addEventListener(
+            "input",
+            () => {
+                renderizar(input.value);
+            }
+        );
+
+        input.addEventListener(
+            "keydown",
+            evento => {
+
+                if (
+                    evento.key ===
+                    "ArrowDown"
+                ) {
+
+                    evento.preventDefault();
+
+                    selecionado =
+                        Math.min(
+                            selecionado + 1,
+                            resultados.length - 1
+                        );
+
+                    atualizarSelecionado();
+
+                }
+
+                if (
+                    evento.key ===
+                    "ArrowUp"
+                ) {
+
+                    evento.preventDefault();
+
+                    selecionado =
+                        Math.max(
+                            selecionado - 1,
+                            0
+                        );
+
+                    atualizarSelecionado();
+
+                }
+
+                if (
+                    evento.key ===
+                    "Enter"
+                ) {
+
+                    evento.preventDefault();
+
+                    executar(
+                        resultados[selecionado]
+                    );
+
+                }
+
+            }
+        );
+
+        lista.addEventListener(
+            "mousemove",
+            evento => {
+
+                const botao =
+                    evento.target.closest(
+                        ".aura-command-item"
+                    );
+
+                if (!botao) return;
+
+                selecionado =
+                    Number(
+                        botao.dataset
+                            .commandIndex
+                    );
+
+                atualizarSelecionado();
+
+            }
+        );
+
+        lista.addEventListener(
+            "click",
+            evento => {
+
+                const botao =
+                    evento.target.closest(
+                        ".aura-command-item"
+                    );
+
+                if (!botao) return;
+
+                executar(
+                    resultados[
+                        Number(
+                            botao.dataset
+                                .commandIndex
+                        )
+                    ]
+                );
+
+            }
+        );
+
+        modal.addEventListener(
+            "click",
+            evento => {
+
+                if (evento.target === modal) {
+                    fechar();
+                }
+
+            }
+        );
+
+        fecharBotao.addEventListener(
+            "click",
+            fechar
+        );
+
+        document.addEventListener(
+            "keydown",
+            evento => {
+
+                const teclaK =
+                    evento.key
+                        .toLowerCase() === "k";
+
+                if (
+                    teclaK &&
+                    (
+                        evento.ctrlKey ||
+                        evento.metaKey
+                    )
+                ) {
+
+                    evento.preventDefault();
+
+                    if (
+                        modal.classList.contains(
+                            "hidden"
+                        )
+                    ) {
+                        abrir();
+                    } else {
+                        fechar();
+                    }
+
+                    return;
+
+                }
+
+                if (
+                    evento.key === "Escape" &&
+                    !modal.classList.contains(
+                        "hidden"
+                    )
+                ) {
+                    fechar();
+                }
+
+            }
+        );
+
+        document
+            .querySelector(
+                ".aura-sidebar-search kbd"
+            )
+            ?.addEventListener(
+                "click",
+                abrir
+            );
+
+        window.abrirAuraCommandCenter =
+            abrir;
+
+        window.fecharAuraCommandCenter =
+            fechar;
+
+    };
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            iniciar,
+            { once: true }
+        );
+
+    } else {
+
+        iniciar();
+
+    }
+
+})();
 
 /* =========================================================
    ESTÚDIO DE CONFIGURAÇÕES DA LOJA
