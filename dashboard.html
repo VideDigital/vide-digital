@@ -18343,6 +18343,404 @@ div:not(.aura-product-modal-actions){
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — ORDER REGISTRATION MODAL
+   ========================================================================= */
+
+.aura-order-modal-overlay{
+  padding:20px;
+  background:rgba(3,7,18,.76) !important;
+  backdrop-filter:blur(12px) saturate(125%);
+}
+
+.aura-order-modal{
+  position:relative;
+  display:flex;
+  width:100%;
+  max-width:720px;
+  max-height:92vh;
+  padding:0 !important;
+  flex-direction:column;
+  overflow:hidden !important;
+  border-radius:27px !important;
+  border-color:var(--aura-border-strong) !important;
+  box-shadow:
+    0 42px 100px -35px rgba(0,0,0,.92),
+    0 0 0 1px rgba(255,255,255,.025),
+    inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.aura-order-modal:hover{
+  transform:none !important;
+}
+
+.aura-order-modal-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:106px;
+  padding:20px 70px 20px 23px;
+  flex-shrink:0;
+  border-bottom:1px solid var(--aura-border);
+  background:
+    radial-gradient(
+      390px 160px at 95% 0%,
+      color-mix(in srgb,var(--aura-primary) 19%,transparent),
+      transparent 70%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 82%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+}
+
+.aura-order-modal-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:49px;
+  height:49px;
+  min-width:49px;
+  border-radius:16px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-primary) 15%,transparent),
+      color-mix(in srgb,var(--aura-accent) 7%,transparent)
+    );
+}
+
+.aura-order-modal-header-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-order-modal-header > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-order-modal-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-order-modal-header h3{
+  margin-top:6px;
+  color:var(--aura-text);
+  font-size:17px;
+  line-height:1.25;
+  font-weight:850;
+  letter-spacing:-.03em;
+}
+
+.aura-order-modal-header p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.aura-order-modal-close{
+  position:absolute;
+  top:20px;
+  right:20px;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:37px;
+  height:37px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 66%,transparent);
+}
+
+.aura-order-modal-close svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+}
+
+.aura-order-modal-body{
+  display:flex;
+  padding:21px 22px;
+  flex-direction:column;
+  gap:15px;
+  overflow-y:auto;
+}
+
+.aura-order-fields-row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:13px;
+}
+
+.aura-order-field label{
+  display:flex;
+  min-height:40px;
+  margin-bottom:8px;
+  flex-direction:column;
+}
+
+.aura-order-field label > span{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.aura-order-field label small{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1.4;
+}
+
+.aura-order-field input,
+.aura-order-field select,
+.aura-order-field textarea{
+  width:100%;
+  min-height:47px;
+  border-radius:13px !important;
+  color:var(--aura-text) !important;
+  font-size:10px !important;
+}
+
+.aura-order-input-with-icon{
+  position:relative;
+}
+
+.aura-order-input-with-icon > span{
+  position:absolute;
+  top:50%;
+  left:14px;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--aura-primary);
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+
+.aura-order-input-with-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-order-input-with-icon input{
+  padding-left:43px !important;
+}
+
+.aura-order-value-field{
+  position:relative;
+}
+
+.aura-order-value-field > span{
+  position:absolute;
+  top:50%;
+  left:14px;
+  z-index:2;
+  color:var(--aura-primary);
+  font-size:10px;
+  font-weight:850;
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+
+.aura-order-value-field input{
+  padding-left:43px !important;
+}
+
+.aura-order-observation{
+  min-height:105px !important;
+  padding:12px !important;
+  resize:vertical;
+}
+
+.aura-order-modal-note{
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  padding:13px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 20%,transparent);
+  border-radius:14px;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent);
+}
+
+.aura-order-modal-note > span{
+  display:flex;
+  flex-shrink:0;
+  color:var(--aura-primary);
+}
+
+.aura-order-modal-note svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.9;
+}
+
+.aura-order-modal-note p{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.5;
+}
+
+.aura-order-modal-actions{
+  display:flex;
+  align-items:center;
+  justify-content:flex-end;
+  gap:9px;
+  padding:15px 22px 18px;
+  border-top:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-background) 91%,transparent);
+  backdrop-filter:blur(22px);
+}
+
+.aura-order-cancel-button,
+.aura-order-save-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-width:170px;
+  min-height:44px;
+  padding:0 16px;
+  border-radius:12px;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+}
+
+.aura-order-cancel-button{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 63%,transparent);
+}
+
+.aura-order-save-button{
+  color:#fff !important;
+  border:0;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 16px 34px -22px
+      color-mix(in srgb,var(--aura-primary) 90%,transparent);
+}
+
+.aura-order-save-button svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-order-modal{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.99),
+      rgba(248,250,252,.96)
+    ) !important;
+}
+
+.tema-claro .aura-order-modal-header{
+  background:
+    radial-gradient(
+      390px 160px at 95% 0%,
+      color-mix(in srgb,var(--aura-primary) 9%,transparent),
+      transparent 70%
+    ),
+    rgba(255,255,255,.96);
+}
+
+.tema-claro .aura-order-modal-actions{
+  background:rgba(255,255,255,.92);
+}
+
+.tema-claro .aura-order-modal-header h3{
+  color:#0F172A !important;
+}
+
+.tema-claro .aura-order-field input,
+.tema-claro .aura-order-field textarea,
+.tema-claro .aura-order-field select{
+  color:#0F172A !important;
+}
+
+/* Responsividade */
+
+@media (max-width:639px){
+
+  .aura-order-modal-overlay{
+    padding:8px;
+  }
+
+  .aura-order-modal{
+    max-height:96vh;
+    border-radius:22px !important;
+  }
+
+  .aura-order-modal-header{
+    min-height:94px;
+    padding:16px 58px 16px 17px;
+  }
+
+  .aura-order-modal-header p{
+    display:none;
+  }
+
+  .aura-order-modal-body{
+    padding:15px;
+  }
+
+  .aura-order-fields-row{
+    grid-template-columns:1fr;
+  }
+
+  .aura-order-modal-actions{
+    align-items:stretch;
+    flex-direction:column;
+    padding:13px 15px 15px;
+  }
+
+  .aura-order-cancel-button,
+  .aura-order-save-button{
+    width:100%;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -25414,39 +25812,260 @@ div:not(.aura-product-modal-actions){
         </div>
 
     </div>
-    <div id="pedido-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl">
-            <button onclick="document.getElementById('pedido-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-sm font-black text-white">Registrar Pedido</h3>
-            <div class="grid grid-cols-2 gap-3">
-                <div class="space-y-1.5 col-span-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Nome do Cliente</label>
-                    <input type="text" id="ped-cliente" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Maria Silva">
+    <div
+        id="pedido-modal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 aura-order-modal-overlay"
+        onclick="if(event.target === this) fecharModalPedido()"
+    >
+
+        <div class="glass-card aura-order-modal">
+
+            <button
+                type="button"
+                onclick="fecharModalPedido()"
+                class="aura-order-modal-close"
+                aria-label="Fechar modal"
+            >
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m6 6 12 12"></path>
+                    <path d="M18 6 6 18"></path>
+                </svg>
+
+            </button>
+
+            <div class="aura-order-modal-header">
+
+                <span class="aura-order-modal-header-icon">
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M6 4h12v17H6z"></path>
+                        <path d="M9 4a3 3 0 0 1 6 0"></path>
+                        <path d="M9 9h6"></path>
+                        <path d="M9 13h6"></path>
+                        <path d="M9 17h4"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>Central de pedidos</small>
+
+                    <h3>
+                        Registrar novo pedido
+                    </h3>
+
+                    <p>
+                        Cadastre os dados comerciais e defina a etapa inicial deste atendimento.
+                    </p>
+
                 </div>
-                <div class="space-y-1.5 col-span-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Produto(s)</label>
-                    <input type="text" id="ped-produtos" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Curso Confeitaria + Kit Básico">
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Valor (R$)</label>
-                    <input type="number" step="0.01" id="ped-valor" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="0.00">
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Status</label>
-                    <select id="ped-status" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none">
-                        <option value="aguardando">Aguardando</option>
-                        <option value="confirmado">Confirmado</option>
-                        <option value="pago">Pago</option>
-                        <option value="cancelado">Cancelado</option>
-                    </select>
-                </div>
-                <div class="space-y-1.5 col-span-2">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Observação (opcional)</label>
-                    <input type="text" id="ped-obs" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Pagamento via Pix">
-                </div>
+
             </div>
-            <button onclick="salvarPedido()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3 rounded-xl text-xs uppercase tracking-wider transition-all">Salvar Pedido</button>
+
+            <div class="aura-order-modal-body">
+
+                <div class="aura-order-field aura-order-field-full">
+
+                    <label for="ped-cliente">
+
+                        <span>Nome do cliente</span>
+
+                        <small>
+                            Informe quem realizou ou solicitou o pedido.
+                        </small>
+
+                    </label>
+
+                    <div class="aura-order-input-with-icon">
+
+                        <span>
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="8" r="4"></circle>
+                                <path d="M4 21a8 8 0 0 1 16 0"></path>
+                            </svg>
+
+                        </span>
+
+                        <input
+                            type="text"
+                            id="ped-cliente"
+                            class="w-full glass-input"
+                            placeholder="Ex: Maria Silva"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="aura-order-field aura-order-field-full">
+
+                    <label for="ped-produtos">
+
+                        <span>Produtos ou serviços</span>
+
+                        <small>
+                            Descreva os itens incluídos neste pedido.
+                        </small>
+
+                    </label>
+
+                    <div class="aura-order-input-with-icon">
+
+                        <span>
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M12 3 3 8l9 5 9-5-9-5Z"></path>
+                                <path d="m3 12 9 5 9-5"></path>
+                                <path d="m3 16 9 5 9-5"></path>
+                            </svg>
+
+                        </span>
+
+                        <input
+                            type="text"
+                            id="ped-produtos"
+                            class="w-full glass-input"
+                            placeholder="Ex: Curso Confeitaria + Kit Básico"
+                            autocomplete="off"
+                        >
+
+                    </div>
+
+                </div>
+
+                <div class="aura-order-fields-row">
+
+                    <div class="aura-order-field">
+
+                        <label for="ped-valor">
+
+                            <span>Valor do pedido</span>
+
+                            <small>
+                                Total em reais.
+                            </small>
+
+                        </label>
+
+                        <div class="aura-order-value-field">
+
+                            <span>R$</span>
+
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                id="ped-valor"
+                                class="w-full glass-input"
+                                placeholder="0,00"
+                                inputmode="decimal"
+                            >
+
+                        </div>
+
+                    </div>
+
+                    <div class="aura-order-field">
+
+                        <label for="ped-status">
+
+                            <span>Status inicial</span>
+
+                            <small>
+                                Etapa atual da negociação.
+                            </small>
+
+                        </label>
+
+                        <select
+                            id="ped-status"
+                            class="w-full glass-input aura-order-status-select"
+                        >
+                            <option value="aguardando">Aguardando</option>
+                            <option value="confirmado">Confirmado</option>
+                            <option value="pago">Pago</option>
+                            <option value="cancelado">Cancelado</option>
+                        </select>
+
+                    </div>
+
+                </div>
+
+                <div class="aura-order-field aura-order-field-full">
+
+                    <label for="ped-obs">
+
+                        <span>Observação</span>
+
+                        <small>
+                            Informação opcional para organização interna.
+                        </small>
+
+                    </label>
+
+                    <textarea
+                        id="ped-obs"
+                        rows="4"
+                        class="w-full glass-input aura-order-observation"
+                        placeholder="Ex: Pagamento via Pix, entrega combinada para sexta-feira..."
+                    ></textarea>
+
+                </div>
+
+                <div class="aura-order-modal-note">
+
+                    <span>
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M12 8h.01"></path>
+                            <path d="M11 12h1v4h1"></path>
+                        </svg>
+
+                    </span>
+
+                    <p>
+                        Depois do cadastro, o pedido aparecerá na Central de Pedidos e poderá ter o status atualizado normalmente.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div class="aura-order-modal-actions">
+
+                <button
+                    type="button"
+                    onclick="fecharModalPedido()"
+                    class="aura-order-cancel-button"
+                >
+                    Cancelar
+                </button>
+
+                <button
+                    type="button"
+                    onclick="salvarPedido()"
+                    class="aura-order-save-button"
+                >
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M5 4h12l2 2v14H5V4Z"></path>
+                        <path d="M8 4v6h8V4"></path>
+                        <path d="M9 20v-6h6v6"></path>
+                    </svg>
+
+                    Registrar pedido
+
+                </button>
+
+            </div>
+
         </div>
+
     </div>
     <div
         id="lp-modal"
@@ -32294,7 +32913,67 @@ const status = payload.ativa
 
         
         window.abrirModalPedido = function() {
-            document.getElementById("pedido-modal").classList.remove("hidden");
+
+            const modal =
+                document.getElementById("pedido-modal");
+
+            const cliente =
+                document.getElementById("ped-cliente");
+
+            const produtos =
+                document.getElementById("ped-produtos");
+
+            const valor =
+                document.getElementById("ped-valor");
+
+            const status =
+                document.getElementById("ped-status");
+
+            const observacao =
+                document.getElementById("ped-obs");
+
+            if (cliente) cliente.value = "";
+            if (produtos) produtos.value = "";
+            if (valor) valor.value = "";
+            if (status) status.value = "aguardando";
+            if (observacao) observacao.value = "";
+
+            modal?.classList.remove("hidden");
+
+            setTimeout(() => {
+                cliente?.focus();
+            }, 80);
+
+        };
+
+        window.fecharModalPedido = function() {
+
+            const modal =
+                document.getElementById("pedido-modal");
+
+            modal?.classList.add("hidden");
+
+            const cliente =
+                document.getElementById("ped-cliente");
+
+            const produtos =
+                document.getElementById("ped-produtos");
+
+            const valor =
+                document.getElementById("ped-valor");
+
+            const status =
+                document.getElementById("ped-status");
+
+            const observacao =
+                document.getElementById("ped-obs");
+
+            if (cliente) cliente.value = "";
+            if (produtos) produtos.value = "";
+            if (valor) valor.value = "";
+            if (status) status.value = "aguardando";
+            if (observacao) observacao.value = "";
+
         };
 
         window.salvarPedido = async function() {
@@ -32310,11 +32989,7 @@ const status = payload.ativa
                     criadoPor: usuarioUID,
                     data: Date.now()
                 });
-                document.getElementById("pedido-modal").classList.add("hidden");
-                document.getElementById("ped-cliente").value = "";
-                document.getElementById("ped-produtos").value = "";
-                document.getElementById("ped-valor").value = "";
-                document.getElementById("ped-obs").value = "";
+                fecharModalPedido();
                 carregarPedidos();
                 showToast("Pedido registrado!");
             } catch(err) {
