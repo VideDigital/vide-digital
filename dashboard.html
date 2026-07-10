@@ -1829,6 +1829,204 @@ textarea:focus{
   font-size:8px;
 }
 
+    /* LINHA DO TEMPO 360 DO LEAD */
+
+.aura-lead-timeline-card{
+  overflow:visible !important;
+}
+
+.aura-lead-timeline-icon{
+  color:#A78BFA;
+  border-color:rgba(167,139,250,.2);
+  background:rgba(167,139,250,.08);
+}
+
+.aura-lead-timeline-refresh{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  margin-left:auto;
+  border:1px solid var(--aura-border);
+  border-radius:10px;
+  color:var(--aura-text-muted);
+  background:var(--aura-surface-soft);
+}
+
+.aura-lead-timeline-refresh svg{
+  width:14px;
+  height:14px;
+  stroke-width:1.9;
+}
+
+.aura-lead-timeline-filters{
+  display:flex;
+  gap:6px;
+  margin-top:13px;
+  padding-bottom:11px;
+  overflow-x:auto;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-lead-history-filter{
+  min-height:29px;
+  padding:0 9px;
+  flex-shrink:0;
+  border:1px solid var(--aura-border);
+  border-radius:9px;
+  color:var(--aura-text-muted);
+  background:var(--aura-surface-soft);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-lead-history-filter.is-active{
+  color:#fff;
+  border-color:transparent;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-lead-timeline-list{
+  position:relative;
+  display:flex;
+  max-height:360px;
+  margin-top:12px;
+  padding-left:4px;
+  flex-direction:column;
+  gap:4px;
+  overflow-y:auto;
+}
+
+.aura-lead-timeline-list::before{
+  content:"";
+  position:absolute;
+  top:15px;
+  bottom:15px;
+  left:13px;
+  width:1px;
+  background:var(--aura-border);
+}
+
+.aura-lead-timeline-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:20px minmax(0,1fr);
+  gap:9px;
+  padding:8px 4px;
+}
+
+.aura-lead-timeline-dot{
+  position:relative;
+  z-index:2;
+  width:9px;
+  height:9px;
+  margin:8px 0 0 5px;
+  border:2px solid var(--aura-background);
+  border-radius:50%;
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 8px
+    color-mix(
+      in srgb,
+      var(--aura-primary) 60%,
+      transparent
+    );
+}
+
+.aura-lead-timeline-item[data-type="status"]
+.aura-lead-timeline-dot,
+.aura-lead-timeline-item[data-type="kanban"]
+.aura-lead-timeline-dot{
+  background:#60A5FA;
+}
+
+.aura-lead-timeline-item[data-type="followup"]
+.aura-lead-timeline-dot{
+  background:#FBBF24;
+}
+
+.aura-lead-timeline-item[data-type="automacao"]
+.aura-lead-timeline-dot,
+.aura-lead-timeline-item[data-type="template"]
+.aura-lead-timeline-dot{
+  background:#A78BFA;
+}
+
+.aura-lead-timeline-item[data-type="anotacao"]
+.aura-lead-timeline-dot,
+.aura-lead-timeline-item[data-type="contato"]
+.aura-lead-timeline-dot{
+  background:#34D399;
+}
+
+.aura-lead-timeline-content{
+  min-width:0;
+  padding:10px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.aura-lead-timeline-top{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.aura-lead-timeline-top strong{
+  color:var(--aura-text-secondary);
+  font-size:8px;
+  font-weight:850;
+}
+
+.aura-lead-timeline-top time{
+  flex-shrink:0;
+  color:var(--aura-text-muted);
+  font-size:6px;
+}
+
+.aura-lead-timeline-content p{
+  margin-top:6px;
+  color:var(--aura-text-muted) !important;
+  font-size:7px !important;
+  line-height:1.5;
+  white-space:pre-line;
+}
+
+.aura-lead-timeline-content small{
+  display:block;
+  margin-top:6px;
+  color:var(--aura-primary);
+  font-size:6px;
+  font-weight:750;
+}
+
+.aura-lead-timeline-loading,
+.aura-lead-timeline-empty{
+  display:flex;
+  min-height:105px;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-align:center;
+}
+
 /* Campos no painel do Lead */
 
 .aura-lead-followup-icon{
@@ -29526,8 +29724,6 @@ body.aura-command-open{
 
         <div class="glass-card aura-lead-drawer-card aura-lead-chat-card">
 
-            <div class="aura-lead-drawer-card-header">
-
                 <span class="aura-lead-drawer-card-icon aura-lead-chat-icon">
 
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -37235,6 +37431,430 @@ alternarVisualLeads(
             }
         }
 
+/* =========================================================
+   LINHA DO TEMPO 360 DO LEAD
+   ========================================================= */
+
+window._historicoLeadAtual = [];
+window._filtroHistoricoLead = "todos";
+window._leadHistoricoBase = null;
+
+window.registrarAtividadeLead =
+async function(
+    leadId,
+    tipo,
+    titulo,
+    descricao = "",
+    extras = {}
+) {
+
+    if (!leadId || !usuarioUID) {
+        return;
+    }
+
+    const agora =
+        Date.now();
+
+    const atividadeId =
+        `lat_${agora}_${Math.random()
+            .toString(36)
+            .slice(2, 8)}`;
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "lead_atividades",
+                atividadeId
+            ),
+            {
+                leadId,
+                criadoPor: usuarioUID,
+                autorUID: usuarioUID,
+                autorEmail:
+                    usuarioEmail ||
+                    "Sistema",
+
+                tipo:
+                    tipo || "sistema",
+
+                titulo:
+                    titulo || "Atividade",
+
+                descricao:
+                    descricao || "",
+
+                data:
+                    agora,
+
+                ...extras
+            }
+        );
+
+        const leadAberto =
+            document.getElementById(
+                "lead-painel-id"
+            )?.value;
+
+        if (leadAberto === leadId) {
+
+            void carregarHistoricoLead(
+                leadId,
+                false
+            );
+
+        }
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao registrar atividade:",
+            erro
+        );
+
+    }
+
+};
+
+window.carregarHistoricoLead =
+async function(
+    leadOuId,
+    mostrarCarregamento = true
+) {
+
+    const lista =
+        document.getElementById(
+            "lead-activity-list"
+        );
+
+    if (!lista) {
+        return;
+    }
+
+    const lead =
+        typeof leadOuId === "object"
+            ? leadOuId
+            : (
+                window._leadsVisiveis
+                    ?.find(
+                        item =>
+                            item.id === leadOuId
+                    ) ||
+                window._leadHistoricoBase
+            );
+
+    const leadId =
+        typeof leadOuId === "object"
+            ? leadOuId?.id
+            : leadOuId;
+
+    if (!leadId) {
+        return;
+    }
+
+    if (lead?.id === leadId) {
+        window._leadHistoricoBase =
+            lead;
+    }
+
+    if (mostrarCarregamento) {
+
+        lista.innerHTML = `
+            <div class="aura-lead-timeline-loading">
+                Carregando histórico...
+            </div>
+        `;
+
+    }
+
+    try {
+
+        const snapshot =
+            await getDocs(
+                query(
+                    collection(
+                        db,
+                        "lead_atividades"
+                    ),
+                    where(
+                        "leadId",
+                        "==",
+                        leadId
+                    )
+                )
+            );
+
+        const atividades = [];
+
+        snapshot.forEach(
+            documento => {
+
+                const atividade =
+                    documento.data();
+
+                if (
+                    atividade.criadoPor !==
+                    usuarioUID
+                ) {
+                    return;
+                }
+
+                atividades.push({
+                    id: documento.id,
+                    ...atividade
+                });
+
+            }
+        );
+
+        const leadBase =
+            lead?.id === leadId
+                ? lead
+                : window._leadHistoricoBase;
+
+        if (
+            leadBase &&
+            leadBase.data
+        ) {
+
+            atividades.push({
+                id: `captura_${leadId}`,
+                leadId,
+                criadoPor: usuarioUID,
+                tipo: "captura",
+                titulo: "Lead capturado",
+                descricao:
+                    `Origem: ${
+                        leadBase.origem ||
+                        "Direto"
+                    }`,
+                autorEmail: "Sistema",
+                data:
+                    Number(
+                        leadBase.data
+                    ) || 0,
+                sintetica: true
+            });
+
+        }
+
+        atividades.sort(
+            (a, b) =>
+                Number(b.data || 0) -
+                Number(a.data || 0)
+        );
+
+        window._historicoLeadAtual =
+            atividades;
+
+        renderizarHistoricoLead();
+
+    } catch (erro) {
+
+        console.error(
+            "Erro ao carregar histórico:",
+            erro
+        );
+
+        lista.innerHTML = `
+            <div class="aura-lead-timeline-empty">
+                Não foi possível carregar o histórico.
+            </div>
+        `;
+
+    }
+
+};
+
+window.filtrarHistoricoLead =
+function(tipo, botao) {
+
+    window._filtroHistoricoLead =
+        tipo || "todos";
+
+    document
+        .querySelectorAll(
+            ".aura-lead-history-filter"
+        )
+        .forEach(item =>
+            item.classList.remove(
+                "is-active"
+            )
+        );
+
+    botao?.classList.add(
+        "is-active"
+    );
+
+    renderizarHistoricoLead();
+
+};
+
+window.renderizarHistoricoLead =
+function() {
+
+    const lista =
+        document.getElementById(
+            "lead-activity-list"
+        );
+
+    if (!lista) {
+        return;
+    }
+
+    const grupos = {
+
+        status: [
+            "status",
+            "kanban"
+        ],
+
+        contato: [
+            "contato",
+            "anotacao",
+            "followup"
+        ],
+
+        automacao: [
+            "template",
+            "automacao"
+        ]
+
+    };
+
+    const filtro =
+        window._filtroHistoricoLead ||
+        "todos";
+
+    const atividades =
+        window._historicoLeadAtual
+            .filter(atividade => {
+
+                if (filtro === "todos") {
+                    return true;
+                }
+
+                return (
+                    grupos[filtro] || []
+                ).includes(
+                    atividade.tipo
+                );
+
+            });
+
+    const escaparHTML = valor =>
+        String(valor || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    const formatarData = valor => {
+
+        const timestamp =
+            Number(valor || 0);
+
+        if (!timestamp) {
+            return "Data não informada";
+        }
+
+        const data =
+            new Date(timestamp);
+
+        return data.toLocaleString(
+            "pt-BR",
+            {
+                day: "2-digit",
+                month: "2-digit",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+            }
+        );
+
+    };
+
+    if (!atividades.length) {
+
+        lista.innerHTML = `
+            <div class="aura-lead-timeline-empty">
+                Nenhuma atividade encontrada neste filtro.
+            </div>
+        `;
+
+        return;
+
+    }
+
+    lista.innerHTML =
+        atividades.map(
+            atividade => `
+                <article
+                    class="aura-lead-timeline-item"
+                    data-type="${
+                        escaparHTML(
+                            atividade.tipo ||
+                            "sistema"
+                        )
+                    }"
+                >
+
+                    <span class="aura-lead-timeline-dot"></span>
+
+                    <div class="aura-lead-timeline-content">
+
+                        <div class="aura-lead-timeline-top">
+
+                            <strong>
+                                ${escaparHTML(
+                                    atividade.titulo ||
+                                    "Atividade"
+                                )}
+                            </strong>
+
+                            <time>
+                                ${formatarData(
+                                    atividade.data
+                                )}
+                            </time>
+
+                        </div>
+
+                        ${
+                            atividade.descricao
+                                ? `
+                                    <p>
+                                        ${escaparHTML(
+                                            atividade.descricao
+                                        )}
+                                    </p>
+                                `
+                                : ""
+                        }
+
+                        <small>
+                            ${
+                                atividade.autorEmail ===
+                                "Sistema"
+                                    ? "Sistema"
+                                    : escaparHTML(
+                                        atividade
+                                            .autorEmail ||
+                                        "Usuário"
+                                    )
+                            }
+                        </small>
+
+                    </div>
+
+                </article>
+            `
+        ).join("");
+
+};
+
 window.abrirPainelLead = async function(lead) {
             document.getElementById("lead-painel-id").value = lead.id;
             document.getElementById("lead-painel-avatar").innerText = (lead.nome || "?")[0].toUpperCase();
@@ -37368,6 +37988,14 @@ if (followupMotivo) {
         lead.motivoFollowup ||
         "";
 }
+
+window._leadHistoricoBase =
+    lead;
+
+void carregarHistoricoLead(
+    lead
+);
+
             const btnWhats = document.getElementById("lead-painel-whatsapp-btn");
             if (lead.whatsapp) {
                 btnWhats.onclick = () => window.open("https://wa.me/55" + lead.whatsapp, "_blank");
@@ -37809,10 +38437,6 @@ window.abrirTemplatesDoLead = async function() {
             const fluxo =
                 template?.fluxo || {};
 
-            if (!fluxo.ativo) {
-                return;
-            }
-
             const leadId =
                 document.getElementById(
                     "lead-painel-id"
@@ -37932,6 +38556,54 @@ window.abrirTemplatesDoLead = async function() {
                 );
 
             }
+
+            const acoesFluxo = [];
+
+            if (atualizacoes.statusLead) {
+                acoesFluxo.push(
+                    `status: ${
+                        atualizacoes.statusLead
+                    }`
+                );
+            }
+
+            if (
+                atualizacoes.proximoContatoEm
+            ) {
+                acoesFluxo.push(
+                    "follow-up agendado"
+                );
+            }
+
+            if (atualizacoes.anotacao) {
+                acoesFluxo.push(
+                    "anotação adicionada"
+                );
+            }
+
+            await registrarAtividadeLead(
+                leadId,
+                fluxo.ativo
+                    ? "automacao"
+                    : "template",
+
+                fluxo.ativo
+                    ? "Template com fluxo executado"
+                    : "Template aberto no WhatsApp",
+
+                `${
+                    template.titulo ||
+                    "Template sem título"
+                }${
+                    acoesFluxo.length
+                        ? ` · ${
+                            acoesFluxo.join(
+                                " · "
+                            )
+                        }`
+                        : ""
+                }`
+            );
 
             if (atualizacoes.statusLead) {
 
@@ -38103,26 +38775,151 @@ window.fecharModalTemplatesLead = function() {
             document.getElementById("lead-painel").classList.add("hidden");
             document.getElementById("lead-painel-overlay").classList.add("hidden");
         };
-        window.salvarAnotacaoLead = async function(leadId, texto) {
+window.salvarAnotacaoLead =
+async function(leadId, texto) {
+
     try {
-        await setDoc(doc(db, "leads", leadId), { anotacao: texto }, { merge: true });
-        showToast("Anotação salva!");
-    } catch(err) {
-        console.error(err);
-        showToast("Erro ao salvar anotação: " + (err.message || "tente novamente"), "error");
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                anotacao: texto,
+                anotacaoAtualizadaEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        const leadLocal =
+            window._leadsVisiveis
+                ?.find(
+                    item =>
+                        item.id === leadId
+                );
+
+        if (leadLocal) {
+            leadLocal.anotacao =
+                texto;
+        }
+
+        await registrarAtividadeLead(
+            leadId,
+            "anotacao",
+            "Anotação atualizada",
+            texto
+                ? texto.slice(0, 180)
+                : "A anotação foi removida."
+        );
+
+        showToast(
+            "Anotação salva!"
+        );
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        showToast(
+            "Erro ao salvar anotação.",
+            "error"
+        );
+
     }
+
 };
 
-        window.salvarCampoLead = async function(campo, valor) {
-    const leadId = document.getElementById("lead-painel-id").value;
-    if (!leadId) return;
-    try {
-        await setDoc(doc(db, "leads", leadId), { [campo]: valor }, { merge: true });
-        showToast("Contato atualizado!");
-        if (typeof window.aplicarFiltrosLeads === "function") window.aplicarFiltrosLeads(false);
-    } catch(err) {
-        console.error(err);
+window.salvarCampoLead =
+async function(campo, valor) {
+
+    const leadId =
+        document.getElementById(
+            "lead-painel-id"
+        )?.value;
+
+    if (!leadId) {
+        return;
     }
+
+    const nomesCampos = {
+        nome: "Nome",
+        email: "E-mail",
+        whatsapp: "WhatsApp",
+        produtoInteresse: "Interesse"
+    };
+
+    try {
+
+        await setDoc(
+            doc(
+                db,
+                "leads",
+                leadId
+            ),
+            {
+                [campo]: valor,
+                contatoAtualizadoEm:
+                    Date.now()
+            },
+            {
+                merge: true
+            }
+        );
+
+        const leadLocal =
+            window._leadsVisiveis
+                ?.find(
+                    item =>
+                        item.id === leadId
+                );
+
+        if (leadLocal) {
+            leadLocal[campo] =
+                valor;
+        }
+
+        await registrarAtividadeLead(
+            leadId,
+            "contato",
+            `${
+                nomesCampos[campo] ||
+                "Informação"
+            } atualizado`,
+            valor ||
+            "Campo removido"
+        );
+
+        showToast(
+            "Contato atualizado!"
+        );
+
+        if (
+            typeof window
+                .aplicarFiltrosLeads ===
+            "function"
+        ) {
+            window
+                .aplicarFiltrosLeads(
+                    false
+                );
+        }
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        showToast(
+            "Erro ao atualizar contato.",
+            "error"
+        );
+
+    }
+
 };
 
 /* =========================================================
@@ -39391,6 +40188,31 @@ async function() {
         renderizarAgendaLeads();
         renderizarKanbanLeads();
 
+        await registrarAtividadeLead(
+            leadId,
+            "followup",
+            "Follow-up agendado",
+            `${
+                dataFormatada.toLocaleDateString(
+                    "pt-BR"
+                )
+            } às ${
+                dataFormatada.toLocaleTimeString(
+                    "pt-BR",
+                    {
+                        hour: "2-digit",
+                        minute: "2-digit"
+                    }
+                )
+            } · Prioridade: ${
+                prioridade
+            }${
+                motivo
+                    ? ` · ${motivo}`
+                    : ""
+            }`
+        );
+
         showToast(
             "Próximo contato agendado!"
         );
@@ -39552,6 +40374,13 @@ async function(leadId) {
             }
         );
 
+        await registrarAtividadeLead(
+            leadId,
+            "followup",
+            "Follow-up concluído",
+            "O contato comercial foi marcado como realizado."
+        );
+
         showToast(
             "Follow-up concluído!"
         );
@@ -39565,9 +40394,15 @@ async function(leadId) {
 
         renderizarAgendaLeads();
 
+        await registrarAtividadeLead(
+            leadId,
+            "followup",
+            "Follow-up removido",
+            "O próximo contato agendado foi cancelado."
+        );
+
         showToast(
-            "Erro ao concluir o follow-up.",
-            "error"
+            "Agendamento removido."
         );
 
     }
@@ -39621,6 +40456,26 @@ async function(
             {
                 merge: true
             }
+        );
+
+        const nomesStatus = {
+            novo: "Novo",
+            contato: "Em contato",
+            convertido: "Convertido",
+            perdido: "Perdido"
+        };
+
+        await registrarAtividadeLead(
+            leadId,
+            "kanban",
+            "Lead movido no pipeline",
+            `${
+                nomesStatus[statusAnterior] ||
+                statusAnterior
+            } → ${
+                nomesStatus[novoStatus] ||
+                novoStatus
+            }`
         );
 
         showToast(
@@ -39694,6 +40549,21 @@ async function(
         }
 
         renderizarKanbanLeads();
+
+        const nomesStatus = {
+            novo: "Novo",
+            contato: "Em contato",
+            convertido: "Convertido",
+            perdido: "Perdido"
+        };
+
+        await registrarAtividadeLead(
+            leadId,
+            "status",
+            "Status atualizado",
+            nomesStatus[novoStatus] ||
+            novoStatus
+        );
 
         showToast(
             "Status atualizado!"
