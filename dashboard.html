@@ -10243,6 +10243,1027 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — PREMIUM CUSTOMIZATION STUDIO
+   ========================================================================= */
+
+#view-personalizacao{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-customization-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:25px;
+  min-height:175px;
+  padding:30px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      550px 230px at 92% 2%,
+      color-mix(in srgb,var(--aura-accent) 19%,transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      380px 200px at 65% 115%,
+      color-mix(in srgb,var(--aura-primary) 12%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 84%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  box-shadow:
+    0 28px 65px -40px rgba(0,0,0,.82),
+    inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.aura-customization-header::before{
+  content:"";
+  position:absolute;
+  top:-120px;
+  right:75px;
+  width:285px;
+  height:285px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 17%,transparent);
+  pointer-events:none;
+}
+
+.aura-customization-header::after{
+  content:"";
+  position:absolute;
+  top:-55px;
+  right:135px;
+  width:165px;
+  height:165px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 12%,transparent);
+  pointer-events:none;
+}
+
+.aura-customization-header-copy{
+  position:relative;
+  z-index:2;
+  max-width:660px;
+}
+
+.aura-customization-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 11px;
+  margin-bottom:12px;
+  border-radius:999px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+  font-size:9px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-customization-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(27px,3vw,36px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-customization-header p{
+  max-width:620px;
+  margin-top:11px;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.aura-customization-header-panel{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:310px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:19px;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 70%,transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 15px 35px -28px rgba(0,0,0,.8);
+}
+
+.aura-customization-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:47px;
+  height:47px;
+  min-width:47px;
+  border-radius:15px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 25%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 9%,transparent);
+}
+
+.aura-customization-header-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-header-panel > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-customization-header-panel small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-customization-header-panel strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-customization-header-panel > div > span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  color:#34D399;
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-customization-header-panel i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.72);
+}
+
+.aura-customization-overview{
+  display:grid;
+  grid-template-columns:minmax(0,1.25fr) minmax(300px,.75fr);
+  gap:18px;
+}
+
+.aura-customization-included,
+.aura-customization-process,
+.aura-customization-form,
+.aura-customization-history{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:25px !important;
+}
+
+.aura-customization-card-header{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.aura-customization-card-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-customization-card-icon-accent{
+  color:var(--aura-accent);
+  border-color:
+    color-mix(in srgb,var(--aura-accent) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+}
+
+.aura-customization-card-icon svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-card-header > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-customization-card-header small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-customization-card-header h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:14px;
+  line-height:1.25;
+  font-weight:800;
+}
+
+.aura-customization-feature-list{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:11px;
+  margin-top:20px;
+}
+
+.aura-customization-feature{
+  display:flex;
+  align-items:flex-start;
+  gap:11px;
+  min-height:102px;
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+  transition:
+    transform .24s var(--rd-ease),
+    border-color .24s var(--rd-ease),
+    background .24s var(--rd-ease);
+}
+
+.aura-customization-feature:hover{
+  transform:translateY(-2px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 27%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 64%,transparent);
+}
+
+.aura-customization-feature > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:29px;
+  height:29px;
+  min-width:29px;
+  border-radius:10px;
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-customization-feature > span svg{
+  width:14px;
+  height:14px;
+  stroke-width:2.2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-feature > div{
+  min-width:0;
+}
+
+.aura-customization-feature strong{
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-customization-feature p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.55;
+}
+
+.aura-customization-steps{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:20px;
+}
+
+.aura-customization-step{
+  display:grid;
+  grid-template-columns:34px minmax(0,1fr);
+  align-items:start;
+  gap:11px;
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:15px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 52%,transparent);
+}
+
+.aura-customization-step > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  border-radius:11px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 21%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px;
+  font-weight:850;
+}
+
+.aura-customization-step strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-customization-step p{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.5;
+}
+
+.aura-customization-price-note{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+  margin-top:13px;
+  padding:13px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 20%,transparent);
+  border-radius:15px;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent);
+}
+
+.aura-customization-price-note > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:27px;
+  height:27px;
+  min-width:27px;
+  color:var(--aura-primary);
+}
+
+.aura-customization-price-note svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-price-note p{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.55;
+}
+
+.aura-customization-status{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:16px;
+  min-height:155px;
+  padding:22px !important;
+  overflow:hidden !important;
+  border-radius:24px !important;
+}
+
+#personalizacao-status-box.hidden,
+#personalizacao-form-box.hidden,
+#personalizacao-historico-box.hidden{
+  display:none !important;
+}
+
+.aura-customization-status-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:52px;
+  height:52px;
+  min-width:52px;
+  border-radius:17px;
+  color:#FBBF24;
+  border:1px solid rgba(251,191,36,.2);
+  background:rgba(251,191,36,.08);
+}
+
+.aura-customization-status-icon svg{
+  width:23px;
+  height:23px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-status-content{
+  min-width:0;
+}
+
+.aura-customization-status-eyebrow{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-customization-status-content h3{
+  margin-top:5px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:800;
+}
+
+.aura-customization-status-content > p{
+  margin-top:6px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.55;
+}
+
+.aura-customization-status-description{
+  display:flex;
+  flex-direction:column;
+  margin-top:12px;
+  padding:11px 13px;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 58%,transparent);
+}
+
+.aura-customization-status-description small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-customization-status-description span{
+  margin-top:5px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.aura-customization-status-badge,
+.aura-customization-history-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:29px;
+  padding:0 11px;
+  border-radius:999px;
+  color:#FBBF24;
+  border:1px solid rgba(251,191,36,.2);
+  background:rgba(251,191,36,.08);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.aura-customization-status-badge i,
+.aura-customization-history-status i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 9px currentColor;
+}
+
+.aura-customization-status[data-state="progress"]
+.aura-customization-status-icon,
+.aura-customization-status[data-state="progress"]
+.aura-customization-status-badge{
+  color:#60A5FA;
+  border-color:rgba(96,165,250,.2);
+  background:rgba(96,165,250,.08);
+}
+
+.aura-customization-status[data-state="completed"]
+.aura-customization-status-icon,
+.aura-customization-status[data-state="completed"]
+.aura-customization-status-badge{
+  color:#34D399;
+  border-color:rgba(52,211,153,.2);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-customization-status[data-state="rejected"]
+.aura-customization-status-icon,
+.aura-customization-status[data-state="rejected"]
+.aura-customization-status-badge{
+  color:#F87171;
+  border-color:rgba(248,113,113,.2);
+  background:rgba(248,113,113,.08);
+}
+
+.aura-customization-form-header,
+.aura-customization-history-header{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-customization-form-badge,
+.aura-customization-history-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:29px;
+  padding:0 11px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.aura-customization-form-badge i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-customization-form-content{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:minmax(0,1.4fr) minmax(270px,.6fr);
+  gap:16px;
+  margin-top:20px;
+}
+
+.aura-customization-field{
+  min-width:0;
+}
+
+.aura-customization-field label{
+  display:flex;
+  min-height:42px;
+  flex-direction:column;
+  margin-bottom:9px;
+}
+
+.aura-customization-field label > span{
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  font-weight:800;
+}
+
+.aura-customization-field label small{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.4;
+}
+
+.aura-customization-field textarea,
+.aura-customization-field input{
+  min-height:51px;
+  border-radius:15px !important;
+  color:var(--aura-text) !important;
+  font-size:12px !important;
+}
+
+.aura-customization-field textarea{
+  min-height:145px;
+  padding:15px !important;
+  resize:vertical;
+}
+
+.aura-customization-whatsapp-field{
+  position:relative;
+}
+
+.aura-customization-whatsapp-field > span{
+  position:absolute;
+  top:50%;
+  left:14px;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:19px;
+  height:19px;
+  color:var(--aura-primary);
+  transform:translateY(-50%);
+  pointer-events:none;
+}
+
+.aura-customization-whatsapp-field svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-whatsapp-field input{
+  padding-left:44px !important;
+}
+
+.aura-customization-form-footer{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-customization-security{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  max-width:470px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.45;
+}
+
+.aura-customization-security svg{
+  width:15px;
+  height:15px;
+  min-width:15px;
+  color:#34D399;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-submit{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-width:220px;
+  min-height:48px;
+  padding:0 19px;
+  border:0;
+  border-radius:14px;
+  color:#fff !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 18px 38px -24px
+      color-mix(in srgb,var(--aura-accent) 85%,transparent);
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+.aura-customization-submit:hover{
+  transform:translateY(-2px);
+  filter:brightness(1.08);
+}
+
+.aura-customization-submit svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-history-list{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  margin-top:18px;
+}
+
+.aura-customization-history-item{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:13px;
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 53%,transparent);
+  transition:
+    transform .23s var(--rd-ease),
+    border-color .23s var(--rd-ease),
+    background .23s var(--rd-ease);
+}
+
+.aura-customization-history-item:hover{
+  transform:translateY(-2px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 64%,transparent);
+}
+
+.aura-customization-history-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:39px;
+  height:39px;
+  min-width:39px;
+  border-radius:13px;
+  color:#FBBF24;
+  border:1px solid rgba(251,191,36,.18);
+  background:rgba(251,191,36,.07);
+}
+
+.aura-customization-history-icon svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-history-content{
+  min-width:0;
+}
+
+.aura-customization-history-content p{
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.5;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-customization-history-content > span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:6px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:650;
+}
+
+.aura-customization-history-content svg{
+  width:12px;
+  height:12px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-customization-history-item[data-state="progress"]
+.aura-customization-history-icon,
+.aura-customization-history-item[data-state="progress"]
+.aura-customization-history-status{
+  color:#60A5FA;
+  border-color:rgba(96,165,250,.2);
+  background:rgba(96,165,250,.08);
+}
+
+.aura-customization-history-item[data-state="completed"]
+.aura-customization-history-icon,
+.aura-customization-history-item[data-state="completed"]
+.aura-customization-history-status{
+  color:#34D399;
+  border-color:rgba(52,211,153,.2);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-customization-history-item[data-state="rejected"]
+.aura-customization-history-icon,
+.aura-customization-history-item[data-state="rejected"]
+.aura-customization-history-status{
+  color:#F87171;
+  border-color:rgba(248,113,113,.2);
+  background:rgba(248,113,113,.08);
+}
+
+/* Tema claro */
+
+.tema-claro .aura-customization-header,
+.tema-claro .aura-customization-included,
+.tema-claro .aura-customization-process,
+.tema-claro .aura-customization-status,
+.tema-claro .aura-customization-form,
+.tema-claro .aura-customization-history{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-customization-kicker,
+.tema-claro .aura-customization-header-icon,
+.tema-claro .aura-customization-card-icon-accent{
+  color:var(--aura-accent) !important;
+}
+
+.tema-claro .aura-customization-card-icon,
+.tema-claro .aura-customization-price-note > span,
+.tema-claro .aura-customization-whatsapp-field > span{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-customization-feature > span,
+.tema-claro .aura-customization-security svg,
+.tema-claro .aura-customization-header-panel > div > span{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-customization-feature,
+.tema-claro .aura-customization-step,
+.tema-claro .aura-customization-status-description,
+.tema-claro .aura-customization-history-item{
+  background:rgba(248,250,252,.75);
+}
+
+.tema-claro .aura-customization-submit{
+  color:#fff !important;
+}
+
+/* Responsividade */
+
+@media (max-width:900px){
+
+  .aura-customization-header{
+    align-items:flex-start;
+  }
+
+  .aura-customization-header-panel{
+    min-width:260px;
+  }
+
+  .aura-customization-overview{
+    grid-template-columns:1fr;
+  }
+
+  .aura-customization-form-content{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media (max-width:767px){
+
+  .aura-customization-header{
+    flex-direction:column;
+    min-height:0;
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .aura-customization-header-panel{
+    width:100%;
+    min-width:0;
+  }
+
+  .aura-customization-feature-list{
+    grid-template-columns:1fr;
+  }
+
+  .aura-customization-included,
+  .aura-customization-process,
+  .aura-customization-form,
+  .aura-customization-history{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-customization-status{
+    grid-template-columns:auto minmax(0,1fr);
+    padding:18px !important;
+  }
+
+  .aura-customization-status-badge{
+    grid-column:1 / -1;
+    justify-content:center;
+  }
+
+  .aura-customization-form-header,
+  .aura-customization-history-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-customization-form-footer{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aura-customization-submit{
+    width:100%;
+  }
+
+  .aura-customization-history-item{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .aura-customization-history-status{
+    grid-column:1 / -1;
+    justify-content:center;
+  }
+
+}
+
+@media (max-width:520px){
+
+  .aura-customization-status{
+    grid-template-columns:1fr;
+  }
+
+  .aura-customization-history-item{
+    grid-template-columns:1fr;
+  }
+
+  .aura-customization-history-content p{
+    white-space:normal;
+  }
+
+  .aura-customization-history-status{
+    grid-column:auto;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -13681,24 +14702,6 @@ span{
 
             <div id="personalizacao-status-box" class="hidden glass-card rounded-2xl p-6 space-y-2"></div>
 
-            <div id="personalizacao-form-box" class="glass-card rounded-2xl p-6 space-y-4">
-                <h3 class="text-sm font-bold text-white">Solicitar Personalização</h3>
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">O que você quer que a gente faça?</label>
-                    <textarea id="personalizacao-descricao" rows="4" class="w-full glass-input rounded-xl p-4 text-sm text-white outline-none resize-none" placeholder="Ex: Quero as cores da minha marca, todos os produtos cadastrados e uma campanha de lançamento configurada."></textarea>
-                </div>
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">WhatsApp pra contato (com DDD)</label>
-                    <input type="text" required id="personalizacao-whatsapp" class="w-full glass-input rounded-xl p-4 text-sm text-white outline-none" placeholder="Ex: 11999998888" maxlength="11">
-                </div>
-                <button onclick="enviarSolicitacaoPersonalizacao()" class="w-full bg-gradient-to-r from-[#00f2fe] to-[#4facfe] text-black font-black py-4 rounded-xl text-xs uppercase tracking-widest transition-all">Enviar Solicitação</button>
-            </div>
-
-            <div id="personalizacao-historico-box" class="hidden space-y-3">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Solicitações</h3>
-                <div id="personalizacao-historico-lista" class="space-y-2"></div>
-            </div>
-        </section>
 
         <section id="view-guia" class="view-section space-y-6 max-w-4xl mx-auto">
             <div class="border-b border-white/5 pb-6">
@@ -20725,61 +21728,8 @@ function atualizarBadgeNotificacoes() {
         // =============================================
         // SERVIÇO DE PERSONALIZAÇÃO PREMIUM
         // =============================================
-        const STATUS_PERSONALIZACAO_LABEL = {
-            pendente: { texto: "⏳ Sua solicitação está na fila. Em breve entramos em contato pelo WhatsApp.", cor: "amber", label: "Pendente" },
-            em_andamento: { texto: "🛠️ Estamos trabalhando na sua loja agora.", cor: "blue", label: "Em andamento" },
-            concluido: { texto: "✅ Personalização concluída! Dá uma olhada na sua loja.", cor: "emerald", label: "Concluído" },
-            negado: { texto: "❌ Não foi possível seguir com essa solicitação.", cor: "red", label: "Não aprovado" }
-        };
+const STATUS_PERSONALIZACAO_LABEL = {
 
-        async function carregarStatusPersonalizacao() {
-            if (!usuarioUID) return;
-            const statusBox = document.getElementById("personalizacao-status-box");
-            const formBox = document.getElementById("personalizacao-form-box");
-            const historicoBox = document.getElementById("personalizacao-historico-box");
-            const historicoLista = document.getElementById("personalizacao-historico-lista");
-            try {
-                const snap = await getDocs(query(collection(db, "solicitacoes_customizacao"), where("uid", "==", usuarioUID)));
-                let pedidos = [];
-                snap.forEach(d => pedidos.push({ id: d.id, ...d.data() }));
-                pedidos.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
-
-                const ativo = pedidos.find(p => p.status === "pendente" || p.status === "em_andamento");
-                if (ativo) {
-                    const info = STATUS_PERSONALIZACAO_LABEL[ativo.status] || STATUS_PERSONALIZACAO_LABEL.pendente;
-                    statusBox.innerHTML = `
-                        <h3 class="text-sm font-bold text-white">Sua solicitação</h3>
-                        <p class="text-xs text-${info.cor}-400">${info.texto}</p>
-                        <p class="text-[11px] text-gray-500 pt-1">${ativo.descricao}</p>
-                    `;
-                    statusBox.classList.remove("hidden");
-                    formBox.classList.add("hidden");
-                } else {
-                    statusBox.classList.add("hidden");
-                    formBox.classList.remove("hidden");
-                }
-
-                if (pedidos.length > 0) {
-                    historicoBox.classList.remove("hidden");
-                    historicoLista.innerHTML = pedidos.map(p => {
-                        const info = STATUS_PERSONALIZACAO_LABEL[p.status] || STATUS_PERSONALIZACAO_LABEL.pendente;
-                        return `
-                            <div class="glass-card rounded-xl p-4 flex items-start justify-between gap-3">
-                                <div class="min-w-0">
-                                    <p class="text-xs text-gray-300 line-clamp-2">${p.descricao}</p>
-                                    <p class="text-[10px] text-gray-600 mt-1">${p.criadoEm ? new Date(p.criadoEm).toLocaleString("pt-BR") : "—"}</p>
-                                </div>
-                                <span class="text-[9px] font-bold px-2 py-1 rounded-md uppercase shrink-0 bg-${info.cor}-500/10 text-${info.cor}-400">${info.label}</span>
-                            </div>
-                        `;
-                    }).join("");
-                } else {
-                    historicoBox.classList.add("hidden");
-                }
-            } catch (err) {
-                console.error(err);
-            }
-        }
 
         window.enviarSolicitacaoPersonalizacao = async function() {
             const descricao = document.getElementById("personalizacao-descricao").value.trim();
