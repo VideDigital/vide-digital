@@ -37538,42 +37538,121 @@ async function(
     const agora =
         Date.now();
 
-    const atividadeId =
-        `lat_${agora}_${Math.random()
-            .toString(36)
-            .slice(2, 8)}`;
+    const atividade = {
+
+        id:
+            `lat_${agora}_${Math.random()
+                .toString(36)
+                .slice(2, 8)}`,
+
+        leadId,
+
+        criadoPor:
+            usuarioUID,
+
+        autorUID:
+            usuarioUID,
+
+        autorEmail:
+            usuarioEmail ||
+            "Sistema",
+
+        tipo:
+            tipo || "sistema",
+
+        titulo:
+            titulo || "Atividade",
+
+        descricao:
+            String(
+                descricao || ""
+            ).slice(0, 500),
+
+        data:
+            agora,
+
+        ...extras
+
+    };
 
     try {
 
-        await setDoc(
+        const leadRef =
             doc(
                 db,
-                "lead_atividades",
-                atividadeId
-            ),
+                "leads",
+                leadId
+            );
+
+        const leadSnap =
+            await getDoc(
+                leadRef
+            );
+
+        if (!leadSnap.exists()) {
+            return;
+        }
+
+        const dadosLead =
+            leadSnap.data();
+
+        if (
+            dadosLead.criadoPor &&
+            dadosLead.criadoPor !==
+                usuarioUID
+        ) {
+            throw new Error(
+                "Lead pertence a outra conta."
+            );
+        }
+
+        const historicoAtual =
+            Array.isArray(
+                dadosLead
+                    .historicoAtividades
+            )
+                ? dadosLead
+                    .historicoAtividades
+                : [];
+
+        const novoHistorico =
+            [
+                atividade,
+                ...historicoAtual
+            ].slice(0, 80);
+
+        await setDoc(
+            leadRef,
             {
-                leadId,
-                criadoPor: usuarioUID,
-                autorUID: usuarioUID,
-                autorEmail:
-                    usuarioEmail ||
-                    "Sistema",
+                historicoAtividades:
+                    novoHistorico,
 
-                tipo:
-                    tipo || "sistema",
-
-                titulo:
-                    titulo || "Atividade",
-
-                descricao:
-                    descricao || "",
-
-                data:
-                    agora,
-
-                ...extras
+                historicoAtualizadoEm:
+                    agora
+            },
+            {
+                merge: true
             }
         );
+
+        const leadLocal =
+            window._leadsVisiveis
+                ?.find(
+                    item =>
+                        item.id === leadId
+                );
+
+        if (leadLocal) {
+
+            leadLocal
+                .historicoAtividades =
+                    novoHistorico;
+
+            leadLocal
+                .historicoAtualizadoEm =
+                    agora;
+
+        }
 
         const leadAberto =
             document.getElementById(
@@ -37582,7 +37661,7 @@ async function(
 
         if (leadAberto === leadId) {
 
-            void carregarHistoricoLead(
+            await carregarHistoricoLead(
                 leadId,
                 false
             );
@@ -37615,18 +37694,6 @@ async function(
         return;
     }
 
-    const lead =
-        typeof leadOuId === "object"
-            ? leadOuId
-            : (
-                window._leadsVisiveis
-                    ?.find(
-                        item =>
-                            item.id === leadOuId
-                    ) ||
-                window._leadHistoricoBase
-            );
-
     const leadId =
         typeof leadOuId === "object"
             ? leadOuId?.id
@@ -37634,11 +37701,6 @@ async function(
 
     if (!leadId) {
         return;
-    }
-
-    if (lead?.id === leadId) {
-        window._leadHistoricoBase =
-            lead;
     }
 
     if (mostrarCarregamento) {
@@ -37651,81 +37713,170 @@ async function(
 
     }
 
+    const obterTimestamp =
+        valor => {
+
+            if (!valor) {
+                return 0;
+            }
+
+            if (
+                typeof valor.toMillis ===
+                "function"
+            ) {
+                return valor.toMillis();
+            }
+
+            if (
+                typeof valor.seconds ===
+                "number"
+            ) {
+                return valor.seconds * 1000;
+            }
+
+            const numero =
+                Number(valor);
+
+            if (
+                Number.isFinite(numero)
+            ) {
+                return numero;
+            }
+
+            const convertido =
+                new Date(valor)
+                    .getTime();
+
+            return Number.isNaN(
+                convertido
+            )
+                ? 0
+                : convertido;
+
+        };
+
     try {
 
-        const snapshot =
-            await getDocs(
-                query(
-                    collection(
-                        db,
-                        "lead_atividades"
-                    ),
-                    where(
-                        "leadId",
-                        "==",
-                        leadId
-                    )
-                )
+        const leadRef =
+            doc(
+                db,
+                "leads",
+                leadId
             );
 
-        const atividades = [];
+        const leadSnap =
+            await getDoc(
+                leadRef
+            );
 
-        snapshot.forEach(
-            documento => {
+        if (!leadSnap.exists()) {
 
-                const atividade =
-                    documento.data();
+            lista.innerHTML = `
+                <div class="aura-lead-timeline-empty">
+                    Lead não encontrado.
+                </div>
+            `;
 
-                if (
-                    atividade.criadoPor !==
-                    usuarioUID
-                ) {
-                    return;
-                }
+            return;
 
-                atividades.push({
-                    id: documento.id,
-                    ...atividade
-                });
+        }
 
-            }
-        );
-
-        const leadBase =
-            lead?.id === leadId
-                ? lead
-                : window._leadHistoricoBase;
+        const dadosLead =
+            leadSnap.data();
 
         if (
-            leadBase &&
-            leadBase.data
+            dadosLead.criadoPor &&
+            dadosLead.criadoPor !==
+                usuarioUID
+        ) {
+            throw new Error(
+                "Lead pertence a outra conta."
+            );
+        }
+
+        const leadBase = {
+            id: leadSnap.id,
+            ...dadosLead
+        };
+
+        window._leadHistoricoBase =
+            leadBase;
+
+        const atividades =
+            Array.isArray(
+                dadosLead
+                    .historicoAtividades
+            )
+                ? dadosLead
+                    .historicoAtividades
+                    .map(
+                        atividade => ({
+                            ...atividade,
+                            data:
+                                obterTimestamp(
+                                    atividade.data
+                                )
+                        })
+                    )
+                : [];
+
+        const dataCaptura =
+            obterTimestamp(
+                dadosLead.data ||
+                dadosLead.criadoEm
+            );
+
+        const jaTemCaptura =
+            atividades.some(
+                atividade =>
+                    atividade.tipo ===
+                    "captura"
+            );
+
+        if (
+            dataCaptura &&
+            !jaTemCaptura
         ) {
 
             atividades.push({
-                id: `captura_${leadId}`,
+
+                id:
+                    `captura_${leadId}`,
+
                 leadId,
-                criadoPor: usuarioUID,
-                tipo: "captura",
-                titulo: "Lead capturado",
+
+                criadoPor:
+                    usuarioUID,
+
+                tipo:
+                    "captura",
+
+                titulo:
+                    "Lead capturado",
+
                 descricao:
                     `Origem: ${
-                        leadBase.origem ||
+                        dadosLead.origem ||
                         "Direto"
                     }`,
-                autorEmail: "Sistema",
+
+                autorEmail:
+                    "Sistema",
+
                 data:
-                    Number(
-                        leadBase.data
-                    ) || 0,
-                sintetica: true
+                    dataCaptura,
+
+                sintetica:
+                    true
+
             });
 
         }
 
         atividades.sort(
             (a, b) =>
-                Number(b.data || 0) -
-                Number(a.data || 0)
+                obterTimestamp(b.data) -
+                obterTimestamp(a.data)
         );
 
         window._historicoLeadAtual =
@@ -37749,6 +37900,9 @@ async function(
     }
 
 };
+
+window.filtrarHistoricoLead =
+function(tipo, botao) {
 
 window.filtrarHistoricoLead =
 function(tipo, botao) {
