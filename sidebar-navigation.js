@@ -307,7 +307,7 @@
 
     document.addEventListener("keydown", function(evento) {
         const teclaBusca =
-            evento.key.toLowerCase() === "k";
+            String(evento?.key || "").toLowerCase() === "k";
 
         if (
             teclaBusca &&
