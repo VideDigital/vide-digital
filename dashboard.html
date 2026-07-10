@@ -14428,19 +14428,21 @@ span{
 
             </svg>
 
-            <input
-<div
-    id="busca-hub-modulos"
-    class="aura-hub-searchbox"
-    contenteditable="true"
-    role="searchbox"
-    aria-label="Pesquisar módulo"
-    data-placeholder="Pesquisar módulo..."
-    spellcheck="false"
-    oninput="filtrarHubModulos(this.textContent)"
-    onkeydown="if(event.key === 'Enter'){ event.preventDefault(); }"
-></div>
-            >
+            <div
+                id="busca-hub-modulos"
+                class="aura-hub-searchbox"
+                contenteditable="true"
+                role="searchbox"
+                aria-label="Pesquisar módulo"
+                aria-autocomplete="none"
+                data-placeholder="Pesquisar módulo..."
+                data-form-type="other"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                spellcheck="false"
+                oninput="filtrarHubModulos(this.textContent)"
+                onkeydown="if(event.key === 'Enter'){ event.preventDefault(); }"
+            ></div>
 
             <span class="absolute right-3 top-1/2 -translate-y-1/2 h-7 min-w-7 px-2 rounded-lg border border-white/10 bg-white/[0.04] flex items-center justify-center text-[9px] font-bold text-gray-500 pointer-events-none">
 
@@ -20262,14 +20264,26 @@ window.filtrarHubModulos = function(termo) {
         });
 };
 
-window.addEventListener("pageshow", () => {
+function limparBuscaHubModulos() {
     const campo =
         document.getElementById("busca-hub-modulos");
 
     if (!campo) return;
 
     campo.textContent = "";
+
     window.filtrarHubModulos("");
+}
+
+limparBuscaHubModulos();
+
+window.addEventListener(
+    "DOMContentLoaded",
+    limparBuscaHubModulos
+);
+
+window.addEventListener("pageshow", () => {
+    setTimeout(limparBuscaHubModulos, 50);
 });
 
 function ativarAba(targetId) {
