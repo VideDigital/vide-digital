@@ -36616,6 +36616,18 @@ function renderizarCentralOperacional(
 
     };
 
+    // Reaplica a ordem salva agora que o bloco dinâmico já existe.
+    if (
+        typeof aplicarLayoutSalvoDaAba ===
+        "function"
+    ) {
+        requestAnimationFrame(() => {
+            aplicarLayoutSalvoDaAba(
+                "view-dashboard"
+            );
+        });
+    }
+
 }
 
 window.carregarCockpitReal =
