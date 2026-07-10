@@ -20051,6 +20051,512 @@ input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
 
 }
 
+/* =========================================================
+   DASHBOARD — CENTRAL OPERACIONAL
+   ========================================================= */
+
+.dashboard-ops{
+  padding:22px !important;
+  overflow:hidden !important;
+  border-radius:26px !important;
+}
+
+.dashboard-ops:hover{
+  transform:none !important;
+}
+
+.dashboard-ops-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.dashboard-ops-title{
+  display:flex;
+  align-items:center;
+  gap:13px;
+}
+
+.dashboard-ops-title-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:45px;
+  height:45px;
+  min-width:45px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 25%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.dashboard-ops-title-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+}
+
+.dashboard-ops-title small,
+.dashboard-ops-section-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.dashboard-ops-title h3{
+  margin-top:3px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:800;
+}
+
+.dashboard-ops-title p{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.dashboard-ops-live{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  min-height:29px;
+  padding:0 10px;
+  border:1px solid rgba(52,211,153,.18);
+  border-radius:999px;
+  color:#34D399;
+  background:rgba(52,211,153,.07);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.dashboard-ops-live i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 9px rgba(52,211,153,.7);
+}
+
+.dashboard-ops-alerts{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:10px;
+  margin-top:18px;
+}
+
+.dashboard-ops-alert{
+  position:relative;
+  display:flex;
+  min-height:112px;
+  padding:15px;
+  flex-direction:column;
+  align-items:flex-start;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:17px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 55%,
+      transparent
+    );
+  text-align:left;
+}
+
+.dashboard-ops-alert::after{
+  content:"";
+  position:absolute;
+  top:-32px;
+  right:-30px;
+  width:80px;
+  height:80px;
+  border-radius:50%;
+  background:currentColor;
+  filter:blur(28px);
+  opacity:.1;
+}
+
+.dashboard-ops-alert > span{
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+}
+
+.dashboard-ops-alert strong{
+  margin-top:12px;
+  color:var(--aura-text);
+  font-size:25px;
+  line-height:1;
+  font-weight:850;
+}
+
+.dashboard-ops-alert small{
+  margin-top:8px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.dashboard-ops-alert.is-warning{
+  color:#FBBF24;
+}
+
+.dashboard-ops-alert.is-primary{
+  color:var(--aura-primary);
+}
+
+.dashboard-ops-alert.is-danger{
+  color:#F87171;
+}
+
+.dashboard-ops-alert.is-success{
+  color:#34D399;
+}
+
+.dashboard-ops-grid{
+  display:grid;
+  grid-template-columns:minmax(0,1.3fr) minmax(300px,.7fr);
+  gap:13px;
+  margin-top:13px;
+}
+
+.dashboard-ops-section{
+  padding:17px;
+  border:1px solid var(--aura-border);
+  border-radius:19px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 49%,
+      transparent
+    );
+}
+
+.dashboard-ops-section-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  padding-bottom:13px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.dashboard-ops-section-header h4{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:12px;
+  font-weight:800;
+}
+
+.dashboard-ops-section-header > span{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:750;
+}
+
+.dashboard-ops-activity-list{
+  display:flex;
+  max-height:390px;
+  margin-top:11px;
+  flex-direction:column;
+  gap:7px;
+  overflow-y:auto;
+}
+
+.dashboard-ops-activity{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:10px;
+  min-height:65px;
+  padding:10px;
+  border:1px solid transparent;
+  border-radius:13px;
+  text-align:left;
+}
+
+.dashboard-ops-activity:hover{
+  border-color:var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 5%,
+      transparent
+    );
+}
+
+.dashboard-ops-activity-dot{
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 9px
+    color-mix(
+      in srgb,
+      var(--aura-primary) 65%,
+      transparent
+    );
+}
+
+.dashboard-ops-activity[data-type="pedido"]
+.dashboard-ops-activity-dot{
+  background:#34D399;
+  box-shadow:0 0 9px rgba(52,211,153,.55);
+}
+
+.dashboard-ops-activity-copy{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+
+.dashboard-ops-activity-copy strong{
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.dashboard-ops-activity-copy small{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.dashboard-ops-activity-meta{
+  display:flex;
+  align-items:flex-end;
+  flex-direction:column;
+}
+
+.dashboard-ops-activity-meta b{
+  display:inline-flex;
+  min-height:22px;
+  padding:0 7px;
+  align-items:center;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:rgba(255,255,255,.04);
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.dashboard-ops-activity-meta b[data-status="pago"],
+.dashboard-ops-activity-meta b[data-status="convertido"]{
+  color:#34D399;
+  background:rgba(52,211,153,.07);
+}
+
+.dashboard-ops-activity-meta b[data-status="aguardando"],
+.dashboard-ops-activity-meta b[data-status="contato"]{
+  color:#FBBF24;
+  background:rgba(251,191,36,.07);
+}
+
+.dashboard-ops-activity-meta b[data-status="cancelado"],
+.dashboard-ops-activity-meta b[data-status="perdido"]{
+  color:#F87171;
+  background:rgba(248,113,113,.07);
+}
+
+.dashboard-ops-activity-meta small{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.dashboard-ops-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:11px;
+}
+
+.dashboard-ops-actions button{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:66px;
+  padding:10px;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 58%,
+      transparent
+    );
+  text-align:left;
+}
+
+.dashboard-ops-actions button:hover{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 30%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 7%,
+      transparent
+    );
+}
+
+.dashboard-ops-actions button > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:31px;
+  height:31px;
+  min-width:31px;
+  border-radius:10px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 9%,
+      transparent
+    );
+  font-size:16px;
+}
+
+.dashboard-ops-actions button > div{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+
+.dashboard-ops-actions strong{
+  color:var(--aura-text-secondary);
+  font-size:8px;
+  font-weight:800;
+}
+
+.dashboard-ops-actions small{
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.dashboard-ops-summary{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:10px;
+}
+
+.dashboard-ops-summary > div{
+  padding:11px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+}
+
+.dashboard-ops-summary span{
+  display:block;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  text-transform:uppercase;
+}
+
+.dashboard-ops-summary strong{
+  display:block;
+  margin-top:6px;
+  color:var(--aura-text);
+  font-size:17px;
+}
+
+.dashboard-ops-empty{
+  display:flex;
+  min-height:180px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  color:var(--aura-text-muted);
+  text-align:center;
+}
+
+.dashboard-ops-empty strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+}
+
+.dashboard-ops-empty span{
+  margin-top:5px;
+  font-size:8px;
+}
+
+@media (max-width:980px){
+
+  .dashboard-ops-alerts{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .dashboard-ops-grid{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media (max-width:600px){
+
+  .dashboard-ops{
+    padding:16px !important;
+  }
+
+  .dashboard-ops-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .dashboard-ops-alerts{
+    grid-template-columns:1fr;
+  }
+
+  .dashboard-ops-actions{
+    grid-template-columns:1fr;
+  }
+
+  .dashboard-ops-activity{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .dashboard-ops-activity-meta{
+    grid-column:2;
+    align-items:flex-start;
+    flex-direction:row;
+    gap:7px;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -35359,6 +35865,11 @@ labels:
 
         inicializarGrafico();
 
+        renderizarCentralOperacional(
+            pedidos,
+            leads
+        );
+
     } catch (erro) {
 
         console.error(
@@ -35377,6 +35888,733 @@ labels:
         }
 
     }
+
+}
+
+/* =========================================================
+   CENTRAL OPERACIONAL DO DASHBOARD
+   Reutiliza pedidos e leads já carregados pelo cockpit.
+   ========================================================= */
+
+function renderizarCentralOperacional(
+    pedidos = [],
+    leads = []
+) {
+
+    const dashboard =
+        document.getElementById("view-dashboard");
+
+    if (!dashboard) return;
+
+    let painel =
+        document.getElementById(
+            "dashboard-central-operacional"
+        );
+
+    if (!painel) {
+
+        painel =
+            document.createElement("div");
+
+        painel.id =
+            "dashboard-central-operacional";
+
+        painel.className =
+            "glass-card dashboard-ops layout-block";
+
+        painel.dataset.blockId =
+            "central-operacional";
+
+        painel.dataset.blockNome =
+            "Central Operacional";
+
+        dashboard.appendChild(painel);
+
+    }
+
+    const escapar = valor =>
+        String(valor || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+
+    const obterTimestamp = objeto => {
+
+        const possibilidades = [
+            objeto?.data,
+            objeto?.criadoEm,
+            objeto?.atualizadoEm,
+            objeto?.timestamp
+        ];
+
+        for (const valor of possibilidades) {
+
+            if (!valor) continue;
+
+            if (typeof valor.toMillis === "function") {
+                return valor.toMillis();
+            }
+
+            if (
+                typeof valor.seconds === "number"
+            ) {
+                return valor.seconds * 1000;
+            }
+
+            if (typeof valor === "number") {
+
+                return valor < 100000000000
+                    ? valor * 1000
+                    : valor;
+
+            }
+
+            const dataConvertida =
+                new Date(valor).getTime();
+
+            if (!Number.isNaN(dataConvertida)) {
+                return dataConvertida;
+            }
+
+        }
+
+        return 0;
+
+    };
+
+    const formatarMoeda = valor =>
+        Number(valor || 0).toLocaleString(
+            "pt-BR",
+            {
+                style: "currency",
+                currency: "BRL"
+            }
+        );
+
+    const formatarTempo = timestamp => {
+
+        if (!timestamp) {
+            return "Data não informada";
+        }
+
+        const diferenca =
+            Date.now() - timestamp;
+
+        const minutos =
+            Math.floor(diferenca / 60000);
+
+        const horas =
+            Math.floor(minutos / 60);
+
+        const dias =
+            Math.floor(horas / 24);
+
+        if (minutos < 1) {
+            return "Agora";
+        }
+
+        if (minutos < 60) {
+            return `Há ${minutos} min`;
+        }
+
+        if (horas < 24) {
+            return `Há ${horas}h`;
+        }
+
+        if (dias < 7) {
+            return `Há ${dias} dia(s)`;
+        }
+
+        return new Date(timestamp)
+            .toLocaleDateString("pt-BR");
+
+    };
+
+    const inicioHoje =
+        new Date();
+
+    inicioHoje.setHours(0, 0, 0, 0);
+
+    const pedidosPendentes =
+        pedidos.filter(pedido =>
+            ["aguardando", "confirmado"].includes(
+                String(
+                    pedido.status || ""
+                ).toLowerCase()
+            )
+        );
+
+    const leadsNovos =
+        leads.filter(lead => {
+
+            const status =
+                String(
+                    lead.statusLead ||
+                    lead.status ||
+                    "novo"
+                ).toLowerCase();
+
+            return status === "novo";
+
+        });
+
+    const leadsSemWhatsApp =
+        leads.filter(lead => {
+
+            const numeros =
+                String(
+                    lead.whatsapp || ""
+                ).replace(/\D/g, "");
+
+            return numeros.length < 10;
+
+        });
+
+    const convertidosHoje =
+        leads.filter(lead => {
+
+            const status =
+                String(
+                    lead.statusLead ||
+                    lead.status ||
+                    ""
+                ).toLowerCase();
+
+            return (
+                status === "convertido" &&
+                obterTimestamp(lead) >=
+                    inicioHoje.getTime()
+            );
+
+        });
+
+    const atividades = [
+
+        ...pedidos.map(pedido => ({
+
+            tipo: "pedido",
+
+            titulo:
+                `Pedido de ${
+                    pedido.cliente ||
+                    "cliente não informado"
+                }`,
+
+            descricao:
+                `${
+                    pedido.produtos ||
+                    "Produtos não informados"
+                } · ${
+                    formatarMoeda(
+                        pedido.valor
+                    )
+                }`,
+
+            status:
+                pedido.status ||
+                "aguardando",
+
+            timestamp:
+                obterTimestamp(pedido),
+
+            destino:
+                "pedidos"
+
+        })),
+
+        ...leads.map(lead => ({
+
+            tipo: "lead",
+
+            titulo:
+                `${
+                    lead.nome ||
+                    "Novo lead"
+                }`,
+
+            descricao:
+                `${
+                    lead.origem ||
+                    lead.utm_source ||
+                    "Origem não informada"
+                } · ${
+                    lead.whatsapp ||
+                    "Sem WhatsApp"
+                }`,
+
+            status:
+                lead.statusLead ||
+                lead.status ||
+                "novo",
+
+            timestamp:
+                obterTimestamp(lead),
+
+            destino:
+                "leads"
+
+        }))
+
+    ]
+        .sort(
+            (a, b) =>
+                b.timestamp -
+                a.timestamp
+        )
+        .slice(0, 7);
+
+    const statusLabels = {
+
+        aguardando: "Aguardando",
+        confirmado: "Confirmado",
+        pago: "Pago",
+        cancelado: "Cancelado",
+        novo: "Novo",
+        contato: "Em contato",
+        convertido: "Convertido",
+        perdido: "Perdido"
+
+    };
+
+    const renderizarAtividades =
+        atividades.length
+            ? atividades.map(atividade => {
+
+                const status =
+                    String(
+                        atividade.status ||
+                        ""
+                    ).toLowerCase();
+
+                return `
+                    <button
+                        type="button"
+                        class="dashboard-ops-activity"
+                        data-dashboard-action="${atividade.destino}"
+                        data-type="${atividade.tipo}"
+                    >
+
+                        <span class="dashboard-ops-activity-dot"></span>
+
+                        <span class="dashboard-ops-activity-copy">
+
+                            <strong>
+                                ${escapar(
+                                    atividade.titulo
+                                )}
+                            </strong>
+
+                            <small>
+                                ${escapar(
+                                    atividade.descricao
+                                )}
+                            </small>
+
+                        </span>
+
+                        <span class="dashboard-ops-activity-meta">
+
+                            <b data-status="${status}">
+                                ${
+                                    statusLabels[status] ||
+                                    escapar(status)
+                                }
+                            </b>
+
+                            <small>
+                                ${
+                                    formatarTempo(
+                                        atividade.timestamp
+                                    )
+                                }
+                            </small>
+
+                        </span>
+
+                    </button>
+                `;
+
+            }).join("")
+            : `
+                <div class="dashboard-ops-empty">
+
+                    <strong>
+                        Nenhuma atividade registrada
+                    </strong>
+
+                    <span>
+                        Pedidos e leads recentes aparecerão aqui.
+                    </span>
+
+                </div>
+            `;
+
+    painel.innerHTML = `
+
+        <div class="dashboard-ops-header">
+
+            <div class="dashboard-ops-title">
+
+                <span class="dashboard-ops-title-icon">
+
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <path d="M4 19V9"></path>
+                        <path d="M10 19V5"></path>
+                        <path d="M16 19v-7"></path>
+                        <path d="M22 19H2"></path>
+
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Visão operacional
+                    </small>
+
+                    <h3>
+                        Central de decisões
+                    </h3>
+
+                    <p>
+                        Pendências, movimentações recentes e atalhos da sua loja.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <span class="dashboard-ops-live">
+
+                <i></i>
+
+                Dados sincronizados
+
+            </span>
+
+        </div>
+
+        <div class="dashboard-ops-alerts">
+
+            <button
+                type="button"
+                class="dashboard-ops-alert is-warning"
+                data-dashboard-action="pedidos"
+            >
+
+                <span>Pedidos pendentes</span>
+
+                <strong>
+                    ${pedidosPendentes.length}
+                </strong>
+
+                <small>
+                    Aguardando conclusão
+                </small>
+
+            </button>
+
+            <button
+                type="button"
+                class="dashboard-ops-alert is-primary"
+                data-dashboard-action="leads"
+            >
+
+                <span>Leads novos</span>
+
+                <strong>
+                    ${leadsNovos.length}
+                </strong>
+
+                <small>
+                    Ainda não atendidos
+                </small>
+
+            </button>
+
+            <button
+                type="button"
+                class="dashboard-ops-alert is-danger"
+                data-dashboard-action="leads"
+            >
+
+                <span>Sem WhatsApp</span>
+
+                <strong>
+                    ${leadsSemWhatsApp.length}
+                </strong>
+
+                <small>
+                    Contatos incompletos
+                </small>
+
+            </button>
+
+            <button
+                type="button"
+                class="dashboard-ops-alert is-success"
+                data-dashboard-action="leads"
+            >
+
+                <span>Conversões hoje</span>
+
+                <strong>
+                    ${convertidosHoje.length}
+                </strong>
+
+                <small>
+                    Leads convertidos
+                </small>
+
+            </button>
+
+        </div>
+
+        <div class="dashboard-ops-grid">
+
+            <div class="dashboard-ops-section">
+
+                <div class="dashboard-ops-section-header">
+
+                    <div>
+
+                        <small>
+                            Linha do tempo
+                        </small>
+
+                        <h4>
+                            Atividades recentes
+                        </h4>
+
+                    </div>
+
+                    <span>
+                        ${atividades.length} registro(s)
+                    </span>
+
+                </div>
+
+                <div class="dashboard-ops-activity-list">
+
+                    ${renderizarAtividades}
+
+                </div>
+
+            </div>
+
+            <div class="dashboard-ops-section">
+
+                <div class="dashboard-ops-section-header">
+
+                    <div>
+
+                        <small>
+                            Criação rápida
+                        </small>
+
+                        <h4>
+                            Ações frequentes
+                        </h4>
+
+                    </div>
+
+                </div>
+
+                <div class="dashboard-ops-actions">
+
+                    <button
+                        type="button"
+                        data-dashboard-action="novo-produto"
+                    >
+
+                        <span>+</span>
+
+                        <div>
+                            <strong>Novo produto</strong>
+                            <small>Cadastrar oferta</small>
+                        </div>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        data-dashboard-action="novo-pedido"
+                    >
+
+                        <span>+</span>
+
+                        <div>
+                            <strong>Novo pedido</strong>
+                            <small>Registrar venda</small>
+                        </div>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        data-dashboard-action="novo-template"
+                    >
+
+                        <span>+</span>
+
+                        <div>
+                            <strong>Novo template</strong>
+                            <small>Criar mensagem</small>
+                        </div>
+
+                    </button>
+
+                    <button
+                        type="button"
+                        data-dashboard-action="nova-lp"
+                    >
+
+                        <span>+</span>
+
+                        <div>
+                            <strong>Nova Landing Page</strong>
+                            <small>Criar página</small>
+                        </div>
+
+                    </button>
+
+                </div>
+
+                <div class="dashboard-ops-summary">
+
+                    <div>
+
+                        <span>Total de pedidos</span>
+
+                        <strong>
+                            ${pedidos.length}
+                        </strong>
+
+                    </div>
+
+                    <div>
+
+                        <span>Total de leads</span>
+
+                        <strong>
+                            ${leads.length}
+                        </strong>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+    `;
+
+    painel.onclick = evento => {
+
+        const botao =
+            evento.target.closest(
+                "[data-dashboard-action]"
+            );
+
+        if (!botao) return;
+
+        const acao =
+            botao.dataset.dashboardAction;
+
+        const abrirModulo = (
+            viewId,
+            acaoDepois
+        ) => {
+
+            if (
+                typeof window.ativarAba ===
+                "function"
+            ) {
+                window.ativarAba(viewId);
+            }
+
+            if (!acaoDepois) return;
+
+            setTimeout(() => {
+
+                const view =
+                    document.getElementById(
+                        viewId
+                    );
+
+                if (
+                    view &&
+                    !view.classList.contains(
+                        "active"
+                    )
+                ) {
+                    return;
+                }
+
+                acaoDepois();
+
+            }, 180);
+
+        };
+
+        const acoes = {
+
+            pedidos: () =>
+                abrirModulo(
+                    "view-pedidos"
+                ),
+
+            leads: () =>
+                abrirModulo(
+                    "view-leads"
+                ),
+
+            "novo-produto": () =>
+                abrirModulo(
+                    "view-produtos",
+                    () =>
+                        document
+                            .getElementById(
+                                "btn-abrir-criacao"
+                            )
+                            ?.click()
+                ),
+
+            "novo-pedido": () =>
+                abrirModulo(
+                    "view-pedidos",
+                    () =>
+                        window
+                            .abrirModalPedido?.()
+                ),
+
+            "novo-template": () =>
+                abrirModulo(
+                    "view-templates",
+                    () =>
+                        window
+                            .abrirModalTemplate?.()
+                ),
+
+            "nova-lp": () =>
+                abrirModulo(
+                    "view-landing-pages",
+                    () =>
+                        window
+                            .abrirModalLP?.()
+                )
+
+        };
+
+        acoes[acao]?.();
+
+    };
 
 }
 
