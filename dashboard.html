@@ -17243,8 +17243,110 @@ span{
 
         </section>
 
-        <section id="view-funcionarios" class="view-section space-y-6 max-w-5xl mx-auto">
+        <section id="view-funcionarios" class="view-section space-y-6 max-w-6xl mx-auto aura-team-view">
 
+            <div class="aura-team-header">
+                <div class="aura-team-header-copy">
+                    <span class="aura-team-kicker">Gestão de equipe</span>
+                    <h1>Funcionários</h1>
+                    <p>Crie acessos individuais e defina exatamente o que cada pessoa pode visualizar ou editar.</p>
+                </div>
+
+                <button onclick="abrirModalFuncionario()" class="aura-team-new-button">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M12 5v14"></path>
+                        <path d="M5 12h14"></path>
+                    </svg>
+                    Novo funcionário
+                </button>
+            </div>
+
+            <div class="aura-team-summary">
+
+                <div class="aura-team-summary-card">
+                    <span class="aura-team-summary-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="9" cy="7" r="4"></circle>
+                            <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
+                            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Total da equipe</small>
+                        <strong id="funcionario-total-count">—</strong>
+                        <span>Acessos cadastrados</span>
+                    </div>
+                </div>
+
+                <div class="aura-team-summary-card aura-team-summary-active">
+                    <span class="aura-team-summary-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="m8 12 2.5 2.5L16 9"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Ativos</small>
+                        <strong id="funcionario-active-count">—</strong>
+                        <span>Podem acessar o sistema</span>
+                    </div>
+                </div>
+
+                <div class="aura-team-summary-card aura-team-summary-inactive">
+                    <span class="aura-team-summary-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M9 12h6"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Inativos</small>
+                        <strong id="funcionario-inactive-count">—</strong>
+                        <span>Acessos temporariamente bloqueados</span>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="glass-card aura-team-panel">
+
+                <div class="aura-team-panel-header">
+
+                    <div class="aura-team-panel-title">
+                        <span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M4 6h16"></path>
+                                <path d="M4 12h16"></path>
+                                <path d="M4 18h10"></path>
+                            </svg>
+                        </span>
+
+                        <div>
+                            <small>Controle de acessos</small>
+                            <h3>Equipe cadastrada</h3>
+                        </div>
+                    </div>
+
+                    <span class="aura-team-panel-status">
+                        <i></i>
+                        Sincronizado
+                    </span>
+
+                </div>
+
+                <div id="lista-funcionarios" class="aura-team-list">
+                    <div class="aura-team-loading">
+                        Carregando equipe...
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
 
         <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto">
             <!-- Cabeçalho Principal -->
@@ -18723,6 +18825,174 @@ Adicionar Novo Bloco
     </div>
 
     <!-- MODAL DE FUNCIONÁRIO -->
+    <div id="funcionario-modal"
+         class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+         onclick="if(event.target === this) fecharModalFuncionario()">
+
+        <div class="glass-card aura-team-modal">
+
+            <button
+                type="button"
+                onclick="fecharModalFuncionario()"
+                class="aura-team-modal-close"
+                aria-label="Fechar"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m6 6 12 12"></path>
+                    <path d="M18 6 6 18"></path>
+                </svg>
+            </button>
+
+            <div class="aura-team-modal-header">
+
+                <span class="aura-team-modal-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="9" cy="7" r="4"></circle>
+                        <path d="M19 8v6"></path>
+                        <path d="M16 11h6"></path>
+                    </svg>
+                </span>
+
+                <div>
+                    <small>Gestão de acesso</small>
+                    <h3 id="funcionario-modal-titulo">Novo Funcionário</h3>
+                    <p>Defina os dados de acesso e as permissões desta pessoa.</p>
+                </div>
+
+            </div>
+
+            <input type="hidden" id="funcionario-uid-edicao">
+
+            <div class="aura-team-modal-grid">
+
+                <div class="aura-team-field">
+                    <label for="funcionario-nome">Nome</label>
+
+                    <input
+                        type="text"
+                        id="funcionario-nome"
+                        class="w-full glass-input"
+                        placeholder="Ex: João Carlos"
+                    >
+                </div>
+
+                <div class="aura-team-field">
+                    <label for="funcionario-email">E-mail</label>
+
+                    <input
+                        type="email"
+                        id="funcionario-email"
+                        class="w-full glass-input"
+                        placeholder="Ex: joao@empresa.com"
+                    >
+                </div>
+
+            </div>
+
+            <div id="funcionario-senha-box" class="aura-team-field">
+
+                <label for="funcionario-senha">
+                    Senha temporária
+                </label>
+
+                <div class="aura-team-password-row">
+
+                    <div class="aura-team-password-field">
+
+                        <input
+                            type="password"
+                            id="funcionario-senha"
+                            class="w-full glass-input"
+                            placeholder="Mínimo de 6 caracteres"
+                        >
+
+                        <button
+                            type="button"
+                            onclick="alternarVisibilidadeSenhaFuncionario(this)"
+                            class="aura-team-password-toggle"
+                            aria-label="Mostrar senha"
+                        >
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path>
+                                <circle cx="12" cy="12" r="2.5"></circle>
+                            </svg>
+                        </button>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        onclick="gerarSenhaAleatoria()"
+                        class="aura-team-generate-button"
+                    >
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M20 7h-4V3"></path>
+                            <path d="M4 17h4v4"></path>
+                            <path d="M5.5 9a7 7 0 0 1 11.8-3L20 7"></path>
+                            <path d="M18.5 15a7 7 0 0 1-11.8 3L4 17"></path>
+                        </svg>
+
+                        Gerar senha
+                    </button>
+
+                </div>
+
+                <p>
+                    Compartilhe a senha com o funcionário por um canal seguro.
+                </p>
+
+            </div>
+
+            <div class="aura-team-field">
+
+                <label for="funcionario-cargo">
+                    Cargo
+                </label>
+
+                <input
+                    type="text"
+                    id="funcionario-cargo"
+                    class="w-full glass-input"
+                    placeholder="Ex: Atendente, Vendedor..."
+                >
+
+            </div>
+
+            <div class="aura-team-permissions">
+
+                <div>
+                    <small>Permissões</small>
+                    <h4>Acesso aos módulos</h4>
+
+                    <p>
+                        “Ver” exibe a área. “Editar” permite criar e alterar informações.
+                    </p>
+                </div>
+
+                <div
+                    id="funcionario-permissoes-grid"
+                    class="aura-team-permissions-grid"
+                ></div>
+
+            </div>
+
+            <button
+                onclick="salvarFuncionario()"
+                class="aura-team-save-button"
+            >
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M5 4h12l2 2v14H5V4Z"></path>
+                    <path d="M8 4v6h8V4"></path>
+                    <path d="M9 20v-6h6v6"></path>
+                </svg>
+
+                Salvar funcionário
+            </button>
+
+        </div>
+
+    </div>
 
 <div id="confirm-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/85 backdrop-blur-md">
         <div class="bg-[#0c0c14] border border-white/10 w-full max-w-sm p-6 rounded-2xl space-y-5 shadow-2xl text-center">
