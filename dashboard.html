@@ -14521,6 +14521,467 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — LEADS CRM COMPLEMENT
+   ========================================================================= */
+
+#view-leads{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-leads-kpi-grid{
+  align-items:stretch;
+}
+
+.aura-leads-kpi-grid > .layout-block-controle{
+  grid-column:1 / -1;
+  width:100%;
+}
+
+.aura-leads-kpi{
+  position:relative;
+  min-height:177px;
+  padding:19px !important;
+  overflow:hidden !important;
+  border-radius:22px !important;
+}
+
+.aura-leads-kpi::after{
+  content:"";
+  position:absolute;
+  width:115px;
+  height:115px;
+  top:-78px;
+  right:-55px;
+  border-radius:50%;
+  background:
+    color-mix(in srgb,var(--aura-primary) 14%,transparent);
+  filter:blur(23px);
+  pointer-events:none;
+}
+
+.aura-leads-kpi-top{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.aura-leads-kpi-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:39px;
+  height:39px;
+  border-radius:13px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-leads-kpi-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-leads-kpi-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-leads-kpi > p{
+  position:relative;
+  z-index:2;
+  margin-top:19px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-leads-kpi > h2{
+  position:relative;
+  z-index:2;
+  margin-top:8px;
+  color:var(--aura-text) !important;
+  font-size:30px !important;
+  line-height:1;
+  font-weight:850 !important;
+  letter-spacing:-.045em;
+  background:none !important;
+  -webkit-text-fill-color:initial !important;
+}
+
+.aura-leads-kpi > small{
+  position:relative;
+  z-index:2;
+  display:block;
+  margin-top:9px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.45;
+}
+
+.aura-leads-kpi-whatsapp .aura-leads-kpi-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.19);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-leads-kpi-clicks .aura-leads-kpi-icon{
+  color:var(--aura-accent);
+  border-color:
+    color-mix(in srgb,var(--aura-accent) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+}
+
+.aura-leads-kpi-time .aura-leads-kpi-icon{
+  color:#FBBF24;
+  border-color:rgba(251,191,36,.19);
+  background:rgba(251,191,36,.08);
+}
+
+.aura-leads-sources,
+.aura-leads-table-panel{
+  padding:22px !important;
+  overflow:hidden !important;
+  border-radius:24px !important;
+}
+
+.aura-leads-sources:hover,
+.aura-leads-table-panel:hover{
+  transform:none !important;
+}
+
+.aura-leads-section-header{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding-bottom:17px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-leads-section-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.aura-leads-section-title > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:41px;
+  height:41px;
+  min-width:41px;
+  border-radius:13px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-leads-section-title svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-leads-section-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-leads-section-title small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.aura-leads-section-title h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:13px;
+  font-weight:800;
+}
+
+.aura-leads-section-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:27px;
+  padding:0 10px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-leads-section-badge-live{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-leads-section-badge-live i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-leads-source-grid{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:11px;
+  margin-top:18px;
+}
+
+.aura-leads-source-card{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  min-height:78px;
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:15px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 53%,transparent);
+  transition:
+    transform .23s var(--rd-ease),
+    border-color .23s var(--rd-ease);
+}
+
+.aura-leads-source-card:hover{
+  transform:translateY(-2px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 27%,transparent);
+}
+
+.aura-leads-source-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:35px;
+  height:35px;
+  border-radius:11px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;
+  font-weight:850;
+}
+
+.aura-leads-source-card > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-leads-source-card small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-leads-source-card strong{
+  margin-top:3px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.aura-leads-source-value{
+  color:var(--aura-text);
+  font-family:'Sora',sans-serif;
+  font-size:18px;
+  font-weight:850;
+}
+
+.aura-leads-source-google .aura-leads-source-icon{
+  color:#60A5FA;
+  border-color:rgba(96,165,250,.19);
+  background:rgba(96,165,250,.08);
+}
+
+.aura-leads-source-tiktok .aura-leads-source-icon{
+  color:#F472B6;
+  border-color:rgba(244,114,182,.19);
+  background:rgba(244,114,182,.08);
+}
+
+.aura-leads-source-instagram .aura-leads-source-icon{
+  color:#C084FC;
+  border-color:rgba(192,132,252,.19);
+  background:rgba(192,132,252,.08);
+}
+
+.aura-leads-table-scroll{
+  position:relative;
+  z-index:2;
+  margin-top:18px;
+  overflow-x:auto;
+  border:1px solid var(--aura-border);
+  border-radius:17px;
+}
+
+.aura-leads-table{
+  min-width:1220px;
+  width:100%;
+}
+
+.aura-leads-table thead th{
+  padding:13px 14px !important;
+  color:var(--aura-text-muted) !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 72%,transparent) !important;
+  font-size:8px !important;
+  font-weight:850 !important;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.aura-leads-table tbody td{
+  padding:14px !important;
+  color:var(--aura-text-secondary);
+  font-size:10px !important;
+  white-space:nowrap;
+}
+
+.aura-leads-table tbody tr{
+  background:
+    color-mix(in srgb,var(--aura-surface) 48%,transparent);
+}
+
+.aura-leads-table tbody tr:hover{
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,var(--aura-surface-soft));
+}
+
+.aura-leads-table tbody select{
+  min-height:32px;
+  padding:0 28px 0 9px !important;
+  border-radius:10px !important;
+  font-size:8px !important;
+}
+
+.aura-leads-table tbody input{
+  min-width:140px;
+  min-height:34px;
+  padding:0 9px !important;
+  border:1px solid var(--aura-border) !important;
+  border-radius:10px !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 60%,transparent) !important;
+  font-size:9px !important;
+}
+
+.aura-leads-empty-row{
+  height:180px;
+  color:var(--aura-text-muted) !important;
+  font-size:10px !important;
+  text-align:center;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-leads-kpi,
+.tema-claro .aura-leads-sources,
+.tema-claro .aura-leads-table-panel{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-leads-kpi-icon,
+.tema-claro .aura-leads-section-title > span,
+.tema-claro .aura-leads-source-icon{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-leads-kpi-whatsapp .aura-leads-kpi-icon,
+.tema-claro .aura-leads-section-badge-live{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-leads-source-card,
+.tema-claro .aura-leads-table tbody tr{
+  background:rgba(248,250,252,.74);
+}
+
+/* Responsividade */
+
+@media (max-width:900px){
+  .aura-leads-source-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+}
+
+@media (max-width:639px){
+  .aura-leads-kpi-grid{
+    grid-template-columns:1fr !important;
+  }
+
+  .aura-leads-sources,
+  .aura-leads-table-panel{
+    padding:17px !important;
+    border-radius:21px !important;
+  }
+
+  .aura-leads-section-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-leads-source-grid{
+    grid-template-columns:1fr;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -19795,69 +20256,313 @@ span{
         </div>
 
     </div>
-            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block" data-block-id="estatisticas-leads" data-block-nome="Estatísticas de Leads">
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Total de Leads</span>
-                    <h2 class="text-3xl font-black text-white mt-2" id="lead-total-count">0</h2>
+            <div
+                class="grid grid-cols-2 lg:grid-cols-4 gap-4 layout-block aura-leads-kpi-grid"
+                data-block-id="estatisticas-leads"
+                data-block-nome="Estatísticas de Leads"
+            >
+
+                <div class="glass-card aura-leads-kpi">
+
+                    <div class="aura-leads-kpi-top">
+
+                        <span class="aura-leads-kpi-icon">
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="9" cy="7" r="4"></circle>
+                                <path d="M19 8v6"></path>
+                                <path d="M16 11h6"></path>
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-leads-kpi-badge">
+                            Base
+                        </span>
+
+                    </div>
+
+                    <p>Total de leads</p>
+
+                    <h2 id="lead-total-count">
+                        0
+                    </h2>
+
+                    <small>
+                        Contatos encontrados no período
+                    </small>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Com WhatsApp</span>
-                    <h2 class="text-3xl font-black text-emerald-400 mt-2" id="lead-whatsapp-count">0</h2>
+
+                <div class="glass-card aura-leads-kpi aura-leads-kpi-whatsapp">
+
+                    <div class="aura-leads-kpi-top">
+
+                        <span class="aura-leads-kpi-icon">
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M5 4h3l2 5-2 1.5a14 14 0 0 0 5.5 5.5L15 14l5 2v3c0 1.1-.9 2-2 2C9.7 21 3 14.3 3 6c0-1.1.9-2 2-2Z"></path>
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-leads-kpi-badge">
+                            Contato
+                        </span>
+
+                    </div>
+
+                    <p>Com WhatsApp</p>
+
+                    <h2 id="lead-whatsapp-count">
+                        0
+                    </h2>
+
+                    <small>
+                        Leads disponíveis para atendimento
+                    </small>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Cliques Totais</span>
-                    <h2 class="text-3xl font-black text-[#00f2fe] mt-2" id="lead-clicks-count">0</h2>
+
+                <div class="glass-card aura-leads-kpi aura-leads-kpi-clicks">
+
+                    <div class="aura-leads-kpi-top">
+
+                        <span class="aura-leads-kpi-icon">
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="m5 3 14 8-6 2-2 6-6-16Z"></path>
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-leads-kpi-badge">
+                            Interesse
+                        </span>
+
+                    </div>
+
+                    <p>Cliques totais</p>
+
+                    <h2 id="lead-clicks-count">
+                        0
+                    </h2>
+
+                    <small>
+                        Interações realizadas pelos leads
+                    </small>
+
                 </div>
-                <div class="glass-card p-5 rounded-xl">
-                    <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider">Tempo Médio</span>
-                    <h2 class="text-3xl font-black text-amber-400 mt-2" id="lead-time-count">0s</h2>
+
+                <div class="glass-card aura-leads-kpi aura-leads-kpi-time">
+
+                    <div class="aura-leads-kpi-top">
+
+                        <span class="aura-leads-kpi-icon">
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M12 7v5l3 2"></path>
+                            </svg>
+
+                        </span>
+
+                        <span class="aura-leads-kpi-badge">
+                            Retenção
+                        </span>
+
+                    </div>
+
+                    <p>Tempo médio</p>
+
+                    <h2 id="lead-time-count">
+                        0s
+                    </h2>
+
+                    <small>
+                        Permanência média antes da captura
+                    </small>
+
                 </div>
+
             </div>
 
-            <div class="glass-card p-5 rounded-xl layout-block" data-block-id="origem-trafego" data-block-nome="Origem de Tráfego">
-                <span class="text-[10px] font-bold text-gray-400 block uppercase tracking-wider mb-4">Origem de Tráfego</span>
-                <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-400 border border-indigo-500/20 text-xs font-black">FB</div>
-                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Meta Ads</p><h4 class="text-lg font-black text-white" id="origem-meta-count">0</h4></div>
+            <div
+                class="glass-card layout-block aura-leads-sources"
+                data-block-id="origem-trafego"
+                data-block-nome="Origem de Tráfego"
+            >
+
+                <div class="aura-leads-section-header">
+
+                    <div class="aura-leads-section-title">
+
+                        <span>
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <circle cx="12" cy="12" r="9"></circle>
+                                <path d="M3 12h18"></path>
+                                <path d="M12 3a15 15 0 0 1 0 18"></path>
+                                <path d="M12 3a15 15 0 0 0 0 18"></path>
+                            </svg>
+
+                        </span>
+
+                        <div>
+                            <small>Aquisição de contatos</small>
+                            <h3>Origem de tráfego</h3>
+                        </div>
+
                     </div>
-                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20 text-xs font-black">GL</div>
-                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Google</p><h4 class="text-lg font-black text-white" id="origem-google-count">0</h4></div>
-                    </div>
-                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-pink-500/10 flex items-center justify-center text-pink-400 border border-pink-500/20 text-xs font-black">TK</div>
-                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">TikTok</p><h4 class="text-lg font-black text-white" id="origem-tiktok-count">0</h4></div>
-                    </div>
-                    <div class="flex items-center gap-3 bg-white/[0.02] p-3 rounded-xl border border-white/5">
-                        <div class="h-8 w-8 rounded-lg bg-purple-500/10 flex items-center justify-center text-purple-400 border border-purple-500/20 text-xs font-black">IG</div>
-                        <div><p class="text-[10px] text-gray-500 uppercase font-bold">Instagram</p><h4 class="text-lg font-black text-white" id="origem-insta-count">0</h4></div>
-                    </div>
+
+                    <span class="aura-leads-section-badge">
+                        Distribuição atual
+                    </span>
+
                 </div>
+
+                <div class="aura-leads-source-grid">
+
+                    <div class="aura-leads-source-card aura-leads-source-meta">
+
+                        <span class="aura-leads-source-icon">
+                            FB
+                        </span>
+
+                        <div>
+                            <small>Publicidade</small>
+                            <strong>Meta Ads</strong>
+                        </div>
+
+                        <span id="origem-meta-count" class="aura-leads-source-value">
+                            0
+                        </span>
+
+                    </div>
+
+                    <div class="aura-leads-source-card aura-leads-source-google">
+
+                        <span class="aura-leads-source-icon">
+                            GL
+                        </span>
+
+                        <div>
+                            <small>Pesquisa</small>
+                            <strong>Google</strong>
+                        </div>
+
+                        <span id="origem-google-count" class="aura-leads-source-value">
+                            0
+                        </span>
+
+                    </div>
+
+                    <div class="aura-leads-source-card aura-leads-source-tiktok">
+
+                        <span class="aura-leads-source-icon">
+                            TK
+                        </span>
+
+                        <div>
+                            <small>Conteúdo</small>
+                            <strong>TikTok</strong>
+                        </div>
+
+                        <span id="origem-tiktok-count" class="aura-leads-source-value">
+                            0
+                        </span>
+
+                    </div>
+
+                    <div class="aura-leads-source-card aura-leads-source-instagram">
+
+                        <span class="aura-leads-source-icon">
+                            IG
+                        </span>
+
+                        <div>
+                            <small>Rede social</small>
+                            <strong>Instagram</strong>
+                        </div>
+
+                        <span id="origem-insta-count" class="aura-leads-source-value">
+                            0
+                        </span>
+
+                    </div>
+
+                </div>
+
             </div>
 
-            <div class="glass-card rounded-xl overflow-hidden border border-white/5 layout-block" data-block-id="tabela-leads" data-block-nome="Tabela de Leads">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+            <div
+                class="glass-card layout-block aura-leads-table-panel"
+                data-block-id="tabela-leads"
+                data-block-nome="Tabela de Leads"
+            >
+
+                <div class="aura-leads-section-header">
+
+                    <div class="aura-leads-section-title">
+
+                        <span>
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M4 6h16"></path>
+                                <path d="M4 12h16"></path>
+                                <path d="M4 18h10"></path>
+                            </svg>
+
+                        </span>
+
+                        <div>
+                            <small>Gestão de oportunidades</small>
+                            <h3>Leads capturados</h3>
+                        </div>
+
+                    </div>
+
+                    <span class="aura-leads-section-badge aura-leads-section-badge-live">
+                        <i></i>
+                        Sincronizado
+                    </span>
+
+                </div>
+
+                <div class="aura-leads-table-scroll">
+
+                    <table class="aura-leads-table">
+
                         <thead>
-                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                <th class="p-4">👤 Nome</th>
-                                <th class="p-4">✉️ E-mail</th>
-                                <th class="p-4">🟢 WhatsApp</th>
-                                <th class="p-4">📍 Origem</th>
-                                <th class="p-4 text-center">📊 Cliques</th>
-                                <th class="p-4 text-center">⏱️ Tempo</th>
-                                <th class="p-4">🎯 Interesse</th>
-                                <th class="p-4">🏷️ Status</th>
-                                <th class="p-4">📅 Data</th>
-                                <th class="p-4">📝 Anotação</th>
+                            <tr>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>WhatsApp</th>
+                                <th>Origem</th>
+                                <th class="text-center">Cliques</th>
+                                <th class="text-center">Tempo</th>
+                                <th>Interesse</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                                <th>Anotação</th>
                             </tr>
                         </thead>
-                        <tbody id="leads-table-body" class="text-xs divide-y divide-white/5">
-                            <tr><td colspan="10" class="text-center p-12 text-gray-500">Nenhum lead ainda.</td></tr>
+
+                        <tbody id="leads-table-body">
+
+                            <tr>
+                                <td colspan="10">
+                                    Nenhum lead ainda.
+                                </td>
+                            </tr>
+
                         </tbody>
+
                     </table>
+
                 </div>
+
             </div>
         </section>
 
@@ -25191,7 +25896,13 @@ throw errBanners;
                 if (elInsta) elInsta.innerText = countOrigem.instagram;
 
                 if (totalLeads === 0) {
-                    tableBody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500 text-xs">Nenhum lead encontrado com os filtros selecionados.</td></tr>`;
+                    tableBody.innerHTML = `
+    <tr>
+        <td colspan="10" class="aura-leads-empty-row">
+            Nenhum lead encontrado com os filtros selecionados.
+        </td>
+    </tr>
+`;
                     return;
                 }
 
