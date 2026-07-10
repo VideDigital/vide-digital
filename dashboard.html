@@ -16612,6 +16612,632 @@ span{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — LANDING PAGE VISUAL BUILDER
+   ========================================================================= */
+
+#lp-editor-modal{
+  --lped-background:#080A10;
+  --lped-surface:#11141D;
+  --lped-surface-soft:#171A24;
+  --lped-border:rgba(255,255,255,.085);
+  --lped-border-strong:rgba(255,255,255,.15);
+  --lped-text:#F8FAFC;
+  --lped-muted:#8B93A7;
+
+  color:var(--lped-text);
+  background:
+    radial-gradient(
+      850px 480px at 88% -12%,
+      color-mix(in srgb,var(--aura-primary) 20%,transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      720px 480px at -10% 110%,
+      color-mix(in srgb,var(--aura-accent) 11%,transparent),
+      transparent 72%
+    ),
+    var(--lped-background) !important;
+  font-family:'Inter',sans-serif;
+}
+
+/* Barra superior */
+
+.aura-lped-topbar{
+  position:relative;
+  z-index:30;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:12px;
+  min-height:76px;
+  padding:11px 18px;
+  border-bottom:1px solid var(--lped-border);
+  background:
+    linear-gradient(
+      135deg,
+      rgba(13,16,25,.96),
+      rgba(19,22,33,.94)
+    );
+  backdrop-filter:blur(24px) saturate(145%);
+  box-shadow:
+    0 18px 50px -35px rgba(0,0,0,.9),
+    inset 0 -1px 0 rgba(255,255,255,.025);
+}
+
+.aura-lped-topbar::after{
+  content:"";
+  position:absolute;
+  left:0;
+  right:0;
+  bottom:-1px;
+  height:1px;
+  pointer-events:none;
+  background:
+    linear-gradient(
+      90deg,
+      transparent,
+      color-mix(in srgb,var(--aura-primary) 45%,transparent),
+      color-mix(in srgb,var(--aura-accent) 38%,transparent),
+      transparent
+    );
+}
+
+.aura-lped-topbar > div{
+  min-height:43px;
+}
+
+.aura-lped-topbar > div:first-child{
+  flex:1 1 260px;
+  min-width:220px;
+}
+
+.aura-lped-topbar > div:not(:first-child){
+  border:1px solid var(--lped-border);
+  border-radius:14px;
+  background:rgba(255,255,255,.035);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.035);
+}
+
+.aura-lped-topbar > div:nth-last-child(2){
+  padding:4px;
+}
+
+.aura-lped-topbar > div:last-child{
+  padding:4px;
+  background:transparent;
+  border-color:transparent;
+  box-shadow:none;
+}
+
+.aura-lped-topbar > div:first-child > button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  min-width:38px;
+  border:1px solid var(--lped-border);
+  border-radius:12px;
+  color:var(--lped-muted);
+  background:rgba(255,255,255,.035);
+  font-size:0;
+}
+
+.aura-lped-topbar > div:first-child > button::before{
+  content:"";
+  width:15px;
+  height:15px;
+  border-left:2px solid currentColor;
+  border-bottom:2px solid currentColor;
+  transform:rotate(45deg) translate(2px,-2px);
+}
+
+.aura-lped-topbar > div:first-child > button:hover{
+  color:var(--lped-text);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 35%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 9%,transparent);
+}
+
+#lped-titulo{
+  min-width:150px;
+  min-height:42px;
+  padding:0 13px !important;
+  border:1px solid transparent !important;
+  border-radius:12px !important;
+  color:var(--lped-text) !important;
+  background:transparent !important;
+  font-family:'Sora',sans-serif;
+  font-size:15px !important;
+  line-height:1.2;
+  font-weight:800 !important;
+  letter-spacing:-.025em;
+}
+
+#lped-titulo:hover{
+  border-color:var(--lped-border) !important;
+  background:rgba(255,255,255,.025) !important;
+}
+
+#lped-titulo:focus{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 45%,transparent) !important;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent) !important;
+  box-shadow:
+    0 0 0 3px
+    color-mix(in srgb,var(--aura-primary) 12%,transparent) !important;
+}
+
+/* Dispositivos, layout e histórico */
+
+#lped-btn-desktop,
+#lped-btn-mobile,
+#lped-btn-desfazer,
+#lped-btn-refazer,
+#lped-btn-camadas{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:35px;
+  height:35px;
+  min-width:35px;
+  padding:0 !important;
+  border:1px solid transparent;
+  border-radius:10px !important;
+  color:var(--lped-muted);
+  background:transparent;
+}
+
+#lped-btn-desktop:hover,
+#lped-btn-mobile:hover,
+#lped-btn-desfazer:hover,
+#lped-btn-refazer:hover,
+#lped-btn-camadas:hover{
+  color:var(--lped-text);
+  border-color:var(--lped-border);
+  background:rgba(255,255,255,.055);
+}
+
+#lped-btn-desktop.bg-\[\#FF7A45\],
+#lped-btn-mobile.bg-\[\#FF7A45\]{
+  color:#fff !important;
+  border-color:
+    color-mix(in srgb,var(--aura-accent) 35%,transparent) !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-accent),
+      var(--aura-primary)
+    ) !important;
+}
+
+#lped-btn-modo-empilhado,
+#lped-btn-modo-livre{
+  min-height:34px;
+  padding:0 12px !important;
+  border:1px solid transparent;
+  border-radius:10px !important;
+  color:var(--lped-muted);
+  font-size:9px !important;
+  font-weight:800 !important;
+}
+
+#lped-btn-modo-empilhado.bg-\[\#FF7A45\],
+#lped-btn-modo-livre.bg-\[\#FF7A45\]{
+  color:#fff !important;
+  border-color:
+    color-mix(in srgb,var(--aura-accent) 35%,transparent) !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-accent),
+      var(--aura-primary)
+    ) !important;
+}
+
+/* Status e ações */
+
+#lped-status-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:31px;
+  padding:0 10px !important;
+  border-radius:999px;
+  color:#FBBF24;
+  border:1px solid rgba(251,191,36,.2);
+  background:rgba(251,191,36,.075);
+  font-size:8px !important;
+  font-weight:850;
+  letter-spacing:.07em;
+}
+
+#lped-status-badge::before{
+  content:"";
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:currentColor;
+  box-shadow:0 0 9px currentColor;
+}
+
+.aura-lped-topbar button[onclick="abrirPreviewEditorLP()"],
+.aura-lped-topbar button[onclick="salvarEditorLP()"]{
+  min-height:38px;
+  padding:0 14px !important;
+  border:1px solid var(--lped-border) !important;
+  border-radius:11px !important;
+  color:var(--lped-text) !important;
+  background:rgba(255,255,255,.045) !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+}
+
+.aura-lped-topbar button[onclick="salvarEditorLP()"]{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 26%,transparent) !important;
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent) !important;
+}
+
+#lped-btn-publicar{
+  min-height:38px;
+  padding:0 17px !important;
+  border:0 !important;
+  border-radius:11px !important;
+  color:#fff !important;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    ) !important;
+  box-shadow:
+    0 15px 30px -20px
+    color-mix(in srgb,var(--aura-primary) 90%,transparent) !important;
+  font-size:9px !important;
+  font-weight:850 !important;
+}
+
+/* Painel lateral */
+
+.aura-lped-sidebar{
+  position:relative;
+  width:430px;
+  border-right:1px solid var(--lped-border);
+  background:
+    radial-gradient(
+      420px 230px at 15% 0%,
+      color-mix(in srgb,var(--aura-primary) 13%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      180deg,
+      #10131C,
+      #090B11
+    );
+  box-shadow:
+    22px 0 55px -42px rgba(0,0,0,.95);
+  scrollbar-width:thin;
+  scrollbar-color:rgba(255,255,255,.12) transparent;
+}
+
+.aura-lped-sidebar-header{
+  border-bottom:1px solid var(--lped-border);
+  background:
+    linear-gradient(
+      180deg,
+      rgba(17,20,30,.97),
+      rgba(13,16,24,.94)
+    );
+  backdrop-filter:blur(22px);
+  box-shadow:0 16px 35px -32px rgba(0,0,0,.9);
+}
+
+.aura-lped-sidebar-header h3{
+  color:var(--lped-text) !important;
+  font-size:16px !important;
+  font-weight:800 !important;
+  letter-spacing:-.03em;
+}
+
+.aura-lped-sidebar-header h3 + p{
+  color:var(--lped-muted) !important;
+  font-size:10px !important;
+}
+
+.aura-lped-sidebar-header > div:first-child > button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 25%,transparent);
+  border-radius:12px;
+  color:var(--aura-primary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lped-sidebar label{
+  color:
+    color-mix(in srgb,var(--aura-primary) 82%,white 18%) !important;
+  font-size:8px !important;
+  font-weight:850 !important;
+  letter-spacing:.14em !important;
+}
+
+#lped-slug{
+  min-height:45px;
+  margin-top:8px !important;
+  padding:0 13px !important;
+  border-radius:13px !important;
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px !important;
+}
+
+#lped-barra-paginas{
+  gap:7px !important;
+}
+
+#lped-barra-paginas button{
+  min-height:32px;
+  padding:0 11px !important;
+  border-radius:10px !important;
+  font-size:9px !important;
+  font-weight:800 !important;
+}
+
+/* Cards de componentes */
+
+#lped-blocos-lista{
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+}
+
+#lped-blocos-lista > .glass-card{
+  margin:0 !important;
+  padding:13px !important;
+  border:1px solid var(--lped-border) !important;
+  border-left-width:3px !important;
+  border-radius:15px !important;
+  background:
+    linear-gradient(
+      145deg,
+      rgba(255,255,255,.045),
+      rgba(255,255,255,.018)
+    ) !important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.025);
+}
+
+#lped-blocos-lista > .glass-card:hover{
+  transform:translateY(-1px) !important;
+  border-color:var(--lped-border-strong) !important;
+}
+
+#lped-blocos-lista input:not([type="checkbox"]):not([type="radio"]),
+#lped-blocos-lista textarea,
+#lped-blocos-lista select{
+  min-height:40px;
+  padding:9px 11px !important;
+  border-radius:11px !important;
+  font-size:10px !important;
+}
+
+#lped-blocos-lista textarea{
+  min-height:86px;
+}
+
+.aura-lped-add-block{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:9px;
+  min-height:58px;
+  padding:0 16px;
+  border:1px dashed
+    color-mix(in srgb,var(--aura-primary) 42%,transparent);
+  border-radius:16px;
+  color:
+    color-mix(in srgb,var(--aura-primary) 78%,white 22%);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb,var(--aura-primary) 9%,transparent),
+      color-mix(in srgb,var(--aura-accent) 5%,transparent)
+    );
+  font-size:10px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+}
+
+.aura-lped-add-block:hover{
+  transform:translateY(-2px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 65%,transparent);
+  background:
+    linear-gradient(
+      135deg,
+      color-mix(in srgb,var(--aura-primary) 15%,transparent),
+      color-mix(in srgb,var(--aura-accent) 9%,transparent)
+    );
+}
+
+/* Botão de recolher painel */
+
+#lped-btn-colapsar-painel{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:33px;
+  height:33px;
+  padding:0 !important;
+  border:1px solid var(--lped-border-strong) !important;
+  border-radius:11px !important;
+  color:var(--lped-muted);
+  background:rgba(17,20,29,.96) !important;
+  box-shadow:0 12px 28px -16px rgba(0,0,0,.9) !important;
+}
+
+#lped-btn-colapsar-painel:hover{
+  color:var(--lped-text);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 40%,transparent) !important;
+  background:
+    color-mix(in srgb,var(--aura-primary) 11%,#11141D) !important;
+}
+
+/* Área de preview */
+
+.aura-lped-stage{
+  background:
+    radial-gradient(
+      780px 480px at 15% 0%,
+      color-mix(in srgb,var(--aura-primary) 15%,transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      650px 450px at 100% 100%,
+      color-mix(in srgb,var(--aura-accent) 8%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      #070910,
+      #0C101A
+    ) !important;
+}
+
+.aura-lped-browser{
+  border:1px solid var(--lped-border-strong) !important;
+  border-radius:24px !important;
+  background:#111521 !important;
+  box-shadow:
+    0 45px 110px -45px rgba(0,0,0,.95),
+    0 0 0 1px rgba(255,255,255,.025),
+    inset 0 1px 0 rgba(255,255,255,.035) !important;
+}
+
+.aura-lped-browser-toolbar{
+  border-bottom:1px solid var(--lped-border);
+  background:
+    linear-gradient(
+      90deg,
+      rgba(13,16,24,.98),
+      rgba(22,26,39,.96),
+      rgba(13,16,24,.98)
+    );
+  backdrop-filter:blur(18px);
+}
+
+#lped-url-preview{
+  min-height:35px;
+  display:flex;
+  align-items:center;
+  padding:0 13px !important;
+  border:1px solid var(--lped-border) !important;
+  border-radius:10px !important;
+  color:var(--lped-muted) !important;
+  background:rgba(255,255,255,.035) !important;
+  font-family:'JetBrains Mono',monospace;
+  font-size:9px !important;
+}
+
+#lped-preview-canvas{
+  background:#101321;
+}
+
+/* Painel de camadas */
+
+#lped-painel-camadas{
+  border-color:var(--lped-border) !important;
+  background:
+    linear-gradient(
+      155deg,
+      rgba(20,23,34,.98),
+      rgba(10,12,19,.98)
+    ) !important;
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.95) !important;
+}
+
+/* Painel para escolher blocos */
+
+#lp-blocos-panel > .relative{
+  border-left:1px solid var(--lped-border) !important;
+  background:
+    linear-gradient(
+      180deg,
+      #121521,
+      #0A0C13
+    ) !important;
+  box-shadow:-25px 0 65px -35px rgba(0,0,0,.95);
+}
+
+#lp-blocos-grid button{
+  border-color:var(--lped-border) !important;
+  border-radius:14px !important;
+  background:rgba(255,255,255,.035) !important;
+}
+
+#lp-blocos-grid button:hover{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 38%,transparent) !important;
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent) !important;
+  transform:translateY(-2px);
+}
+
+/* Responsividade */
+
+@media (max-width:1250px){
+  .aura-lped-topbar{
+    justify-content:flex-start;
+  }
+
+  .aura-lped-topbar > div:first-child{
+    flex-basis:100%;
+  }
+
+  .aura-lped-topbar > div:last-child{
+    margin-left:auto;
+  }
+
+  .aura-lped-stage{
+    padding:24px !important;
+  }
+}
+
+@media (max-width:900px){
+  .aura-lped-topbar{
+    max-height:170px;
+    overflow-x:auto;
+    padding:10px;
+  }
+
+  .aura-lped-topbar > div:first-child{
+    flex-basis:100%;
+  }
+
+  .aura-lped-sidebar{
+    width:350px;
+  }
+
+  .aura-lped-stage{
+    padding:17px !important;
+  }
+
+  .aura-lped-browser{
+    border-radius:18px !important;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -23521,7 +24147,7 @@ span{
                 </div>
             </div>
         </div>
-        <div class="shrink-0 bg-gradient-to-r from-[#0D0E17] via-[#121523] to-[#0B0D15] backdrop-blur-2xl border-b border-white/10 px-8 py-4 flex items-center justify-between gap-6 shadow-[0_25px_80px_rgba(0,0,0,.45)]">
+        <div class="shrink-0 aura-lped-topbar">
             <div class="flex items-center gap-5 flex-1 min-w-0">
                 <button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">&larr;</button>
                 <input type="text" id="lped-titulo" class="bg-transparent text-white font-black text-xl tracking-tight outline-none border-b-2 border-transparent focus:border-violet-500 transition-all duration-300 py-2 flex-1">
@@ -23557,9 +24183,9 @@ span{
             </div>
         </div>
         <div class="flex-1 flex overflow-hidden relative">
-<div id="lped-painel-lateral" class="w-[430px] shrink-0 bg-gradient-to-b from-[#090B12] via-[#111320] to-[#090B12] border-r border-white/10 overflow-y-auto transition-all duration-300 shadow-[25px_0_80px_rgba(0,0,0,.45)]">
+<div id="lped-painel-lateral" class="w-[430px] shrink-0 overflow-y-auto transition-all duration-300 aura-lped-sidebar">
 
-<div class="sticky top-0 z-20 bg-[#0F1220]/90 backdrop-blur-xl border-b border-white/10 px-6 py-5">
+<div class="sticky top-0 z-20 px-6 py-5 aura-lped-sidebar-header">
 
 <div class="flex items-center justify-between">
 
@@ -23607,7 +24233,7 @@ span{
 
 <div id="lped-blocos-lista" class="space-y-4"></div>
 
-<button onclick="abrirPainelBlocos()" class="mt-6 w-full bg-gradient-to-r from-violet-600/15 to-indigo-600/15 hover:from-violet-600/25 hover:to-indigo-600/25 border border-dashed border-violet-500/40 rounded-2xl py-5 flex items-center justify-center gap-3 text-sm font-black text-violet-200 transition-all duration-300 hover:scale-[1.02]">
+<button onclick="abrirPainelBlocos()" class="mt-6 w-full aura-lped-add-block">
 
 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
 
@@ -23625,11 +24251,11 @@ Adicionar Novo Bloco
             <button onclick="alternarPainelLateral()" id="lped-btn-colapsar-painel" title="Ocultar/mostrar blocos" class="absolute top-1/2 -translate-y-1/2 z-10 bg-[#171A28] border border-white/10 rounded-full p-2.5 hover:bg-violet-500/20 transition-all duration-300 shadow-xl" style="left:412px;">
                 <svg id="lped-icone-colapsar" class="w-3.5 h-3.5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
             </button>
-            <div class="relative flex-1 overflow-y-auto bg-gradient-to-br from-[#06070C] via-[#0B0D17] to-[#090A12] p-10 flex flex-col items-center overflow-hidden">
+            <div class="relative flex-1 overflow-y-auto p-10 flex flex-col items-center overflow-hidden aura-lped-stage">
                 <div class="absolute inset-0 opacity-[0.045] pointer-events-none" style="background-image:linear-gradient(rgba(255,255,255,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.08) 1px,transparent 1px);background-size:32px 32px;"></div>
 <div class="absolute inset-0 pointer-events-none bg-[radial-gradient(circle_at_top_left,rgba(91,61,245,.22),transparent_35%),radial-gradient(circle_at_bottom_right,rgba(59,130,246,.18),transparent_35%)]"></div>
-                <div id="lped-browser-frame" class="w-full max-w-[1450px] bg-[#111320] rounded-[30px] overflow-hidden border border-white/10 shadow-[0_50px_140px_rgba(0,0,0,.55)] backdrop-blur-xl transition-all duration-300">
-                    <div class="bg-gradient-to-r from-[#0E1018] via-[#16192A] to-[#0E1018] px-6 py-3 flex items-center gap-4 border-b border-white/10 backdrop-blur-xl">
+                <div id="lped-browser-frame" class="w-full max-w-[1450px] overflow-hidden backdrop-blur-xl transition-all duration-300 aura-lped-browser">
+                    <div class="px-6 py-3 flex items-center gap-4 aura-lped-browser-toolbar">
                         <div class="flex gap-2 shrink-0">
                             <span class="w-3 h-3 rounded-full bg-[#FF5F57] shadow-[0_0_10px_rgba(255,95,87,.5)]"></span>
                             <span class="w-3 h-3 rounded-full bg-[#FEBC2E] shadow-[0_0_10px_rgba(254,188,46,.5)]"></span>
