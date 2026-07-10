@@ -20930,6 +20930,429 @@ body.aura-command-open{
 
 }
 
+/* =========================================================
+   DASHBOARD — CENTRAL DE IMPLANTAÇÃO
+   ========================================================= */
+
+.dashboard-launch{
+  padding:22px !important;
+  overflow:hidden !important;
+  border-radius:26px !important;
+}
+
+.dashboard-launch:hover{
+  transform:none !important;
+}
+
+.dashboard-launch-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.dashboard-launch-heading{
+  display:flex;
+  align-items:center;
+  gap:13px;
+}
+
+.dashboard-launch-heading-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:46px;
+  height:46px;
+  min-width:46px;
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 26%,
+      transparent
+    );
+  border-radius:15px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.dashboard-launch-heading-icon svg{
+  width:20px;
+  height:20px;
+  stroke-width:1.8;
+}
+
+.dashboard-launch-heading small,
+.dashboard-launch-summary small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.dashboard-launch-heading h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:850;
+}
+
+.dashboard-launch-heading p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.dashboard-launch-score{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:82px;
+  height:82px;
+  min-width:82px;
+  border-radius:50%;
+  background:
+    conic-gradient(
+      var(--aura-primary)
+      var(--launch-progress),
+      rgba(255,255,255,.06)
+      0
+    );
+}
+
+.dashboard-launch-score::before{
+  content:"";
+  position:absolute;
+}
+
+.dashboard-launch-score > div{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:66px;
+  height:66px;
+  flex-direction:column;
+  border-radius:50%;
+  background:var(--aura-background);
+}
+
+.dashboard-launch-score strong{
+  color:var(--aura-text);
+  font-size:18px;
+  font-weight:850;
+}
+
+.dashboard-launch-score span{
+  margin-top:2px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  text-transform:uppercase;
+}
+
+.dashboard-launch-summary{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) minmax(220px,.55fr);
+  align-items:center;
+  gap:20px;
+  margin-top:17px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.dashboard-launch-summary > div:first-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.dashboard-launch-summary strong{
+  margin-top:5px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+}
+
+.dashboard-launch-summary > div:first-child > span{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.dashboard-launch-progress{
+  height:8px;
+  overflow:hidden;
+  border-radius:999px;
+  background:rgba(255,255,255,.055);
+}
+
+.dashboard-launch-progress span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:
+    linear-gradient(
+      90deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  transition:width .4s ease;
+}
+
+.dashboard-launch-tasks{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:13px;
+}
+
+.dashboard-launch-task{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:11px;
+  min-height:72px;
+  padding:11px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 48%,
+      transparent
+    );
+  text-align:left;
+}
+
+.dashboard-launch-task:hover{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 30%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 6%,
+      transparent
+    );
+}
+
+.dashboard-launch-task.is-complete{
+  border-color:rgba(52,211,153,.15);
+}
+
+.dashboard-launch-task-status{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:35px;
+  height:35px;
+  min-width:35px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;
+  font-weight:850;
+}
+
+.dashboard-launch-task.is-complete
+.dashboard-launch-task-status{
+  color:#34D399;
+  border-color:rgba(52,211,153,.2);
+  background:rgba(52,211,153,.08);
+}
+
+.dashboard-launch-task-status svg{
+  width:16px;
+  height:16px;
+  stroke-width:2.2;
+}
+
+.dashboard-launch-task-copy{
+  display:flex;
+  min-width:0;
+  flex-direction:column;
+}
+
+.dashboard-launch-task-copy strong{
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+}
+
+.dashboard-launch-task-copy small{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  line-height:1.4;
+}
+
+.dashboard-launch-task-action{
+  color:var(--aura-primary);
+  font-size:7px;
+  font-weight:800;
+  text-align:right;
+}
+
+.dashboard-launch-task.is-complete
+.dashboard-launch-task-action{
+  color:#34D399;
+}
+
+.dashboard-launch-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:18px;
+  margin-top:13px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.dashboard-launch-footer > div:first-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.dashboard-launch-footer strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+}
+
+.dashboard-launch-footer span{
+  margin-top:4px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.dashboard-launch-buttons{
+  display:flex;
+  gap:8px;
+}
+
+.dashboard-launch-secondary,
+.dashboard-launch-primary{
+  min-height:39px;
+  padding:0 13px;
+  border-radius:11px;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.dashboard-launch-secondary{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 62%,
+      transparent
+    );
+}
+
+.dashboard-launch-secondary:disabled{
+  opacity:.35;
+  cursor:not-allowed;
+}
+
+.dashboard-launch-primary{
+  color:#fff;
+  border:0;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.tema-claro .dashboard-launch-score > div{
+  background:#fff;
+}
+
+@media (max-width:800px){
+
+  .dashboard-launch-summary{
+    grid-template-columns:1fr;
+  }
+
+  .dashboard-launch-tasks{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media (max-width:600px){
+
+  .dashboard-launch{
+    padding:16px !important;
+  }
+
+  .dashboard-launch-header,
+  .dashboard-launch-footer{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .dashboard-launch-score{
+    width:72px;
+    height:72px;
+  }
+
+  .dashboard-launch-score > div{
+    width:57px;
+    height:57px;
+  }
+
+  .dashboard-launch-buttons{
+    width:100%;
+  }
+
+  .dashboard-launch-secondary,
+  .dashboard-launch-primary{
+    flex:1;
+  }
+
+  .dashboard-launch-task{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .dashboard-launch-task-action{
+    grid-column:2;
+    text-align:left;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -35639,12 +36062,18 @@ carregarProdutos();
                     }
                 });
 
-                document
-                    .getElementById("contador-produtos")
-                    .innerText = verRascunhos
-                        ? `${produtosFiltrados.length} Rascunho(s)`
-                        : `${produtosFiltrados.length} Ativo(s)`;
+document
+    .getElementById("contador-produtos")
+    .innerText = verRascunhos
+        ? `${produtosFiltrados.length} Rascunho(s)`
+        : `${produtosFiltrados.length} Ativo(s)`;
 
+if (
+    typeof renderizarCentralImplantacao ===
+    "function"
+) {
+    renderizarCentralImplantacao();
+}
                 if (produtosFiltrados.length === 0) {
                     const tituloVazio = verRascunhos
                         ? "Nenhum rascunho encontrado"
@@ -37094,10 +37523,12 @@ labels:
 
         inicializarGrafico();
 
-        renderizarCentralOperacional(
-            pedidos,
-            leads
-        );
+renderizarCentralOperacional(
+    pedidos,
+    leads
+);
+
+renderizarCentralImplantacao();
 
     } catch (erro) {
 
@@ -37858,6 +38289,665 @@ function renderizarCentralOperacional(
     }
 
 }
+
+/* =========================================================
+   CENTRAL DE IMPLANTAÇÃO DA LOJA
+   Não realiza novas consultas ao Firebase.
+   ========================================================= */
+
+function renderizarCentralImplantacao() {
+
+    const dashboard =
+        document.getElementById("view-dashboard");
+
+    if (!dashboard) return;
+
+    let painel =
+        document.getElementById(
+            "dashboard-launch-center"
+        );
+
+    if (!painel) {
+
+        painel =
+            document.createElement("div");
+
+        painel.id =
+            "dashboard-launch-center";
+
+        painel.className =
+            "glass-card dashboard-launch layout-block";
+
+        painel.dataset.blockId =
+            "central-implantacao";
+
+        painel.dataset.blockNome =
+            "Central de Implantação";
+
+        const centralOperacional =
+            document.getElementById(
+                "dashboard-central-operacional"
+            );
+
+        if (centralOperacional) {
+
+            centralOperacional
+                .insertAdjacentElement(
+                    "afterend",
+                    painel
+                );
+
+        } else {
+
+            dashboard.appendChild(painel);
+
+        }
+
+    }
+
+    const obterValor = id =>
+        String(
+            document.getElementById(id)?.value ||
+            ""
+        ).trim();
+
+    const estaAtivo = id =>
+        Boolean(
+            document.getElementById(id)?.checked
+        );
+
+    const temWhatsApp = valor =>
+        String(valor || "")
+            .replace(/\D/g, "")
+            .length >= 10;
+
+    const nomeLoja =
+        obterValor("perf-nome-loja");
+
+    const slug =
+        obterValor("perf-slug") ||
+        slugAtualSalvo ||
+        "";
+
+    const titulo =
+        obterValor("perf-titulo");
+
+    const subtitulo =
+        obterValor("perf-subtitulo");
+
+    const whatsappCentral =
+        obterValor(
+            "perf-social-whatsapp-central"
+        );
+
+    const whatsappChat =
+        obterValor(
+            "perf-social-whatsapp-chat"
+        );
+
+    const instagram =
+        obterValor(
+            "perf-social-instagram"
+        );
+
+    const tiktok =
+        obterValor(
+            "perf-social-tiktok"
+        );
+
+    const youtube =
+        obterValor(
+            "perf-social-youtube"
+        );
+
+    const corPrincipal =
+        obterValor(
+            "perf-cor-destaque"
+        );
+
+    const fonte =
+        obterValor(
+            "perf-fonte-vitrine"
+        );
+
+    const tarefas = [
+
+        {
+            titulo: "Identidade da loja",
+            descricao:
+                "Defina o nome público da sua empresa.",
+            concluida:
+                nomeLoja.length >= 2,
+            acao: "identidade",
+            botao: "Configurar identidade"
+        },
+
+        {
+            titulo: "Endereço da vitrine",
+            descricao:
+                "Escolha o endereço exclusivo da loja.",
+            concluida:
+                slug.length >= 2,
+            acao: "identidade",
+            botao: "Definir endereço"
+        },
+
+        {
+            titulo: "Apresentação principal",
+            descricao:
+                "Adicione título e descrição na vitrine.",
+            concluida:
+                titulo.length >= 2 &&
+                subtitulo.length >= 2,
+            acao: "identidade",
+            botao: "Editar apresentação"
+        },
+
+        {
+            titulo: "WhatsApp comercial",
+            descricao:
+                "Cadastre um telefone válido para atendimento.",
+            concluida:
+                temWhatsApp(whatsappCentral) ||
+                temWhatsApp(whatsappChat),
+            acao: "redes-sociais",
+            botao: "Configurar WhatsApp"
+        },
+
+        {
+            titulo: "Primeiro produto",
+            descricao:
+                "Cadastre pelo menos uma oferta ativa.",
+            concluida:
+                Number(totalProdutosAtual || 0) > 0,
+            acao: "novo-produto",
+            botao: "Cadastrar produto"
+        },
+
+        {
+            titulo: "Canal de conversão",
+            descricao:
+                "Ative o carrinho ou o chat da loja.",
+            concluida:
+                estaAtivo("perf-carrinho-ativo") ||
+                estaAtivo("perf-chat-ativo"),
+            acao:
+                estaAtivo("perf-carrinho-ativo")
+                    ? "chat-config"
+                    : "carrinho-config",
+            botao: "Configurar conversão"
+        },
+
+        {
+            titulo: "Presença digital",
+            descricao:
+                "Conecte ao menos uma rede social.",
+            concluida:
+                Boolean(
+                    instagram ||
+                    tiktok ||
+                    youtube
+                ),
+            acao: "redes-sociais",
+            botao: "Adicionar rede social"
+        },
+
+        {
+            titulo: "Identidade visual",
+            descricao:
+                "Defina cores e tipografia da vitrine.",
+            concluida:
+                Boolean(
+                    corPrincipal &&
+                    fonte
+                ),
+            acao: "aparencia-cores",
+            botao: "Personalizar visual"
+        }
+
+    ];
+
+    const concluidas =
+        tarefas.filter(
+            tarefa => tarefa.concluida
+        ).length;
+
+    const total =
+        tarefas.length;
+
+    const percentual =
+        Math.round(
+            concluidas /
+            total *
+            100
+        );
+
+    const primeiraPendente =
+        tarefas.find(
+            tarefa => !tarefa.concluida
+        );
+
+    const mensagemStatus =
+
+        percentual === 100
+            ? "Sua loja está pronta para operar"
+            : percentual >= 75
+                ? "Sua loja está quase pronta"
+                : percentual >= 40
+                    ? "Continue configurando sua operação"
+                    : "Complete os primeiros passos";
+
+    const tarefasHTML =
+        tarefas.map(
+            (tarefa, indice) => `
+
+                <button
+                    type="button"
+                    class="dashboard-launch-task ${
+                        tarefa.concluida
+                            ? "is-complete"
+                            : ""
+                    }"
+                    data-launch-action="${
+                        tarefa.acao
+                    }"
+                >
+
+                    <span class="dashboard-launch-task-status">
+
+                        ${
+                            tarefa.concluida
+                                ? `
+                                    <svg
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                    >
+                                        <path d="m7 12 3 3 7-7"></path>
+                                    </svg>
+                                `
+                                : String(
+                                    indice + 1
+                                ).padStart(2, "0")
+                        }
+
+                    </span>
+
+                    <span class="dashboard-launch-task-copy">
+
+                        <strong>
+                            ${tarefa.titulo}
+                        </strong>
+
+                        <small>
+                            ${tarefa.descricao}
+                        </small>
+
+                    </span>
+
+                    <span class="dashboard-launch-task-action">
+
+                        ${
+                            tarefa.concluida
+                                ? "Concluído"
+                                : tarefa.botao
+                        }
+
+                    </span>
+
+                </button>
+            `
+        ).join("");
+
+    painel.innerHTML = `
+
+        <div class="dashboard-launch-header">
+
+            <div class="dashboard-launch-heading">
+
+                <span class="dashboard-launch-heading-icon">
+
+                    <svg
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                    >
+                        <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z"></path>
+                        <path d="m4 7 8 4 8-4"></path>
+                        <path d="M12 11v10"></path>
+                    </svg>
+
+                </span>
+
+                <div>
+
+                    <small>
+                        Preparação da operação
+                    </small>
+
+                    <h3>
+                        Central de implantação
+                    </h3>
+
+                    <p>
+                        Acompanhe o que falta para sua loja ficar completamente configurada.
+                    </p>
+
+                </div>
+
+            </div>
+
+            <div
+                class="dashboard-launch-score"
+                style="--launch-progress:${percentual * 3.6}deg"
+            >
+
+                <div>
+
+                    <strong>
+                        ${percentual}%
+                    </strong>
+
+                    <span>
+                        concluído
+                    </span>
+
+                </div>
+
+            </div>
+
+        </div>
+
+        <div class="dashboard-launch-summary">
+
+            <div>
+
+                <small>
+                    Status da implantação
+                </small>
+
+                <strong>
+                    ${mensagemStatus}
+                </strong>
+
+                <span>
+                    ${concluidas} de ${total} etapas concluídas
+                </span>
+
+            </div>
+
+            <div class="dashboard-launch-progress">
+
+                <span
+                    style="width:${percentual}%"
+                ></span>
+
+            </div>
+
+        </div>
+
+        <div class="dashboard-launch-tasks">
+
+            ${tarefasHTML}
+
+        </div>
+
+        <div class="dashboard-launch-footer">
+
+            <div>
+
+                <strong>
+                    ${
+                        percentual === 100
+                            ? "Configuração concluída"
+                            : "Próxima etapa recomendada"
+                    }
+                </strong>
+
+                <span>
+
+                    ${
+                        percentual === 100
+                            ? "Revise sua vitrine pública antes de divulgar."
+                            : primeiraPendente
+                                ?.titulo ||
+                              "Continue configurando sua loja."
+                    }
+
+                </span>
+
+            </div>
+
+            <div class="dashboard-launch-buttons">
+
+                <button
+                    type="button"
+                    class="dashboard-launch-secondary"
+                    data-launch-action="abrir-loja"
+                    ${slug ? "" : "disabled"}
+                >
+                    Abrir loja
+                </button>
+
+                <button
+                    type="button"
+                    class="dashboard-launch-primary"
+                    data-launch-action="${
+                        primeiraPendente
+                            ?.acao ||
+                        "abrir-loja"
+                    }"
+                >
+
+                    ${
+                        percentual === 100
+                            ? "Visualizar vitrine"
+                            : "Continuar configuração"
+                    }
+
+                </button>
+
+            </div>
+
+        </div>
+    `;
+
+    painel.onclick = evento => {
+
+        const botao =
+            evento.target.closest(
+                "[data-launch-action]"
+            );
+
+        if (!botao || botao.disabled) {
+            return;
+        }
+
+        const acao =
+            botao.dataset.launchAction;
+
+        const abrirConfiguracao =
+            blocoId => {
+
+                window.ativarAba?.(
+                    "view-perfil"
+                );
+
+                setTimeout(() => {
+
+                    const botaoStudio =
+                        document.querySelector(
+                            `.aura-settings-nav-button[data-settings-target="${blocoId}"]`
+                        );
+
+                    if (botaoStudio) {
+
+                        botaoStudio.click();
+                        return;
+
+                    }
+
+                    const bloco =
+                        document.querySelector(
+                            `#view-perfil [data-block-id="${blocoId}"]`
+                        );
+
+                    bloco?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                    });
+
+                }, 220);
+
+            };
+
+        if (acao === "novo-produto") {
+
+            window.ativarAba?.(
+                "view-dashboard"
+            );
+
+            setTimeout(() => {
+
+                document
+                    .getElementById(
+                        "btn-abrir-criacao"
+                    )
+                    ?.click();
+
+            }, 180);
+
+            return;
+
+        }
+
+        if (acao === "abrir-loja") {
+
+            const link =
+                document.getElementById(
+                    "link-minha-loja-cockpit"
+                ) ||
+                document.getElementById(
+                    "link-minha-loja"
+                );
+
+            if (link?.href) {
+
+                window.open(
+                    link.href,
+                    "_blank",
+                    "noopener,noreferrer"
+                );
+
+            }
+
+            return;
+
+        }
+
+        abrirConfiguracao(acao);
+
+    };
+
+    if (
+        typeof aplicarLayoutSalvoDaAba ===
+        "function"
+    ) {
+
+        requestAnimationFrame(() => {
+
+            aplicarLayoutSalvoDaAba(
+                "view-dashboard"
+            );
+
+        });
+
+    }
+
+}
+
+window.renderizarCentralImplantacao =
+    renderizarCentralImplantacao;
+
+/* Atualização automática durante a configuração. */
+
+(function prepararCentralImplantacao() {
+
+    if (
+        window.__centralImplantacaoAtiva
+    ) {
+        return;
+    }
+
+    window.__centralImplantacaoAtiva =
+        true;
+
+    let temporizador = null;
+
+    const atualizar = () => {
+
+        clearTimeout(temporizador);
+
+        temporizador =
+            setTimeout(
+                renderizarCentralImplantacao,
+                120
+            );
+
+    };
+
+    const iniciar = () => {
+
+        const perfil =
+            document.getElementById(
+                "view-perfil"
+            );
+
+        perfil?.addEventListener(
+            "input",
+            atualizar
+        );
+
+        perfil?.addEventListener(
+            "change",
+            atualizar
+        );
+
+        setTimeout(
+            renderizarCentralImplantacao,
+            400
+        );
+
+        setTimeout(
+            renderizarCentralImplantacao,
+            1200
+        );
+
+        setTimeout(
+            renderizarCentralImplantacao,
+            2400
+        );
+
+    };
+
+    if (
+        document.readyState ===
+        "loading"
+    ) {
+
+        document.addEventListener(
+            "DOMContentLoaded",
+            iniciar,
+            { once: true }
+        );
+
+    } else {
+
+        iniciar();
+
+    }
+
+})();
 
 window.carregarCockpitReal =
     carregarCockpitReal;
