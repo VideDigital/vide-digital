@@ -13239,6 +13239,611 @@ span{
   color:#64748B;
 }
 
+/* =========================================================================
+   VIDE AURA OS — STORE SETTINGS STUDIO
+   ========================================================================= */
+
+#view-perfil{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-store-settings-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:26px;
+  min-height:180px;
+  padding:30px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      560px 230px at 92% 2%,
+      color-mix(in srgb,var(--aura-primary) 20%,transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      380px 210px at 67% 115%,
+      color-mix(in srgb,var(--aura-accent) 12%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 84%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  box-shadow:
+    0 28px 65px -40px rgba(0,0,0,.82),
+    inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.aura-store-settings-header::before{
+  content:"";
+  position:absolute;
+  top:-120px;
+  right:80px;
+  width:290px;
+  height:290px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 17%,transparent);
+  pointer-events:none;
+}
+
+.aura-store-settings-header::after{
+  content:"";
+  position:absolute;
+  top:-48px;
+  right:140px;
+  width:165px;
+  height:165px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 12%,transparent);
+  pointer-events:none;
+}
+
+.aura-store-settings-header-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+}
+
+.aura-store-settings-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 11px;
+  margin-bottom:12px;
+  border-radius:999px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+  font-size:9px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-store-settings-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(27px,3vw,36px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-store-settings-header p{
+  max-width:630px;
+  margin-top:11px;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.aura-store-settings-tags{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:7px;
+  margin-top:15px;
+}
+
+.aura-store-settings-tags span{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 9px;
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+  font-size:8px;
+  font-weight:750;
+}
+
+.aura-store-settings-header-panel{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr);
+  align-items:center;
+  gap:13px;
+  min-width:315px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:19px;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 70%,transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 15px 35px -28px rgba(0,0,0,.8);
+}
+
+.aura-store-settings-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:47px;
+  height:47px;
+  min-width:47px;
+  border-radius:15px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 25%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 9%,transparent);
+}
+
+.aura-store-settings-header-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-store-settings-header-panel > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-store-settings-header-panel small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-store-settings-header-panel strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-store-settings-header-panel > div > span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  color:#34D399;
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-store-settings-header-panel i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.72);
+}
+
+.aura-store-settings-preview-button{
+  grid-column:1 / -1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:39px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 24%,transparent);
+  border-radius:12px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(in srgb,var(--aura-primary) 7%,transparent);
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-store-settings-preview-button svg{
+  width:14px;
+  height:14px;
+  color:var(--aura-primary);
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+/* Cards existentes da tela */
+
+#view-perfil > .layout-block{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:24px !important;
+}
+
+#view-perfil > .layout-block:hover{
+  transform:none !important;
+}
+
+#view-perfil > .layout-block > h3:first-child{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-height:43px;
+  margin:-4px 0 19px;
+  padding-bottom:16px;
+  color:var(--aura-text) !important;
+  border-bottom:1px solid var(--aura-border);
+  font-size:12px !important;
+  line-height:1.3;
+  font-weight:800 !important;
+  letter-spacing:.04em !important;
+}
+
+#view-perfil > .layout-block > h3:first-child::before{
+  content:"";
+  display:flex;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  border-radius:11px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    radial-gradient(
+      circle,
+      var(--aura-primary) 0 3px,
+      color-mix(in srgb,var(--aura-primary) 10%,transparent) 4px
+    );
+}
+
+#view-perfil > .layout-block > h3:first-child > span:first-child{
+  display:none !important;
+}
+
+/* Campos */
+
+#view-perfil label{
+  color:var(--aura-text-muted) !important;
+  font-size:9px !important;
+  line-height:1.35;
+  font-weight:800 !important;
+  letter-spacing:.07em !important;
+}
+
+#view-perfil input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="file"]),
+#view-perfil textarea,
+#view-perfil select{
+  min-height:47px;
+  border-radius:14px !important;
+  color:var(--aura-text) !important;
+  font-size:11px !important;
+}
+
+#view-perfil textarea{
+  min-height:90px;
+  padding-top:13px !important;
+  padding-bottom:13px !important;
+}
+
+#view-perfil input[type="color"]{
+  width:100%;
+  min-height:47px;
+  padding:5px !important;
+  border-radius:13px !important;
+  cursor:pointer;
+}
+
+/* Foto e identidade */
+
+#preview-foto-perfil{
+  border-radius:18px !important;
+}
+
+#preview-foto-perfil + label{
+  border-radius:18px !important;
+  color:#fff !important;
+  font-size:9px !important;
+}
+
+#view-perfil
+[data-block-id="identidade"]
+.bg-white\/\[0\.01\]{
+  border-color:var(--aura-border) !important;
+  border-radius:18px !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent) !important;
+}
+
+/* Blocos internos */
+
+#view-perfil .bg-white\/\[0\.01\],
+#view-perfil .bg-white\/\[0\.02\],
+#view-perfil .bg-white\/5{
+  border-color:var(--aura-border);
+}
+
+#view-perfil .border-white\/5,
+#view-perfil .border-white\/10{
+  border-color:var(--aura-border) !important;
+}
+
+#view-perfil .text-gray-300,
+#view-perfil .text-gray-400{
+  color:var(--aura-text-secondary) !important;
+}
+
+#view-perfil .text-gray-500,
+#view-perfil .text-gray-600{
+  color:var(--aura-text-muted) !important;
+}
+
+/* Links UTM gerados pelo JavaScript */
+
+#box-links-utm{
+  display:flex;
+  flex-direction:column;
+  gap:9px;
+}
+
+#box-links-utm > div{
+  padding:12px 14px !important;
+  border:1px solid var(--aura-border);
+  border-radius:14px !important;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+}
+
+/* Painel final de salvamento */
+
+.aura-store-settings-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:22px;
+  padding:22px !important;
+  overflow:hidden !important;
+  border-radius:24px !important;
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 20%,transparent) !important;
+}
+
+.aura-store-settings-actions:hover{
+  transform:none !important;
+}
+
+.aura-store-settings-actions-copy{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:0;
+}
+
+.aura-store-settings-actions-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:45px;
+  height:45px;
+  min-width:45px;
+  border-radius:15px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-store-settings-actions-icon svg{
+  width:20px;
+  height:20px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-store-settings-actions-copy > div{
+  min-width:0;
+}
+
+.aura-store-settings-actions-copy small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-store-settings-actions-copy h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:13px;
+  font-weight:800;
+}
+
+.aura-store-settings-actions-copy p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.aura-store-settings-actions-buttons{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  flex-shrink:0;
+}
+
+.aura-store-settings-reset,
+.aura-store-settings-save{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:46px;
+  padding:0 16px;
+  border-radius:14px;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.03em;
+  text-transform:uppercase;
+}
+
+.aura-store-settings-reset{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 65%,transparent);
+}
+
+.aura-store-settings-save{
+  color:#fff !important;
+  border:0;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 18px 38px -24px
+      color-mix(in srgb,var(--aura-primary) 85%,transparent);
+}
+
+.aura-store-settings-reset svg,
+.aura-store-settings-save svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+/* Editor de Layout */
+
+#view-perfil > .layout-block > .layout-block-controle{
+  width:100%;
+  margin-bottom:12px;
+}
+
+/* Tema claro */
+
+.tema-claro .aura-store-settings-header,
+.tema-claro #view-perfil > .layout-block,
+.tema-claro .aura-store-settings-actions{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-store-settings-kicker,
+.tema-claro .aura-store-settings-header-icon,
+.tema-claro .aura-store-settings-actions-icon{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-store-settings-header-panel > div > span{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-store-settings-save{
+  color:#fff !important;
+}
+
+/* Responsividade */
+
+@media (max-width:900px){
+  .aura-store-settings-header{
+    align-items:flex-start;
+  }
+
+  .aura-store-settings-header-panel{
+    min-width:270px;
+  }
+
+  .aura-store-settings-actions{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-store-settings-actions-buttons{
+    width:100%;
+  }
+
+  .aura-store-settings-reset,
+  .aura-store-settings-save{
+    flex:1;
+  }
+}
+
+@media (max-width:767px){
+  .aura-store-settings-header{
+    flex-direction:column;
+    min-height:0;
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .aura-store-settings-header-panel{
+    width:100%;
+    min-width:0;
+  }
+
+  #view-perfil > .layout-block{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-store-settings-actions{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-store-settings-actions-buttons{
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aura-store-settings-reset,
+  .aura-store-settings-save{
+    width:100%;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -17465,11 +18070,87 @@ span{
 
         </section>
 
-        <section id="view-perfil" class="view-section space-y-6 max-w-4xl mx-auto">
-            <!-- Cabeçalho Principal -->
-            <div class="border-b border-white/5 pb-5">
-                <h1 class="text-xl font-medium text-white tracking-tight">Configurações da Loja</h1>
-                <p class="text-gray-500 text-xs mt-1">Customize a identidade visual completa e os links de redirecionamento da sua loja.</p>
+        <section id="view-perfil"
+                 class="view-section space-y-6 max-w-6xl mx-auto aura-store-settings-view">
+
+            <div class="aura-store-settings-header">
+
+                <div class="aura-store-settings-header-copy">
+
+                    <span class="aura-store-settings-kicker">
+                        Central de personalização
+                    </span>
+
+                    <h1>Configurações da Loja</h1>
+
+                    <p>
+                        Controle a identidade visual, os conteúdos, links, recursos comerciais e a experiência completa da sua vitrine.
+                    </p>
+
+                    <div class="aura-store-settings-tags">
+
+                        <span>Identidade</span>
+                        <span>Conteúdo</span>
+                        <span>Conversão</span>
+                        <span>Experiência</span>
+
+                    </div>
+
+                </div>
+
+                <div class="aura-store-settings-header-panel">
+
+                    <span class="aura-store-settings-header-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z"></path>
+                            <path d="m4 7 8 4 8-4"></path>
+                            <path d="M12 11v10"></path>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>Ambiente da loja</small>
+
+                        <strong>
+                            Personalização integrada
+                        </strong>
+
+                        <span>
+                            <i></i>
+                            Alterações em tempo real
+                        </span>
+
+                    </div>
+
+                    <button
+                        type="button"
+                        onclick="document.getElementById('link-minha-loja')?.click()"
+                        class="aura-store-settings-preview-button"
+                    >
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M14 5h5v5"></path>
+                            <path d="M10 14 19 5"></path>
+                            <path d="M19 13v6H5V5h6"></path>
+
+                        </svg>
+
+                        Abrir vitrine
+
+                    </button>
+
+                </div>
+
             </div>
 
             <!-- BOX 1: Identidade Primária (Foto, Nome, Slug e Títulos) -->
@@ -17729,18 +18410,80 @@ span{
                     <p class="text-xs text-gray-500">Salve seu slug primeiro para gerar os links.</p>
                 </div>
             </div>
-            <div class="glass-card rounded-xl p-6 space-y-5">
-                <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2"><span>🎨</span> Controle de Aparência</h3>
+            <div class="glass-card aura-store-settings-actions">
 
-                <!-- Botões de Ação Unificados -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
-                    <button type="button" id="btn-resetar-cores" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 text-gray-300 text-xs uppercase tracking-widest font-bold py-3.5 rounded-xl transition-all">
-                        ↺ Restaurar Cores Padrão
-                    </button>
-                    <button id="btn-salvar-perfil" class="w-full bg-white hover:bg-gray-200 text-black text-xs uppercase tracking-widest font-black py-3.5 rounded-xl transition-all shadow-xl">
-                        Salvar Todas as Alterações
-                    </button>
+                <div class="aura-store-settings-actions-copy">
+
+                    <span class="aura-store-settings-actions-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M5 4h12l2 2v14H5V4Z"></path>
+                            <path d="M8 4v6h8V4"></path>
+                            <path d="M9 20v-6h6v6"></path>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>Controle de alterações</small>
+
+                        <h3>Salvar configurações da loja</h3>
+
+                        <p>
+                            Revise os campos acima antes de publicar as mudanças na sua vitrine.
+                        </p>
+
+                    </div>
+
                 </div>
+
+                <div class="aura-store-settings-actions-buttons">
+
+                    <button
+                        type="button"
+                        id="btn-resetar-cores"
+                        class="aura-store-settings-reset"
+                    >
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M3 12a9 9 0 1 0 3-6.7"></path>
+                            <path d="M3 4v5h5"></path>
+
+                        </svg>
+
+                        Restaurar padrão
+
+                    </button>
+
+                    <button
+                        id="btn-salvar-perfil"
+                        class="aura-store-settings-save"
+                    >
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M5 4h12l2 2v14H5V4Z"></path>
+                            <path d="M8 4v6h8V4"></path>
+                            <path d="M9 20v-6h6v6"></path>
+
+                        </svg>
+
+                        Salvar alterações
+
+                    </button>
+
+                </div>
+
             </div>
         </section>
 
