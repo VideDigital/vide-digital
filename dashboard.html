@@ -10390,63 +10390,8 @@ textarea:focus{
                 <div class="col-span-full text-center p-12 text-gray-500 text-xs">Nenhum template criado ainda.</div>
             </div>
         </section>
-        <section id="view-campanhas" class="view-section space-y-6 max-w-4xl mx-auto">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Campanhas & Ofertas</h1>
-                <p class="text-gray-400 text-xs mt-1">Crie pop-ups de oferta relâmpago com countdown para sua loja.</p>
-            </div>
 
-            <div class="glass-card rounded-xl p-6 space-y-5 layout-block" data-block-id="campanha-oferta" data-block-nome="Oferta Relâmpago">
-                <div class="flex items-center justify-between border-b border-white/5 pb-4">
-                    <h3 class="text-xs font-bold text-white uppercase tracking-wider flex items-center gap-2">⚡ Oferta Relâmpago</h3>
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="campanha-ativa" class="sr-only peer">
-                        <div class="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#00f2fe]"></div>
-                    </label>
-                </div>
-                <p class="text-xs text-gray-400">Quando ativo, um pop-up com countdown aparece automaticamente para os visitantes da sua loja.</p>
-
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Título da Oferta</label>
-                        <input type="text" id="campanha-titulo" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Oferta Exclusiva por Tempo Limitado!">
-                    </div>
-                    <div class="space-y-1.5">
-                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Tempo do Countdown (minutos)</label>
-                        <input type="number" id="campanha-tempo" min="1" max="60" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: 10">
-                    </div>
-                </div>
-
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Texto da Oferta</label>
-                    <textarea id="campanha-texto" rows="2" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none resize-none" placeholder="Ex: Aproveite 30% OFF em todos os produtos hoje!"></textarea>
-                </div>
-
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Link do Botão (opcional)</label>
-                    <input type="url" id="campanha-link" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: https://pay.kiwify.com.br/...">
-                </div>
-
-                <div class="space-y-1.5">
-                    <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Texto do Botão</label>
-                    <input type="text" id="campanha-btn-texto" class="w-full glass-input rounded-xl p-3 text-xs text-white outline-none" placeholder="Ex: Quero aproveitar agora!">
-                </div>
-
-                <button onclick="salvarCampanha()" class="w-full bg-white hover:bg-gray-200 text-black font-bold py-3.5 rounded-xl text-xs uppercase tracking-wider transition-all">
-                    Salvar e Ativar Campanha
-                </button>
-            </div>
-
-            <div class="glass-card rounded-xl p-5 space-y-3" id="campanha-status-box">
-                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Status Atual</h3>
-                <p class="text-xs text-gray-500" id="campanha-status-texto">Nenhuma campanha ativa no momento.</p>
-            </div>
-
-            <div class="glass-card rounded-xl p-5 space-y-4 layout-block" data-block-id="campanha-historico" data-block-nome="Histórico de Campanhas">
-                <div class="flex flex-col sm:flex-row justify-between sm:items-center gap-3">
-                    <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">Histórico de Campanhas</h3>
-                    <div class="flex flex-wrap gap-2 items-center">
-<section id="view-campanhas" class="view-section space-y-6 max-w-6xl mx-auto">
+        <section id="view-campanhas" class="view-section space-y-6 max-w-6xl mx-auto">
 
             <div class="aura-campaign-header">
                 <div class="aura-campaign-header-copy">
