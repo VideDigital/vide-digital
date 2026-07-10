@@ -13294,16 +13294,7 @@ span{
 }
 
 .aura-store-settings-header::after{
-  content:"";
-  position:absolute;
-  top:-48px;
-  right:140px;
-  width:165px;
-  height:165px;
-  border-radius:50%;
-  border:1px solid
-    color-mix(in srgb,var(--aura-accent) 12%,transparent);
-  pointer-events:none;
+  display:none;
 }
 
 .aura-store-settings-header-copy{
@@ -13553,11 +13544,24 @@ span{
 }
 
 #view-perfil input[type="color"]{
-  width:100%;
-  min-height:47px;
-  padding:5px !important;
-  border-radius:13px !important;
+  width:52px;
+  height:38px;
+  min-height:38px;
+  padding:4px !important;
+  flex-shrink:0;
+  border:1px solid var(--aura-border) !important;
+  border-radius:11px !important;
+  background:var(--aura-surface-soft) !important;
   cursor:pointer;
+}
+
+#view-perfil input[type="color"]::-webkit-color-swatch{
+  border:0;
+  border-radius:7px;
+}
+
+#view-perfil input[type="color"]::-webkit-color-swatch-wrapper{
+  padding:0;
 }
 
 /* Foto e identidade */
@@ -24313,7 +24317,7 @@ div:not(.aura-product-modal-actions){
                         <h3>Salvar configurações da loja</h3>
 
                         <p>
-                            Revise os campos acima antes de publicar as mudanças na sua vitrine.
+                            Revise os campos abaixo antes de publicar as mudanças na sua vitrine.
                         </p>
 
                     </div>
