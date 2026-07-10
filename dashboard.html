@@ -14367,12 +14367,22 @@ span{
 
             </svg>
 
-            <input type="text"
-                   id="busca-hub-modulos"
-                   oninput="filtrarHubModulos(this.value)"
-                   placeholder="Pesquisar módulo..."
-                   autocomplete="off"
-                   class="w-full glass-input rounded-2xl py-3.5 pl-11 pr-16 text-sm text-white outline-none">
+            <input
+                type="search"
+                id="busca-hub-modulos"
+                name="videhub-pesquisa-de-modulos"
+                oninput="filtrarHubModulos(this.value)"
+                onfocus="this.removeAttribute('readonly')"
+                placeholder="Pesquisar módulo..."
+                autocomplete="new-password"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
+                data-lpignore="true"
+                data-1p-ignore="true"
+                readonly
+                class="w-full glass-input rounded-2xl py-3.5 pl-11 pr-16 text-sm text-white outline-none"
+            >
 
             <span class="absolute right-3 top-1/2 -translate-y-1/2 h-7 min-w-7 px-2 rounded-lg border border-white/10 bg-white/[0.04] flex items-center justify-center text-[9px] font-bold text-gray-500 pointer-events-none">
 
@@ -20175,12 +20185,62 @@ window.salvarLayoutVisaoGeral = async function() {
 };
 
 window.filtrarHubModulos = function(termo) {
-    const t = termo.trim().toLowerCase();
-    document.querySelectorAll("#grid-hub-modulos > div").forEach(card => {
-        const nome = card.getAttribute("data-nome") || "";
-        card.classList.toggle("hidden", t !== "" && !nome.includes(t));
-    });
+    const campo =
+        document.getElementById("busca-hub-modulos");
+
+    let valor =
+        String(termo || "").trim();
+
+    const pareceEmail =
+        /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+
+    if (pareceEmail) {
+        valor = "";
+
+        if (campo) {
+            campo.value = "";
+        }
+    }
+
+    const t =
+        valor.toLowerCase();
+
+    document
+        .querySelectorAll("#grid-hub-modulos > div")
+        .forEach(card => {
+            const nome =
+                (card.getAttribute("data-nome") || "")
+                    .toLowerCase();
+
+            card.classList.toggle(
+                "hidden",
+                t !== "" && !nome.includes(t)
+            );
+        });
 };
+
+window.addEventListener("pageshow", () => {
+    setTimeout(() => {
+        const campo =
+            document.getElementById("busca-hub-modulos");
+
+        if (!campo) return;
+
+        const valor =
+            campo.value.trim();
+
+        const pareceEmail =
+            /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(valor);
+
+        if (pareceEmail) {
+            campo.value = "";
+        }
+
+        window.filtrarHubModulos(
+            pareceEmail ? "" : campo.value
+        );
+    }, 350);
+});
 
 function ativarAba(targetId) {
     if (modoEdicaoLayoutAtivo) {
