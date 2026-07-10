@@ -18741,6 +18741,635 @@ div:not(.aura-product-modal-actions){
 
 }
 
+/* =========================================================================
+   VIDE AURA OS — TEMPLATE QUICK SEND
+   ========================================================================= */
+
+.aura-template-lead-overlay{
+  padding:20px;
+  background:rgba(3,7,18,.76) !important;
+  backdrop-filter:blur(12px) saturate(125%);
+}
+
+.aura-template-lead-modal{
+  position:relative;
+  display:flex;
+  width:100%;
+  max-width:720px;
+  max-height:90vh;
+  padding:0 !important;
+  flex-direction:column;
+  overflow:hidden !important;
+  border-radius:27px !important;
+  border-color:var(--aura-border-strong) !important;
+  box-shadow:
+    0 42px 100px -35px rgba(0,0,0,.92),
+    0 0 0 1px rgba(255,255,255,.025),
+    inset 0 1px 0 rgba(255,255,255,.045) !important;
+}
+
+.aura-template-lead-modal:hover{
+  transform:none !important;
+}
+
+.aura-template-lead-header{
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:105px;
+  padding:20px 70px 20px 22px;
+  flex-shrink:0;
+  border-bottom:1px solid var(--aura-border);
+  background:
+    radial-gradient(
+      390px 160px at 95% 0%,
+      color-mix(
+        in srgb,
+        var(--aura-primary) 19%,
+        transparent
+      ),
+      transparent 70%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(
+        in srgb,
+        var(--aura-surface-strong) 82%,
+        transparent
+      ),
+      color-mix(
+        in srgb,
+        var(--aura-surface-soft) 68%,
+        transparent
+      )
+    );
+}
+
+.aura-template-lead-header-icon,
+.aura-template-lead-recipient-icon,
+.aura-template-lead-item-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 25%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-template-lead-header-icon{
+  width:49px;
+  height:49px;
+  border-radius:16px;
+}
+
+.aura-template-lead-header-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+}
+
+.aura-template-lead-header > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-template-lead-header small,
+.aura-template-lead-recipient small,
+.aura-template-lead-library-header small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-template-lead-header h3{
+  margin-top:5px;
+  color:var(--aura-text);
+  font-size:17px;
+  font-weight:850;
+  letter-spacing:-.03em;
+}
+
+.aura-template-lead-header p{
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.5;
+}
+
+.aura-template-lead-close{
+  position:absolute;
+  top:20px;
+  right:20px;
+  z-index:8;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:37px;
+  height:37px;
+  border:1px solid var(--aura-border);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 66%,
+      transparent
+    );
+}
+
+.aura-template-lead-close svg{
+  width:16px;
+  height:16px;
+  stroke-width:2;
+}
+
+.aura-template-lead-recipient{
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:12px;
+  margin:16px 20px 0;
+  padding:13px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 58%,
+      transparent
+    );
+}
+
+.aura-template-lead-recipient-icon{
+  width:39px;
+  height:39px;
+  border-radius:13px;
+}
+
+.aura-template-lead-recipient-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+}
+
+.aura-template-lead-recipient > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-template-lead-recipient strong{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-template-lead-whatsapp-status{
+  display:inline-flex;
+  align-items:center;
+  min-height:27px;
+  padding:0 10px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 66%,
+      transparent
+    );
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-lead-whatsapp-status.is-available{
+  color:#34D399;
+  border-color:rgba(52,211,153,.2);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-template-lead-whatsapp-status.is-unavailable{
+  color:#F87171;
+  border-color:rgba(248,113,113,.2);
+  background:rgba(248,113,113,.07);
+}
+
+.aura-template-lead-library-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding:18px 21px 13px;
+}
+
+.aura-template-lead-library-header > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-template-lead-library-header h4{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:12px;
+  font-weight:800;
+}
+
+.aura-template-lead-library-header > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:31px;
+  height:27px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 62%,
+      transparent
+    );
+  font-size:9px;
+  font-weight:850;
+}
+
+.aura-template-lead-list{
+  flex:1;
+  display:flex;
+  min-height:230px;
+  padding:0 20px 18px;
+  flex-direction:column;
+  gap:11px;
+  overflow-y:auto;
+}
+
+.aura-template-lead-item{
+  padding:16px !important;
+  overflow:visible !important;
+  border-radius:18px !important;
+}
+
+.aura-template-lead-item-top,
+.aura-template-lead-item-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.aura-template-lead-item-icon{
+  width:38px;
+  height:38px;
+  border-radius:12px;
+}
+
+.aura-template-lead-item-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+}
+
+.aura-template-lead-category{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 9px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 62%,
+      transparent
+    );
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-lead-item[data-category="sales"]
+.aura-template-lead-category{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-template-lead-item[data-category="support"]
+.aura-template-lead-category{
+  color:#60A5FA;
+  border-color:rgba(96,165,250,.18);
+  background:rgba(96,165,250,.07);
+}
+
+.aura-template-lead-item[data-category="billing"]
+.aura-template-lead-category{
+  color:#FBBF24;
+  border-color:rgba(251,191,36,.18);
+  background:rgba(251,191,36,.07);
+}
+
+.aura-template-lead-item-content{
+  margin-top:13px;
+}
+
+.aura-template-lead-item-content h4{
+  color:var(--aura-text);
+  font-size:12px;
+  font-weight:800;
+}
+
+.aura-template-lead-item-content p{
+  display:-webkit-box;
+  margin-top:7px;
+  overflow:hidden;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  line-height:1.6;
+  white-space:pre-line;
+  -webkit-box-orient:vertical;
+  -webkit-line-clamp:3;
+}
+
+.aura-template-lead-item-actions{
+  margin-top:14px;
+  padding-top:13px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-template-lead-copy,
+.aura-template-lead-send{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  min-height:39px;
+  padding:0 14px;
+  border-radius:11px;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-template-lead-copy{
+  flex:1;
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 63%,
+      transparent
+    );
+}
+
+.aura-template-lead-send{
+  flex:1;
+  color:#04130D;
+  border:1px solid rgba(52,211,153,.4);
+  background:
+    linear-gradient(
+      135deg,
+      #10B981,
+      #34D399
+    );
+}
+
+.aura-template-lead-copy svg,
+.aura-template-lead-send svg{
+  width:14px;
+  height:14px;
+  stroke-width:2;
+}
+
+.aura-template-lead-no-contact{
+  flex:1;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:39px;
+  padding:0 12px;
+  border:1px solid rgba(248,113,113,.16);
+  border-radius:11px;
+  color:#F87171;
+  background:rgba(248,113,113,.05);
+  font-size:8px;
+  font-weight:750;
+  text-align:center;
+}
+
+.aura-template-lead-loading,
+.aura-template-lead-empty,
+.aura-template-lead-error{
+  display:flex;
+  min-height:230px;
+  padding:30px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:18px;
+  color:var(--aura-text-muted);
+  text-align:center;
+}
+
+.aura-template-lead-loading > span,
+.aura-template-lead-empty > span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:49px;
+  height:49px;
+  border-radius:16px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(
+      in srgb,
+      var(--aura-primary) 22%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-template-lead-loading svg,
+.aura-template-lead-empty svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+}
+
+.aura-template-lead-loading svg{
+  animation:auraTemplateLeadSpin 1s linear infinite;
+}
+
+.aura-template-lead-loading strong,
+.aura-template-lead-empty strong{
+  margin-top:13px;
+  color:var(--aura-text-secondary);
+  font-size:12px;
+}
+
+.aura-template-lead-loading p,
+.aura-template-lead-empty p{
+  max-width:390px;
+  margin-top:6px;
+  font-size:9px;
+  line-height:1.5;
+}
+
+.aura-template-lead-error{
+  color:#F87171;
+}
+
+.aura-template-lead-footer-note{
+  display:flex;
+  align-items:flex-start;
+  gap:9px;
+  padding:13px 20px 16px;
+  border-top:1px solid var(--aura-border);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-background) 91%,
+      transparent
+    );
+}
+
+.aura-template-lead-footer-note svg{
+  width:16px;
+  height:16px;
+  min-width:16px;
+  color:var(--aura-primary);
+  stroke-width:1.9;
+}
+
+.aura-template-lead-footer-note p{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  line-height:1.5;
+}
+
+.aura-template-lead-footer-note strong{
+  color:var(--aura-primary);
+}
+
+@keyframes auraTemplateLeadSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+/* Tema claro */
+
+.tema-claro .aura-template-lead-modal{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.99),
+      rgba(248,250,252,.96)
+    ) !important;
+}
+
+.tema-claro .aura-template-lead-header{
+  background:
+    radial-gradient(
+      390px 160px at 95% 0%,
+      color-mix(
+        in srgb,
+        var(--aura-primary) 9%,
+        transparent
+      ),
+      transparent 70%
+    ),
+    rgba(255,255,255,.96);
+}
+
+.tema-claro .aura-template-lead-recipient,
+.tema-claro .aura-template-lead-item{
+  background:rgba(248,250,252,.78) !important;
+}
+
+.tema-claro .aura-template-lead-header h3,
+.tema-claro .aura-template-lead-library-header h4,
+.tema-claro .aura-template-lead-item-content h4{
+  color:#0F172A !important;
+}
+
+/* Responsividade */
+
+@media (max-width:639px){
+
+  .aura-template-lead-overlay{
+    padding:8px;
+  }
+
+  .aura-template-lead-modal{
+    max-height:96vh;
+    border-radius:22px !important;
+  }
+
+  .aura-template-lead-header{
+    min-height:94px;
+    padding:16px 58px 16px 17px;
+  }
+
+  .aura-template-lead-header p{
+    display:none;
+  }
+
+  .aura-template-lead-recipient{
+    grid-template-columns:auto minmax(0,1fr);
+    margin:12px 13px 0;
+  }
+
+  .aura-template-lead-whatsapp-status{
+    grid-column:1 / -1;
+    justify-content:center;
+  }
+
+  .aura-template-lead-library-header{
+    padding:16px 14px 12px;
+  }
+
+  .aura-template-lead-list{
+    padding:0 13px 14px;
+  }
+
+  .aura-template-lead-item-actions{
+    flex-direction:column;
+  }
+
+  .aura-template-lead-copy,
+  .aura-template-lead-send,
+  .aura-template-lead-no-contact{
+    width:100%;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -25661,13 +26290,146 @@ div:not(.aura-product-modal-actions){
             </form>
         </div>
     </div>
-    <div id="template-lead-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl">
-        <div class="glass-card w-full max-w-lg p-6 rounded-2xl space-y-4 relative border border-white/5 shadow-2xl max-h-[80vh] flex flex-col">
-            <button onclick="document.getElementById('template-lead-modal').classList.add('hidden')" class="absolute top-4 right-4 text-gray-400 hover:text-white text-2xl">&times;</button>
-            <h3 class="text-sm font-black text-white">Escolher Template</h3>
-            <div id="template-lead-lista" class="flex-1 overflow-y-auto space-y-3"></div>
+<div
+    id="template-lead-modal"
+    class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4 aura-template-lead-overlay"
+    onclick="if(event.target === this) fecharModalTemplatesLead()"
+>
+
+    <div class="glass-card aura-template-lead-modal">
+
+        <button
+            type="button"
+            onclick="fecharModalTemplatesLead()"
+            class="aura-template-lead-close"
+            aria-label="Fechar modal"
+        >
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="m6 6 12 12"></path>
+                <path d="M18 6 6 18"></path>
+            </svg>
+
+        </button>
+
+        <div class="aura-template-lead-header">
+
+            <span class="aura-template-lead-header-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                    <path d="M8 9h8"></path>
+                    <path d="M8 13h5"></path>
+                </svg>
+
+            </span>
+
+            <div>
+
+                <small>Atendimento comercial</small>
+
+                <h3>
+                    Usar template no lead
+                </h3>
+
+                <p>
+                    Escolha uma mensagem pronta para copiar ou enviar diretamente pelo WhatsApp.
+                </p>
+
+            </div>
+
         </div>
+
+        <div class="aura-template-lead-recipient">
+
+            <span class="aura-template-lead-recipient-icon">
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <circle cx="12" cy="8" r="4"></circle>
+                    <path d="M4 21a8 8 0 0 1 16 0"></path>
+                </svg>
+
+            </span>
+
+            <div>
+
+                <small>Mensagem para</small>
+
+                <strong id="template-lead-nome">
+                    Lead selecionado
+                </strong>
+
+            </div>
+
+            <span
+                id="template-lead-whatsapp-status"
+                class="aura-template-lead-whatsapp-status"
+            >
+                Verificando contato
+            </span>
+
+        </div>
+
+        <div class="aura-template-lead-library-header">
+
+            <div>
+
+                <small>Biblioteca disponível</small>
+
+                <h4>
+                    Selecione uma mensagem
+                </h4>
+
+            </div>
+
+            <span id="template-lead-total">
+                —
+            </span>
+
+        </div>
+
+        <div
+            id="template-lead-lista"
+            class="aura-template-lead-list"
+        >
+
+            <div class="aura-template-lead-loading">
+
+                <span>
+
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+                    </svg>
+
+                </span>
+
+                <strong>Carregando templates</strong>
+
+                <p>
+                    Aguarde enquanto buscamos suas mensagens.
+                </p>
+
+            </div>
+
+        </div>
+
+        <div class="aura-template-lead-footer-note">
+
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <circle cx="12" cy="12" r="9"></circle>
+                <path d="M12 8h.01"></path>
+                <path d="M11 12h1v4h1"></path>
+            </svg>
+
+            <p>
+                A variável <strong>{nome}</strong> será substituída automaticamente pelo nome deste lead.
+            </p>
+
+        </div>
+
     </div>
+
+</div>
     <div
         id="template-modal"
         class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
@@ -31206,39 +31968,440 @@ document.getElementById("lead-painel-interesse").value = lead.produtoInteresse |
             document.getElementById("lead-painel-overlay").classList.remove("hidden");
         };
 window.abrirTemplatesDoLead = async function() {
-            const nome = document.getElementById("lead-painel-nome").innerText;
-            const whatsapp = document.getElementById("lead-painel-whatsapp").innerText;
-            const lista = document.getElementById("template-lead-lista");
-            lista.innerHTML = `<p class="text-xs text-gray-500">Carregando...</p>`;
-            document.getElementById("template-lead-modal").classList.remove("hidden");
-            try {
-                const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", usuarioUID)));
-                if (snap.empty) {
-                    lista.innerHTML = `<p class="text-xs text-gray-500 text-center p-4">Nenhum template criado ainda. Crie na aba Templates.</p>`;
-                    return;
-                }
-                let templates = [];
-                snap.forEach(d => templates.push({ id: d.id, ...d.data() }));
-                lista.innerHTML = templates.map(t => {
-                    const msgFinal = t.mensagem.replace(/\{nome\}/g, nome !== "Anônimo" ? nome : "");
-                    return `
-                        <div class="glass-card rounded-xl p-4 space-y-2">
-                            <div class="flex items-center justify-between">
-                                <span class="text-xs font-bold text-white">${t.titulo}</span>
-                                <span class="text-[10px] px-2 py-0.5 rounded-md font-bold uppercase ${t.categoria === 'vendas' ? 'bg-emerald-500/10 text-emerald-400' : t.categoria === 'suporte' ? 'bg-blue-500/10 text-blue-400' : 'bg-gray-500/10 text-gray-400'}">${t.categoria || 'geral'}</span>
-                            </div>
-                            <p class="text-xs text-gray-400 line-clamp-2">${msgFinal}</p>
-                            <div class="flex gap-2">
-                                <button onclick="navigator.clipboard.writeText('${msgFinal.replace(/'/g, "\\'")}').then(() => showToast('Copiado!'))" class="flex-1 bg-white/5 hover:bg-white/10 text-white text-xs font-bold py-2 rounded-xl transition-all">📋 Copiar</button>
-                                ${whatsapp !== '—' ? `<button onclick="window.open('https://wa.me/55${whatsapp}?text=' + encodeURIComponent('${msgFinal.replace(/'/g, "\\'")}'), '_blank')" class="flex-1 bg-emerald-500 hover:bg-emerald-400 text-black text-xs font-bold py-2 rounded-xl transition-all">💬 Enviar</button>` : ''}
-                            </div>
-                        </div>
-                    `;
-                }).join("");
-            } catch(err) {
-                lista.innerHTML = `<p class="text-xs text-gray-500">Erro ao carregar templates.</p>`;
+
+    const nomeElemento =
+        document.getElementById("lead-painel-nome");
+
+    const whatsappElemento =
+        document.getElementById("lead-painel-whatsapp");
+
+    const lista =
+        document.getElementById("template-lead-lista");
+
+    const modal =
+        document.getElementById("template-lead-modal");
+
+    const nomeDestino =
+        document.getElementById("template-lead-nome");
+
+    const whatsappStatus =
+        document.getElementById("template-lead-whatsapp-status");
+
+    const totalElemento =
+        document.getElementById("template-lead-total");
+
+    const nome =
+        String(
+            nomeElemento?.textContent || "Lead"
+        ).trim() || "Lead";
+
+    const whatsappOriginal =
+        String(
+            whatsappElemento?.value ||
+            whatsappElemento?.textContent ||
+            ""
+        ).trim();
+
+    const whatsappNumeros =
+        whatsappOriginal.replace(/\D/g, "");
+
+    const possuiWhatsApp =
+        whatsappNumeros.length >= 10;
+
+    const whatsappCompleto =
+        possuiWhatsApp
+            ? (
+                whatsappNumeros.startsWith("55")
+                    ? whatsappNumeros
+                    : `55${whatsappNumeros}`
+            )
+            : "";
+
+    if (nomeDestino) {
+        nomeDestino.textContent = nome;
+    }
+
+    if (whatsappStatus) {
+
+        whatsappStatus.textContent =
+            possuiWhatsApp
+                ? "WhatsApp disponível"
+                : "Sem WhatsApp";
+
+        whatsappStatus.classList.toggle(
+            "is-available",
+            possuiWhatsApp
+        );
+
+        whatsappStatus.classList.toggle(
+            "is-unavailable",
+            !possuiWhatsApp
+        );
+
+    }
+
+    if (totalElemento) {
+        totalElemento.textContent = "—";
+    }
+
+    lista.innerHTML = `
+        <div class="aura-template-lead-loading">
+
+            <span>
+
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+                </svg>
+
+            </span>
+
+            <strong>Carregando templates</strong>
+
+            <p>
+                Aguarde enquanto buscamos suas mensagens.
+            </p>
+
+        </div>
+    `;
+
+    modal?.classList.remove("hidden");
+
+    try {
+
+        const snap = await getDocs(
+            query(
+                collection(db, "templates"),
+                where("criadoPor", "==", usuarioUID)
+            )
+        );
+
+        if (snap.empty) {
+
+            if (totalElemento) {
+                totalElemento.textContent = "0";
             }
+
+            lista.innerHTML = `
+                <div class="aura-template-lead-empty">
+
+                    <span>
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                            <path d="M8 9h8"></path>
+                            <path d="M8 13h5"></path>
+                        </svg>
+
+                    </span>
+
+                    <strong>
+                        Nenhum template disponível
+                    </strong>
+
+                    <p>
+                        Crie uma mensagem na área Templates antes de utilizá-la em um atendimento.
+                    </p>
+
+                </div>
+            `;
+
+            return;
+
+        }
+
+        const templates = [];
+
+        snap.forEach(documento => {
+
+            const dados =
+                documento.data();
+
+            templates.push({
+                id: documento.id,
+                ...dados,
+                mensagemFinal: String(
+                    dados.mensagem || ""
+                ).replace(
+                    /\{nome\}/g,
+                    nome.toLowerCase() === "anônimo"
+                        ? ""
+                        : nome
+                )
+            });
+
+        });
+
+        templates.sort(
+            (a, b) =>
+                (b.criadoEm || 0) -
+                (a.criadoEm || 0)
+        );
+
+        window._templatesLeadDisponiveis =
+            templates;
+
+        if (totalElemento) {
+            totalElemento.textContent =
+                templates.length;
+        }
+
+        const categorias = {
+
+            geral: {
+                label: "Geral",
+                state: "general"
+            },
+
+            vendas: {
+                label: "Vendas",
+                state: "sales"
+            },
+
+            suporte: {
+                label: "Suporte",
+                state: "support"
+            },
+
+            followup: {
+                label: "Follow-up",
+                state: "followup"
+            },
+
+            cobranca: {
+                label: "Cobrança",
+                state: "billing"
+            }
+
         };
+
+        const escaparHTML = valor =>
+            String(valor || "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+
+        lista.innerHTML =
+            templates.map((template, indice) => {
+
+                const categoria =
+                    categorias[template.categoria] ||
+                    categorias.geral;
+
+                return `
+                    <div
+                        class="glass-card aura-template-lead-item"
+                        data-category="${categoria.state}"
+                    >
+
+                        <div class="aura-template-lead-item-top">
+
+                            <span class="aura-template-lead-item-icon">
+
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M4 5h16v12H8l-4 4V5Z"></path>
+                                    <path d="M8 9h8"></path>
+                                    <path d="M8 13h5"></path>
+                                </svg>
+
+                            </span>
+
+                            <span class="aura-template-lead-category">
+                                ${categoria.label}
+                            </span>
+
+                        </div>
+
+                        <div class="aura-template-lead-item-content">
+
+                            <h4>
+                                ${escaparHTML(
+                                    template.titulo ||
+                                    "Template sem título"
+                                )}
+                            </h4>
+
+                            <p>
+                                ${escaparHTML(
+                                    template.mensagemFinal
+                                )}
+                            </p>
+
+                        </div>
+
+                        <div class="aura-template-lead-item-actions">
+
+                            <button
+                                type="button"
+                                class="aura-template-lead-copy"
+                                data-template-index="${indice}"
+                            >
+
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="8" y="8" width="11" height="11" rx="2"></rect>
+                                    <path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"></path>
+                                </svg>
+
+                                Copiar
+
+                            </button>
+
+                            ${
+                                possuiWhatsApp
+                                    ? `
+                                        <button
+                                            type="button"
+                                            class="aura-template-lead-send"
+                                            data-template-index="${indice}"
+                                        >
+
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                <path d="M5 4h3l2 5-2 1.5a14 14 0 0 0 5.5 5.5L15 14l5 2v3c0 1.1-.9 2-2 2C9.7 21 3 14.3 3 6c0-1.1.9-2 2-2Z"></path>
+                                            </svg>
+
+                                            Enviar
+
+                                        </button>
+                                    `
+                                    : `
+                                        <span class="aura-template-lead-no-contact">
+                                            Cadastre o WhatsApp para enviar
+                                        </span>
+                                    `
+                            }
+
+                        </div>
+
+                    </div>
+                `;
+
+            }).join("");
+
+        lista
+            .querySelectorAll(
+                ".aura-template-lead-copy"
+            )
+            .forEach(botao => {
+
+                botao.addEventListener(
+                    "click",
+                    async () => {
+
+                        const indice =
+                            Number(
+                                botao.dataset.templateIndex
+                            );
+
+                        const template =
+                            window
+                                ._templatesLeadDisponiveis?.[
+                                    indice
+                                ];
+
+                        if (!template) return;
+
+                        try {
+
+                            await navigator.clipboard.writeText(
+                                template.mensagemFinal
+                            );
+
+                            showToast(
+                                "Template copiado!"
+                            );
+
+                        } catch (erro) {
+
+                            console.error(erro);
+
+                            showToast(
+                                "Não foi possível copiar.",
+                                "error"
+                            );
+
+                        }
+
+                    }
+                );
+
+            });
+
+        lista
+            .querySelectorAll(
+                ".aura-template-lead-send"
+            )
+            .forEach(botao => {
+
+                botao.addEventListener(
+                    "click",
+                    () => {
+
+                        const indice =
+                            Number(
+                                botao.dataset.templateIndex
+                            );
+
+                        const template =
+                            window
+                                ._templatesLeadDisponiveis?.[
+                                    indice
+                                ];
+
+                        if (
+                            !template ||
+                            !whatsappCompleto
+                        ) {
+                            return;
+                        }
+
+                        const url =
+                            `https://wa.me/${whatsappCompleto}?text=${
+                                encodeURIComponent(
+                                    template.mensagemFinal
+                                )
+                            }`;
+
+                        window.open(
+                            url,
+                            "_blank",
+                            "noopener,noreferrer"
+                        );
+
+                    }
+                );
+
+            });
+
+    } catch (erro) {
+
+        console.error(erro);
+
+        if (totalElemento) {
+            totalElemento.textContent = "—";
+        }
+
+        lista.innerHTML = `
+            <div class="aura-template-lead-error">
+
+                Não foi possível carregar os templates.
+
+            </div>
+        `;
+
+    }
+
+};
+
+window.fecharModalTemplatesLead = function() {
+
+    document
+        .getElementById("template-lead-modal")
+        ?.classList.add("hidden");
+
+    window._templatesLeadDisponiveis = [];
+
+};
         window.fecharPainelLead = function() {
             document.getElementById("lead-painel").classList.add("hidden");
             document.getElementById("lead-painel-overlay").classList.add("hidden");
