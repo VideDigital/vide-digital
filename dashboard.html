@@ -1,5 +1,3 @@
-
-
 <!DOCTYPE html>
 <html lang="pt-br" class="h-full bg-[#030712]">
 <head>
@@ -7017,6 +7015,478 @@ input:checked +
   }
 }
 
+
+/* =========================================================================
+   VIDE AURA OS — AUTOMATION BULK ACTIONS + RESULTS TABLE
+   ========================================================================= */
+
+.aura-bulk-actions,
+.aura-trash-actions{
+  padding:20px !important;
+  border-radius:24px !important;
+  overflow:visible !important;
+}
+
+.aura-bulk-actions:not(.hidden),
+.aura-trash-actions:not(.hidden){
+  display:block;
+}
+
+.aura-bulk-actions-header,
+.aura-trash-actions{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+
+.aura-bulk-selection,
+.aura-trash-actions-copy{
+  display:flex;
+  align-items:center;
+  gap:11px;
+}
+
+.aura-bulk-selection-icon,
+.aura-trash-actions-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  flex-shrink:0;
+  border-radius:12px;
+  color:var(--aura-accent);
+  border:1px solid color-mix(in srgb, var(--aura-accent) 25%, transparent);
+  background:color-mix(in srgb, var(--aura-accent) 9%, transparent);
+}
+
+.aura-trash-actions-icon{
+  color:#FB7185;
+  border-color:rgba(251,113,133,.22);
+  background:rgba(251,113,133,.08);
+}
+
+.aura-bulk-selection-icon svg,
+.aura-trash-actions-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-bulk-selection div,
+.aura-trash-actions-copy div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-bulk-selection small,
+.aura-trash-actions-copy small{
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+}
+
+.aura-bulk-selection strong,
+.aura-trash-actions-copy strong{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:11px;
+  font-weight:800;
+}
+
+.aura-bulk-hint{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:600;
+}
+
+.aura-bulk-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-bulk-control-wide{
+  grid-column:span 3;
+}
+
+.aura-bulk-control label{
+  display:block;
+  margin-bottom:6px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+
+.aura-bulk-control-row{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto;
+  gap:7px;
+}
+
+.aura-bulk-control-row .glass-input{
+  min-width:0;
+  min-height:42px;
+  font-size:10px !important;
+}
+
+.aura-bulk-control-row > button,
+.aura-bulk-secondary,
+.aura-bulk-warning,
+.aura-bulk-danger{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:42px;
+  padding:0 13px;
+  border-radius:12px;
+  font-size:8px;
+  font-weight:850;
+  letter-spacing:.05em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+
+.aura-bulk-control-row > button{
+  color:#fff;
+  background:linear-gradient(135deg,var(--aura-primary),var(--aura-accent));
+}
+
+.aura-bulk-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+  margin-top:18px;
+  padding-top:18px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-bulk-footer-group,
+.aura-trash-actions-buttons{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+}
+
+.aura-bulk-secondary{
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:color-mix(in srgb,var(--aura-surface-soft) 65%,transparent);
+}
+
+.aura-bulk-secondary:hover{
+  color:var(--aura-text);
+  border-color:var(--aura-border-strong);
+}
+
+.aura-bulk-warning{
+  color:#FBBF24;
+  border:1px solid rgba(251,191,36,.2);
+  background:rgba(251,191,36,.07);
+}
+
+.aura-bulk-danger{
+  color:#FB7185;
+  border:1px solid rgba(251,113,133,.22);
+  background:rgba(251,113,133,.08);
+}
+
+.aura-bulk-secondary svg{
+  width:14px;
+  height:14px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-trash-actions{
+  border-color:rgba(251,113,133,.2) !important;
+  background:linear-gradient(145deg,rgba(251,113,133,.07),color-mix(in srgb,var(--aura-surface-soft) 65%,transparent)) !important;
+}
+
+/* Results table */
+
+.aura-automation-table-card{
+  overflow:hidden;
+  border-radius:24px;
+  border:1px solid var(--aura-border);
+  background:linear-gradient(155deg,color-mix(in srgb,var(--aura-surface) 76%,transparent),color-mix(in srgb,var(--aura-surface-soft) 52%,transparent));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.04),0 20px 45px -38px rgba(0,0,0,.9);
+}
+
+.aura-automation-table-header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+  padding:18px 20px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-automation-table-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  border-radius:12px;
+  color:var(--aura-primary);
+  border:1px solid color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-automation-table-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-automation-table-badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 10px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:800;
+  letter-spacing:.07em;
+  text-transform:uppercase;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.025);
+}
+
+.aura-automation-table-scroll{
+  overflow-x:auto;
+}
+
+.aura-automation-table{
+  min-width:1180px;
+}
+
+.aura-automation-table thead th{
+  padding:14px 15px !important;
+}
+
+.aura-automation-table tbody td{
+  padding:14px 15px !important;
+  vertical-align:middle;
+}
+
+.aura-automation-select-column{
+  width:52px;
+  text-align:center;
+}
+
+.aura-table-checkbox{
+  display:inline-flex;
+  cursor:pointer;
+}
+
+.aura-table-checkbox input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-table-checkbox span{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:20px;
+  height:20px;
+  border-radius:7px;
+  color:transparent;
+  border:1px solid var(--aura-border-strong);
+  background:color-mix(in srgb,var(--aura-surface-soft) 74%,transparent);
+}
+
+.aura-table-checkbox span svg{
+  width:12px;
+  height:12px;
+  stroke-width:2.5;
+}
+
+.aura-table-checkbox input:checked + span{
+  color:#fff;
+  border-color:var(--aura-primary);
+  background:var(--aura-primary);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--aura-primary) 14%,transparent);
+}
+
+.aura-automation-row{
+  transition:background .22s ease,opacity .22s ease;
+}
+
+.aura-automation-row:hover{
+  background:rgba(255,255,255,.025);
+}
+
+.aura-automation-row-archived{
+  opacity:.55;
+}
+
+.aura-lead-person{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-width:190px;
+}
+
+.aura-lead-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  flex-shrink:0;
+  border-radius:11px;
+  color:var(--aura-primary);
+  font-size:11px;
+  font-weight:900;
+  border:1px solid color-mix(in srgb,var(--aura-primary) 20%,transparent);
+  background:color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-lead-person > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-lead-person strong{
+  color:var(--aura-text);
+  font-size:10px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.aura-lead-person small{
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+}
+
+.aura-lead-tag{
+  max-width:85px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  padding:4px 7px;
+  border-radius:7px;
+  color:#C084FC;
+  font-size:7px;
+  font-weight:800;
+  border:1px solid rgba(192,132,252,.16);
+  background:rgba(192,132,252,.07);
+}
+
+.aura-lead-email,
+.aura-lead-date{
+  color:var(--aura-text-muted);
+  font-size:9px;
+}
+
+.aura-lead-whatsapp{
+  color:#34D399;
+  font-size:9px;
+  font-weight:700;
+}
+
+.aura-lead-origin,
+.aura-lead-number,
+.aura-lead-time{
+  display:inline-flex;
+  align-items:center;
+  min-height:24px;
+  padding:0 8px;
+  border-radius:8px;
+  color:var(--aura-text-secondary);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.025);
+}
+
+.aura-lead-time{
+  color:#FBBF24;
+}
+
+.aura-lead-interest{
+  display:block;
+  max-width:160px;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  color:var(--aura-primary);
+  font-size:9px;
+  font-weight:700;
+}
+
+.aura-lead-status{
+  display:inline-flex;
+  align-items:center;
+  min-height:25px;
+  padding:0 9px;
+  border-radius:999px;
+  font-size:8px;
+  font-weight:850;
+  text-transform:capitalize;
+}
+
+.aura-lead-status-new{color:#60A5FA;background:rgba(96,165,250,.09);border:1px solid rgba(96,165,250,.18);}
+.aura-lead-status-contact{color:#FBBF24;background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.18);}
+.aura-lead-status-converted{color:#34D399;background:rgba(52,211,153,.08);border:1px solid rgba(52,211,153,.18);}
+.aura-lead-status-lost{color:#FB7185;background:rgba(251,113,133,.08);border:1px solid rgba(251,113,133,.18);}
+
+.aura-automation-empty-cell{
+  padding:52px !important;
+  text-align:center;
+  color:var(--aura-text-muted) !important;
+  font-size:10px !important;
+}
+
+.tema-claro .aura-automation-table-card{
+  background:linear-gradient(155deg,rgba(255,255,255,.97),rgba(248,250,252,.91));
+}
+
+@media (max-width:900px){
+  .aura-bulk-grid{grid-template-columns:repeat(2,minmax(0,1fr));}
+  .aura-bulk-control-wide{grid-column:span 2;}
+}
+
+@media (max-width:639px){
+  .aura-bulk-actions-header,
+  .aura-bulk-footer,
+  .aura-trash-actions{
+    align-items:stretch;
+    flex-direction:column;
+  }
+  .aura-bulk-grid{grid-template-columns:1fr;}
+  .aura-bulk-control-wide{grid-column:auto;}
+  .aura-bulk-footer-group,
+  .aura-trash-actions-buttons{width:100%;}
+  .aura-bulk-footer-group > button,
+  .aura-trash-actions-buttons > button{flex:1;}
+  .aura-automation-table-header{align-items:flex-start;flex-direction:column;}
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -10284,7 +10754,7 @@ input:checked +
                             </tr>
                         </thead>
                         <tbody id="leads-table-body" class="text-xs divide-y divide-white/5">
-                            <tr><td colspan="9" class="text-center p-12 text-gray-500">Nenhum lead ainda.</td></tr>
+                            <tr><td colspan="10" class="text-center p-12 text-gray-500">Nenhum lead ainda.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -10292,15 +10762,65 @@ input:checked +
         </section>
 
         <section id="view-automacao-leads" class="view-section space-y-6 max-w-6xl mx-auto">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Automação de Leads</h1>
-                <p class="text-gray-400 text-xs mt-1">Filtre e aplique ações em vários leads de uma vez só.</p>
+
+            <div class="aura-automation-header">
+                <div class="aura-automation-glow aura-automation-glow-primary"></div>
+                <div class="aura-automation-glow aura-automation-glow-accent"></div>
+
+                <div class="relative z-[2] flex flex-col xl:flex-row xl:items-center xl:justify-between gap-6">
+                    <div class="flex items-start gap-4">
+                        <div class="aura-automation-main-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path d="M13.2 2.8 5.5 13h6l-.7 8.2L18.5 11h-6l.7-8.2Z"></path>
+                            </svg>
+                        </div>
+
+                        <div>
+                            <div class="flex flex-wrap items-center gap-2">
+                                <p class="text-[10px] font-black uppercase tracking-[0.24em] text-gray-500">Aura Automation</p>
+                                <span class="aura-automation-live">Operação em massa</span>
+                            </div>
+                            <h1 class="text-2xl sm:text-3xl font-black text-white tracking-[-0.04em] mt-1">Automação de Leads</h1>
+                            <p class="text-gray-400 text-xs sm:text-sm mt-2 max-w-2xl leading-relaxed">Encontre grupos específicos de leads e execute ações em massa com mais velocidade e controle.</p>
+                        </div>
+                    </div>
+
+                    <div class="aura-automation-summary">
+                        <span class="aura-automation-summary-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path d="M4 6h16M7 12h10M10 18h4"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <small>Motor de segmentação</small>
+                            <strong>Filtros avançados</strong>
+                        </div>
+                    </div>
+                </div>
             </div>
 
 <div class="aura-automation-filter-card glass-card rounded-2xl p-5 space-y-4 layout-block"
      data-block-id="filtros-automacao-leads"
      data-block-nome="Filtros de Automação de Leads"
      data-layout-obrigatorio="true">
+
+                <div class="aura-automation-filter-header">
+                    <div class="flex items-center gap-3">
+                        <span class="aura-automation-filter-header-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path d="M4 5h16l-6 7v5l-4 2v-7L4 5Z"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Segmentação</p>
+                            <h3 class="text-sm font-black text-white mt-1">Localizar leads específicos</h3>
+                        </div>
+                    </div>
+                    <span class="aura-automation-filter-badge">10 critérios disponíveis</span>
+                </div>
+
+                <div class="aura-automation-divider"></div>
+
                 <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                     <div class="space-y-1">
                         <label class="text-[10px] font-bold text-gray-500 uppercase tracking-wider block">Data</label>
@@ -10457,75 +10977,170 @@ input:checked +
 
     </div>
 
-            <div id="auto-lead-barra-acoes" class="hidden glass-card rounded-2xl p-4 flex flex-wrap items-center gap-3 border border-[#00f2fe]/20 bg-[#00f2fe]/5">
-                <span class="text-xs font-bold text-[#00f2fe] w-full sm:w-auto"><span id="auto-lead-contador-selecionados">0</span> selecionado(s)</span>
-                <select id="auto-lead-novo-status" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <option value="novo">🔵 Novo</option>
-                    <option value="contato">🟡 Em Contato</option>
-                    <option value="convertido">🟢 Convertido</option>
-                    <option value="perdido">🔴 Perdido</option>
-                </select>
-                <button onclick="aplicarStatusEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Status</button>
+            <div id="auto-lead-barra-acoes" class="aura-bulk-actions hidden glass-card">
+                <div class="aura-bulk-actions-header">
+                    <div class="aura-bulk-selection">
+                        <span class="aura-bulk-selection-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path d="m5 12 4 4L19 6"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <small>Seleção ativa</small>
+                            <strong><span id="auto-lead-contador-selecionados">0</span> lead(s) selecionado(s)</strong>
+                        </div>
+                    </div>
+                    <span class="aura-bulk-hint">As ações abaixo serão aplicadas em massa</span>
+                </div>
 
-                <select id="auto-lead-nova-origem" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <option value="meta">Meta Ads</option>
-                    <option value="google">Google</option>
-                    <option value="tiktok">TikTok</option>
-                    <option value="instagram">Instagram</option>
-                    <option value="direto">Direto</option>
-                </select>
-                <button onclick="aplicarOrigemEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Origem</button>
+                <div class="aura-bulk-grid">
+                    <div class="aura-bulk-control">
+                        <label for="auto-lead-novo-status">Status</label>
+                        <div class="aura-bulk-control-row">
+                            <select id="auto-lead-novo-status" class="glass-input">
+                                <option value="novo">Novo</option>
+                                <option value="contato">Em contato</option>
+                                <option value="convertido">Convertido</option>
+                                <option value="perdido">Perdido</option>
+                            </select>
+                            <button type="button" onclick="aplicarStatusEmMassa()">Aplicar</button>
+                        </div>
+                    </div>
 
-                <input type="text" id="auto-lead-novo-interesse" placeholder="Novo interesse..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none w-32">
-                <button onclick="aplicarInteresseEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Interesse</button>
+                    <div class="aura-bulk-control">
+                        <label for="auto-lead-nova-origem">Origem</label>
+                        <div class="aura-bulk-control-row">
+                            <select id="auto-lead-nova-origem" class="glass-input">
+                                <option value="meta">Meta Ads</option>
+                                <option value="google">Google</option>
+                                <option value="tiktok">TikTok</option>
+                                <option value="instagram">Instagram</option>
+                                <option value="direto">Direto</option>
+                            </select>
+                            <button type="button" onclick="aplicarOrigemEmMassa()">Aplicar</button>
+                        </div>
+                    </div>
 
-                <select id="auto-lead-funcionario-atribuir" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                    <option value="">Ninguém</option>
-                </select>
-                <button onclick="aplicarFuncionarioEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Atribuir</button>
+                    <div class="aura-bulk-control">
+                        <label for="auto-lead-novo-interesse">Interesse</label>
+                        <div class="aura-bulk-control-row">
+                            <input type="text" id="auto-lead-novo-interesse" placeholder="Novo interesse..." class="glass-input">
+                            <button type="button" onclick="aplicarInteresseEmMassa()">Aplicar</button>
+                        </div>
+                    </div>
 
-                <input type="text" id="auto-lead-etiqueta-massa" placeholder="Etiqueta..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none w-28">
-                <button onclick="aplicarEtiquetaEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Etiquetar</button>
+                    <div class="aura-bulk-control">
+                        <label for="auto-lead-funcionario-atribuir">Responsável</label>
+                        <div class="aura-bulk-control-row">
+                            <select id="auto-lead-funcionario-atribuir" class="glass-input">
+                                <option value="">Ninguém</option>
+                            </select>
+                            <button type="button" onclick="aplicarFuncionarioEmMassa()">Atribuir</button>
+                        </div>
+                    </div>
 
-                <input type="date" id="auto-lead-lembrete-massa" class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none">
-                <button onclick="aplicarLembreteEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Lembrete</button>
+                    <div class="aura-bulk-control">
+                        <label for="auto-lead-etiqueta-massa">Etiqueta</label>
+                        <div class="aura-bulk-control-row">
+                            <input type="text" id="auto-lead-etiqueta-massa" placeholder="Etiqueta..." class="glass-input">
+                            <button type="button" onclick="aplicarEtiquetaEmMassa()">Adicionar</button>
+                        </div>
+                    </div>
 
-                <input type="text" id="auto-lead-anotacao-massa" placeholder="Anotação..." class="glass-input rounded-xl px-3 py-2 text-xs text-white outline-none flex-1 min-w-[140px]">
-                <button onclick="aplicarAnotacaoEmMassa()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">Anotar</button>
+                    <div class="aura-bulk-control">
+                        <label for="auto-lead-lembrete-massa">Lembrete</label>
+                        <div class="aura-bulk-control-row">
+                            <input type="date" id="auto-lead-lembrete-massa" class="glass-input">
+                            <button type="button" onclick="aplicarLembreteEmMassa()">Agendar</button>
+                        </div>
+                    </div>
 
-                <button onclick="copiarWhatsappsSelecionados()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">📋 Copiar WhatsApps</button>
-                <button onclick="exportarSelecionadosCSV()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">📥 Exportar</button>
-                <button onclick="desarquivarSelecionados()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">♻️ Desarquivar</button>
-                <button onclick="arquivarSelecionados()" class="bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗄️ Arquivar</button>
-                <button onclick="moverParaLixeiraSelecionados()" class="bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗑️ Lixeira</button>
+                    <div class="aura-bulk-control aura-bulk-control-wide">
+                        <label for="auto-lead-anotacao-massa">Anotação</label>
+                        <div class="aura-bulk-control-row">
+                            <input type="text" id="auto-lead-anotacao-massa" placeholder="Adicionar anotação aos selecionados..." class="glass-input">
+                            <button type="button" onclick="aplicarAnotacaoEmMassa()">Salvar</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="aura-bulk-footer">
+                    <div class="aura-bulk-footer-group">
+                        <button type="button" onclick="copiarWhatsappsSelecionados()" class="aura-bulk-secondary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="11" height="11" rx="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+                            Copiar WhatsApps
+                        </button>
+                        <button type="button" onclick="exportarSelecionadosCSV()" class="aura-bulk-secondary">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v12"></path><path d="m7 10 5 5 5-5"></path><path d="M5 21h14"></path></svg>
+                            Exportar CSV
+                        </button>
+                        <button type="button" onclick="desarquivarSelecionados()" class="aura-bulk-secondary">Desarquivar</button>
+                    </div>
+                    <div class="aura-bulk-footer-group">
+                        <button type="button" onclick="arquivarSelecionados()" class="aura-bulk-warning">Arquivar</button>
+                        <button type="button" onclick="moverParaLixeiraSelecionados()" class="aura-bulk-danger">Mover para lixeira</button>
+                    </div>
+                </div>
             </div>
 
-            <div id="auto-lead-barra-lixeira" class="hidden glass-card rounded-2xl p-4 flex flex-wrap items-center gap-3 border border-red-500/20 bg-red-500/5">
-                <span class="text-xs font-bold text-red-400"><span id="auto-lead-contador-lixeira">0</span> selecionado(s) na lixeira</span>
-                <button onclick="restaurarDaLixeira()" class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all">♻️ Restaurar</button>
-                <button onclick="excluirPermanentemente()" class="bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-red-400 text-xs font-bold px-4 py-2 rounded-xl transition-all">🗑️ Excluir Permanentemente</button>
+            <div id="auto-lead-barra-lixeira" class="aura-trash-actions hidden glass-card">
+                <div class="aura-trash-actions-copy">
+                    <span class="aura-trash-actions-icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 7h16"></path><path d="M9 7V4h6v3"></path><path d="m7 7 1 14h8l1-14"></path></svg>
+                    </span>
+                    <div>
+                        <small>Lixeira</small>
+                        <strong><span id="auto-lead-contador-lixeira">0</span> lead(s) selecionado(s)</strong>
+                    </div>
+                </div>
+                <div class="aura-trash-actions-buttons">
+                    <button type="button" onclick="restaurarDaLixeira()" class="aura-bulk-secondary">Restaurar</button>
+                    <button type="button" onclick="excluirPermanentemente()" class="aura-bulk-danger">Excluir permanentemente</button>
+                </div>
             </div>
-            <div class="glass-card rounded-xl overflow-hidden border border-white/5 layout-block"
+            <div class="aura-automation-table-card layout-block"
      data-block-id="tabela-automacao-leads"
      data-block-nome="Tabela de Automação de Leads"
      data-layout-obrigatorio="true">
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+
+                <div class="aura-automation-table-header">
+                    <div class="flex items-center gap-3">
+                        <span class="aura-automation-table-icon">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                                <path d="M4 5h16v14H4z"></path><path d="M4 10h16M9 10v9"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <p class="text-[9px] font-black uppercase tracking-[0.18em] text-gray-500">Resultados</p>
+                            <h3 class="text-sm font-black text-white mt-1">Leads encontrados</h3>
+                        </div>
+                    </div>
+                    <span class="aura-automation-table-badge">Seleção em massa disponível</span>
+                </div>
+
+                <div class="aura-automation-table-scroll">
+                    <table class="aura-automation-table w-full text-left border-collapse">
                         <thead>
-                            <tr class="border-b border-white/5 bg-white/[0.02] text-[10px] font-bold uppercase tracking-wider text-gray-400">
-                                <th class="p-4">👤 Nome</th>
-                                <th class="p-4">✉️ E-mail</th>
-                                <th class="p-4">🟢 WhatsApp</th>
-                                <th class="p-4">📍 Origem</th>
-                                <th class="p-4">🎯 Interesse</th>
-                                <th class="p-4">📊 Cliques</th>
-                                <th class="p-4">⏱️ Tempo</th>
-                                <th class="p-4">🏷️ Status</th>
-                                <th class="p-4">📅 Data</th>
+                            <tr>
+                                <th class="aura-automation-select-column">
+                                    <label class="aura-table-checkbox" title="Selecionar todos os leads visíveis">
+                                        <input type="checkbox" id="auto-lead-selecionar-todos">
+                                        <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 12 4 4L19 6"></path></svg></span>
+                                    </label>
+                                </th>
+                                <th>Nome</th>
+                                <th>E-mail</th>
+                                <th>WhatsApp</th>
+                                <th>Origem</th>
+                                <th>Interesse</th>
+                                <th class="text-center">Cliques</th>
+                                <th>Tempo</th>
+                                <th>Status</th>
+                                <th>Data</th>
                             </tr>
                         </thead>
-                        <tbody id="auto-lead-table-body" class="text-xs divide-y divide-white/5">
-                            <tr><td colspan="9" class="text-center p-12 text-gray-500">Use os filtros e clique em Filtrar.</td></tr>
+                        <tbody id="auto-lead-table-body" class="text-xs">
+                            <tr><td colspan="10" class="text-center p-12 text-gray-500">Use os filtros e clique em Filtrar.</td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -11674,53 +12289,132 @@ window.filtrarHubModulos = function(termo) {
 };
 
 function ativarAba(targetId) {
-            if (modoEdicaoLayoutAtivo) {
-                modoEdicaoLayoutAtivo = false;
-                document.querySelectorAll(".layout-block").forEach(el => {
-                    el.draggable = false;
-                    el.classList.remove("border-2", "border-dashed", "border-white/30");
-                    const controleAntigo = el.querySelector(".layout-block-controle");
-                    if (controleAntigo) controleAntigo.remove();
-                });
-                const btnEditar = document.getElementById("btn-editar-layout");
-                const btnSalvarAba = document.getElementById("btn-salvar-layout");
-                const btnRestaurarAba = document.getElementById("btn-restaurar-layout");
-                if (btnEditar) btnEditar.innerText = "✏️ Editar Layout desta Aba";
-                if (btnSalvarAba) btnSalvarAba.classList.add("hidden");
-                if (btnRestaurarAba) btnRestaurarAba.classList.add("hidden");
+    if (modoEdicaoLayoutAtivo) {
+        modoEdicaoLayoutAtivo = false;
+
+        document.querySelectorAll(".layout-block").forEach(el => {
+            el.draggable = false;
+            el.classList.remove(
+                "border-2",
+                "border-dashed",
+                "border-white/30"
+            );
+
+            const controleAntigo =
+                el.querySelector(".layout-block-controle");
+
+            if (controleAntigo) {
+                controleAntigo.remove();
             }
+        });
 
-            document.querySelectorAll("#sidebar-nav button").forEach(b => b.classList.remove("active"));
-            const botaoAlvo = document.querySelector(`#sidebar-nav button[data-target="${targetId}"]`);
-            if (botaoAlvo) botaoAlvo.classList.add("active");
+        const btnEditar =
+            document.getElementById("btn-editar-layout");
 
-            document.querySelectorAll(".view-section").forEach(section => {
-                section.classList.remove("active");
-                section.style.removeProperty("display");
-                section.style.removeProperty("visibility");
-                section.style.removeProperty("opacity");
-                section.style.removeProperty("min-height");
-            });
+        const btnSalvarAba =
+            document.getElementById("btn-salvar-layout");
 
-            const secaoAlvo = document.getElementById(targetId);
-            if (secaoAlvo) secaoAlvo.classList.add("active");
+        const btnRestaurarAba =
+            document.getElementById("btn-restaurar-layout");
 
-            aplicarLayoutSalvoDaAba(targetId);
+        if (btnEditar) {
+            btnEditar.innerText = "✏️ Editar Layout desta Aba";
+        }
 
-            localStorage.setItem("abaAtivaDashboard", targetId);
+        if (btnSalvarAba) {
+            btnSalvarAba.classList.add("hidden");
+        }
 
-            if (targetId === "view-metricas") carregarMetricas(obterFiltroSelecionado("filtro-metricas-dias", "filtro-metricas-de", "filtro-metricas-ate"));
-            if (targetId === "view-pedidos") carregarPedidos();
-            if (targetId === "view-leads") carregarLeads();
-            if (targetId === "view-templates") carregarTemplates();
-            if (targetId === "view-campanhas") { carregarCampanha(); carregarHistoricoCampanhas(obterFiltroSelecionado("filtro-campanha-dias", "filtro-campanha-de", "filtro-campanha-ate")); }
-            if (targetId === "view-notificacoes") carregarNotificacoes();
-            if (targetId === "view-funcionarios") carregarFuncionarios();
-            if (targetId === "view-automacao-leads") carregarAutomacaoLeads();
-            if (targetId === "view-personalizacao") carregarStatusPersonalizacao();
-            if (targetId === "view-guia") renderizarGuiaDoPlano();
-            if (targetId === "view-landing-pages") carregarLandingPages();
+        if (btnRestaurarAba) {
+            btnRestaurarAba.classList.add("hidden");
+        }
+    }
+
+    document
+        .querySelectorAll("#sidebar-nav button")
+        .forEach(button => button.classList.remove("active"));
+
+    const botaoAlvo = document.querySelector(
+        `#sidebar-nav button[data-target="${targetId}"]`
+    );
+
+    if (botaoAlvo) {
+        botaoAlvo.classList.add("active");
+    }
+
+    document
+        .querySelectorAll(".view-section")
+        .forEach(section => section.classList.remove("active"));
+
+    const secaoAlvo = document.getElementById(targetId);
+
+    if (!secaoAlvo) {
+        console.warn("Aba não encontrada:", targetId);
+        return;
+    }
+
+    secaoAlvo.classList.add("active");
+    aplicarLayoutSalvoDaAba(targetId);
+    localStorage.setItem("abaAtivaDashboard", targetId);
+
+    if (targetId === "view-metricas") {
+        carregarMetricas(
+            obterFiltroSelecionado(
+                "filtro-metricas-dias",
+                "filtro-metricas-de",
+                "filtro-metricas-ate"
+            )
+        );
+    }
+
+    if (targetId === "view-pedidos") {
+        carregarPedidos();
+    }
+
+    if (targetId === "view-leads") {
+        carregarLeads();
+    }
+
+    if (targetId === "view-templates") {
+        carregarTemplates();
+    }
+
+    if (targetId === "view-campanhas") {
+        carregarCampanha();
+        carregarHistoricoCampanhas(
+            obterFiltroSelecionado(
+                "filtro-campanha-dias",
+                "filtro-campanha-de",
+                "filtro-campanha-ate"
+            )
+        );
+    }
+
+    if (targetId === "view-notificacoes") {
+        carregarNotificacoes();
+    }
+
+    if (targetId === "view-funcionarios") {
+        carregarFuncionarios();
+    }
+
+    if (targetId === "view-automacao-leads") {
+        carregarAutomacaoLeads();
+    }
+
+    if (targetId === "view-personalizacao") {
+        carregarStatusPersonalizacao();
+    }
+
+    if (targetId === "view-guia") {
+        renderizarGuiaDoPlano();
+    }
+
+    if (targetId === "view-landing-pages") {
+        carregarLandingPages();
+    }
 }
+
 window.ativarAba = ativarAba;
 // =============================================
         // BLOQUEIO IMEDIATO DE PLANO (evita flash de conteúdo liberado)
@@ -16582,27 +17276,48 @@ window.editarTemplate = async function(id) {
 
         function renderizarTabelaAutomacaoLeads(lista) {
             const tbody = document.getElementById("auto-lead-table-body");
+            const selecionarTodos = document.getElementById("auto-lead-selecionar-todos");
+
+            if (selecionarTodos) selecionarTodos.checked = false;
+
             if (lista.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="9" class="text-center p-12 text-gray-500">${_modoLixeira ? "Lixeira vazia." : "Nenhum lead encontrado com esses filtros."}</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="10" class="aura-automation-empty-cell">${_modoLixeira ? "Lixeira vazia." : "Nenhum lead encontrado com esses filtros."}</td></tr>`;
                 return;
             }
+
             const statusClasses = {
-                novo: "bg-blue-500/10 text-blue-400",
-                contato: "bg-amber-500/10 text-amber-400",
-                convertido: "bg-emerald-500/10 text-emerald-400",
-                perdido: "bg-red-500/10 text-red-400"
+                novo: "aura-lead-status-new",
+                contato: "aura-lead-status-contact",
+                convertido: "aura-lead-status-converted",
+                perdido: "aura-lead-status-lost"
             };
+
             tbody.innerHTML = lista.map(l => `
-                <tr class="hover:bg-white/[0.02] transition-colors ${l.arquivado ? "opacity-50" : ""}">
-                    <td class="p-4"><input type="checkbox" class="auto-lead-checkbox accent-[#00f2fe]" data-id="${l.id}"></td>
-                    <td class="p-4 font-bold text-white">${l.nome || "Anônimo"}${l.etiqueta ? ` <span class="text-[9px] font-bold px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-400 ml-1">${l.etiqueta}</span>` : ""}${l.arquivado ? ' <span class="text-[9px] text-gray-500">(arquivado)</span>' : ""}</td>
-                    <td class="p-4 text-emerald-400">${l.whatsapp || "—"}</td>
-                    <td class="p-4"><span class="text-[10px] font-bold uppercase">${l.origem || "direto"}</span></td>
-                    <td class="p-4 text-[#00f2fe] max-w-[140px] truncate">${l.produtoInteresse || "—"}</td>
-                    <td class="p-4 text-center">${l.cliques || 0}</td>
-                    <td class="p-4 text-amber-400">${l.tempoRetencao || 0}s</td>
-                    <td class="p-4"><span class="text-[10px] font-bold px-2 py-1 rounded-md ${statusClasses[l.statusLead || "novo"]}">${l.statusLead || "novo"}</span></td>
-                    <td class="p-4 text-gray-500">${l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "—"}</td>
+                <tr class="aura-automation-row ${l.arquivado ? "aura-automation-row-archived" : ""}">
+                    <td class="aura-automation-select-column">
+                        <label class="aura-table-checkbox">
+                            <input type="checkbox" class="auto-lead-checkbox" data-id="${l.id}">
+                            <span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 12 4 4L19 6"></path></svg></span>
+                        </label>
+                    </td>
+                    <td>
+                        <div class="aura-lead-person">
+                            <span class="aura-lead-avatar">${(l.nome || "A").trim().charAt(0).toUpperCase()}</span>
+                            <div>
+                                <strong>${l.nome || "Anônimo"}</strong>
+                                <small>${l.arquivado ? "Arquivado" : "Lead ativo"}</small>
+                            </div>
+                            ${l.etiqueta ? `<span class="aura-lead-tag">${l.etiqueta}</span>` : ""}
+                        </div>
+                    </td>
+                    <td><span class="aura-lead-email">${l.email || "—"}</span></td>
+                    <td><span class="aura-lead-whatsapp">${l.whatsapp || "—"}</span></td>
+                    <td><span class="aura-lead-origin">${l.origem || "direto"}</span></td>
+                    <td><span class="aura-lead-interest" title="${l.produtoInteresse || ""}">${l.produtoInteresse || "—"}</span></td>
+                    <td class="text-center"><span class="aura-lead-number">${l.cliques || 0}</span></td>
+                    <td><span class="aura-lead-time">${l.tempoRetencao || 0}s</span></td>
+                    <td><span class="aura-lead-status ${statusClasses[l.statusLead || "novo"]}">${l.statusLead || "novo"}</span></td>
+                    <td><span class="aura-lead-date">${l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "—"}</span></td>
                 </tr>
             `).join("");
 
