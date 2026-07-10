@@ -9305,6 +9305,944 @@ textarea:focus{
   }
 }
 
+/* =========================================================================
+   VIDE AURA OS — NOTIFICATIONS COMMAND CENTER
+   ========================================================================= */
+
+#view-notificacoes{
+  width:100%;
+  max-width:1180px !important;
+}
+
+.aura-notifications-header{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:25px;
+  min-height:168px;
+  padding:29px 30px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      520px 220px at 92% 3%,
+      color-mix(in srgb,var(--aura-accent) 18%,transparent),
+      transparent 72%
+    ),
+    radial-gradient(
+      350px 190px at 70% 115%,
+      color-mix(in srgb,var(--aura-primary) 11%,transparent),
+      transparent 72%
+    ),
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface-strong) 84%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 68%,transparent)
+    );
+  box-shadow:
+    0 28px 65px -40px rgba(0,0,0,.82),
+    inset 0 1px 0 rgba(255,255,255,.045);
+}
+
+.aura-notifications-header::before{
+  content:"";
+  position:absolute;
+  top:-115px;
+  right:80px;
+  width:275px;
+  height:275px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 16%,transparent);
+  pointer-events:none;
+}
+
+.aura-notifications-header::after{
+  content:"";
+  position:absolute;
+  top:-55px;
+  right:135px;
+  width:165px;
+  height:165px;
+  border-radius:50%;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 11%,transparent);
+  pointer-events:none;
+}
+
+.aura-notifications-header-copy{
+  position:relative;
+  z-index:2;
+  max-width:650px;
+}
+
+.aura-notifications-kicker{
+  display:inline-flex;
+  align-items:center;
+  min-height:26px;
+  padding:0 11px;
+  margin-bottom:12px;
+  border-radius:999px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 26%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+  font-size:9px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.11em;
+  text-transform:uppercase;
+}
+
+.aura-notifications-header h1{
+  margin:0;
+  color:var(--aura-text);
+  font-size:clamp(27px,3vw,36px);
+  line-height:1.08;
+  font-weight:850;
+  letter-spacing:-.045em;
+}
+
+.aura-notifications-header p{
+  max-width:620px;
+  margin-top:11px;
+  color:var(--aura-text-muted);
+  font-size:12px;
+  line-height:1.7;
+}
+
+.aura-notifications-header-panel{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:13px;
+  min-width:290px;
+  padding:15px;
+  border:1px solid var(--aura-border);
+  border-radius:19px;
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 70%,transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.04),
+    0 15px 35px -28px rgba(0,0,0,.8);
+}
+
+.aura-notifications-header-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:46px;
+  height:46px;
+  min-width:46px;
+  border-radius:15px;
+  color:var(--aura-accent);
+  border:1px solid
+    color-mix(in srgb,var(--aura-accent) 25%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 9%,transparent);
+}
+
+.aura-notifications-header-icon svg{
+  width:21px;
+  height:21px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notifications-header-panel > div{
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-notifications-header-panel small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-notifications-header-panel strong{
+  margin-top:4px;
+  color:var(--aura-text-secondary);
+  font-size:11px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-notifications-header-panel > div > span{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  margin-top:8px;
+  color:#34D399;
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-notifications-header-panel i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.72);
+}
+
+.aura-notifications-summary{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:14px;
+}
+
+.aura-notifications-summary-card{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:14px;
+  min-height:112px;
+  padding:17px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:20px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface) 68%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 50%,transparent)
+    );
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.035);
+  transition:
+    transform .25s var(--rd-ease),
+    border-color .25s var(--rd-ease);
+}
+
+.aura-notifications-summary-card::after{
+  content:"";
+  position:absolute;
+  width:110px;
+  height:110px;
+  top:-75px;
+  right:-45px;
+  border-radius:50%;
+  background:
+    color-mix(in srgb,var(--aura-primary) 12%,transparent);
+  filter:blur(20px);
+  pointer-events:none;
+}
+
+.aura-notifications-summary-card:hover{
+  transform:translateY(-3px);
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 27%,transparent);
+}
+
+.aura-notifications-summary-icon{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:43px;
+  height:43px;
+  min-width:43px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-notifications-summary-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notifications-summary-card > div{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  min-width:0;
+}
+
+.aura-notifications-summary-card small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-notifications-summary-card strong{
+  margin-top:5px;
+  color:var(--aura-text);
+  font-family:'Sora',sans-serif;
+  font-size:25px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:-.04em;
+}
+
+.aura-notifications-summary-card > div > span{
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.35;
+  font-weight:600;
+}
+
+.aura-notifications-summary-unread .aura-notifications-summary-icon{
+  color:var(--aura-accent);
+  border-color:
+    color-mix(in srgb,var(--aura-accent) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-accent) 8%,transparent);
+}
+
+.aura-notifications-summary-unread::after{
+  background:
+    color-mix(in srgb,var(--aura-accent) 13%,transparent);
+}
+
+.aura-notifications-summary-read .aura-notifications-summary-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.18);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-notifications-summary-read::after{
+  background:rgba(52,211,153,.11);
+}
+
+.aura-notifications-feed{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:25px !important;
+}
+
+.aura-notifications-feed:hover{
+  transform:none !important;
+}
+
+.aura-notifications-feed-header{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+  padding-bottom:18px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-notifications-feed-title{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+
+.aura-notifications-feed-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  min-width:42px;
+  border-radius:14px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-notifications-feed-icon svg{
+  width:18px;
+  height:18px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notifications-feed-title > div{
+  display:flex;
+  flex-direction:column;
+}
+
+.aura-notifications-feed-title small{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-notifications-feed-title h3{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:14px;
+  line-height:1.25;
+  font-weight:800;
+}
+
+.aura-notifications-feed-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:30px;
+  padding:0 11px;
+  border-radius:999px;
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.aura-notifications-feed-status i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 10px rgba(52,211,153,.7);
+}
+
+.aura-notifications-list{
+  position:relative;
+  z-index:2;
+  display:flex;
+  flex-direction:column;
+  gap:11px;
+  min-height:230px;
+  padding-top:18px;
+}
+
+.aura-notification-item{
+  position:relative;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:start;
+  gap:15px;
+  padding:16px;
+  overflow:hidden;
+  border:1px solid var(--aura-border);
+  border-radius:18px;
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-surface) 62%,transparent),
+      color-mix(in srgb,var(--aura-surface-soft) 47%,transparent)
+    );
+  transition:
+    transform .25s var(--rd-ease),
+    border-color .25s var(--rd-ease),
+    background .25s var(--rd-ease),
+    opacity .25s ease;
+}
+
+.aura-notification-item::before{
+  content:"";
+  position:absolute;
+  top:13px;
+  bottom:13px;
+  left:0;
+  width:3px;
+  border-radius:0 3px 3px 0;
+  background:transparent;
+}
+
+.aura-notification-item.is-unread{
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    linear-gradient(
+      145deg,
+      color-mix(in srgb,var(--aura-primary) 7%,var(--aura-surface)),
+      color-mix(in srgb,var(--aura-surface-soft) 50%,transparent)
+    );
+}
+
+.aura-notification-item.is-unread::before{
+  background:
+    linear-gradient(
+      to bottom,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  box-shadow:
+    0 0 12px
+      color-mix(in srgb,var(--aura-primary) 65%,transparent);
+}
+
+.aura-notification-item.is-read{
+  opacity:.72;
+}
+
+.aura-notification-item:hover{
+  transform:translateY(-2px);
+  opacity:1;
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 31%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-surface-strong) 67%,transparent);
+}
+
+.aura-notification-media{
+  width:56px;
+  height:56px;
+  min-width:56px;
+  border-radius:16px;
+}
+
+.aura-notification-photo{
+  object-fit:cover;
+  border:1px solid var(--aura-border);
+}
+
+.aura-notification-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-notification-icon svg{
+  width:22px;
+  height:22px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notification-content{
+  min-width:0;
+}
+
+.aura-notification-title-row{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:9px;
+}
+
+.aura-notification-title-row h3{
+  min-width:0;
+  color:var(--aura-text);
+  font-size:14px;
+  line-height:1.35;
+  font-weight:800;
+}
+
+.aura-notification-new-badge,
+.aura-notification-read-badge{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:24px;
+  padding:0 9px;
+  border-radius:999px;
+  font-size:9px;
+  line-height:1;
+  font-weight:850;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+}
+
+.aura-notification-new-badge{
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 23%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-notification-new-badge i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:var(--aura-primary);
+  box-shadow:
+    0 0 10px
+      color-mix(in srgb,var(--aura-primary) 72%,transparent);
+}
+
+.aura-notification-read-badge{
+  color:#34D399;
+  border:1px solid rgba(52,211,153,.18);
+  background:rgba(52,211,153,.07);
+}
+
+.aura-notification-read-badge svg{
+  width:13px;
+  height:13px;
+  stroke-width:2.2;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notification-message{
+  margin-top:7px;
+  max-width:760px;
+  color:var(--aura-text-secondary);
+  font-size:12px;
+  line-height:1.65;
+  font-weight:500;
+  white-space:pre-line;
+}
+
+.aura-notification-footer{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:10px;
+  margin-top:12px;
+}
+
+.aura-notification-date{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  font-weight:650;
+}
+
+.aura-notification-date svg{
+  width:13px;
+  height:13px;
+  stroke-width:1.9;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notification-source{
+  display:inline-flex;
+  align-items:center;
+  min-height:23px;
+  padding:0 8px;
+  border-radius:999px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 60%,transparent);
+  font-size:9px;
+  font-weight:750;
+}
+
+.aura-notification-read-control{
+  position:relative;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  min-height:37px;
+  padding:0 8px 0 11px;
+  cursor:pointer;
+  border:1px solid var(--aura-border);
+  border-radius:13px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 62%,transparent);
+}
+
+.aura-notification-read-control > span:first-child{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:750;
+  white-space:nowrap;
+}
+
+.aura-notification-read-control input{
+  position:absolute;
+  opacity:0;
+  pointer-events:none;
+}
+
+.aura-notification-switch-track{
+  position:relative;
+  display:block;
+  width:39px;
+  height:23px;
+  min-width:39px;
+  padding:3px;
+  border-radius:999px;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.055);
+  transition:
+    background .22s var(--rd-ease),
+    border-color .22s var(--rd-ease);
+}
+
+.aura-notification-switch-track > span{
+  display:block;
+  width:15px;
+  height:15px;
+  border-radius:50%;
+  background:var(--aura-text-muted);
+  box-shadow:0 3px 8px rgba(0,0,0,.35);
+  transition:
+    transform .24s var(--rd-ease),
+    background .24s var(--rd-ease);
+}
+
+.aura-notification-read-control
+input:checked
++
+.aura-notification-switch-track{
+  border-color:rgba(52,211,153,.3);
+  background:
+    linear-gradient(
+      135deg,
+      #10B981,
+      #34D399
+    );
+}
+
+.aura-notification-read-control
+input:checked
++
+.aura-notification-switch-track
+>
+span{
+  transform:translateX(16px);
+  background:#fff;
+}
+
+.aura-notifications-loading,
+.aura-notifications-empty{
+  display:flex;
+  min-height:250px;
+  padding:35px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:20px;
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 40%,transparent);
+}
+
+.aura-notifications-loading-icon,
+.aura-notifications-empty-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:52px;
+  height:52px;
+  border-radius:17px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-notifications-loading-icon svg,
+.aura-notifications-empty-icon svg{
+  width:23px;
+  height:23px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+.aura-notifications-loading-icon svg{
+  animation:auraNotificationSpin 1s linear infinite;
+}
+
+.aura-notifications-loading strong,
+.aura-notifications-empty strong{
+  margin-top:15px;
+  color:var(--aura-text-secondary);
+  font-size:13px;
+  font-weight:800;
+}
+
+.aura-notifications-loading p,
+.aura-notifications-empty p{
+  max-width:390px;
+  margin-top:7px;
+  color:var(--aura-text-muted);
+  font-size:11px;
+  line-height:1.55;
+}
+
+.aura-notification-modal-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:44px;
+  height:44px;
+  min-width:44px;
+  border-radius:12px;
+  color:var(--aura-primary);
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 22%,transparent);
+  background:
+    color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-notification-modal-icon svg{
+  width:19px;
+  height:19px;
+  stroke-width:1.8;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+
+@keyframes auraNotificationSpin{
+  to{
+    transform:rotate(360deg);
+  }
+}
+
+/* Tema claro */
+
+.tema-claro .aura-notifications-header,
+.tema-claro .aura-notifications-summary-card,
+.tema-claro .aura-notifications-feed{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+.tema-claro .aura-notifications-kicker,
+.tema-claro .aura-notifications-header-icon,
+.tema-claro .aura-notifications-summary-icon,
+.tema-claro .aura-notifications-feed-icon,
+.tema-claro .aura-notification-icon,
+.tema-claro .aura-notification-new-badge,
+.tema-claro .aura-notification-modal-icon{
+  color:var(--aura-primary) !important;
+}
+
+.tema-claro .aura-notifications-kicker,
+.tema-claro .aura-notifications-header-icon,
+.tema-claro .aura-notifications-summary-unread .aura-notifications-summary-icon{
+  color:var(--aura-accent) !important;
+}
+
+.tema-claro .aura-notifications-summary-read .aura-notifications-summary-icon,
+.tema-claro .aura-notification-read-badge,
+.tema-claro .aura-notifications-feed-status,
+.tema-claro .aura-notifications-header-panel > div > span{
+  color:#059669 !important;
+}
+
+.tema-claro .aura-notification-item{
+  background:rgba(248,250,252,.72);
+}
+
+.tema-claro .aura-notification-item.is-unread{
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 5%,
+      white
+    );
+}
+
+.tema-claro .aura-notification-message{
+  color:#475569 !important;
+}
+
+.tema-claro .aura-notification-date,
+.tema-claro .aura-notification-source,
+.tema-claro .aura-notification-read-control > span:first-child{
+  color:#64748B !important;
+}
+
+/* Responsividade */
+
+@media (max-width:900px){
+  .aura-notifications-header{
+    align-items:flex-start;
+  }
+
+  .aura-notifications-header-panel{
+    min-width:250px;
+  }
+}
+
+@media (max-width:767px){
+  .aura-notifications-header{
+    flex-direction:column;
+    min-height:0;
+    padding:21px;
+    border-radius:22px;
+  }
+
+  .aura-notifications-header-panel{
+    width:100%;
+    min-width:0;
+  }
+
+  .aura-notifications-summary{
+    grid-template-columns:1fr;
+  }
+
+  .aura-notifications-feed{
+    padding:18px !important;
+    border-radius:22px !important;
+  }
+
+  .aura-notification-item{
+    grid-template-columns:auto minmax(0,1fr);
+  }
+
+  .aura-notification-read-control{
+    grid-column:1 / -1;
+    width:100%;
+    justify-content:space-between;
+  }
+}
+
+@media (max-width:520px){
+  .aura-notifications-feed-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-notification-item{
+    grid-template-columns:1fr;
+  }
+
+  .aura-notification-media{
+    width:50px;
+    height:50px;
+    min-width:50px;
+  }
+
+  .aura-notification-title-row{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-notification-read-control{
+    grid-column:auto;
+  }
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -12502,14 +13440,224 @@ textarea:focus{
 
         </section>
 
-        <section id="view-notificacoes" class="view-section space-y-6 max-w-3xl mx-auto">
-            <div class="border-b border-white/5 pb-6">
-                <h1 class="text-2xl font-black text-white tracking-tight">Notificações</h1>
-                <p class="text-gray-400 text-xs mt-1">Avisos e novidades da Vide Hub. Fica tudo salvo aqui pra você conferir quando puder.</p>
+<section id="view-notificacoes" class="view-section space-y-6 max-w-6xl mx-auto aura-notifications-view">
+
+            <div class="aura-notifications-header">
+
+                <div class="aura-notifications-header-copy">
+
+                    <span class="aura-notifications-kicker">
+                        Central de comunicação
+                    </span>
+
+                    <h1>Notificações</h1>
+
+                    <p>
+                        Acompanhe avisos, atualizações e novidades importantes enviadas pela equipe Vide Hub.
+                    </p>
+
+                </div>
+
+                <div class="aura-notifications-header-panel">
+
+                    <span class="aura-notifications-header-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                            <path d="M10 21h4"></path>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>Canal oficial</small>
+
+                        <strong>
+                            Avisos da Vide Hub
+                        </strong>
+
+                        <span>
+                            <i></i>
+                            Atualização automática
+                        </span>
+
+                    </div>
+
+                </div>
+
             </div>
-            <div id="lista-notificacoes-cliente" class="space-y-3">
-                <div class="text-center text-gray-500 text-xs p-12">Carregando...</div>
+
+            <div class="aura-notifications-summary">
+
+                <div class="aura-notifications-summary-card">
+
+                    <span class="aura-notifications-summary-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                            <path d="M10 21h4"></path>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>Total recebido</small>
+
+                        <strong id="notif-total-count">
+                            —
+                        </strong>
+
+                        <span>
+                            Todas as notificações
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="aura-notifications-summary-card aura-notifications-summary-unread">
+
+                    <span class="aura-notifications-summary-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <path d="M12 3a6 6 0 0 0-6 6c0 7-3 7-3 9h18c0-2-3-2-3-9"></path>
+                            <path d="M16 3h5v5"></path>
+                            <path d="m21 3-6 6"></path>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>Não lidas</small>
+
+                        <strong id="notif-unread-count">
+                            —
+                        </strong>
+
+                        <span>
+                            Aguardando sua leitura
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div class="aura-notifications-summary-card aura-notifications-summary-read">
+
+                    <span class="aura-notifications-summary-icon">
+
+                        <svg viewBox="0 0 24 24"
+                             fill="none"
+                             stroke="currentColor">
+
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="m8 12 2.5 2.5L16 9"></path>
+
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>Já visualizadas</small>
+
+                        <strong id="notif-read-count">
+                            —
+                        </strong>
+
+                        <span>
+                            Notificações lidas
+                        </span>
+
+                    </div>
+
+                </div>
+
             </div>
+
+            <div class="glass-card aura-notifications-feed">
+
+                <div class="aura-notifications-feed-header">
+
+                    <div class="aura-notifications-feed-title">
+
+                        <span class="aura-notifications-feed-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M4 6h16"></path>
+                                <path d="M4 12h16"></path>
+                                <path d="M4 18h10"></path>
+
+                            </svg>
+
+                        </span>
+
+                        <div>
+
+                            <small>Histórico de comunicação</small>
+                            <h3>Caixa de entrada</h3>
+
+                        </div>
+
+                    </div>
+
+                    <span class="aura-notifications-feed-status">
+
+                        <i></i>
+
+                        Sincronizada
+
+                    </span>
+
+                </div>
+
+                <div id="lista-notificacoes-cliente"
+                     class="aura-notifications-list">
+
+                    <div class="aura-notifications-loading">
+
+                        <span class="aura-notifications-loading-icon">
+
+                            <svg viewBox="0 0 24 24"
+                                 fill="none"
+                                 stroke="currentColor">
+
+                                <path d="M21 12a9 9 0 1 1-3-6.7"></path>
+
+                            </svg>
+
+                        </span>
+
+                        <strong>Carregando notificações</strong>
+
+                        <p>
+                            Aguarde enquanto atualizamos sua caixa de entrada.
+                        </p>
+
+                    </div>
+
+                </div>
+
+            </div>
+
         </section>
 
         <section id="view-personalizacao" class="view-section space-y-6 max-w-3xl mx-auto">
@@ -19336,47 +20484,222 @@ window.editarTemplate = async function(id) {
                 const box = document.getElementById("lista-notificacoes-cliente");
                 if (!box) return;
 
-                if (lista.length === 0) {
-                    box.innerHTML = `<div class="text-center text-gray-500 text-xs p-12 glass-card rounded-xl">Nenhuma notificação por aqui ainda.</div>`;
+if (lista.length === 0) {
+
+                    box.innerHTML = `
+                        <div class="aura-notifications-empty">
+
+                            <span class="aura-notifications-empty-icon">
+
+                                <svg viewBox="0 0 24 24"
+                                     fill="none"
+                                     stroke="currentColor">
+
+                                    <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                                    <path d="M10 21h4"></path>
+
+                                </svg>
+
+                            </span>
+
+                            <strong>
+                                Nenhuma notificação recebida
+                            </strong>
+
+                            <p>
+                                Quando houver um novo aviso da Vide Hub, ele aparecerá nesta área.
+                            </p>
+
+                        </div>
+                    `;
+
                     return;
                 }
 
                 box.innerHTML = lista.map(n => {
-                    const lida = (n.lidoPor || []).includes(usuarioUID);
+
+                    const lida =
+                        (n.lidoPor || []).includes(usuarioUID);
+
+                    const dataFormatada =
+                        n.criadoEm
+                            ? new Date(n.criadoEm).toLocaleString("pt-BR")
+                            : "Data não informada";
+
                     return `
-                        <div class="glass-card rounded-xl p-4 flex gap-3 items-start ${lida ? "opacity-60" : ""}">
-                            ${n.foto ? `<img src="${n.foto}" class="h-14 w-14 rounded-lg object-cover shrink-0 border border-white/10">` : `<div class="h-14 w-14 rounded-lg bg-white/5 border border-white/10 shrink-0 flex items-center justify-center text-lg">🔔</div>`}
-                            <div class="flex-1 min-w-0">
-                                <div class="flex items-center gap-2">
-                                    <p class="text-sm font-bold text-white">${n.titulo}</p>
-                                    ${!lida ? `<span class="h-1.5 w-1.5 rounded-full bg-[#00f2fe] shrink-0"></span>` : ""}
+                        <div class="aura-notification-item ${lida ? "is-read" : "is-unread"}">
+
+                            ${
+                                n.foto
+                                    ? `
+                                        <img
+                                            src="${n.foto}"
+                                            alt=""
+                                            class="aura-notification-media aura-notification-photo"
+                                        >
+                                    `
+                                    : `
+                                        <div class="aura-notification-media aura-notification-icon">
+
+                                            <svg viewBox="0 0 24 24"
+                                                 fill="none"
+                                                 stroke="currentColor">
+
+                                                <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                                                <path d="M10 21h4"></path>
+
+                                            </svg>
+
+                                        </div>
+                                    `
+                            }
+
+                            <div class="aura-notification-content">
+
+                                <div class="aura-notification-title-row">
+
+                                    <h3>
+                                        ${n.titulo}
+                                    </h3>
+
+                                    ${
+                                        !lida
+                                            ? `
+                                                <span class="aura-notification-new-badge">
+
+                                                    <i></i>
+
+                                                    Nova
+
+                                                </span>
+                                            `
+                                            : `
+                                                <span class="aura-notification-read-badge">
+
+                                                    <svg viewBox="0 0 24 24"
+                                                         fill="none"
+                                                         stroke="currentColor">
+
+                                                        <path d="m7 12 3 3 7-7"></path>
+
+                                                    </svg>
+
+                                                    Lida
+
+                                                </span>
+                                            `
+                                    }
+
                                 </div>
-                                <p class="text-xs text-gray-400 mt-1 leading-relaxed">${n.mensagem}</p>
-                                <p class="text-[10px] text-gray-600 mt-2">${n.criadoEm ? new Date(n.criadoEm).toLocaleString("pt-BR") : "—"}</p>
+
+                                <p class="aura-notification-message">
+                                    ${n.mensagem}
+                                </p>
+
+                                <div class="aura-notification-footer">
+
+                                    <span class="aura-notification-date">
+
+                                        <svg viewBox="0 0 24 24"
+                                             fill="none"
+                                             stroke="currentColor">
+
+                                            <circle cx="12" cy="12" r="9"></circle>
+                                            <path d="M12 7v5l3 2"></path>
+
+                                        </svg>
+
+                                        ${dataFormatada}
+
+                                    </span>
+
+                                    <span class="aura-notification-source">
+                                        Vide Hub
+                                    </span>
+
+                                </div>
+
                             </div>
-                            <label class="flex items-center gap-1.5 shrink-0 cursor-pointer text-[10px] text-gray-400">
-                                <input type="checkbox" ${lida ? "checked" : ""} onchange="marcarNotificacaoLida('${n.id}', this.checked)" class="accent-[#00f2fe]">
-                                Lida
+
+                            <label class="aura-notification-read-control">
+
+                                <span>
+                                    Marcar como lida
+                                </span>
+
+                                <input
+                                    type="checkbox"
+                                    ${lida ? "checked" : ""}
+                                    onchange="marcarNotificacaoLida('${n.id}', this.checked)"
+                                >
+
+                                <span class="aura-notification-switch-track">
+                                    <span></span>
+                                </span>
+
                             </label>
+
                         </div>
                     `;
+
                 }).join("");
             } catch (err) {
                 console.error("Erro notificações:", err);
             }
         }
 
-        function atualizarBadgeNotificacoes() {
-            const naoLidas = _cacheNotificacoes.filter(n => !(n.lidoPor || []).includes(usuarioUID)).length;
-            const badge = document.getElementById("badge-notif-count");
+function atualizarBadgeNotificacoes() {
+
+            const total =
+                _cacheNotificacoes.length;
+
+            const naoLidas =
+                _cacheNotificacoes.filter(n =>
+                    !(n.lidoPor || []).includes(usuarioUID)
+                ).length;
+
+            const lidas =
+                total - naoLidas;
+
+            const totalElemento =
+                document.getElementById("notif-total-count");
+
+            const naoLidasElemento =
+                document.getElementById("notif-unread-count");
+
+            const lidasElemento =
+                document.getElementById("notif-read-count");
+
+            if (totalElemento) {
+                totalElemento.innerText = total;
+            }
+
+            if (naoLidasElemento) {
+                naoLidasElemento.innerText = naoLidas;
+            }
+
+            if (lidasElemento) {
+                lidasElemento.innerText = lidas;
+            }
+
+            const badge =
+                document.getElementById("badge-notif-count");
+
             if (!badge) return;
+
             if (naoLidas > 0) {
-                badge.innerText = naoLidas > 99 ? "99+" : naoLidas;
+
+                badge.innerText =
+                    naoLidas > 99 ? "99+" : naoLidas;
+
                 badge.classList.remove("hidden");
                 badge.classList.add("flex");
+
             } else {
+
                 badge.classList.add("hidden");
                 badge.classList.remove("flex");
+
             }
         }
 
@@ -19514,7 +20837,14 @@ window.editarTemplate = async function(id) {
                 const lida = (n.lidoPor || []).includes(usuarioUID);
                 return `
                     <button onclick="abrirDetalheNotifModal('${n.id}')" class="w-full text-left flex gap-3 items-start p-3 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/[0.03] transition-all ${lida ? "opacity-60" : ""}">
-                        ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink-0 border border-white/10">` : `<div class="h-11 w-11 rounded-lg bg-white/5 border border-white/10 shrink-0 flex items-center justify-center text-sm">🔔</div>`}
+${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink-0 border border-white/10">` : `
+                            <div class="aura-notification-modal-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
+                                    <path d="M10 21h4"></path>
+                                </svg>
+                            </div>
+                        `}
                         <div class="flex-1 min-w-0">
                             <div class="flex items-center gap-2">
                                 <p class="text-xs font-bold text-white truncate">${n.titulo}</p>
