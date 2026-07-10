@@ -22186,6 +22186,364 @@ body.aura-command-open{
 
 }
 
+/* =========================================================
+   PEDIDOS — TABELA E FLUXO KANBAN
+   ========================================================= */
+
+.aura-orders-view-controls{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.aura-orders-view-switch{
+  display:flex;
+  padding:4px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 62%,
+      transparent
+    );
+}
+
+.aura-orders-view-button{
+  min-height:29px;
+  padding:0 11px;
+  border-radius:8px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-orders-view-button.is-active{
+  color:#fff;
+  background:
+    linear-gradient(
+      135deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+}
+
+.aura-orders-flow{
+  display:grid;
+  grid-template-columns:
+    repeat(
+      4,
+      minmax(260px,1fr)
+    );
+  gap:11px;
+  padding:17px;
+  overflow-x:auto;
+}
+
+.aura-orders-flow.hidden{
+  display:none !important;
+}
+
+.aura-order-flow-column{
+  min-height:480px;
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:17px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 46%,
+      transparent
+    );
+}
+
+.aura-order-flow-column.is-drag-over{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 48%,
+      transparent
+    );
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      var(--aura-surface-soft)
+    );
+}
+
+.aura-order-flow-column > header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.aura-order-flow-column > header > div{
+  display:flex;
+  align-items:center;
+  gap:8px;
+}
+
+.aura-order-flow-column > header > div > span{
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  background:#FBBF24;
+  box-shadow:0 0 9px rgba(251,191,36,.55);
+}
+
+.aura-order-flow-column[data-flow-status="confirmado"]
+> header > div > span{
+  background:#60A5FA;
+  box-shadow:0 0 9px rgba(96,165,250,.55);
+}
+
+.aura-order-flow-column[data-flow-status="pago"]
+> header > div > span{
+  background:#34D399;
+  box-shadow:0 0 9px rgba(52,211,153,.55);
+}
+
+.aura-order-flow-column[data-flow-status="cancelado"]
+> header > div > span{
+  background:#F87171;
+  box-shadow:0 0 9px rgba(248,113,113,.55);
+}
+
+.aura-order-flow-column header strong{
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:850;
+}
+
+.aura-order-flow-column header small{
+  display:block;
+  margin-top:3px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-order-flow-column header b{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-width:27px;
+  height:24px;
+  border:1px solid var(--aura-border);
+  border-radius:999px;
+  color:var(--aura-text-secondary);
+  font-size:8px;
+}
+
+.aura-order-flow-total{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  margin-top:11px;
+  padding:9px;
+  border:1px solid var(--aura-border);
+  border-radius:10px;
+  background:rgba(255,255,255,.025);
+}
+
+.aura-order-flow-total span{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  text-transform:uppercase;
+}
+
+.aura-order-flow-total strong{
+  color:var(--aura-text);
+  font-size:9px;
+}
+
+.aura-order-flow-list{
+  display:flex;
+  min-height:360px;
+  margin-top:9px;
+  flex-direction:column;
+  gap:8px;
+}
+
+.aura-order-flow-card{
+  padding:12px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-strong) 58%,
+      transparent
+    );
+  cursor:grab;
+  user-select:none;
+}
+
+.aura-order-flow-card:hover{
+  border-color:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 31%,
+      transparent
+    );
+  transform:translateY(-2px);
+}
+
+.aura-order-flow-card.is-dragging{
+  opacity:.4;
+  transform:rotate(2deg);
+}
+
+.aura-order-flow-card-top,
+.aura-order-flow-footer{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.aura-order-flow-avatar{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px;
+  height:32px;
+  border-radius:10px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+  font-size:9px;
+  font-weight:850;
+}
+
+.aura-order-flow-value{
+  color:#34D399;
+  font-size:9px;
+  font-weight:850;
+}
+
+.aura-order-flow-content{
+  display:flex;
+  margin-top:11px;
+  flex-direction:column;
+}
+
+.aura-order-flow-content strong{
+  overflow:hidden;
+  color:var(--aura-text);
+  font-size:10px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-order-flow-content span{
+  margin-top:4px;
+  overflow:hidden;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.aura-order-flow-note{
+  margin-top:10px;
+  padding:8px;
+  border-radius:9px;
+  color:var(--aura-text-muted) !important;
+  background:rgba(255,255,255,.025);
+  font-size:7px !important;
+  line-height:1.45;
+}
+
+.aura-order-flow-footer{
+  margin-top:10px;
+  padding-top:10px;
+  border-top:1px solid var(--aura-border);
+}
+
+.aura-order-flow-footer > span{
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-order-flow-footer select{
+  width:105px;
+  min-height:29px !important;
+  padding:0 23px 0 8px !important;
+  border-radius:8px !important;
+  font-size:7px !important;
+}
+
+.aura-order-flow-footer button{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:29px;
+  height:29px;
+  border:1px solid rgba(248,113,113,.18);
+  border-radius:8px;
+  color:#F87171;
+  background:rgba(248,113,113,.06);
+}
+
+.aura-order-flow-footer button svg{
+  width:13px;
+  height:13px;
+  stroke-width:1.9;
+}
+
+.aura-order-flow-empty{
+  display:flex;
+  min-height:105px;
+  padding:15px;
+  align-items:center;
+  justify-content:center;
+  border:1px dashed var(--aura-border-strong);
+  border-radius:12px;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  text-align:center;
+}
+
+.tema-claro .aura-order-flow-column,
+.tema-claro .aura-order-flow-card{
+  background:rgba(248,250,252,.82);
+}
+
+@media (max-width:639px){
+
+  .aura-orders-view-controls{
+    width:100%;
+    align-items:stretch;
+    flex-direction:column;
+  }
+
+  .aura-orders-view-switch{
+    width:100%;
+  }
+
+  .aura-orders-view-button{
+    flex:1;
+  }
+
+  .aura-orders-flow{
+    grid-template-columns:
+      repeat(
+        4,
+        minmax(82vw,82vw)
+      );
+    padding:13px;
+  }
+
+}
+
 /* Respect motion preferences */
 
 @media (prefers-reduced-motion:reduce){
@@ -25189,7 +25547,112 @@ body.aura-command-open{
 
             </div>
 
-            <div class="glass-card rounded-xl overflow-hidden layout-block" data-block-id="tabela-pedidos" data-block-nome="Tabela de Pedidos">
+            <div
+                class="aura-orders-table-card layout-block"
+                data-block-id="tabela-pedidos"
+                data-block-nome="Pedidos"
+            >
+
+                <div class="aura-orders-table-header">
+
+                    <div class="flex items-center gap-3">
+
+                        <span class="aura-orders-table-header-icon">
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M6 4h12v17H6z"></path>
+                                <path d="M9 9h6M9 13h6M9 17h4"></path>
+                            </svg>
+
+                        </span>
+
+                        <div>
+
+                            <small class="text-[8px] font-black uppercase tracking-[0.14em] text-gray-500">
+                                Gestão comercial
+                            </small>
+
+                            <h3 class="text-sm font-black text-white mt-1">
+                                Pedidos do período
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                    <div class="aura-orders-view-controls">
+
+                        <div class="aura-orders-view-switch">
+
+                            <button
+                                type="button"
+                                id="btn-pedidos-table-view"
+                                class="aura-orders-view-button is-active"
+                                onclick="alternarVisualPedidos('tabela')"
+                            >
+                                Tabela
+                            </button>
+
+                            <button
+                                type="button"
+                                id="btn-pedidos-flow-view"
+                                class="aura-orders-view-button"
+                                onclick="alternarVisualPedidos('fluxo')"
+                            >
+                                Fluxo
+                            </button>
+
+                        </div>
+
+                        <span class="aura-orders-table-header-badge">
+                            Atualização instantânea
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div
+                    id="pedidos-table-view"
+                    class="aura-orders-table-scroll"
+                >
+
+                    <table class="aura-orders-table">
+
+                        <thead>
+
+                            <tr>
+                                <th>Cliente</th>
+                                <th>Produto</th>
+                                <th>Valor</th>
+                                <th>Status</th>
+                                <th>Data</th>
+                                <th>Observação</th>
+                                <th class="text-right">Ações</th>
+                            </tr>
+
+                        </thead>
+
+                        <tbody id="pedidos-table-body">
+
+                            <tr>
+                                <td colspan="7" class="text-center p-12 text-gray-500">
+                                    Carregando pedidos...
+                                </td>
+                            </tr>
+
+                        </tbody>
+
+                    </table>
+
+                </div>
+
+                <div
+                    id="pedidos-flow-view"
+                    class="hidden aura-orders-flow"
+                ></div>
+
+            </div>
 
         </section>
 <section id="view-metricas" class="view-section space-y-6 max-w-6xl mx-auto aura-metrics-view">
@@ -42348,6 +42811,19 @@ const status = payload.ativa
 
                 pedidos.sort((a, b) => (b.data || 0) - (a.data || 0));
 
+                window._pedidosVisiveis =
+                    pedidos;
+
+                renderizarFluxoPedidos();
+
+                alternarVisualPedidos(
+                    window._modoVisualPedidos ||
+                    localStorage.getItem(
+                        "visualPedidosPreferido"
+                    ) ||
+                    "tabela"
+                );
+
                 const statusMap = { aguardando: "bg-amber-500/10 text-amber-400", confirmado: "bg-blue-500/10 text-blue-400", pago: "bg-emerald-500/10 text-emerald-400", cancelado: "bg-red-500/10 text-red-400" };
                 const total = pedidos.length;
                 const aguardando = pedidos.filter(p => p.status === "aguardando").length;
@@ -42394,12 +42870,467 @@ const status = payload.ativa
             }
         }
 
-        window.atualizarStatusPedido = async function(pedidoId, novoStatus) {
+        /* =====================================================
+           FLUXO KANBAN DE PEDIDOS
+           ===================================================== */
+
+        window._pedidosVisiveis =
+            window._pedidosVisiveis || [];
+
+        window._modoVisualPedidos =
+            localStorage.getItem(
+                "visualPedidosPreferido"
+            ) || "tabela";
+
+        window.alternarVisualPedidos = function(modo) {
+
+            const modoFinal =
+                modo === "fluxo"
+                    ? "fluxo"
+                    : "tabela";
+
+            window._modoVisualPedidos =
+                modoFinal;
+
+            localStorage.setItem(
+                "visualPedidosPreferido",
+                modoFinal
+            );
+
+            document
+                .getElementById("pedidos-table-view")
+                ?.classList.toggle(
+                    "hidden",
+                    modoFinal !== "tabela"
+                );
+
+            document
+                .getElementById("pedidos-flow-view")
+                ?.classList.toggle(
+                    "hidden",
+                    modoFinal !== "fluxo"
+                );
+
+            document
+                .getElementById("btn-pedidos-table-view")
+                ?.classList.toggle(
+                    "is-active",
+                    modoFinal === "tabela"
+                );
+
+            document
+                .getElementById("btn-pedidos-flow-view")
+                ?.classList.toggle(
+                    "is-active",
+                    modoFinal === "fluxo"
+                );
+
+            if (modoFinal === "fluxo") {
+                renderizarFluxoPedidos();
+            }
+
+        };
+
+        function renderizarFluxoPedidos() {
+
+            const board =
+                document.getElementById(
+                    "pedidos-flow-view"
+                );
+
+            if (!board) return;
+
+            const pedidos =
+                Array.isArray(
+                    window._pedidosVisiveis
+                )
+                    ? window._pedidosVisiveis
+                    : [];
+
+            const escapar = valor =>
+                String(valor || "")
+                    .replace(/&/g, "&amp;")
+                    .replace(/</g, "&lt;")
+                    .replace(/>/g, "&gt;")
+                    .replace(/"/g, "&quot;")
+                    .replace(/'/g, "&#039;");
+
+            const formatarMoeda = valor =>
+                Number(valor || 0)
+                    .toLocaleString(
+                        "pt-BR",
+                        {
+                            style: "currency",
+                            currency: "BRL"
+                        }
+                    );
+
+            const colunas = [
+                {
+                    id: "aguardando",
+                    titulo: "Recebidos",
+                    descricao: "Aguardando análise"
+                },
+                {
+                    id: "confirmado",
+                    titulo: "Confirmados",
+                    descricao: "Pedido aprovado"
+                },
+                {
+                    id: "pago",
+                    titulo: "Pagos",
+                    descricao: "Pagamento concluído"
+                },
+                {
+                    id: "cancelado",
+                    titulo: "Cancelados",
+                    descricao: "Pedido encerrado"
+                }
+            ];
+
+            board.innerHTML =
+                colunas.map(coluna => {
+
+                    const pedidosColuna =
+                        pedidos.filter(
+                            pedido =>
+                                (
+                                    pedido.status ||
+                                    "aguardando"
+                                ) === coluna.id
+                        );
+
+                    const valorColuna =
+                        pedidosColuna.reduce(
+                            (total, pedido) =>
+                                total +
+                                Number(
+                                    pedido.valor || 0
+                                ),
+                            0
+                        );
+
+                    const cards =
+                        pedidosColuna.length
+                            ? pedidosColuna.map(pedido => {
+
+                                const data =
+                                    pedido.data
+                                        ? new Date(
+                                            Number(
+                                                pedido.data
+                                            )
+                                        ).toLocaleDateString(
+                                            "pt-BR"
+                                        )
+                                        : "Hoje";
+
+                                return `
+                                    <article
+                                        class="aura-order-flow-card"
+                                        data-status="${coluna.id}"
+                                        data-pedido-id="${escapar(pedido.id)}"
+                                        draggable="true"
+                                        ondragstart="iniciarArrastePedido(event, '${pedido.id}')"
+                                    >
+
+                                        <div class="aura-order-flow-card-top">
+
+                                            <span class="aura-order-flow-avatar">
+                                                ${escapar(
+                                                    (
+                                                        pedido.cliente ||
+                                                        "C"
+                                                    )
+                                                    .charAt(0)
+                                                    .toUpperCase()
+                                                )}
+                                            </span>
+
+                                            <span class="aura-order-flow-value">
+                                                ${formatarMoeda(pedido.valor)}
+                                            </span>
+
+                                        </div>
+
+                                        <div class="aura-order-flow-content">
+
+                                            <strong>
+                                                ${escapar(
+                                                    pedido.cliente ||
+                                                    "Cliente não informado"
+                                                )}
+                                            </strong>
+
+                                            <span>
+                                                ${escapar(
+                                                    pedido.produtos ||
+                                                    "Produto não informado"
+                                                )}
+                                            </span>
+
+                                        </div>
+
+                                        <p class="aura-order-flow-note">
+                                            ${escapar(
+                                                pedido.obs ||
+                                                "Sem observações."
+                                            )}
+                                        </p>
+
+                                        <div class="aura-order-flow-footer">
+
+                                            <span>
+                                                ${data}
+                                            </span>
+
+                                            <select
+                                                onclick="event.stopPropagation()"
+                                                onchange="moverPedidoFluxo('${pedido.id}', this.value)"
+                                                aria-label="Alterar status do pedido"
+                                            >
+                                                <option value="aguardando" ${coluna.id === "aguardando" ? "selected" : ""}>
+                                                    Aguardando
+                                                </option>
+
+                                                <option value="confirmado" ${coluna.id === "confirmado" ? "selected" : ""}>
+                                                    Confirmado
+                                                </option>
+
+                                                <option value="pago" ${coluna.id === "pago" ? "selected" : ""}>
+                                                    Pago
+                                                </option>
+
+                                                <option value="cancelado" ${coluna.id === "cancelado" ? "selected" : ""}>
+                                                    Cancelado
+                                                </option>
+                                            </select>
+
+                                            <button
+                                                type="button"
+                                                onclick="event.stopPropagation(); excluirPedido('${pedido.id}')"
+                                                aria-label="Excluir pedido"
+                                            >
+
+                                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                                    <path d="M4 7h16"></path>
+                                                    <path d="M10 11v6"></path>
+                                                    <path d="M14 11v6"></path>
+                                                    <path d="m6 7 1 14h10l1-14"></path>
+                                                </svg>
+
+                                            </button>
+
+                                        </div>
+
+                                    </article>
+                                `;
+
+                            }).join("")
+                            : `
+                                <div class="aura-order-flow-empty">
+                                    Nenhum pedido nesta etapa.
+                                </div>
+                            `;
+
+                    return `
+                        <section
+                            class="aura-order-flow-column"
+                            data-flow-status="${coluna.id}"
+                            ondragover="permitirDropPedido(event, this)"
+                            ondragleave="this.classList.remove('is-drag-over')"
+                            ondrop="soltarPedidoFluxo(event, '${coluna.id}', this)"
+                        >
+
+                            <header>
+
+                                <div>
+
+                                    <span></span>
+
+                                    <div>
+                                        <strong>${coluna.titulo}</strong>
+                                        <small>${coluna.descricao}</small>
+                                    </div>
+
+                                </div>
+
+                                <b>${pedidosColuna.length}</b>
+
+                            </header>
+
+                            <div class="aura-order-flow-total">
+                                <span>Valor da etapa</span>
+                                <strong>${formatarMoeda(valorColuna)}</strong>
+                            </div>
+
+                            <div class="aura-order-flow-list">
+                                ${cards}
+                            </div>
+
+                        </section>
+                    `;
+
+                }).join("");
+
+        }
+
+        window.renderizarFluxoPedidos =
+            renderizarFluxoPedidos;
+
+        window.iniciarArrastePedido =
+        function(evento, pedidoId) {
+
+            evento.dataTransfer.setData(
+                "text/plain",
+                pedidoId
+            );
+
+            evento.dataTransfer.effectAllowed =
+                "move";
+
+            evento.currentTarget.classList.add(
+                "is-dragging"
+            );
+
+        };
+
+        window.permitirDropPedido =
+        function(evento, coluna) {
+
+            evento.preventDefault();
+
+            evento.dataTransfer.dropEffect =
+                "move";
+
+            coluna.classList.add(
+                "is-drag-over"
+            );
+
+        };
+
+        window.soltarPedidoFluxo =
+        function(evento, novoStatus, coluna) {
+
+            evento.preventDefault();
+
+            coluna.classList.remove(
+                "is-drag-over"
+            );
+
+            const pedidoId =
+                evento.dataTransfer.getData(
+                    "text/plain"
+                );
+
+            document
+                .querySelectorAll(
+                    ".aura-order-flow-card"
+                )
+                .forEach(card =>
+                    card.classList.remove(
+                        "is-dragging"
+                    )
+                );
+
+            if (pedidoId) {
+
+                moverPedidoFluxo(
+                    pedidoId,
+                    novoStatus
+                );
+
+            }
+
+        };
+
+        window.moverPedidoFluxo =
+        async function(
+            pedidoId,
+            novoStatus
+        ) {
+
+            const pedido =
+                window._pedidosVisiveis
+                    ?.find(
+                        item =>
+                            item.id === pedidoId
+                    );
+
+            const statusAnterior =
+                pedido?.status ||
+                "aguardando";
+
+            if (
+                pedido &&
+                statusAnterior === novoStatus
+            ) {
+                return;
+            }
+
+            if (pedido) {
+                pedido.status = novoStatus;
+                renderizarFluxoPedidos();
+            }
+
             try {
-                await setDoc(doc(db, "pedidos", pedidoId), { status: novoStatus }, { merge: true });
-                showToast("Status atualizado!");
-                carregarPedidos(obterFiltroSelecionado("filtro-pedido-dias", "filtro-pedido-de", "filtro-pedido-ate"));
-            } catch(err) { console.error(err); }
+
+                await setDoc(
+                    doc(
+                        db,
+                        "pedidos",
+                        pedidoId
+                    ),
+                    {
+                        status: novoStatus,
+                        statusAtualizadoEm:
+                            Date.now()
+                    },
+                    {
+                        merge: true
+                    }
+                );
+
+                showToast(
+                    "Status do pedido atualizado!"
+                );
+
+                carregarPedidos(
+                    obterFiltroSelecionado(
+                        "filtro-pedido-dias",
+                        "filtro-pedido-de",
+                        "filtro-pedido-ate"
+                    )
+                );
+
+            } catch (erro) {
+
+                console.error(erro);
+
+                if (pedido) {
+                    pedido.status =
+                        statusAnterior;
+
+                    renderizarFluxoPedidos();
+                }
+
+                showToast(
+                    "Não foi possível atualizar o pedido.",
+                    "error"
+                );
+
+            }
+
+        };
+
+        window.atualizarStatusPedido =
+        function(pedidoId, novoStatus) {
+
+            return moverPedidoFluxo(
+                pedidoId,
+                novoStatus
+            );
+
         };
 
         window.aplicarFiltroPedidos = async function() {
