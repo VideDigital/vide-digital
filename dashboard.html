@@ -9824,6 +9824,355 @@ textarea:focus{
   white-space:nowrap;
 }
 
+/* FUNIL COMERCIAL 360 */
+
+.aura-metrics-funnel-card{
+  padding:23px !important;
+  overflow:hidden !important;
+  border-radius:25px !important;
+}
+
+.aura-metrics-funnel-header{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:15px;
+  padding-bottom:17px;
+  border-bottom:1px solid var(--aura-border);
+}
+
+.aura-metrics-funnel-icon{
+  color:#A78BFA;
+  border-color:rgba(167,139,250,.2);
+  background:rgba(167,139,250,.08);
+}
+
+.aura-metrics-funnel-status{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:29px;
+  padding:0 10px;
+  border:1px solid rgba(52,211,153,.18);
+  border-radius:999px;
+  color:#34D399;
+  background:rgba(52,211,153,.07);
+  font-size:8px;
+  font-weight:800;
+  text-transform:uppercase;
+}
+
+.aura-metrics-funnel-status i{
+  width:6px;
+  height:6px;
+  border-radius:50%;
+  background:#34D399;
+  box-shadow:0 0 8px rgba(52,211,153,.65);
+}
+
+.aura-metrics-funnel-grid{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:9px;
+  margin-top:17px;
+}
+
+.aura-metrics-funnel-stage{
+  min-height:165px;
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.aura-metrics-funnel-number{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:29px;
+  height:29px;
+  border-radius:9px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+  font-family:'JetBrains Mono',monospace;
+  font-size:8px;
+  font-weight:850;
+}
+
+.aura-metrics-funnel-stage > small{
+  display:block;
+  margin-top:13px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  letter-spacing:.08em;
+  text-transform:uppercase;
+}
+
+.aura-metrics-funnel-stage > strong{
+  display:block;
+  margin-top:6px;
+  color:var(--aura-text);
+  font-size:24px;
+  line-height:1;
+  font-weight:850;
+}
+
+.aura-metrics-funnel-stage > p{
+  margin-top:5px;
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+}
+
+.aura-metrics-funnel-progress{
+  height:5px;
+  margin-top:13px;
+  overflow:hidden;
+  border-radius:999px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-text) 7%,
+      transparent
+    );
+}
+
+.aura-metrics-funnel-progress span{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:
+    linear-gradient(
+      90deg,
+      var(--aura-primary),
+      var(--aura-accent)
+    );
+  transition:width .65s var(--rd-ease);
+}
+
+.aura-metrics-funnel-stage > b{
+  display:block;
+  margin-top:8px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:700;
+}
+
+.aura-metrics-funnel-stage[data-stage="convertidos"]
+.aura-metrics-funnel-number{
+  color:#34D399;
+  background:rgba(52,211,153,.08);
+}
+
+.aura-metrics-funnel-stage[data-stage="pagos"]
+.aura-metrics-funnel-number{
+  color:#FBBF24;
+  background:rgba(251,191,36,.08);
+}
+
+.aura-metrics-commercial-summary{
+  position:relative;
+  z-index:2;
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:9px;
+  margin-top:11px;
+}
+
+.aura-metrics-commercial-summary > div{
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 48%,
+      transparent
+    );
+}
+
+.aura-metrics-commercial-summary small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-metrics-commercial-summary strong{
+  display:block;
+  margin-top:7px;
+  color:var(--aura-text);
+  font-size:16px;
+  font-weight:850;
+}
+
+.aura-metrics-commercial-summary span{
+  display:block;
+  margin-top:5px;
+  color:var(--aura-text-muted);
+  font-size:7px;
+}
+
+.aura-metrics-insight{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-top:11px;
+  padding:14px;
+  border:1px solid var(--aura-border);
+  border-radius:15px;
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-surface-soft) 52%,
+      transparent
+    );
+}
+
+.aura-metrics-insight-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:39px;
+  height:39px;
+  min-width:39px;
+  border-radius:12px;
+  color:var(--aura-primary);
+  background:
+    color-mix(
+      in srgb,
+      var(--aura-primary) 8%,
+      transparent
+    );
+}
+
+.aura-metrics-insight-icon svg{
+  width:17px;
+  height:17px;
+  stroke-width:1.8;
+}
+
+.aura-metrics-insight small{
+  color:var(--aura-text-muted);
+  font-size:7px;
+  font-weight:850;
+  text-transform:uppercase;
+}
+
+.aura-metrics-insight strong{
+  display:block;
+  margin-top:3px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+}
+
+.aura-metrics-insight p{
+  margin-top:4px;
+  color:var(--aura-text-muted) !important;
+  font-size:8px !important;
+  line-height:1.5;
+}
+
+.aura-metrics-insight[data-state="success"]{
+  border-color:rgba(52,211,153,.18);
+}
+
+.aura-metrics-insight[data-state="success"]
+.aura-metrics-insight-icon{
+  color:#34D399;
+  background:rgba(52,211,153,.08);
+}
+
+.aura-metrics-insight[data-state="warning"],
+.aura-metrics-insight[data-state="attention"]{
+  border-color:rgba(251,191,36,.18);
+}
+
+.aura-metrics-insight[data-state="warning"]
+.aura-metrics-insight-icon,
+.aura-metrics-insight[data-state="attention"]
+.aura-metrics-insight-icon{
+  color:#FBBF24;
+  background:rgba(251,191,36,.08);
+}
+
+.aura-metrics-insight[data-state="error"]{
+  border-color:rgba(248,113,113,.2);
+}
+
+.aura-metrics-insight[data-state="error"]
+.aura-metrics-insight-icon{
+  color:#F87171;
+  background:rgba(248,113,113,.08);
+}
+
+.tema-claro .aura-metrics-funnel-card{
+  background:
+    linear-gradient(
+      150deg,
+      rgba(255,255,255,.97),
+      rgba(248,250,252,.92)
+    ) !important;
+}
+
+@media (max-width:950px){
+
+  .aura-metrics-funnel-grid{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .aura-metrics-funnel-stage:last-child{
+    grid-column:1 / -1;
+  }
+
+}
+
+@media (max-width:700px){
+
+  .aura-metrics-funnel-header{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .aura-metrics-funnel-status{
+    width:100%;
+    justify-content:center;
+  }
+
+  .aura-metrics-commercial-summary{
+    grid-template-columns:1fr;
+  }
+
+}
+
+@media (max-width:520px){
+
+  .aura-metrics-funnel-grid{
+    grid-template-columns:1fr;
+  }
+
+  .aura-metrics-funnel-stage:last-child{
+    grid-column:auto;
+  }
+
+}
+
 /* Tema claro */
 
 .tema-claro .aura-metrics-header,
@@ -26371,6 +26720,321 @@ body.aura-command-open{
 
                     <div class="aura-metrics-kpi-line">
                         <span></span>
+                    </div>
+
+                </div>
+
+            </div>
+
+            <div
+                class="glass-card layout-block aura-metrics-funnel-card"
+                data-block-id="funil-comercial-metricas"
+                data-block-nome="Funil Comercial"
+            >
+
+                <div class="aura-metrics-funnel-header">
+
+                    <div class="aura-metrics-card-title">
+
+                        <span class="aura-metrics-card-icon aura-metrics-funnel-icon">
+
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M4 5h16"></path>
+                                <path d="M7 10h10"></path>
+                                <path d="M10 15h4"></path>
+                                <path d="M12 15v5"></path>
+                            </svg>
+
+                        </span>
+
+                        <div>
+
+                            <small>Jornada completa</small>
+
+                            <h3>
+                                Funil Comercial 360º
+                            </h3>
+
+                        </div>
+
+                    </div>
+
+                    <span class="aura-metrics-funnel-status">
+
+                        <i></i>
+
+                        Dados do período selecionado
+
+                    </span>
+
+                </div>
+
+                <div class="aura-metrics-funnel-grid">
+
+                    <div
+                        class="aura-metrics-funnel-stage"
+                        data-stage="sessoes"
+                    >
+
+                        <span class="aura-metrics-funnel-number">
+                            01
+                        </span>
+
+                        <small>
+                            Aquisição
+                        </small>
+
+                        <strong id="met-funil-sessoes">
+                            0
+                        </strong>
+
+                        <p>
+                            Sessões
+                        </p>
+
+                        <div class="aura-metrics-funnel-progress">
+
+                            <span
+                                id="met-funil-bar-sessoes"
+                                style="width:0%"
+                            ></span>
+
+                        </div>
+
+                        <b>
+                            Base do funil
+                        </b>
+
+                    </div>
+
+                    <div
+                        class="aura-metrics-funnel-stage"
+                        data-stage="cliques"
+                    >
+
+                        <span class="aura-metrics-funnel-number">
+                            02
+                        </span>
+
+                        <small>
+                            Interesse
+                        </small>
+
+                        <strong id="met-funil-cliques">
+                            0
+                        </strong>
+
+                        <p>
+                            Cliques
+                        </p>
+
+                        <div class="aura-metrics-funnel-progress">
+
+                            <span
+                                id="met-funil-bar-cliques"
+                                style="width:0%"
+                            ></span>
+
+                        </div>
+
+                        <b id="met-taxa-sessao-clique">
+                            0% das sessões
+                        </b>
+
+                    </div>
+
+                    <div
+                        class="aura-metrics-funnel-stage"
+                        data-stage="leads"
+                    >
+
+                        <span class="aura-metrics-funnel-number">
+                            03
+                        </span>
+
+                        <small>
+                            Captura
+                        </small>
+
+                        <strong id="met-funil-leads">
+                            0
+                        </strong>
+
+                        <p>
+                            Leads
+                        </p>
+
+                        <div class="aura-metrics-funnel-progress">
+
+                            <span
+                                id="met-funil-bar-leads"
+                                style="width:0%"
+                            ></span>
+
+                        </div>
+
+                        <b id="met-taxa-clique-lead">
+                            0% dos cliques
+                        </b>
+
+                    </div>
+
+                    <div
+                        class="aura-metrics-funnel-stage"
+                        data-stage="convertidos"
+                    >
+
+                        <span class="aura-metrics-funnel-number">
+                            04
+                        </span>
+
+                        <small>
+                            Conversão
+                        </small>
+
+                        <strong id="met-funil-convertidos">
+                            0
+                        </strong>
+
+                        <p>
+                            Convertidos
+                        </p>
+
+                        <div class="aura-metrics-funnel-progress">
+
+                            <span
+                                id="met-funil-bar-convertidos"
+                                style="width:0%"
+                            ></span>
+
+                        </div>
+
+                        <b id="met-taxa-lead-conversao">
+                            0% dos leads
+                        </b>
+
+                    </div>
+
+                    <div
+                        class="aura-metrics-funnel-stage"
+                        data-stage="pagos"
+                    >
+
+                        <span class="aura-metrics-funnel-number">
+                            05
+                        </span>
+
+                        <small>
+                            Receita
+                        </small>
+
+                        <strong id="met-funil-pagos">
+                            0
+                        </strong>
+
+                        <p>
+                            Pedidos pagos
+                        </p>
+
+                        <div class="aura-metrics-funnel-progress">
+
+                            <span
+                                id="met-funil-bar-pagos"
+                                style="width:0%"
+                            ></span>
+
+                        </div>
+
+                        <b id="met-taxa-conversao-pedido">
+                            0% dos convertidos
+                        </b>
+
+                    </div>
+
+                </div>
+
+                <div class="aura-metrics-commercial-summary">
+
+                    <div>
+
+                        <small>
+                            Receita confirmada
+                        </small>
+
+                        <strong id="met-receita-periodo">
+                            R$ 0,00
+                        </strong>
+
+                        <span>
+                            Pedidos pagos no período
+                        </span>
+
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Ticket médio
+                        </small>
+
+                        <strong id="met-ticket-medio">
+                            R$ 0,00
+                        </strong>
+
+                        <span>
+                            Valor médio por venda
+                        </span>
+
+                    </div>
+
+                    <div>
+
+                        <small>
+                            Principal origem
+                        </small>
+
+                        <strong id="met-origem-principal">
+                            Sem dados
+                        </strong>
+
+                        <span id="met-origem-principal-total">
+                            Nenhum lead identificado
+                        </span>
+
+                    </div>
+
+                </div>
+
+                <div
+                    class="aura-metrics-insight"
+                    id="met-insight-box"
+                    data-state="neutral"
+                >
+
+                    <span class="aura-metrics-insight-icon">
+
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M9 18h6"></path>
+                            <path d="M10 22h4"></path>
+                            <path d="M8 14a6 6 0 1 1 8 0c-1 .7-1 1.4-1 2H9c0-.6 0-1.3-1-2Z"></path>
+                        </svg>
+
+                    </span>
+
+                    <div>
+
+                        <small>
+                            Diagnóstico automático
+                        </small>
+
+                        <strong id="met-insight-title">
+                            Analisando seu funil
+                        </strong>
+
+                        <p id="met-insight-text">
+                            Aguarde enquanto os dados comerciais são processados.
+                        </p>
+
                     </div>
 
                 </div>
@@ -46437,6 +47101,670 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
         }
 
+        function obterTimestampMetrica(registro) {
+
+            const valores = [
+                registro?.data,
+                registro?.criadoEm,
+                registro?.timestamp,
+                registro?.createdAt
+            ];
+
+            for (const valorOriginal of valores) {
+
+                if (!valorOriginal) {
+                    continue;
+                }
+
+                if (
+                    typeof valorOriginal.toMillis ===
+                    "function"
+                ) {
+                    return valorOriginal.toMillis();
+                }
+
+                if (
+                    typeof valorOriginal.seconds ===
+                    "number"
+                ) {
+                    return valorOriginal.seconds * 1000;
+                }
+
+                if (
+                    typeof valorOriginal ===
+                    "number"
+                ) {
+                    return valorOriginal < 100000000000
+                        ? valorOriginal * 1000
+                        : valorOriginal;
+                }
+
+                const convertido =
+                    new Date(
+                        valorOriginal
+                    ).getTime();
+
+                if (!Number.isNaN(convertido)) {
+                    return convertido;
+                }
+
+            }
+
+            return 0;
+
+        }
+
+        function normalizarValorMetrica(valor) {
+
+            if (
+                typeof valor === "number"
+            ) {
+                return Number.isFinite(valor)
+                    ? valor
+                    : 0;
+            }
+
+            const texto =
+                String(valor || "")
+                    .trim();
+
+            if (!texto) {
+                return 0;
+            }
+
+            if (texto.includes(",")) {
+
+                return Number(
+                    texto
+                        .replace(/[^\d,.-]/g, "")
+                        .replace(/\./g, "")
+                        .replace(",", ".")
+                ) || 0;
+
+            }
+
+            return Number(
+                texto.replace(/[^\d.-]/g, "")
+            ) || 0;
+
+        }
+
+        async function carregarFunilComercialMetricas(
+            filtroDataDias,
+            trafego = {}
+        ) {
+
+            const definirTexto = (
+                id,
+                valor
+            ) => {
+
+                const elemento =
+                    document.getElementById(id);
+
+                if (elemento) {
+                    elemento.textContent = valor;
+                }
+
+            };
+
+            const definirBarra = (
+                id,
+                valor,
+                maiorValor
+            ) => {
+
+                const elemento =
+                    document.getElementById(id);
+
+                if (!elemento) {
+                    return;
+                }
+
+                const largura =
+                    valor > 0
+                        ? Math.max(
+                            6,
+                            Math.min(
+                                100,
+                                valor /
+                                maiorValor *
+                                100
+                            )
+                        )
+                        : 0;
+
+                elemento.style.width =
+                    `${largura}%`;
+
+            };
+
+            const formatarMoeda = valor =>
+                Number(valor || 0)
+                    .toLocaleString(
+                        "pt-BR",
+                        {
+                            style: "currency",
+                            currency: "BRL"
+                        }
+                    );
+
+            const formatarTaxa = (
+                origem,
+                destino
+            ) => {
+
+                if (!origem) {
+                    return 0;
+                }
+
+                return Number(
+                    (
+                        destino /
+                        origem *
+                        100
+                    ).toFixed(1)
+                );
+
+            };
+
+            try {
+
+                const intervalo =
+                    normalizarIntervalo(
+                        filtroDataDias
+                    );
+
+                const [
+                    leadsSnapshot,
+                    pedidosSnapshot
+                ] = await Promise.all([
+
+                    getDocs(
+                        query(
+                            collection(
+                                db,
+                                "leads"
+                            ),
+                            where(
+                                "criadoPor",
+                                "==",
+                                usuarioUID
+                            )
+                        )
+                    ),
+
+                    getDocs(
+                        query(
+                            collection(
+                                db,
+                                "pedidos"
+                            ),
+                            where(
+                                "criadoPor",
+                                "==",
+                                usuarioUID
+                            )
+                        )
+                    )
+
+                ]);
+
+                const leadsTodos = [];
+                const pedidosTodos = [];
+
+                leadsSnapshot.forEach(
+                    documento => {
+
+                        leadsTodos.push({
+                            id: documento.id,
+                            ...documento.data()
+                        });
+
+                    }
+                );
+
+                pedidosSnapshot.forEach(
+                    documento => {
+
+                        pedidosTodos.push({
+                            id: documento.id,
+                            ...documento.data()
+                        });
+
+                    }
+                );
+
+                const pertenceAoPeriodo =
+                    registro => {
+
+                        const timestamp =
+                            obterTimestampMetrica(
+                                registro
+                            );
+
+                        if (intervalo.todos) {
+                            return true;
+                        }
+
+                        if (!timestamp) {
+                            return false;
+                        }
+
+                        return (
+                            timestamp >=
+                                intervalo.inicio &&
+                            timestamp <=
+                                intervalo.fim
+                        );
+
+                    };
+
+                const leads =
+                    leadsTodos.filter(
+                        pertenceAoPeriodo
+                    );
+
+                const pedidos =
+                    pedidosTodos.filter(
+                        pertenceAoPeriodo
+                    );
+
+                const convertidos =
+                    leads.filter(
+                        lead =>
+                            String(
+                                lead.statusLead ||
+                                lead.status ||
+                                ""
+                            ).toLowerCase() ===
+                            "convertido"
+                    );
+
+                const pedidosPagos =
+                    pedidos.filter(
+                        pedido =>
+                            String(
+                                pedido.status ||
+                                ""
+                            ).toLowerCase() ===
+                            "pago"
+                    );
+
+                const receita =
+                    pedidosPagos.reduce(
+                        (total, pedido) =>
+                            total +
+                            normalizarValorMetrica(
+                                pedido.valor
+                            ),
+                        0
+                    );
+
+                const sessoes =
+                    Number(
+                        trafego.sessoes || 0
+                    );
+
+                const cliques =
+                    Number(
+                        trafego.cliques || 0
+                    );
+
+                const totalLeads =
+                    leads.length;
+
+                const totalConvertidos =
+                    convertidos.length;
+
+                const totalPagos =
+                    pedidosPagos.length;
+
+                const taxaSessaoClique =
+                    formatarTaxa(
+                        sessoes,
+                        cliques
+                    );
+
+                const taxaCliqueLead =
+                    formatarTaxa(
+                        cliques,
+                        totalLeads
+                    );
+
+                const taxaLeadConversao =
+                    formatarTaxa(
+                        totalLeads,
+                        totalConvertidos
+                    );
+
+                const taxaConversaoPedido =
+                    formatarTaxa(
+                        totalConvertidos,
+                        totalPagos
+                    );
+
+                const ticketMedio =
+                    totalPagos > 0
+                        ? receita /
+                          totalPagos
+                        : 0;
+
+                const origens = {};
+
+                leads.forEach(lead => {
+
+                    const origem =
+                        String(
+                            lead.origem ||
+                            lead.utm_source ||
+                            "Direto"
+                        ).trim() ||
+                        "Direto";
+
+                    origens[origem] =
+                        (
+                            origens[origem] ||
+                            0
+                        ) + 1;
+
+                });
+
+                const origemPrincipal =
+                    Object.entries(origens)
+                        .sort(
+                            (a, b) =>
+                                b[1] - a[1]
+                        )[0] || null;
+
+                definirTexto(
+                    "met-funil-sessoes",
+                    sessoes.toLocaleString(
+                        "pt-BR"
+                    )
+                );
+
+                definirTexto(
+                    "met-funil-cliques",
+                    cliques.toLocaleString(
+                        "pt-BR"
+                    )
+                );
+
+                definirTexto(
+                    "met-funil-leads",
+                    totalLeads.toLocaleString(
+                        "pt-BR"
+                    )
+                );
+
+                definirTexto(
+                    "met-funil-convertidos",
+                    totalConvertidos
+                        .toLocaleString(
+                            "pt-BR"
+                        )
+                );
+
+                definirTexto(
+                    "met-funil-pagos",
+                    totalPagos.toLocaleString(
+                        "pt-BR"
+                    )
+                );
+
+                definirTexto(
+                    "met-taxa-sessao-clique",
+                    `${taxaSessaoClique}% das sessões`
+                );
+
+                definirTexto(
+                    "met-taxa-clique-lead",
+                    `${taxaCliqueLead}% dos cliques`
+                );
+
+                definirTexto(
+                    "met-taxa-lead-conversao",
+                    `${taxaLeadConversao}% dos leads`
+                );
+
+                definirTexto(
+                    "met-taxa-conversao-pedido",
+                    `${taxaConversaoPedido}% dos convertidos`
+                );
+
+                definirTexto(
+                    "met-receita-periodo",
+                    formatarMoeda(receita)
+                );
+
+                definirTexto(
+                    "met-ticket-medio",
+                    formatarMoeda(ticketMedio)
+                );
+
+                definirTexto(
+                    "met-origem-principal",
+                    origemPrincipal
+                        ? origemPrincipal[0]
+                        : "Sem dados"
+                );
+
+                definirTexto(
+                    "met-origem-principal-total",
+                    origemPrincipal
+                        ? `${origemPrincipal[1]} lead(s) no período`
+                        : "Nenhum lead identificado"
+                );
+
+                const valoresFunil = [
+                    sessoes,
+                    cliques,
+                    totalLeads,
+                    totalConvertidos,
+                    totalPagos
+                ];
+
+                const maiorValor =
+                    Math.max(
+                        1,
+                        ...valoresFunil
+                    );
+
+                definirBarra(
+                    "met-funil-bar-sessoes",
+                    sessoes,
+                    maiorValor
+                );
+
+                definirBarra(
+                    "met-funil-bar-cliques",
+                    cliques,
+                    maiorValor
+                );
+
+                definirBarra(
+                    "met-funil-bar-leads",
+                    totalLeads,
+                    maiorValor
+                );
+
+                definirBarra(
+                    "met-funil-bar-convertidos",
+                    totalConvertidos,
+                    maiorValor
+                );
+
+                definirBarra(
+                    "met-funil-bar-pagos",
+                    totalPagos,
+                    maiorValor
+                );
+
+                let insightEstado =
+                    "neutral";
+
+                let insightTitulo =
+                    "Funil aguardando movimentação";
+
+                let insightTexto =
+                    "Assim que sua loja receber tráfego, o sistema identificará o principal ponto de melhoria.";
+
+                if (sessoes > 0) {
+
+                    if (
+                        taxaSessaoClique < 10
+                    ) {
+
+                        insightEstado =
+                            "warning";
+
+                        insightTitulo =
+                            "Poucos visitantes estão clicando";
+
+                        insightTexto =
+                            "Revise as imagens, preços, títulos e chamadas dos produtos para gerar mais interesse.";
+
+                    } else if (
+                        cliques > 0 &&
+                        taxaCliqueLead < 10
+                    ) {
+
+                        insightEstado =
+                            "warning";
+
+                        insightTitulo =
+                            "A captura de contatos pode melhorar";
+
+                        insightTexto =
+                            "Fortaleça os formulários, chamadas para WhatsApp e benefícios apresentados na vitrine.";
+
+                    } else if (
+                        totalLeads > 0 &&
+                        taxaLeadConversao < 20
+                    ) {
+
+                        insightEstado =
+                            "attention";
+
+                        insightTitulo =
+                            "Existem oportunidades sem conversão";
+
+                        insightTexto =
+                            "Use o Kanban, a Agenda e os fluxos de templates para acompanhar os leads com mais frequência.";
+
+                    } else if (
+                        totalConvertidos > 0 &&
+                        taxaConversaoPedido < 30
+                    ) {
+
+                        insightEstado =
+                            "attention";
+
+                        insightTitulo =
+                            "O fechamento dos pedidos pode avançar";
+
+                        insightTexto =
+                            "Confirme condições de pagamento e acompanhe os leads convertidos até o pedido ficar pago.";
+
+                    } else if (
+                        totalPagos > 0
+                    ) {
+
+                        insightEstado =
+                            "success";
+
+                        insightTitulo =
+                            "Seu funil está gerando receita";
+
+                        insightTexto =
+                            "Continue acompanhando as principais origens e os produtos com maior intenção de compra.";
+
+                    }
+
+                }
+
+                const insightBox =
+                    document.getElementById(
+                        "met-insight-box"
+                    );
+
+                if (insightBox) {
+
+                    insightBox.dataset.state =
+                        insightEstado;
+
+                }
+
+                definirTexto(
+                    "met-insight-title",
+                    insightTitulo
+                );
+
+                definirTexto(
+                    "met-insight-text",
+                    insightTexto
+                );
+
+                window._metricasComerciaisAtuais = {
+
+                    sessoes,
+                    cliques,
+                    leads:
+                        totalLeads,
+
+                    convertidos:
+                        totalConvertidos,
+
+                    pedidosPagos:
+                        totalPagos,
+
+                    receita,
+                    ticketMedio,
+
+                    origemPrincipal:
+                        origemPrincipal
+                            ? origemPrincipal[0]
+                            : "Sem dados",
+
+                    taxaSessaoClique,
+                    taxaCliqueLead,
+                    taxaLeadConversao,
+                    taxaConversaoPedido
+
+                };
+
+            } catch (erro) {
+
+                console.error(
+                    "Erro ao carregar funil comercial:",
+                    erro
+                );
+
+                definirTexto(
+                    "met-insight-title",
+                    "Não foi possível montar o funil"
+                );
+
+                definirTexto(
+                    "met-insight-text",
+                    "Os indicadores gerais continuam disponíveis. Tente atualizar novamente."
+                );
+
+                const insightBox =
+                    document.getElementById(
+                        "met-insight-box"
+                    );
+
+                if (insightBox) {
+                    insightBox.dataset.state =
+                        "error";
+                }
+
+            }
+
+        }
+
         async function carregarMetricas(filtroDataDias = 7) {
             if (!usuarioUID) return;
             try {
@@ -46485,6 +47813,14 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
                 document.getElementById("met-cliques").innerText = cliques.toLocaleString("pt-BR");
                 document.getElementById("met-conversao").innerText = conversao + "%";
                 document.getElementById("met-tempo").innerText = tempoMedio + "s";
+
+                await carregarFunilComercialMetricas(
+                    filtroDataDias,
+                    {
+                        sessoes,
+                        cliques
+                    }
+                );
 
                 // Top produtos mais vistos
                 const prodSnaps = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
@@ -46659,12 +47995,43 @@ grafico.innerHTML = cliquesPorDia.map((v) => `
             const conversao = document.getElementById("met-conversao").innerText;
             const tempo = document.getElementById("met-tempo").innerText;
 
-            const texto = `RELATÓRIO DE MÉTRICAS — VIDEHUB\n` +
+            const comercial =
+                window._metricasComerciaisAtuais ||
+                {};
+
+            const moeda = valor =>
+                Number(valor || 0)
+                    .toLocaleString(
+                        "pt-BR",
+                        {
+                            style: "currency",
+                            currency: "BRL"
+                        }
+                    );
+
+            const texto =
+                `RELATÓRIO DE MÉTRICAS — VIDE HUB\n` +
                 `Gerado em: ${new Date().toLocaleString("pt-BR")}\n\n` +
-                `Sessões Totais: ${sessoes}\n` +
-                `Cliques Totais: ${cliques}\n` +
-                `Taxa de Conversão: ${conversao}\n` +
-                `Tempo Médio na Vitrine: ${tempo}\n`;
+
+                `TRÁFEGO\n` +
+                `Sessões: ${sessoes}\n` +
+                `Cliques: ${cliques}\n` +
+                `Taxa de interação: ${conversao}\n` +
+                `Tempo médio: ${tempo}\n\n` +
+
+                `FUNIL COMERCIAL\n` +
+                `Leads: ${comercial.leads || 0}\n` +
+                `Convertidos: ${comercial.convertidos || 0}\n` +
+                `Pedidos pagos: ${comercial.pedidosPagos || 0}\n` +
+                `Receita: ${moeda(comercial.receita)}\n` +
+                `Ticket médio: ${moeda(comercial.ticketMedio)}\n` +
+                `Principal origem: ${comercial.origemPrincipal || "Sem dados"}\n\n` +
+
+                `TAXAS ENTRE ETAPAS\n` +
+                `Sessões para cliques: ${comercial.taxaSessaoClique || 0}%\n` +
+                `Cliques para leads: ${comercial.taxaCliqueLead || 0}%\n` +
+                `Leads para convertidos: ${comercial.taxaLeadConversao || 0}%\n` +
+                `Convertidos para pedidos pagos: ${comercial.taxaConversaoPedido || 0}%\n`;
 
             const blob = new Blob([texto], { type: "text/plain" });
             const url = URL.createObjectURL(blob);
