@@ -1,0 +1,373 @@
+/**
+ * Vide Aura — Mobile Editor V6.2
+ * Responsividade real para celular sem remover funções.
+ * Carregar depois de studio-clean-v6.css e studio-workspace-clean-v61.css.
+ */
+
+@media (max-width: 760px) {
+    #lp-editor-modal {
+        --aura-mobile-header: 176px;
+        --aura-mobile-bottom: 62px;
+        --aura-mobile-panel-width: min(88vw, 340px);
+    }
+
+    #lp-editor-modal,
+    #lp-editor-modal > div,
+    #lp-editor-modal .aura-lped-shell,
+    #lp-editor-modal .aura-lped-workspace {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    #lp-editor-modal > .aura-lped-topbar {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 500 !important;
+        display: flex !important;
+        min-height: var(--aura-mobile-header) !important;
+        align-items: flex-start !important;
+        align-content: flex-start !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+        padding: 10px !important;
+        overflow: visible !important;
+        border-bottom: 1px solid rgba(255, 255, 255, .08) !important;
+        background: #090e17 !important;
+    }
+
+    #lp-editor-modal > .aura-lped-topbar > * {
+        flex: 0 0 auto !important;
+        min-width: 0 !important;
+    }
+
+    #lp-editor-modal #aura-studio-brand {
+        width: 44px !important;
+        min-width: 44px !important;
+        height: 44px !important;
+        padding: 0 !important;
+        border-right: 0 !important;
+    }
+
+    #lp-editor-modal #aura-studio-brand > div {
+        display: none !important;
+    }
+
+    #lp-editor-modal .aura-studio-device-switcher,
+    #lp-editor-modal [class*="device-switcher"],
+    #lp-editor-modal [id*="device-switcher"] {
+        order: 1 !important;
+        max-width: calc(100vw - 74px) !important;
+    }
+
+    #lp-editor-modal .aura-studio-device-switcher button,
+    #lp-editor-modal [class*="device-switcher"] button {
+        width: 44px !important;
+        min-width: 44px !important;
+        height: 44px !important;
+        padding: 0 !important;
+    }
+
+    #lp-editor-modal [id*="modo"],
+    #lp-editor-modal [class*="layout-mode"],
+    #lp-editor-modal [class*="mode-switch"] {
+        order: 2 !important;
+    }
+
+    #lp-editor-modal [class*="undo"],
+    #lp-editor-modal [class*="history-controls"],
+    #lp-editor-modal [id*="undo"],
+    #lp-editor-modal [id*="redo"] {
+        order: 3 !important;
+    }
+
+    #lp-editor-modal #aura-v61-trigger {
+        order: 4 !important;
+    }
+
+    #lp-editor-modal > .aura-lped-topbar [id*="status"],
+    #lp-editor-modal > .aura-lped-topbar [class*="status"],
+    #lp-editor-modal > .aura-lped-topbar [id*="save-state"] {
+        order: 5 !important;
+    }
+
+    #lp-editor-modal > .aura-lped-topbar button[onclick*="abrirPreviewEditorLP"],
+    #lp-editor-modal > .aura-lped-topbar button[onclick*="salvarEditorLP"],
+    #lp-editor-modal > .aura-lped-topbar button[onclick*="publicarEditorLP"],
+    #lp-editor-modal > .aura-lped-topbar button[data-action="publish"] {
+        order: 6 !important;
+        min-width: 64px !important;
+        height: 44px !important;
+        padding: 0 12px !important;
+        font-size: 11px !important;
+    }
+
+    #lp-editor-modal #lped-titulo,
+    #lp-editor-modal [id*="slug"],
+    #lp-editor-modal .aura-studio-top-command {
+        order: 7 !important;
+    }
+
+    #lp-editor-modal #lped-titulo,
+    #lp-editor-modal [id*="slug"] {
+        width: calc(100vw - 86px) !important;
+        max-width: calc(100vw - 86px) !important;
+        min-width: 0 !important;
+    }
+
+    #lp-editor-modal .aura-studio-top-command {
+        width: 64px !important;
+        min-width: 64px !important;
+        padding: 0 8px !important;
+        font-size: 0 !important;
+    }
+
+    #lp-editor-modal .aura-studio-top-command::after {
+        content: "Blocos";
+        font-size: 9px;
+        font-weight: 850;
+    }
+
+    #lp-editor-modal #aura-v61-focus {
+        display: none !important;
+    }
+
+    #lp-editor-modal .aura-lped-workspace,
+    #lp-editor-modal .aura-lped-main,
+    #lp-editor-modal .aura-lped-content {
+        position: relative !important;
+        display: block !important;
+        width: 100vw !important;
+        min-width: 0 !important;
+        height: calc(100dvh - var(--aura-mobile-header)) !important;
+        overflow: hidden !important;
+    }
+
+    #lp-editor-modal #lped-painel-lateral {
+        position: fixed !important;
+        top: var(--aura-mobile-header) !important;
+        left: 0 !important;
+        bottom: var(--aura-mobile-bottom) !important;
+        z-index: 420 !important;
+        width: var(--aura-mobile-panel-width) !important;
+        min-width: var(--aura-mobile-panel-width) !important;
+        max-width: var(--aura-mobile-panel-width) !important;
+        height: auto !important;
+        overflow-y: auto !important;
+        border-right: 1px solid rgba(255, 255, 255, .09) !important;
+        background: #0a0f18 !important;
+        transform: translateX(0) !important;
+        transition: transform .2s ease !important;
+    }
+
+    #lp-editor-modal.aura-v61-left-collapsed #lped-painel-lateral {
+        display: block !important;
+        width: var(--aura-mobile-panel-width) !important;
+        min-width: var(--aura-mobile-panel-width) !important;
+        max-width: var(--aura-mobile-panel-width) !important;
+        opacity: 1 !important;
+        pointer-events: auto !important;
+        transform: translateX(-102%) !important;
+    }
+
+    #lp-editor-modal .aura-v61-left-restore {
+        position: fixed !important;
+        top: calc(var(--aura-mobile-header) + 10px) !important;
+        left: 10px !important;
+        z-index: 430 !important;
+        display: none !important;
+    }
+
+    #lp-editor-modal.aura-v61-left-collapsed .aura-v61-left-restore {
+        display: inline-flex !important;
+    }
+
+    #lp-editor-modal #lped-painel-lateral > .sticky {
+        position: sticky !important;
+        top: 0 !important;
+        z-index: 3 !important;
+        min-height: 118px !important;
+        padding: 16px !important;
+    }
+
+    #lp-editor-modal #lped-painel-lateral > .sticky h3 {
+        font-size: 20px !important;
+    }
+
+    #lp-editor-modal #lped-painel-lateral > .sticky p {
+        max-width: 220px !important;
+        font-size: 11px !important;
+    }
+
+    #lp-editor-modal .aura-v61-left-toggle {
+        top: 14px !important;
+        right: 14px !important;
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    #lp-editor-modal #lped-painel-lateral input,
+    #lp-editor-modal #lped-painel-lateral select,
+    #lp-editor-modal #lped-painel-lateral textarea,
+    #lp-editor-modal #lped-painel-lateral button {
+        font-size: 13px !important;
+    }
+
+    #lp-editor-modal #lped-painel-lateral input,
+    #lp-editor-modal #lped-painel-lateral select {
+        min-height: 46px !important;
+    }
+
+    #lp-editor-modal #lped-blocos-lista > * {
+        min-height: 58px !important;
+    }
+
+    #lp-editor-modal .aura-lped-canvas-scroll {
+        position: absolute !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        min-width: 0 !important;
+        height: 100% !important;
+        padding: 12px 10px calc(var(--aura-mobile-bottom) + 16px) !important;
+        overflow: auto !important;
+    }
+
+    #lp-editor-modal #lped-browser-frame,
+    #lp-editor-modal #lped-preview-canvas {
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: 100% !important;
+        margin: 0 auto !important;
+    }
+
+    #lp-editor-modal #aura-studio-inspector {
+        position: fixed !important;
+        top: var(--aura-mobile-header) !important;
+        right: 0 !important;
+        bottom: var(--aura-mobile-bottom) !important;
+        z-index: 425 !important;
+        width: var(--aura-mobile-panel-width) !important;
+        min-width: var(--aura-mobile-panel-width) !important;
+        max-width: var(--aura-mobile-panel-width) !important;
+        height: auto !important;
+        overflow-y: auto !important;
+        transform: translateX(102%) !important;
+        transition: transform .2s ease !important;
+    }
+
+    #lp-editor-modal #aura-studio-inspector:not(.is-collapsed):not(.aura-v51-auto-hidden) {
+        transform: translateX(0) !important;
+    }
+
+    #lp-editor-modal #aura-max-dock,
+    #lp-editor-modal #aura-ultimate-rail {
+        display: none !important;
+    }
+
+    #lp-editor-modal #aura-studio-bottom-bar,
+    #lp-editor-modal .aura-v4-toolbar {
+        position: fixed !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        z-index: 440 !important;
+        display: flex !important;
+        width: 100vw !important;
+        min-height: var(--aura-mobile-bottom) !important;
+        align-items: center !important;
+        justify-content: flex-start !important;
+        gap: 4px !important;
+        padding: 7px 8px calc(7px + env(safe-area-inset-bottom)) !important;
+        overflow-x: auto !important;
+        overflow-y: hidden !important;
+        border: 0 !important;
+        border-top: 1px solid rgba(255, 255, 255, .09) !important;
+        border-radius: 0 !important;
+        background: rgba(8, 13, 22, .98) !important;
+        box-shadow: none !important;
+        scrollbar-width: none !important;
+    }
+
+    #lp-editor-modal #aura-studio-bottom-bar::-webkit-scrollbar,
+    #lp-editor-modal .aura-v4-toolbar::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    #lp-editor-modal #aura-studio-bottom-bar button,
+    #lp-editor-modal .aura-v4-toolbar button {
+        flex: 0 0 auto !important;
+        min-width: 58px !important;
+        min-height: 44px !important;
+        padding: 6px 8px !important;
+        font-size: 8px !important;
+    }
+
+    #lp-editor-modal .aura-v61-tools {
+        top: 70px !important;
+        right: 8px !important;
+        left: 8px !important;
+        width: auto !important;
+        max-height: calc(100dvh - 84px) !important;
+        overflow-y: auto !important;
+    }
+
+    #lp-editor-modal .aura-v61-menu-body {
+        grid-template-columns: 1fr !important;
+    }
+
+    #aura-studio-library {
+        inset: 0 !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100dvh !important;
+        border-radius: 0 !important;
+    }
+
+    #aura-studio-library .aura-studio-library-header {
+        padding-top: calc(14px + env(safe-area-inset-top)) !important;
+    }
+
+    #lp-editor-modal * {
+        min-width: 0;
+    }
+
+    #lp-editor-modal h1,
+    #lp-editor-modal h2,
+    #lp-editor-modal h3,
+    #lp-editor-modal h4,
+    #lp-editor-modal p,
+    #lp-editor-modal span,
+    #lp-editor-modal small,
+    #lp-editor-modal button {
+        overflow-wrap: anywhere;
+    }
+}
+
+@media (max-width: 430px) {
+    #lp-editor-modal {
+        --aura-mobile-header: 184px;
+        --aura-mobile-panel-width: min(92vw, 350px);
+    }
+
+    #lp-editor-modal > .aura-lped-topbar {
+        gap: 7px !important;
+        padding: 8px !important;
+    }
+
+    #lp-editor-modal #lped-titulo,
+    #lp-editor-modal [id*="slug"] {
+        width: calc(100vw - 78px) !important;
+        max-width: calc(100vw - 78px) !important;
+    }
+
+    #lp-editor-modal .aura-studio-top-command {
+        width: 58px !important;
+        min-width: 58px !important;
+    }
+}
+
+@media (orientation: landscape) and (max-height: 520px) {
+    #lp-editor-modal {
+        --aura-mobile-header: 118px;
+        --aura-mobile-bottom: 54px;
+    }
+}
