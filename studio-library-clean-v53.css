@@ -1,0 +1,406 @@
+/**
+ * Vide Aura - Library Clean V5.3
+ * CSS isolado na Biblioteca Pro.
+ */
+
+#aura-studio-library.aura-library-clean-v53 {
+    --aura-v53-card-min: 330px;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-header {
+    min-height: 88px;
+    padding: 18px 22px !important;
+    background: #0a0f19 !important;
+    border-bottom: 1px solid rgba(255, 255, 255, .07) !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-toolbar {
+    padding: 12px 20px !important;
+    background: #090e17 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-body {
+    grid-template-columns: 190px minmax(0, 1fr) !important;
+    background: #070b12 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-sidebar {
+    padding: 14px 10px !important;
+    border-right: 1px solid rgba(255, 255, 255, .065) !important;
+    background: #090e17 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+#aura-library-categories {
+    display: grid;
+    gap: 5px;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-category-button,
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-more-categories {
+    display: flex;
+    width: 100%;
+    min-height: 38px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 9px 10px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: transparent;
+    color: #7f8ba0;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 750;
+    text-align: left;
+    cursor: pointer;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-category-button:hover,
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-category-button.is-active {
+    border-color: rgba(105, 126, 255, .24);
+    background: rgba(105, 126, 255, .085);
+    color: #eef3fb;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-category-button b {
+    display: grid;
+    min-width: 25px;
+    height: 25px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .07);
+    border-radius: 999px;
+    color: #8793a6;
+    font-size: 9px;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-more-categories {
+    justify-content: center;
+    margin-top: 7px;
+    border-color: rgba(255, 255, 255, .07);
+    background: rgba(255, 255, 255, .025);
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-main {
+    padding: 20px !important;
+    background: #070b12 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-main-header {
+    min-height: 58px;
+    align-items: center;
+    margin-bottom: 14px !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-main-header h3 {
+    font-size: 20px !important;
+    letter-spacing: -.035em;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-main-header small {
+    font-size: 10px !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-page-indicator {
+    margin-left: auto;
+    color: #657187;
+    font-size: 10px;
+    font-weight: 750;
+    white-space: nowrap;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-library-grid {
+    display: grid !important;
+    grid-template-columns:
+        repeat(
+            3,
+            minmax(0, 1fr)
+        ) !important;
+    gap: 14px !important;
+    align-items: start;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card {
+    content-visibility: auto;
+    contain: layout paint style;
+    contain-intrinsic-size: 292px;
+    overflow: hidden;
+    min-height: 286px;
+    border: 1px solid rgba(255, 255, 255, .07) !important;
+    border-radius: 15px !important;
+    background: #0d131e !important;
+    box-shadow: none !important;
+    transform: none !important;
+    transition:
+        border-color .18s ease,
+        background .18s ease !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card:hover {
+    border-color: rgba(105, 126, 255, .32) !important;
+    background: #101825 !important;
+    box-shadow: none !important;
+    transform: none !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-preview {
+    min-height: 142px !important;
+    height: 142px !important;
+    background:
+        linear-gradient(
+            135deg,
+            color-mix(
+                in srgb,
+                var(--preset-bg) 88%,
+                #172033
+            ),
+            #131a28
+        ) !important;
+    box-shadow: none !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-studio-template-visual {
+    opacity: .8;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-preview-label {
+    padding: 5px 7px !important;
+    font-size: 8px !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-favorite {
+    display: grid;
+    width: 34px !important;
+    height: 34px !important;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .09) !important;
+    border-radius: 10px !important;
+    background: rgba(4, 8, 14, .48) !important;
+    color: #8390a3 !important;
+    font-size: 18px !important;
+    line-height: 1;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-favorite.is-active {
+    color: #fbbf24 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card-content {
+    padding: 15px !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-category-label {
+    color: #69758a !important;
+    font-size: 8px !important;
+    letter-spacing: .09em;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card-content h4 {
+    margin-top: 7px !important;
+    color: #eef3fa !important;
+    font-size: 15px !important;
+    line-height: 1.25 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card-content p {
+    min-height: 18px;
+    margin-top: 6px !important;
+    color: #7c889a !important;
+    font-size: 11px !important;
+    line-height: 1.45 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 14px !important;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, .06);
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-card-footer span {
+    color: #657185;
+    font-size: 9px !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-insert {
+    min-width: 72px;
+    min-height: 38px !important;
+    padding: 8px 13px !important;
+    border: 0 !important;
+    border-radius: 10px !important;
+    background: #638df5 !important;
+    box-shadow: none !important;
+    color: #ffffff !important;
+    font-size: 10px !important;
+    font-weight: 850 !important;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-pagination {
+    position: sticky;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 10;
+    display: flex;
+    min-height: 64px;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    margin-top: 18px;
+    padding: 11px;
+    border: 1px solid rgba(255, 255, 255, .075);
+    border-radius: 14px;
+    background: rgba(9, 14, 23, .96);
+    box-shadow: 0 -10px 32px rgba(0, 0, 0, .2);
+    backdrop-filter: blur(14px);
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-page-button,
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-page-select {
+    min-height: 38px;
+    padding: 8px 13px;
+    border: 1px solid rgba(255, 255, 255, .085);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .035);
+    color: #dce4ef;
+    font: inherit;
+    font-size: 10px;
+    font-weight: 800;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-page-button {
+    cursor: pointer;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-page-button:disabled {
+    cursor: not-allowed;
+    opacity: .35;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-page-summary {
+    min-width: 92px;
+    color: #8995a8;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+}
+
+#aura-studio-library.aura-library-clean-v53
+.aura-v53-empty {
+    grid-column: 1 / -1;
+    min-height: 320px;
+}
+
+@media (max-width: 1250px) {
+    #aura-studio-library.aura-library-clean-v53
+    .aura-studio-library-grid {
+        grid-template-columns:
+            repeat(2, minmax(0, 1fr)) !important;
+    }
+}
+
+@media (max-width: 860px) {
+    #aura-studio-library.aura-library-clean-v53
+    .aura-studio-library-body {
+        grid-template-columns: 1fr !important;
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    .aura-studio-library-sidebar {
+        max-height: 180px;
+        overflow: auto;
+        border-right: 0 !important;
+        border-bottom: 1px solid rgba(255, 255, 255, .065);
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    #aura-library-categories {
+        display: flex;
+        overflow-x: auto;
+        gap: 7px;
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-category-button,
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-more-categories {
+        flex: 0 0 auto;
+        width: auto;
+    }
+}
+
+@media (max-width: 680px) {
+    #aura-studio-library.aura-library-clean-v53
+    .aura-studio-library-grid {
+        grid-template-columns: 1fr !important;
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-pagination {
+        align-items: stretch;
+        flex-wrap: wrap;
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-page-button,
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-page-select {
+        flex: 1 1 130px;
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-page-summary {
+        flex: 1 0 100%;
+    }
+
+    #aura-studio-library.aura-library-clean-v53
+    .aura-v53-page-indicator {
+        display: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #aura-studio-library.aura-library-clean-v53 * {
+        scroll-behavior: auto !important;
+        transition: none !important;
+    }
+}
