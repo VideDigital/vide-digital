@@ -507,5 +507,24 @@ return `<section${idSecaoAttr}${d.animacao ? ` data-animacao="${d.animacao}"` : 
     }
 })();
 </script>
+<!-- Aura Forms V5 — carregamento seguro em URLs bonitas -->
+<script>
+(function () {
+    var base = window.location.hostname === "videdigital.github.io"
+        ? "/vide-digital/"
+        : window.location.pathname.indexOf("/vide-digital/") === 0
+            ? "/vide-digital/"
+            : "/";
+
+    if (!document.querySelector('script[data-aura-forms-v5]')) {
+        var forms = document.createElement("script");
+        forms.type = "module";
+        forms.src = base + "lp-forms-v5.js?v=5.0.0";
+        forms.setAttribute("data-aura-forms-v5", "");
+        document.body.appendChild(forms);
+    }
+})();
+</script>
+
 </body>
 </html>
