@@ -1,0 +1,457 @@
+/**
+ * Vide Aura — Editor Clean V6
+ * Camada visual e de desempenho, sem alterar IDs, Firebase ou funções.
+ * Carregar por último entre os CSS do Studio.
+ */
+
+#lp-editor-modal {
+    --aura-clean-bg: #070b12;
+    --aura-clean-panel: #0a0f18;
+    --aura-clean-panel-2: #0e1520;
+    --aura-clean-panel-3: #111a27;
+    --aura-clean-border: rgba(255, 255, 255, .075);
+    --aura-clean-border-strong: rgba(255, 255, 255, .13);
+    --aura-clean-text: #edf3fa;
+    --aura-clean-muted: #7e8a9d;
+    --aura-clean-accent: #638df5;
+    --aura-clean-radius: 11px;
+}
+
+/* Remove efeitos decorativos caros somente do chrome do editor. */
+
+#lp-editor-modal > .aura-lped-topbar,
+#lp-editor-modal #lped-painel-lateral,
+#lp-editor-modal #aura-studio-inspector,
+#lp-editor-modal #aura-max-dock,
+#lp-editor-modal #aura-ultimate-rail,
+#lp-editor-modal #aura-studio-bottom-bar,
+#lp-editor-modal .aura-v4-toolbar {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+#lp-editor-modal > .aura-lped-topbar::before,
+#lp-editor-modal > .aura-lped-topbar::after,
+#lp-editor-modal #aura-max-dock::before,
+#lp-editor-modal #aura-max-dock::after,
+#lp-editor-modal #aura-ultimate-rail::before,
+#lp-editor-modal #aura-ultimate-rail::after,
+#lp-editor-modal #aura-studio-bottom-bar::before,
+#lp-editor-modal #aura-studio-bottom-bar::after {
+    display: none !important;
+}
+
+/* Barra superior: um nível visual, menos brilho e hierarquia mais clara. */
+
+#lp-editor-modal > .aura-lped-topbar {
+    min-height: 66px !important;
+    padding: 8px 12px !important;
+    gap: 9px !important;
+    border-bottom: 1px solid var(--aura-clean-border) !important;
+    background: var(--aura-clean-panel) !important;
+    box-shadow: none !important;
+}
+
+#lp-editor-modal > .aura-lped-topbar > * {
+    min-width: 0;
+}
+
+#lp-editor-modal #aura-studio-brand {
+    min-width: 168px !important;
+    padding-right: 16px !important;
+    border-right: 1px solid var(--aura-clean-border) !important;
+}
+
+#lp-editor-modal #aura-studio-brand small {
+    display: none !important;
+}
+
+#lp-editor-modal #aura-studio-brand strong {
+    color: var(--aura-clean-text) !important;
+    font-size: 13px !important;
+    font-weight: 820 !important;
+    letter-spacing: -.02em !important;
+}
+
+#lp-editor-modal > .aura-lped-topbar button,
+#lp-editor-modal > .aura-lped-topbar input,
+#lp-editor-modal > .aura-lped-topbar select {
+    min-height: 38px !important;
+    border-radius: 10px !important;
+    box-shadow: none !important;
+    filter: none !important;
+    font-size: 10px !important;
+    transition:
+        background-color .14s ease,
+        border-color .14s ease,
+        color .14s ease,
+        opacity .14s ease !important;
+}
+
+#lp-editor-modal > .aura-lped-topbar button:hover {
+    transform: none !important;
+    filter: none !important;
+}
+
+#lp-editor-modal #aura-v4-launcher,
+#lp-editor-modal #aura-ultimate-launcher,
+#lp-editor-modal #aura-max-launcher {
+    min-height: 38px !important;
+    padding: 0 11px !important;
+    border: 1px solid var(--aura-clean-border) !important;
+    background: var(--aura-clean-panel-2) !important;
+    box-shadow: none !important;
+    color: #c8d2df !important;
+}
+
+#lp-editor-modal #aura-v4-launcher:hover,
+#lp-editor-modal #aura-ultimate-launcher:hover,
+#lp-editor-modal #aura-max-launcher:hover {
+    border-color: rgba(99, 141, 245, .34) !important;
+    background: #121c2a !important;
+    color: #ffffff !important;
+}
+
+#lp-editor-modal #aura-v4-launcher small,
+#lp-editor-modal #aura-ultimate-launcher small,
+#lp-editor-modal #aura-max-launcher small {
+    display: none !important;
+}
+
+#lp-editor-modal > .aura-lped-topbar button[onclick*="publicarEditorLP"],
+#lp-editor-modal > .aura-lped-topbar button[data-action="publish"] {
+    border-color: transparent !important;
+    background: var(--aura-clean-accent) !important;
+    color: #ffffff !important;
+}
+
+#lp-editor-modal > .aura-lped-topbar button[onclick*="salvarEditorLP"],
+#lp-editor-modal > .aura-lped-topbar button[onclick*="abrirPreviewEditorLP"] {
+    border: 1px solid var(--aura-clean-border) !important;
+    background: var(--aura-clean-panel-2) !important;
+    color: #d7e0ec !important;
+}
+
+/* Chips de status deixam de disputar atenção com ações. */
+
+#lp-editor-modal > .aura-lped-topbar [class*="status"],
+#lp-editor-modal > .aura-lped-topbar [id*="status"],
+#lp-editor-modal > .aura-lped-topbar [id*="save-state"] {
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+/* Painel de componentes: mais simples, legível e sem cartões pesados. */
+
+#lp-editor-modal #lped-painel-lateral {
+    width: 300px !important;
+    min-width: 300px !important;
+    border-right: 1px solid var(--aura-clean-border) !important;
+    background: var(--aura-clean-panel) !important;
+    box-shadow: none !important;
+}
+
+#lp-editor-modal #lped-painel-lateral > .sticky {
+    padding: 16px !important;
+    border-bottom: 1px solid var(--aura-clean-border) !important;
+    background: var(--aura-clean-panel) !important;
+    box-shadow: none !important;
+}
+
+#lp-editor-modal #lped-painel-lateral > .sticky h3 {
+    color: var(--aura-clean-text) !important;
+    font-size: 16px !important;
+    letter-spacing: -.025em !important;
+}
+
+#lp-editor-modal #lped-painel-lateral > .sticky p {
+    margin-top: 6px !important;
+    color: var(--aura-clean-muted) !important;
+    font-size: 10px !important;
+    line-height: 1.5 !important;
+}
+
+#lp-editor-modal #lped-painel-lateral > .px-6.py-6,
+#lp-editor-modal #lped-painel-lateral > [class*="px-6"] {
+    padding: 14px !important;
+}
+
+#lp-editor-modal .aura-studio-left-tools {
+    gap: 7px !important;
+}
+
+#lp-editor-modal .aura-studio-left-tools button {
+    min-height: 52px !important;
+    padding: 7px 5px !important;
+    border: 1px solid var(--aura-clean-border) !important;
+    border-radius: 10px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #7d899b !important;
+    font-size: 8px !important;
+}
+
+#lp-editor-modal .aura-studio-left-tools button:hover,
+#lp-editor-modal .aura-studio-left-tools button.is-active,
+#lp-editor-modal .aura-studio-left-tools button[class*="active"] {
+    border-color: rgba(99, 141, 245, .28) !important;
+    background: rgba(99, 141, 245, .08) !important;
+    color: #e8eef7 !important;
+}
+
+#lp-editor-modal #lped-blocos-lista {
+    gap: 6px !important;
+}
+
+#lp-editor-modal #lped-blocos-lista > * {
+    content-visibility: auto;
+    contain: layout style;
+    contain-intrinsic-size: 50px;
+    min-height: 48px !important;
+    border: 1px solid var(--aura-clean-border) !important;
+    border-radius: 10px !important;
+    background: var(--aura-clean-panel-2) !important;
+    box-shadow: none !important;
+    transition:
+        border-color .13s ease,
+        background-color .13s ease !important;
+}
+
+#lp-editor-modal #lped-blocos-lista > *:hover {
+    border-color: var(--aura-clean-border-strong) !important;
+    background: var(--aura-clean-panel-3) !important;
+    transform: none !important;
+}
+
+#lp-editor-modal #lped-blocos-lista button,
+#lp-editor-modal #lped-blocos-lista span,
+#lp-editor-modal #lped-blocos-lista strong {
+    font-size: 11px !important;
+}
+
+#lp-editor-modal #lped-blocos-lista button[onclick*="removerBlocoEditor"],
+#lp-editor-modal #lped-blocos-lista button[onclick*="remover"] {
+    opacity: .42 !important;
+    transition: opacity .12s ease !important;
+}
+
+#lp-editor-modal #lped-blocos-lista > *:hover
+button[onclick*="removerBlocoEditor"],
+#lp-editor-modal #lped-blocos-lista > *:hover
+button[onclick*="remover"] {
+    opacity: 1 !important;
+}
+
+/* Botão de novo bloco: ação única e simples. */
+
+#lp-editor-modal #lped-painel-lateral button[onclick*="adicionar"],
+#lp-editor-modal #lped-painel-lateral .aura-studio-library-launch {
+    box-shadow: none !important;
+    filter: none !important;
+}
+
+/* Área do canvas: reduz ruído sem alterar o conteúdo da landing page. */
+
+#lp-editor-modal .aura-lped-canvas-scroll {
+    padding: 16px 18px 70px !important;
+    background-color: var(--aura-clean-bg) !important;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, .018) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .018) 1px, transparent 1px) !important;
+    background-size: 28px 28px !important;
+}
+
+#lp-editor-modal #lped-browser-frame {
+    border: 1px solid rgba(255, 255, 255, .09) !important;
+    border-radius: 12px !important;
+    box-shadow: none !important;
+}
+
+#lp-editor-modal #lped-browser-frame > :first-child {
+    border-bottom-color: var(--aura-clean-border) !important;
+    background: #0b111a !important;
+}
+
+#lp-editor-modal [class*="ruler"],
+#lp-editor-modal [id*="ruler"] {
+    opacity: .42 !important;
+}
+
+/* Inspetor: mesma linguagem do painel esquerdo. */
+
+#lp-editor-modal #aura-studio-inspector {
+    width: 310px !important;
+    min-width: 310px !important;
+    border-left: 1px solid var(--aura-clean-border) !important;
+    background: var(--aura-clean-panel) !important;
+    box-shadow: none !important;
+}
+
+#lp-editor-modal #aura-studio-inspector input,
+#lp-editor-modal #aura-studio-inspector select,
+#lp-editor-modal #aura-studio-inspector textarea {
+    min-height: 40px !important;
+    border-color: var(--aura-clean-border) !important;
+    border-radius: 9px !important;
+    background: var(--aura-clean-panel-2) !important;
+    box-shadow: none !important;
+}
+
+/* Trilhos laterais: continuam disponíveis, mas deixam de dominar a tela. */
+
+#lp-editor-modal #aura-max-dock,
+#lp-editor-modal #aura-ultimate-rail {
+    border: 1px solid var(--aura-clean-border) !important;
+    border-radius: 14px !important;
+    background: var(--aura-clean-panel) !important;
+    box-shadow: none !important;
+    opacity: .58;
+    transition: opacity .14s ease !important;
+}
+
+#lp-editor-modal #aura-max-dock:hover,
+#lp-editor-modal #aura-ultimate-rail:hover {
+    opacity: 1;
+}
+
+#lp-editor-modal #aura-max-dock button,
+#lp-editor-modal #aura-ultimate-rail button {
+    min-height: 43px !important;
+    border-radius: 9px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #748196 !important;
+}
+
+#lp-editor-modal #aura-max-dock button:hover,
+#lp-editor-modal #aura-ultimate-rail button:hover {
+    background: rgba(255, 255, 255, .045) !important;
+    color: #eef3fa !important;
+}
+
+/* Barra inferior: compacta e contextual, sem grande sombra flutuante. */
+
+#lp-editor-modal #aura-studio-bottom-bar,
+#lp-editor-modal .aura-v4-toolbar {
+    min-height: 48px !important;
+    border: 1px solid var(--aura-clean-border) !important;
+    border-radius: 13px !important;
+    background: var(--aura-clean-panel) !important;
+    box-shadow: none !important;
+}
+
+#lp-editor-modal #aura-studio-bottom-bar button,
+#lp-editor-modal .aura-v4-toolbar button {
+    min-height: 34px !important;
+    padding: 7px 9px !important;
+    border-radius: 8px !important;
+    box-shadow: none !important;
+    filter: none !important;
+    font-size: 8px !important;
+}
+
+#lp-editor-modal #aura-studio-bottom-bar button:hover,
+#lp-editor-modal .aura-v4-toolbar button:hover {
+    transform: none !important;
+    filter: none !important;
+}
+
+/* Modais avançados: reduz gradientes, brilho e blur sem alterar recursos. */
+
+#lp-editor-modal .aura-max-modal,
+#lp-editor-modal .aura-ultimate-modal,
+#lp-editor-modal .aura-studio-modal,
+#lp-editor-modal [class*="aura-v4-modal"] {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+}
+
+#lp-editor-modal .aura-max-modal > section,
+#lp-editor-modal .aura-ultimate-modal > section,
+#lp-editor-modal .aura-studio-modal > section,
+#lp-editor-modal [class*="aura-v4-modal"] > section {
+    border-color: var(--aura-clean-border) !important;
+    background: #090e17 !important;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .38) !important;
+}
+
+/* Desativa apenas animações decorativas contínuas do editor. */
+
+#lp-editor-modal [class*="glow"],
+#lp-editor-modal [class*="pulse"]:not(button),
+#lp-editor-modal [class*="shimmer"] {
+    animation: none !important;
+}
+
+/* Responsividade do editor. */
+
+@media (max-width: 1440px) {
+    #lp-editor-modal #lped-painel-lateral {
+        width: 282px !important;
+        min-width: 282px !important;
+    }
+
+    #lp-editor-modal #aura-studio-inspector {
+        width: 292px !important;
+        min-width: 292px !important;
+    }
+
+    #lp-editor-modal #aura-studio-brand {
+        min-width: 142px !important;
+    }
+
+    #lp-editor-modal #aura-v4-launcher,
+    #lp-editor-modal #aura-ultimate-launcher,
+    #lp-editor-modal #aura-max-launcher {
+        padding-inline: 9px !important;
+        font-size: 9px !important;
+    }
+}
+
+@media (max-width: 1180px) {
+    #lp-editor-modal #aura-studio-brand {
+        min-width: 54px !important;
+        padding-right: 8px !important;
+    }
+
+    #lp-editor-modal #aura-studio-brand > div {
+        display: none !important;
+    }
+
+    #lp-editor-modal > .aura-lped-topbar {
+        overflow-x: auto !important;
+        scrollbar-width: thin;
+    }
+}
+
+@media (max-width: 760px) {
+    #lp-editor-modal #lped-painel-lateral {
+        width: min(310px, 88vw) !important;
+        min-width: min(310px, 88vw) !important;
+    }
+
+    #lp-editor-modal #aura-studio-inspector {
+        width: min(310px, 88vw) !important;
+        min-width: min(310px, 88vw) !important;
+    }
+
+    #lp-editor-modal #aura-max-dock,
+    #lp-editor-modal #aura-ultimate-rail {
+        opacity: .4;
+    }
+
+    #lp-editor-modal .aura-lped-canvas-scroll {
+        padding-inline: 10px !important;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #lp-editor-modal *,
+    #lp-editor-modal *::before,
+    #lp-editor-modal *::after {
+        scroll-behavior: auto !important;
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+    }
+}
