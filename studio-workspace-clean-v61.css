@@ -1,0 +1,379 @@
+/**
+ * Vide Aura - Workspace Clean V6.1
+ * Complemento seguro para o Editor Clean V6.
+ */
+
+#lp-editor-modal.aura-workspace-clean-v61 {
+    --aura-v61-panel: #0a0f18;
+    --aura-v61-panel-2: #0e1520;
+    --aura-v61-border: rgba(255, 255, 255, .075);
+    --aura-v61-text: #e8eef7;
+    --aura-v61-muted: #768397;
+    --aura-v61-accent: #638df5;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-original-hidden {
+    display: none !important;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-trigger,
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-focus {
+    display: inline-flex;
+    min-height: 38px !important;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 7px 11px !important;
+    border: 1px solid var(--aura-v61-border) !important;
+    border-radius: 10px !important;
+    background: var(--aura-v61-panel-2) !important;
+    box-shadow: none !important;
+    color: #cbd5e1 !important;
+    font: inherit;
+    cursor: pointer;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-trigger:hover,
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-trigger.is-active,
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-focus:hover,
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-focus.is-active {
+    border-color: rgba(99, 141, 245, .34) !important;
+    background: #121c2a !important;
+    color: #ffffff !important;
+    transform: none !important;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-trigger-icon {
+    display: grid;
+    width: 24px;
+    height: 24px;
+    place-items: center;
+    border-radius: 7px;
+    background: rgba(99, 141, 245, .11);
+    color: #90adf7;
+    font-size: 14px;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-trigger-text {
+    color: #dce5f0;
+    font-size: 10px;
+    font-weight: 850;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-tools {
+    position: fixed;
+    top: 72px;
+    right: 18px;
+    z-index: 2147482500;
+    width: min(430px, calc(100vw - 28px));
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, .1);
+    border-radius: 18px;
+    background: #090e17;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .42);
+    color: var(--aura-v61-text);
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-tools[hidden] {
+    display: none !important;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 18px;
+    border-bottom: 1px solid var(--aura-v61-border);
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-header small {
+    color: #7898ec;
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .13em;
+    text-transform: uppercase;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-header h3 {
+    margin: 5px 0 0;
+    color: #edf3fa;
+    font-size: 17px;
+    letter-spacing: -.03em;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-header p {
+    margin: 6px 0 0;
+    color: var(--aura-v61-muted);
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-close {
+    display: grid;
+    flex: 0 0 36px;
+    width: 36px;
+    height: 36px;
+    place-items: center;
+    border: 1px solid var(--aura-v61-border);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, .03);
+    color: #8794a8;
+    font-size: 20px;
+    cursor: pointer;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 14px;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-action {
+    display: flex;
+    min-height: 74px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px;
+    border: 1px solid var(--aura-v61-border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .02);
+    color: #cbd5e1;
+    text-align: left;
+    cursor: pointer;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-action:hover {
+    border-color: rgba(99, 141, 245, .3);
+    background: rgba(99, 141, 245, .07);
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-copy {
+    display: grid;
+    gap: 5px;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-copy strong {
+    color: #e7edf6;
+    font-size: 11px;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-copy small {
+    color: #6f7c90;
+    font-size: 9px;
+    line-height: 1.4;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-arrow {
+    color: #64748b;
+    font-size: 22px;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-menu-footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 14px;
+    border-top: 1px solid var(--aura-v61-border);
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-footer-action {
+    min-height: 36px;
+    padding: 8px 11px;
+    border: 1px solid var(--aura-v61-border);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .03);
+    color: #aab5c5;
+    font: inherit;
+    font-size: 9px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+#lped-painel-lateral {
+    transition:
+        width .18s ease,
+        min-width .18s ease,
+        opacity .18s ease !important;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-left-toggle {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    display: grid;
+    width: 34px;
+    height: 34px;
+    place-items: center;
+    border: 1px solid var(--aura-v61-border);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .03);
+    color: #8b98aa;
+    font-size: 19px;
+    cursor: pointer;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+.aura-v61-left-restore {
+    position: fixed;
+    top: 84px;
+    left: 10px;
+    z-index: 300;
+    display: none;
+    min-height: 38px;
+    padding: 8px 11px;
+    border: 1px solid var(--aura-v61-border);
+    border-radius: 10px;
+    background: #0a0f18;
+    color: #d7e0ec;
+    font: inherit;
+    font-size: 9px;
+    font-weight: 800;
+    cursor: pointer;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-left-collapsed
+#lped-painel-lateral {
+    width: 0 !important;
+    min-width: 0 !important;
+    opacity: 0;
+    overflow: hidden;
+    border-right: 0 !important;
+    pointer-events: none;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-left-collapsed
+.aura-v61-left-restore {
+    display: inline-flex;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+#lped-painel-lateral,
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+#aura-studio-inspector,
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+#aura-max-dock,
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+#aura-ultimate-rail,
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+#aura-studio-bottom-bar,
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+.aura-v4-toolbar,
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+.aura-v61-left-restore {
+    display: none !important;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61.aura-v61-focus-mode
+.aura-lped-canvas-scroll {
+    padding-inline: 28px !important;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+#lped-blocos-lista > * {
+    content-visibility: auto;
+    contain: layout style paint;
+    contain-intrinsic-size: 52px;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+#lped-blocos-lista > * > div {
+    content-visibility: auto;
+    contain: layout style;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+#aura-max-dock,
+#lp-editor-modal.aura-workspace-clean-v61
+#aura-ultimate-rail {
+    opacity: .42;
+}
+
+#lp-editor-modal.aura-workspace-clean-v61
+#aura-max-dock:hover,
+#lp-editor-modal.aura-workspace-clean-v61
+#aura-ultimate-rail:hover {
+    opacity: 1;
+}
+
+@media (max-width: 1220px) {
+    #lp-editor-modal.aura-workspace-clean-v61
+    .aura-v61-trigger-text {
+        display: none;
+    }
+
+    #lp-editor-modal.aura-workspace-clean-v61
+    .aura-v61-trigger {
+        width: 38px;
+        padding: 0 !important;
+    }
+
+    #lp-editor-modal.aura-workspace-clean-v61
+    .aura-v61-focus {
+        min-width: 38px;
+        padding-inline: 8px !important;
+        font-size: 0 !important;
+    }
+
+    #lp-editor-modal.aura-workspace-clean-v61
+    .aura-v61-focus::after {
+        content: "F";
+        font-size: 10px;
+        font-weight: 900;
+    }
+}
+
+@media (max-width: 680px) {
+    #lp-editor-modal.aura-workspace-clean-v61
+    .aura-v61-tools {
+        top: 66px;
+        right: 8px;
+        left: 8px;
+        width: auto;
+    }
+
+    #lp-editor-modal.aura-workspace-clean-v61
+    .aura-v61-menu-body {
+        grid-template-columns: 1fr;
+        max-height: 62vh;
+        overflow: auto;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    #lp-editor-modal.aura-workspace-clean-v61 *,
+    #lp-editor-modal.aura-workspace-clean-v61 *::before,
+    #lp-editor-modal.aura-workspace-clean-v61 *::after {
+        transition-duration: .01ms !important;
+        animation-duration: .01ms !important;
+    }
+}
