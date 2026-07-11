@@ -1,0 +1,1202 @@
+/**
+ * Vide Aura — Performance Core + Interface Confortável V5.1
+ * Versão 5.1.0
+ */
+
+#lp-editor-modal.aura-performance-v51 {
+  --aura-v51-left-width: 320px;
+  --aura-v51-inspector-width: 330px;
+  --aura-v51-library-columns: 3;
+  --aura-v51-control-height: 42px;
+  --aura-v51-font-base: 13px;
+  --aura-v51-font-small: 11px;
+  --aura-v51-font-label: 10px;
+  --aura-v51-panel-gap: 12px;
+  --aura-v51-panel-radius: 16px;
+  --aura-v51-transition: 220ms cubic-bezier(.2, .8, .2, 1);
+}
+
+#lp-editor-modal.aura-performance-v51[data-aura-ui-scale="compact"] {
+  --aura-v51-left-width: 292px;
+  --aura-v51-inspector-width: 300px;
+  --aura-v51-control-height: 38px;
+  --aura-v51-font-base: 12px;
+  --aura-v51-font-small: 10px;
+  --aura-v51-font-label: 9px;
+}
+
+#lp-editor-modal.aura-performance-v51[data-aura-ui-scale="comfortable"] {
+  --aura-v51-control-height: 44px;
+  --aura-v51-font-base: 14px;
+  --aura-v51-font-small: 12px;
+  --aura-v51-font-label: 11px;
+}
+
+#lp-editor-modal.aura-performance-v51[data-aura-ui-scale="large"] {
+  --aura-v51-left-width: 360px;
+  --aura-v51-inspector-width: 370px;
+  --aura-v51-control-height: 48px;
+  --aura-v51-font-base: 15px;
+  --aura-v51-font-small: 13px;
+  --aura-v51-font-label: 12px;
+}
+
+/* Topbar coordenada */
+
+#lp-editor-modal.aura-performance-v51 > .aura-lped-topbar {
+  min-height: 74px !important;
+  padding: 10px 14px !important;
+  gap: 10px !important;
+  align-items: center !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-lped-topbar button {
+  min-height: 40px;
+  font-size: 12px !important;
+}
+
+#lp-editor-modal.aura-performance-v51[data-aura-ui-scale="large"] .aura-lped-topbar button {
+  min-height: 44px;
+  font-size: 13px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 #aura-studio-brand {
+  min-width: 176px;
+}
+
+#lp-editor-modal.aura-performance-v51 #aura-studio-brand small {
+  font-size: 9px;
+}
+
+#lp-editor-modal.aura-performance-v51 #aura-studio-brand strong {
+  font-size: 14px;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-titulo {
+  min-height: 42px;
+  font-size: 15px !important;
+}
+
+.aura-v51-top-button {
+  display: inline-flex;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  padding: 7px 12px !important;
+  border: 1px solid rgba(255, 255, 255, .09) !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, .035) !important;
+  color: #dbe4f0 !important;
+  flex: 0 0 auto;
+}
+
+.aura-v51-top-button:hover {
+  border-color: rgba(255, 255, 255, .18) !important;
+  background: rgba(255, 255, 255, .075) !important;
+}
+
+.aura-v51-top-button > svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aura-v51-top-button > span {
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.aura-v51-top-button small,
+.aura-v51-top-button b {
+  display: block;
+  line-height: 1;
+}
+
+.aura-v51-top-button small {
+  color: #77849a;
+  font-size: 8px;
+  font-weight: 850;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.aura-v51-top-button b {
+  color: #eef4fb;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+#lp-editor-modal.aura-performance-v51.aura-v51-coordinated #aura-v4-launcher,
+#lp-editor-modal.aura-performance-v51.aura-v51-coordinated #aura-ultimate-launcher,
+#lp-editor-modal.aura-performance-v51.aura-v51-coordinated #aura-max-launcher,
+#lp-editor-modal.aura-performance-v51.aura-v51-coordinated #aura-max-dock,
+#lp-editor-modal.aura-performance-v51.aura-v51-coordinated #aura-ultimate-rail {
+  display: none !important;
+}
+
+/* Painel esquerdo confortável */
+
+#lp-editor-modal.aura-performance-v51 #lped-painel-lateral {
+  position: relative;
+  width: var(--aura-v51-left-width) !important;
+  min-width: var(--aura-v51-left-width) !important;
+  transition:
+    width var(--aura-v51-transition),
+    min-width var(--aura-v51-transition),
+    opacity var(--aura-v51-transition);
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-painel-lateral > .sticky {
+  min-height: 150px;
+  padding: 20px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-painel-lateral > .sticky h3 {
+  font-size: 18px !important;
+  line-height: 1.2 !important;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-painel-lateral > .sticky p {
+  max-width: 250px;
+  margin-top: 7px !important;
+  font-size: var(--aura-v51-font-small) !important;
+  line-height: 1.55 !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-left-tools {
+  gap: 8px;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-left-tools button {
+  min-height: 62px;
+  padding: 9px 6px;
+  gap: 7px;
+  border-radius: 12px;
+  font-size: var(--aura-v51-font-label) !important;
+  line-height: 1.15;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-left-tools button svg {
+  width: 18px;
+  height: 18px;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-painel-lateral > .px-6.py-6 {
+  padding: 17px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-blocos-lista > * {
+  content-visibility: auto;
+  contain-intrinsic-size: 78px;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-blocos-lista button,
+#lp-editor-modal.aura-performance-v51 #lped-blocos-lista input,
+#lp-editor-modal.aura-performance-v51 #lped-blocos-lista select,
+#lp-editor-modal.aura-performance-v51 #lped-blocos-lista textarea {
+  font-size: max(12px, var(--aura-v51-font-small)) !important;
+}
+
+.aura-v51-panel-toggle {
+  position: absolute;
+  top: 18px;
+  right: 18px;
+  display: grid;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .04);
+  color: #aeb8c7;
+  cursor: pointer;
+}
+
+.aura-v51-panel-toggle:hover,
+.aura-v51-panel-toggle.is-active {
+  border-color: color-mix(in srgb, var(--studio-primary, #6d5dfc) 40%, transparent);
+  background: color-mix(in srgb, var(--studio-primary, #6d5dfc) 12%, transparent);
+  color: #ffffff;
+}
+
+.aura-v51-panel-toggle svg,
+.aura-v51-left-restore svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aura-v51-left-resizer {
+  position: absolute;
+  top: 0;
+  right: -5px;
+  bottom: 0;
+  z-index: 20;
+  width: 10px;
+  cursor: col-resize;
+}
+
+.aura-v51-left-resizer::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 4px;
+  width: 2px;
+  height: 54px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .08);
+  transform: translateY(-50%);
+  transition: background .2s ease;
+}
+
+.aura-v51-left-resizer:hover::after,
+.aura-v51-resizing .aura-v51-left-resizer::after {
+  background: var(--studio-primary, #6d5dfc);
+}
+
+body.aura-v51-resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+#lp-editor-modal.aura-performance-v51.aura-v51-left-collapsed #lped-painel-lateral,
+#lp-editor-modal.aura-performance-v51.aura-v51-focus #lped-painel-lateral {
+  width: 0 !important;
+  min-width: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+  border-right: 0 !important;
+  pointer-events: none;
+}
+
+.aura-v51-left-restore {
+  position: fixed;
+  top: 92px;
+  left: 14px;
+  z-index: 260;
+  display: none;
+  min-height: 42px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  background: rgba(11, 16, 26, .92);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, .28);
+  color: #dbe5f2;
+  font-size: 11px;
+  font-weight: 800;
+  backdrop-filter: blur(18px);
+  cursor: pointer;
+}
+
+#lp-editor-modal.aura-performance-v51.aura-v51-left-collapsed .aura-v51-left-restore {
+  display: inline-flex;
+}
+
+/* Inspetor inteligente */
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector {
+  width: var(--aura-v51-inspector-width);
+  min-width: var(--aura-v51-inspector-width);
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-header {
+  padding: 20px;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-header small {
+  font-size: 9px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-header h3 {
+  font-size: 18px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-header p,
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-note,
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-section {
+  font-size: var(--aura-v51-font-small) !important;
+}
+
+#lp-editor-modal.aura-performance-v51.aura-v51-inspector-auto-hidden .aura-studio-inspector,
+#lp-editor-modal.aura-performance-v51.aura-v51-focus .aura-studio-inspector,
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector.aura-v51-auto-hidden {
+  width: 0 !important;
+  min-width: 0 !important;
+  opacity: 0;
+  overflow: hidden;
+  border-left: 0;
+  pointer-events: none;
+}
+
+/* Barra inferior */
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-bottom-bar,
+#lp-editor-modal.aura-performance-v51 .aura-v4-toolbar {
+  min-height: 54px;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-bottom-bar button,
+#lp-editor-modal.aura-performance-v51 .aura-v4-toolbar button {
+  min-height: 40px;
+  padding: 8px 12px;
+  font-size: 11px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-bottom-bar button svg,
+#lp-editor-modal.aura-performance-v51 .aura-v4-toolbar button svg {
+  width: 17px;
+  height: 17px;
+}
+
+/* Modo foco */
+
+#lp-editor-modal.aura-performance-v51.aura-v51-focus #aura-studio-bottom-bar,
+#lp-editor-modal.aura-performance-v51.aura-v51-focus #aura-v4-toolbar,
+#lp-editor-modal.aura-performance-v51.aura-v51-focus #aura-max-dock,
+#lp-editor-modal.aura-performance-v51.aura-v51-focus #aura-ultimate-rail,
+#lp-editor-modal.aura-performance-v51.aura-v51-focus .aura-v51-left-restore {
+  display: none !important;
+}
+
+#lp-editor-modal.aura-performance-v51.aura-v51-focus > .aura-lped-topbar {
+  padding-inline: 22px !important;
+}
+
+.aura-v51-focus-exit {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  z-index: 450;
+  display: none;
+  min-height: 44px;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 15px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  border-radius: 13px;
+  background: rgba(10, 15, 24, .92);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, .35);
+  color: #f2f6fb;
+  font-size: 12px;
+  font-weight: 850;
+  backdrop-filter: blur(18px);
+  cursor: pointer;
+}
+
+#lp-editor-modal.aura-performance-v51.aura-v51-focus .aura-v51-focus-exit {
+  display: inline-flex;
+}
+
+.aura-v51-focus-exit svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+/* Popovers */
+
+.aura-v51-popover,
+.aura-v51-tools {
+  position: fixed;
+  top: 82px;
+  right: 18px;
+  z-index: 2147482500;
+  width: min(430px, calc(100vw - 30px));
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 20px;
+  background:
+    radial-gradient(circle at 90% 0%, color-mix(in srgb, var(--studio-primary, #6d5dfc) 14%, transparent), transparent 34%),
+    rgba(9, 14, 23, .97);
+  box-shadow: 0 28px 90px rgba(0, 0, 0, .48);
+  color: #edf3fa;
+  backdrop-filter: blur(22px);
+}
+
+.aura-v51-tools {
+  width: min(540px, calc(100vw - 30px));
+}
+
+.aura-v51-popover.hidden,
+.aura-v51-tools.hidden,
+.aura-v51-diagnostics.hidden {
+  display: none !important;
+}
+
+.aura-v51-popover > header,
+.aura-v51-tools > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 20px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.aura-v51-popover header small,
+.aura-v51-tools header small,
+.aura-v51-diagnostics-dialog header small {
+  color: var(--studio-primary, #7c6cff);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .15em;
+  text-transform: uppercase;
+}
+
+.aura-v51-popover header h3,
+.aura-v51-tools header h3 {
+  margin: 5px 0 0;
+  font-size: 18px;
+  font-weight: 850;
+  letter-spacing: -.035em;
+}
+
+.aura-v51-popover header p {
+  margin: 7px 0 0;
+  color: #7d899d;
+  font-size: 11px;
+  line-height: 1.55;
+}
+
+.aura-v51-popover header > button,
+.aura-v51-tools header > button,
+.aura-v51-diagnostics-dialog header > button {
+  display: grid;
+  flex: 0 0 38px;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .035);
+  color: #9aa7b9;
+  cursor: pointer;
+}
+
+.aura-v51-popover header > button svg,
+.aura-v51-tools header > button svg,
+.aura-v51-diagnostics-dialog header > button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aura-v51-section {
+  display: grid;
+  gap: 10px;
+  padding: 16px 20px 0;
+}
+
+.aura-v51-section > span {
+  color: #8794a8;
+  font-size: 10px;
+  font-weight: 850;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+}
+
+.aura-v51-segmented {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .02);
+}
+
+.aura-v51-segmented button {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 9px;
+  background: transparent;
+  color: #8693a6;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.aura-v51-segmented button:hover,
+.aura-v51-segmented button.is-active {
+  border-color: color-mix(in srgb, var(--studio-primary, #6d5dfc) 28%, transparent);
+  background: color-mix(in srgb, var(--studio-primary, #6d5dfc) 10%, transparent);
+  color: #ffffff;
+}
+
+.aura-v51-switch-list {
+  display: grid;
+  gap: 8px;
+  padding: 16px 20px 0;
+}
+
+.aura-v51-switch-list label {
+  display: flex;
+  min-height: 62px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 11px 13px;
+  border: 1px solid rgba(255, 255, 255, .07);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .02);
+  cursor: pointer;
+}
+
+.aura-v51-switch-list label > span {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  align-items: center;
+  column-gap: 9px;
+}
+
+.aura-v51-switch-list label svg {
+  grid-row: 1 / 3;
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: var(--studio-primary, #7c6cff);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aura-v51-switch-list label b,
+.aura-v51-switch-list label small {
+  display: block;
+}
+
+.aura-v51-switch-list label b {
+  color: #dfe7f2;
+  font-size: 11px;
+}
+
+.aura-v51-switch-list label small {
+  margin-top: 3px;
+  color: #6f7c90;
+  font-size: 9px;
+}
+
+.aura-v51-switch-list input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.aura-v51-switch-list label > i {
+  position: relative;
+  flex: 0 0 40px;
+  width: 40px;
+  height: 23px;
+  border-radius: 99px;
+  background: rgba(255, 255, 255, .09);
+  transition: background .2s ease;
+}
+
+.aura-v51-switch-list label > i::after {
+  content: "";
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform .2s ease;
+}
+
+.aura-v51-switch-list input:checked + i {
+  background: var(--studio-primary, #6d5dfc);
+}
+
+.aura-v51-switch-list input:checked + i::after {
+  transform: translateX(17px);
+}
+
+.aura-v51-quick-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  padding: 16px 20px 20px;
+}
+
+.aura-v51-quick-actions button {
+  display: flex;
+  min-height: 68px;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 7px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 13px;
+  background: rgba(255, 255, 255, .025);
+  color: #9eabbd;
+  font: inherit;
+  font-size: 9px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.aura-v51-quick-actions button:hover,
+.aura-v51-quick-actions button.is-active {
+  border-color: color-mix(in srgb, var(--studio-primary, #6d5dfc) 32%, transparent);
+  background: color-mix(in srgb, var(--studio-primary, #6d5dfc) 9%, transparent);
+  color: #ffffff;
+}
+
+.aura-v51-quick-actions svg {
+  width: 19px;
+  height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aura-v51-tools-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 9px;
+  padding: 16px;
+}
+
+.aura-v51-tools-grid > button {
+  display: flex;
+  min-height: 100px;
+  align-items: flex-start;
+  flex-direction: column;
+  gap: 12px;
+  padding: 14px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, .025);
+  color: #aab5c5;
+  text-align: left;
+  cursor: pointer;
+}
+
+.aura-v51-tools-grid > button:hover {
+  border-color: color-mix(in srgb, var(--studio-primary, #6d5dfc) 35%, transparent);
+  background: color-mix(in srgb, var(--studio-primary, #6d5dfc) 8%, transparent);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.aura-v51-tools-grid > button > svg {
+  width: 21px;
+  height: 21px;
+  fill: none;
+  stroke: var(--studio-primary, #7c6cff);
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+.aura-v51-tools-grid span,
+.aura-v51-tools-grid b,
+.aura-v51-tools-grid small {
+  display: block;
+}
+
+.aura-v51-tools-grid b {
+  color: #e6edf6;
+  font-size: 11px;
+}
+
+.aura-v51-tools-grid small {
+  margin-top: 5px;
+  color: #6f7b8e;
+  font-size: 9px;
+  line-height: 1.4;
+}
+
+/* Biblioteca incremental */
+
+#aura-studio-library.aura-v51-library-virtual {
+  --aura-v51-library-columns: 3;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-library-main {
+  scroll-behavior: smooth;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-library-grid {
+  grid-template-columns: repeat(var(--aura-v51-library-columns), minmax(0, 1fr)) !important;
+  gap: 16px !important;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-v51-template-card {
+  content-visibility: auto;
+  contain: layout paint style;
+  contain-intrinsic-size: 310px;
+  border-radius: 18px;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-template-preview {
+  height: 170px;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-template-content {
+  padding: 18px;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-template-content > small {
+  font-size: 9px !important;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-template-content h4 {
+  margin-top: 7px;
+  font-size: 15px !important;
+  line-height: 1.3;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-template-content p {
+  margin-top: 7px;
+  font-size: 12px !important;
+  line-height: 1.5;
+}
+
+#aura-studio-library.aura-v51-library-virtual .aura-studio-template-content button {
+  min-height: 40px;
+  padding: 9px 14px;
+  font-size: 11px !important;
+}
+
+.aura-v51-library-sentinel {
+  grid-column: 1 / -1;
+  display: flex;
+  min-height: 70px;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  color: #6f7c91;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.aura-v51-library-sentinel span {
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, .09);
+  border-top-color: var(--studio-primary, #6d5dfc);
+  border-radius: 50%;
+  animation: aura-v51-spin .7s linear infinite;
+}
+
+.aura-v51-rendered-counter {
+  margin-left: auto;
+  color: #667389 !important;
+  font-size: 9px !important;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+@keyframes aura-v51-spin {
+  to { transform: rotate(360deg); }
+}
+
+.aura-v51-duplicate-draft {
+  display: none !important;
+}
+
+/* Diagnóstico */
+
+.aura-v51-diagnostics {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483300;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+}
+
+.aura-v51-diagnostics-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(2, 5, 10, .82);
+  backdrop-filter: blur(18px);
+}
+
+.aura-v51-diagnostics-dialog {
+  position: relative;
+  width: min(980px, calc(100vw - 36px));
+  max-height: min(820px, calc(100vh - 36px));
+  overflow: auto;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 88% 0%, color-mix(in srgb, var(--studio-primary, #6d5dfc) 13%, transparent), transparent 32%),
+    #090e17;
+  box-shadow: 0 42px 120px rgba(0, 0, 0, .58);
+  color: #edf3fa;
+}
+
+.aura-v51-diagnostics-dialog > header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 22px;
+  padding: 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.aura-v51-diagnostics-dialog header h2 {
+  margin: 6px 0 0;
+  font-size: 25px;
+  font-weight: 880;
+  letter-spacing: -.045em;
+}
+
+.aura-v51-diagnostics-dialog header p {
+  margin: 8px 0 0;
+  color: #758298;
+  font-size: 11px;
+}
+
+#aura-v51-diagnostics-content {
+  padding: 20px 24px 24px;
+}
+
+.aura-v51-diagnostic-score {
+  display: flex;
+  min-height: 114px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 22px;
+  border: 1px solid rgba(255, 255, 255, .08);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, .025);
+}
+
+.aura-v51-diagnostic-score span,
+.aura-v51-diagnostic-score strong,
+.aura-v51-diagnostic-score small {
+  display: block;
+}
+
+.aura-v51-diagnostic-score span {
+  color: #748197;
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+
+.aura-v51-diagnostic-score strong {
+  margin-top: 7px;
+  font-size: 29px;
+  letter-spacing: -.05em;
+}
+
+.aura-v51-diagnostic-score small {
+  margin-top: 7px;
+  color: #78859a;
+  font-size: 10px;
+}
+
+.aura-v51-diagnostic-score > i {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #36d399;
+  box-shadow: 0 0 0 8px rgba(54, 211, 153, .1);
+}
+
+.aura-v51-diagnostic-score > i[data-state="warning"] {
+  background: #fbbf24;
+  box-shadow: 0 0 0 8px rgba(251, 191, 36, .1);
+}
+
+.aura-v51-diagnostic-score > i[data-state="danger"] {
+  background: #fb7185;
+  box-shadow: 0 0 0 8px rgba(251, 113, 133, .1);
+}
+
+.aura-v51-diagnostic-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: 12px;
+}
+
+.aura-v51-diagnostic-grid article {
+  min-height: 116px;
+  padding: 16px;
+  border: 1px solid rgba(255, 255, 255, .075);
+  border-radius: 15px;
+  background: rgba(255, 255, 255, .02);
+}
+
+.aura-v51-diagnostic-grid article[data-state="warning"] {
+  border-color: rgba(251, 191, 36, .24);
+}
+
+.aura-v51-diagnostic-grid article[data-state="danger"] {
+  border-color: rgba(251, 113, 133, .26);
+}
+
+.aura-v51-diagnostic-grid span,
+.aura-v51-diagnostic-grid strong,
+.aura-v51-diagnostic-grid small {
+  display: block;
+}
+
+.aura-v51-diagnostic-grid span {
+  color: #748197;
+  font-size: 9px;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.aura-v51-diagnostic-grid strong {
+  margin-top: 13px;
+  font-size: 23px;
+  font-weight: 900;
+  letter-spacing: -.04em;
+}
+
+.aura-v51-diagnostic-grid small {
+  margin-top: 7px;
+  color: #69768b;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.aura-v51-recommendations {
+  margin-top: 18px;
+}
+
+.aura-v51-recommendations h3 {
+  margin: 0 0 10px;
+  font-size: 14px;
+}
+
+.aura-v51-recommendations article {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 13px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, .07);
+}
+
+.aura-v51-recommendations article:last-child {
+  border-bottom: 0;
+}
+
+.aura-v51-recommendations article > span {
+  flex: 0 0 9px;
+  width: 9px;
+  height: 9px;
+  margin-top: 4px;
+  border-radius: 50%;
+  background: #36d399;
+}
+
+.aura-v51-recommendations article[data-state="warning"] > span {
+  background: #fbbf24;
+}
+
+.aura-v51-recommendations article[data-state="danger"] > span {
+  background: #fb7185;
+}
+
+.aura-v51-recommendations strong {
+  display: block;
+  font-size: 11px;
+}
+
+.aura-v51-recommendations p {
+  margin: 5px 0 0;
+  color: #748197;
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.aura-v51-diagnostics-dialog > footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 24px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+}
+
+.aura-v51-diagnostics-dialog > footer > span {
+  color: #69768a;
+  font-size: 9px;
+}
+
+.aura-v51-diagnostics-dialog > footer > button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 13px;
+  border: 1px solid rgba(255, 255, 255, .09);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .035);
+  color: #dfe7f2;
+  font: inherit;
+  font-size: 10px;
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.aura-v51-diagnostics-dialog > footer svg {
+  width: 17px;
+  height: 17px;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
+}
+
+/* Canvas e legibilidade */
+
+#lp-editor-modal.aura-performance-v51 #lped-preview-canvas {
+  min-width: 0;
+}
+
+#lp-editor-modal.aura-performance-v51 #lped-preview-canvas > * {
+  contain: layout style;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-lped-canvas-scroll {
+  padding-inline: 24px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-empty strong {
+  font-size: 15px !important;
+}
+
+#lp-editor-modal.aura-performance-v51 .aura-studio-inspector-empty p {
+  max-width: 240px;
+  font-size: 11px !important;
+  line-height: 1.55;
+}
+
+@media (max-width: 1360px) {
+  #lp-editor-modal.aura-performance-v51 {
+    --aura-v51-left-width: 292px;
+    --aura-v51-inspector-width: 300px;
+  }
+
+  #lp-editor-modal.aura-performance-v51 #aura-studio-brand {
+    min-width: 148px;
+  }
+
+  .aura-v51-top-button > span {
+    display: none;
+  }
+
+  .aura-v51-top-button {
+    width: 42px;
+    padding: 0 !important;
+  }
+
+  #aura-studio-library.aura-v51-library-virtual .aura-studio-library-grid {
+    grid-template-columns: repeat(min(var(--aura-v51-library-columns), 3), minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 980px) {
+  #lp-editor-modal.aura-performance-v51 {
+    --aura-v51-left-width: min(340px, 88vw);
+    --aura-v51-inspector-width: min(340px, 88vw);
+  }
+
+  .aura-v51-tools-grid,
+  .aura-v51-diagnostic-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  #aura-studio-library.aura-v51-library-virtual .aura-studio-library-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  }
+}
+
+@media (max-width: 720px) {
+  #lp-editor-modal.aura-performance-v51 > .aura-lped-topbar {
+    min-height: 66px !important;
+    padding: 8px !important;
+  }
+
+  #lp-editor-modal.aura-performance-v51 #aura-studio-brand {
+    min-width: auto;
+  }
+
+  #lp-editor-modal.aura-performance-v51 #aura-studio-brand > div {
+    display: none;
+  }
+
+  .aura-v51-popover,
+  .aura-v51-tools {
+    top: 70px;
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
+
+  .aura-v51-tools-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .aura-v51-diagnostics {
+    padding: 0;
+  }
+
+  .aura-v51-diagnostics-dialog {
+    width: 100vw;
+    max-height: 100vh;
+    height: 100vh;
+    border: 0;
+    border-radius: 0;
+  }
+
+  .aura-v51-diagnostic-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  #aura-studio-library.aura-v51-library-virtual .aura-studio-library-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  #aura-studio-library.aura-v51-library-virtual .aura-studio-template-preview {
+    height: 190px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #lp-editor-modal.aura-performance-v51 *,
+  #lp-editor-modal.aura-performance-v51 *::before,
+  #lp-editor-modal.aura-performance-v51 *::after {
+    scroll-behavior: auto !important;
+    transition-duration: .01ms !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
