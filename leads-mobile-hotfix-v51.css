@@ -1,0 +1,106 @@
+/**
+ * Vide Aura — Leads V5 Mobile Hotfix 5.1
+ * Corrige o painel de detalhes vazio cobrindo a central no celular.
+ */
+
+@media (max-width: 980px) {
+    .aura-leads-v5-modal {
+        overflow: hidden !important;
+        touch-action: manipulation;
+    }
+
+    .aura-leads-v5-shell {
+        width: 100vw !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+    }
+
+    .aura-leads-v5-body {
+        position: relative !important;
+        min-height: 0 !important;
+        overflow: hidden !important;
+    }
+
+    .aura-leads-v5-main {
+        min-height: 0 !important;
+        height: 100% !important;
+        overflow: auto !important;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    /*
+     * O CSS original transforma o painel de detalhes em uma camada absoluta
+     * mesmo quando nenhum lead está selecionado. Isso cria a área vazia que
+     * cobre a Inbox e bloqueia os toques.
+     */
+    .aura-leads-v5-detail:has(.aura-leads-v5-empty-detail) {
+        display: none !important;
+        pointer-events: none !important;
+    }
+
+    .aura-leads-v5-detail:not(:has(.aura-leads-v5-empty-detail)) {
+        display: block !important;
+        pointer-events: auto !important;
+    }
+
+    .aura-leads-v5-toolbar,
+    .aura-leads-v5-header,
+    .aura-leads-v5-tabs,
+    .aura-leads-v5-tabs button,
+    .aura-leads-v5-header-actions,
+    .aura-leads-v5-header-actions button {
+        pointer-events: auto !important;
+        touch-action: manipulation !important;
+    }
+
+    .aura-leads-v5-tabs {
+        overscroll-behavior-x: contain;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .aura-leads-v5-tabs button {
+        flex: 0 0 auto !important;
+        min-width: max-content !important;
+    }
+}
+
+@media (max-width: 720px) {
+    .aura-leads-v5-shell {
+        grid-template-rows: auto auto minmax(0, 1fr) !important;
+    }
+
+    .aura-leads-v5-header {
+        position: relative !important;
+        z-index: 12 !important;
+        padding-top: max(12px, env(safe-area-inset-top)) !important;
+    }
+
+    .aura-leads-v5-toolbar {
+        position: relative !important;
+        z-index: 11 !important;
+        min-height: auto !important;
+        gap: 8px !important;
+    }
+
+    .aura-leads-v5-tabs {
+        width: 100% !important;
+        padding-bottom: 3px;
+    }
+
+    .aura-leads-v5-body {
+        height: auto !important;
+    }
+
+    .aura-leads-v5-main {
+        padding: 12px 12px calc(24px + env(safe-area-inset-bottom)) !important;
+    }
+
+    .aura-leads-v5-detail {
+        top: 0 !important;
+        right: 0 !important;
+        bottom: 0 !important;
+        width: 100vw !important;
+        height: 100% !important;
+        z-index: 20 !important;
+    }
+}
