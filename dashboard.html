@@ -28,11 +28,9 @@
 <link rel="stylesheet" href="./studio-library-clean-v53.css?v=530">
 <!-- Vide Aura Editor Clean V6 -->
 <link rel="stylesheet" href="./studio-clean-v6.css?v=600">
-
-<!-- Workspace antigo desativado no celular -->
-<!-- <link rel="stylesheet" href="./studio-workspace-clean-v61.css?v=610"> -->
-
-<!-- Mobile V6.2 antigo desativado -->
+<!-- Workspace V6.1 desativado temporariamente -->
+<!-- <!-- <link rel="stylesheet" href="./studio-workspace-clean-v61.css?v=610"> --> -->
+<!-- Mobile V6.2 desativado temporariamente -->
 <!-- <link rel="stylesheet" href="./studio-mobile-v62.css?v=620"> -->
 </head>
 <body id="admin-body" class="min-h-full text-gray-200 bg-[#030712] flex flex-col md:flex-row transition-colors duration-300">
@@ -8209,7 +8207,7 @@ Confirmar
 </div>
 
 <script src="./runtime-guard.js"></script>
-<script type="module" src="./dashboard-app.js"></script>
+<script type="module" src="./dashboard-app.js?v=mobile-stable-1"></script>
 <script src="./studio-library.js"></script>
 <script src="./studio-max-library.js"></script>
 <script src="./studio-inspector.js"></script>
@@ -8226,14 +8224,19 @@ Confirmar
 <script src="./studio-components-v4.js"></script>
 <script src="./studio-canvas-v4.js"></script>
 <script type="module" src="./lead-engine-v5.js"></script>
-<script type="module" src="./lead-engine-v5.js"></script>
-<script src="./leads-mobile-controller-v52.js?v=520"></script>
 <!-- Carregue por último, depois de Pro, MAX, Ultimate, Canvas V4 e do hotfix de dispositivos -->
 <!-- <script src="./studio-library-virtual-v51.js"></script> -->
 <!-- <script src="./studio-performance-v51.js"></script> -->
 <!-- <script src="./studio-library-performance-v521.js?v=521"></script> -->
 <script src="./studio-library-clean-v53.js?v=530"></script>
-<script src="./studio-workspace-clean-v61.js?v=610"></script>
 
+<!-- Workspace e Mobile Safe desativados para evitar conflito no celular -->
+<!-- <script src="./studio-workspace-clean-v61.js?v=610"></script> -->
+<!-- <script src="./studio-mobile-safe-v63.js?v=630"></script> -->
+
+<!-- Recuperação de cliques e controle mobile do Leads -->
+<script src="./mobile-click-recovery-v1.js?v=103"></script>
+<script src="./leads-mobile-controller-v52.js?v=521"></script>
 </body>
 </html>
+
