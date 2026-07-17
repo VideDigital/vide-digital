@@ -1068,6 +1068,53 @@ function existeSuperficieIncompativelAberta() {
     return seletores.some(seletor => Boolean(document.querySelector(seletor)));
 }
 
+function atualizarLinksLojaPublica(slug) {
+    const slugSeguro = String(slug || "").trim();
+    const href = slugSeguro ? `loja.html?loja=${slugSeguro}` : "";
+
+    [
+        "link-minha-loja",
+        "link-minha-loja-cockpit"
+    ].forEach(id => {
+        const link = document.getElementById(id);
+        if (!link) return;
+
+        if (href) {
+            link.href = href;
+            link.removeAttribute("aria-disabled");
+            link.removeAttribute("tabindex");
+            return;
+        }
+
+        link.removeAttribute("href");
+        link.setAttribute("aria-disabled", "true");
+        link.setAttribute("tabindex", "-1");
+    });
+}
+
+function obterLinkPublicoValido(...ids) {
+    for (const id of ids) {
+        const link = document.getElementById(id);
+        const href = String(link?.getAttribute("href") || "").trim();
+
+        if (
+            !href ||
+            href === "#" ||
+            href.toLowerCase() === "javascript:void(0)"
+        ) {
+            continue;
+        }
+
+        try {
+            return new URL(href, window.location.href).href;
+        } catch (erro) {
+            console.warn("Link publico invalido ignorado:", href);
+        }
+    }
+
+    return "";
+}
+
 function atualizarVisibilidadeBarraEditorLayout(targetId) {
     const barra = document.getElementById("barra-editor-layout");
     const btnSalvar = document.getElementById("btn-salvar-layout");
@@ -1130,16 +1177,30 @@ function aplicarEstadoModoEdicaoLayout() {
     const btn = document.getElementById("btn-editar-layout");
     const btnSalvar = document.getElementById("btn-salvar-layout");
     const btnRestaurar = document.getElementById("btn-restaurar-layout");
+    prepararBlocosLayoutEditaveis();
     document.querySelectorAll(".view-section.active .layout-block").forEach(el => {
         el.draggable = modoEdicaoLayoutAtivo;
         const oculto = el.classList.contains("layout-block-oculto");
+        const obrigatorio =
+            el.getAttribute("data-layout-obrigatorio") === "true";
         if (modoEdicaoLayoutAtivo) {
             el.classList.add("border-2", "border-dashed", "border-white/30");
-            if (oculto) { el.classList.remove("hidden"); el.style.opacity = "0.3"; }
+            if (oculto && !obrigatorio) {
+                el.hidden = false;
+                el.classList.remove("hidden");
+                el.style.opacity = "0.3";
+            }
         } else {
             el.classList.remove("border-2", "border-dashed", "border-white/30");
             el.style.opacity = "";
-            if (oculto) el.classList.add("hidden");
+            if (oculto && !obrigatorio) {
+                el.hidden = true;
+                el.classList.add("hidden");
+            } else {
+                el.hidden = false;
+                el.classList.remove("hidden");
+                el.classList.remove("layout-block-oculto");
+            }
         }
         let controle = el.querySelector(".layout-block-controle");
         if (modoEdicaoLayoutAtivo && !controle) {
@@ -1149,8 +1210,14 @@ function aplicarEstadoModoEdicaoLayout() {
             el.insertBefore(controle, el.firstChild);
             controle.querySelector(".btn-toggle-visibilidade-bloco").addEventListener("click", (ev) => {
                 ev.stopPropagation();
+                if (obrigatorio) {
+                    showToast?.("Este bloco é obrigatório e não pode ser ocultado.", "error");
+                    return;
+                }
                 const escondido = el.classList.toggle("layout-block-oculto");
                 el.style.opacity = escondido ? "0.3" : "1";
+                el.hidden = false;
+                el.classList.remove("hidden");
                 ev.target.innerText = escondido ? "🚫 Oculto (clique p/ mostrar)" : "👁️ Ocultar";
             });
         } else if (!modoEdicaoLayoutAtivo && controle) {
@@ -1186,17 +1253,59 @@ window.restaurarLayoutOriginal = async function() {
         }
     });
 };
-document.querySelectorAll(".layout-block").forEach(el => {
-    el.addEventListener("dragstart", () => { blocoArrastando = el; });
-    el.addEventListener("dragover", (e) => {
-        e.preventDefault();
-        if (!modoEdicaoLayoutAtivo || blocoArrastando === el) return;
-        const rect = el.getBoundingClientRect();
-        const meio = rect.top + rect.height / 2;
-        if (e.clientY < meio) el.parentNode.insertBefore(blocoArrastando, el);
-        else el.parentNode.insertBefore(blocoArrastando, el.nextSibling);
+function prepararBlocosLayoutEditaveis(root = document) {
+    const origem =
+        root instanceof Element
+            ? root
+            : document;
+    const blocos =
+        origem.matches?.(".layout-block")
+            ? [origem]
+            : Array.from(origem.querySelectorAll(".layout-block"));
+
+    blocos.forEach(el => {
+        if (!estaEmDesktopParaEditorLayout()) {
+            el.draggable = false;
+            return;
+        }
+
+        el.draggable = modoEdicaoLayoutAtivo;
+
+        if (el.dataset.layoutDragReady === "true") {
+            return;
+        }
+
+        el.dataset.layoutDragReady = "true";
+
+        el.addEventListener("dragstart", () => {
+            if (
+                !modoEdicaoLayoutAtivo ||
+                !estaEmDesktopParaEditorLayout()
+            ) {
+                blocoArrastando = null;
+                return;
+            }
+
+            blocoArrastando = el;
+        });
+
+        el.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            if (
+                !modoEdicaoLayoutAtivo ||
+                !estaEmDesktopParaEditorLayout() ||
+                !blocoArrastando ||
+                blocoArrastando === el
+            ) return;
+            const rect = el.getBoundingClientRect();
+            const meio = rect.top + rect.height / 2;
+            if (e.clientY < meio) el.parentNode.insertBefore(blocoArrastando, el);
+            else el.parentNode.insertBefore(blocoArrastando, el.nextSibling);
+        });
     });
-});
+}
+
+prepararBlocosLayoutEditaveis();
 
 function aplicarLayoutSalvoDaAba(targetId) {
     const config = window._layoutPorAbaSalvo && window._layoutPorAbaSalvo[targetId];
@@ -1214,14 +1323,20 @@ function aplicarLayoutSalvoDaAba(targetId) {
             !blocoObrigatorio;
 
         el.classList.toggle("hidden", deveOcultar);
+        el.classList.toggle("layout-block-oculto", deveOcultar);
+        el.hidden = deveOcultar;
 
         if (blocoObrigatorio) {
             el.classList.remove("layout-block-oculto");
             el.style.display = "";
+            el.hidden = false;
+            el.classList.remove("hidden");
         }
 
         secao.appendChild(el);
     });
+
+    prepararBlocosLayoutEditaveis(secao);
 }
 
 window.salvarLayoutVisaoGeral = async function() {
@@ -1370,6 +1485,7 @@ document
 
 secaoAlvo.classList.add("active");
     aplicarLayoutSalvoDaAba(targetId);
+    prepararBlocosLayoutEditaveis(secaoAlvo);
     atualizarVisibilidadeBarraEditorLayout(targetId);
     localStorage.setItem("abaAtivaDashboard", targetId);
 
@@ -3100,15 +3216,9 @@ btn.classList.add("opacity-40");
         inputsReflexao.forEach(id => {
             document.getElementById(id).addEventListener('input', () => {
                 const slugValue = document.getElementById("perf-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-                document.getElementById("link-minha-loja").href = `loja.html?loja=${slugValue || 'vitrine'}`;
+                atualizarLinksLojaPublica(slugValue);
 
-                const linkCockpit = document.getElementById("link-minha-loja-cockpit");
-
-                if (linkCockpit) {
-                    linkCockpit.href = `loja.html?loja=${slugValue || 'vitrine'}`;
-                }
-
-                document.getElementById("url-loja-preview").innerText = `vide.digital/${slugValue || 'vitrine'}`;
+                document.getElementById("url-loja-preview").innerText = slugValue ? `vide.digital/${slugValue}` : "vide.digital/";
 
                 document.getElementById("txt-preview-nome-loja").innerText =
                     document.getElementById("perf-nome-loja").value || "Visão Geral";
@@ -5564,7 +5674,7 @@ const emModoMaster = !!(masterUIDAlvo && (usuarioEmail === "danielmarcelino549@g
 
                 const slugAtualURL = dadosPlano.urlLoja || "";
                 if (slugAtualURL) {
-                    document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtualURL}`;
+                    atualizarLinksLojaPublica(slugAtualURL);
                     document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtualURL}`;
                 }
 
@@ -5762,9 +5872,9 @@ listaBanners = [];
                     renderizarGaleriaBanners();
 
                     slugAtualSalvo = dados.urlLoja || "";
-                    const slugAtual = dados.urlLoja || "vitrine";
-                    document.getElementById("link-minha-loja").href = `loja.html?loja=${slugAtual}`;
-                    document.getElementById("url-loja-preview").innerText = `vide.digital/${slugAtual}`;
+                    const slugAtual = dados.urlLoja || "";
+                    atualizarLinksLojaPublica(slugAtual);
+                    document.getElementById("url-loja-preview").innerText = slugAtual ? `vide.digital/${slugAtual}` : "vide.digital/";
                     document.getElementById("txt-preview-nome-loja").innerText = dados.nomeLoja || "Visão Geral";
                     try { localStorage.setItem("ultimoPerfilLoja_" + usuarioUID, JSON.stringify({ nomeLoja: dados.nomeLoja, urlLoja: slugAtual })); } catch(e) {}
                     // GERAR LINKS UTM POR ORIGEM
@@ -5798,13 +5908,16 @@ listaBanners = [];
                 }
 
                 // Restaura a aba salva SOMENTE agora, depois que os cadeados já foram aplicados
+                let abaRestauradaAposAuth = false;
                 if (window._abaSalva && document.getElementById(window._abaSalva)) {
                     const featureNecessaria = bloqueios[window._abaSalva];
                     if (!featureNecessaria || temFeature(featureNecessaria)) {
                         ativarAba(window._abaSalva);
+                        abaRestauradaAposAuth = true;
                     } else {
                         // A aba salva está bloqueada no plano atual: volta para a Visão Geral
                         ativarAba("view-dashboard");
+                        abaRestauradaAposAuth = true;
                         localStorage.setItem("abaAtivaDashboard", "view-dashboard");
                     }
                 }
@@ -5813,8 +5926,13 @@ listaBanners = [];
                 iniciarControleInatividade();
 
                 carregarProdutos();
-carregarCockpitReal();
-if (temFeature("leads")) carregarLeads();
+                if (
+                    !abaRestauradaAposAuth &&
+                    document.getElementById("view-dashboard")?.classList.contains("active")
+                ) {
+                    carregarCockpitReal();
+                }
+                if (temFeature("leads")) carregarLeads();
                 if (temFeature("hub")) carregarPedidos();
                 if (temFeature("templates")) carregarTemplates();
                 if (temFeature("campanhas")) carregarCampanha();
@@ -12035,6 +12153,8 @@ function renderizarCentralOperacional(
 
     };
 
+    prepararBlocosLayoutEditaveis(painel);
+
     // Reaplica a ordem salva agora que o bloco dinâmico já existe.
     if (
         typeof aplicarLayoutSalvoDaAba ===
@@ -12582,18 +12702,16 @@ function renderizarCentralImplantacao() {
 
         if (acao === "abrir-loja") {
 
-            const link =
-                document.getElementById(
-                    "link-minha-loja-cockpit"
-                ) ||
-                document.getElementById(
+            const hrefValido =
+                obterLinkPublicoValido(
+                    "link-minha-loja-cockpit",
                     "link-minha-loja"
                 );
 
-            if (link?.href) {
+            if (hrefValido) {
 
                 window.open(
-                    link.href,
+                    hrefValido,
                     "_blank",
                     "noopener,noreferrer"
                 );
@@ -12607,6 +12725,8 @@ function renderizarCentralImplantacao() {
         abrirConfiguracao(acao);
 
     };
+
+    prepararBlocosLayoutEditaveis(painel);
 
     if (
         typeof aplicarLayoutSalvoDaAba ===
