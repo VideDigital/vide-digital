@@ -44,11 +44,90 @@ const state = {
     loading: false,
     initialized: false,
     modalOpen: false,
+    lifecycleController: null,
+    previouslyFocusedElement: null,
     slaMinutes: 30,
     duplicateGroups: [],
     sourceGroups: [],
     formGroups: []
 };
+
+function getLifecycleSignal() {
+    if (
+        !state.lifecycleController ||
+        state.lifecycleController.signal.aborted
+    ) {
+        state.lifecycleController = new AbortController();
+    }
+
+    return state.lifecycleController.signal;
+}
+
+function dispatchModalState(open) {
+    window.dispatchEvent(
+        new CustomEvent("aura:leads-v5-statechange", {
+            detail: { open }
+        })
+    );
+}
+
+function applyModalState(modal, open, options = {}) {
+    if (!modal) {
+        return;
+    }
+
+    const changed = state.modalOpen !== open;
+    state.modalOpen = open;
+    modal.classList.toggle("is-open", open);
+    modal.setAttribute("aria-hidden", open ? "false" : "true");
+    modal.style.pointerEvents = open ? "auto" : "none";
+
+    if (open) {
+        modal.removeAttribute("inert");
+    } else {
+        modal.setAttribute("inert", "");
+    }
+
+    if (changed && options.emit !== false) {
+        dispatchModalState(open);
+    }
+}
+
+function focusModal(modal) {
+    window.requestAnimationFrame(() => {
+        if (!state.modalOpen) {
+            return;
+        }
+
+        const target = modal.querySelector(
+            "button[data-aura-close]"
+        );
+
+        target?.focus({ preventScroll: true });
+    });
+}
+
+function restorePreviousFocus() {
+    const target = state.previouslyFocusedElement;
+    state.previouslyFocusedElement = null;
+
+    if (!(target instanceof HTMLElement) || !target.isConnected) {
+        return;
+    }
+
+    window.requestAnimationFrame(() => {
+        if (!state.modalOpen && target.isConnected) {
+            target.focus({ preventScroll: true });
+        }
+    });
+}
+
+function teardownModalLifecycle() {
+    closeModal({ restoreFocus: false });
+    state.lifecycleController?.abort();
+    state.lifecycleController = null;
+    state.previouslyFocusedElement = null;
+}
 
 const svg = {
     spark: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.6 5.4L19 10l-5.4 1.6L12 17l-1.6-5.4L5 10l5.4-1.6L12 3z"></path><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8L19 16z"></path></svg>`,
@@ -387,12 +466,19 @@ function injectEntryButton() {
         view.prepend(entry);
     }
 
-    entry.querySelector("#aura-leads-v5-open")?.addEventListener("click", openModal);
+    entry.querySelector("#aura-leads-v5-open")?.addEventListener(
+        "click",
+        openModal,
+        { signal: getLifecycleSignal() }
+    );
 }
 
 function injectModal() {
-    if (document.getElementById("aura-leads-v5-modal")) {
-        return;
+    const existing = document.getElementById("aura-leads-v5-modal");
+
+    if (existing) {
+        applyModalState(existing, state.modalOpen, { emit: false });
+        return existing;
     }
 
     const modal = document.createElement("div");
@@ -461,14 +547,25 @@ function injectModal() {
         </section>
     `;
 
+    applyModalState(modal, false, { emit: false });
     document.body.appendChild(modal);
 
+    const signal = getLifecycleSignal();
+
     modal.querySelectorAll("[data-aura-close]").forEach((button) => {
-        button.addEventListener("click", closeModal);
+        button.addEventListener("click", closeModal, { signal });
     });
 
-    modal.querySelector("[data-action='refresh']")?.addEventListener("click", loadLeads);
-    modal.querySelector("[data-action='export']")?.addEventListener("click", exportCSV);
+    modal.querySelector("[data-action='refresh']")?.addEventListener(
+        "click",
+        loadLeads,
+        { signal }
+    );
+    modal.querySelector("[data-action='export']")?.addEventListener(
+        "click",
+        exportCSV,
+        { signal }
+    );
     modal.querySelectorAll("[data-tab]").forEach((button) => {
         button.addEventListener("click", () => {
             state.activeTab = button.dataset.tab || "inbox";
@@ -476,12 +573,16 @@ function injectModal() {
                 item.classList.toggle("is-active", item === button);
             });
             render();
-        });
+        }, { signal });
     });
 
     const sla = modal.querySelector("#aura-leads-v5-sla");
     sla.value = String(state.slaMinutes);
-    sla.addEventListener("change", () => saveSLA(sla.value));
+    sla.addEventListener(
+        "change",
+        () => saveSLA(sla.value),
+        { signal }
+    );
 
     document.addEventListener("keydown", (event) => {
         if (!state.modalOpen) {
@@ -495,7 +596,9 @@ function injectModal() {
         if (event.key === "Escape") {
             closeModal();
         }
-    });
+    }, { signal });
+
+    return modal;
 }
 
 function openModal() {
@@ -505,9 +608,15 @@ function openModal() {
         return;
     }
 
-    state.modalOpen = true;
-    modal.classList.add("is-open");
-    modal.setAttribute("aria-hidden", "false");
+    if (
+        !state.modalOpen &&
+        document.activeElement instanceof HTMLElement &&
+        !modal.contains(document.activeElement)
+    ) {
+        state.previouslyFocusedElement = document.activeElement;
+    }
+
+    applyModalState(modal, true);
     document.body.classList.add("aura-leads-v5-lock");
 
     if (!state.leads.length && !state.loading) {
@@ -515,14 +624,20 @@ function openModal() {
     } else {
         render();
     }
+
+    focusModal(modal);
 }
 
-function closeModal() {
+function closeModal(options = {}) {
     const modal = document.getElementById("aura-leads-v5-modal");
-    state.modalOpen = false;
-    modal?.classList.remove("is-open");
-    modal?.setAttribute("aria-hidden", "true");
+    const wasOpen = state.modalOpen;
+
+    applyModalState(modal, false);
     document.body.classList.remove("aura-leads-v5-lock");
+
+    if (wasOpen && options.restoreFocus !== false) {
+        restorePreviousFocus();
+    }
 }
 
 async function loadLeads() {
@@ -1474,16 +1589,24 @@ async function initialize(user) {
     injectModal();
     state.initialized = true;
 
+    window.addEventListener("pagehide", (event) => {
+        if (!event.persisted) {
+            teardownModalLifecycle();
+        }
+    }, { signal: getLifecycleSignal() });
+
     window.AuraLeadsV5 = {
         version: VERSION,
         open: openModal,
         close: closeModal,
         reload: loadLeads,
+        destroy: teardownModalLifecycle,
         getState: () => ({
             ownerUid: state.ownerUid,
             total: state.leads.length,
             duplicates: state.duplicateGroups.length,
-            slaMinutes: state.slaMinutes
+            slaMinutes: state.slaMinutes,
+            modalOpen: state.modalOpen
         })
     };
 

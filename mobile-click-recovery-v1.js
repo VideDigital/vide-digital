@@ -86,11 +86,12 @@
     }
 
     function normalizeModalInteraction() {
+        // O Lead Engine V5 é a única autoridade sobre o lifecycle do seu modal.
+        // Mantê-lo fora deste recovery evita reativar um overlay fechado.
         document
             .querySelectorAll(
                 "#lp-editor-modal, #lp-modal, " +
-                "#aura-studio-library, " +
-                ".aura-leads-v5-modal"
+                "#aura-studio-library"
             )
             .forEach(function (modal) {
                 const hidden =

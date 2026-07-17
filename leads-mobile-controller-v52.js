@@ -15,7 +15,8 @@
 
     const state = {
         initialized: false,
-        observer: null,
+        abortController: null,
+        timers: new Set(),
         wasOpenedByUser: false,
         historyAdded: false
     };
@@ -32,6 +33,34 @@
         );
     }
 
+    function getControllerSignal() {
+        if (
+            !state.abortController ||
+            state.abortController.signal.aborted
+        ) {
+            state.abortController = new AbortController();
+        }
+
+        return state.abortController.signal;
+    }
+
+    function schedule(callback, delay) {
+        const timer = window.setTimeout(function () {
+            state.timers.delete(timer);
+            callback();
+        }, delay);
+
+        state.timers.add(timer);
+        return timer;
+    }
+
+    function clearScheduledTasks() {
+        state.timers.forEach(function (timer) {
+            window.clearTimeout(timer);
+        });
+        state.timers.clear();
+    }
+
     function isModalOpen() {
         const modal = getModal();
 
@@ -42,32 +71,14 @@
         );
     }
 
-    function unlockPage() {
-        document.body.classList.remove(
-            "aura-leads-v5-lock"
-        );
-
-        document.documentElement.style.overflow = "";
-        document.documentElement.style.pointerEvents = "";
-
-        document.body.style.overflow = "";
-        document.body.style.pointerEvents = "";
-        document.body.style.touchAction = "";
-    }
-
     function closeLeads(options = {}) {
-        const modal = getModal();
+        const leadEngine = window.AuraLeadsV5;
 
-        if (!modal) {
-            unlockPage();
-            return;
+        if (typeof leadEngine?.close !== "function") {
+            return false;
         }
 
-        modal.classList.remove("is-open");
-        modal.setAttribute("aria-hidden", "true");
-        modal.style.pointerEvents = "none";
-
-        unlockPage();
+        leadEngine.close();
 
         state.wasOpenedByUser = false;
 
@@ -84,6 +95,8 @@
                 "aura:leads-mobile-closed"
             )
         );
+
+        return true;
     }
 
     function createCloseButton() {
@@ -141,7 +154,10 @@
                     restoreHistory: true
                 });
             },
-            true
+            {
+                capture: true,
+                signal: getControllerSignal()
+            }
         );
 
         modal.appendChild(button);
@@ -162,18 +178,6 @@
             "aura-leads-mobile-controller-v52-style";
 
         style.textContent = `
-            #aura-leads-v5-modal[aria-hidden="true"] {
-                visibility: hidden !important;
-                opacity: 0 !important;
-                pointer-events: none !important;
-            }
-
-            #aura-leads-v5-modal.is-open[aria-hidden="false"] {
-                visibility: visible !important;
-                opacity: 1 !important;
-                pointer-events: auto !important;
-            }
-
             #aura-leads-mobile-close-v52 {
                 display: none;
             }
@@ -305,55 +309,22 @@
         }
     }
 
-    function observeModal() {
-        const modal = getModal();
+    function handleModalStateChange(event) {
+        const open = typeof event?.detail?.open === "boolean"
+            ? event.detail.open
+            : isModalOpen();
 
-        if (!modal || state.observer) {
+        if (open) {
+            createCloseButton();
+
+            if (!state.wasOpenedByUser) {
+                markOpenByUser();
+            }
+
             return;
         }
 
-        state.observer = new MutationObserver(
-            function (records) {
-                const changed = records.some(
-                    function (record) {
-                        return (
-                            record.type ===
-                                "attributes" &&
-                            (
-                                record.attributeName ===
-                                    "class" ||
-                                record.attributeName ===
-                                    "aria-hidden"
-                            )
-                        );
-                    }
-                );
-
-                if (!changed) {
-                    return;
-                }
-
-                if (isModalOpen()) {
-                    modal.style.pointerEvents = "auto";
-                    createCloseButton();
-
-                    if (!state.wasOpenedByUser) {
-                        markOpenByUser();
-                    }
-                } else {
-                    modal.style.pointerEvents = "none";
-                    unlockPage();
-                }
-            }
-        );
-
-        state.observer.observe(modal, {
-            attributes: true,
-            attributeFilter: [
-                "class",
-                "aria-hidden"
-            ]
-        });
+        state.wasOpenedByUser = false;
     }
 
     function watchOpenButtons() {
@@ -375,7 +346,10 @@
 
                 state.wasOpenedByUser = true;
             },
-            true
+            {
+                capture: true,
+                signal: getControllerSignal()
+            }
         );
     }
 
@@ -384,7 +358,7 @@
             return;
         }
 
-        window.setTimeout(
+        schedule(
             function () {
                 if (!state.wasOpenedByUser) {
                     closeLeads();
@@ -393,7 +367,7 @@
             80
         );
 
-        window.setTimeout(
+        schedule(
             function () {
                 if (!state.wasOpenedByUser) {
                     closeLeads();
@@ -402,7 +376,7 @@
             500
         );
 
-        window.setTimeout(
+        schedule(
             function () {
                 if (!state.wasOpenedByUser) {
                     closeLeads();
@@ -416,7 +390,7 @@
         const modal = getModal();
 
         if (!modal) {
-            window.setTimeout(
+            schedule(
                 initializeModalWhenAvailable,
                 150
             );
@@ -424,8 +398,51 @@
         }
 
         createCloseButton();
-        observeModal();
+        handleModalStateChange();
         closeOnInitialMobileLoad();
+    }
+
+    function handlePopState() {
+        if (isMobile() && isModalOpen()) {
+            state.historyAdded = false;
+            closeLeads();
+        }
+    }
+
+    function handlePageShow(event) {
+        if (
+            isMobile() &&
+            (
+                event.persisted ||
+                !state.wasOpenedByUser
+            )
+        ) {
+            schedule(function () {
+                closeLeads();
+            }, 50);
+        }
+    }
+
+    function teardown() {
+        clearScheduledTasks();
+        state.abortController?.abort();
+        state.abortController = null;
+        state.wasOpenedByUser = false;
+        state.historyAdded = false;
+        state.initialized = false;
+
+        document.getElementById(
+            "aura-leads-mobile-close-v52"
+        )?.remove();
+        document.getElementById(
+            "aura-leads-mobile-controller-v52-style"
+        )?.remove();
+    }
+
+    function handlePageHide(event) {
+        if (!event.persisted) {
+            teardown();
+        }
     }
 
     function initialize() {
@@ -434,57 +451,38 @@
         }
 
         state.initialized = true;
+        const signal = getControllerSignal();
 
         injectStyles();
         watchOpenButtons();
         initializeModalWhenAvailable();
 
         window.addEventListener(
-            "popstate",
-            function () {
-                if (
-                    isMobile() &&
-                    isModalOpen()
-                ) {
-                    state.historyAdded = false;
-                    closeLeads();
-                }
-            }
+            "aura:leads-v5-statechange",
+            handleModalStateChange,
+            { signal }
         );
-
+        window.addEventListener(
+            "popstate",
+            handlePopState,
+            { signal }
+        );
         window.addEventListener(
             "pageshow",
-            function (event) {
-                if (
-                    isMobile() &&
-                    (
-                        event.persisted ||
-                        !state.wasOpenedByUser
-                    )
-                ) {
-                    window.setTimeout(
-                        function () {
-                            closeLeads();
-                        },
-                        50
-                    );
-                }
-            }
+            handlePageShow,
+            { signal }
         );
-
         window.addEventListener(
-            "resize",
-            function () {
-                if (!isMobile()) {
-                    unlockPage();
-                }
-            }
+            "pagehide",
+            handlePageHide,
+            { signal }
         );
 
         window.AuraLeadsMobileControllerV52 = {
             version: VERSION,
 
             close: closeLeads,
+            destroy: teardown,
 
             getState: function () {
                 return {
