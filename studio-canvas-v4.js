@@ -26,7 +26,12 @@
     observer: null,
     panel: null,
     renderTimer: null,
-    lastCanvasSignature: ""
+    lastCanvasSignature: "",
+    mobileTap: null,
+    mobileInteractionEnabled: true,
+    canvasAbortController: null,
+    canvasElement: null,
+    editorObserver: null
   };
 
   const ICONS = {
@@ -99,6 +104,19 @@
     return pageEntries().some((entry) => entry.block.x !== undefined);
   }
 
+  function isMobileShellActive() {
+    return Boolean(window.AuraStudioPro?.isMobileShellActive?.());
+  }
+
+  function canReceiveCanvasEvents() {
+    if (!isMobileShellActive()) return true;
+    return state.mobileInteractionEnabled && window.AuraStudioPro?.getMobileView?.() === "preview";
+  }
+
+  function isInteractiveTarget(target) {
+    return Boolean(target?.closest?.("button,a,input,select,textarea,label,[contenteditable='true'],[role='button']"));
+  }
+
   function toast(message, type) {
     window.showToast?.(message, type);
   }
@@ -156,14 +174,15 @@
     });
 
     if (primary && !opts.skipInspector) {
-      window.AuraStudioInspector?.select?.(primary.index);
+      window.AuraStudioInspector?.select?.(primary.index, { renderList: false });
     }
 
     document.dispatchEvent(new CustomEvent("aura:studio-selection", {
       detail: {
         index: primary?.index ?? -1,
         ids: Array.from(state.selectedIds),
-        source: "canvas-v4"
+        source: opts.source || "canvas-v4",
+        inspectorSynced: Boolean(primary && !opts.skipInspector)
       }
     }));
 
@@ -184,6 +203,17 @@
     }
 
     syncLegacySelection();
+  }
+
+  function selectIndex(index, options) {
+    ensureIds();
+    const block = getBlocks()[index];
+    if (!block?.id) return false;
+    state.selectedIds.clear();
+    state.selectedIds.add(block.id);
+    state.primaryId = block.id;
+    syncLegacySelection({ source: options?.source || "canvas-v4" });
+    return true;
   }
 
   function selectIndexes(indexes, additive) {
@@ -477,7 +507,25 @@
   }
 
   function onCanvasPointerDown(event) {
+    if (!canReceiveCanvasEvents()) return;
+
     const transformHandle = event.target.closest?.("[data-v4-handle]");
+    if (isMobileShellActive()) {
+      if (isInteractiveTarget(event.target)) return;
+      const mobileIndex = selectedIndexFromElement(event.target);
+      if (mobileIndex >= 0) {
+        state.mobileTap = {
+          pointerId: event.pointerId,
+          index: mobileIndex,
+          x: event.clientX,
+          y: event.clientY,
+          t: performance.now(),
+          moved: false
+        };
+      }
+      return;
+    }
+
     if (transformHandle) {
       startTransform(event, transformHandle);
       return;
@@ -499,6 +547,27 @@
     }
 
     startMarquee(event);
+  }
+
+  function updateMobileTap(event) {
+    const tap = state.mobileTap;
+    if (!tap || tap.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 10) tap.moved = true;
+  }
+
+  function finishMobileTap(event) {
+    const tap = state.mobileTap;
+    if (!tap || tap.pointerId !== event.pointerId) return false;
+    state.mobileTap = null;
+    if (tap.moved || performance.now() - tap.t > 520) return false;
+    event.preventDefault();
+    event.stopPropagation();
+    selectIndex(tap.index, { source: "preview" });
+    return true;
+  }
+
+  function cancelMobileTap() {
+    state.mobileTap = null;
   }
 
   function editBlockInline(entry) {
@@ -1255,18 +1324,26 @@
 
   function bindCanvas() {
     const canvas = getCanvas();
-    if (!canvas || canvas.dataset.v4Bound === "true") return;
-    canvas.dataset.v4Bound = "true";
-    canvas.addEventListener("pointerdown", onCanvasPointerDown, true);
-    canvas.addEventListener("dblclick", onCanvasDoubleClick, true);
+    if (!canvas) return;
+    if (state.canvasElement === canvas && state.canvasAbortController) return;
+    state.canvasAbortController?.abort();
+    state.canvasAbortController = new AbortController();
+    state.canvasElement = canvas;
+    const { signal } = state.canvasAbortController;
+
+    canvas.addEventListener("pointerdown", onCanvasPointerDown, { capture: true, signal });
+    canvas.addEventListener("dblclick", onCanvasDoubleClick, { capture: true, signal });
     document.addEventListener("pointermove", (event) => {
+      updateMobileTap(event);
       transformMove(event);
       marqueeMove(event);
-    });
+    }, { signal });
     document.addEventListener("pointerup", (event) => {
+      if (finishMobileTap(event)) return;
       if (state.transform) finishTransform();
       if (state.marquee) finishMarquee(event);
-    });
+    }, { signal });
+    document.addEventListener("pointercancel", cancelMobileTap, { signal });
   }
 
   function bindKeyboard() {
@@ -1348,7 +1425,8 @@
         decorateCanvas();
       }, 100);
     };
-    new MutationObserver(handle).observe(modal, { attributes: true, attributeFilter: ["class"] });
+    state.editorObserver = new MutationObserver(handle);
+    state.editorObserver.observe(modal, { attributes: true, attributeFilter: ["class"] });
     handle();
   }
 
@@ -1380,7 +1458,23 @@
       setTab: setPanelTab,
       getSelectedBlocks,
       selectById,
+      selectIndex,
       clearSelection,
+      setMobileInteractionEnabled: (enabled) => {
+        state.mobileInteractionEnabled = Boolean(enabled);
+        if (!state.mobileInteractionEnabled) {
+          cancelMobileTap();
+          if (state.transform) finishTransform();
+          if (state.marquee?.element) state.marquee.element.remove();
+          state.marquee = null;
+        }
+      },
+      getMobileDiagnostics: () => ({
+        interactionEnabled: state.mobileInteractionEnabled,
+        hasTap: Boolean(state.mobileTap),
+        hasCanvasController: Boolean(state.canvasAbortController),
+        canvasBound: Boolean(state.canvasElement)
+      }),
       align,
       distribute,
       autoLayout,
