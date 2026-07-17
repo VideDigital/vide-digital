@@ -20,7 +20,22 @@
     previewObserver: null,
     modalObserver: null,
     toolbarObserver: null,
-    lastAudit: null
+    lastAudit: null,
+    modalTimer: null,
+    previewTimer: null,
+    mobile: {
+      media: null,
+      mounted: false,
+      view: "blocks",
+      controller: null,
+      raf: 0,
+      tap: null,
+      scroll: { blocks: 0, preview: 0, properties: 0 },
+      listeners: 0,
+      observers: 0,
+      mountCount: 0,
+      unmountCount: 0
+    }
   };
 
   const escapeHTML = (value) => String(value ?? "")
@@ -98,6 +113,269 @@
     label.textContent = labels[status] || labels.saved;
   }
 
+  function getWorkspace() {
+    const modal = getModal();
+    return modal?.querySelector(":scope > .flex-1.flex.overflow-hidden.relative") || null;
+  }
+
+  function getStage() {
+    return document.querySelector("#lped-browser-frame")?.parentElement || null;
+  }
+
+  function getInspector() {
+    return document.getElementById("aura-studio-inspector");
+  }
+
+  function getMobileArea(view) {
+    if (view === "blocks") return document.getElementById("lped-painel-lateral");
+    if (view === "preview") return getStage();
+    if (view === "properties") return getInspector();
+    return null;
+  }
+
+  function isEditorOpen() {
+    const modal = getModal();
+    return Boolean(modal && !modal.classList.contains("hidden"));
+  }
+
+  function isMobileViewport() {
+    if (!state.mobile.media) state.mobile.media = window.matchMedia("(max-width: 767px)");
+    return state.mobile.media.matches;
+  }
+
+  function isMobileShellActive() {
+    return state.mobile.mounted && isEditorOpen() && isMobileViewport();
+  }
+
+  function safeScrollTop(element) {
+    return element ? Number(element.scrollTop || 0) : 0;
+  }
+
+  function captureMobileScroll(view) {
+    const area = getMobileArea(view || state.mobile.view);
+    if (area) state.mobile.scroll[view || state.mobile.view] = safeScrollTop(area);
+  }
+
+  function restoreMobileScroll(view) {
+    const area = getMobileArea(view || state.mobile.view);
+    if (!area) return;
+    cancelAnimationFrame(state.mobile.raf);
+    state.mobile.raf = requestAnimationFrame(() => {
+      area.scrollTop = state.mobile.scroll[view || state.mobile.view] || 0;
+    });
+  }
+
+  function isInteractiveMobileTarget(target) {
+    return Boolean(target?.closest?.("button,a,input,select,textarea,label,[contenteditable='true'],[role='button']"));
+  }
+
+  function injectMobileShellNav() {
+    const modal = getModal();
+    const topbar = modal?.querySelector(":scope > .aura-lped-topbar");
+    if (!modal || !topbar || document.getElementById("aura-studio-mobile-shell-nav")) return;
+
+    const nav = document.createElement("nav");
+    nav.id = "aura-studio-mobile-shell-nav";
+    nav.className = "aura-studio-mobile-shell-nav";
+    nav.setAttribute("aria-label", "Navegacao mobile do editor");
+    nav.innerHTML = `
+      <button type="button" data-aura-mobile-view="blocks" aria-controls="lped-painel-lateral">Blocos</button>
+      <button type="button" data-aura-mobile-view="preview" aria-controls="lped-browser-frame">Previa</button>
+      <button type="button" data-aura-mobile-view="properties" aria-controls="aura-studio-inspector">Propriedades</button>
+    `;
+    topbar.after(nav);
+  }
+
+  function setMobileAreaState(activeView) {
+    ["blocks", "preview", "properties"].forEach((view) => {
+      const area = getMobileArea(view);
+      if (!area) return;
+      const active = view === activeView;
+      area.dataset.auraMobileArea = view;
+      area.dataset.auraMobileActive = String(active);
+      area.setAttribute("aria-hidden", active ? "false" : "true");
+      if ("inert" in area) area.inert = !active;
+    });
+    window.AuraCanvasV4?.setMobileInteractionEnabled?.(activeView === "preview");
+  }
+
+  function syncMobileNav(activeView) {
+    document.querySelectorAll("[data-aura-mobile-view]").forEach((button) => {
+      const active = button.dataset.auraMobileView === activeView;
+      button.classList.toggle("is-active", active);
+      button.setAttribute("aria-selected", active ? "true" : "false");
+    });
+  }
+
+  function setMobileView(view, options) {
+    const nextView = ["blocks", "preview", "properties"].includes(view) ? view : "blocks";
+    if (state.mobile.mounted) captureMobileScroll(state.mobile.view);
+    state.mobile.view = nextView;
+
+    const modal = getModal();
+    if (modal) modal.dataset.auraMobileView = nextView;
+    syncMobileNav(nextView);
+    if (state.mobile.mounted) {
+      setMobileAreaState(nextView);
+      restoreMobileScroll(nextView);
+      if (nextView === "preview") setTimeout(fitCanvas, 40);
+    }
+
+    if (options?.source === "selection" && nextView === "properties") {
+      getInspector()?.focus?.({ preventScroll: true });
+    }
+  }
+
+  function selectMobileBlock(index, options) {
+    const blocks = getBlocks();
+    if (!blocks[index]) return false;
+    if (window.AuraCanvasV4?.selectIndex?.(index, { source: options?.source || "mobile-shell" }) !== false) {
+      if (typeof window.renderizarEditorBlocos === "function") window.renderizarEditorBlocos();
+      if (options?.openProperties !== false && state.mobile.mounted) setMobileView("properties", { source: "selection" });
+      return true;
+    }
+    window.AuraStudioInspector?.select?.(index);
+    if (options?.openProperties !== false && state.mobile.mounted) setMobileView("properties", { source: "selection" });
+    return true;
+  }
+
+  function syncNativeBlockDrag(enabled) {
+    document.querySelectorAll("#lped-blocos-lista [draggable]").forEach((element) => {
+      element.setAttribute("draggable", enabled ? "true" : "false");
+    });
+  }
+
+  function onMobileListPointerDown(event) {
+    if (!state.mobile.mounted || state.mobile.view !== "blocks") return;
+    if (isInteractiveMobileTarget(event.target)) return;
+    const trigger = event.target.closest?.("[data-aura-mobile-card-trigger]");
+    const card = trigger?.closest?.("[data-lped-block-index]");
+    if (!card) return;
+    state.mobile.tap = {
+      pointerId: event.pointerId,
+      index: Number(card.dataset.lpedBlockIndex),
+      x: event.clientX,
+      y: event.clientY,
+      t: performance.now(),
+      moved: false,
+      suppressClick: false
+    };
+  }
+
+  function onMobileListPointerMove(event) {
+    const tap = state.mobile.tap;
+    if (!tap || tap.pointerId !== event.pointerId) return;
+    if (Math.hypot(event.clientX - tap.x, event.clientY - tap.y) > 10) tap.moved = true;
+  }
+
+  function finishMobileListTap(event) {
+    const tap = state.mobile.tap;
+    if (!tap || tap.pointerId !== event.pointerId) return;
+    state.mobile.tap = null;
+    const elapsed = performance.now() - tap.t;
+    if (tap.moved || elapsed > 520) return;
+    tap.suppressClick = true;
+    event.preventDefault();
+    event.stopPropagation();
+    selectMobileBlock(tap.index, { source: "blocks" });
+  }
+
+  function onMobileListClick(event) {
+    if (!state.mobile.mounted || state.mobile.view !== "blocks") return;
+    if (isInteractiveMobileTarget(event.target)) return;
+    if (event.target.closest?.("[data-aura-mobile-card-trigger]")) {
+      event.preventDefault();
+      event.stopPropagation();
+    }
+  }
+
+  function moveMobileBlock(index, direction) {
+    const blocks = getBlocks();
+    const next = index + direction;
+    if (!blocks[index] || !blocks[next]) return false;
+    window.moverBlocoEditor?.(index, direction);
+    selectMobileBlock(next, { source: "mobile-reorder", openProperties: false });
+    setMobileView("blocks");
+    return true;
+  }
+
+  function mountMobileShell() {
+    const modal = getModal();
+    const workspace = getWorkspace();
+    if (!modal || !workspace || state.mobile.mounted || !isEditorOpen() || !isMobileViewport()) return;
+
+    injectMobileShellNav();
+    state.mobile.mounted = true;
+    state.mobile.mountCount += 1;
+    state.mobile.controller = new AbortController();
+    modal.dataset.auraMobileShell = "true";
+    workspace.classList.add("aura-studio-mobile-workspace");
+
+    const signal = state.mobile.controller.signal;
+    document.getElementById("aura-studio-mobile-shell-nav")?.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-aura-mobile-view]");
+      if (button) setMobileView(button.dataset.auraMobileView);
+    }, { signal });
+
+    const list = document.getElementById("lped-blocos-lista");
+    list?.addEventListener("pointerdown", onMobileListPointerDown, { signal });
+    list?.addEventListener("pointermove", onMobileListPointerMove, { signal });
+    list?.addEventListener("pointerup", finishMobileListTap, { signal });
+    list?.addEventListener("pointercancel", () => { state.mobile.tap = null; }, { signal });
+    list?.addEventListener("click", onMobileListClick, { capture: true, signal });
+
+    document.addEventListener("click", (event) => {
+      const button = event.target.closest("[data-aura-mobile-back='blocks']");
+      if (button) setMobileView("blocks");
+    }, { signal });
+
+    document.addEventListener("aura:studio-selection", (event) => {
+      const index = Number(event.detail?.index);
+      const source = event.detail?.source || "";
+      if (!state.mobile.mounted || !Number.isInteger(index) || index < 0) return;
+      if (source === "mobile-reorder") return;
+      setMobileView("properties", { source: "selection" });
+    }, { signal });
+
+    state.mobile.listeners = 8;
+    state.mobile.observers = 0;
+    syncNativeBlockDrag(false);
+    setMobileView(state.mobile.view || "blocks");
+  }
+
+  function unmountMobileShell() {
+    const modal = getModal();
+    const workspace = getWorkspace();
+    if (!state.mobile.mounted) return;
+    captureMobileScroll(state.mobile.view);
+    state.mobile.controller?.abort();
+    state.mobile.controller = null;
+    state.mobile.tap = null;
+    state.mobile.mounted = false;
+    state.mobile.unmountCount += 1;
+    state.mobile.listeners = 0;
+    state.mobile.observers = 0;
+    cancelAnimationFrame(state.mobile.raf);
+    delete modal?.dataset.auraMobileShell;
+    delete modal?.dataset.auraMobileView;
+    workspace?.classList.remove("aura-studio-mobile-workspace");
+    ["blocks", "preview", "properties"].forEach((view) => {
+      const area = getMobileArea(view);
+      if (!area) return;
+      delete area.dataset.auraMobileArea;
+      delete area.dataset.auraMobileActive;
+      area.removeAttribute("aria-hidden");
+      if ("inert" in area) area.inert = false;
+    });
+    syncNativeBlockDrag(true);
+    window.AuraCanvasV4?.setMobileInteractionEnabled?.(true);
+  }
+
+  function syncMobileShell() {
+    if (isEditorOpen() && isMobileViewport()) mountMobileShell();
+    else unmountMobileShell();
+  }
+
   function injectTopbarEnhancements() {
     const modal = getModal();
     const topbar = modal?.querySelector(":scope > .aura-lped-topbar");
@@ -129,8 +407,16 @@
 
     const actionGroup = topbar.lastElementChild;
     actionGroup?.prepend(saveState);
+    actionGroup?.classList.add("aura-studio-mobile-actions-group");
+
+    const titleGroup = document.getElementById("lped-titulo")?.parentElement;
+    titleGroup?.classList.add("aura-studio-mobile-title-group");
+    const closeButton = titleGroup?.querySelector("button[onclick*='fecharEditorLP']");
+    closeButton?.classList.add("aura-studio-mobile-close");
+    closeButton?.setAttribute("aria-label", "Fechar editor");
 
     const deviceGroup = document.getElementById("lped-btn-desktop")?.parentElement;
+    deviceGroup?.classList.add("aura-studio-mobile-device-group");
     if (deviceGroup && !document.getElementById("aura-studio-btn-tablet")) {
       const tablet = document.createElement("button");
       tablet.type = "button";
@@ -147,6 +433,9 @@
       deviceGroup.insertBefore(tablet, document.getElementById("lped-btn-mobile"));
     }
 
+    const historyGroup = document.getElementById("lped-btn-desfazer")?.parentElement;
+    historyGroup?.classList.add("aura-studio-mobile-history-group");
+
     const libraryButton = document.createElement("button");
     libraryButton.type = "button";
     libraryButton.className = "aura-studio-top-command";
@@ -162,7 +451,12 @@
     `;
     libraryButton.addEventListener("click", openLibrary);
     const modeGroup = document.getElementById("lped-btn-modo-empilhado")?.parentElement;
+    modeGroup?.classList.add("aura-studio-mobile-mode-group");
     modeGroup?.before(libraryButton);
+
+    actionGroup?.querySelector("button[onclick*='salvarEditorLP']")?.classList.add("aura-studio-mobile-save");
+    actionGroup?.querySelector("button[onclick*='abrirPreviewEditorLP']")?.classList.add("aura-studio-mobile-open");
+    document.getElementById("lped-btn-publicar")?.classList.add("aura-studio-mobile-publish");
   }
 
   function injectLeftPanelTools() {
@@ -735,7 +1029,7 @@
     const workspace = frame?.parentElement;
     if (!frame || !workspace) return;
     const naturalWidth = state.device === "mobile" ? 390 : state.device === "tablet" ? 768 : 1200;
-    const available = Math.max(300, workspace.clientWidth - 96);
+    const available = Math.max(260, workspace.clientWidth - (isMobileShellActive() ? 24 : 96));
     setZoom(Math.min(100, Math.floor((available / naturalWidth) * 100 / 5) * 5));
   }
 
@@ -816,7 +1110,7 @@
       wrapper.style.setProperty("--aura-animation-duration", `${Number(d.duracaoAnimacao || 600)}ms`);
       wrapper.dataset.auraShadow = d.sombra || "none";
       wrapper.dataset.auraBlockIndex = String(index);
-      wrapper.addEventListener("click", () => document.dispatchEvent(new CustomEvent("aura:studio-selection", { detail: { index } })), { once: true });
+      wrapper.dataset.auraSelectionReady = "true";
     });
     applyCanvasTransform();
     updateWorkspaceMeta();
@@ -926,7 +1220,8 @@
       if (open === state.modalOpen) return;
       state.modalOpen = open;
       if (open) {
-        setTimeout(() => {
+        clearTimeout(state.modalTimer);
+        state.modalTimer = setTimeout(() => {
           wrapSaveFunctions();
           markSaved();
           setDevice(state.device);
@@ -934,8 +1229,12 @@
           applyPreviewEnhancements();
           fitCanvas();
           updateWorkspaceMeta();
+          syncMobileShell();
         }, 180);
       } else {
+        clearTimeout(state.modalTimer);
+        clearTimeout(state.previewTimer);
+        unmountMobileShell();
         closeLibrary();
         closeAudit();
         closeCommand();
@@ -947,10 +1246,9 @@
   function watchPreview() {
     const preview = document.getElementById("lped-preview-canvas");
     if (!preview || state.previewObserver) return;
-    let timer;
     state.previewObserver = new MutationObserver(() => {
-      clearTimeout(timer);
-      timer = setTimeout(applyPreviewEnhancements, 35);
+      clearTimeout(state.previewTimer);
+      state.previewTimer = setTimeout(applyPreviewEnhancements, 35);
     });
     state.previewObserver.observe(preview, { childList: true, subtree: true });
   }
@@ -966,6 +1264,7 @@
     state.initialized = true;
     modal.classList.add("aura-studio-pro");
     injectTopbarEnhancements();
+    injectMobileShellNav();
     injectLeftPanelTools();
     injectBottomBar();
     injectLibrary();
@@ -979,6 +1278,11 @@
     wrapSaveFunctions();
     updateDeviceButtons();
     updateWorkspaceMeta();
+    state.mobile.media = window.matchMedia("(max-width: 767px)");
+    const mediaHandler = () => syncMobileShell();
+    if (state.mobile.media.addEventListener) state.mobile.media.addEventListener("change", mediaHandler);
+    else state.mobile.media.addListener(mediaHandler);
+    syncMobileShell();
 
     document.addEventListener("aura:personal-library-updated", () => {
       if (!document.getElementById("aura-studio-library")?.classList.contains("hidden")) renderLibrary();
@@ -993,6 +1297,20 @@
       setDevice,
       setZoom,
       fitCanvas,
+      setMobileView,
+      getMobileView: () => state.mobile.view,
+      isMobileShellActive,
+      selectBlock: selectMobileBlock,
+      moveMobileBlock,
+      getMobileDiagnostics: () => ({
+        mounted: state.mobile.mounted,
+        view: state.mobile.view,
+        listeners: state.mobile.listeners,
+        observers: state.mobile.observers,
+        mountCount: state.mobile.mountCount,
+        unmountCount: state.mobile.unmountCount,
+        scroll: { ...state.mobile.scroll }
+      }),
       runAudit,
       insertPreset,
       renderLibrary,

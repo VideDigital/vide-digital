@@ -4920,14 +4920,16 @@ const box = document.getElementById("lped-blocos-lista");
                 }
                 const resumo = nomeResumoBloco(bloco);
                 return `
-                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 ${colapsado ? "border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5]" : "border-l-[#FF7A45]"} transition-all" ondragover="permitirSoltarBloco(event)" ondrop="soltarBloco(event, ${i})">
-                        <div class="flex items-center justify-between cursor-pointer" onclick="alternarColapsoBloco(${i})">
+                    <div class="glass-card rounded-xl p-4 border border-white/5 border-l-2 ${colapsado ? "border-l-[#5B3DF5]/50 hover:border-l-[#5B3DF5]" : "border-l-[#FF7A45]"} transition-all" data-lped-block-index="${i}" data-aura-mobile-block-card ondragover="permitirSoltarBloco(event)" ondrop="soltarBloco(event, ${i})">
+                        <div class="flex items-center justify-between cursor-pointer" data-aura-mobile-card-trigger onclick="if (window.AuraStudioPro?.isMobileShellActive?.()) return; alternarColapsoBloco(${i})">
                             <div class="flex items-center gap-2 min-w-0">
-                                <span draggable="true" ondragstart="event.stopPropagation(); iniciarArrastoBloco(event, ${i})" onclick="event.stopPropagation()" class="cursor-grab text-gray-500 hover:text-white select-none shrink-0" title="Arrastar pra reordenar">&#10021;</span>
+                                <span draggable="${window.AuraStudioPro?.isMobileShellActive?.() ? "false" : "true"}" data-aura-block-drag-handle ondragstart="event.stopPropagation(); iniciarArrastoBloco(event, ${i})" onclick="event.stopPropagation()" class="cursor-grab text-gray-500 hover:text-white select-none shrink-0" title="Arrastar pra reordenar">&#10021;</span>
                                 <svg class="w-3.5 h-3.5 text-gray-500 shrink-0 transition-transform ${colapsado ? "" : "rotate-90"}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
                                 <p class="text-xs font-bold text-white truncate">${nomeTipoBlocoEditor(bloco.tipo)}${resumo ? ` <span class="text-gray-500 font-normal">- ${resumo}</span>` : ""}</p>
                             </div>
                             <div class="flex items-center gap-1 shrink-0">
+                                <button type="button" onclick="event.stopPropagation(); window.AuraStudioPro?.moveMobileBlock(${i}, -1)" title="Mover para cima" class="aura-lped-mobile-reorder text-gray-400 hover:text-white text-xs px-1.5 py-1" ${i === 0 ? "disabled" : ""}>&#9650;</button>
+                                <button type="button" onclick="event.stopPropagation(); window.AuraStudioPro?.moveMobileBlock(${i}, 1)" title="Mover para baixo" class="aura-lped-mobile-reorder text-gray-400 hover:text-white text-xs px-1.5 py-1" ${i === lpEditorBlocos.length - 1 ? "disabled" : ""}>&#9660;</button>
                                 ${lpEditorModoLayout === "livre" ? `
                                     <button onclick="event.stopPropagation(); trazerParaFrente(${i})" title="Trazer pra frente" class="text-gray-400 hover:text-white text-xs px-1.5 py-1">&#9650;</button>
                                     <button onclick="event.stopPropagation(); enviarParaTras(${i})" title="Mandar pra tras" class="text-gray-400 hover:text-white text-xs px-1.5 py-1">&#9660;</button>
@@ -4965,14 +4967,21 @@ window.removerBlocoEditor = function(i) {
         };
         window.dragSourceIndex = null;
         window.iniciarArrastoBloco = function(event, i) {
+            if (window.AuraStudioPro?.isMobileShellActive?.() || window.matchMedia?.("(max-width: 767px)")?.matches) {
+                event.preventDefault();
+                window.dragSourceIndex = null;
+                return;
+            }
             window.dragSourceIndex = i;
             event.dataTransfer.effectAllowed = "move";
         };
         window.permitirSoltarBloco = function(event) {
+            if (window.AuraStudioPro?.isMobileShellActive?.() || window.matchMedia?.("(max-width: 767px)")?.matches) return;
             event.preventDefault();
         };
         window.soltarBloco = function(event, i) {
             event.preventDefault();
+            if (window.AuraStudioPro?.isMobileShellActive?.() || window.matchMedia?.("(max-width: 767px)")?.matches) return;
             const origem = window.dragSourceIndex;
             if (origem === null || origem === undefined || origem === i) return;
 blocosSelecionadosLivre.clear();

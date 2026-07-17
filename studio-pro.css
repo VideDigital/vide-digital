@@ -2179,6 +2179,12 @@
   }
 }
 
+.aura-studio-mobile-shell-nav,
+.aura-studio-mobile-properties-context,
+.aura-lped-mobile-reorder{
+  display:none;
+}
+
 @media (max-width:760px){
   #lp-editor-modal.aura-studio-pro{
     padding-bottom:54px;
@@ -2304,6 +2310,226 @@
     right:8px !important;
     top:70px !important;
     width:calc(100vw - 16px) !important;
+  }
+}
+
+@media (max-width:767px){
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"]{
+    height:100dvh !important;
+    padding-bottom:calc(48px + env(safe-area-inset-bottom,0px)) !important;
+    overflow:hidden !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] > .aura-lped-topbar{
+    display:grid !important;
+    grid-template-columns:44px minmax(0,1fr) auto;
+    grid-template-areas:
+      "close title actions"
+      "device device device"
+      "mode mode mode";
+    gap:7px !important;
+    min-height:auto !important;
+    padding:max(7px,env(safe-area-inset-top,0px)) 9px 7px !important;
+    flex:0 0 auto !important;
+    overflow:visible !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #aura-studio-brand,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-history-group,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-top-command,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-open,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #aura-studio-save-state{
+    display:none !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-title-group{
+    display:contents !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-close{
+    grid-area:close;
+    width:44px !important;
+    height:44px !important;
+    min-width:44px !important;
+    min-height:44px !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #lped-titulo{
+    grid-area:title;
+    align-self:center;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-actions-group{
+    grid-area:actions;
+    justify-content:flex-end;
+    min-width:0;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-save,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-publish{
+    min-width:44px !important;
+    min-height:44px !important;
+    padding:0 12px !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-device-group,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-mode-group{
+    display:flex !important;
+    width:100%;
+    min-width:0;
+    overflow-x:auto;
+    scrollbar-width:none;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-device-group{
+    grid-area:device;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-mode-group{
+    grid-area:mode;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-device-group button,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-mode-group button{
+    min-width:44px !important;
+    min-height:44px !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-shell-nav{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:6px;
+    padding:7px 9px;
+    border-bottom:1px solid rgba(255,255,255,.08);
+    background:rgba(8,10,24,.94);
+    flex:0 0 auto;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-shell-nav button{
+    min-height:44px;
+    border:1px solid rgba(255,255,255,.08);
+    border-radius:12px;
+    background:rgba(255,255,255,.05);
+    color:rgba(255,255,255,.68);
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:.02em;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-shell-nav button.is-active{
+    background:rgba(91,61,245,.28);
+    border-color:rgba(91,61,245,.58);
+    color:#fff;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-workspace{
+    position:relative !important;
+    display:block !important;
+    flex:1 1 auto !important;
+    min-height:0 !important;
+    overflow:hidden !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #lped-painel-lateral,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-lped-stage,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #aura-studio-inspector{
+    position:absolute !important;
+    inset:0 !important;
+    width:100% !important;
+    min-width:0 !important;
+    max-width:none !important;
+    height:100% !important;
+    transform:none !important;
+    box-shadow:none !important;
+    opacity:1 !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] [data-aura-mobile-active="false"]{
+    display:none !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] [data-aura-mobile-active="true"]{
+    display:block !important;
+    visibility:visible !important;
+    pointer-events:auto !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"][data-aura-mobile-view="blocks"] #lped-painel-lateral{
+    display:flex !important;
+    flex-direction:column !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"][data-aura-mobile-view="preview"] .aura-lped-stage{
+    display:flex !important;
+    align-items:flex-start !important;
+    justify-content:flex-start !important;
+    padding:12px !important;
+    overflow:auto !important;
+    touch-action:pan-x pan-y;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"][data-aura-mobile-view="preview"] #lped-browser-frame{
+    flex:0 0 auto !important;
+    margin-inline:auto !important;
+    max-width:none !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #lped-painel-lateral,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #aura-studio-inspector{
+    overflow-y:auto !important;
+    -webkit-overflow-scrolling:touch;
+    padding-bottom:calc(18px + env(safe-area-inset-bottom,0px)) !important;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #lped-blocos-lista{
+    touch-action:pan-y;
+    overscroll-behavior:contain;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] [data-aura-block-drag-handle]{
+    cursor:default !important;
+    opacity:.55;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-lped-mobile-reorder{
+    display:inline-flex !important;
+    align-items:center;
+    justify-content:center;
+    width:44px;
+    height:44px;
+    min-width:44px;
+    min-height:44px;
+    border-radius:10px;
+    background:rgba(255,255,255,.06);
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-lped-mobile-reorder:disabled{
+    opacity:.35;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-properties-context{
+    display:flex !important;
+    align-items:center;
+    gap:10px;
+    position:sticky;
+    top:0;
+    z-index:5;
+    padding:10px;
+    margin:-18px -18px 14px;
+    background:rgba(13,12,31,.96);
+    border-bottom:1px solid rgba(255,255,255,.08);
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-properties-context button{
+    min-width:44px;
+    min-height:44px;
+    padding:0 12px;
+    border-radius:12px;
+    background:rgba(255,255,255,.08);
+    color:#fff;
+    font-size:12px;
+    font-weight:800;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-properties-context small{
+    display:block;
+    color:rgba(255,255,255,.46);
+    font-size:9px;
+    font-weight:800;
+    text-transform:uppercase;
+    letter-spacing:.08em;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] .aura-studio-mobile-properties-context strong{
+    display:block;
+    max-width:65vw;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+    color:#fff;
+    font-size:13px;
+  }
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"] #lped-btn-colapsar-painel,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"]:not([data-aura-mobile-view="preview"]) #aura-v4-toolbar,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"]:not([data-aura-mobile-view="preview"]) #aura-v4-launcher,
+  #lp-editor-modal.aura-studio-pro[data-aura-mobile-shell="true"]:not([data-aura-mobile-view="preview"]) #aura-studio-bottom-bar{
+    display:none !important;
   }
 }
 

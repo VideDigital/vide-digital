@@ -87,6 +87,13 @@
 
   function renderEmpty() {
     state.root.innerHTML = `
+      <div class="aura-studio-mobile-properties-context">
+        <button type="button" data-aura-mobile-back="blocks">Blocos</button>
+        <div>
+          <small>Propriedades</small>
+          <strong>Nenhum bloco selecionado</strong>
+        </div>
+      </div>
       <div class="aura-studio-inspector-empty">
         <span class="aura-studio-inspector-empty-icon">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -168,6 +175,14 @@
     const freeMode = block.x !== undefined;
 
     state.root.innerHTML = `
+      <div class="aura-studio-mobile-properties-context">
+        <button type="button" data-aura-mobile-back="blocks">Blocos</button>
+        <div>
+          <small>Propriedades</small>
+          <strong>${escapeHTML(blockLabel(block))}</strong>
+        </div>
+      </div>
+
       <div class="aura-studio-inspector-header">
         <div>
           <small>Inspetor profissional</small>
@@ -463,12 +478,12 @@
     }
   }
 
-  function select(index) {
+  function select(index, options) {
     const blocks = getBlocks();
     if (!blocks[index]) return;
     state.selectedIndex = index;
     blocks.forEach((block, blockIndex) => { block._colapsado = blockIndex !== index; });
-    if (typeof window.renderizarEditorBlocos === "function") window.renderizarEditorBlocos();
+    if (options?.renderList !== false && typeof window.renderizarEditorBlocos === "function") window.renderizarEditorBlocos();
     setTimeout(render, 50);
   }
 
@@ -504,6 +519,7 @@
 
     document.addEventListener("aura:studio-selection", (event) => {
       const index = Number(event.detail?.index);
+      if (event.detail?.inspectorSynced === true) return;
       if (Number.isInteger(index)) select(index);
     });
 
