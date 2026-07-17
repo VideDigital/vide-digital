@@ -1041,8 +1041,90 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
         };
 
         // GESTOR DE ABAS SPA REATIVAS
-        let modoEdicaoLayoutAtivo = false;
+let modoEdicaoLayoutAtivo = false;
 let blocoArrastando = null;
+const ABAS_COM_EDITOR_LAYOUT = new Set([
+    "view-dashboard",
+    "view-campanhas",
+    "view-pedidos",
+    "view-metricas",
+    "view-personalizacao"
+]);
+
+function estaEmDesktopParaEditorLayout() {
+    return window.matchMedia("(min-width: 768px)").matches;
+}
+
+function existeSuperficieIncompativelAberta() {
+    const seletores = [
+        "#lead-painel:not(.hidden)",
+        "#lead-painel-overlay:not(.hidden)",
+        "#template-lead-modal:not(.hidden)",
+        "#lp-modal:not(.hidden)",
+        "#lp-editor-modal:not(.hidden)",
+        "#produto-modal:not(.hidden)"
+    ];
+
+    return seletores.some(seletor => Boolean(document.querySelector(seletor)));
+}
+
+function atualizarVisibilidadeBarraEditorLayout(targetId) {
+    const barra = document.getElementById("barra-editor-layout");
+    const btnSalvar = document.getElementById("btn-salvar-layout");
+    const btnRestaurar = document.getElementById("btn-restaurar-layout");
+    const abaAtual =
+        targetId ||
+        document.querySelector(".view-section.active")?.id ||
+        "";
+    const secao = document.getElementById(abaAtual);
+    const temBlocosEditaveis =
+        Boolean(secao?.querySelector(".layout-block[data-block-id]"));
+    const podeExibir =
+        estaEmDesktopParaEditorLayout() &&
+        ABAS_COM_EDITOR_LAYOUT.has(abaAtual) &&
+        temBlocosEditaveis &&
+        !existeSuperficieIncompativelAberta();
+
+    if (!barra) return;
+
+    barra.classList.toggle("hidden", !podeExibir);
+    barra.classList.toggle("flex", podeExibir);
+
+    if (!podeExibir && modoEdicaoLayoutAtivo) {
+        modoEdicaoLayoutAtivo = false;
+        aplicarEstadoModoEdicaoLayout();
+    }
+
+    if (!podeExibir) {
+        btnSalvar?.classList.add("hidden");
+        btnRestaurar?.classList.add("hidden");
+    }
+}
+
+function fecharSuperficiesLeadsDashboard() {
+    const ocultar = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        el.classList.add("hidden");
+        el.setAttribute("aria-hidden", "true");
+    };
+
+    ocultar("lead-painel");
+    ocultar("lead-painel-overlay");
+    ocultar("template-lead-modal");
+
+    window._templatesLeadDisponiveis = [];
+
+    try {
+        window.AuraLeadsV5?.close?.({ restoreFocus: false });
+    } catch (err) {
+        console.warn("Nao foi possivel fechar o modal Leads V5.", err);
+    }
+
+    document.body?.classList.remove("aura-leads-v5-lock");
+}
+
+window.fecharSuperficiesLeadsDashboard = fecharSuperficiesLeadsDashboard;
 
 function aplicarEstadoModoEdicaoLayout() {
     const btn = document.getElementById("btn-editar-layout");
@@ -1078,6 +1160,7 @@ function aplicarEstadoModoEdicaoLayout() {
     if (btn) btn.innerText = modoEdicaoLayoutAtivo ? "✅ Concluir Edição" : "✏️ Editar Layout";
     if (btnSalvar) btnSalvar.classList.toggle("hidden", !modoEdicaoLayoutAtivo);
     if (btnRestaurar) btnRestaurar.classList.toggle("hidden", !modoEdicaoLayoutAtivo);
+    atualizarVisibilidadeBarraEditorLayout();
 }
 
 window.alternarModoEdicaoLayout = function() {
@@ -1247,7 +1330,10 @@ function ativarAba(targetId) {
         }
     }
 
-    document
+    if (targetId !== "view-leads") {
+        fecharSuperficiesLeadsDashboard();
+    }
+
 const secaoAlvo =
     document.getElementById(targetId);
 
@@ -1284,6 +1370,7 @@ document
 
 secaoAlvo.classList.add("active");
     aplicarLayoutSalvoDaAba(targetId);
+    atualizarVisibilidadeBarraEditorLayout(targetId);
     localStorage.setItem("abaAtivaDashboard", targetId);
 
 if (
@@ -1352,6 +1439,14 @@ if (targetId === "view-metricas") {
 }
 
 window.ativarAba = ativarAba;
+
+window.addEventListener("resize", () => {
+    atualizarVisibilidadeBarraEditorLayout();
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+    atualizarVisibilidadeBarraEditorLayout();
+});
 
 /* =========================================================
    AURA COMMAND CENTER
@@ -6827,8 +6922,13 @@ void carregarHistoricoLead(
             } catch(e) {
                 chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Sem histórico de chat.</p>";
             }
-            document.getElementById("lead-painel").classList.remove("hidden");
-            document.getElementById("lead-painel-overlay").classList.remove("hidden");
+            const painelLead = document.getElementById("lead-painel");
+            const overlayLead = document.getElementById("lead-painel-overlay");
+            painelLead?.classList.remove("hidden");
+            painelLead?.setAttribute("aria-hidden", "false");
+            overlayLead?.classList.remove("hidden");
+            overlayLead?.setAttribute("aria-hidden", "false");
+            atualizarVisibilidadeBarraEditorLayout();
         };
 window.abrirTemplatesDoLead = async function() {
 
@@ -6928,6 +7028,8 @@ window.abrirTemplatesDoLead = async function() {
     `;
 
     modal?.classList.remove("hidden");
+    modal?.setAttribute("aria-hidden", "false");
+    atualizarVisibilidadeBarraEditorLayout();
 
     try {
 
@@ -7561,16 +7663,17 @@ window.abrirTemplatesDoLead = async function() {
 
 window.fecharModalTemplatesLead = function() {
 
-    document
-        .getElementById("template-lead-modal")
-        ?.classList.add("hidden");
+    const modal = document.getElementById("template-lead-modal");
+    modal?.classList.add("hidden");
+    modal?.setAttribute("aria-hidden", "true");
 
     window._templatesLeadDisponiveis = [];
+    atualizarVisibilidadeBarraEditorLayout();
 
 };
         window.fecharPainelLead = function() {
-            document.getElementById("lead-painel").classList.add("hidden");
-            document.getElementById("lead-painel-overlay").classList.add("hidden");
+            fecharSuperficiesLeadsDashboard();
+            atualizarVisibilidadeBarraEditorLayout();
         };
 window.salvarAnotacaoLead =
 async function(leadId, texto) {
