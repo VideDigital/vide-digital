@@ -746,12 +746,13 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
     <script type="module">
         import { auth, db, firebaseConfig } from "./firebase-init.js";
+        import { VIDE_SUPER_ADMIN_EMAIL, getAdminMembership } from "./core/vide-context.js";
 
 import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth as getAuthSecundario, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { initializeApp as initializeAppSecundario, deleteApp as deleteAppSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         
-        const SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
+        const SUPER_ADMIN_EMAIL = VIDE_SUPER_ADMIN_EMAIL;
 
 // Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
 // de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
@@ -867,16 +868,14 @@ onAuthStateChanged(auth, async (user) => {
                 return;
             }
             let permissoesEquipeAtual = null;
+            const funcionarioSnap = await getDoc(doc(db, "funcionarios", user.uid));
+            const membroAdmin = funcionarioSnap.exists()
+                ? null
+                : await getAdminMembership(db, user);
 
-if (user.email.toLowerCase() !== SUPER_ADMIN_EMAIL) {
+if (!membroAdmin) {
 
-const snapEquipe = await getDocs(collection(db, "equipe_admin"));
-
-const membro = snapEquipe.docs.map(d => d.data()).find(m => (m.email || "").toLowerCase() === user.email.toLowerCase());
-
-if (!membro) {
-
-alert("Acesso negado. Esta área é exclusiva do administrador do sistema.");
+alert("Acesso negado. Esta area e exclusiva do administrador do sistema.");
 
 await signOut(auth);
 
@@ -886,7 +885,9 @@ return;
 
 }
 
-permissoesEquipeAtual = membro.permissoes || [];
+if (!membroAdmin.superAdmin) {
+
+permissoesEquipeAtual = membroAdmin.permissoes || [];
 
 document.getElementById("tab-btn-equipe")?.remove();
 

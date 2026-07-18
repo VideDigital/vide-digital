@@ -164,6 +164,7 @@
 <script type="module">
 
 import { auth, db } from "./firebase-init.js";
+import { resolveVideHubIdentity } from "./core/vide-context.js";
 
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, GoogleAuthProvider, signInWithPopup, sendPasswordResetEmail } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 
@@ -366,37 +367,11 @@ setupToggleSenha("cadastro-senha", "toggle-senha-cadastro");
 
 async function autorizarEEntrar(uid) {
 
-const emailAtual = (auth.currentUser?.email || "").toLowerCase();
+const authUser = auth.currentUser;
 
-if (emailAtual === "danielmarcelino549@gmail.com") {
+if (!authUser || authUser.uid !== uid) {
 
-emitInlineFeedback("Sincronização bem-sucedida!", "success");
-
-setTimeout(() => { window.location.href = "admin.html"; }, 1200);
-
-return true;
-
-}
-
-const snapEquipe = await getDocs(collection(db, "equipe_admin"));
-
-const ehEquipe = snapEquipe.docs.some(d => (d.data().email || "").toLowerCase() === emailAtual);
-
-if (ehEquipe) {
-
-emitInlineFeedback("Sincronização bem-sucedida!", "success");
-
-setTimeout(() => { window.location.href = "admin.html"; }, 1200);
-
-return true;
-
-}
-
-const userDoc = await getDoc(doc(db, "usuarios", uid));
-
-if (!userDoc.exists()) {
-
-emitInlineFeedback("Nenhuma conta encontrada. Cadastre-se primeiro.", "error");
+emitInlineFeedback("Sessao invalida. Entre novamente.", "error");
 
 await signOut(auth);
 
@@ -404,11 +379,14 @@ return false;
 
 }
 
-const dados = userDoc.data();
+const resultado = await resolveVideHubIdentity({
+    authUser,
+    db
+});
 
-if (dados.status !== "aprovado") {
+if (!resultado.allowed) {
 
-emitInlineFeedback(mensagemPorStatus(dados.status), "error");
+emitInlineFeedback(resultado.message || mensagemPorStatus(resultado.context?.status), "error");
 
 await signOut(auth);
 
@@ -416,9 +394,15 @@ return false;
 
 }
 
-emitInlineFeedback("Sincronização bem-sucedida!", "success");
+emitInlineFeedback("Sincronizacao bem-sucedida!", "success");
 
-setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
+const contexto = resultado.context;
+
+setTimeout(() => {
+    window.location.href = contexto.userType === "admin"
+        ? "admin.html"
+        : "dashboard.html";
+}, 1200);
 
 return true;
 

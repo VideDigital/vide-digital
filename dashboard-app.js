@@ -1,4 +1,5 @@
 import { auth, db, firebaseConfig } from "./firebase-init.js";
+import { VideHubContext, VidePlanService } from "./core/vide-context.js";
 
 // Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
 // de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
@@ -981,6 +982,8 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
         }
 
         window.salvarFuncionario = async function() {
+            if (!exigirEdicaoModulo("configuracoes")) return;
+
             const uidEdicao = document.getElementById("funcionario-uid-edicao").value;
             const nome = document.getElementById("funcionario-nome").value.trim();
             const email = document.getElementById("funcionario-email").value.trim().toLowerCase();
@@ -1340,6 +1343,8 @@ function aplicarLayoutSalvoDaAba(targetId) {
 }
 
 window.salvarLayoutVisaoGeral = async function() {
+    if (!exigirEdicaoModulo(moduloPermissaoPorAba(document.querySelector(".view-section.active")?.id))) return;
+
     const abaAtivaId = document.querySelector(".view-section.active")?.id;
     if (!abaAtivaId) return;
     const ordem = Array.from(document.querySelectorAll(".view-section.active .layout-block")).map(el => ({
@@ -1404,6 +1409,11 @@ window.addEventListener("pageshow", () => {
 });
 
 function ativarAba(targetId) {
+    if (!podeVerAba(targetId)) {
+        showToast("Voce nao tem permissao para acessar este modulo.", "error");
+        return false;
+    }
+
     if (modoEdicaoLayoutAtivo) {
         modoEdicaoLayoutAtivo = false;
 
@@ -3039,6 +3049,38 @@ if (document.readyState === "loading") {
             "view-funcionarios": "subcontas",
             "view-landing-pages": "lp"
         };
+
+        const PERMISSOES_NAV = {
+            "view-produtos": "produtos",
+            "view-pedidos": "pedidos",
+            "view-leads": "leads",
+            "view-automacao-leads": "leads",
+            "view-templates": "templates",
+            "view-campanhas": "campanhas",
+            "view-metricas": "metricas",
+            "view-personalizacao": "configuracoes",
+            "view-funcionarios": "configuracoes"
+        };
+
+        function moduloPermissaoPorAba(targetId) {
+            return PERMISSOES_NAV[targetId] || "";
+        }
+
+        function podeVerAba(targetId) {
+            const modulo = moduloPermissaoPorAba(targetId);
+            return !modulo || VideHubContext.canView(modulo);
+        }
+
+        function podeEditarModulo(modulo) {
+            return !modulo || VideHubContext.canEdit(modulo);
+        }
+
+        function exigirEdicaoModulo(modulo) {
+            if (podeEditarModulo(modulo)) return true;
+            showToast("Voce tem acesso somente leitura neste modulo.", "error");
+            return false;
+        }
+
         window._planoCarregado = false;
 
 window._featureBloqueio = {};
@@ -5288,6 +5330,8 @@ blocosSelecionadosLivre.clear();
             salvarHistoricoEditor();
         };
         window.salvarEditorLP = async function() {
+            if (!exigirEdicaoModulo("configuracoes")) return;
+
             const titulo = document.getElementById("lped-titulo").value.trim();
             const slug = document.getElementById("lped-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
             if (!titulo || !slug) return showToast("Preencha titulo e endereco.", "error");
@@ -5369,6 +5413,8 @@ window.abrirPreviewEditorLP = async function() {
     }
 };
         window.salvarLP = async function() {
+            if (!exigirEdicaoModulo("configuracoes")) return;
+
             const titulo = document.getElementById("lp-titulo").value.trim();
             const slug = document.getElementById("lp-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
             const idEdicao = document.getElementById("lp-id-edicao").value;
@@ -5644,24 +5690,28 @@ await setDoc(doc(db, "landing_pages", novoId), {
         // CARGA DO USUÁRIO E PERSISTÊNCIA DOS CAMPOS ORIGINAIS
         onAuthStateChanged(auth, async (user) => {
             if (user) {
-                usuarioEmail = user.email.toLowerCase();
-                usuarioUID = user.uid;
-
-                // MODO MASTER: super admin acessando o dashboard de outra loja com a própria conta
                 const paramsURL = new URLSearchParams(window.location.search);
                 const masterUIDAlvo = paramsURL.get("masterUID");
-                let ehEquipeAdmin = false;
-if (masterUIDAlvo && usuarioEmail !== "danielmarcelino549@gmail.com") {
-    try {
-        const snapEquipeCheck = await getDocs(collection(db, "equipe_admin"));
-        ehEquipeAdmin = snapEquipeCheck.docs.some(d => (d.data().email || "").toLowerCase() === usuarioEmail);
-    } catch(e) { ehEquipeAdmin = false; }
-}
-const emModoMaster = !!(masterUIDAlvo && (usuarioEmail === "danielmarcelino549@gmail.com" || ehEquipeAdmin) && masterUIDAlvo !== user.uid);
-                if (emModoMaster) usuarioUID = masterUIDAlvo;
+                const resultadoContexto = await VideHubContext.initialize({
+                    authUser: user,
+                    db,
+                    masterUID: masterUIDAlvo
+                });
 
-                // Mostra o atalho "Painel Master" só pro super admin, só quando ele está na própria conta
-                if (usuarioEmail === "danielmarcelino549@gmail.com" && !emModoMaster) {
+                if (!resultadoContexto.allowed || !VideHubContext.isActive()) {
+                    showToast(resultadoContexto.message || "Acesso nao autorizado.", "error");
+                    await signOut(auth);
+                    window.location.href = "login.html";
+                    return;
+                }
+
+                const contextoVide = VideHubContext.getSnapshot();
+                usuarioEmail = contextoVide.authEmail;
+                usuarioUID = contextoVide.effectiveUid || user.uid;
+                const emModoMaster = contextoVide.isMasterMode;
+
+                // Mostra o atalho "Painel Master" para administradores, sem trocar a conta autenticada.
+                if (contextoVide.isAdmin && !emModoMaster) {
                     const btnPainelMaster = document.getElementById("btn-painel-master");
                     if (btnPainelMaster) { btnPainelMaster.classList.remove("hidden"); btnPainelMaster.classList.add("flex"); }
                 }
@@ -5743,6 +5793,11 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                     const limiteRascunhosSalvo = configPlanos?.[planoAtual]?.rascunhos;
                     limiteRascunhosGlobal = (typeof limiteRascunhosSalvo === "number") ? limiteRascunhosSalvo : (RASCUNHOS_LIMITE[planoAtual] ?? 5);
 
+                    VidePlanService.setPlan(planoAtual, featuresEfetivas, {
+                        produtos: limiteProdutosGlobal,
+                        rascunhos: limiteRascunhosGlobal
+                    });
+
                     function planoMinimoParaFeature(feature) {
                         for (const p of ORDEM_PLANOS) {
                             if (listaFeaturesDoPlano(p).includes(feature)) return p;
@@ -5756,6 +5811,14 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                         const target = btn.getAttribute("data-target");
                         const feature = bloqueios[target];
                         const badgeExistente = btn.querySelector(".cadeado-badge");
+                        const moduloPermissao = moduloPermissaoPorAba(target);
+
+                        if (moduloPermissao && !VideHubContext.canView(moduloPermissao)) {
+                            btn.classList.add("hidden");
+                            return;
+                        }
+
+                        btn.classList.remove("hidden");
 
                         if (feature && !temFeature(feature)) {
                             const planoNecessario = planoMinimoParaFeature(feature);
@@ -9534,6 +9597,7 @@ async function(
     leadId,
     novoStatus
 ) {
+    if (!exigirEdicaoModulo("leads")) return;
 
     try {
 
@@ -10490,6 +10554,8 @@ produtosContainer.appendChild(card);
 
         form.addEventListener("submit", async (e) => {
             e.preventDefault();
+            if (!exigirEdicaoModulo("produtos")) return;
+
             const id = document.getElementById("form-id-produto").value;
             const salvarComoRascunho = document.getElementById("prod-rascunho").checked;
 
@@ -12868,6 +12934,8 @@ const status = d.ativa
         }
 
         window.salvarCampanha = async function() {
+            if (!exigirEdicaoModulo("campanhas")) return;
+
             try {
                 const payload = {
                     ativa: document.getElementById("campanha-ativa").checked,
@@ -13523,6 +13591,7 @@ async function(id) {
 
 window.salvarTemplate =
 async function() {
+    if (!exigirEdicaoModulo("templates")) return;
 
     const titulo =
         document
@@ -13720,6 +13789,8 @@ async function() {
         };
 
         window.salvarPedido = async function() {
+            if (!exigirEdicaoModulo("pedidos")) return;
+
             const cliente = document.getElementById("ped-cliente").value.trim();
             const produtos = document.getElementById("ped-produtos").value.trim();
             const valor = parseFloat(document.getElementById("ped-valor").value || 0);
@@ -14269,6 +14340,7 @@ async function() {
 
         window.atualizarStatusPedido =
         function(pedidoId, novoStatus) {
+            if (!exigirEdicaoModulo("pedidos")) return;
 
             return moverPedidoFluxo(
                 pedidoId,
