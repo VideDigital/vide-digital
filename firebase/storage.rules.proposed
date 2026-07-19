@@ -1,3 +1,7 @@
+// PROPOSTA NÃO PRONTA PARA PRODUÇÃO.
+// NÃO PUBLICAR antes de Cloud Functions, custom claims, testes no Emulator,
+// migração de base64 para Storage e validação autenticada em staging.
+
 rules_version = '2';
 
 service firebase.storage {
@@ -10,47 +14,78 @@ service firebase.storage {
       return signedIn() && request.auth.uid == ownerUid;
     }
 
-    function isVideAdmin() {
-      return signedIn()
-        && (
-          request.auth.token.email == "danielmarcelino549@gmail.com"
-          || request.auth.token.videAdmin == true
-        );
+    // Contrato futuro: claim emitida por Cloud Functions/Admin SDK.
+    function isBackendAdmin() {
+      return signedIn() && request.auth.token.videAdmin == true;
     }
 
-    function validImage() {
-      return request.resource.size < 5 * 1024 * 1024
+    function employeeDoc() {
+      return firestore.get(/databases/(default)/documents/funcionarios/$(request.auth.uid));
+    }
+
+    function isActiveEmployeeFor(ownerUid) {
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/funcionarios/$(request.auth.uid))
+        && employeeDoc().data.status == "ativo"
+        && employeeDoc().data.donoUID == ownerUid
+        && employeeDoc().data.permissoes is map
+        && employeeDoc().data.permissoes.keys().hasAll(["editar"])
+        && employeeDoc().data.permissoes.editar is list;
+    }
+
+    function employeeCanUpload(ownerUid, moduleKey) {
+      return isActiveEmployeeFor(ownerUid)
+        && moduleKey in employeeDoc().data.permissoes.editar;
+    }
+
+    function canUpload(ownerUid, moduleKey) {
+      return isOwner(ownerUid) || employeeCanUpload(ownerUid, moduleKey) || isBackendAdmin();
+    }
+
+    function validImage(maxBytes) {
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= maxBytes
         && request.resource.contentType.matches("image/(jpeg|png|webp|gif)");
     }
 
     function validDigitalFile() {
-      return request.resource.size < 50 * 1024 * 1024
-        && !request.resource.contentType.matches("text/html|application/x-msdownload");
+      return request.resource != null
+        && request.resource.size > 0
+        && request.resource.size <= 50 * 1024 * 1024
+        && request.resource.contentType.matches("application/pdf");
     }
 
+    // Paths futuros. O frontend atual usa majoritariamente base64 no Firestore.
     match /stores/{ownerUid}/products/{productId}/{fileName} {
       allow read: if true;
-      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+      allow create, update: if canUpload(ownerUid, "produtos") && validImage(5 * 1024 * 1024);
+      allow delete: if canUpload(ownerUid, "produtos");
     }
 
     match /stores/{ownerUid}/profile/{fileName} {
       allow read: if true;
-      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+      allow create, update: if canUpload(ownerUid, "configuracoes") && validImage(2 * 1024 * 1024);
+      allow delete: if canUpload(ownerUid, "configuracoes");
     }
 
     match /stores/{ownerUid}/banners/{fileName} {
       allow read: if true;
-      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+      allow create, update: if canUpload(ownerUid, "configuracoes") && validImage(6 * 1024 * 1024);
+      allow delete: if canUpload(ownerUid, "configuracoes");
     }
 
     match /stores/{ownerUid}/landing-pages/{pageId}/{fileName} {
       allow read: if true;
-      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+      allow create, update: if canUpload(ownerUid, "landing-pages") && validImage(5 * 1024 * 1024);
+      allow delete: if canUpload(ownerUid, "landing-pages");
     }
 
     match /stores/{ownerUid}/digital-products/{productId}/{fileName} {
-      allow read: if isOwner(ownerUid) || isVideAdmin(); // proposta: validar comprador em fase futura.
-      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validDigitalFile();
+      // Fase futura: leitura deve validar comprador/licença antes de produção.
+      allow read: if isOwner(ownerUid) || isBackendAdmin();
+      allow create, update: if canUpload(ownerUid, "produtos") && validDigitalFile();
+      allow delete: if canUpload(ownerUid, "produtos");
     }
 
     match /{allPaths=**} {
