@@ -40,3 +40,19 @@
 - Regras Firebase não foram publicadas porque não existem no repositório.
 - As validações de frontend reduzem risco operacional, mas não substituem regras de segurança no Firebase.
 - Nem todas as escritas globais foram migradas; esta fase cria a base e protege pontos principais.
+
+## Atualização após revisão técnica do PR #5
+
+- Escritas operacionais de produtos, pedidos, leads, templates, campanhas, configurações, funcionários e Landing Pages receberam guards no ponto de execução.
+- Ações destrutivas revisadas validam permissão antes da confirmação e novamente antes da escrita quando há callback assíncrono.
+- Cadastro com Google usa o resolvedor central antes de criar `usuarios/{uid}` e não cria proprietário quando o UID já pertence a funcionário, dono ou admin confirmado.
+- `equipe_admin` deixou de ser dependência fatal para login comum.
+- `landing-pages` foi separado de `configuracoes` para impedir que edição de configurações conceda Studio automaticamente.
+- Notificação lida permanece exceção de preferência do usuário e grava o `authUid` de quem leu.
+- O arquivo `docs/WRITE_PERMISSION_AUDIT.md` detalha cada escrita revisada, guard aplicado e exceções justificadas.
+
+## Bloqueios que continuam fora do frontend
+
+- Firestore Rules e Storage Rules precisam aplicar isolamento e permissões reais.
+- Criação, desativação e auditoria de funcionários devem migrar para Cloud Functions.
+- Modo Master deve depender de regra backend auditável, não apenas de frontend.

@@ -72,3 +72,11 @@ As regras finais devem validar:
 3. Registrar auditoria de criação, desativação e alteração de permissões.
 4. Validar permissões de escrita no backend.
 5. Criar endpoint/controlador para modo Master administrativo.
+
+## Atualização de guards frontend do PR #5
+
+As correções do PR #5 adicionam guards de frontend no ponto de escrita para reduzir mutações indevidas pela interface ou console. Isso cobre os principais writes em `produtos`, `pedidos`, `leads`, `templates`, `campanhas`, `usuarios`, `vitrines_publicas`, `banners_loja`, `landing_pages`, coleções públicas de Landing Pages, `funcionarios` e `solicitacoes_customizacao`.
+
+Esses guards não alteram contratos Firebase, coleções, campos, slugs ou URLs públicas. Eles também não substituem regras autoritativas: qualquer regra final precisa validar `auth.uid`, `donoUID`, `criadoPor`, estado de funcionário ativo, arrays de permissão e contexto administrativo real.
+
+`notificacoes.lidoPor` foi mantido como exceção de preferência do usuário autenticado: grava o `authUid` do leitor e só permite alterar notificações visíveis ao tenant efetivo.

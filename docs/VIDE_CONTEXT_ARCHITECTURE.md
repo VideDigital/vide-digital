@@ -71,6 +71,7 @@ Proprietários e administradores têm acesso amplo no frontend, respeitando plan
 
 - `setPlan(plan, features, limits)`
 - `getPlan()`
+- `isInitialized()`
 - `hasFeature(key)`
 - `getLimits()`
 - `getSnapshot()`
@@ -105,3 +106,13 @@ Próximas etapas recomendadas:
 3. Adicionar auditoria com `authUid`, `ownerUid` e ação executada.
 4. Publicar regras Firestore/Storage compatíveis após validação no Firebase Console.
 5. Substituir validações de frontend por validações de backend para operações sensíveis.
+
+## Atualização de hardening do PR #5
+
+- `resolveVideHubIdentity()` não exige mais leitura prematura de `equipe_admin` para login comum de proprietário ou funcionário.
+- `permission-denied` ao consultar `equipe_admin` em login comum é tratado como ausência de privilégio administrativo, sem promover acesso.
+- `admin.html` nega acesso quando não consegue confirmar privilégio administrativo.
+- Permissões de módulos passam por normalização de aliases antes de `canView()` e `canEdit()`.
+- Landing Pages/Studio usam o módulo canônico `landing-pages`, com aliases compatíveis para valores antigos.
+- `getSnapshot()` retorna cópia isolada congelada em profundidade.
+- `localStorage` permanece apenas como preflight visual; não é fonte de autorização.
