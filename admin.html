@@ -868,14 +868,19 @@ onAuthStateChanged(auth, async (user) => {
                 return;
             }
             let permissoesEquipeAtual = null;
-            const funcionarioSnap = await getDoc(doc(db, "funcionarios", user.uid));
-            const membroAdmin = funcionarioSnap.exists()
+            let membroAdmin = null;
+            try {
+                membroAdmin = await getAdminMembership(db, user);
+            } catch (erroAdmin) {
+                console.error("Não foi possível confirmar acesso administrativo:", erroAdmin);
+            }
+            const funcionarioSnap = membroAdmin
                 ? null
-                : await getAdminMembership(db, user);
+                : await getDoc(doc(db, "funcionarios", user.uid));
 
 if (!membroAdmin) {
 
-alert("Acesso negado. Esta area e exclusiva do administrador do sistema.");
+alert("Acesso negado. Esta área é exclusiva do administrador do sistema.");
 
 await signOut(auth);
 

@@ -371,7 +371,7 @@ const authUser = auth.currentUser;
 
 if (!authUser || authUser.uid !== uid) {
 
-emitInlineFeedback("Sessao invalida. Entre novamente.", "error");
+emitInlineFeedback("Sessão inválida. Entre novamente.", "error");
 
 await signOut(auth);
 
@@ -394,7 +394,7 @@ return false;
 
 }
 
-emitInlineFeedback("Sincronizacao bem-sucedida!", "success");
+emitInlineFeedback("Sincronização bem-sucedida!", "success");
 
 const contexto = resultado.context;
 
@@ -470,11 +470,24 @@ const result = await signInWithPopup(auth, googleProvider);
 
 const user = result.user;
 
-const userDoc = await getDoc(doc(db, "usuarios", user.uid));
+const identidade = await resolveVideHubIdentity({
+    authUser: user,
+    db
+});
 
-if (userDoc.exists()) {
+if (identidade.allowed) {
 
 await autorizarEEntrar(user.uid);
+
+return;
+
+}
+
+if (identidade.reason !== "auth/profile-not-found") {
+
+emitInlineFeedback(identidade.message || mensagemPorStatus(identidade.context?.status), "error");
+
+await signOut(auth);
 
 return;
 
