@@ -1,0 +1,60 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerUid) {
+      return signedIn() && request.auth.uid == ownerUid;
+    }
+
+    function isVideAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.email == "danielmarcelino549@gmail.com"
+          || request.auth.token.videAdmin == true
+        );
+    }
+
+    function validImage() {
+      return request.resource.size < 5 * 1024 * 1024
+        && request.resource.contentType.matches("image/(jpeg|png|webp|gif)");
+    }
+
+    function validDigitalFile() {
+      return request.resource.size < 50 * 1024 * 1024
+        && !request.resource.contentType.matches("text/html|application/x-msdownload");
+    }
+
+    match /stores/{ownerUid}/products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+    }
+
+    match /stores/{ownerUid}/profile/{fileName} {
+      allow read: if true;
+      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+    }
+
+    match /stores/{ownerUid}/banners/{fileName} {
+      allow read: if true;
+      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+    }
+
+    match /stores/{ownerUid}/landing-pages/{pageId}/{fileName} {
+      allow read: if true;
+      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validImage();
+    }
+
+    match /stores/{ownerUid}/digital-products/{productId}/{fileName} {
+      allow read: if isOwner(ownerUid) || isVideAdmin(); // proposta: validar comprador em fase futura.
+      allow write: if (isOwner(ownerUid) || isVideAdmin()) && validDigitalFile();
+    }
+
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

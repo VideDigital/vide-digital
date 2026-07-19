@@ -1,0 +1,193 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerUid) {
+      return signedIn() && request.auth.uid == ownerUid;
+    }
+
+    function employeeDoc() {
+      return get(/databases/$(database)/documents/funcionarios/$(request.auth.uid));
+    }
+
+    function isActiveEmployeeFor(ownerUid) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid))
+        && employeeDoc().data.status == "ativo"
+        && employeeDoc().data.donoUID == ownerUid;
+    }
+
+    function employeeCanView(ownerUid, moduleKey) {
+      return isActiveEmployeeFor(ownerUid)
+        && (
+          moduleKey in employeeDoc().data.permissoes.ver
+          || moduleKey in employeeDoc().data.permissoes.editar
+        );
+    }
+
+    function employeeCanEdit(ownerUid, moduleKey) {
+      return isActiveEmployeeFor(ownerUid)
+        && moduleKey in employeeDoc().data.permissoes.editar;
+    }
+
+    function canViewTenant(ownerUid, moduleKey) {
+      return isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey);
+    }
+
+    function canEditTenant(ownerUid, moduleKey) {
+      return isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey);
+    }
+
+    function isVideAdmin() {
+      return signedIn()
+        && (
+          request.auth.token.email == "danielmarcelino549@gmail.com"
+          || request.auth.token.videAdmin == true
+        );
+    }
+
+    match /usuarios/{ownerUid} {
+      allow read: if isOwner(ownerUid) || isActiveEmployeeFor(ownerUid) || isVideAdmin();
+      allow create: if isOwner(ownerUid);
+      allow update: if canEditTenant(ownerUid, "configuracoes") || isVideAdmin();
+      allow delete: if false;
+    }
+
+    match /funcionarios/{employeeUid} {
+      allow read: if signedIn()
+        && (
+          request.auth.uid == employeeUid
+          || isOwner(resource.data.donoUID)
+          || employeeCanView(resource.data.donoUID, "funcionarios")
+          || isVideAdmin()
+        );
+      allow create, update, delete: if false; // migrar para Cloud Functions.
+    }
+
+    match /produtos/{id} {
+      allow read: if resource.data.statusProduto != "rascunho"
+        || canViewTenant(resource.data.criadoPor, "produtos")
+        || isVideAdmin();
+      allow create: if canEditTenant(request.resource.data.criadoPor, "produtos");
+      allow update, delete: if canEditTenant(resource.data.criadoPor, "produtos") || isVideAdmin();
+    }
+
+    match /pedidos/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "pedidos") || isVideAdmin();
+      allow create: if canEditTenant(request.resource.data.criadoPor, "pedidos");
+      allow update, delete: if canEditTenant(resource.data.criadoPor, "pedidos") || isVideAdmin();
+    }
+
+    match /leads/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "leads") || isVideAdmin();
+      allow create: if request.resource.data.criadoPor is string; // proposta: restringir por vitrine publicada ou função.
+      allow update, delete: if canEditTenant(resource.data.criadoPor, "leads") || isVideAdmin();
+    }
+
+    match /templates/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "templates") || isVideAdmin();
+      allow create: if canEditTenant(request.resource.data.criadoPor, "templates");
+      allow update, delete: if canEditTenant(resource.data.criadoPor, "templates") || isVideAdmin();
+    }
+
+    match /campanhas/{ownerUid} {
+      allow read: if true;
+      allow write: if canEditTenant(ownerUid, "campanhas") || isVideAdmin();
+    }
+
+    match /campanhas_historico/{id} {
+      allow read: if canViewTenant(resource.data.uid, "campanhas") || isVideAdmin();
+      allow create: if canEditTenant(request.resource.data.uid, "campanhas");
+      allow update, delete: if isVideAdmin();
+    }
+
+    match /vitrines_publicas/{slug} {
+      allow read: if true;
+      allow create, update: if canEditTenant(request.resource.data.donoUID, "configuracoes") || isVideAdmin();
+      allow delete: if canEditTenant(resource.data.donoUID, "configuracoes") || isVideAdmin();
+    }
+
+    match /banners_loja/{id} {
+      allow read: if true;
+      allow create, update: if canEditTenant(request.resource.data.donoUID, "configuracoes") || isVideAdmin();
+      allow delete: if canEditTenant(resource.data.donoUID, "configuracoes") || isVideAdmin();
+    }
+
+    match /landing_pages/{id} {
+      allow read: if canViewTenant(resource.data.donoUID, "landing-pages") || isVideAdmin();
+      allow create: if canEditTenant(request.resource.data.donoUID, "landing-pages");
+      allow update, delete: if canEditTenant(resource.data.donoUID, "landing-pages") || isVideAdmin();
+    }
+
+    match /landing_pages_blocos/{id} {
+      allow read: if canViewTenant(resource.data.donoUID, "landing-pages") || isVideAdmin();
+      allow create: if canEditTenant(request.resource.data.donoUID, "landing-pages");
+      allow update, delete: if canEditTenant(resource.data.donoUID, "landing-pages") || isVideAdmin();
+    }
+
+    match /landing_pages_publicas/{id} {
+      allow read: if true;
+      allow create, update: if canEditTenant(request.resource.data.donoUID, "landing-pages") || isVideAdmin();
+      allow delete: if canEditTenant(resource.data.donoUID, "landing-pages") || isVideAdmin();
+    }
+
+    match /landing_pages_blocos_publicas/{id} {
+      allow read: if true;
+      allow create, update: if canEditTenant(request.resource.data.donoUID, "landing-pages") || isVideAdmin();
+      allow delete: if canEditTenant(resource.data.donoUID, "landing-pages") || isVideAdmin();
+    }
+
+    match /notificacoes/{id} {
+      allow read: if signedIn();
+      allow create, update, delete: if isVideAdmin();
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).changedKeys().hasOnly(["lidoPor"])
+        && request.auth.uid in request.resource.data.lidoPor;
+    }
+
+    match /config/{id} {
+      allow read: if signedIn();
+      allow write: if isVideAdmin();
+    }
+
+    match /equipe_admin/{id} {
+      allow read, write: if isVideAdmin();
+    }
+
+    match /metricas_vitrines/{id} {
+      allow read: if signedIn();
+      allow create, update: if request.resource.data.donoUID is string
+        || request.resource.data.emailDono is string; // proposta: substituir por Function/rate limit.
+      allow delete: if false;
+    }
+
+    match /metricas_produtos/{id} {
+      allow read: if signedIn();
+      allow create, update: if request.resource.data.visualizacoes is number
+        || request.resource.data.cliques is number; // proposta: substituir por Function/rate limit.
+      allow delete: if false;
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn();
+      allow create: if request.resource.data.emailDono is string
+        && request.resource.data.clienteNome is string;
+      allow update: if signedIn();
+      allow delete: if false;
+      match /mensagens/{msgId} {
+        allow read: if signedIn();
+        allow create: if request.resource.data.sender in ["cliente", "admin"]
+          && request.resource.data.texto is string;
+        allow update, delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
