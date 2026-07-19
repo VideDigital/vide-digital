@@ -40,6 +40,7 @@ const DEFAULT_CONTEXT = Object.freeze({
 
 let contextState = { ...DEFAULT_CONTEXT };
 let planState = {
+    initialized: false,
     plan: "starter",
     features: [],
     limits: { ...DEFAULT_PLAN_LIMITS }
@@ -55,10 +56,51 @@ function normalizeArray(value) {
         : [];
 }
 
+const MODULE_ALIASES = Object.freeze({
+    dashboard: ["dashboard", "cockpit"],
+    produtos: ["produtos", "catalogo", "catálogo"],
+    pedidos: ["pedidos", "hub"],
+    leads: ["leads", "crm", "automacao-leads", "automacao_leads", "automacaoLeads"],
+    templates: ["templates"],
+    campanhas: ["campanhas"],
+    metricas: ["metricas", "métricas"],
+    configuracoes: ["configuracoes", "configurações", "personalizacao", "personalização"],
+    "landing-pages": ["landing-pages", "landing_pages", "landingPages", "paginas", "páginas", "landing", "lp", "studio"],
+    funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"]
+});
+
+const MODULE_ALIAS_LOOKUP = Object.freeze(
+    Object.entries(MODULE_ALIASES).reduce((acc, [canonical, aliases]) => {
+        aliases.forEach(alias => {
+            acc[String(alias).trim().toLowerCase()] = canonical;
+        });
+        acc[String(canonical).trim().toLowerCase()] = canonical;
+        return acc;
+    }, {})
+);
+
+export function normalizeModuleKey(moduleKey) {
+    const key = String(moduleKey || "").trim();
+    if (!key) return "";
+    return MODULE_ALIAS_LOOKUP[key.toLowerCase()] || key;
+}
+
+function normalizeModuleArray(value) {
+    return Array.from(new Set(normalizeArray(value).map(normalizeModuleKey).filter(Boolean)));
+}
+
 function clonePlain(value) {
     return value == null
         ? value
         : JSON.parse(JSON.stringify(value));
+}
+
+function deepFreeze(value, seen = new WeakSet()) {
+    if (!value || typeof value !== "object" || seen.has(value)) return value;
+    seen.add(value);
+    Object.freeze(value);
+    Object.keys(value).forEach(key => deepFreeze(value[key], seen));
+    return value;
 }
 
 function publicUser(user) {
@@ -72,8 +114,8 @@ function publicUser(user) {
 }
 
 function buildPermissions(employee) {
-    const view = normalizeArray(employee?.permissoes?.ver);
-    const edit = normalizeArray(employee?.permissoes?.editar);
+    const view = normalizeModuleArray(employee?.permissoes?.ver);
+    const edit = normalizeModuleArray(employee?.permissoes?.editar);
     const mergedView = Array.from(new Set([...view, ...edit]));
 
     return {
@@ -86,9 +128,26 @@ export function isVideSuperAdminEmail(email) {
     return normalizeEmail(email) === VIDE_SUPER_ADMIN_EMAIL;
 }
 
-export async function getAdminMembership(db, authUser) {
+function isPermissionDenied(error) {
+    return error?.code === "permission-denied" ||
+        error?.code === "PERMISSION_DENIED";
+}
+
+async function safeGetDoc(docRef, { toleratePermissionDenied = false } = {}) {
+    try {
+        return await getDoc(docRef);
+    } catch (error) {
+        if (toleratePermissionDenied && isPermissionDenied(error)) {
+            return null;
+        }
+        throw error;
+    }
+}
+
+export async function getAdminMembership(db, authUser, options = {}) {
     const email = normalizeEmail(authUser?.email);
     const uid = authUser?.uid || "";
+    const toleratePermissionDenied = Boolean(options.toleratePermissionDenied);
 
     if (!email && !uid) return null;
 
@@ -102,7 +161,16 @@ export async function getAdminMembership(db, authUser) {
         };
     }
 
-    const snapEquipe = await getDocs(collection(db, "equipe_admin"));
+    let snapEquipe;
+    try {
+        snapEquipe = await getDocs(collection(db, "equipe_admin"));
+    } catch (error) {
+        if (toleratePermissionDenied && isPermissionDenied(error)) {
+            return null;
+        }
+        throw error;
+    }
+
     const match = snapEquipe.docs.find(item => {
         const data = item.data() || {};
         return (
@@ -168,12 +236,32 @@ export async function resolveVideHubIdentity({
         authEmail
     };
 
-    const adminMembership = await getAdminMembership(db, authUser);
-    const isAdmin = Boolean(adminMembership);
+    let adminMembership = null;
 
-    const ownerSnap = await getDoc(doc(db, "usuarios", authUid));
+    if (isVideSuperAdminEmail(authEmail)) {
+        adminMembership = await getAdminMembership(db, authUser);
+    }
 
-    if (isAdmin && masterTarget) {
+    const resolveAdmin = async () => {
+        if (!adminMembership) {
+            adminMembership = await getAdminMembership(db, authUser, {
+                toleratePermissionDenied: true
+            });
+        }
+
+        if (!adminMembership) return null;
+
+        if (!masterTarget) {
+            return allowed({
+                ...base,
+                effectiveUid: authUid,
+                ownerUid: authUid,
+                storeUid: authUid,
+                userType: "admin",
+                isAdmin: true
+            });
+        }
+
         const targetSnap = await getDoc(doc(db, "usuarios", masterTarget));
         if (!targetSnap.exists()) {
             return denied("master/target-not-found", "A loja solicitada não foi encontrada.", {
@@ -206,20 +294,19 @@ export async function resolveVideHubIdentity({
             plan: owner.plano || "starter",
             features: normalizeArray(owner.featuresManuais)
         });
+    };
+
+    if (adminMembership) {
+        const adminResult = await resolveAdmin();
+        if (adminResult) return adminResult;
     }
 
-    if (isAdmin && !masterTarget) {
-        return allowed({
-            ...base,
-            effectiveUid: authUid,
-            ownerUid: authUid,
-            storeUid: authUid,
-            userType: "admin",
-            isAdmin: true
-        });
-    }
+    const ownerSnap = await safeGetDoc(
+        doc(db, "usuarios", authUid),
+        { toleratePermissionDenied: true }
+    );
 
-    if (ownerSnap.exists()) {
+    if (ownerSnap?.exists()) {
         const owner = { id: authUid, ...(ownerSnap.data() || {}) };
         if (owner.status !== "aprovado") {
             return denied(`owner/${owner.status || "inactive"}`, "Sua conta ainda não está liberada para acesso.", {
@@ -240,15 +327,36 @@ export async function resolveVideHubIdentity({
             storeUid: authUid,
             userType: "owner",
             isOwner: true,
-            isAdmin,
             owner,
             plan: owner.plano || "starter",
             features: normalizeArray(owner.featuresManuais)
         });
     }
 
-    const employeeSnap = await getDoc(doc(db, "funcionarios", authUid));
-    if (!employeeSnap.exists()) {
+    const confirmedAdminResult = await resolveAdmin();
+    if (confirmedAdminResult) return confirmedAdminResult;
+
+    const employeeSnap = await safeGetDoc(
+        doc(db, "funcionarios", authUid),
+        { toleratePermissionDenied: true }
+    );
+
+    if (!ownerSnap && !employeeSnap) {
+        return denied("auth/profile-permission-denied", "Não foi possível confirmar sua identidade com segurança. Tente novamente ou fale com o responsável pela loja.", base);
+    }
+
+    if (!employeeSnap?.exists()) {
+        const adminResult = await resolveAdmin();
+        if (adminResult) return adminResult;
+
+        if (ownerSnap === null || employeeSnap === null) {
+            return denied("auth/profile-permission-denied", "Não foi possível confirmar sua identidade com segurança. Tente novamente ou fale com o responsável pela loja.", base);
+        }
+
+        if (masterTarget) {
+            return denied("master/not-admin", "Você não tem permissão para acessar o modo Master.", base);
+        }
+
         return denied("auth/profile-not-found", "Nenhuma conta encontrada. Verifique seu acesso com o responsável pela loja.", base);
     }
 
@@ -314,12 +422,13 @@ export async function resolveVideHubIdentity({
 }
 
 function freezeSnapshot(state) {
-    return Object.freeze(clonePlain(state));
+    return deepFreeze(clonePlain(state));
 }
 
 export const VidePlanService = {
     setPlan(plan, features = [], limits = {}) {
         planState = {
+            initialized: true,
             plan: plan || "starter",
             features: normalizeArray(features),
             limits: {
@@ -331,6 +440,10 @@ export const VidePlanService = {
 
     getPlan() {
         return planState.plan;
+    },
+
+    isInitialized() {
+        return Boolean(planState.initialized);
     },
 
     hasFeature(key) {
@@ -366,21 +479,24 @@ export const VideHubContext = {
         contextState = { ...DEFAULT_CONTEXT };
         this.initialized = false;
         VidePlanService.setPlan("starter", [], DEFAULT_PLAN_LIMITS);
+        planState.initialized = false;
     },
 
     canView(moduleKey) {
-        if (!moduleKey) return true;
+        const normalizedModule = normalizeModuleKey(moduleKey);
+        if (!normalizedModule) return true;
         if (contextState.isAdmin || contextState.isOwner) return true;
         if (!contextState.isEmployee) return false;
-        return contextState.permissions.view.includes(moduleKey) ||
-            contextState.permissions.edit.includes(moduleKey);
+        return contextState.permissions.view.includes(normalizedModule) ||
+            contextState.permissions.edit.includes(normalizedModule);
     },
 
     canEdit(moduleKey) {
-        if (!moduleKey) return true;
+        const normalizedModule = normalizeModuleKey(moduleKey);
+        if (!normalizedModule) return true;
         if (contextState.isAdmin || contextState.isOwner) return true;
         if (!contextState.isEmployee) return false;
-        return contextState.permissions.edit.includes(moduleKey);
+        return contextState.permissions.edit.includes(normalizedModule);
     },
 
     hasFeature(featureKey) {
