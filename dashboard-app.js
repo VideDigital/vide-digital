@@ -1,5 +1,5 @@
 import { auth, db, firebaseConfig } from "./firebase-init.js";
-import { VideHubContext, VidePlanService } from "./core/vide-context.js";
+import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 
 // Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
 // de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
@@ -34,7 +34,7 @@ window.addEventListener("pageshow", function(event) {
         let limiteRascunhosGlobal = 5;
         let totalRascunhosAtual = 0;
         let verRascunhos = false;
-        let temFeature = () => true; // fica atualizado de verdade assim que o plano carrega
+        let temFeature = feature => feature === "leads"; // fica atualizado de verdade assim que o plano carrega
 
         const produtosContainer = document.getElementById("produtos-container");
         const modal = document.getElementById("produto-modal");
@@ -676,7 +676,9 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
             { key: "templates", label: "Templates" },
             { key: "campanhas", label: "Campanhas" },
             { key: "metricas", label: "Métricas" },
-            { key: "configuracoes", label: "Configurações da Loja" }
+            { key: "configuracoes", label: "Configurações da Loja" },
+            { key: "landing-pages", label: "Landing Pages / Studio" },
+            { key: "funcionarios", label: "Funcionários" }
         ];
 
         async function carregarFuncionarios() {
@@ -982,9 +984,15 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
         }
 
         window.salvarFuncionario = async function() {
-            if (!exigirEdicaoModulo("configuracoes")) return;
+            if (!exigirEdicaoModulo("funcionarios")) return;
 
             const uidEdicao = document.getElementById("funcionario-uid-edicao").value;
+            const contextoAtual = VideHubContext.getSnapshot();
+            if (contextoAtual.isEmployee && uidEdicao && uidEdicao === contextoAtual.authUid) {
+                showToast("Você não pode alterar as próprias permissões.", "error");
+                return;
+            }
+
             const nome = document.getElementById("funcionario-nome").value.trim();
             const email = document.getElementById("funcionario-email").value.trim().toLowerCase();
             const cargo = document.getElementById("funcionario-cargo").value.trim();
@@ -1032,6 +1040,14 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
         };
 
         window.alternarStatusFuncionario = async function(uid, statusAtual) {
+            if (!exigirEdicaoModulo("funcionarios")) return;
+
+            const contextoAtual = VideHubContext.getSnapshot();
+            if (contextoAtual.isEmployee && uid === contextoAtual.authUid) {
+                showToast("Você não pode alterar o próprio status.", "error");
+                return;
+            }
+
             const novoStatus = statusAtual === "ativo" ? "inativo" : "ativo";
             try {
                 await setDoc(doc(db, "funcionarios", uid), { status: novoStatus }, { merge: true });
@@ -1241,7 +1257,11 @@ window.alternarModoEdicaoLayout = function() {
 window.restaurarLayoutOriginal = async function() {
     const abaAtivaId = document.querySelector(".view-section.active")?.id;
     if (!abaAtivaId) return;
+    if (!exigirEdicaoModulo(moduloPermissaoPorAba(abaAtivaId))) return;
+
     abrirConfirmacao("Restaurar o layout original desta aba? Isso apaga a personalização salva dela.", async () => {
+        if (!exigirEdicaoModulo(moduloPermissaoPorAba(abaAtivaId))) return;
+
         try {
             const docRef = doc(db, "usuarios", usuarioUID);
             const snapAtual = await getDoc(docRef);
@@ -1409,8 +1429,14 @@ window.addEventListener("pageshow", () => {
 });
 
 function ativarAba(targetId) {
+    const contextoVideHub = VideHubContext.getSnapshot();
+    if (!contextoVideHub.initialized) {
+        showToast("Carregando suas permissões. Aguarde um instante.", "error");
+        return false;
+    }
+
     if (!podeVerAba(targetId)) {
-        showToast("Voce nao tem permissao para acessar este modulo.", "error");
+        showToast("Você não tem permissão para acessar este módulo.", "error");
         return false;
     }
 
@@ -3059,25 +3085,40 @@ if (document.readyState === "loading") {
             "view-campanhas": "campanhas",
             "view-metricas": "metricas",
             "view-personalizacao": "configuracoes",
-            "view-funcionarios": "configuracoes"
+            "view-funcionarios": "funcionarios",
+            "view-landing-pages": "landing-pages"
         };
 
         function moduloPermissaoPorAba(targetId) {
-            return PERMISSOES_NAV[targetId] || "";
+            return normalizeModuleKey(PERMISSOES_NAV[targetId] || "");
         }
 
         function podeVerAba(targetId) {
+            const contexto = VideHubContext.getSnapshot();
+            if (!contexto.initialized) return false;
             const modulo = moduloPermissaoPorAba(targetId);
             return !modulo || VideHubContext.canView(modulo);
         }
 
         function podeEditarModulo(modulo) {
-            return !modulo || VideHubContext.canEdit(modulo);
+            const contexto = VideHubContext.getSnapshot();
+            if (!contexto.initialized || !contexto.active) return false;
+            const moduloNormalizado = normalizeModuleKey(modulo);
+            return !moduloNormalizado || VideHubContext.canEdit(moduloNormalizado);
         }
 
         function exigirEdicaoModulo(modulo) {
+            const contexto = VideHubContext.getSnapshot();
+            if (!contexto.initialized) {
+                showToast("Carregando suas permissões. Aguarde um instante.", "error");
+                return false;
+            }
+            if (!contexto.active) {
+                showToast("Sessão inválida. Entre novamente.", "error");
+                return false;
+            }
             if (podeEditarModulo(modulo)) return true;
-            showToast("Voce tem acesso somente leitura neste modulo.", "error");
+            showToast("Você tem acesso somente leitura neste módulo.", "error");
             return false;
         }
 
@@ -5330,7 +5371,7 @@ blocosSelecionadosLivre.clear();
             salvarHistoricoEditor();
         };
         window.salvarEditorLP = async function() {
-            if (!exigirEdicaoModulo("configuracoes")) return;
+            if (!exigirEdicaoModulo("landing-pages")) return;
 
             const titulo = document.getElementById("lped-titulo").value.trim();
             const slug = document.getElementById("lped-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
@@ -5343,6 +5384,8 @@ blocosSelecionadosLivre.clear();
                     const usadoPorOutra = existente.docs.some(d => d.id !== lpEditorId);
                     if (usadoPorOutra) return showToast("Ja existe outra LP com esse endereco.", "error");
                 }
+                if (!exigirEdicaoModulo("landing-pages")) return;
+
                 for (const blocoId of lpEditorRemovidos) {
                     await deleteDoc(doc(db, "landing_pages_blocos", blocoId));
                     await deleteDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
@@ -5397,6 +5440,8 @@ await setDoc(doc(db, "landing_pages_blocos_publicas", bloco.id), {
             }
         };
         window.publicarEditorLP = async function() {
+            if (!exigirEdicaoModulo("landing-pages")) return;
+
             await salvarEditorLP();
             lpEditorPublicado = !lpEditorPublicado;
             await alternarPublicacaoLP(lpEditorId, lpEditorPublicado);
@@ -5413,7 +5458,7 @@ window.abrirPreviewEditorLP = async function() {
     }
 };
         window.salvarLP = async function() {
-            if (!exigirEdicaoModulo("configuracoes")) return;
+            if (!exigirEdicaoModulo("landing-pages")) return;
 
             const titulo = document.getElementById("lp-titulo").value.trim();
             const slug = document.getElementById("lp-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
@@ -5428,6 +5473,8 @@ window.abrirPreviewEditorLP = async function() {
                 } else {
                     const existente = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID), where("pagina", "==", slug)));
                     if (!existente.empty) return showToast("Ja existe uma LP com esse endereco.", "error");
+                    if (!exigirEdicaoModulo("landing-pages")) return;
+
                     const novoId = `lp_${Date.now()}`;
                     const bloco1Id = `lpb_${Date.now()}_1`;
                     const bloco2Id = `lpb_${Date.now()}_2`;
@@ -5454,10 +5501,14 @@ window.abrirPreviewEditorLP = async function() {
             }
         };
         window.alternarPublicacaoLP = async function(id, publicarAgora) {
+            if (!exigirEdicaoModulo("landing-pages")) return;
+
             try {
                 const snap = await getDoc(doc(db, "landing_pages", id));
                 if (!snap.exists()) return;
                 const lp = snap.data();
+                if (!exigirEdicaoModulo("landing-pages")) return;
+
                 await setDoc(doc(db, "landing_pages", id), { publicado: publicarAgora, atualizadoEm: Date.now() }, { merge: true });
                 const docIdPublico = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
                 if (publicarAgora) {
@@ -5485,11 +5536,15 @@ await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
             }
         };
 window.duplicarLP = async function(id) {
+            if (!exigirEdicaoModulo("landing-pages")) return;
+
             try {
                 const snap = await getDoc(doc(db, "landing_pages", id));
                 if (!snap.exists()) return;
                 const lp = snap.data();
                 const todas = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
+                if (!exigirEdicaoModulo("landing-pages")) return;
+
                 const slugsExistentes = [];
                 todas.forEach(d => slugsExistentes.push(d.data().pagina));
                 let base = (lp.pagina || "").replace(/\d+$/, "");
@@ -5523,7 +5578,11 @@ await setDoc(doc(db, "landing_pages", novoId), {
             }
         };
         window.excluirLP = async function(id) {
+            if (!exigirEdicaoModulo("landing-pages")) return;
+
             abrirConfirmacao("Excluir esta Landing Page? Essa acao nao pode ser desfeita.", async () => {
+                if (!exigirEdicaoModulo("landing-pages")) return;
+
                 try {
                     const snap = await getDoc(doc(db, "landing_pages", id));
                     if (snap.exists()) {
@@ -5762,9 +5821,8 @@ await setDoc(doc(db, "landing_pages", novoId), {
                 };
                 const bloqueios = BLOQUEIOS_NAV; // mesmo objeto usado no bloqueio provisório lá em cima
 
-                // Padrão seguro: se o carregamento do plano falhar por qualquer motivo,
-                // NÃO bloqueia o resto do painel (produtos, leads, etc. continuam funcionando).
-                temFeature = () => true;
+                // Padrão seguro: antes do plano real, não usar cache/localStorage como autorização.
+                temFeature = feature => feature === "leads";
 
                 try {
                     // Buscar config de planos do Firebase (ou usar os valores padrão do código)
@@ -5781,12 +5839,6 @@ await setDoc(doc(db, "landing_pages", novoId), {
                     // "Gerenciar Cliente"), essa lista MANDA — substitui o que vem do plano.
                     const featuresManuais = Array.isArray(dadosPlano.featuresManuais) ? dadosPlano.featuresManuais : null;
                     const featuresEfetivas = featuresManuais !== null ? featuresManuais : featuresAtivas;
-                    temFeature = function(feature) {
-    if (feature === "leads") return true;
-    return featuresEfetivas.includes(feature);
-};
-try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(featuresEfetivas)); } catch(e) {}
-
                     const limiteSalvo = configPlanos?.[planoAtual]?.produtos;
                     limiteProdutosGlobal = (typeof limiteSalvo === "number") ? limiteSalvo : (LIMITES_PLANO[planoAtual] ?? 3);
 
@@ -5797,6 +5849,14 @@ try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(f
                         produtos: limiteProdutosGlobal,
                         rascunhos: limiteRascunhosGlobal
                     });
+
+                    temFeature = function(feature) {
+                        if (feature === "leads") return true;
+                        if (!VidePlanService.isInitialized()) return false;
+                        return VidePlanService.hasFeature(feature);
+                    };
+
+                    try { localStorage.setItem("ultimoPlanoFeatures_" + usuarioUID, JSON.stringify(featuresEfetivas)); } catch(e) {}
 
                     function planoMinimoParaFeature(feature) {
                         for (const p of ORDEM_PLANOS) {
@@ -6138,6 +6198,8 @@ document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
 
         // Grava no Firestore (usuarios + vitrines_publicas) e cuida da troca de slug
         async function executarSalvamento() {
+            if (!exigirEdicaoModulo("configuracoes")) return;
+
             const payloadPerfil = montarPayloadCompleto();
             if (!payloadPerfil.urlLoja) return showToast("Slug inválido.", "error");
 
@@ -6157,12 +6219,11 @@ document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
             }
 
             try {
+                if (!exigirEdicaoModulo("configuracoes")) return;
+
                 await setDoc(doc(db, "usuarios", usuarioUID), payloadPerfil, { merge: true });
 
-                if (slugAtualSalvo && slugAtualSalvo !== payloadPerfil.urlLoja) {
-                    await deleteDoc(doc(db, "vitrines_publicas", slugAtualSalvo));
-                }
-                slugAtualSalvo = payloadPerfil.urlLoja;
+                const slugAnteriorSalvo = slugAtualSalvo;
 
                 await setDoc(doc(db, "vitrines_publicas", payloadPerfil.urlLoja), {
                     donoUID: usuarioUID,
@@ -6191,6 +6252,12 @@ document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
                     link2Icone: payloadPerfil.link2Icone,
                     layoutLojaPublica: listaLayoutLoja.map(b => ({ id: b.id, visivel: b.visivel }))
                 }, { merge: true });
+
+                if (slugAnteriorSalvo && slugAnteriorSalvo !== payloadPerfil.urlLoja) {
+                    await deleteDoc(doc(db, "vitrines_publicas", slugAnteriorSalvo));
+                }
+
+                slugAtualSalvo = payloadPerfil.urlLoja;
 
                 try {
                     const snapBannersAntigos = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", usuarioUID)));
@@ -6369,6 +6436,7 @@ async function(
     descricao = "",
     extras = {}
 ) {
+    if (!exigirEdicaoModulo("leads")) return;
 
     if (!leadId || !usuarioUID) {
         return;
@@ -7513,6 +7581,7 @@ window.abrirTemplatesDoLead = async function() {
 
         window.executarFluxoTemplateNoLead =
         async function(template) {
+            if (!exigirEdicaoModulo("leads")) return;
 
             const fluxo =
                 template?.fluxo || {};
@@ -7858,6 +7927,7 @@ window.fecharModalTemplatesLead = function() {
         };
 window.salvarAnotacaoLead =
 async function(leadId, texto) {
+    if (!exigirEdicaoModulo("leads")) return;
 
     try {
 
@@ -7917,6 +7987,7 @@ async function(leadId, texto) {
 
 window.salvarCampoLead =
 async function(campo, valor) {
+    if (!exigirEdicaoModulo("leads")) return;
 
     const leadId =
         document.getElementById(
@@ -9136,6 +9207,7 @@ function(leadId) {
 
 window.salvarFollowupLead =
 async function() {
+    if (!exigirEdicaoModulo("leads")) return;
 
     const leadId =
         document.getElementById(
@@ -9313,6 +9385,7 @@ async function() {
 
 window.limparFollowupLead =
 async function() {
+    if (!exigirEdicaoModulo("leads")) return;
 
     const leadId =
         document.getElementById(
@@ -9411,6 +9484,7 @@ async function() {
 
 window.concluirFollowupLead =
 async function(leadId) {
+    if (!exigirEdicaoModulo("leads")) return;
 
     const lead =
         window._leadsVisiveis
@@ -9495,6 +9569,7 @@ async function(
     leadId,
     novoStatus
 ) {
+    if (!exigirEdicaoModulo("leads")) return;
 
     const lead =
         window
@@ -9880,10 +9955,14 @@ window.limparSelecaoCatalogo = function() {
 };
 
 window.executarAcaoMassaCatalogo = async function(acao) {
+    if (!exigirEdicaoModulo("produtos")) return;
+
     const ids=[...window._catalogoSelecionados];
     if(!ids.length){showToast("Selecione ao menos um produto.","error");return;}
     const cards=obterCardsCatalogo().filter(card=>window._catalogoSelecionados.has(card.dataset.produtoId));
     const executar=async()=>{
+        if (!exigirEdicaoModulo("produtos")) return;
+
         try{
             if(acao==="publicar"){
                 const qtd=cards.filter(card=>card.dataset.status==="rascunho").length;
@@ -10616,10 +10695,14 @@ produtosContainer.appendChild(card);
         });
 
         btnDeletar.addEventListener("click", () => {
+    if (!exigirEdicaoModulo("produtos")) return;
+
     const id = document.getElementById("form-id-produto").value;
     if (id) {
         // Usa o seu modal bonito em vez do padrão do Google
         abrirConfirmacao("Tem certeza que deseja remover permanentemente este produto?", async () => {
+            if (!exigirEdicaoModulo("produtos")) return;
+
             try {
                 await deleteDoc(doc(db, "produtos", id));
                 modal.classList.add("hidden");
@@ -10974,30 +11057,36 @@ labels:
     };
 
     try {
+        const podeVerPedidos = VideHubContext.canView("pedidos");
+        const podeVerLeads = VideHubContext.canView("leads");
 
         const resultados =
             await Promise.allSettled([
 
-                getDocs(
-                    query(
-                        collection(db, "pedidos"),
-                        where("criadoPor", "==", usuarioUID)
+                podeVerPedidos
+                    ? getDocs(
+                        query(
+                            collection(db, "pedidos"),
+                            where("criadoPor", "==", usuarioUID)
+                        )
                     )
-                ),
+                    : Promise.resolve(null),
 
-                getDocs(
-                    query(
-                        collection(db, "leads"),
-                        where("criadoPor", "==", usuarioUID)
+                podeVerLeads
+                    ? getDocs(
+                        query(
+                            collection(db, "leads"),
+                            where("criadoPor", "==", usuarioUID)
+                        )
                     )
-                )
+                    : Promise.resolve(null)
 
             ]);
 
         const pedidos = [];
         const leads = [];
 
-        if (resultados[0].status === "fulfilled") {
+        if (podeVerPedidos && resultados[0].status === "fulfilled" && resultados[0].value) {
 
             resultados[0].value.forEach(
                 documento => {
@@ -11012,7 +11101,7 @@ labels:
 
         }
 
-        if (resultados[1].status === "fulfilled") {
+        if (podeVerLeads && resultados[1].status === "fulfilled" && resultados[1].value) {
 
             resultados[1].value.forEach(
                 documento => {
@@ -11293,32 +11382,32 @@ labels:
 
         if (receitaElemento) {
             receitaElemento.textContent =
-                formatarMoeda(receitaTotal);
+                podeVerPedidos ? formatarMoeda(receitaTotal) : "—";
         }
 
         if (receitaHojeElemento) {
             receitaHojeElemento.textContent =
-                `Hoje: ${formatarMoeda(receitaHoje)}`;
+                podeVerPedidos ? `Hoje: ${formatarMoeda(receitaHoje)}` : "Sem acesso a pedidos";
         }
 
         if (pedidosElemento) {
             pedidosElemento.textContent =
-                pedidosPagos.length;
+                podeVerPedidos ? pedidosPagos.length : "—";
         }
 
         if (pedidosStatusElemento) {
             pedidosStatusElemento.textContent =
-                `${pedidosPagos.length} de ${pedidos.length}`;
+                podeVerPedidos ? `${pedidosPagos.length} de ${pedidos.length}` : "Sem acesso";
         }
 
         if (conversaoElemento) {
             conversaoElemento.textContent =
-                `${conversao}%`;
+                podeVerLeads ? `${conversao}%` : "—";
         }
 
         if (leadsStatusElemento) {
             leadsStatusElemento.textContent =
-                `${convertidos} convertido(s)`;
+                podeVerLeads ? `${convertidos} convertido(s)` : "Sem acesso";
         }
 
         const maiorElemento =
@@ -13566,9 +13655,13 @@ async function(id) {
 };
 
         window.excluirTemplate = async function(id) {
+            if (!exigirEdicaoModulo("templates")) return;
+
             abrirConfirmacao(
                 "Excluir este template? Essa ação não pode ser desfeita.",
                 async () => {
+                    if (!exigirEdicaoModulo("templates")) return;
+
                     try {
                         await deleteDoc(
                             doc(db, "templates", id)
@@ -14264,6 +14357,7 @@ async function() {
             pedidoId,
             novoStatus
         ) {
+            if (!exigirEdicaoModulo("pedidos")) return;
 
             const pedido =
                 window._pedidosVisiveis
@@ -14357,7 +14451,11 @@ async function() {
         };
 
         window.excluirPedido = async function(pedidoId) {
+    if (!exigirEdicaoModulo("pedidos")) return;
+
     abrirConfirmacao("Excluir este pedido? Essa ação não pode ser desfeita.", async () => {
+        if (!exigirEdicaoModulo("pedidos")) return;
+
         try {
             await deleteDoc(doc(db, "pedidos", pedidoId));
             carregarPedidos();
@@ -14370,6 +14468,17 @@ async function() {
         // NOTIFICAÇÕES (recebidas do admin)
         // =============================================
         let _cacheNotificacoes = [];
+
+        function obterAuthUidAtual() {
+            return VideHubContext.getSnapshot().authUid || auth.currentUser?.uid || "";
+        }
+
+        function podeMarcarNotificacaoComoLida(notificacao) {
+            if (!notificacao || !usuarioUID) return false;
+            const destinatarios = notificacao.destinatarios;
+            return destinatarios === "todos" ||
+                (Array.isArray(destinatarios) && destinatarios.includes(usuarioUID));
+        }
 
         async function carregarNotificacoes() {
             if (!usuarioUID) return;
@@ -14424,7 +14533,7 @@ if (lista.length === 0) {
                 box.innerHTML = lista.map(n => {
 
                     const lida =
-                        (n.lidoPor || []).includes(usuarioUID);
+                        (n.lidoPor || []).includes(obterAuthUidAtual());
 
                     const dataFormatada =
                         n.criadoEm
@@ -14560,7 +14669,7 @@ function atualizarBadgeNotificacoes() {
 
             const naoLidas =
                 _cacheNotificacoes.filter(n =>
-                    !(n.lidoPor || []).includes(usuarioUID)
+                    !(n.lidoPor || []).includes(obterAuthUidAtual())
                 ).length;
 
             const lidas =
@@ -14611,10 +14720,12 @@ function atualizarBadgeNotificacoes() {
         window.marcarNotificacaoLida = async function(id, lida) {
             try {
                 const notif = _cacheNotificacoes.find(n => n.id === id);
-                if (!notif) return;
+                if (!podeMarcarNotificacaoComoLida(notif)) return;
+                const authUidLeitor = obterAuthUidAtual();
+                if (!authUidLeitor) return;
                 let lidoPor = Array.isArray(notif.lidoPor) ? [...notif.lidoPor] : [];
-                if (lida && !lidoPor.includes(usuarioUID)) lidoPor.push(usuarioUID);
-                if (!lida) lidoPor = lidoPor.filter(uid => uid !== usuarioUID);
+                if (lida && !lidoPor.includes(authUidLeitor)) lidoPor.push(authUidLeitor);
+                if (!lida) lidoPor = lidoPor.filter(uid => uid !== authUidLeitor);
 
                 await setDoc(doc(db, "notificacoes", id), { lidoPor }, { merge: true });
                 notif.lidoPor = lidoPor;
@@ -14868,6 +14979,8 @@ const STATUS_PERSONALIZACAO_LABEL = {
         }
 
         window.enviarSolicitacaoPersonalizacao = async function() {
+            if (!exigirEdicaoModulo("configuracoes")) return;
+
             const descricao = document.getElementById("personalizacao-descricao").value.trim();
             const whatsapp = document.getElementById("personalizacao-whatsapp").value.trim();
             if (!descricao) {
@@ -15207,10 +15320,14 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         }
 
         window.aplicarStatusEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const novoStatus = document.getElementById("auto-lead-novo-status").value;
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             abrirConfirmacao(`Mudar o status de ${ids.length} lead(s) pra "${novoStatus}"?`, async () => {
+                if (!exigirEdicaoModulo("leads")) return;
+
                 try {
                     await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { statusLead: novoStatus }, { merge: true })));
                     showToast(`${ids.length} lead(s) atualizados!`);
@@ -15223,6 +15340,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.aplicarAnotacaoEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const texto = document.getElementById("auto-lead-anotacao-massa").value.trim();
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (!texto || ids.length === 0) {
@@ -15241,9 +15360,13 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.arquivarSelecionados = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             abrirConfirmacao(`Arquivar ${ids.length} lead(s)? Eles somem da lista principal, mas não são apagados.`, async () => {
+                if (!exigirEdicaoModulo("leads")) return;
+
                 try {
                     await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { arquivado: true }, { merge: true })));
                     showToast(`${ids.length} lead(s) arquivados!`);
@@ -15256,10 +15379,14 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.aplicarOrigemEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const novaOrigem = document.getElementById("auto-lead-nova-origem").value;
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             abrirConfirmacao(`Trocar a origem de ${ids.length} lead(s) pra "${novaOrigem}"?`, async () => {
+                if (!exigirEdicaoModulo("leads")) return;
+
                 try {
                     await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { origem: novaOrigem }, { merge: true })));
                     showToast(`Origem atualizada em ${ids.length} lead(s)!`);
@@ -15272,6 +15399,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.aplicarInteresseEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const novoInteresse = document.getElementById("auto-lead-novo-interesse").value.trim();
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (!novoInteresse || ids.length === 0) {
@@ -15290,6 +15419,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.aplicarFuncionarioEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const funcUID = document.getElementById("auto-lead-funcionario-atribuir").value;
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
@@ -15304,6 +15435,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.aplicarEtiquetaEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const etiqueta = document.getElementById("auto-lead-etiqueta-massa").value.trim();
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (!etiqueta || ids.length === 0) {
@@ -15322,6 +15455,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.aplicarLembreteEmMassa = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const dataLembrete = document.getElementById("auto-lead-lembrete-massa").value;
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (!dataLembrete || ids.length === 0) {
@@ -15350,6 +15485,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.desarquivarSelecionados = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             try {
@@ -15363,9 +15500,13 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.moverParaLixeiraSelecionados = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             abrirConfirmacao(`Mover ${ids.length} lead(s) pra lixeira? Dá pra restaurar depois, mas eles somem de todas as listas normais.`, async () => {
+                if (!exigirEdicaoModulo("leads")) return;
+
                 try {
                     await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { lixeira: true }, { merge: true })));
                     showToast(`${ids.length} lead(s) movidos pra lixeira.`);
@@ -15378,6 +15519,8 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.restaurarDaLixeira = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             try {
@@ -15391,9 +15534,13 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         };
 
         window.excluirPermanentemente = async function() {
+            if (!exigirEdicaoModulo("leads")) return;
+
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
             abrirConfirmacao(`Excluir ${ids.length} lead(s) PERMANENTEMENTE? Essa ação não pode ser desfeita.`, async () => {
+                if (!exigirEdicaoModulo("leads")) return;
+
                 try {
                     await Promise.all(ids.map(id => deleteDoc(doc(db, "leads", id))));
                     showToast(`${ids.length} lead(s) excluídos permanentemente.`);
