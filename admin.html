@@ -745,11 +745,11 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     </div>
 
     <script type="module">
-        import { auth, db, firebaseConfig } from "./firebase-init.js";
+        import { auth, db } from "./firebase-init.js";
         import { VIDE_SUPER_ADMIN_EMAIL, getAdminMembership } from "./core/vide-context.js";
+        import { VideFunctions } from "./core/vide-functions.js";
 
-import { onAuthStateChanged, signOut, createUserWithEmailAndPassword, getAuth as getAuthSecundario, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { initializeApp as initializeAppSecundario, deleteApp as deleteAppSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         
         const SUPER_ADMIN_EMAIL = VIDE_SUPER_ADMIN_EMAIL;
@@ -966,32 +966,6 @@ document.getElementById("equipe-senha").value = senha;
 
 };
 
-async function criarContaEquipeAuth(email, senha) {
-
-const appSecundario = initializeAppSecundario(firebaseConfig, "equipe-temp-" + Date.now());
-
-const authSecundario = getAuthSecundario(appSecundario);
-
-try {
-
-const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
-
-await signOut(authSecundario);
-
-await deleteAppSecundario(appSecundario);
-
-return cred.user.uid;
-
-} catch (err) {
-
-await deleteAppSecundario(appSecundario).catch(() => {});
-
-throw err;
-
-}
-
-}
-
 function aplicarTemaSistemaVars(t) {
     const root = document.documentElement;
     if (t.primaria) root.style.setProperty("--sys-primaria", t.primaria);
@@ -1047,9 +1021,7 @@ if (permissoes.length === 0) { showToast("Selecione ao menos uma permissão.", "
 
 try {
 
-const novoUID = await criarContaEquipeAuth(email, senha);
-
-await setDoc(doc(db, "equipe_admin", email.replace(/[^a-z0-9]/g, "_")), { email, permissoes, uid: novoUID, criadoEm: new Date().toISOString() });
+await VideFunctions.createAdminMember({ email, password: senha, permissoes });
     
 showToast("Membro adicionado! Já pode fazer login com esse e-mail e senha.");
 
@@ -1077,7 +1049,12 @@ abrirConfirmacao("Remover esse membro da equipe? Ele perderá o acesso ao admin.
 
 try {
 
-await deleteDoc(doc(db, "equipe_admin", id));
+const membro = (await getDoc(doc(db, "equipe_admin", id))).data() || {};
+if (membro.uid && membro.email) {
+    await VideFunctions.syncAdminClaims({ email: membro.email, uid: membro.uid, permissoes: [], enabled: false });
+} else {
+    await deleteDoc(doc(db, "equipe_admin", id));
+}
 
 showToast("Membro removido.");
 
@@ -1331,7 +1308,7 @@ function showToast(msg, tipo = "success") {
 
         window.reativarDireto = async function(uid) {
             try {
-                await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
+                await VideFunctions.adminUpdateStoreStatus({ uid, status: "aprovado" });
                 showToast("Loja reativada!");
                 await carregarUsuarios();
             } catch (err) {
@@ -1457,7 +1434,7 @@ function showToast(msg, tipo = "success") {
                 return;
             }
             try {
-                await updateDoc(doc(db, "usuarios", uid), { status: "aprovado" });
+                await VideFunctions.adminUpdateStoreStatus({ uid, status: "aprovado" });
                 showToast("Cliente aprovado com sucesso!");
                 await carregarUsuarios();
             } catch (err) {
@@ -1470,7 +1447,7 @@ function showToast(msg, tipo = "success") {
         window.rejeitarDireto = async function(uid) {
             abrirConfirmacao("Confirma a rejeição deste cadastro?", async () => {
                 try {
-                    await updateDoc(doc(db, "usuarios", uid), { status: "rejeitado" });
+                    await VideFunctions.adminUpdateStoreStatus({ uid, status: "rejeitado" });
                     showToast("Cadastro rejeitado.");
                     await carregarUsuarios();
                 } catch (err) {
@@ -1489,7 +1466,7 @@ function showToast(msg, tipo = "success") {
                 return;
             }
             try {
-                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), { status: "aprovado" });
+                await VideFunctions.adminUpdateStoreStatus({ uid: clienteSelecionadoUID, status: "aprovado" });
                 showToast("Cliente aprovado!");
                 fecharModal();
                 await carregarUsuarios();
@@ -1501,7 +1478,7 @@ function showToast(msg, tipo = "success") {
             const uidAlvo = clienteSelecionadoUID;
             abrirConfirmacao("Confirma a rejeição?", async () => {
                 try {
-                    await updateDoc(doc(db, "usuarios", uidAlvo), { status: "rejeitado" });
+                    await VideFunctions.adminUpdateStoreStatus({ uid: uidAlvo, status: "rejeitado" });
                     showToast("Cadastro rejeitado.");
                     fecharModal();
                     await carregarUsuarios();
@@ -1519,7 +1496,7 @@ function showToast(msg, tipo = "success") {
             const uidAlvo = clienteSelecionadoUID;
             abrirConfirmacao("Confirma a suspensão desta loja?", async () => {
                 try {
-                    await updateDoc(doc(db, "usuarios", uidAlvo), { status: "inativo" });
+                    await VideFunctions.adminUpdateStoreStatus({ uid: uidAlvo, status: "inativo" });
                     showToast("Loja suspensa.");
                     fecharModal();
                     await carregarUsuarios();
@@ -1531,10 +1508,11 @@ function showToast(msg, tipo = "success") {
             if (!clienteSelecionadoUID) return;
             try {
                 const featuresManuais = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
-                await updateDoc(doc(db, "usuarios", clienteSelecionadoUID), {
+                await VideFunctions.adminUpdatePlan({
+                    uid: clienteSelecionadoUID,
                     plano: document.getElementById("modal-plano").value,
                     anotacaoAdmin: document.getElementById("modal-anotacao").value.trim(),
-                    featuresManuais: featuresManuais
+                    featuresManuais
                 });
                 showToast("Plano, anotação e funções liberadas salvos!");
                 fecharModal();

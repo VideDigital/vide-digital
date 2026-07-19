@@ -1,5 +1,6 @@
-import { auth, db, firebaseConfig } from "./firebase-init.js";
+import { auth, db } from "./firebase-init.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
+import { VideFunctions } from "./core/vide-functions.js";
 
 // Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
 // de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
@@ -19,8 +20,7 @@ window.addEventListener("pageshow", function(event) {
         if (t.texto) root.style.setProperty("--sys-texto", t.texto);
     } catch(err) { console.error(err); }
 })();
-        import { initializeApp as initializeAppSecundario, deleteApp as deleteAppSecundario } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-        import { onAuthStateChanged, signOut, getAuth as getAuthSecundario, createUserWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
         import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
@@ -968,21 +968,6 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
 
         // Cria a conta de login do funcionário usando um app Firebase SECUNDÁRIO e temporário,
         // assim a sua própria sessão (dono da loja) nunca é afetada.
-        async function criarContaFuncionarioAuth(email, senha) {
-            const appSecundario = initializeAppSecundario(firebaseConfig, "funcionario-temp-" + Date.now());
-            const authSecundario = getAuthSecundario(appSecundario);
-            try {
-                const cred = await createUserWithEmailAndPassword(authSecundario, email, senha);
-                const novoUID = cred.user.uid;
-                await signOut(authSecundario);
-                await deleteAppSecundario(appSecundario);
-                return novoUID;
-            } catch (err) {
-                await deleteAppSecundario(appSecundario).catch(() => {});
-                throw err;
-            }
-        }
-
         window.salvarFuncionario = async function() {
             if (!exigirEdicaoModulo("funcionarios")) return;
 
@@ -1006,9 +991,12 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
 
             try {
                 if (uidEdicao) {
-                    await setDoc(doc(db, "funcionarios", uidEdicao), {
-                        nome, cargo, permissoes: { ver, editar }
-                    }, { merge: true });
+                    await VideFunctions.updateEmployee({
+                        uid: uidEdicao,
+                        nome,
+                        cargo,
+                        permissoes: { ver, editar }
+                    });
                     showToast("Funcionário atualizado!");
                 } else {
                     const senha = document.getElementById("funcionario-senha").value;
@@ -1016,14 +1004,12 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
                         showToast("A senha precisa ter ao menos 6 caracteres.", "error");
                         return;
                     }
-                    const novoUID = await criarContaFuncionarioAuth(email, senha);
-                    await setDoc(doc(db, "funcionarios", novoUID), {
-                        donoUID: usuarioUID,
-                        nome, email, cargo,
-                        status: "ativo",
-                        senhaTemporaria: true,
-                        permissoes: { ver, editar },
-                        criadoEm: Date.now()
+                    await VideFunctions.createEmployee({
+                        nome,
+                        email,
+                        cargo,
+                        password: senha,
+                        permissoes: { ver, editar }
                     });
                     showToast("Funcionário cadastrado! Já pode fazer login.");
                 }
@@ -1050,7 +1036,11 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
 
             const novoStatus = statusAtual === "ativo" ? "inativo" : "ativo";
             try {
-                await setDoc(doc(db, "funcionarios", uid), { status: novoStatus }, { merge: true });
+                if (novoStatus === "ativo") {
+                    await VideFunctions.enableEmployee({ uid });
+                } else {
+                    await VideFunctions.disableEmployee({ uid });
+                }
                 showToast(novoStatus === "ativo" ? "Funcionário reativado!" : "Funcionário desativado.");
                 carregarFuncionarios();
             } catch (err) {
@@ -14727,7 +14717,7 @@ function atualizarBadgeNotificacoes() {
                 if (lida && !lidoPor.includes(authUidLeitor)) lidoPor.push(authUidLeitor);
                 if (!lida) lidoPor = lidoPor.filter(uid => uid !== authUidLeitor);
 
-                await setDoc(doc(db, "notificacoes", id), { lidoPor }, { merge: true });
+                await VideFunctions.markNotificationRead({ id, read: lida });
                 notif.lidoPor = lidoPor;
                 atualizarBadgeNotificacoes();
                 carregarNotificacoes();
