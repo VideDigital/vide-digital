@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "landing_pages",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "donoUID", "order": "ASCENDING" },
+        { "fieldPath": "pagina", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
