@@ -14,12 +14,14 @@ const requiredFiles = [
     "docs/ROLLBACK_GUIDE.md",
     "docs/FIRESTORE_RULES_PLAN.md",
     "docs/STORAGE_RULES_PLAN.md",
+    "docs/FIREBASE_SECURITY_MIGRATION_PLAN.md",
     "docs/CLOUD_FUNCTIONS_PLAN.md",
     "docs/FIREBASE_INDEXES_PLAN.md",
     "firebase/firestore.rules.proposed",
     "firebase/storage.rules.proposed",
     "tests/security-permission-harness.mjs",
-    "tests/firestore-rules-test-plan.md"
+    "tests/firestore-rules-test-plan.md",
+    "tests/storage-rules-test-plan.md"
 ];
 
 function read(file) {
@@ -32,7 +34,10 @@ function assert(condition, message) {
     }
 }
 
-const results = [];
+const results = [
+    "[INFO] release-candidate-harness is a document smoke test only.",
+    "[INFO] It does not validate Firebase Rules, Auth, tenant isolation, Storage, Cloud Functions, or UI flows."
+];
 
 function check(name, fn) {
     try {
@@ -44,13 +49,13 @@ function check(name, fn) {
     }
 }
 
-check("required release candidate files exist", () => {
+check("document smoke: required release candidate files exist", () => {
     for (const file of requiredFiles) {
         assert(fs.existsSync(path.join(root, file)), `${file} is missing`);
     }
 });
 
-check("dashboard app imports Vide Hub context", () => {
+check("static contract: dashboard app imports Vide Hub context", () => {
     const dashboardApp = read("dashboard-app.js");
     assert(
         dashboardApp.includes('from "./core/vide-context.js"'),
@@ -62,12 +67,12 @@ check("dashboard app imports Vide Hub context", () => {
     );
 });
 
-check("login and admin import centralized context", () => {
+check("static contract: login and admin import centralized context", () => {
     assert(read("login.html").includes('from "./core/vide-context.js"'), "login.html missing context import");
     assert(read("admin.html").includes('from "./core/vide-context.js"'), "admin.html missing context import");
 });
 
-check("landing pages permission is separated from settings", () => {
+check("static contract: landing pages permission is separated from settings", () => {
     const core = read("core/vide-context.js");
     const app = read("dashboard-app.js");
     assert(core.includes('"landing-pages"'), "core missing landing-pages alias group");
@@ -75,13 +80,13 @@ check("landing pages permission is separated from settings", () => {
     assert(!app.includes('"view-landing-pages": "configuracoes"'), "landing pages must not map to configuracoes");
 });
 
-check("feature checks delegate to VidePlanService", () => {
+check("static contract: feature checks delegate to VidePlanService", () => {
     const app = read("dashboard-app.js");
     assert(app.includes("VidePlanService.isInitialized()"), "missing plan initialized gate");
     assert(app.includes("VidePlanService.hasFeature(feature)"), "missing VidePlanService delegation");
 });
 
-check("critical write guards are present", () => {
+check("static contract: critical frontend write guard strings are present", () => {
     const app = read("dashboard-app.js");
     for (const guard of [
         'exigirEdicaoModulo("produtos")',
@@ -95,7 +100,7 @@ check("critical write guards are present", () => {
     }
 });
 
-check("proposed rules are clearly non-production artifacts", () => {
+check("document smoke: proposed rules are non-production artifacts", () => {
     assert(
         fs.existsSync(path.join(root, "firebase/firestore.rules.proposed")),
         "firestore proposal missing"
@@ -111,6 +116,13 @@ check("proposed rules are clearly non-production artifacts", () => {
     assert(
         !fs.existsSync(path.join(root, "storage.rules")),
         "production storage.rules should not be introduced in this phase"
+    );
+});
+
+check("document smoke: migration plan exists", () => {
+    assert(
+        fs.existsSync(path.join(root, "docs/FIREBASE_SECURITY_MIGRATION_PLAN.md")),
+        "firebase security migration plan missing"
     );
 });
 
