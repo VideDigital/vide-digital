@@ -62,10 +62,10 @@ Observação: há um marcador pendente pré-existente em `index.html` sobre dom�
 
 | Prioridade | Item | Impacto | Status nesta fase |
 |---|---|---|---|
-| P0 | Regras Firebase não versionadas | Isolamento real não comprovável pelo repositório | Plano e propostas criados nesta branch. |
-| P1 | Criação de funcionários pelo frontend | Risco de Auth órfão/autoelevação sem backend | Documentado para Cloud Functions. |
-| P1 | Writes públicos de métricas/leads/chat na loja | Precisam de rules estritas para evitar spam/cross-tenant | Proposta de rules adicionada. |
-| P1 | Admin e Master dependem de regras futuras | Frontend falha-fechada, mas backend precisa impor | Proposta documentada. |
+| P0 | Rules propostas ainda não publicáveis | Isolamento real não comprovável até Emulator/staging | Propostas agora falham fechado e exigem migração. |
+| P0 | Criação de funcionários pelo frontend | Rules finais restritivas quebram o fluxo atual sem Cloud Functions | Migração transicional documentada. |
+| P0 | Writes públicos de métricas/leads/chat na loja | Tenant livre vindo do cliente cria risco de abuso/cross-tenant | Writes diretos bloqueados na proposta final; Functions obrigatórias. |
+| P1 | Admin e Master dependem de backend | `equipe_admin` é UX; rules precisam custom claim real | Contrato `videAdmin` documentado como dependência. |
 | P2 | Studio possui múltiplos módulos legados | Risco de regressão se empilhar hotfix | Congelar arquitetura e testar por fluxo. |
 | P2 | Alguns recursos citados não têm função canônica clara | Duplicar produto, arquivamento formal de pedidos, histórico completo de pedidos | Mantido como backlog RC. |
 | P3 | Marcador pendente pré-existente em domínio próprio | Melhoria futura | Não alterado. |
@@ -107,10 +107,11 @@ Regras RC:
 
 ## 7. Recomendação de RC
 
-O projeto está apto a seguir como Release Candidate documental/técnico, mas ainda não deve ser considerado produção segura sem:
+O projeto está apto a seguir como Release Candidate documental/técnico somente se o PR permanecer explícito sobre suas limitações. Ainda não deve ser considerado produção segura sem:
 
 1. Firestore Rules revisadas e testadas.
 2. Storage Rules revisadas e testadas.
 3. Cloud Functions para operações administrativas sensíveis.
 4. Teste autenticado real de owner, employee read-only, employee edit, admin e Master.
 5. Validação de loja pública contra abuso de writes públicos.
+6. Migração do frontend para remover writes sensíveis diretos.
