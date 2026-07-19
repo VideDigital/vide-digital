@@ -1,0 +1,416 @@
+// PROPOSTA NÃO PRONTA PARA PRODUÇÃO.
+// NÃO PUBLICAR antes de Cloud Functions, custom claims, testes no Emulator,
+// migração do frontend e validação autenticada em staging.
+
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerUid) {
+      return signedIn() && request.auth.uid == ownerUid;
+    }
+
+    // Contrato futuro: claims emitidas pelo Admin SDK/Cloud Functions.
+    // O frontend pode usar equipe_admin para UX, mas rules não devem depender
+    // de coleção manipulável pelo próprio cliente para conceder privilégio.
+    function isBackendAdmin() {
+      return signedIn() && request.auth.token.videAdmin == true;
+    }
+
+    function employeeExists() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/funcionarios/$(request.auth.uid));
+    }
+
+    function employeeDoc() {
+      return get(/databases/$(database)/documents/funcionarios/$(request.auth.uid));
+    }
+
+    function employeeHasPermissionShape() {
+      return employeeDoc().data.keys().hasAll(["status", "donoUID", "permissoes"])
+        && employeeDoc().data.permissoes is map
+        && employeeDoc().data.permissoes.keys().hasAll(["ver", "editar"])
+        && employeeDoc().data.permissoes.ver is list
+        && employeeDoc().data.permissoes.editar is list;
+    }
+
+    function isActiveEmployeeFor(ownerUid) {
+      return employeeExists()
+        && employeeHasPermissionShape()
+        && employeeDoc().data.status == "ativo"
+        && employeeDoc().data.donoUID == ownerUid;
+    }
+
+    function employeeCanView(ownerUid, moduleKey) {
+      return isActiveEmployeeFor(ownerUid)
+        && (
+          moduleKey in employeeDoc().data.permissoes.ver
+          || moduleKey in employeeDoc().data.permissoes.editar
+        );
+    }
+
+    function employeeCanEdit(ownerUid, moduleKey) {
+      return isActiveEmployeeFor(ownerUid)
+        && moduleKey in employeeDoc().data.permissoes.editar;
+    }
+
+    function canViewTenant(ownerUid, moduleKey) {
+      return isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey) || isBackendAdmin();
+    }
+
+    function canEditTenant(ownerUid, moduleKey) {
+      return isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey) || isBackendAdmin();
+    }
+
+    function validOwnerCreateKeys() {
+      return request.resource.data.keys().hasOnly([
+        "identificador",
+        "nome",
+        "email",
+        "nomeLoja",
+        "urlLoja",
+        "status",
+        "criadoEm",
+        "uid",
+        "donoUID"
+      ]);
+    }
+
+    function validOwnerCreate(ownerUid) {
+      return isOwner(ownerUid)
+        && validOwnerCreateKeys()
+        && request.resource.data.keys().hasAll(["identificador", "email", "nomeLoja", "urlLoja", "status", "criadoEm"])
+        && request.resource.data.status == "pendente"
+        && (!request.resource.data.keys().hasAny(["uid"]) || request.resource.data.uid == ownerUid)
+        && (!request.resource.data.keys().hasAny(["donoUID"]) || request.resource.data.donoUID == ownerUid)
+        && !request.resource.data.keys().hasAny([
+          "plano",
+          "featuresManuais",
+          "role",
+          "admin",
+          "equipe",
+          "aprovadoEm",
+          "aprovadoPor",
+          "bloqueado",
+          "bloqueadoEm",
+          "bloqueadoPor"
+        ]);
+    }
+
+    function ownerProfileFields() {
+      return [
+        "identificador",
+        "nome",
+        "email",
+        "nomeLoja",
+        "urlLoja",
+        "tituloHero",
+        "subtituloHero",
+        "whatsappCentral",
+        "instagramUser",
+        "tiktokUser",
+        "youtubeUrl",
+        "link1Titulo",
+        "link1Url",
+        "link1Icone",
+        "link2Titulo",
+        "link2Url",
+        "link2Icone",
+        "abaPadrao",
+        "whatsappChat",
+        "chatAtivo",
+        "carrinhoAtivo",
+        "carrinhoMensagem",
+        "corDestaque",
+        "corFundo",
+        "corCard",
+        "corSecundaria",
+        "corTexto",
+        "corTextoBotao",
+        "corBorda",
+        "fonteVitrine",
+        "adminCorDestaque",
+        "adminCorFundo",
+        "adminCorTexto",
+        "adminCorCard",
+        "fotoPerfilB64",
+        "layoutLojaPublica",
+        "layoutPorAba",
+        "atualizadoEm"
+      ];
+    }
+
+    function adminOnlyFieldsUnchanged() {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny([
+        "status",
+        "plano",
+        "featuresManuais",
+        "role",
+        "admin",
+        "equipe",
+        "uid",
+        "donoUID",
+        "aprovadoEm",
+        "aprovadoPor",
+        "bloqueado",
+        "bloqueadoEm",
+        "bloqueadoPor"
+      ]);
+    }
+
+    function validOwnerProfileUpdate(ownerUid) {
+      return canEditTenant(ownerUid, "configuracoes")
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(ownerProfileFields())
+        && adminOnlyFieldsUnchanged();
+    }
+
+    function criadoPorUnchanged() {
+      return request.resource.data.criadoPor == resource.data.criadoPor;
+    }
+
+    function donoUIDUnchanged() {
+      return request.resource.data.donoUID == resource.data.donoUID;
+    }
+
+    function publicStoreFields() {
+      return [
+        "donoUID",
+        "emailDono",
+        "nomeLoja",
+        "tituloHero",
+        "subtituloHero",
+        "whatsappCentral",
+        "chatAtivo",
+        "carrinhoAtivo",
+        "carrinhoMensagem",
+        "corClientBrand",
+        "corClientFundo",
+        "corClientCard",
+        "corClientSecundaria",
+        "corClientTexto",
+        "corClientTextoBotao",
+        "corClientBorda",
+        "fonteVitrine",
+        "fotoPerfilB64",
+        "link1Titulo",
+        "link1Url",
+        "link1Icone",
+        "link2Titulo",
+        "link2Url",
+        "link2Icone",
+        "layoutLojaPublica",
+        "atualizadoEm"
+      ];
+    }
+
+    function publicBannerFields() {
+      return ["donoUID", "imagemB64", "ordem", "atualizadoEm"];
+    }
+
+    function publicLandingPageFields() {
+      return ["titulo", "publicado", "donoUID", "modoLayout", "paginas", "ordemBlocos", "atualizadoEm", "criadoEm"];
+    }
+
+    function publicLandingBlockFields() {
+      return ["lpId", "donoUID", "tipo", "props", "visivel", "paginaId", "nome", "ordem", "styles", "estilos", "atualizadoEm", "criadoEm"];
+    }
+
+    function canViewCampaignHistory() {
+      return (
+        resource.data.keys().hasAny(["uid"])
+        && canViewTenant(resource.data.uid, "campanhas")
+      ) || (
+        resource.data.keys().hasAny(["criadoPor"])
+        && canViewTenant(resource.data.criadoPor, "campanhas")
+      );
+    }
+
+    function canCreateCampaignHistory() {
+      return (
+        request.resource.data.keys().hasAny(["uid"])
+        && canEditTenant(request.resource.data.uid, "campanhas")
+      ) || (
+        request.resource.data.keys().hasAny(["criadoPor"])
+        && canEditTenant(request.resource.data.criadoPor, "campanhas")
+      );
+    }
+
+    match /usuarios/{ownerUid} {
+      allow read: if canViewTenant(ownerUid, "configuracoes");
+      allow create: if validOwnerCreate(ownerUid);
+      allow update: if validOwnerProfileUpdate(ownerUid) || isBackendAdmin();
+      allow delete: if false;
+    }
+
+    match /funcionarios/{employeeUid} {
+      allow read: if signedIn()
+        && (
+          request.auth.uid == employeeUid
+          || isOwner(resource.data.donoUID)
+          || employeeCanView(resource.data.donoUID, "funcionarios")
+          || isBackendAdmin()
+        );
+      // FASE FUTURA: create/update/delete exigem Cloud Functions.
+      // Não publicar enquanto o frontend ainda escreve funcionarios diretamente.
+      allow create, update, delete: if false;
+    }
+
+    match /produtos/{id} {
+      allow read: if resource.data.statusProduto != "rascunho"
+        || canViewTenant(resource.data.criadoPor, "produtos");
+      allow create: if canEditTenant(request.resource.data.criadoPor, "produtos");
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "produtos");
+      allow delete: if canEditTenant(resource.data.criadoPor, "produtos");
+    }
+
+    match /pedidos/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "pedidos");
+      allow create: if canEditTenant(request.resource.data.criadoPor, "pedidos");
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "pedidos");
+      allow delete: if canEditTenant(resource.data.criadoPor, "pedidos");
+    }
+
+    match /leads/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "leads");
+      // FASE FUTURA: leads públicos devem ser criados por Cloud Function com App Check e rate limit.
+      allow create: if false;
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads");
+      allow delete: if canEditTenant(resource.data.criadoPor, "leads");
+    }
+
+    match /templates/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "templates");
+      allow create: if canEditTenant(request.resource.data.criadoPor, "templates");
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "templates");
+      allow delete: if canEditTenant(resource.data.criadoPor, "templates");
+    }
+
+    match /campanhas/{ownerUid} {
+      allow read: if true;
+      allow write: if canEditTenant(ownerUid, "campanhas");
+    }
+
+    match /campanhas_historico/{id} {
+      allow read: if canViewCampaignHistory();
+      allow create: if canCreateCampaignHistory();
+      allow update, delete: if isBackendAdmin();
+    }
+
+    match /vitrines_publicas/{slug} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(publicStoreFields())
+        && canEditTenant(request.resource.data.donoUID, "configuracoes");
+      allow update: if request.resource.data.keys().hasOnly(publicStoreFields())
+        && donoUIDUnchanged()
+        && canEditTenant(resource.data.donoUID, "configuracoes");
+      allow delete: if canEditTenant(resource.data.donoUID, "configuracoes");
+    }
+
+    match /banners_loja/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(publicBannerFields())
+        && canEditTenant(request.resource.data.donoUID, "configuracoes");
+      allow update: if request.resource.data.keys().hasOnly(publicBannerFields())
+        && donoUIDUnchanged()
+        && canEditTenant(resource.data.donoUID, "configuracoes");
+      allow delete: if canEditTenant(resource.data.donoUID, "configuracoes");
+    }
+
+    match /landing_pages/{id} {
+      allow read: if canViewTenant(resource.data.donoUID, "landing-pages");
+      allow create: if canEditTenant(request.resource.data.donoUID, "landing-pages");
+      allow update: if donoUIDUnchanged() && canEditTenant(resource.data.donoUID, "landing-pages");
+      allow delete: if canEditTenant(resource.data.donoUID, "landing-pages");
+    }
+
+    match /landing_pages_blocos/{id} {
+      allow read: if canViewTenant(resource.data.donoUID, "landing-pages");
+      allow create: if canEditTenant(request.resource.data.donoUID, "landing-pages");
+      allow update: if donoUIDUnchanged() && canEditTenant(resource.data.donoUID, "landing-pages");
+      allow delete: if canEditTenant(resource.data.donoUID, "landing-pages");
+    }
+
+    match /landing_pages_publicas/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(publicLandingPageFields())
+        && canEditTenant(request.resource.data.donoUID, "landing-pages");
+      allow update: if request.resource.data.keys().hasOnly(publicLandingPageFields())
+        && donoUIDUnchanged()
+        && canEditTenant(resource.data.donoUID, "landing-pages");
+      allow delete: if canEditTenant(resource.data.donoUID, "landing-pages");
+    }
+
+    match /landing_pages_blocos_publicas/{id} {
+      allow read: if true;
+      allow create: if request.resource.data.keys().hasOnly(publicLandingBlockFields())
+        && canEditTenant(request.resource.data.donoUID, "landing-pages");
+      allow update: if request.resource.data.keys().hasOnly(publicLandingBlockFields())
+        && donoUIDUnchanged()
+        && canEditTenant(resource.data.donoUID, "landing-pages");
+      allow delete: if canEditTenant(resource.data.donoUID, "landing-pages");
+    }
+
+    match /notificacoes/{id} {
+      allow read: if signedIn()
+        && (
+          isBackendAdmin()
+          || (resource.data.keys().hasAny(["destinatarios"]) && request.auth.uid in resource.data.destinatarios)
+          || (resource.data.keys().hasAny(["uid"]) && resource.data.uid == request.auth.uid)
+        );
+      allow create, update, delete: if isBackendAdmin();
+      // Modelo atual com array lidoPor não permite delta seguro sem risco de sobrescrever terceiros.
+      // Fase futura recomendada: subcoleção notificacoes/{id}/leituras/{uid} ou Function dedicada.
+    }
+
+    match /config/{id} {
+      allow read: if signedIn();
+      allow write: if isBackendAdmin();
+    }
+
+    match /equipe_admin/{id} {
+      allow read, write: if isBackendAdmin();
+    }
+
+    match /metricas_vitrines/{id} {
+      allow read: if signedIn();
+      // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
+      allow create, update, delete: if false;
+    }
+
+    match /metricas_produtos/{id} {
+      allow read: if signedIn();
+      // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
+      allow create, update, delete: if false;
+    }
+
+    match /chats/{chatId} {
+      allow read: if signedIn()
+        && (
+          isBackendAdmin()
+          || canViewTenant(resource.data.emailDono, "leads")
+          || canViewTenant(resource.data.donoUID, "leads")
+        );
+      // FASE FUTURA: criação/update de chat público por Cloud Function.
+      allow create, update, delete: if false;
+
+      match /mensagens/{msgId} {
+        allow read: if signedIn()
+          && (
+            isBackendAdmin()
+            || canViewTenant(get(/databases/$(database)/documents/chats/$(chatId)).data.emailDono, "leads")
+            || canViewTenant(get(/databases/$(database)/documents/chats/$(chatId)).data.donoUID, "leads")
+          );
+        // Público nunca pode escrever sender "admin"; fase final usa Function/App Check.
+        allow create, update, delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
