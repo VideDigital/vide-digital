@@ -3828,6 +3828,165 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         let historicoEditor = [];
         let indiceHistorico = -1;
         let historicoDebounceTimer = null;
+        const lpEditorShellState = {
+            aberto: false,
+            opener: null,
+            abortController: null,
+            bodyOverflowAnterior: "",
+            htmlOverflowAnterior: "",
+            scrollX: 0,
+            scrollY: 0
+        };
+
+        function obterShellEditorLP() {
+            return document.getElementById("lp-editor-modal");
+        }
+
+        function elementoFocavelEditorLP(elemento) {
+            return elemento instanceof HTMLElement &&
+                typeof elemento.focus === "function" &&
+                !elemento.hasAttribute("disabled") &&
+                elemento.getAttribute("aria-hidden") !== "true";
+        }
+
+        function esconderSuperficiesTransitivasEditorLP() {
+            document.getElementById("lped-modal-renomear-pagina")?.classList.add("hidden");
+            document.getElementById("lped-modal-excluir-pagina")?.classList.add("hidden");
+            document.getElementById("lp-blocos-panel")?.classList.add("hidden");
+            document.getElementById("lped-painel-camadas")?.classList.add("hidden");
+            fecharMenuContexto();
+        }
+
+        function lidarComEscapeShellEditorLP(evento) {
+            if (evento.key !== "Escape") return;
+
+            const modal = obterShellEditorLP();
+            if (!modal || modal.classList.contains("hidden")) return;
+
+            evento.preventDefault();
+            evento.stopImmediatePropagation();
+
+            const modalRenomear = document.getElementById("lped-modal-renomear-pagina");
+            if (modalRenomear && !modalRenomear.classList.contains("hidden")) {
+                window.fecharModalRenomearPagina?.();
+                return;
+            }
+
+            const modalExcluir = document.getElementById("lped-modal-excluir-pagina");
+            if (modalExcluir && !modalExcluir.classList.contains("hidden")) {
+                window.fecharModalExcluirPagina?.();
+                return;
+            }
+
+            const painelBlocos = document.getElementById("lp-blocos-panel");
+            if (painelBlocos && !painelBlocos.classList.contains("hidden")) {
+                if (typeof window.fecharPainelBlocos === "function") window.fecharPainelBlocos();
+                else painelBlocos.classList.add("hidden");
+                return;
+            }
+
+            const painelCamadas = document.getElementById("lped-painel-camadas");
+            if (painelCamadas && !painelCamadas.classList.contains("hidden")) {
+                painelCamadas.classList.add("hidden");
+                return;
+            }
+
+            const menuContexto = document.getElementById("lped-menu-contexto");
+            if (menuContexto && !menuContexto.classList.contains("hidden")) {
+                fecharMenuContexto();
+                return;
+            }
+
+            if (blocosSelecionadosLivre.size > 0) {
+                blocosSelecionadosLivre.clear();
+                renderizarPreviewEditor();
+                return;
+            }
+
+            fecharShellEditorLP("escape");
+        }
+
+        function abrirShellEditorLP(opcoes = {}) {
+            const modal = obterShellEditorLP();
+            if (!modal) return false;
+
+            if (lpEditorShellState.aberto) {
+                modal.classList.remove("hidden");
+                modal.setAttribute("aria-hidden", "false");
+                document.body.style.overflow = "hidden";
+                document.documentElement.style.overflow = "hidden";
+                return true;
+            }
+
+            lpEditorShellState.aberto = true;
+            lpEditorShellState.opener = elementoFocavelEditorLP(opcoes.opener) ? opcoes.opener : document.activeElement;
+            lpEditorShellState.bodyOverflowAnterior = document.body.style.overflow;
+            lpEditorShellState.htmlOverflowAnterior = document.documentElement.style.overflow;
+            lpEditorShellState.scrollX = window.scrollX || 0;
+            lpEditorShellState.scrollY = window.scrollY || 0;
+            lpEditorShellState.abortController = new AbortController();
+
+            modal.classList.remove("hidden");
+            modal.setAttribute("aria-hidden", "false");
+            document.body.style.overflow = "hidden";
+            document.documentElement.style.overflow = "hidden";
+            setTimeout(() => {
+                const shellAberto = !modal.classList.contains("hidden") &&
+                    modal.getAttribute("aria-hidden") === "false";
+                if (shellAberto && lpEditorShellState.aberto) {
+                    document.body.style.overflow = "hidden";
+                    document.documentElement.style.overflow = "hidden";
+                }
+            }, 0);
+
+            document.addEventListener("keydown", lidarComEscapeShellEditorLP, {
+                capture: true,
+                signal: lpEditorShellState.abortController.signal
+            });
+
+            const btnFechar = modal.querySelector("[data-lp-editor-close]");
+            if (btnFechar) {
+                btnFechar.addEventListener("click", window.fecharEditorLP, {
+                    signal: lpEditorShellState.abortController.signal
+                });
+                setTimeout(() => btnFechar.focus(), 0);
+            }
+
+            return true;
+        }
+
+        function fecharShellEditorLP(motivo = "manual") {
+            const modal = obterShellEditorLP();
+            if (!modal) return false;
+
+            esconderSuperficiesTransitivasEditorLP();
+            modal.classList.add("hidden");
+            modal.setAttribute("aria-hidden", "true");
+
+            if (lpEditorShellState.abortController) {
+                lpEditorShellState.abortController.abort();
+                lpEditorShellState.abortController = null;
+            }
+
+            document.body.style.overflow = lpEditorShellState.bodyOverflowAnterior || "";
+            document.documentElement.style.overflow = lpEditorShellState.htmlOverflowAnterior || "";
+            if (motivo !== "reload") {
+                window.scrollTo(lpEditorShellState.scrollX || 0, lpEditorShellState.scrollY || 0);
+            }
+
+            const opener = lpEditorShellState.opener;
+            lpEditorShellState.aberto = false;
+            lpEditorShellState.opener = null;
+
+            if (elementoFocavelEditorLP(opener) && opener.isConnected) {
+                setTimeout(() => opener.focus(), 0);
+            }
+
+            carregarLandingPages();
+            return true;
+        }
+
+        window.abrirShellEditorLP = abrirShellEditorLP;
         window.alternarPainelLateral = function() {
             const painel = document.getElementById("lped-painel-lateral");
             const btn = document.getElementById("lped-btn-colapsar-painel");
@@ -4541,6 +4700,7 @@ document.getElementById("lped-preview-canvas").addEventListener("mousedown", fun
             }
         });
         window.editarLP = async function(id) {
+            const openerEditorLP = document.activeElement;
             if (!scriptsEditorJaCarregados) showToast("Abrindo editor...", "info");
             const snap = await getDoc(doc(db, "landing_pages", id));
             if (!snap.exists()) return;
@@ -4572,7 +4732,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
             historicoEditor = [clonarBlocosEditor()];
             indiceHistorico = 0;
             atualizarBotoesHistoricoEditor();
-            document.getElementById("lp-editor-modal").classList.remove("hidden");
+            abrirShellEditorLP({ opener: openerEditorLP });
             carregarProdutosParaEditor();
             if (typeof window.carregarEditorLandingPages === "function") {
                 window.carregarEditorLandingPages()
@@ -4597,9 +4757,9 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                 btnPub.innerText = "Publicar";
             }
         }
-        window.fecharEditorLP = function() {
-            document.getElementById("lp-editor-modal").classList.add("hidden");
-            carregarLandingPages();
+        window.fecharEditorLP = function(evento) {
+            evento?.preventDefault?.();
+            return fecharShellEditorLP("manual");
         };
   function nomeTipoBlocoEditor(tipo) {
             const nomes = {

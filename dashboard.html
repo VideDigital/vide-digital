@@ -15,7 +15,7 @@
 <link rel="stylesheet" href="./editor-and-modals.css">
 <link rel="stylesheet" href="./late-overrides.css">
 <link rel="stylesheet" href="./studio-pro.css">
-<link rel="stylesheet" href="./studio-desktop-shell-v1.css?v=100">
+<link rel="stylesheet" href="./studio-desktop-shell-v1.css?v=104">
 <link rel="stylesheet" href="./studio-max.css">
 <link rel="stylesheet" href="./studio-ultimate.css">
 <link rel="stylesheet" href="./studio-canvas-v4.css">
@@ -7726,7 +7726,7 @@ Criar Landing Page
 </div>
 
 </div>
-<div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col">
+<div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col" role="dialog" aria-modal="true" aria-hidden="true" data-lp-editor-shell>
 <div id="lped-painel-camadas" class="hidden fixed right-4 top-20 z-[130] w-72 bg-[#14132B] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
 <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">
 <p class="text-xs font-bold text-white">Camadas</p>
@@ -7802,7 +7802,7 @@ Excluir página
 </div>
 <div class="shrink-0 aura-lped-topbar">
 <div class="flex items-center gap-5 flex-1 min-w-0">
-<button onclick="fecharEditorLP()" class="text-gray-400 hover:text-white text-xl">←</button>
+<button type="button" data-lp-editor-close aria-label="Fechar editor de Landing Page" class="text-gray-400 hover:text-white text-xl">←</button>
 <input type="text" id="lped-titulo" class="bg-transparent text-white font-black text-xl tracking-tight outline-none border-b-2 border-transparent focus:border-violet-500 transition-all duration-300 py-2 flex-1">
 </div>
 <div class="flex items-center gap-1.5 bg-white/5 backdrop-blur-xl border border-white/10 rounded-2xl p-1.5 shadow-lg shrink-0">
@@ -8221,7 +8221,7 @@ Confirmar
 </div>
 
 <script src="./runtime-guard.js"></script>
-<script type="module" src="./dashboard-app.js?v=mobile-stable-1"></script>
+<script type="module" src="./dashboard-app.js?v=studio-shell-2"></script>
 <!-- Editor de Landing Pages (Aura Studio): carregado sob demanda por
      studio-loader.js só quando o usuário abre o editor (editarLP), em vez de
      em toda carga do painel. Ver studio-loader.js para a lista/ordem completa. -->
