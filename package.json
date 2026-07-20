@@ -2,16 +2,27 @@
   "name": "vide-digital-security-workspace",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=20"
+  },
   "scripts": {
-    "emulators": "firebase emulators:start --project demo-vide-hub",
-    "test:rules": "firebase emulators:exec --project demo-vide-hub \"node --test tests/emulator/*.test.mjs\"",
+    "emulators": "firebase emulators:start --project demo-vide-hub --only auth,firestore,storage,functions",
+    "emulators:exec": "firebase emulators:exec --project demo-vide-hub --only auth,firestore,storage,functions \"pnpm run test:security:inner\"",
+    "test:rules": "firebase emulators:exec --project demo-vide-hub --only firestore,storage \"node --test tests/emulator/firestore-security.test.mjs && node --test tests/emulator/storage-security.test.mjs\"",
     "test:functions": "node --test tests/functions/*.test.mjs",
-    "test:security": "npm run test:rules && npm run test:functions",
-    "smoke:release": "node tests/release-candidate-harness.mjs"
+    "test:frontend:emulator": "firebase emulators:exec --project demo-vide-hub --only auth,firestore,functions \"node scripts/seed-emulator.mjs --local-defaults && node tests/emulator/frontend-emulator-smoke.mjs\"",
+    "test:security": "pnpm run test:rules && pnpm run test:functions",
+    "test:security:inner": "node --test tests/emulator/firestore-security.test.mjs && node --test tests/emulator/storage-security.test.mjs && pnpm run test:functions",
+    "test:all": "pnpm run check && pnpm run test:security && pnpm run test:frontend:emulator",
+    "check": "node --check core/vide-functions.js && node --check core/vide-storage.js && node --check firebase-init.js && node --check dashboard-app.js && node --check lp-forms-v5.js && node --check lp-public-v4.js && node --check functions/src/index.js && node --check functions/src/shared/context.js && node --check functions/src/shared/validators.js && node --check functions/src/employees/index.js && node --check functions/src/admin/index.js && node --check functions/src/public/index.js && node --check functions/src/notifications/index.js && node --check functions/src/audit/index.js && node --check tests/functions/validators.test.mjs && node --check tests/release-candidate-harness.mjs",
+    "smoke:release": "node tests/release-candidate-harness.mjs",
+    "seed:emulator": "node scripts/seed-emulator.mjs --local-defaults"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^4.0.1",
     "firebase": "^11.1.0",
+    "firebase-admin": "^12.7.0",
     "firebase-tools": "^13.29.1"
   }
 }
