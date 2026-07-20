@@ -32,6 +32,20 @@ async function loadEmployee(uid) {
   return { id: snap.id, ...snap.data() };
 }
 
+// Um funcionário só pode conceder a outro funcionário permissões que ele
+// mesmo possui — evita que "editar funcionarios" vire uma forma indireta
+// de se autopromover a acesso total criando/editando um colega com mais
+// permissões do que o próprio criador tem.
+function capPermissionsToCaller(context, permissoes) {
+  if (context.isAdmin || context.isOwner) return permissoes;
+  const callerVer = new Set(context.permissions?.ver || []);
+  const callerEditar = new Set(context.permissions?.editar || []);
+  return {
+    ver: permissoes.ver.filter((moduleKey) => callerVer.has(moduleKey)),
+    editar: permissoes.editar.filter((moduleKey) => callerEditar.has(moduleKey))
+  };
+}
+
 const createEmployee = onCall({ region: "southamerica-east1" }, async (request) => {
   const context = await resolveCallerContext(request);
   requireEdit(context, "funcionarios");
@@ -40,7 +54,7 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
   const password = String(request.data?.password || "");
   const nome = normalizeString(request.data?.nome, 120);
   const cargo = normalizeString(request.data?.cargo, 120);
-  const permissoes = sanitizePermissions(request.data?.permissoes);
+  const permissoes = capPermissionsToCaller(context, sanitizePermissions(request.data?.permissoes));
 
   if (!nome || !isValidEmail(email)) {
     throw new HttpsError("invalid-argument", "Nome e e-mail válidos são obrigatórios.");
@@ -117,7 +131,7 @@ const updateEmployee = onCall({ region: "southamerica-east1" }, async (request) 
 
   const nome = normalizeString(request.data?.nome, 120);
   const cargo = normalizeString(request.data?.cargo, 120);
-  const permissoes = sanitizePermissions(request.data?.permissoes);
+  const permissoes = capPermissionsToCaller(context, sanitizePermissions(request.data?.permissoes));
   if (!nome) throw new HttpsError("invalid-argument", "Nome obrigatório.");
 
   await getFirestore().doc(`funcionarios/${employeeUid}`).set({
@@ -192,6 +206,7 @@ const resetEmployeePassword = onCall({ region: "southamerica-east1" }, async (re
 });
 
 module.exports = {
+  capPermissionsToCaller,
   createEmployee,
   disableEmployee,
   enableEmployee,
