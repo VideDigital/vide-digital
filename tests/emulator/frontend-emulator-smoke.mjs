@@ -76,6 +76,10 @@ assert.equal(messageResult.data.ok, true);
 // createPublicLead permite 5 chamadas/minuto por IP; a chamada de smoke
 // acima já consumiu 1. Mais 4 devem passar (completando o limite) e a 6ª
 // chamada no total deve ser recusada com resource-exhausted.
+// Nota: rateLimit.js usa janela fixa por minuto do relógio real, então este
+// teste tem uma chance pequena (só no exato cruzamento de minuto) de falhar
+// por flake — se falhar isoladamente sem nenhuma outra mudança, rode de novo
+// antes de investigar como regressão real.
 for (let i = 0; i < 4; i += 1) {
   const extra = await createPublicLead({
     storeSlug: "loja-pro-local",
