@@ -655,7 +655,15 @@
   function render(block, context = {}, legacyFallback) {
     const definition = get(block?.tipo || block?.type);
     if (definition && typeof definition.renderer === "function") {
-      return definition.renderer(block, context);
+      try {
+        const rendered = definition.renderer(block, context);
+        if (rendered !== null && rendered !== undefined) return rendered;
+      } catch (error) {
+        pushWarning("renderer-failed", `Renderer canônico falhou para ${definition.type}.`, {
+          type: definition.type,
+          message: error?.message || "Falha desconhecida."
+        });
+      }
     }
     if (typeof legacyFallback === "function") {
       return legacyFallback(block, context);
