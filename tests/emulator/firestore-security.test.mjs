@@ -52,6 +52,8 @@ beforeEach(async () => {
     await setDoc(doc(db, "metricas_vitrines", "ownerA"), { totalCliques: 42, totalSessoes: 10 });
     await setDoc(doc(db, "metricas_produtos", "prodA"), { visualizacoes: 7, cliques: 3 });
     await setDoc(doc(db, "campanhas", "ownerA"), { ativa: true, orcamento: 500, canal: "meta" });
+    await setDoc(doc(db, "config", "tema_sistema"), { primaria: "#5B3DF5" });
+    await setDoc(doc(db, "config", "planos"), { starter: { produtos: 3 } });
   });
 });
 
@@ -150,6 +152,17 @@ describe("cross-tenant leaks (P0)", () => {
     await assertSucceeds(getDoc(doc(authed("ownerA"), "metricas_vitrines", "ownerA")));
     await assertSucceeds(getDoc(doc(authed("ownerA"), "metricas_produtos", "prodA")));
     await assertSucceeds(getDoc(doc(authed("ownerA"), "campanhas", "ownerA")));
+  });
+});
+
+describe("config público vs. admin (login.html carrega tema antes de logar)", () => {
+  it("visitante anônimo lê config/tema_sistema, mas não config/planos", async () => {
+    await assertSucceeds(getDoc(doc(anon(), "config", "tema_sistema")));
+    await assertFails(getDoc(doc(anon(), "config", "planos")));
+  });
+
+  it("visitante anônimo não escreve em config/tema_sistema", async () => {
+    await assertFails(setDoc(doc(anon(), "config", "tema_sistema"), { primaria: "#000000" }));
   });
 });
 

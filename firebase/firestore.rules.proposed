@@ -401,6 +401,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /config/tema_sistema {
+      // login.html carrega isso antes do usuário entrar (branding do sistema),
+      // então precisa ser público. Não é dado por tenant nem sensível.
+      allow read: if true;
+      allow write: if isBackendAdmin();
+    }
+
     match /config/{id} {
       allow read: if signedIn();
       allow write: if isBackendAdmin();
