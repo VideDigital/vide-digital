@@ -49,6 +49,9 @@ beforeEach(async () => {
     await setDoc(doc(db, "produtos", "prodA"), { criadoPor: "ownerA", statusProduto: "ativo", nome: "Produto A" });
     await setDoc(doc(db, "produtos", "prodPrivate"), { criadoPor: "ownerA", statusProduto: "rascunho", nome: "Produto Privado" });
     await setDoc(doc(db, "vitrines_publicas", "loja-a"), { donoUID: "ownerA", emailDono: "ownerA", nomeLoja: "Loja A" });
+    await setDoc(doc(db, "metricas_vitrines", "ownerA"), { totalCliques: 42, totalSessoes: 10 });
+    await setDoc(doc(db, "metricas_produtos", "prodA"), { visualizacoes: 7, cliques: 3 });
+    await setDoc(doc(db, "campanhas", "ownerA"), { ativa: true, orcamento: 500, canal: "meta" });
   });
 });
 
@@ -123,6 +126,30 @@ describe("public writes", () => {
     await assertFails(setDoc(doc(anon(), "leads", "leadX"), { criadoPor: "ownerA" }));
     await assertFails(setDoc(doc(anon(), "metricas_vitrines", "ownerA"), { totalCliques: 999 }));
     await assertFails(setDoc(doc(anon(), "chats", "chatX"), { donoUID: "ownerA" }));
+  });
+});
+
+describe("cross-tenant leaks (P0)", () => {
+  it("outra loja não lê métricas de vitrine alheias", async () => {
+    await assertFails(getDoc(doc(authed("ownerB"), "metricas_vitrines", "ownerA")));
+  });
+
+  it("outra loja não lê métricas de produto alheias", async () => {
+    await assertFails(getDoc(doc(authed("ownerB"), "metricas_produtos", "prodA")));
+  });
+
+  it("visitante anônimo não lê configuração de campanha", async () => {
+    await assertFails(getDoc(doc(anon(), "campanhas", "ownerA")));
+  });
+
+  it("outra loja não lê configuração de campanha alheia", async () => {
+    await assertFails(getDoc(doc(authed("ownerB"), "campanhas", "ownerA")));
+  });
+
+  it("dono e funcionário com permissão continuam lendo as próprias métricas/campanhas", async () => {
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "metricas_vitrines", "ownerA")));
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "metricas_produtos", "prodA")));
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "campanhas", "ownerA")));
   });
 });
 

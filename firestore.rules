@@ -296,7 +296,7 @@ service cloud.firestore {
     }
 
     match /campanhas/{ownerUid} {
-      allow read: if true;
+      allow read: if canViewTenant(ownerUid, "campanhas");
       allow write: if canEditTenant(ownerUid, "campanhas");
     }
 
@@ -411,13 +411,14 @@ service cloud.firestore {
     }
 
     match /metricas_vitrines/{id} {
-      allow read: if signedIn();
+      allow read: if canViewTenant(id, "metricas");
       // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
       allow create, update, delete: if false;
     }
 
     match /metricas_produtos/{id} {
-      allow read: if signedIn();
+      allow read: if exists(/databases/$(database)/documents/produtos/$(id))
+        && canViewTenant(get(/databases/$(database)/documents/produtos/$(id)).data.criadoPor, "metricas");
       // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
       allow create, update, delete: if false;
     }
