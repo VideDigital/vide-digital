@@ -72,6 +72,10 @@
   pointer-events: none;
 }
 
+.aura-library-v2 [hidden] {
+  display: none !important;
+}
+
 .aura-v2-backdrop {
   position: absolute;
   inset: 0;
@@ -1002,6 +1006,7 @@
   z-index: 12;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(520px, 720px);
+  overflow: hidden;
   visibility: hidden;
   pointer-events: none;
 }
@@ -1616,6 +1621,13 @@
 
   .aura-v2-search kbd {
     display: none;
+  }
+
+  .aura-v2-search button {
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    min-height: 44px;
   }
 
   .aura-v2-mobile-filter {

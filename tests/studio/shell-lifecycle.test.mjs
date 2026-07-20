@@ -7,6 +7,8 @@ import vm from "node:vm";
 const rootDir = path.resolve(import.meta.dirname, "../..");
 const dashboardApp = fs.readFileSync(path.join(rootDir, "dashboard-app.js"), "utf8");
 const dashboardHtml = fs.readFileSync(path.join(rootDir, "dashboard.html"), "utf8");
+const studioPro = fs.readFileSync(path.join(rootDir, "studio-pro.js"), "utf8");
+const studioLibraryV2 = fs.readFileSync(path.join(rootDir, "studio-library-v2.js"), "utf8");
 
 // As asserções acima só confirmam que os padrões existem no texto-fonte —
 // não provam que o comportamento real funciona. mobile-click-recovery-v1.js
@@ -144,4 +146,21 @@ test("landing editor shell markup exposes an accessible close control", () => {
   assert.match(dashboardHtml, /data-lp-editor-shell/);
   assert.match(dashboardHtml, /<button type="button" data-lp-editor-close aria-label="Fechar editor de Landing Page"/);
   assert.doesNotMatch(dashboardHtml, /<button onclick="fecharEditorLP\(\)" class="text-gray-400 hover:text-white text-xl">/);
+});
+
+test("Studio library launchers resolve the active implementation at click time", () => {
+  assert.match(studioPro, /function openActiveLibrary\(\)/);
+  assert.match(studioPro, /window\.AuraStudioPro\?\.openLibrary/);
+  assert.equal(
+    (studioPro.match(/addEventListener\("click", openActiveLibrary\)/g) || []).length,
+    3
+  );
+  assert.match(studioPro, /aria-label", "Abrir Biblioteca do Studio"/);
+  assert.match(studioPro, /data-studio-library-open="true" aria-label="Abrir Biblioteca do Studio">Biblioteca/);
+});
+
+test("Studio Library V2 captures the focus target before clearing close state", () => {
+  assert.match(studioLibraryV2, /const previousFocus = state\.previousFocus;\s*state\.previousFocus = null;/);
+  assert.match(studioLibraryV2, /if \(previousFocus\?\.isConnected && typeof previousFocus\.focus === "function"\)/);
+  assert.doesNotMatch(studioLibraryV2, /setTimeout\(\(\) => state\.previousFocus\.focus\(\)/);
 });

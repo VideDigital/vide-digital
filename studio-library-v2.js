@@ -559,8 +559,13 @@
     library.classList.remove("is-filter-open");
     library.classList.add("hidden");
     library.setAttribute("aria-hidden", "true");
-    if (state.previousFocus?.isConnected) setTimeout(() => state.previousFocus.focus(), 10);
+    const previousFocus = state.previousFocus;
     state.previousFocus = null;
+    if (previousFocus?.isConnected && typeof previousFocus.focus === "function") {
+      setTimeout(() => {
+        if (previousFocus.isConnected) previousFocus.focus();
+      }, 10);
+    }
   }
 
   function failToLegacy(error) {

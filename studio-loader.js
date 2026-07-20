@@ -14,7 +14,7 @@
     "./studio-block-registry.js",
     "./studio-canonical-renderers-v1.js",
     "./studio-library-v2-adapter.js",
-    "./studio-library-v2.js"
+    "./studio-library-v2.js?v=203"
   ]);
 
   // A integração local opta pela V2. Definir explicitamente como false antes
@@ -28,7 +28,7 @@
     "./studio-library.js",
     "./studio-max-library.js",
     "./studio-inspector.js",
-    "./studio-pro.js",
+    "./studio-pro.js?v=203",
     "./studio-desktop-shell-v1.js?v=100",
     "./studio-max-media.js",
     "./studio-max.js",
@@ -44,7 +44,7 @@
     "./studio-library-clean-v53.js?v=530",
     "./studio-canonical-renderers-v1.js",
     "./studio-library-v2-adapter.js",
-    "./studio-library-v2.js",
+    "./studio-library-v2.js?v=203",
     "./studio-guide.js"
   ];
 
