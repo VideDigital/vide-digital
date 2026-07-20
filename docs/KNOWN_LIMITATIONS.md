@@ -2,8 +2,9 @@
 
 ## P1
 
+- Nenhuma das Functions públicas (`createPublicLead`, `incrementPublicMetric`, `createPublicChat`, `sendPublicChatMessage`) tem rate limiting, deduplicação ou proteção contra custo excessivo — só App Check. `docs/CLOUD_FUNCTIONS_PLAN.md` já listava rate limit como requisito para essas quatro; ainda não foi implementado. Bloqueador antes de staging com tráfego real (App Check sozinho não impede abuso de uma instância legítima do app).
 - O ambiente de produção/staging ainda precisa configurar App Check real antes de publicar Functions públicas.
-- Functions declaram runtime Node 20; neste ambiente Codex só havia Node 24 no host. O Emulator carregou as Functions com warning, mas staging deve validar Node 20 real.
+- Functions declaram runtime Node 20. Codex só tinha Node 24 disponível e não validou com Node 20 real. Auditoria independente (Claude) rodou `test:rules` e `test:frontend:emulator` com Node 20.20.2 real (não só o Emulator avisando sobre a versão) — 14/14 + 5/5 regras e as 15 Functions carregando e executando sem erro. Continua recomendado validar Node 20 também em staging antes do primeiro deploy real, mas deixa de ser bloqueador de teste local.
 - Google Login com popup real ainda precisa teste humano no navegador; o smoke automatizado validou login por e-mail/senha no Auth Emulator.
 
 ## P2
