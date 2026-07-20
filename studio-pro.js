@@ -495,19 +495,30 @@
     tools.querySelector("[data-studio-left='audit']")?.addEventListener("click", openAudit);
 
     const addButton = panel.querySelector("button.aura-lped-add-block");
-    if (addButton) {
+    if (addButton && !addButton.closest(".aura-studio-add-row")) {
+      // Antes a Biblioteca Pro era um cartão inteiro (ícone + título + descrição)
+      // empilhado ACIMA do botão "Adicionar Novo Bloco" — dois blocos quase do
+      // mesmo tamanho, um em cima do outro, davam sensação de painel poluído.
+      // Aqui os dois viram uma única linha: o botão principal continua igual
+      // (mesmo texto, mesmo clique) e a Biblioteca Pro vira um atalho compacto
+      // ao lado, mantendo a mesma classe/seletor que as demais camadas do
+      // Studio já escutam pra abrir a biblioteca.
+      const row = document.createElement("div");
+      row.className = "aura-studio-add-row mt-6";
+      addButton.classList.remove("mt-6");
+      addButton.before(row);
+      row.appendChild(addButton);
+
       const proButton = document.createElement("button");
       proButton.type = "button";
       proButton.className = "aura-studio-library-launch";
+      proButton.title = "Biblioteca Pro — mais de 100 estruturas e páginas completas";
+      proButton.setAttribute("aria-label", "Explorar Biblioteca Pro: mais de 100 estruturas e páginas completas");
       proButton.innerHTML = `
-        <span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v18"></path><path d="M3 12h18"></path></svg>
-        </span>
-        <div><strong>Explorar Biblioteca Pro</strong><small>Mais de 100 estruturas e páginas completas</small></div>
-        <b>⌘ B</b>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v18"></path><path d="M3 12h18"></path></svg>
       `;
       proButton.addEventListener("click", openLibrary);
-      addButton.before(proButton);
+      row.appendChild(proButton);
     }
   }
 
