@@ -34,6 +34,7 @@ if (shouldUseVideEmulators() && !window.__videCoreEmulatorsConnected) {
     connectFirestoreEmulator(db, "127.0.0.1", 8080);
     connectStorageEmulator(storage, "127.0.0.1", 9199);
     window.__videCoreEmulatorsConnected = true;
+    console.warn("[Vide Hub] Conectado aos Firebase Emulators (Auth/Firestore/Storage) — dados locais, não é produção.");
 }
 
 export { app, db, auth, storage, firebaseConfig, shouldUseVideEmulators };
