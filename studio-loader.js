@@ -6,7 +6,14 @@
   // definidas pela anterior (ex.: salvarEditorLP, renderizarEditorBlocos).
   // Antes esses scripts carregavam de forma fixa em toda página do painel;
   // agora só carregam quando o dono da loja realmente abre o editor.
+  // Scripts cuja falha de carregamento não deve derrubar o restante da fila:
+  // o registro é uma fundação opcional (lp-public-v4.js e a Fase 2 já tratam
+  // sua ausência), então uma falha aqui não pode impedir Pro/MAX/Ultimate/V4
+  // de carregar.
+  const OPTIONAL_SCRIPTS = new Set(["./studio-block-registry.js"]);
+
   const STUDIO_SCRIPTS = [
+    "./studio-block-registry.js",
     "./studio-library.js",
     "./studio-max-library.js",
     "./studio-inspector.js",
@@ -45,7 +52,12 @@
     if (!loadingPromise) {
       loadingPromise = (async () => {
         for (const src of STUDIO_SCRIPTS) {
-          await loadScript(src);
+          try {
+            await loadScript(src);
+          } catch (err) {
+            if (!OPTIONAL_SCRIPTS.has(src)) throw err;
+            console.warn("[Studio Loader] " + err.message + " — seguindo sem esse recurso opcional.");
+          }
           // Dá um respiro pro navegador entre cada geração (MutationObservers,
           // timers de inicialização) em vez de injetar as 17 de uma vez só.
           await yieldToBrowser();
