@@ -76,11 +76,11 @@
 #lp-editor-modal > .aura-lped-topbar button,
 #lp-editor-modal > .aura-lped-topbar input,
 #lp-editor-modal > .aura-lped-topbar select {
-    min-height: 38px !important;
+    min-height: 40px !important;
     border-radius: 10px !important;
     box-shadow: none !important;
     filter: none !important;
-    font-size: 10px !important;
+    font-size: 12.5px !important;
     transition:
         background-color .14s ease,
         border-color .14s ease,

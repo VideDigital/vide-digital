@@ -261,13 +261,19 @@
             return;
         }
 
+        let syncTimer = null;
+
         const observer =
             new MutationObserver(() => {
                 if (
                     !modal.classList
                         .contains("hidden")
                 ) {
-                    setTimeout(
+                    // Debounce: sem isso, cada mutação (inclusive as causadas
+                    // pelo próprio syncCurrentDevice) empilhava um novo timer,
+                    // criando um loop que nunca sossegava.
+                    clearTimeout(syncTimer);
+                    syncTimer = setTimeout(
                         syncCurrentDevice,
                         120
                     );
