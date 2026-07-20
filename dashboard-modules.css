@@ -1816,6 +1816,10 @@
   --toast-color:#34D399;
 }
 
+.aura-toast-info{
+  --toast-color:#60A5FA;
+}
+
 .aura-toast-error{
   --toast-color:#FB7185;
 }

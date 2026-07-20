@@ -3175,15 +3175,24 @@ btn.classList.add("opacity-40");
                 return;
             }
 
-            const ehSucesso = type === "success";
+            // "success" e "info" tinham título e cor próprios pensados na hora
+            // de escrever esta função, mas só "success" ficou com checagem
+            // própria — qualquer outro tipo (inclusive "info") caía direto no
+            // estilo de erro ("Atenção necessária", vermelho), mesmo pra avisos
+            // neutros como "Abrindo editor...".
+            const estilosPorTipo = {
+                success: { classe: "success", titulo: "Operação concluída" },
+                info: { classe: "info", titulo: "Aviso" }
+            };
+            const estilo = estilosPorTipo[type] || { classe: "error", titulo: "Atenção necessária" };
 
             const toast = document.createElement("div");
 
             toast.className =
-                `aura-toast aura-toast-${ehSucesso ? "success" : "error"} pointer-events-auto`;
+                `aura-toast aura-toast-${estilo.classe} pointer-events-auto`;
 
-            const icone = ehSucesso
-                ? `
+            const icones = {
+                success: `
                     <svg viewBox="0 0 24 24"
                          fill="none"
                          stroke="currentColor">
@@ -3194,8 +3203,27 @@ btn.classList.add("opacity-40");
                         </path>
 
                     </svg>
-                `
-                : `
+                `,
+                info: `
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <circle cx="12" cy="12" r="9"></circle>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 11v5">
+                        </path>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 8h.01">
+                        </path>
+
+                    </svg>
+                `,
+                error: `
                     <svg viewBox="0 0 24 24"
                          fill="none"
                          stroke="currentColor">
@@ -3216,7 +3244,9 @@ btn.classList.add("opacity-40");
                         </path>
 
                     </svg>
-                `;
+                `
+            };
+            const icone = icones[estilo.classe];
 
             toast.innerHTML = `
                 <div class="aura-toast-icon">
@@ -3226,7 +3256,7 @@ btn.classList.add("opacity-40");
                 <div class="aura-toast-content">
 
                     <p class="aura-toast-title no-contrast">
-                        ${ehSucesso ? "Operação concluída" : "Atenção necessária"}
+                        ${estilo.titulo}
                     </p>
 
                     <p class="aura-toast-message no-contrast"></p>
