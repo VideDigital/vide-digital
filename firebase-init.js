@@ -26,7 +26,17 @@ function shouldUseVideEmulators() {
         params.get("useEmulator") === "true" ||
         localStorage.getItem("videUseEmulator") === "true";
     const safeHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-    return explicit && safeHost;
+    const useEmulators = explicit && safeHost;
+    // login.html?useEmulator=true não é levado adiante pelos redirecionamentos
+    // internos do app (dashboard.html, admin.html, ...), que navegam via
+    // window.location.href sem preservar query string. Sem persistir aqui, só
+    // a primeira página ficava no Emulator e as seguintes caíam de volta pro
+    // Firebase real — perigoso justamente no cenário que essa flag existe pra
+    // evitar (testar local achando que está isolado e na real não estar).
+    if (useEmulators) {
+        localStorage.setItem("videUseEmulator", "true");
+    }
+    return useEmulators;
 }
 
 if (shouldUseVideEmulators() && !window.__videCoreEmulatorsConnected) {
