@@ -10,6 +10,13 @@ const publicOptions = {
   enforceAppCheck: process.env.FUNCTIONS_EMULATOR !== "true"
 };
 
+async function assertOwnerActive(ownerUid) {
+  const ownerSnap = await getFirestore().doc(`usuarios/${ownerUid}`).get();
+  if (!ownerSnap.exists || ownerSnap.data()?.status !== "aprovado") {
+    throw new HttpsError("failed-precondition", "Loja indisponível.");
+  }
+}
+
 async function resolvePublicTenant(data) {
   const db = getFirestore();
   const storeSlug = normalizeString(data?.storeSlug || data?.lojaSlug, 160).toLowerCase();
@@ -22,8 +29,10 @@ async function resolvePublicTenant(data) {
     if (!store.donoUID && !store.emailDono) {
       throw new HttpsError("failed-precondition", "Loja sem tenant público válido.");
     }
+    const ownerUid = store.donoUID || store.emailDono;
+    await assertOwnerActive(ownerUid);
     return {
-      ownerUid: store.donoUID || store.emailDono,
+      ownerUid,
       storeSlug,
       store,
       sourceType: "store"
@@ -35,6 +44,7 @@ async function resolvePublicTenant(data) {
     if (!snap.exists) throw new HttpsError("not-found", "Landing Page pública não encontrada.");
     const page = { id: snap.id, ...snap.data() };
     if (!page.donoUID) throw new HttpsError("failed-precondition", "Landing Page sem tenant.");
+    await assertOwnerActive(page.donoUID);
     return {
       ownerUid: page.donoUID,
       publicPageId,
