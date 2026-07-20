@@ -383,9 +383,18 @@ service cloud.firestore {
     }
 
     match /notificacoes/{id} {
+      // Três formatos de destinatarios coexistem no app (admin.html grava
+      // "todos" ou uma lista de UIDs específicos; nunca grava campo uid, mas
+      // a regra aceita esse formato também por segurança futura). Cada ramo
+      // aqui precisa corresponder a um filtro que o dashboard consiga usar
+      // numa query (where) pra que list() funcione sem escanear a coleção
+      // inteira — dashboard-app.js fazia isso sem filtro nenhum, e o
+      // Firestore recusa list() sempre que a regra depende de resource.data
+      // sem um filtro correspondente provável pra cada resultado possível.
       allow read: if signedIn()
         && (
           isBackendAdmin()
+          || resource.data.destinatarios == "todos"
           || (resource.data.keys().hasAny(["destinatarios"]) && request.auth.uid in resource.data.destinatarios)
           || (resource.data.keys().hasAny(["uid"]) && resource.data.uid == request.auth.uid)
         );

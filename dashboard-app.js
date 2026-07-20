@@ -21,7 +21,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -14473,11 +14473,26 @@ async function() {
         async function carregarNotificacoes() {
             if (!usuarioUID) return;
             try {
-                const snap = await getDocs(collection(db, "notificacoes"));
+                // Antes fazia getDocs(collection(db,"notificacoes")) sem filtro
+                // e filtrava no cliente — o Firestore recusa list() sem filtro
+                // pra quem não é admin backend, porque a regra depende de
+                // resource.data. Cada ramo do or() abaixo espelha um ramo da
+                // regra em firestore.rules (match /notificacoes/{id}).
+                const q = query(
+                    collection(db, "notificacoes"),
+                    or(
+                        where("destinatarios", "==", "todos"),
+                        where("destinatarios", "array-contains", usuarioUID),
+                        where("uid", "==", usuarioUID)
+                    )
+                );
+                const snap = await getDocs(q);
                 let lista = [];
                 snap.forEach(d => {
                     const n = { id: d.id, ...d.data() };
-                    const paraMim = n.destinatarios === "todos" || (Array.isArray(n.destinatarios) && n.destinatarios.includes(usuarioUID));
+                    const paraMim = n.destinatarios === "todos"
+                        || (Array.isArray(n.destinatarios) && n.destinatarios.includes(usuarioUID))
+                        || n.uid === usuarioUID;
                     if (paraMim) lista.push(n);
                 });
                 lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));

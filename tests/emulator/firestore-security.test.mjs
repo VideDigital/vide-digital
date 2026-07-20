@@ -7,10 +7,15 @@ import {
   initializeTestEnvironment
 } from "@firebase/rules-unit-testing";
 import {
+  collection,
   doc,
   getDoc,
+  getDocs,
+  or,
+  query,
   setDoc,
-  updateDoc
+  updateDoc,
+  where
 } from "firebase/firestore";
 
 const PROJECT_ID = "demo-vide-hub";
@@ -54,6 +59,9 @@ beforeEach(async () => {
     await setDoc(doc(db, "campanhas", "ownerA"), { ativa: true, orcamento: 500, canal: "meta" });
     await setDoc(doc(db, "config", "tema_sistema"), { primaria: "#5B3DF5" });
     await setDoc(doc(db, "config", "planos"), { starter: { produtos: 3 } });
+    await setDoc(doc(db, "notificacoes", "notifTodos"), { titulo: "Broadcast", destinatarios: "todos" });
+    await setDoc(doc(db, "notificacoes", "notifOwnerA"), { titulo: "Só ownerA", destinatarios: ["ownerA"] });
+    await setDoc(doc(db, "notificacoes", "notifOwnerB"), { titulo: "Só ownerB", destinatarios: ["ownerB"] });
   });
 });
 
@@ -173,6 +181,40 @@ describe("config público vs. admin (login.html carrega tema antes de logar)", (
 
   it("visitante anônimo não escreve em config/tema_sistema", async () => {
     await assertFails(setDoc(doc(anon(), "config", "tema_sistema"), { primaria: "#000000" }));
+  });
+});
+
+describe("notificacoes: list() filtrado (mesma query do dashboard-app.js)", () => {
+  function notifQuery(db, uid) {
+    return query(
+      collection(db, "notificacoes"),
+      or(
+        where("destinatarios", "==", "todos"),
+        where("destinatarios", "array-contains", uid),
+        where("uid", "==", uid)
+      )
+    );
+  }
+
+  it("owner vê o broadcast e a notificação dirigida a ele, não a de outra loja", async () => {
+    const snap = await getDocs(notifQuery(authed("ownerA"), "ownerA"));
+    const ids = snap.docs.map((d) => d.id).sort();
+    assert.deepEqual(ids, ["notifOwnerA", "notifTodos"]);
+  });
+
+  it("outra loja vê o broadcast, mas não a notificação alheia", async () => {
+    const snap = await getDocs(notifQuery(authed("ownerB"), "ownerB"));
+    const ids = snap.docs.map((d) => d.id).sort();
+    assert.deepEqual(ids, ["notifOwnerB", "notifTodos"]);
+  });
+
+  it("admin lista tudo sem filtro (unchanged)", async () => {
+    const snap = await getDocs(collection(authed("admin", { videAdmin: true }), "notificacoes"));
+    assert.equal(snap.size, 3);
+  });
+
+  it("visitante anônimo não lista nada", async () => {
+    await assertFails(getDocs(notifQuery(anon(), "ownerA")));
   });
 });
 
