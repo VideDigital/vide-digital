@@ -3608,6 +3608,15 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 }));
 
                 if (lps.length === 0) {
+                    const destaques = [MODELOS_LP[0], MODELOS_LP[1], MODELOS_LP[6]];
+                    const cartoesDestaque = destaques.map((modelo) => `
+                        <button type="button" class="aura-lp-modelo-card" onclick="iniciarLPComModelo('${modelo.id}')">
+                            <span class="aura-lp-modelo-dot" style="background:${modelo.cor}"></span>
+                            <strong>${modelo.nome}</strong>
+                            <small>${modelo.objetivo}</small>
+                        </button>
+                    `).join("");
+
                     grid.innerHTML = `
                         <div class="aura-lp-empty">
 
@@ -3627,11 +3636,15 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             </strong>
 
                             <p>
-                                Crie sua primeira página para começar a construir uma experiência focada em conversão.
+                                Comece com um modelo pronto ou crie do zero -- tudo continua editável depois.
                             </p>
 
+                            <div class="aura-lp-empty-modelos">
+                                ${cartoesDestaque}
+                            </div>
+
                             <button onclick="abrirModalLP()">
-                                Criar primeira página
+                                Ou comece do zero
                             </button>
 
                         </div>
@@ -3895,6 +3908,14 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.querySelectorAll(".aura-lp-modelo-card").forEach((card) => {
                 card.classList.toggle("is-active", card.dataset.modeloId === (id || ""));
             });
+        };
+
+        // Atalho pro estado vazio (nenhuma LP criada ainda): abre o modal já
+        // com um modelo pré-selecionado, poupando o clique extra de escolher
+        // de novo algo que a pessoa já escolheu na tela anterior.
+        window.iniciarLPComModelo = function(modeloId) {
+            abrirModalLP();
+            if (modeloId) selecionarModeloLP(modeloId);
         };
 
         window.abrirModalLP = function() {
