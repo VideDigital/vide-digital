@@ -7,6 +7,7 @@
   // Antes esses scripts carregavam de forma fixa em toda página do painel;
   // agora só carregam quando o dono da loja realmente abre o editor.
   const STUDIO_SCRIPTS = [
+    "./studio-block-registry.js",
     "./studio-library.js",
     "./studio-max-library.js",
     "./studio-inspector.js",

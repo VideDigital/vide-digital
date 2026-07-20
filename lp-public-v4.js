@@ -402,7 +402,7 @@
 
     function sortAndFilterBlocks() {
         const { pageId } = getPageInfo();
-        let blocks = state.blocks.filter((block) => ALLOWED_BLOCK_TYPES.has(block.tipo));
+        let blocks = state.blocks.filter((block) => isAllowedBlockType(block.tipo));
 
         if (pageId) {
             const samePage = blocks.filter((block) => {
@@ -583,6 +583,11 @@
     }
 
     function renderBlockContent(block, props, responsive) {
+        const registryContent = renderWithRegistry(block, props, responsive);
+        if (typeof registryContent === "string") {
+            return registryContent;
+        }
+
         switch (block.tipo) {
             case "texto_midia":
                 return renderTextMedia(props);
@@ -618,6 +623,28 @@
                 return renderShape(props, responsive);
             default:
                 return "";
+        }
+    }
+
+    function isAllowedBlockType(type) {
+        if (ALLOWED_BLOCK_TYPES.has(type)) return true;
+        const registry = window.AuraStudioBlockRegistry || window.BlockRegistry;
+        return Boolean(registry?.has?.(type));
+    }
+
+    function renderWithRegistry(block, props, responsive) {
+        const registry = window.AuraStudioBlockRegistry || window.BlockRegistry;
+        if (!registry?.render) return null;
+        try {
+            return registry.render(block, {
+                props,
+                responsive,
+                mode: state.meta?.modoLayout || "stacked",
+                renderer: "lp-public-v4"
+            });
+        } catch (error) {
+            console.warn("[Vide Aura Renderer] Falha no renderer registrado; usando fallback legado.", error);
+            return null;
         }
     }
 
