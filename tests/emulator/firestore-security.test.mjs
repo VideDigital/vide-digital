@@ -111,6 +111,16 @@ describe("tenant isolation", () => {
     await assertFails(updateDoc(doc(authed("employeeRead"), "produtos", "prodA"), { nome: "Novo" }));
   });
 
+  it("employee sem acesso a 'configuracoes' ainda lê usuarios/{donoUID} pra logar", async () => {
+    // employeeRead só tem ver:["produtos"] — login/contexto (core/vide-context.js)
+    // lê usuarios/{donoUID} pra QUALQUER funcionário ativo, não é o módulo
+    // "configuracoes". Gatear essa leitura pela permissão de configuracoes
+    // impedia login de todo funcionário sem esse módulo específico.
+    await assertSucceeds(getDoc(doc(authed("employeeRead"), "usuarios", "ownerA")));
+    // continua não escrevendo o perfil, isso sim é config
+    await assertFails(updateDoc(doc(authed("employeeRead"), "usuarios", "ownerA"), { nomeLoja: "Hack" }));
+  });
+
   it("employee edit escreve sem trocar criadoPor", async () => {
     await assertSucceeds(updateDoc(doc(authed("employeeEdit"), "produtos", "prodA"), { nome: "Novo" }));
     await assertFails(updateDoc(doc(authed("employeeEdit"), "produtos", "prodA"), { criadoPor: "ownerB" }));

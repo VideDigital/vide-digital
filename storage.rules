@@ -25,20 +25,34 @@ service firebase.storage {
       return firestore.get(/databases/(default)/documents/funcionarios/$(request.auth.uid));
     }
 
+    // Recebe empData já buscado em vez de chamar employeeDoc() (um
+    // firestore.get()) de novo a cada campo acessado — mesmo ajuste feito em
+    // firestore.rules, que reduziu de até 10 chamadas repetidas ao mesmo
+    // documento para 1 por avaliação de canUpload.
+    function isActiveEmployeeForData(ownerUid, empData) {
+      return empData.keys().hasAll(["status", "donoUID", "permissoes"])
+        && empData.status == "ativo"
+        && empData.donoUID == ownerUid
+        && empData.permissoes is map
+        && empData.permissoes.keys().hasAll(["editar"])
+        && empData.permissoes.editar is list;
+    }
+
     function isActiveEmployeeFor(ownerUid) {
       return signedIn()
         && firestore.exists(/databases/(default)/documents/funcionarios/$(request.auth.uid))
-        && employeeDoc().data.keys().hasAll(["status", "donoUID", "permissoes"])
-        && employeeDoc().data.status == "ativo"
-        && employeeDoc().data.donoUID == ownerUid
-        && employeeDoc().data.permissoes is map
-        && employeeDoc().data.permissoes.keys().hasAll(["editar"])
-        && employeeDoc().data.permissoes.editar is list;
+        && isActiveEmployeeForData(ownerUid, employeeDoc().data);
     }
 
     function employeeCanUpload(ownerUid, moduleKey) {
-      return isActiveEmployeeFor(ownerUid)
-        && employeeDoc().data.permissoes.editar.hasAny([moduleKey]);
+      return signedIn()
+        && firestore.exists(/databases/(default)/documents/funcionarios/$(request.auth.uid))
+        && employeeCanUploadData(ownerUid, moduleKey, employeeDoc().data);
+    }
+
+    function employeeCanUploadData(ownerUid, moduleKey, empData) {
+      return isActiveEmployeeForData(ownerUid, empData)
+        && empData.permissoes.editar.hasAny([moduleKey]);
     }
 
     function canUpload(ownerUid, moduleKey) {

@@ -32,32 +32,45 @@ service cloud.firestore {
       return get(/databases/$(database)/documents/funcionarios/$(request.auth.uid));
     }
 
-    function employeeHasPermissionShape() {
-      return employeeDoc().data.keys().hasAll(["status", "donoUID", "permissoes"])
-        && employeeDoc().data.permissoes is map
-        && employeeDoc().data.permissoes.keys().hasAll(["ver", "editar"])
-        && employeeDoc().data.permissoes.ver is list
-        && employeeDoc().data.permissoes.editar is list;
+    function employeeHasPermissionShape(empData) {
+      return empData.keys().hasAll(["status", "donoUID", "permissoes"])
+        && empData.permissoes is map
+        && empData.permissoes.keys().hasAll(["ver", "editar"])
+        && empData.permissoes.ver is list
+        && empData.permissoes.editar is list;
+    }
+
+    // Recebe empData (o funcionarios/{uid} já buscado) em vez de chamar
+    // employeeDoc() de novo — as versões antigas dessas funções chamavam
+    // employeeDoc() (um get()) até 10x numa única avaliação de canViewTenant,
+    // estourando o limite de 10 get()/exists() por regra do Firestore e
+    // travando com "evaluation error" o login de qualquer funcionário ativo.
+    function isActiveEmployeeForData(ownerUid, empData) {
+      return employeeHasPermissionShape(empData)
+        && empData.status == "ativo"
+        && empData.donoUID == ownerUid;
     }
 
     function isActiveEmployeeFor(ownerUid) {
-      return employeeExists()
-        && employeeHasPermissionShape()
-        && employeeDoc().data.status == "ativo"
-        && employeeDoc().data.donoUID == ownerUid;
+      return employeeExists() && isActiveEmployeeForData(ownerUid, employeeDoc().data);
     }
 
     function employeeCanView(ownerUid, moduleKey) {
-      return isActiveEmployeeFor(ownerUid)
-        && (
-          moduleKey in employeeDoc().data.permissoes.ver
-          || moduleKey in employeeDoc().data.permissoes.editar
-        );
+      return employeeExists() && employeeCanViewData(ownerUid, moduleKey, employeeDoc().data);
+    }
+
+    function employeeCanViewData(ownerUid, moduleKey, empData) {
+      return isActiveEmployeeForData(ownerUid, empData)
+        && (moduleKey in empData.permissoes.ver || moduleKey in empData.permissoes.editar);
     }
 
     function employeeCanEdit(ownerUid, moduleKey) {
-      return isActiveEmployeeFor(ownerUid)
-        && moduleKey in employeeDoc().data.permissoes.editar;
+      return employeeExists() && employeeCanEditData(ownerUid, moduleKey, employeeDoc().data);
+    }
+
+    function employeeCanEditData(ownerUid, moduleKey, empData) {
+      return isActiveEmployeeForData(ownerUid, empData)
+        && moduleKey in empData.permissoes.editar;
     }
 
     function canViewTenant(ownerUid, moduleKey) {
@@ -246,7 +259,12 @@ service cloud.firestore {
     }
 
     match /usuarios/{ownerUid} {
-      allow read: if canViewTenant(ownerUid, "configuracoes");
+      // Leitura aqui é resolução de identidade/sessão (core/vide-context.js lê
+      // usuarios/{donoUID} pra QUALQUER funcionário logar, não é o módulo
+      // "configuracoes"). Gatear por canViewTenant(ownerUid, "configuracoes")
+      // impedia login de todo funcionário sem acesso a esse módulo específico.
+      // Edição continua exigindo a permissão de editar "configuracoes".
+      allow read: if isOwner(ownerUid) || isActiveEmployeeFor(ownerUid) || isBackendAdmin();
       allow create: if validOwnerCreate(ownerUid);
       allow update: if validOwnerProfileUpdate(ownerUid) || isBackendAdmin();
       allow delete: if false;
