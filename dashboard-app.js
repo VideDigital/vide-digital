@@ -3818,6 +3818,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lp-slug").value = "";
         };
         let lpEditorId = null;
+        let scriptsEditorJaCarregados = false;
         let lpEditorBlocos = [];
         window.lpEditorBlocos = lpEditorBlocos;
         window.renderizarEditorBlocos = function() { renderizarEditorBlocos(); };
@@ -4540,6 +4541,7 @@ document.getElementById("lped-preview-canvas").addEventListener("mousedown", fun
             }
         });
         window.editarLP = async function(id) {
+            if (!scriptsEditorJaCarregados) showToast("Abrindo editor...", "info");
             const snap = await getDoc(doc(db, "landing_pages", id));
             if (!snap.exists()) return;
             const lp = snap.data();
@@ -4572,6 +4574,11 @@ for (const blocoId of (lp.ordemBlocos || [])) {
             atualizarBotoesHistoricoEditor();
             document.getElementById("lp-editor-modal").classList.remove("hidden");
             carregarProdutosParaEditor();
+            if (typeof window.carregarEditorLandingPages === "function") {
+                window.carregarEditorLandingPages()
+                    .then(() => { scriptsEditorJaCarregados = true; })
+                    .catch((err) => console.error("[Editor LP] falha ao carregar recursos avançados:", err));
+            }
         };
         document.getElementById("lped-blocos-lista").addEventListener("input", renderizarPreviewEditor);
         document.getElementById("lped-blocos-lista").addEventListener("change", renderizarPreviewEditor);
