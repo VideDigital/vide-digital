@@ -27,6 +27,9 @@
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] > .aura-lped-topbar {
     position: relative !important;
     z-index: 40 !important;
+    display: flex !important;
+    align-items: center !important;
+    flex-wrap: nowrap !important;
     min-height: 64px !important;
     flex: 0 0 64px !important;
     padding: 10px 16px !important;
@@ -34,6 +37,40 @@
     background: rgba(8,11,18,.96) !important;
     backdrop-filter: blur(18px);
     box-shadow: none !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] > .aura-lped-topbar > * {
+    position: relative;
+    z-index: 41;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] #aura-studio-brand {
+    flex: 0 0 180px !important;
+    width: 180px !important;
+    max-width: 180px !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-title-group {
+    align-self: center !important;
+    flex: 1 1 260px !important;
+    min-width: 220px !important;
+    max-width: 360px !important;
+    transform: none !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] [data-lp-editor-close] {
+    position: fixed;
+    top: 10px;
+    left: 212px;
+    z-index: 45;
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    width: 44px;
+    min-width: 44px;
+    height: 44px;
+    padding: 0 !important;
+    pointer-events: auto;
   }
 
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-lped-topbar button {
