@@ -22,13 +22,16 @@
     }
 
     function resetGlobalInteraction() {
-        document.documentElement.style.pointerEvents = "";
-        document.documentElement.style.overflow = "";
+        // Só escreve quando o valor realmente precisa mudar: o observer abaixo
+        // escuta mutações de "style" no body, então uma escrita incondicional
+        // aqui (mesmo pra "") reativa o próprio observer e nunca para.
+        if (document.documentElement.style.pointerEvents) document.documentElement.style.pointerEvents = "";
+        if (document.documentElement.style.overflow) document.documentElement.style.overflow = "";
 
         if (document.body) {
-            document.body.style.pointerEvents = "";
-            document.body.style.touchAction = "";
-            document.body.style.overflowX = "";
+            if (document.body.style.pointerEvents) document.body.style.pointerEvents = "";
+            if (document.body.style.touchAction) document.body.style.touchAction = "";
+            if (document.body.style.overflowX) document.body.style.overflowX = "";
         }
     }
 
@@ -98,10 +101,11 @@
                     modal.classList.contains("hidden") ||
                     modal.hidden === true;
 
-                if (hidden) {
-                    modal.style.pointerEvents = "none";
-                } else {
-                    modal.style.pointerEvents = "auto";
+                const desired = hidden ? "none" : "auto";
+                // Mesma lógica do resetGlobalInteraction: só escreve se for
+                // realmente mudar, senão o observer de mutação nunca sossega.
+                if (modal.style.pointerEvents !== desired) {
+                    modal.style.pointerEvents = desired;
                 }
             });
     }

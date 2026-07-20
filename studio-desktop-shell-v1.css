@@ -37,9 +37,9 @@
   }
 
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-lped-topbar button {
-    min-height: 38px;
+    min-height: 40px;
     border-radius: 10px !important;
-    font-size: 12px !important;
+    font-size: 13.5px !important;
     letter-spacing: 0 !important;
   }
 
