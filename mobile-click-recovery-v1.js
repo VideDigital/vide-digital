@@ -21,12 +21,23 @@
             .toLowerCase();
     }
 
+    function editorDeLandingPageAberto() {
+        const editor = document.getElementById("lp-editor-modal");
+        return Boolean(editor) && !editor.classList.contains("hidden");
+    }
+
     function resetGlobalInteraction() {
         // Só escreve quando o valor realmente precisa mudar: o observer abaixo
         // escuta mutações de "style" no body, então uma escrita incondicional
         // aqui (mesmo pra "") reativa o próprio observer e nunca para.
-        if (document.documentElement.style.pointerEvents) document.documentElement.style.pointerEvents = "";
-        if (document.documentElement.style.overflow) document.documentElement.style.overflow = "";
+        //
+        // Enquanto o editor de Landing Page está aberto, o próprio shell do
+        // Studio é o dono de documentElement.style.overflow (trava de scroll
+        // proposital) — resetar aqui destrava a página por trás do editor.
+        if (!editorDeLandingPageAberto()) {
+            if (document.documentElement.style.pointerEvents) document.documentElement.style.pointerEvents = "";
+            if (document.documentElement.style.overflow) document.documentElement.style.overflow = "";
+        }
 
         if (document.body) {
             if (document.body.style.pointerEvents) document.body.style.pointerEvents = "";
