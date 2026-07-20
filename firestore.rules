@@ -18,7 +18,9 @@ service cloud.firestore {
     // O frontend pode usar equipe_admin para UX, mas rules não devem depender
     // de coleção manipulável pelo próprio cliente para conceder privilégio.
     function isBackendAdmin() {
-      return signedIn() && request.auth.token.videAdmin == true;
+      return signedIn()
+        && request.auth.token.keys().hasAny(["videAdmin"])
+        && request.auth.token.videAdmin == true;
     }
 
     function employeeExists() {
@@ -169,11 +171,11 @@ service cloud.firestore {
     }
 
     function criadoPorUnchanged() {
-      return request.resource.data.criadoPor == resource.data.criadoPor;
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["criadoPor"]);
     }
 
     function donoUIDUnchanged() {
-      return request.resource.data.donoUID == resource.data.donoUID;
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["donoUID"]);
     }
 
     function publicStoreFields() {

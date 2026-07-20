@@ -16,7 +16,9 @@ service firebase.storage {
 
     // Contrato futuro: claim emitida por Cloud Functions/Admin SDK.
     function isBackendAdmin() {
-      return signedIn() && request.auth.token.videAdmin == true;
+      return signedIn()
+        && request.auth.token.keys().hasAny(["videAdmin"])
+        && request.auth.token.videAdmin == true;
     }
 
     function employeeDoc() {
@@ -26,6 +28,7 @@ service firebase.storage {
     function isActiveEmployeeFor(ownerUid) {
       return signedIn()
         && firestore.exists(/databases/(default)/documents/funcionarios/$(request.auth.uid))
+        && employeeDoc().data.keys().hasAll(["status", "donoUID", "permissoes"])
         && employeeDoc().data.status == "ativo"
         && employeeDoc().data.donoUID == ownerUid
         && employeeDoc().data.permissoes is map
@@ -35,7 +38,7 @@ service firebase.storage {
 
     function employeeCanUpload(ownerUid, moduleKey) {
       return isActiveEmployeeFor(ownerUid)
-        && moduleKey in employeeDoc().data.permissoes.editar;
+        && employeeDoc().data.permissoes.editar.hasAny([moduleKey]);
     }
 
     function canUpload(ownerUid, moduleKey) {

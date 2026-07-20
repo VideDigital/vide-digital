@@ -47,6 +47,7 @@ beforeEach(async () => {
       permissoes: { ver: ["produtos"], editar: ["produtos"] }
     });
     await setDoc(doc(db, "produtos", "prodA"), { criadoPor: "ownerA", statusProduto: "ativo", nome: "Produto A" });
+    await setDoc(doc(db, "produtos", "prodPrivate"), { criadoPor: "ownerA", statusProduto: "rascunho", nome: "Produto Privado" });
     await setDoc(doc(db, "vitrines_publicas", "loja-a"), { donoUID: "ownerA", emailDono: "ownerA", nomeLoja: "Loja A" });
   });
 });
@@ -90,14 +91,14 @@ describe("usuarios", () => {
   it("owner edita perfil mas não altera plano/status/features", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { nomeLoja: "Loja A+" }));
     await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { plano: "premium" }));
-    await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { status: "aprovado" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { status: "inativo" }));
     await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { featuresManuais: ["*"] }));
   });
 });
 
 describe("tenant isolation", () => {
   it("owner não acessa produto privado de outro tenant", async () => {
-    await assertFails(getDoc(doc(authed("ownerB"), "produtos", "prodA")));
+    await assertFails(getDoc(doc(authed("ownerB"), "produtos", "prodPrivate")));
   });
 
   it("employee read-only lê, mas não escreve", async () => {
@@ -111,7 +112,7 @@ describe("tenant isolation", () => {
   });
 
   it("employee inativo bloqueado", async () => {
-    await assertFails(getDoc(doc(authed("employeeInactive"), "produtos", "prodA")));
+    await assertFails(getDoc(doc(authed("employeeInactive"), "produtos", "prodPrivate")));
   });
 });
 
