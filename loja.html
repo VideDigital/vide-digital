@@ -444,6 +444,7 @@
 
     <script type="module">
         import { db } from "./firebase-init.js";
+        import { VideFunctions } from "./core/vide-functions.js";
         import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -466,6 +467,25 @@
         function chaveDataHoje() {
             const d = new Date();
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+        }
+
+        function registrarMetricaPublica(payload) {
+            return VideFunctions.incrementPublicMetric({
+                storeSlug: lojaSlug,
+                ...payload
+            }).catch((err) => {
+                console.warn("Métrica pública não registrada:", err?.message || err);
+            });
+        }
+
+        function capturarLeadPublico(payload) {
+            return VideFunctions.createPublicLead({
+                storeSlug: lojaSlug,
+                urlPagina: window.location.href,
+                referrer: document.referrer || "",
+                utmSource: utmSourceCapturada,
+                ...payload
+            });
         }
 
         if (lojaSlug) {
@@ -617,10 +637,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                         document.getElementById("widget-chat-cliente").classList.remove("hidden");
                     }
 
-                    await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), {
-                        totalSessoes: increment(1),
-                        [`porDia.${chaveDataHoje()}.sessoes`]: increment(1)
-                    }, { merge: true });
+                    await registrarMetricaPublica({ event: "store_session" });
 
                     const qProd = query(collection(db, "produtos"), where("criadoPor", "==", fornecedorEmail));
                     const queryProdSnap = await getDocs(qProd);
@@ -643,10 +660,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         window.addEventListener("beforeunload", function() {
             if (fornecedorEmail) {
                 const t = Math.round((Date.now() - tempoInicioSessao) / 1000);
-                setDoc(doc(db, "metricas_vitrines", fornecedorEmail), {
-                    totalTempoTela: increment(t),
-                    [`porDia.${chaveDataHoje()}.tempo`]: increment(t)
-                }, { merge: true });
+                registrarMetricaPublica({ event: "store_time", seconds: t });
             }
         });
 
@@ -690,7 +704,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 const chave = "visto_" + prod.id;
                 if (!sessionStorage.getItem(chave)) {
                     sessionStorage.setItem(chave, "1");
-                    setDoc(doc(db, "metricas_produtos", prod.id), { visualizacoes: increment(1) }, { merge: true });
+                    registrarMetricaPublica({ event: "product_view", productId: prod.id });
                 }
 
                 card.innerHTML =
@@ -721,7 +735,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                                 ((prod.estoque !== "" && prod.estoque !== undefined) ? '<span class="text-[10px] font-semibold text-gray-400 inline-flex items-center gap-1"><i data-lucide="package" style="width:11px;height:11px"></i> ' + prod.estoque + " unid. disponiveis</span>" : "") +
                                 '<span class="text-[10px] font-semibold text-gray-500 inline-flex items-center gap-1" id="views-' + prod.id + '"><i data-lucide="eye" style="width:11px;height:11px"></i> carregando...</span>' +
                             "</div>" +
-                            '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-4 rounded-full transition-all" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #fff);">Obter Oferta</button>' +
+                                '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + "', '" + prod.id + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-4 rounded-full transition-all" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #fff);">Obter Oferta</button>' +
                             (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-3 rounded-full border transition-all hover:bg-white/5 mt-1 inline-flex items-center justify-center gap-2" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';"><i data-lucide="shopping-bag" style="width:12px;height:12px"></i> Adicionar ao Carrinho</button>' : '') +
                             (prod.seloConfianca ? '<p class="text-[10px] text-center text-gray-500 inline-flex items-center justify-center gap-1"><i data-lucide="lock" style="width:11px;height:11px"></i> ' + prod.seloConfianca + "</p>" : "") +
                         "</div>" +
@@ -875,19 +889,18 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             fecharCarrinho();
         });
 
-        window.irParaOferta = async function(destinoValue, tipoDestino, nomeProd) {
-            const payloadMetricas = { totalCliques: increment(1) };
-            payloadMetricas["produtosInteresse." + nomeProd] = increment(1);
-            payloadMetricas[`porDia.${chaveDataHoje()}.cliques`] = increment(1);
-            await setDoc(doc(db, "metricas_vitrines", fornecedorEmail), payloadMetricas, { merge: true });
+        window.irParaOferta = async function(destinoValue, tipoDestino, nomeProd, produtoId) {
+            await registrarMetricaPublica({
+                event: "product_click",
+                productId: produtoId,
+                productName: nomeProd
+            });
 
-            await setDoc(doc(db, "leads", `lead_${Date.now()}`), {
-                criadoPor: fornecedorEmail,
+            await capturarLeadPublico({
                 origem: utmSourceCapturada,
                 produtoInteresse: nomeProd,
-                cliques: 1,
-                data: Date.now()
-            }, { merge: true });
+                cliques: 1
+            });
 
             if (tipoDestino === "whatsapp") {
                 const msg = encodeURIComponent("Ola! Tenho interesse no produto: " + nomeProd);
@@ -1010,15 +1023,13 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 return;
             }
             try {
-                await setDoc(doc(db, "leads", `lead_popup_${Date.now()}`), {
-                    criadoPor: fornecedorEmail,
-                    nome: nome,
-                    whatsapp: whatsapp,
+                await capturarLeadPublico({
+                    nome,
+                    whatsapp,
                     origem: utmSourceCapturada,
                     produtoInteresse: "Popup de Captura",
                     cliques: 0,
-                    tempoRetencao: Math.round((Date.now() - tempoInicioSessao) / 1000),
-                    data: Date.now()
+                    tempoRetencao: Math.round((Date.now() - tempoInicioSessao) / 1000)
                 });
                 document.getElementById("popup-captura").innerHTML = `
                     <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5 mx-auto" style="background: var(--surface); border:1px solid var(--border); box-shadow: var(--shadow-xl);">
@@ -1047,7 +1058,12 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (!clienteRegistrado) {
                 clienteNome = txt;
                 clienteRegistrado = true;
-                salaChatId = "chat_" + Date.now();
+                const chatCriado = await VideFunctions.createPublicChat({
+                    storeSlug: lojaSlug,
+                    clienteNome: txt,
+                    utmSource: utmSourceCapturada
+                });
+                salaChatId = chatCriado.chatId;
                 input.value = "";
                 input.placeholder = "Escreva sua mensagem...";
                 document.getElementById("chat-send-btn").innerText = "Enviar";
@@ -1072,8 +1088,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     box.scrollTop = box.scrollHeight;
                 });
             } else {
-                await setDoc(doc(db, "chats/" + salaChatId + "/mensagens", "msg_" + Date.now()), { texto: txt, sender: "cliente", timestamp: Date.now() });
-                await setDoc(doc(db, "chats", salaChatId), { clienteNome: clienteNome, emailDono: fornecedorEmail, ultimaMensagem: txt, statusAdmin: "pendente", utmSource: utmSourceCapturada, timestamp: Date.now() }, { merge: true });
+                await VideFunctions.sendPublicChatMessage({ chatId: salaChatId, texto: txt });
                 input.value = "";
                 clearTimeout(timeoutRedirecionamentoWhats);
                 timeoutRedirecionamentoWhats = setTimeout(function() {

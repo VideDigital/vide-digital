@@ -24,6 +24,7 @@ Definir o backend obrigatório para remover operações sensíveis do frontend a
 | `updateEmployee` | callable | owner/admin | tenant, permissões, sem autoelevação | status de atualização |
 | `disableEmployee` | callable | owner/admin | tenant, idempotência | funcionário inativo |
 | `resetEmployeePassword` | callable | owner/admin | tenant e e-mail | envio/reset seguro |
+| `createAdminMember` | callable | `videAdmin` | e-mail, senha forte, permissões | membro admin e claim |
 | `syncAdminClaims` | callable/admin job | admin backend | `equipe_admin` → custom claims | claims sincronizadas |
 | `adminUpdateStoreStatus` | callable | `videAdmin` | status permitido | loja aprovada/rejeitada/inativa |
 | `adminUpdatePlan` | callable | `videAdmin` | plano/features permitidas | plano atualizado |
@@ -31,6 +32,7 @@ Definir o backend obrigatório para remover operações sensíveis do frontend a
 | `incrementPublicMetric` | HTTP/callable | App Check | loja/produto publicado, incremento permitido | métrica incrementada |
 | `createPublicChat` | HTTP/callable | App Check | tenant, cliente, rate limit | chat criado |
 | `sendPublicChatMessage` | HTTP/callable | App Check | sender cliente, chat válido | mensagem criada |
+| `markNotificationRead` | callable | usuário autenticado | destinatário e próprio UID | leitura atualizada |
 | `auditWrite` | backend/internal | service account | payload de auditoria | log registrado |
 
 ## Fluxo `createEmployee`

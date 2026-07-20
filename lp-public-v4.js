@@ -1486,16 +1486,14 @@
         }
 
         try {
-            const { collection, doc, setDoc } = state.firestore;
-            const leadRef = doc(collection(state.db, "leads"));
             const source = String(config.origem || "Landing Page").trim() || "Landing Page";
             const name = values.nome || values.name || values["nome completo"] || "";
             const phone = values.whatsapp || values.telefone || values.phone || "";
             const email = values.email || "";
             const campaign = new URLSearchParams(window.location.search);
 
-            await setDoc(leadRef, {
-                criadoPor: state.meta?.donoUID || "",
+            const result = await state.functions.createPublicLead({
+                publicPageId: `${state.route?.lojaSlug || ""}__${state.route?.paginaSlug || ""}`.toLowerCase(),
                 nome: String(name).trim(),
                 whatsapp: String(phone).replace(/\D/g, ""),
                 email: String(email).trim(),
@@ -1740,19 +1738,22 @@
 
     async function importModules() {
         const firebaseInitURL = new URL("firebase-init.js", `${window.location.origin}${state.base}`).href;
+        const videFunctionsURL = new URL("core/vide-functions.js", `${window.location.origin}${state.base}`).href;
         const firestoreURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`;
         const authURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`;
 
-        const [firebaseInit, firestore, authModule] = await Promise.all([
+        const [firebaseInit, firestore, authModule, videFunctions] = await Promise.all([
             import(firebaseInitURL),
             import(firestoreURL),
-            import(authURL)
+            import(authURL),
+            import(videFunctionsURL)
         ]);
 
         state.db = firebaseInit.db;
         state.auth = firebaseInit.auth;
         state.firestore = firestore;
         state.authModule = authModule;
+        state.functions = videFunctions.VideFunctions;
 
         if (!state.db) {
             throw new Error("Firebase não foi inicializado.");

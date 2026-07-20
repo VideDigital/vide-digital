@@ -100,7 +100,7 @@ check("static contract: critical frontend write guard strings are present", () =
     }
 });
 
-check("document smoke: proposed rules are non-production artifacts", () => {
+check("document smoke: proposed and local testable rules are explicit artifacts", () => {
     assert(
         fs.existsSync(path.join(root, "firebase/firestore.rules.proposed")),
         "firestore proposal missing"
@@ -110,12 +110,16 @@ check("document smoke: proposed rules are non-production artifacts", () => {
         "storage proposal missing"
     );
     assert(
-        !fs.existsSync(path.join(root, "firestore.rules")),
-        "production firestore.rules should not be introduced in this phase"
+        fs.existsSync(path.join(root, "firestore.rules")),
+        "local testable firestore.rules missing"
     );
     assert(
-        !fs.existsSync(path.join(root, "storage.rules")),
-        "production storage.rules should not be introduced in this phase"
+        fs.existsSync(path.join(root, "storage.rules")),
+        "local testable storage.rules missing"
+    );
+    assert(
+        read("docs/DEPLOYMENT_GUIDE.md").includes("Não executar `firebase deploy` contra produção"),
+        "deployment guide must keep production deploy blocked"
     );
 });
 

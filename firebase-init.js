@@ -1,7 +1,8 @@
 // firebase-init.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { connectFirestoreEmulator, getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { connectAuthEmulator, getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { connectStorageEmulator, getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 // Dados extraídos diretamente do seu console oficial (vide-digital-saas)
 const firebaseConfig = {
@@ -16,5 +17,34 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
-export { db, auth, firebaseConfig };
+function shouldUseVideEmulators() {
+    const params = new URLSearchParams(window.location.search);
+    const explicit =
+        window.VIDE_HUB_USE_EMULATORS === true ||
+        params.get("useEmulator") === "true" ||
+        localStorage.getItem("videUseEmulator") === "true";
+    const safeHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    const useEmulators = explicit && safeHost;
+    // login.html?useEmulator=true não é levado adiante pelos redirecionamentos
+    // internos do app (dashboard.html, admin.html, ...), que navegam via
+    // window.location.href sem preservar query string. Sem persistir aqui, só
+    // a primeira página ficava no Emulator e as seguintes caíam de volta pro
+    // Firebase real — perigoso justamente no cenário que essa flag existe pra
+    // evitar (testar local achando que está isolado e na real não estar).
+    if (useEmulators) {
+        localStorage.setItem("videUseEmulator", "true");
+    }
+    return useEmulators;
+}
+
+if (shouldUseVideEmulators() && !window.__videCoreEmulatorsConnected) {
+    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+    connectStorageEmulator(storage, "127.0.0.1", 9199);
+    window.__videCoreEmulatorsConnected = true;
+    console.warn("[Vide Hub] Conectado aos Firebase Emulators (Auth/Firestore/Storage) — dados locais, não é produção.");
+}
+
+export { app, db, auth, storage, firebaseConfig, shouldUseVideEmulators };
