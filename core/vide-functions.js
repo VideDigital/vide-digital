@@ -1,4 +1,4 @@
-import { app } from "../firebase-init.js";
+import { app, shouldUseVideEmulators } from "../firebase-init.js";
 import {
     connectFunctionsEmulator,
     getFunctions,
@@ -8,14 +8,7 @@ import {
 const REGION = "southamerica-east1";
 const functionsInstance = getFunctions(app, REGION);
 
-function shouldUseEmulator() {
-    const params = new URLSearchParams(window.location.search);
-    const explicit = params.get("useEmulator") === "true" || localStorage.getItem("videUseEmulator") === "true";
-    const safeHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-    return explicit && safeHost;
-}
-
-if (shouldUseEmulator() && !window.__videFunctionsEmulatorConnected) {
+if (shouldUseVideEmulators() && !window.__videFunctionsEmulatorConnected) {
     connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
     window.__videFunctionsEmulatorConnected = true;
 }

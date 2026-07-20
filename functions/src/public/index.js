@@ -7,7 +7,7 @@ const { writeAudit } = require("../audit");
 
 const publicOptions = {
   region: "southamerica-east1",
-  enforceAppCheck: true
+  enforceAppCheck: process.env.FUNCTIONS_EMULATOR !== "true"
 };
 
 async function resolvePublicTenant(data) {

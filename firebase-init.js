@@ -1,8 +1,8 @@
 // firebase-init.js
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
-import { getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
-import { getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+import { connectFirestoreEmulator, getFirestore } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { connectAuthEmulator, getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { connectStorageEmulator, getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
 // Dados extraídos diretamente do seu console oficial (vide-digital-saas)
 const firebaseConfig = {
@@ -19,4 +19,21 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-export { app, db, auth, storage, firebaseConfig };
+function shouldUseVideEmulators() {
+    const params = new URLSearchParams(window.location.search);
+    const explicit =
+        window.VIDE_HUB_USE_EMULATORS === true ||
+        params.get("useEmulator") === "true" ||
+        localStorage.getItem("videUseEmulator") === "true";
+    const safeHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
+    return explicit && safeHost;
+}
+
+if (shouldUseVideEmulators() && !window.__videCoreEmulatorsConnected) {
+    connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
+    connectFirestoreEmulator(db, "127.0.0.1", 8080);
+    connectStorageEmulator(storage, "127.0.0.1", 9199);
+    window.__videCoreEmulatorsConnected = true;
+}
+
+export { app, db, auth, storage, firebaseConfig, shouldUseVideEmulators };

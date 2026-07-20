@@ -1,6 +1,5 @@
-import { storage } from "../firebase-init.js";
+import { shouldUseVideEmulators, storage } from "../firebase-init.js";
 import {
-    connectStorageEmulator,
     getDownloadURL,
     ref,
     uploadBytes
@@ -15,18 +14,6 @@ const MAX_BYTES = Object.freeze({
     landingPage: 5 * 1024 * 1024,
     digitalProduct: 50 * 1024 * 1024
 });
-
-function shouldUseEmulator() {
-    const params = new URLSearchParams(window.location.search);
-    const explicit = params.get("useEmulator") === "true" || localStorage.getItem("videUseEmulator") === "true";
-    const safeHost = ["localhost", "127.0.0.1", "::1"].includes(window.location.hostname);
-    return explicit && safeHost;
-}
-
-if (shouldUseEmulator() && !window.__videStorageEmulatorConnected) {
-    connectStorageEmulator(storage, "127.0.0.1", 9199);
-    window.__videStorageEmulatorConnected = true;
-}
 
 function safeSegment(value) {
     return String(value || "").trim().replace(/[^a-zA-Z0-9._-]/g, "-").slice(0, 120);
