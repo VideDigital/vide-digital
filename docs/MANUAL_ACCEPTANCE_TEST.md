@@ -1,144 +1,133 @@
 # Manual Acceptance Test — Vide Hub V1
 
-Este roteiro é para validação local/staging. Não use credenciais reais de produção.
+Roteiro para validação local com Firebase Emulator. Não use projeto, credenciais ou dados reais de produção.
 
-## 1. Instalar
+## 1. Pré-requisitos
 
-1. Abra o repositório.
-2. Execute `npm install`.
-3. Execute `cd functions`.
-4. Execute `npm install`.
-5. Volte para a raiz do projeto.
+- Node.js 20 ou superior.
+- Java 11 ou superior. Nos testes desta fase foi usado Java 17 portátil.
+- pnpm 11.9.0 ou compatível.
 
-## 2. Iniciar Emulator
+Se o terminal não encontrar `node`, adicione o diretório do Node ao `PATH` da sessão antes de rodar os comandos.
 
-1. Execute `npm run emulators`.
-2. Abra a Emulator UI em `http://127.0.0.1:4000`.
-3. Use o projectId local `demo-vide-hub`.
-4. Não conecte ao projeto Firebase real.
+## 2. Instalação
 
-## 3. Abrir o sistema local
+Na raiz do repositório:
 
-1. Inicie um servidor estático local para os arquivos HTML.
-2. Abra `login.html?useEmulator=true`.
-3. Para usar Functions Emulator, mantenha `useEmulator=true` ou defina `localStorage.videUseEmulator = "true"` em localhost.
+```bash
+pnpm install
+```
 
-## 4. Contas de teste locais
+O projeto usa workspace pnpm para instalar também `functions/`.
 
-Crie no Authentication Emulator:
+## 3. Testes automatizados
 
-- owner aprovado;
-- owner pendente;
-- funcionário leitura;
-- funcionário edição;
-- funcionário inativo;
-- admin com custom claim `videAdmin: true`.
+Execute:
 
-## 5. Owner
+```bash
+pnpm run check
+pnpm run test:rules
+pnpm run test:functions
+pnpm run test:frontend:emulator
+pnpm run test:all
+```
 
-1. Criar owner pelo cadastro.
-2. Confirmar que nasce como `status: pendente`.
-3. Aprovar localmente via admin/seed.
-4. Fazer login.
-5. Confirmar Dashboard, Produtos, Pedidos, CRM e Configurações.
-6. Tentar alterar plano/status via UI normal: não deve existir fluxo de autoelevação.
+`test:all` executa checagem de sintaxe, Firestore Rules, Storage Rules, Functions unitárias e smoke do frontend com Auth/Firestore/Functions Emulator.
 
-## 6. Funcionários
+## 4. Iniciar Emulator para teste manual
 
-1. Como owner, criar funcionário.
-2. Confirmar documento `funcionarios/{uid}` com `donoUID` correto.
-3. Criar perfil read-only.
-4. Confirmar que read-only vê módulos permitidos e não grava.
-5. Criar perfil com edição.
-6. Confirmar gravação apenas nos módulos permitidos.
-7. Desativar funcionário.
-8. Confirmar que o login/uso é bloqueado.
+```bash
+pnpm run emulators
+```
 
-## 7. Admin
+Portas:
 
-1. Entrar como usuário com claim `videAdmin: true`.
-2. Aprovar, rejeitar e suspender owner local.
-3. Alterar plano e features.
-4. Sincronizar membro de equipe admin.
-5. Confirmar que membro sem claim não tem privilégio backend.
+- Emulator UI: `http://127.0.0.1:4000`
+- Auth: `127.0.0.1:9099`
+- Firestore: `127.0.0.1:8080`
+- Functions: `127.0.0.1:5001`
+- Storage: `127.0.0.1:9199`
+- Project ID local: `demo-vide-hub`
 
-## 8. Master Mode
+## 5. Popular dados locais
 
-1. Entrar como admin.
-2. Abrir `dashboard.html?masterUID={uidOwner}`.
-3. Confirmar banner/estado visual de Master Mode.
-4. Confirmar que `authUid` segue admin e `ownerUid/effectiveUid` vira loja alvo.
-5. Sair do Master Mode e recarregar.
+Com os Emulators Auth e Firestore ativos:
 
-## 9. Produtos e pedidos
+```bash
+pnpm run seed:emulator
+```
 
-1. Criar produto.
-2. Publicar/rascunhar.
-3. Excluir produto de teste.
-4. Criar pedido manual.
-5. Mover status.
-6. Excluir pedido de teste.
+O seed recusa execução fora de localhost e usa somente `demo-vide-hub`.
 
-## 10. CRM e Leads
+Contas locais:
 
-1. Abrir Leads.
-2. Abrir detalhe de lead.
-3. Editar anotação, status, follow-up e responsável.
-4. Confirmar ausência de overlays invisíveis.
-5. Repetir troca de abas 20 vezes.
+- `owner.pending@local.test` / `Local123!pending`
+- `owner.basic@local.test` / `Local123!basic`
+- `owner.pro@local.test` / `Local123!pro`
+- `employee.read@local.test` / `Local123!read`
+- `employee.edit@local.test` / `Local123!edit`
+- `employee.inactive@local.test` / `Local123!inactive`
+- `admin.claim@local.test` / `Local123!admin`
+- `admin.doc.only@local.test` / `Local123!doc`
 
-## 11. Loja pública
+## 6. Abrir o frontend local
 
-1. Abrir `loja.html?loja={slug}&useEmulator=true`.
-2. Confirmar produtos.
-3. Clicar em oferta.
-4. Confirmar lead criado via `createPublicLead`.
-5. Confirmar métrica via `incrementPublicMetric`.
-6. Testar popup.
-7. Testar chat público.
-8. Confirmar que sender público é sempre `cliente`.
+Sirva os arquivos HTML por um servidor estático local e abra com flag explícita:
 
-## 12. Landing Pages e Studio
+```text
+http://127.0.0.1:8000/login.html?useEmulator=true
+```
 
-1. Criar Landing Page.
-2. Abrir Studio.
-3. Adicionar blocos.
-4. Salvar.
-5. Publicar.
-6. Abrir renderer público.
-7. Enviar formulário.
-8. Confirmar lead via Function.
+Também é possível habilitar por console em localhost:
 
-## 13. Notificações
+```js
+localStorage.setItem("videUseEmulator", "true")
+```
 
-1. Enviar notificação como admin.
-2. Ler como usuário de destino.
-3. Confirmar que usuário não altera conteúdo.
-4. Registrar qualquer falha do modelo `lidoPor`; ele está listado como limitação conhecida.
+O app só conecta aos Emulators em host seguro (`localhost`, `127.0.0.1` ou `::1`) e com flag explícita.
 
-## 14. Erros esperados
+## 7. Fluxos manuais mínimos
 
-- Sem Functions Emulator, chamadas sensíveis retornam erro.
-- Sem App Check em produção, endpoints públicos não devem ser publicados.
-- Sem custom claim, admin backend deve falhar fechado.
+Owner:
 
-## 15. Como registrar bug
+1. Entrar como `owner.pro@local.test`.
+2. Confirmar Dashboard, Produtos, Pedidos, Leads e Configurações.
+3. Criar/editar produto.
+4. Criar funcionário pela UI e confirmar chamada de Function.
 
-Registre:
+Funcionários:
 
-- URL;
-- conta/perfil usado;
-- passos;
-- resultado esperado;
-- resultado obtido;
-- print;
-- erro do console;
-- horário.
+1. Entrar como `employee.read@local.test` e confirmar leitura sem escrita.
+2. Entrar como `employee.edit@local.test` e confirmar escrita em módulos permitidos.
+3. Entrar como `employee.inactive@local.test` e confirmar bloqueio.
 
-## 16. Parar Emulator
+Admin:
 
-Use `Ctrl+C` no terminal.
+1. Entrar como `admin.claim@local.test`.
+2. Confirmar acesso admin.
+3. Entrar como `admin.doc.only@local.test` e confirmar que documento em `equipe_admin` sem claim não concede privilégio backend.
 
-## 17. Limpar apenas dados locais
+Loja pública:
 
-Use a Emulator UI ou reinicie os emuladores sem export/import. Não rode comandos contra produção.
+1. Abrir `loja.html?loja=loja-pro-local&useEmulator=true`.
+2. Confirmar vitrine/produtos.
+3. Clicar oferta e confirmar métrica/lead via Functions.
+4. Testar chat público.
+
+Landing Page:
+
+1. Abrir fluxo de Landing Pages.
+2. Enviar formulário público com `useEmulator=true`.
+3. Confirmar lead criado via `createPublicLead`.
+
+Master Mode:
+
+1. Testar apenas com admin com claim.
+2. Confirmar que query string/localStorage não concede acesso backend por si só.
+3. Sair do Master Mode e recarregar.
+
+## 8. Reset local
+
+Pare os Emulators com `Ctrl+C`. Dados locais sem export/import são descartados ao reiniciar.
+
+Não execute `firebase deploy` neste fluxo.

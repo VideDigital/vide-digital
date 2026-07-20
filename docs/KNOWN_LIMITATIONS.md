@@ -2,8 +2,9 @@
 
 ## P1
 
-- Firebase CLI/Emulator precisam ser instalados localmente para executar a suíte completa.
-- App Check está configurado nas Functions públicas, mas precisa configuração real no Firebase antes de staging/produção.
+- O ambiente de produção/staging ainda precisa configurar App Check real antes de publicar Functions públicas.
+- Functions declaram runtime Node 20; neste ambiente Codex só havia Node 24 no host. O Emulator carregou as Functions com warning, mas staging deve validar Node 20 real.
+- Google Login com popup real ainda precisa teste humano no navegador; o smoke automatizado validou login por e-mail/senha no Auth Emulator.
 
 ## P2
 
@@ -14,5 +15,5 @@
 
 ## P3
 
-- As regras e Functions foram preparadas para testes locais/staging, mas não devem ser chamadas “prontas para produção” antes de validação manual e Emulator real.
-- Algumas mensagens antigas do app aparecem com encoding legado em determinados terminais, sem alteração visual proposital nesta fase.
+- Há warnings esperados do Firebase CLI sem login durante uso de `demo-vide-hub`; os testes não usam projeto real.
+- O Firebase CLI em Node 24 emite warning deprecatório interno sobre `url.parse()`. Não vem do código do Vide Hub.
