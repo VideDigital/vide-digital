@@ -120,7 +120,7 @@ const createPublicLead = onCall(publicOptions, async (request) => {
   return { ok: true, leadId: ref.id };
 });
 
-const METRIC_EVENTS = new Set(["store_session", "store_time", "product_view", "product_click"]);
+const METRIC_EVENTS = new Set(["store_session", "store_time", "product_view", "product_click", "lp_view"]);
 
 const incrementPublicMetric = onCall(publicOptions, async (request) => {
   await assertPublicRateLimit(request, "incrementPublicMetric", RATE_LIMITS.incrementPublicMetric);
@@ -145,6 +145,16 @@ const incrementPublicMetric = onCall(publicOptions, async (request) => {
     await db.doc(`metricas_vitrines/${tenant.ownerUid}`).set({
       totalTempoTela: FieldValue.increment(seconds),
       [`porDia.${today}.tempo`]: FieldValue.increment(seconds)
+    }, { merge: true });
+  }
+
+  if (event === "lp_view") {
+    if (tenant.sourceType !== "landing-page") {
+      throw new HttpsError("failed-precondition", "Evento válido apenas para Landing Pages.");
+    }
+    await db.doc(`metricas_landing_pages/${tenant.publicPageId}`).set({
+      totalVisualizacoes: FieldValue.increment(1),
+      [`porDia.${today}.visualizacoes`]: FieldValue.increment(1)
     }, { merge: true });
   }
 

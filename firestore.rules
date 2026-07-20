@@ -457,6 +457,13 @@ service cloud.firestore {
       allow create, update, delete: if false;
     }
 
+    match /metricas_landing_pages/{id} {
+      allow read: if exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
+        && canViewTenant(get(/databases/$(database)/documents/landing_pages_publicas/$(id)).data.donoUID, "metricas");
+      // Incrementos só pela Cloud Function incrementPublicMetric (Admin SDK, rate limit).
+      allow create, update, delete: if false;
+    }
+
     match /chats/{chatId} {
       allow read: if signedIn()
         && (

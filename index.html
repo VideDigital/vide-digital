@@ -45,6 +45,7 @@
     const firebaseInit = await import(base + "firebase-init.js");
     const { doc, getDoc, getDocs, setDoc, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const { VideFunctions } = await import(base + "core/vide-functions.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
 
@@ -179,6 +180,11 @@ executarScriptsEmElemento(container);
             document.title = meta.titulo || "Vide Hub";
             container.className = "min-h-screen";
             container.innerHTML = "";
+            // Só conta visita de página publicada de verdade (não a prévia do
+            // dono) -- silencioso: uma métrica que falha não pode quebrar a
+            // visita real de ninguém.
+            VideFunctions.incrementPublicMetric({ publicPageId: docId, event: "lp_view" })
+                .catch((err) => console.warn("Métrica de visita não registrada:", err?.message || err));
 await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", meta.ordemBlocos || [], meta.modoLayout || "empilhado", meta.paginas || []);
         } catch (erro) {
             console.error("Erro ao carregar landing page:", erro);

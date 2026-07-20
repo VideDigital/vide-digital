@@ -3592,6 +3592,21 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                     rascunhosElemento.innerText = rascunhos;
                 }
 
+                // Visualizações reais só existem pra LPs publicadas (o doc de
+                // métrica nasce quando alguém acessa a página no ar). Busca em
+                // paralelo, uma por LP -- se alguma falhar, não trava o card,
+                // só deixa a contagem daquela LP como null (mostra "--").
+                const visualizacoesPorId = {};
+                await Promise.all(lps.filter(lp => lp.publicado).map(async (lp) => {
+                    try {
+                        const docIdMetrica = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
+                        const metricaSnap = await getDoc(doc(db, "metricas_landing_pages", docIdMetrica));
+                        visualizacoesPorId[lp.id] = metricaSnap.exists() ? (metricaSnap.data().totalVisualizacoes || 0) : 0;
+                    } catch (err) {
+                        visualizacoesPorId[lp.id] = null;
+                    }
+                }));
+
                 if (lps.length === 0) {
                     grid.innerHTML = `
                         <div class="aura-lp-empty">
@@ -3640,6 +3655,13 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         Array.isArray(lp.ordemBlocos)
                             ? lp.ordemBlocos.length
                             : 0;
+
+                    const visualizacoes = visualizacoesPorId[lp.id];
+                    const textoVisualizacoes = !lp.publicado
+                        ? "Ainda não publicada"
+                        : visualizacoes === null
+                            ? "Visitas indisponíveis"
+                            : `${visualizacoes} ${visualizacoes === 1 ? "visualização" : "visualizações"}`;
 
                     return `
                         <div class="glass-card aura-lp-card ${lp.publicado ? "is-published" : "is-draft"}">
@@ -3709,6 +3731,17 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                     </svg>
 
                                     ${quantidadeBlocos} bloco(s)
+
+                                </span>
+
+                                <span class="aura-lp-card-views" title="Visitas reais na página publicada">
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+
+                                    ${textoVisualizacoes}
 
                                 </span>
 
