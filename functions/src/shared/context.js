@@ -15,7 +15,9 @@ function requireAuth(request) {
 
 function isBackendAdmin(auth) {
   return auth?.token?.videAdmin === true
-    || (SUPER_ADMIN_EMAIL && normalizeEmail(auth?.token?.email) === SUPER_ADMIN_EMAIL);
+    || (SUPER_ADMIN_EMAIL
+      && auth?.token?.email_verified === true
+      && normalizeEmail(auth?.token?.email) === SUPER_ADMIN_EMAIL);
 }
 
 async function loadOwner(ownerUid) {
