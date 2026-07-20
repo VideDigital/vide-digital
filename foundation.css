@@ -1,3 +1,6 @@
+/* Fallback caso o Tailwind CDN (cdn.tailwindcss.com) falhe ao carregar: sem isso, elementos com class="hidden" (banners, modais) ficam visíveis por padrão. */
+.hidden { display: none; }
+
 body { font-family: 'Inter', sans-serif; overflow-x: hidden; background-color: var(--sys-fundo, #14132B); }
 h1, h2, h3 { font-family: 'Sora', sans-serif; }
 
