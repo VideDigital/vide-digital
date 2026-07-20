@@ -3819,6 +3819,51 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 `;
             }
         }
+        // Modelos prontos pra começar a Landing Page: só a vitrine (id, nome,
+        // objetivo, cor) fica aqui, pra aparecer no modal de criação sem
+        // precisar carregar o Studio inteiro (~600KB) ainda. Os blocos de
+        // verdade de cada modelo continuam só em studio-library.js (pageKits)
+        // e são inseridos via window.AuraStudioPro.insertPreset(id) depois que
+        // o editor abre — os ids abaixo têm que bater com os de lá.
+        const MODELOS_LP = [
+            { id: "kit-vendas-premium", nome: "Página de vendas", objetivo: "Vender", cor: "#7C3AED" },
+            { id: "kit-lancamento", nome: "Lançamento", objetivo: "Lançar", cor: "#A78BFA" },
+            { id: "kit-evento", nome: "Evento", objetivo: "Inscrever", cor: "#2563EB" },
+            { id: "kit-servicos", nome: "Serviços", objetivo: "Apresentar", cor: "#10B981" },
+            { id: "kit-institucional", nome: "Institucional", objetivo: "Construir marca", cor: "#E5E7EB" },
+            { id: "kit-catalogo", nome: "Catálogo de produtos", objetivo: "Vender", cor: "#E11D48" },
+            { id: "kit-lead", nome: "Captação de leads", objetivo: "Captar", cor: "#D97706" },
+            { id: "kit-whatsapp", nome: "Atendimento no WhatsApp", objetivo: "Atender", cor: "#22C55E" }
+        ];
+        let lpModeloEscolhido = null;
+
+        function renderizarModelosLP() {
+            const grid = document.getElementById("lp-modelos-grid");
+            if (!grid) return;
+            const cartaoEmBranco = `
+                <button type="button" class="aura-lp-modelo-card is-active" data-modelo-id="" onclick="selecionarModeloLP('')">
+                    <span class="aura-lp-modelo-dot" style="background:var(--aura-text-muted)">✎</span>
+                    <strong>Em branco</strong>
+                    <small>Comece do zero</small>
+                </button>
+            `;
+            const cartoesModelos = MODELOS_LP.map((modelo) => `
+                <button type="button" class="aura-lp-modelo-card" data-modelo-id="${modelo.id}" onclick="selecionarModeloLP('${modelo.id}')">
+                    <span class="aura-lp-modelo-dot" style="background:${modelo.cor}"></span>
+                    <strong>${modelo.nome}</strong>
+                    <small>${modelo.objetivo}</small>
+                </button>
+            `).join("");
+            grid.innerHTML = cartaoEmBranco + cartoesModelos;
+        }
+
+        window.selecionarModeloLP = function(id) {
+            lpModeloEscolhido = id || null;
+            document.querySelectorAll(".aura-lp-modelo-card").forEach((card) => {
+                card.classList.toggle("is-active", card.dataset.modeloId === (id || ""));
+            });
+        };
+
         window.abrirModalLP = function() {
             document.getElementById("lp-modal-titulo").innerText =
                 "Nova Landing Page";
@@ -3826,6 +3871,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lp-id-edicao").value = "";
             document.getElementById("lp-titulo").value = "";
             document.getElementById("lp-slug").value = "";
+            lpModeloEscolhido = null;
+            renderizarModelosLP();
 
             document
                 .getElementById("lp-modal")
@@ -5680,22 +5727,42 @@ window.abrirPreviewEditorLP = async function() {
                     if (!exigirEdicaoModulo("landing-pages")) return;
 
                     const novoId = `lp_${Date.now()}`;
-                    const bloco1Id = `lpb_${Date.now()}_1`;
-                    const bloco2Id = `lpb_${Date.now()}_2`;
-                    await setDoc(doc(db, "landing_pages", novoId), {
-                        donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
-                        ordemBlocos: [bloco1Id, bloco2Id],
-                        criadoEm: Date.now(), atualizadoEm: Date.now()
-                    });
-                    await setDoc(doc(db, "landing_pages_blocos", bloco1Id), {
-                        lpId: novoId, donoUID: usuarioUID, tipo: "texto_midia", visivel: true,
-                        props: { titulo: "Seu titulo aqui", subtitulo: "Sua descricao aqui", botaoTexto: "Quero comecar", botaoLink: "#", posicaoImagem: "direita" }
-                    });
-                    await setDoc(doc(db, "landing_pages_blocos", bloco2Id), {
-                        lpId: novoId, donoUID: usuarioUID, tipo: "formulario_captura", visivel: true,
-                        props: { titulo: "Garanta sua vaga", campos: ["nome", "whatsapp"], textoBotao: "Enviar" }
-                    });
+                    const modeloEscolhido = lpModeloEscolhido;
+
+                    if (modeloEscolhido) {
+                        // Modelo pronto: a página nasce sem blocos aqui. Os blocos
+                        // de verdade só existem depois que o editor carrega (studio-library.js),
+                        // então em vez de duplicar aquele conteúdo, abrimos o editor
+                        // dessa LP recém-criada e inserimos o modelo por lá.
+                        await setDoc(doc(db, "landing_pages", novoId), {
+                            donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
+                            ordemBlocos: [],
+                            criadoEm: Date.now(), atualizadoEm: Date.now()
+                        });
+                    } else {
+                        const bloco1Id = `lpb_${Date.now()}_1`;
+                        const bloco2Id = `lpb_${Date.now()}_2`;
+                        await setDoc(doc(db, "landing_pages", novoId), {
+                            donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
+                            ordemBlocos: [bloco1Id, bloco2Id],
+                            criadoEm: Date.now(), atualizadoEm: Date.now()
+                        });
+                        await setDoc(doc(db, "landing_pages_blocos", bloco1Id), {
+                            lpId: novoId, donoUID: usuarioUID, tipo: "texto_midia", visivel: true,
+                            props: { titulo: "Seu titulo aqui", subtitulo: "Sua descricao aqui", botaoTexto: "Quero comecar", botaoLink: "#", posicaoImagem: "direita" }
+                        });
+                        await setDoc(doc(db, "landing_pages_blocos", bloco2Id), {
+                            lpId: novoId, donoUID: usuarioUID, tipo: "formulario_captura", visivel: true,
+                            props: { titulo: "Garanta sua vaga", campos: ["nome", "whatsapp"], textoBotao: "Enviar" }
+                        });
+                    }
                     showToast("Landing Page criada! Ja da pra publicar.");
+                    fecharModalLP();
+                    carregarLandingPages();
+                    if (modeloEscolhido) {
+                        await aplicarModeloNaLP(novoId, modeloEscolhido);
+                    }
+                    return;
                 }
                 fecharModalLP();
                 carregarLandingPages();
@@ -5704,6 +5771,25 @@ window.abrirPreviewEditorLP = async function() {
                 showToast("Erro ao salvar: " + err.message, "error");
             }
         };
+
+        async function aplicarModeloNaLP(id, modeloId) {
+            try {
+                await editarLP(id);
+                if (typeof window.carregarEditorLandingPages === "function") {
+                    await window.carregarEditorLandingPages();
+                }
+                const antes = lpEditorBlocos.length;
+                window.AuraStudioPro?.insertPreset?.(modeloId);
+                if (lpEditorBlocos.length === antes) {
+                    showToast("Não consegui aplicar o modelo, mas a página foi criada em branco.", "error");
+                    return;
+                }
+                await salvarEditorLP();
+            } catch (err) {
+                console.error("[LP] falha ao aplicar modelo:", err);
+                showToast("Não consegui aplicar o modelo, mas a página foi criada em branco.", "error");
+            }
+        }
         window.alternarPublicacaoLP = async function(id, publicarAgora) {
             if (!exigirEdicaoModulo("landing-pages")) return;
 
