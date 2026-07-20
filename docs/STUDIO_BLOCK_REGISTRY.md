@@ -99,13 +99,15 @@ Nenhum bloco salvo precisa ser migrado automaticamente nesta fase.
 
 ## Renderers
 
-Importante: "registro canônico" não significa "renderer canônico ativo".
+Importante: "registro canônico" não significa migração automática do renderer público.
 
-Os blocos de sistema cadastrados nesta fase usam `renderer` em formato string, por exemplo `legacy:renderTextMedia`. Essas strings são referências descritivas para mapear o renderer legado correspondente.
+A Fase 2 instala funções reais para `texto_midia`, `faq`, `lista_cards`, `galeria_imagens`, `formulario_captura` e `rodape` por meio de `studio-canonical-renderers-v1.js`. Esses renderers validam catálogo, defaults, schema e preview na Library V2.
 
-`BlockRegistry.render()` não executa essas strings. O método só executa `renderer` quando ele é uma função real. Portanto, para os blocos atuais, o caminho funcional continua sendo o renderer legado.
+Os demais blocos de sistema continuam usando `renderer` em formato string, por exemplo `legacy:renderComparison`. Essas strings permanecem referências descritivas para mapear o renderer legado correspondente.
 
-A migração de renderers para funções reais ainda não foi realizada. Isso é um bloqueador para usar o registry como fonte real da biblioteca visual em uma próxima fase.
+`BlockRegistry.render()` executa apenas funções. Se uma função canônica falhar, lançar exceção ou retornar `null`/`undefined`, o fallback legado fornecido é chamado e um warning `renderer-failed` fica disponível para diagnóstico.
+
+A renderização pública efetiva não foi migrada. O conjunto inicial de funções canônicas é usado pela Library V2 e prepara uma migração posterior controlada.
 
 ## Renderização pública
 
@@ -164,23 +166,23 @@ Ela cobre:
 - adaptador de presets;
 - compatibilidade com bibliotecas ativas do Studio.
 
-## Limitações desta fase
+## Estado após a Fase 2
 
 - O Inspector ainda não é gerado a partir do schema canônico.
-- A biblioteca visual ainda usa os módulos ativos existentes.
-- Os renderers canônicos ainda não foram migrados para funções reais.
-- As referências `legacy:*` são apenas metadados descritivos.
-- Usar o registro como fonte real da biblioteca visual depende de migrar ou adaptar os renderers.
+- A Library V2 usa o registro como fonte principal do catálogo e adapta os presets ativos para inserção.
+- Seis tipos possuem renderer e preview canônicos reais.
+- Os outros dez tipos de sistema ainda usam referências `legacy:*` descritivas.
+- A inserção continua passando pelo mecanismo funcional existente para preservar o contrato salvo.
 - O renderer público efetivo ainda está em `index.html`; a unificação com `lp-public-v4.js` fica para fase posterior.
 - A expansão massiva de blocos profissionais fica para fases futuras.
 - Nenhum contrato de Firebase, publicação ou autenticação foi alterado.
 
 ## Próximas fases sugeridas
 
-1. Migrar ou adaptar renderers `legacy:*` para funções reais e testáveis.
-2. Usar o registro como fonte primária da biblioteca visual somente depois da migração dos renderers.
-3. Gerar controles do Inspector a partir de `schema`.
-4. Unificar o renderer público efetivo entre `index.html` e `lp-public-v4.js`.
-5. Adicionar migração assistida por versão para blocos salvos.
-6. Expandir a biblioteca profissional por categorias.
-7. Criar testes visuais e de aceitação para o editor completo.
+1. Migrar os renderers `legacy:*` restantes em lotes pequenos e testáveis.
+2. Gerar controles do Inspector a partir de `schema`.
+3. Unificar o renderer público efetivo entre `index.html` e `lp-public-v4.js`.
+4. Adicionar migração assistida por versão para blocos salvos.
+5. Expandir blocos, presets e variações profissionais por categoria.
+6. Evoluir favoritos/recents locais para preferências sincronizadas somente em fase autorizada.
+7. Ampliar testes visuais e de aceitação do editor completo.
