@@ -90,6 +90,31 @@
     letter-spacing: 0 !important;
   }
 
+  /* Seletor de celular/tablet/PC: continua com a mesma função (pré-visualizar
+     antes de publicar), só fica visualmente mais leve — sem vidro/sombra
+     pesados, ícones um pouco menores — pra não competir tanto com o resto
+     da topbar. */
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-device-group {
+    padding: 3px !important;
+    gap: 2px !important;
+    border-color: transparent !important;
+    background: rgba(255, 255, 255, .04) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-device-group button {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-device-group svg {
+    width: 14px !important;
+    height: 14px !important;
+  }
+
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] #lped-titulo {
     font-size: 14px !important;
     font-weight: 750 !important;
