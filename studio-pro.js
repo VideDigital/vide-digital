@@ -439,6 +439,7 @@
     const libraryButton = document.createElement("button");
     libraryButton.type = "button";
     libraryButton.className = "aura-studio-top-command";
+    libraryButton.dataset.studioLibraryOpen = "true";
     libraryButton.title = "Biblioteca Pro (B)";
     libraryButton.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
