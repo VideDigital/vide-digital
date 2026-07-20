@@ -3,7 +3,15 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { publicText, normalizeEmail, normalizePhone, normalizeString } = require("../shared/validators");
+const { assertPublicRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
+
+const RATE_LIMITS = Object.freeze({
+  createPublicLead: 5,
+  incrementPublicMetric: 60,
+  createPublicChat: 5,
+  sendPublicChatMessage: 20
+});
 
 const publicOptions = {
   region: "southamerica-east1",
@@ -97,6 +105,7 @@ function leadPayload(data, tenant) {
 }
 
 const createPublicLead = onCall(publicOptions, async (request) => {
+  await assertPublicRateLimit(request, "createPublicLead", RATE_LIMITS.createPublicLead);
   const tenant = await resolvePublicTenant(request.data || {});
   const payload = leadPayload(request.data || {}, tenant);
   const ref = await getFirestore().collection("leads").add(payload);
@@ -114,6 +123,7 @@ const createPublicLead = onCall(publicOptions, async (request) => {
 const METRIC_EVENTS = new Set(["store_session", "store_time", "product_view", "product_click"]);
 
 const incrementPublicMetric = onCall(publicOptions, async (request) => {
+  await assertPublicRateLimit(request, "incrementPublicMetric", RATE_LIMITS.incrementPublicMetric);
   const data = request.data || {};
   const event = normalizeString(data.event, 40);
   if (!METRIC_EVENTS.has(event)) {
@@ -163,6 +173,7 @@ const incrementPublicMetric = onCall(publicOptions, async (request) => {
 });
 
 const createPublicChat = onCall(publicOptions, async (request) => {
+  await assertPublicRateLimit(request, "createPublicChat", RATE_LIMITS.createPublicChat);
   const tenant = await resolvePublicTenant(request.data || {});
   const clienteNome = publicText(request.data?.clienteNome || request.data?.nome, 120);
   if (!clienteNome) throw new HttpsError("invalid-argument", "Nome do cliente obrigatório.");
@@ -180,6 +191,7 @@ const createPublicChat = onCall(publicOptions, async (request) => {
 });
 
 const sendPublicChatMessage = onCall(publicOptions, async (request) => {
+  await assertPublicRateLimit(request, "sendPublicChatMessage", RATE_LIMITS.sendPublicChatMessage);
   const chatId = normalizeString(request.data?.chatId, 180);
   const texto = publicText(request.data?.texto, 1000);
   if (!chatId || !texto) throw new HttpsError("invalid-argument", "Chat e mensagem são obrigatórios.");

@@ -73,6 +73,29 @@ const sendPublicChatMessage = httpsCallable(functions, "sendPublicChatMessage");
 const messageResult = await sendPublicChatMessage({ chatId: chatResult.data.chatId, texto: "Mensagem smoke" });
 assert.equal(messageResult.data.ok, true);
 
+// createPublicLead permite 5 chamadas/minuto por IP; a chamada de smoke
+// acima já consumiu 1. Mais 4 devem passar (completando o limite) e a 6ª
+// chamada no total deve ser recusada com resource-exhausted.
+for (let i = 0; i < 4; i += 1) {
+  const extra = await createPublicLead({
+    storeSlug: "loja-pro-local",
+    nome: `Lead Smoke ${i}`,
+    email: `lead.smoke.${i}@local.test`
+  });
+  assert.equal(extra.data.ok, true);
+}
+
+let rateLimited = false;
+try {
+  await createPublicLead({ storeSlug: "loja-pro-local", nome: "Lead Smoke Excedente", email: "lead.excedente@local.test" });
+} catch (error) {
+  rateLimited = true;
+  assert.equal(error.code, "functions/resource-exhausted", `esperava resource-exhausted, recebeu ${error.code}`);
+}
+assert.equal(rateLimited, true, "createPublicLead deveria recusar a 6ª chamada no mesmo minuto");
+
+console.log("Rate limit de createPublicLead validado (5/min por IP).");
+
 console.log("Frontend emulator smoke concluído.");
 await signOut(auth);
 process.exit(0);
