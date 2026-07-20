@@ -141,6 +141,25 @@ test("landing editor shell closes nested surfaces before closing the editor", ()
   assert.match(dashboardApp, /blocosSelecionadosLivre\.clear\(\)/);
 });
 
+test("landing editor shell closes the Studio Pro audit and command surfaces before closing the editor", () => {
+  // Auditoria e o Comando (paleta de ações) são injetados pelo studio-pro.js,
+  // carregado sob demanda — dashboard-app.js não conhece suas funções de
+  // fechar, só a classe "hidden". Sem checar esse estado antes do fallback,
+  // Esc fechava o editor inteiro junto com o painel de auditoria aberto,
+  // porque nenhuma das superfícies conhecidas (acima) estava aberta.
+  const closesNestedSection = dashboardApp.slice(
+    dashboardApp.indexOf("function lidarComEscapeShellEditorLP"),
+    dashboardApp.indexOf("function abrirShellEditorLP")
+  );
+  assert.match(closesNestedSection, /aura-studio-audit/);
+  assert.match(closesNestedSection, /aura-studio-command/);
+  const auditIndex = closesNestedSection.indexOf("aura-studio-audit");
+  const commandIndex = closesNestedSection.indexOf("aura-studio-command");
+  const fallbackIndex = closesNestedSection.indexOf('fecharShellEditorLP("escape")');
+  assert.ok(auditIndex > -1 && auditIndex < fallbackIndex, "checagem da auditoria deve vir antes do fallback que fecha o editor inteiro");
+  assert.ok(commandIndex > -1 && commandIndex < fallbackIndex, "checagem do comando deve vir antes do fallback que fecha o editor inteiro");
+});
+
 test("landing editor shell markup exposes an accessible close control", () => {
   assert.match(dashboardHtml, /id="lp-editor-modal"[^>]*role="dialog"[^>]*aria-modal="true"[^>]*aria-hidden="true"/);
   assert.match(dashboardHtml, /data-lp-editor-shell/);

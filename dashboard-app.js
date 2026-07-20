@@ -3891,6 +3891,23 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 return;
             }
 
+            // Auditoria e Comando são superfícies do Aura Studio Pro (carregado
+            // sob demanda), então este arquivo não conhece suas funções de
+            // fechar — só o estado visível (classe "hidden"). Sem isto, Esc
+            // não achava nenhuma superfície conhecida aberta e fechava o
+            // editor inteiro junto com o painel.
+            const painelAuditoria = document.querySelector(".aura-studio-audit");
+            if (painelAuditoria && !painelAuditoria.classList.contains("hidden")) {
+                painelAuditoria.classList.add("hidden");
+                return;
+            }
+
+            const painelComando = document.getElementById("aura-studio-command");
+            if (painelComando && !painelComando.classList.contains("hidden")) {
+                painelComando.classList.add("hidden");
+                return;
+            }
+
             const menuContexto = document.getElementById("lped-menu-contexto");
             if (menuContexto && !menuContexto.classList.contains("hidden")) {
                 fecharMenuContexto();
