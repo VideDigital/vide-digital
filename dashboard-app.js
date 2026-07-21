@@ -208,13 +208,20 @@ dicas: ["Dê só as permissões que a pessoa realmente precisa pro trabalho dela
 { chave: "lp", icone: "🖥️", titulo: "Landing Pages",
 acessar: "Aba \"Landing Pages\", no menu lateral.",
 usar: ["Clique em \"+ Nova LP\" pra criar uma pagina com titulo e endereco proprios.", "Publique quando estiver pronta pra gerar o link de verdade, ou deixe como rascunho enquanto ajusta."],
-dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas com foco unico convertem mais que a loja inteira."] }
+dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas com foco unico convertem mais que a loja inteira."] },
+{ chave: "avaliacoes", titulo: "Avaliações de Clientes", disponivelSempre: true,
+acessar: "Na loja pública cada produto tem o botão \"Avaliar produto\". As avaliações chegam na aba \"Avaliações\" do painel.",
+usar: ["O cliente dá uma nota de 1 a 5 estrelas e um comentário.", "Toda avaliação entra como \"nova\" e só aparece na loja depois que você aprova.", "No painel você pode Publicar, Rejeitar ou Ocultar cada avaliação."],
+dicas: ["Publique avaliações boas rápido — prova social recente aumenta muito a confiança de quem está decidindo comprar."] },
+{ chave: "qrcode", titulo: "Compartilhar Loja & QR Code", disponivelSempre: true,
+acessar: "No card \"Status da loja\" (barra lateral), botões \"Copiar link\" e \"QR Code\". Também na Central de módulos.",
+usar: ["\"Copiar link\" copia o endereço da sua loja pra colar em qualquer lugar.", "\"QR Code\" gera um código pronto pra baixar e imprimir."],
+dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cliente aponta a câmera e cai direto na sua loja."] }
 ];
 
         const FEATURES_EM_BREVE_GUIA = [
             { chave: "chatbot", icone: "🤖", titulo: "Chatbot com Fluxo" },
             { chave: "ia", icone: "✨", titulo: "IA no Atendimento" },
-            { chave: "avaliacoes", icone: "⭐", titulo: "Avaliações de Clientes" },
             { chave: "agenda", icone: "📅", titulo: "Agenda de Reservas" },
             { chave: "api", icone: "🔌", titulo: "API Própria" },
             { chave: "relatorios", icone: "📈", titulo: "Relatórios Avançados" },
@@ -364,6 +371,15 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
                     </svg>
                 `,
 
+                qrcode: `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                        <path d="M14 14h3v3M21 21v.01M17 21h.01M21 14v3"></path>
+                    </svg>
+                `,
+
                 api: `
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                         <path d="m8 9-4 3 4 3"></path>
@@ -417,7 +433,7 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
             }
 
             const recursosLiberados =
-                GUIA_CONTEUDO.filter(f => temFeature(f.chave)).length;
+                GUIA_CONTEUDO.filter(f => temFeature(f.chave) || f.disponivelSempre === true).length;
 
             const totalRecursos =
                 GUIA_CONTEUDO.length;
@@ -462,8 +478,11 @@ dicas: ["Use uma Landing Page focada numa unica oferta ou campanha — paginas c
 
                 box.innerHTML = GUIA_CONTEUDO.map(f => {
 
+                    // disponivelSempre: recursos que já foram entregues e
+                    // funcionam para todos os planos (ex.: Avaliações,
+                    // Compartilhar/QR Code), independente da flag do plano.
                     const liberado =
-                        temFeature(f.chave);
+                        temFeature(f.chave) || f.disponivelSempre === true;
 
                     if (!liberado) {
 
