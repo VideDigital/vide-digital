@@ -196,6 +196,7 @@
   color:var(--aura-text-secondary,#a6adbb);
   font-size:13px;
   line-height:1.6;
+  overflow-wrap:anywhere;
 }
 .aura-review-actions{
   display:flex;

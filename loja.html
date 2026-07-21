@@ -824,6 +824,13 @@
             document.getElementById("avaliacao-modal").setAttribute("aria-hidden", "true");
         };
 
+        document.addEventListener("keydown", function(event) {
+            if (event.key === "Escape") {
+                const modal = document.getElementById("avaliacao-modal");
+                if (modal && !modal.classList.contains("hidden")) fecharModalAvaliacao();
+            }
+        });
+
         document.querySelectorAll("#avaliacao-nota .review-rating-button").forEach(function(btn) {
             btn.addEventListener("click", function() {
                 notaAvaliacaoSelecionada = Number(btn.dataset.nota || 0);
@@ -1049,7 +1056,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
                     await registrarMetricaPublica({ event: "store_session" });
 
-                    const qProd = query(collection(db, "produtos"), where("criadoPor", "==", fornecedorEmail));
+                    const qProd = query(
+                        collection(db, "produtos"),
+                        where("criadoPor", "==", fornecedorEmail),
+                        where("statusProduto", "!=", "rascunho")
+                    );
                     const queryProdSnap = await getDocs(qProd);
 
                     todosProdutos = [];
@@ -1164,6 +1175,9 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                         el.innerHTML = '<i data-lucide="eye" style="width:11px;height:11px"></i> ' + total + " visualizac" + (total === 1 ? "ao" : "oes");
                         if (window.lucide) lucide.createIcons();
                     }
+                }).catch(function() {
+                    const el = document.getElementById("views-" + prod.id);
+                    if (el) el.textContent = "Visualizações indisponíveis";
                 });
             });
         }
@@ -1415,7 +1429,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
                 window._campanhaIntervalo = intervalo;
                 sessionStorage.setItem("campanhaVista", "1");
-            } catch(err) { console.error(err); }
+            } catch(err) { /* campanha indisponível para visitante: ignora */ }
         }
 
         window.fecharCampanha = function() {

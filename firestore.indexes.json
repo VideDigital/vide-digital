@@ -7,6 +7,14 @@
         { "fieldPath": "donoUID", "order": "ASCENDING" },
         { "fieldPath": "pagina", "order": "ASCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "produtos",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "criadoPor", "order": "ASCENDING" },
+        { "fieldPath": "statusProduto", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []
