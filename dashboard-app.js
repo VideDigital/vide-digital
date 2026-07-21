@@ -3669,12 +3669,18 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             ? lp.ordemBlocos.length
                             : 0;
 
+                    // Só mostramos a linha de visitas quando ela tem um número
+                    // real: LP publicada E a leitura funcionou. Se a leitura
+                    // falhar (ex.: a Cloud Function / regra de métricas ainda
+                    // não foi publicada no Firebase), `visualizacoes` vem null
+                    // e a linha simplesmente não aparece -- nada de "visitas
+                    // indisponíveis" poluindo o card. Assim que o backend
+                    // estiver no ar, a contagem acende sozinha sem mexer aqui.
                     const visualizacoes = visualizacoesPorId[lp.id];
-                    const textoVisualizacoes = !lp.publicado
-                        ? "Ainda não publicada"
-                        : visualizacoes === null
-                            ? "Visitas indisponíveis"
-                            : `${visualizacoes} ${visualizacoes === 1 ? "visualização" : "visualizações"}`;
+                    const mostrarVisualizacoes = lp.publicado && typeof visualizacoes === "number";
+                    const textoVisualizacoes = mostrarVisualizacoes
+                        ? `${visualizacoes} ${visualizacoes === 1 ? "visualização" : "visualizações"}`
+                        : "";
 
                     return `
                         <div class="glass-card aura-lp-card ${lp.publicado ? "is-published" : "is-draft"}">
@@ -3747,7 +3753,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
 
                                 </span>
 
-                                ${lp.publicado ? `
+                                ${mostrarVisualizacoes ? `
                                 <button type="button" class="aura-lp-card-views" title="Ver tendência de visitas" data-metrica-doc-id="${`${slugAtualSalvo}__${lp.pagina}`.toLowerCase()}" data-lp-titulo="${escaparHtmlChat(lp.titulo || "Landing Page")}" onclick="abrirMetricasLP(this)">
 
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -3758,18 +3764,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                     ${textoVisualizacoes}
 
                                 </button>
-                                ` : `
-                                <span class="aura-lp-card-views" title="Publique a página pra começar a receber visitas">
-
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
-                                        <circle cx="12" cy="12" r="3"></circle>
-                                    </svg>
-
-                                    ${textoVisualizacoes}
-
-                                </span>
-                                `}
+                                ` : ``}
 
                             </div>
 
@@ -7481,7 +7476,17 @@ window.enviarRespostaChatLead = function(event) {
         })
         .catch((err) => {
             console.error(err);
-            showToast("Erro ao enviar resposta: " + err.message, "error");
+            // Enquanto a Cloud Function de resposta não estiver publicada no
+            // Firebase, a chamada falha com not-found/internal. Mostramos um
+            // aviso amigável em vez do erro técnico -- quando o backend for
+            // publicado, o envio passa a funcionar sem mexer aqui.
+            const aindaNaoAtiva = ["not-found", "functions/not-found", "internal", "functions/internal"].includes(err?.code);
+            showToast(
+                aindaNaoAtiva
+                    ? "A resposta pelo painel ainda está sendo ativada. Tente novamente em breve."
+                    : "Não foi possível enviar a resposta agora. Tente de novo.",
+                "error"
+            );
         })
         .finally(() => {
             input.disabled = false;
