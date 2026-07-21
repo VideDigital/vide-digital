@@ -11405,9 +11405,17 @@ window.moderarAvaliacao = async function(id, status) {
     if (!exigirEdicaoModulo("produtos")) return;
     if (!["novo", "publicada", "rejeitada", "arquivada"].includes(status)) return;
     try {
+        // moderadoPor precisa bater com request.auth.uid nas regras. Para o
+        // dono, usuarioUID já é o próprio auth.uid; para um funcionário eles
+        // diferem (usuarioUID é o uid do dono/tenant), então usamos o uid
+        // real da sessão -- o mesmo helper do "lidoPor" das notificações --
+        // o que também deixa a auditoria correta (quem moderou de verdade).
+        const moderadorUid = (typeof obterAuthUidAtual === "function")
+            ? obterAuthUidAtual()
+            : ((auth.currentUser && auth.currentUser.uid) || usuarioUID);
         await setDoc(doc(db, "avaliacoes", id), {
             status,
-            moderadoPor: usuarioUID,
+            moderadoPor: moderadorUid,
             moderadoEm: serverTimestamp()
         }, { merge: true });
         showToast("Avaliação atualizada.");
