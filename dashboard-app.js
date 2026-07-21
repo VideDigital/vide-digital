@@ -21,7 +21,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -34,6 +34,8 @@ window.addEventListener("pageshow", function(event) {
         let limiteRascunhosGlobal = 5;
         let totalRascunhosAtual = 0;
         let verRascunhos = false;
+        let filtroAvaliacoesDashboard = "novo";
+        let cacheAvaliacoesDashboard = [];
         let temFeature = feature => feature === "leads"; // fica atualizado de verdade assim que o plano carrega
 
         const produtosContainer = document.getElementById("produtos-container");
@@ -2184,6 +2186,10 @@ if (targetId === "view-metricas") {
         carregarPedidos();
     }
 
+    if (targetId === "view-avaliacoes") {
+        renderizarAvaliacoes();
+    }
+
     if (targetId === "view-leads") {
         carregarLeads();
     }
@@ -3716,6 +3722,7 @@ if (document.readyState === "loading") {
 
         const PERMISSOES_NAV = {
             "view-produtos": "produtos",
+            "view-avaliacoes": "produtos",
             "view-pedidos": "pedidos",
             "view-leads": "leads",
             "view-automacao-leads": "leads",
@@ -11236,6 +11243,180 @@ window.sincronizarCatalogoAvancado = function() {
     };
     if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",iniciar,{once:true});else iniciar();
 })();
+
+function formatarDataDashboardAvaliacao(valor) {
+    try {
+        const data = valor && typeof valor.toDate === "function" ? valor.toDate() : new Date(valor);
+        if (!data || Number.isNaN(data.getTime())) return "Sem data";
+        return data.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+    } catch (e) {
+        return "Sem data";
+    }
+}
+
+function textoStatusAvaliacao(status) {
+    const mapa = {
+        novo: "Nova",
+        publicada: "Publicada",
+        rejeitada: "Rejeitada",
+        arquivada: "Oculta"
+    };
+    return mapa[status] || "Nova";
+}
+
+function estrelasDashboardAvaliacao(nota) {
+    const total = Math.max(0, Math.min(5, Math.round(Number(nota) || 0)));
+    return Array.from({ length: 5 }).map((_, index) => `
+        <svg viewBox="0 0 24 24" fill="${index < total ? "currentColor" : "none"}" stroke="currentColor">
+            <path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>
+        </svg>
+    `).join("");
+}
+
+function atualizarResumoAvaliacoesDashboard() {
+    const contar = status => cacheAvaliacoesDashboard.filter(item => item.status === status).length;
+    const setText = (id, valor) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = valor;
+    };
+    setText("avaliacoes-kpi-novo", contar("novo"));
+    setText("avaliacoes-kpi-publicada", contar("publicada"));
+    setText("avaliacoes-kpi-rejeitada", contar("rejeitada"));
+}
+
+function desenharAvaliacoesDashboard() {
+    const lista = document.getElementById("avaliacoes-lista");
+    if (!lista) return;
+    atualizarResumoAvaliacoesDashboard();
+
+    document.querySelectorAll("[data-avaliacao-filtro]").forEach(btn => {
+        btn.classList.toggle("is-active", btn.dataset.avaliacaoFiltro === filtroAvaliacoesDashboard);
+    });
+
+    const visiveis = cacheAvaliacoesDashboard.filter(item => {
+        if (filtroAvaliacoesDashboard === "todas") return true;
+        return item.status === filtroAvaliacoesDashboard;
+    });
+
+    lista.textContent = "";
+    if (!visiveis.length) {
+        const vazio = document.createElement("div");
+        vazio.className = "aura-reviews-empty";
+        vazio.textContent = "Nenhuma avaliação encontrada para este filtro.";
+        lista.appendChild(vazio);
+        return;
+    }
+
+    visiveis.forEach(item => {
+        const card = document.createElement("article");
+        card.className = "aura-review-card";
+        const header = document.createElement("div");
+        header.className = "aura-review-card-header";
+
+        const titulo = document.createElement("div");
+        titulo.className = "aura-review-title";
+        const nome = document.createElement("strong");
+        nome.textContent = item.nome || "Cliente";
+        const meta = document.createElement("span");
+        meta.textContent = (item.produtoNome || "Produto") + " · " + formatarDataDashboardAvaliacao(item.data);
+        titulo.append(nome, meta);
+
+        const status = document.createElement("span");
+        status.className = "aura-review-status is-" + (item.status || "novo");
+        status.textContent = textoStatusAvaliacao(item.status);
+        header.append(titulo, status);
+
+        const estrelas = document.createElement("div");
+        estrelas.className = "aura-review-stars";
+        estrelas.innerHTML = estrelasDashboardAvaliacao(item.nota);
+
+        const comentario = document.createElement("p");
+        comentario.className = "aura-review-comment";
+        comentario.textContent = item.comentario || "Cliente não adicionou comentário.";
+
+        const actions = document.createElement("div");
+        actions.className = "aura-review-actions";
+        [
+            ["publicada", "Publicar"],
+            ["rejeitada", "Rejeitar"],
+            ["arquivada", "Ocultar"]
+        ].forEach(([novoStatus, label]) => {
+            if (item.status === novoStatus) return;
+            const btn = document.createElement("button");
+            btn.type = "button";
+            btn.textContent = label;
+            btn.addEventListener("click", () => moderarAvaliacao(item.id, novoStatus));
+            actions.appendChild(btn);
+        });
+
+        card.append(header, estrelas, comentario, actions);
+        lista.appendChild(card);
+    });
+}
+
+window.filtrarAvaliacoesDashboard = function(status) {
+    filtroAvaliacoesDashboard = status || "novo";
+    desenharAvaliacoesDashboard();
+};
+
+window.renderizarAvaliacoes = async function() {
+    const lista = document.getElementById("avaliacoes-lista");
+    if (!lista || !usuarioUID) return;
+    if (!VideHubContext.canView("produtos")) {
+        lista.innerHTML = '<div class="aura-reviews-empty">Você não tem permissão para ver avaliações.</div>';
+        return;
+    }
+
+    lista.innerHTML = '<div class="aura-reviews-empty">Carregando avaliações...</div>';
+    try {
+        const [avaliacoesSnap, produtosSnap] = await Promise.all([
+            getDocs(query(collection(db, "avaliacoes"), where("criadoPor", "==", usuarioUID))),
+            getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)))
+        ]);
+        const produtos = new Map();
+        produtosSnap.forEach(docSnap => produtos.set(docSnap.id, docSnap.data().nome || "Produto"));
+        cacheAvaliacoesDashboard = [];
+        avaliacoesSnap.forEach(docSnap => {
+            const data = docSnap.data();
+            cacheAvaliacoesDashboard.push({
+                id: docSnap.id,
+                produtoId: data.produtoId,
+                produtoNome: produtos.get(data.produtoId) || "Produto removido",
+                nome: data.nome || "Cliente",
+                nota: data.nota || 0,
+                comentario: data.comentario || "",
+                status: data.status || "novo",
+                data: data.data
+            });
+        });
+        cacheAvaliacoesDashboard.sort((a, b) => {
+            const dataA = a.data && typeof a.data.toMillis === "function" ? a.data.toMillis() : 0;
+            const dataB = b.data && typeof b.data.toMillis === "function" ? b.data.toMillis() : 0;
+            return dataB - dataA;
+        });
+        desenharAvaliacoesDashboard();
+    } catch (err) {
+        console.error("Erro ao carregar avaliações:", err);
+        lista.innerHTML = '<div class="aura-reviews-empty">Não foi possível carregar as avaliações.</div>';
+    }
+};
+
+window.moderarAvaliacao = async function(id, status) {
+    if (!exigirEdicaoModulo("produtos")) return;
+    if (!["novo", "publicada", "rejeitada", "arquivada"].includes(status)) return;
+    try {
+        await setDoc(doc(db, "avaliacoes", id), {
+            status,
+            moderadoPor: usuarioUID,
+            moderadoEm: serverTimestamp()
+        }, { merge: true });
+        showToast("Avaliação atualizada.");
+        await window.renderizarAvaliacoes();
+    } catch (err) {
+        console.error("Erro ao moderar avaliação:", err);
+        showToast("Não foi possível moderar esta avaliação.", "error");
+    }
+};
 
         async function carregarProdutos() {
             try {

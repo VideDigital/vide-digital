@@ -224,6 +224,48 @@ service cloud.firestore {
         && (!("status" in request.resource.data) || request.resource.data.status == "novo");
     }
 
+    function produtoPublicadoParaAvaliacao() {
+      return request.resource.data.keys().hasAll(["produtoId", "criadoPor"])
+        && request.resource.data.produtoId is string
+        && exists(/databases/$(database)/documents/produtos/$(request.resource.data.produtoId))
+        && get(/databases/$(database)/documents/produtos/$(request.resource.data.produtoId)).data.statusProduto != "rascunho"
+        && get(/databases/$(database)/documents/produtos/$(request.resource.data.produtoId)).data.criadoPor == request.resource.data.criadoPor;
+    }
+
+    function avaliacaoPublicaValida() {
+      return request.resource.data.keys().hasOnly([
+          "produtoId",
+          "criadoPor",
+          "nome",
+          "nota",
+          "comentario",
+          "status",
+          "data",
+          "lojaSlug"
+        ])
+        && request.resource.data.keys().hasAll(["produtoId", "criadoPor", "nome", "nota", "comentario", "status", "data"])
+        && produtoPublicadoParaAvaliacao()
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() <= 80
+        && request.resource.data.nota is int
+        && request.resource.data.nota >= 1
+        && request.resource.data.nota <= 5
+        && request.resource.data.comentario is string
+        && request.resource.data.comentario.size() <= 1000
+        && request.resource.data.status == "novo"
+        && request.resource.data.data is timestamp
+        && (!("lojaSlug" in request.resource.data) || (request.resource.data.lojaSlug is string && request.resource.data.lojaSlug.size() <= 160));
+    }
+
+    function moderacaoAvaliacaoValida() {
+      return canEditTenant(resource.data.criadoPor, "produtos")
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["status", "moderadoEm", "moderadoPor"])
+        && request.resource.data.status in ["novo", "publicada", "rejeitada", "arquivada"]
+        && (!request.resource.data.keys().hasAny(["moderadoPor"]) || request.resource.data.moderadoPor == request.auth.uid)
+        && (!request.resource.data.keys().hasAny(["moderadoEm"]) || request.resource.data.moderadoEm is timestamp);
+    }
+
     // Chat público (widget da loja). O visitante cria o chat e manda
     // mensagens "cliente" direto; o dono/funcionário responde com "admin".
     // O id do chat é um token aleatório do Firestore, então serve de
@@ -355,6 +397,14 @@ service cloud.firestore {
       allow create: if canEditTenant(request.resource.data.criadoPor, "produtos");
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "produtos");
       allow delete: if canEditTenant(resource.data.criadoPor, "produtos");
+    }
+
+    match /avaliacoes/{id} {
+      allow read: if resource.data.status == "publicada"
+        || canViewTenant(resource.data.criadoPor, "produtos");
+      allow create: if avaliacaoPublicaValida();
+      allow update: if moderacaoAvaliacaoValida();
+      allow delete: if false;
     }
 
     match /pedidos/{id} {
