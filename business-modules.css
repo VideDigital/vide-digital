@@ -3459,6 +3459,59 @@ span{
   background:#fff;
 }
 
+/* Eventos reais de negócio (novo lead, pedido, avaliação) mesclados na
+   central de notificações: mesma estrutura visual dos avisos do admin,
+   com um leve acento de cor por tipo e um botão "Ver" em vez do toggle
+   de leitura individual (a leitura desses itens é por "visto até"). */
+.aura-notification-item.is-evento .aura-notification-icon{
+  color:#00D2FF;
+  border-color:color-mix(in srgb,#00D2FF 24%,transparent);
+  background:color-mix(in srgb,#00D2FF 9%,transparent);
+}
+
+.aura-notification-item.is-evento-pedido .aura-notification-icon{
+  color:#34D399;
+  border-color:rgba(52,211,153,.24);
+  background:rgba(52,211,153,.09);
+}
+
+.aura-notification-item.is-evento-avaliacao .aura-notification-icon{
+  color:#F59E0B;
+  border-color:rgba(245,158,11,.24);
+  background:rgba(245,158,11,.09);
+}
+
+.aura-notification-ver-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  min-height:37px;
+  padding:0 14px;
+  border:1px solid color-mix(in srgb,var(--aura-primary) 30%,transparent);
+  border-radius:13px;
+  background:color-mix(in srgb,var(--aura-primary) 10%,transparent);
+  color:var(--aura-primary);
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  transition:background .18s var(--rd-ease), transform .18s var(--rd-ease);
+}
+
+.aura-notification-ver-btn:hover{
+  background:color-mix(in srgb,var(--aura-primary) 18%,transparent);
+  transform:translateY(-1px);
+}
+
+.aura-notification-ver-btn svg{
+  width:13px;
+  height:13px;
+  stroke-width:2.4;
+}
+
+.tema-claro .aura-notification-ver-btn{
+  background:color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
 .aura-notifications-loading,
 .aura-notifications-empty{
   display:flex;
@@ -3645,7 +3698,8 @@ span{
     grid-template-columns:auto minmax(0,1fr);
   }
 
-  .aura-notification-read-control{
+  .aura-notification-read-control,
+  .aura-notification-ver-btn{
     grid-column:1 / -1;
     width:100%;
     justify-content:space-between;
@@ -3673,7 +3727,8 @@ span{
     flex-direction:column;
   }
 
-  .aura-notification-read-control{
+  .aura-notification-read-control,
+  .aura-notification-ver-btn{
     grid-column:auto;
   }
 }

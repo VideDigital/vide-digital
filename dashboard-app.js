@@ -21,7 +21,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or, serverTimestamp, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -2245,7 +2245,9 @@ if (targetId === "view-metricas") {
     }
 
     if (targetId === "view-notificacoes") {
-        carregarNotificacoes();
+        carregarNotificacoes().then(() => {
+            if (typeof registrarVisitaNotificacoes === "function") registrarVisitaNotificacoes();
+        });
     }
 
     if (targetId === "view-funcionarios") {
@@ -15940,9 +15942,124 @@ async function() {
 
         function podeMarcarNotificacaoComoLida(notificacao) {
             if (!notificacao || !usuarioUID) return false;
+            if (notificacao.origem === "negocio") return false;
             const destinatarios = notificacao.destinatarios;
             return destinatarios === "todos" ||
                 (Array.isArray(destinatarios) && destinatarios.includes(usuarioUID));
+        }
+
+        // "Visto até": marca de leitura dos eventos de negócio (leads,
+        // pedidos, avaliações), que não são documentos "notificacoes" e por
+        // isso não têm lidoPor individual. Atualizada quando a central é
+        // aberta (abrirNotifModal / aba Notificações) — tudo que já existia
+        // até aquele momento passa a contar como lido.
+        function obterUltimaVisitaNotificacoes() {
+            const uid = obterAuthUidAtual();
+            if (!uid) return 0;
+            try {
+                const numero = Number(localStorage.getItem(`vh_notif_visto_${uid}`));
+                return Number.isFinite(numero) ? numero : 0;
+            } catch (e) { return 0; }
+        }
+
+        function registrarVisitaNotificacoes() {
+            const uid = obterAuthUidAtual();
+            if (!uid) return;
+            try { localStorage.setItem(`vh_notif_visto_${uid}`, String(Date.now())); } catch (e) { /* localStorage indisponível: sem persistência de leitura */ }
+            atualizarBadgeNotificacoes();
+        }
+
+        function notificacaoEstaLida(n) {
+            if (!n) return true;
+            if (n.origem === "negocio") return (n.criadoEm || 0) <= obterUltimaVisitaNotificacoes();
+            return (n.lidoPor || []).includes(obterAuthUidAtual());
+        }
+
+        // Eventos reais do negócio (não são documentos "notificacoes" — são
+        // montados na hora a partir de leads, pedidos e avaliações do
+        // próprio dono) que viram notificação: novo lead, pedido aguardando
+        // confirmação e avaliação pendente de moderação. Cada fonte é
+        // independente: se uma falhar (plano sem o recurso, regra, etc.),
+        // as outras continuam funcionando.
+        async function carregarEventosNegocioNotificacoes() {
+            if (!usuarioUID) return [];
+            const eventos = [];
+            const esc = typeof escaparHtmlChat === "function" ? escaparHtmlChat : (v) => String(v ?? "");
+            const normalizarMs = valor => {
+                if (valor && typeof valor.toMillis === "function") return valor.toMillis();
+                const numero = Number(valor || 0);
+                return Number.isFinite(numero) ? numero : 0;
+            };
+
+            try {
+                if (typeof temFeature !== "function" || temFeature("leads")) {
+                    const snap = await getDocs(query(collection(db, "leads"), where("criadoPor", "==", usuarioUID)));
+                    const recentes = [];
+                    snap.forEach(d => recentes.push({ id: d.id, ...d.data() }));
+                    recentes.sort((a, b) => normalizarMs(b.data) - normalizarMs(a.data));
+                    recentes.slice(0, 10).forEach(l => {
+                        eventos.push({
+                            id: `lead-${l.id}`,
+                            origem: "negocio",
+                            tipo: "lead",
+                            titulo: "Novo lead recebido",
+                            mensagem: l.nome ? `${esc(l.nome)} entrou em contato${l.origem ? " · " + esc(l.origem) : ""}.` : "Um novo contato chegou pela loja.",
+                            criadoEm: normalizarMs(l.data),
+                            acao: "ativarAba('view-leads')"
+                        });
+                    });
+                }
+            } catch (e) { /* leads indisponível: ignora esta fonte */ }
+
+            try {
+                if (typeof temFeature !== "function" || temFeature("hub")) {
+                    const snap = await getDocs(query(collection(db, "pedidos"), where("criadoPor", "==", usuarioUID)));
+                    const recentes = [];
+                    snap.forEach(d => recentes.push({ id: d.id, ...d.data() }));
+                    recentes
+                        .filter(p => p.status === "aguardando")
+                        .sort((a, b) => normalizarMs(b.data) - normalizarMs(a.data))
+                        .slice(0, 10)
+                        .forEach(p => {
+                            const valorTxt = (p.valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                            eventos.push({
+                                id: `pedido-${p.id}`,
+                                origem: "negocio",
+                                tipo: "pedido",
+                                titulo: "Pedido aguardando confirmação",
+                                mensagem: `${esc(p.cliente || "Cliente")} · ${valorTxt}`,
+                                criadoEm: normalizarMs(p.data),
+                                acao: "ativarAba('view-pedidos')"
+                            });
+                        });
+                }
+            } catch (e) { /* pedidos indisponível: ignora esta fonte */ }
+
+            try {
+                if (typeof temFeature !== "function" || temFeature("avaliacoes")) {
+                    const snap = await getDocs(query(collection(db, "avaliacoes"), where("criadoPor", "==", usuarioUID)));
+                    const pendentes = [];
+                    snap.forEach(d => {
+                        const a = d.data();
+                        if (a.status === "novo") pendentes.push({ id: d.id, ...a });
+                    });
+                    pendentes.sort((a, b) => normalizarMs(b.data) - normalizarMs(a.data));
+                    pendentes.slice(0, 10).forEach(a => {
+                        const trecho = a.comentario ? `: “${esc(String(a.comentario).slice(0, 80))}”` : ".";
+                        eventos.push({
+                            id: `avaliacao-${a.id}`,
+                            origem: "negocio",
+                            tipo: "avaliacao",
+                            titulo: "Nova avaliação para moderar",
+                            mensagem: `${esc(a.nome || "Cliente")} deu ${Number(a.nota) || "?"} estrela(s)${trecho}`,
+                            criadoEm: normalizarMs(a.data),
+                            acao: "ativarAba('view-avaliacoes')"
+                        });
+                    });
+                }
+            } catch (e) { /* avaliações indisponível: ignora esta fonte */ }
+
+            return eventos;
         }
 
         async function carregarNotificacoes() {
@@ -15961,15 +16078,19 @@ async function() {
                         where("uid", "==", usuarioUID)
                     )
                 );
-                const snap = await getDocs(q);
+                const [snap, eventosNegocio] = await Promise.all([
+                    getDocs(q),
+                    carregarEventosNegocioNotificacoes().catch(() => [])
+                ]);
                 let lista = [];
                 snap.forEach(d => {
-                    const n = { id: d.id, ...d.data() };
+                    const n = { id: d.id, origem: "admin", ...d.data() };
                     const paraMim = n.destinatarios === "todos"
                         || (Array.isArray(n.destinatarios) && n.destinatarios.includes(usuarioUID))
                         || n.uid === usuarioUID;
                     if (paraMim) lista.push(n);
                 });
+                lista = lista.concat(eventosNegocio);
                 lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
                 _cacheNotificacoes = lista;
 
@@ -16012,16 +16133,22 @@ if (lista.length === 0) {
 
                 box.innerHTML = lista.map(n => {
 
-                    const lida =
-                        (n.lidoPor || []).includes(obterAuthUidAtual());
+                    const lida = notificacaoEstaLida(n);
+                    const ehEvento = n.origem === "negocio";
 
                     const dataFormatada =
                         n.criadoEm
                             ? new Date(n.criadoEm).toLocaleString("pt-BR")
                             : "Data não informada";
 
+                    const iconesEvento = {
+                        lead: '<path d="M12 12.8a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"></path><path d="M5 20a7 7 0 0 1 14 0"></path>',
+                        pedido: '<path d="m6 2-3 4v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path>',
+                        avaliacao: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>'
+                    };
+
                     return `
-                        <div class="aura-notification-item ${lida ? "is-read" : "is-unread"}">
+                        <div class="aura-notification-item ${lida ? "is-read" : "is-unread"} ${ehEvento ? "is-evento is-evento-" + n.tipo : ""}">
 
                             ${
                                 n.foto
@@ -16039,8 +16166,10 @@ if (lista.length === 0) {
                                                  fill="none"
                                                  stroke="currentColor">
 
-                                                <path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path>
-                                                <path d="M10 21h4"></path>
+                                                ${ehEvento
+                                                    ? (iconesEvento[n.tipo] || iconesEvento.lead)
+                                                    : `<path d="M18 9a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9Z"></path><path d="M10 21h4"></path>`
+                                                }
 
                                             </svg>
 
@@ -16108,30 +16237,41 @@ if (lista.length === 0) {
                                     </span>
 
                                     <span class="aura-notification-source">
-                                        Vide Hub
+                                        ${ehEvento ? "Sua loja" : "Vide Hub"}
                                     </span>
 
                                 </div>
 
                             </div>
 
-                            <label class="aura-notification-read-control">
+                            ${
+                                ehEvento
+                                    ? `
+                                        <button type="button" class="aura-notification-ver-btn" onclick="${n.acao}">
+                                            Ver
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"></path></svg>
+                                        </button>
+                                    `
+                                    : `
+                                        <label class="aura-notification-read-control">
 
-                                <span>
-                                    Marcar como lida
-                                </span>
+                                            <span>
+                                                Marcar como lida
+                                            </span>
 
-                                <input
-                                    type="checkbox"
-                                    ${lida ? "checked" : ""}
-                                    onchange="marcarNotificacaoLida('${n.id}', this.checked)"
-                                >
+                                            <input
+                                                type="checkbox"
+                                                ${lida ? "checked" : ""}
+                                                onchange="marcarNotificacaoLida('${n.id}', this.checked)"
+                                            >
 
-                                <span class="aura-notification-switch-track">
-                                    <span></span>
-                                </span>
+                                            <span class="aura-notification-switch-track">
+                                                <span></span>
+                                            </span>
 
-                            </label>
+                                        </label>
+                                    `
+                            }
 
                         </div>
                     `;
@@ -16149,7 +16289,7 @@ function atualizarBadgeNotificacoes() {
 
             const naoLidas =
                 _cacheNotificacoes.filter(n =>
-                    !(n.lidoPor || []).includes(obterAuthUidAtual())
+                    !notificacaoEstaLida(n)
                 ).length;
 
             const lidas =
@@ -16207,11 +16347,17 @@ function atualizarBadgeNotificacoes() {
                 if (lida && !lidoPor.includes(authUidLeitor)) lidoPor.push(authUidLeitor);
                 if (!lida) lidoPor = lidoPor.filter(uid => uid !== authUidLeitor);
 
-                await VideFunctions.markNotificationRead({ id, read: lida });
+                // Escrita direta (sem Cloud Function — plano Spark não as
+                // executa). A regra em firestore.rules garante que só é
+                // possível adicionar/remover o próprio uid de lidoPor.
+                await setDoc(doc(db, "notificacoes", id), {
+                    lidoPor: lida ? arrayUnion(authUidLeitor) : arrayRemove(authUidLeitor),
+                    leituraAtualizadaEm: serverTimestamp()
+                }, { merge: true });
                 notif.lidoPor = lidoPor;
                 atualizarBadgeNotificacoes();
-                carregarNotificacoes();
                 renderizarListaNotifModal();
+                carregarNotificacoes();
             } catch (err) {
                 console.error(err);
                 showToast("Erro ao atualizar notificação.", "error");
@@ -16499,6 +16645,10 @@ const STATUS_PERSONALIZACAO_LABEL = {
             document.getElementById("notif-modal-lista-view").classList.remove("hidden");
             renderizarListaNotifModal();
             document.getElementById("notif-modal").classList.remove("hidden");
+            // Abrir a central marca os eventos de negócio (leads/pedidos/
+            // avaliações) já exibidos como vistos — não afeta os avisos do
+            // admin, que continuam com leitura individual por item.
+            registrarVisitaNotificacoes();
         };
 
         window.fecharNotifModal = function() {
@@ -16513,9 +16663,12 @@ const STATUS_PERSONALIZACAO_LABEL = {
                 return;
             }
             box.innerHTML = _cacheNotificacoes.map(n => {
-                const lida = (n.lidoPor || []).includes(usuarioUID);
+                const lida = notificacaoEstaLida(n);
+                const acaoClique = n.origem === "negocio"
+                    ? `${n.acao}; fecharNotifModal();`
+                    : `abrirDetalheNotifModal('${n.id}')`;
                 return `
-                    <button onclick="abrirDetalheNotifModal('${n.id}')" class="w-full text-left flex gap-3 items-start p-3 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/[0.03] transition-all ${lida ? "opacity-60" : ""}">
+                    <button onclick="${acaoClique}" class="w-full text-left flex gap-3 items-start p-3 rounded-xl border border-white/5 hover:border-white/20 hover:bg-white/[0.03] transition-all ${lida ? "opacity-60" : ""}">
 ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink-0 border border-white/10">` : `
                             <div class="aura-notification-modal-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -16539,6 +16692,13 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         window.abrirDetalheNotifModal = function(id) {
             const n = _cacheNotificacoes.find(x => x.id === id);
             if (!n) return;
+            if (n.origem === "negocio") {
+                // Eventos de negócio não têm uma tela de detalhe própria:
+                // levam direto pra tela relevante (leads/pedidos/avaliações).
+                fecharNotifModal();
+                if (n.acao) { try { new Function(n.acao)(); } catch (e) { /* navegação indisponível */ } }
+                return;
+            }
             const jaEstavaLida = (n.lidoPor || []).includes(usuarioUID);
 
             document.getElementById("notif-modal-detalhe-conteudo").innerHTML = `

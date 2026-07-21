@@ -7,6 +7,8 @@ import {
   initializeTestEnvironment
 } from "@firebase/rules-unit-testing";
 import {
+  arrayRemove,
+  arrayUnion,
   collection,
   deleteDoc,
   doc,
@@ -358,6 +360,64 @@ describe("notificacoes: list() filtrado (mesma query do dashboard-app.js)", () =
 
   it("visitante anônimo não lista nada", async () => {
     await assertFails(getDocs(notifQuery(anon(), "ownerA")));
+  });
+});
+
+describe("notificacoes: marcar como lida/não lida sem Cloud Function", () => {
+  it("destinatário marca a própria notificação (broadcast) como lida", async () => {
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {
+      lidoPor: arrayUnion("ownerA"),
+      leituraAtualizadaEm: serverTimestamp()
+    }));
+    const snap = await getDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"));
+    assert.deepEqual(snap.data().lidoPor, ["ownerA"]);
+  });
+
+  it("destinatário desmarca a própria notificação depois de lida", async () => {
+    await updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), { lidoPor: arrayUnion("ownerA") });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {
+      lidoPor: arrayRemove("ownerA"),
+      leituraAtualizadaEm: serverTimestamp()
+    }));
+    const snap = await getDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"));
+    assert.deepEqual(snap.data().lidoPor ?? [], []);
+  });
+
+  it("não pode marcar o uid de outra pessoa como leitor", async () => {
+    await assertFails(updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {
+      lidoPor: arrayUnion("ownerB")
+    }));
+  });
+
+  it("não pode adicionar o próprio uid junto com o de outra pessoa na mesma escrita", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {
+      lidoPor: ["ownerA", "ownerB"]
+    }, { merge: true }));
+  });
+
+  it("não pode tocar em outro campo além de lidoPor/leituraAtualizadaEm", async () => {
+    await assertFails(updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {
+      lidoPor: arrayUnion("ownerA"),
+      titulo: "Alterado"
+    }));
+  });
+
+  it("quem não é destinatário não marca a notificação alheia como lida", async () => {
+    await assertFails(updateDoc(doc(authed("ownerB"), "notificacoes", "notifOwnerA"), {
+      lidoPor: arrayUnion("ownerB")
+    }));
+  });
+
+  it("visitante anônimo não marca nada como lido", async () => {
+    await assertFails(updateDoc(doc(anon(), "notificacoes", "notifTodos"), {
+      lidoPor: arrayUnion("qualquer")
+    }));
+  });
+
+  it("admin continua podendo editar a notificação livremente", async () => {
+    await assertSucceeds(updateDoc(doc(authed("admin", { videAdmin: true }), "notificacoes", "notifTodos"), {
+      titulo: "Editado pelo admin"
+    }));
   });
 });
 
