@@ -3747,7 +3747,19 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
 
                                 </span>
 
-                                <span class="aura-lp-card-views" title="Visitas reais na página publicada">
+                                ${lp.publicado ? `
+                                <button type="button" class="aura-lp-card-views" title="Ver tendência de visitas" data-metrica-doc-id="${`${slugAtualSalvo}__${lp.pagina}`.toLowerCase()}" data-lp-titulo="${escaparHtmlChat(lp.titulo || "Landing Page")}" onclick="abrirMetricasLP(this)">
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+
+                                    ${textoVisualizacoes}
+
+                                </button>
+                                ` : `
+                                <span class="aura-lp-card-views" title="Publique a página pra começar a receber visitas">
 
                                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
                                         <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
@@ -3757,6 +3769,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                     ${textoVisualizacoes}
 
                                 </span>
+                                `}
 
                             </div>
 
@@ -3916,6 +3929,105 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         window.iniciarLPComModelo = function(modeloId) {
             abrirModalLP();
             if (modeloId) selecionarModeloLP(modeloId);
+        };
+
+        window.fecharMetricasLP = function() {
+            document.getElementById("lp-metricas-modal")?.classList.add("hidden");
+            window._lpMetricasChart?.destroy();
+            window._lpMetricasChart = null;
+        };
+
+        window.abrirMetricasLP = async function(botao) {
+            const docId = botao.dataset.metricaDocId;
+            const titulo = botao.dataset.lpTitulo || "Landing Page";
+            document.getElementById("lp-metricas-titulo").textContent = titulo;
+            document.getElementById("lp-metricas-total-numero").textContent = "...";
+            document.getElementById("lp-metricas-modal")?.classList.remove("hidden");
+
+            try {
+                const snap = await getDoc(doc(db, "metricas_landing_pages", docId));
+                const dados = snap.exists() ? snap.data() : {};
+
+                document.getElementById("lp-metricas-total-numero").textContent =
+                    dados.totalVisualizacoes || 0;
+
+                // incrementPublicMetric grava com uma chave de campo tipo
+                // `porDia.${dia}.visualizacoes` dentro de um .set(...,{merge:true})
+                // -- o SDK Admin trata isso como um NOME DE CAMPO LITERAL (com
+                // pontos mesmo), não como caminho aninhado. Então o doc não tem
+                // um objeto "porDia" pra navegar; cada dia é seu próprio campo
+                // solto na raiz do documento.
+                const labels = [];
+                const valores = [];
+                for (let i = 13; i >= 0; i--) {
+                    const dia = new Date();
+                    dia.setDate(dia.getDate() - i);
+                    const chave = dia.toISOString().slice(0, 10);
+                    labels.push(dia.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }));
+                    valores.push(dados[`porDia.${chave}.visualizacoes`] || 0);
+                }
+
+                const canvas = document.getElementById("lp-metricas-chart");
+                const vazio = document.getElementById("lp-metricas-vazio");
+                const temAlgumaVisita = valores.some(v => v > 0);
+                // O gráfico depende do Chart.js (CDN). Se ele não estiver
+                // disponível, o número total ainda é útil sozinho -- então
+                // caímos no mesmo estado "sem gráfico" em vez de quebrar.
+                const podeDesenharGrafico = temAlgumaVisita && typeof Chart !== "undefined";
+
+                window._lpMetricasChart?.destroy();
+                window._lpMetricasChart = null;
+                if (!podeDesenharGrafico) {
+                    canvas.classList.add("hidden");
+                    vazio?.classList.remove("hidden");
+                    if (vazio) {
+                        vazio.textContent = temAlgumaVisita
+                            ? "Gráfico indisponível no momento, mas o total acima está correto."
+                            : "Ainda sem visitas registradas nos últimos dias.";
+                    }
+                } else {
+                    canvas.classList.remove("hidden");
+                    vazio?.classList.add("hidden");
+                    const estilos = getComputedStyle(document.documentElement);
+                    const corPrimaria = estilos.getPropertyValue("--sys-primaria").trim() || "#5B3DF5";
+                    window._lpMetricasChart = new Chart(canvas.getContext("2d"), {
+                        type: "line",
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: "Visualizações",
+                                data: valores,
+                                borderColor: corPrimaria,
+                                backgroundColor: converterHexParaRgba(corPrimaria, 0.18),
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 0,
+                                pointHoverRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { ticks: { color: "rgba(255,255,255,.4)", font: { size: 9 } }, grid: { display: false } },
+                                y: { beginAtZero: true, ticks: { color: "rgba(255,255,255,.4)", font: { size: 9 }, precision: 0 }, grid: { color: "rgba(255,255,255,.05)" } }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                // Não sobrescreve o total (já mostrado acima) -- só sinaliza o
+                // gráfico como indisponível pra não deixar a área quebrada.
+                const vazio = document.getElementById("lp-metricas-vazio");
+                document.getElementById("lp-metricas-chart")?.classList.add("hidden");
+                if (vazio) {
+                    vazio.classList.remove("hidden");
+                    vazio.textContent = "Não foi possível carregar o gráfico agora.";
+                }
+            }
         };
 
         window.abrirModalLP = function() {

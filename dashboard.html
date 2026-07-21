@@ -7761,6 +7761,61 @@ Criar Landing Page
 </div>
 
 </div>
+
+<div
+id="lp-metricas-modal"
+class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+onclick="if(event.target === this) fecharMetricasLP()"
+>
+
+<div class="glass-card aura-lp-modal aura-lp-metricas-modal-card">
+
+<button
+type="button"
+onclick="fecharMetricasLP()"
+class="aura-lp-modal-close"
+aria-label="Fechar"
+>
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="m6 6 12 12"></path>
+<path d="M18 6 6 18"></path>
+</svg>
+
+</button>
+
+<div class="aura-lp-modal-header">
+
+<span>
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
+<circle cx="12" cy="12" r="3"></circle>
+</svg>
+
+</span>
+
+<div>
+<small>Desempenho</small>
+<h3 id="lp-metricas-titulo">Visitas da página</h3>
+<p>Visualizações reais de quem acessou a página publicada, por dia.</p>
+</div>
+
+</div>
+
+<div class="aura-lp-metricas-total">
+<strong id="lp-metricas-total-numero">0</strong>
+<span>visualizações no total</span>
+</div>
+
+<div class="aura-lp-metricas-chart-wrap">
+<canvas id="lp-metricas-chart"></canvas>
+<p id="lp-metricas-vazio" class="hidden">Ainda sem visitas registradas nos últimos dias.</p>
+</div>
+
+</div>
+
+</div>
 <div id="lp-editor-modal" class="hidden fixed inset-0 z-[120] bg-[#0d0c1f] flex flex-col" role="dialog" aria-modal="true" aria-hidden="true" data-lp-editor-shell>
 <div id="lped-painel-camadas" class="hidden fixed right-4 top-20 z-[130] w-72 bg-[#14132B] border border-white/10 rounded-2xl shadow-2xl overflow-hidden">
 <div class="flex items-center justify-between px-4 py-3 border-b border-white/5">

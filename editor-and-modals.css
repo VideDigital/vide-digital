@@ -446,7 +446,8 @@
   margin-top:15px;
 }
 
-.aura-lp-card-info span{
+.aura-lp-card-info span,
+.aura-lp-card-views{
   display:flex;
   align-items:center;
   gap:6px;
@@ -458,6 +459,19 @@
   width:12px;
   height:12px;
   stroke-width:2;
+}
+
+button.aura-lp-card-views{
+  padding:0;
+  border:none;
+  background:none;
+  font-family:inherit;
+  cursor:pointer;
+  transition:color .15s ease;
+}
+
+button.aura-lp-card-views:hover{
+  color:var(--aura-primary);
 }
 
 .aura-lp-card-actions{
@@ -825,6 +839,53 @@
 .aura-lp-cancel-button,
 .aura-lp-save-button{
   min-width:165px;
+}
+
+.aura-lp-metricas-modal-card{
+  max-width:480px;
+}
+
+.aura-lp-metricas-total{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  margin-top:20px;
+  padding:14px 16px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 20%,transparent);
+  border-radius:14px;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent);
+}
+
+.aura-lp-metricas-total strong{
+  color:var(--aura-text);
+  font-size:22px;
+  font-weight:850;
+}
+
+.aura-lp-metricas-total span{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+.aura-lp-metricas-chart-wrap{
+  position:relative;
+  height:200px;
+  margin-top:18px;
+}
+
+.aura-lp-metricas-chart-wrap p{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  text-align:center;
 }
 
 /* Tema claro */
