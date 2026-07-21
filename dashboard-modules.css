@@ -6888,3 +6888,34 @@
   color:var(--sys-primaria,#5B3DF5);
   transform:translateX(2px);
 }
+
+/* =========================================================
+   LEGIBILIDADE DO MENU LATERAL (nav maior, mais clara)
+   Textos do menu eram 8-12px e cinza apagado — difícil de ler.
+   ========================================================= */
+#sidebar-nav .nav-item{
+  font-size:13.5px !important;
+  font-weight:600 !important;
+  gap:12px !important;
+  padding:10px 13px !important;
+  color:rgba(255,255,255,.74) !important;
+  white-space:nowrap !important;
+}
+#sidebar-nav .nav-item > svg{ flex-shrink:0; }
+#sidebar-nav .nav-item:hover{ color:#fff !important; }
+#sidebar-nav .nav-item.active{ color:#fff !important; }
+#sidebar-nav .nav-item > svg{ width:19px !important; height:19px !important; }
+
+.aura-sidebar-group-header{ min-height:46px !important; padding:8px 10px !important; }
+.aura-sidebar-group-title strong{ font-size:11px !important; letter-spacing:.12em !important; }
+.aura-sidebar-group-title small{ font-size:9.5px !important; margin-top:3px !important; }
+.aura-sidebar-group-icon{ width:34px !important; height:34px !important; border-radius:11px !important; }
+.aura-sidebar-group-icon svg{ width:17px !important; height:17px !important; }
+.aura-sidebar-group-chevron{ width:26px !important; height:26px !important; }
+.aura-sidebar-group-chevron svg{ width:15px !important; height:15px !important; }
+
+/* Cabeçalho "Central de operação" e busca um pouco maiores */
+.aura-sidebar-navigation-header .aura-sidebar-navigation-eyebrow,
+.aura-sidebar-navigation-header small{ font-size:9.5px !important; }
+.aura-sidebar-navigation-title,
+.aura-sidebar-navigation-header strong{ font-size:15px !important; }
