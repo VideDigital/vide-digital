@@ -1,11 +1,12 @@
 # Deploy manual do backend Firebase
 
-Este workflow prepara uma publicação controlada de apenas dois recursos do backend:
+Este workflow prepara uma publicação controlada somente dos recursos autorizados do backend:
 
 - as Functions `sendAdminChatMessage` e `incrementPublicMetric`;
-- as regras definidas em `firestore.rules`.
+- as regras definidas em `firestore.rules`;
+- os índices do Firestore definidos em `firestore.indexes.json`.
 
-Ele não publica Hosting, regras do Storage, índices do Firestore ou outras Functions. O workflow só pode ser iniciado manualmente na branch `main`, exige uma confirmação escrita e bloqueia IDs que contenham `demo`.
+Ele não publica Hosting, regras do Storage ou outras Functions. O workflow só pode ser iniciado manualmente na branch `main`, exige uma confirmação escrita e bloqueia IDs que contenham `demo`.
 
 ## 1. Descobrir o ID real do projeto
 
@@ -60,7 +61,8 @@ A conta usada pelo GitHub deve começar com o menor conjunto possível:
 
 - **Cloud Functions Developer** (`roles/cloudfunctions.developer`) para atualizar as Functions existentes;
 - **Service Account User** (`roles/iam.serviceAccountUser`), limitado à conta de runtime utilizada pelas Functions;
-- **Firebase Rules Admin** (`roles/firebaserules.admin`) para publicar as regras do Firestore.
+- **Firebase Rules Admin** (`roles/firebaserules.admin`) para publicar as regras do Firestore;
+- **Cloud Datastore Index Admin** (`roles/datastore.indexAdmin`) para publicar os índices do Firestore definidos no repositório.
 
 Functions de segunda geração usam Cloud Build, Artifact Registry e Cloud Run internamente. Dependendo da configuração atual do projeto, a conta de build ou o agente de serviço já existente poderá precisar de permissões específicas, como **Cloud Build Service Account** e **Artifact Registry Writer**, limitadas aos recursos envolvidos. Não conceda essas permissões preventivamente à conta do GitHub: faça isso somente após identificar uma mensagem de permissão concreta e revisar o recurso indicado.
 
@@ -94,9 +96,10 @@ Abra a execução na aba **Actions** e acompanhe cada etapa. A ordem esperada é
 7. `pnpm run test:rules`;
 8. aprovação do Environment e autenticação;
 9. deploy de `sendAdminChatMessage` e `incrementPublicMetric`;
-10. deploy de `firestore.rules`.
+10. deploy de `firestore.rules`;
+11. deploy de `firestore.indexes.json`.
 
-O teste local de regras não foi concluído durante a preparação deste PR porque o computador local possui Java 8 (`1.8.0_481`) e o Firebase Emulator exige Java 11 ou superior. O workflow instala Java 21 apenas no runner temporário do GitHub Actions, antes de `pnpm run test:rules`, e o teste completo será validado pela execução do GitHub Actions antes de qualquer autenticação ou deploy.
+O computador local pode ter apenas Java 8 (`1.8.0_481`), enquanto o Firebase Emulator exige Java 11 ou superior. O workflow instala Java 21 apenas no runner temporário do GitHub Actions, antes de `pnpm run test:rules`, e o teste completo é validado pela execução do GitHub Actions antes de qualquer autenticação ou deploy.
 
 As regras só são publicadas se o deploy das duas Functions terminar com sucesso. Nos logs, confirme que o primeiro comando contém apenas:
 
@@ -105,6 +108,12 @@ As regras só são publicadas se o deploy das duas Functions terminar com sucess
 E que o segundo contém apenas:
 
 `firestore:rules`
+
+E que o terceiro contém apenas:
+
+`firestore:indexes`
+
+O deploy de índices publica somente as definições presentes em `firestore.indexes.json`. A criação ou atualização de um índice pode continuar processando no Firebase por alguns minutos depois que o comando terminar; durante esse período, consultas que dependem do índice podem permanecer indisponíveis até o status ficar pronto no Firebase Console.
 
 Não prossiga se aparecer solicitação para habilitar APIs, configurar billing, mudar região ou geração, alterar IAM, criar secrets, substituir ou excluir outras Functions. O modo não interativo deve encerrar a execução quando uma confirmação for necessária; revise os logs antes de tentar novamente.
 
