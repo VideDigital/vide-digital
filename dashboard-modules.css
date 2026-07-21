@@ -2079,13 +2079,19 @@
     transform .22s var(--rd-ease);
 }
 
+.aura-store-status-share{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:7px;
+  margin-top:7px;
+}
+
 .aura-store-status-copy{
   display:flex;
   align-items:center;
   justify-content:center;
   gap:7px;
   width:100%;
-  margin-top:7px;
   padding:8px;
   border-radius:11px;
   color:var(--aura-text-secondary);

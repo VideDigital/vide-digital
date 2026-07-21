@@ -888,6 +888,101 @@ button.aura-lp-card-views:hover{
   max-width:480px;
 }
 
+.aura-compartilhar-card{
+  max-width:400px;
+  text-align:center;
+}
+
+.aura-compartilhar-qr{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin-top:20px;
+}
+
+.aura-compartilhar-qr img{
+  width:210px;
+  height:210px;
+  padding:12px;
+  border-radius:16px;
+  background:#fff;
+  box-shadow:0 12px 40px -18px rgba(0,0,0,.6);
+}
+
+.aura-compartilhar-qr p{
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.5;
+  padding:24px;
+}
+
+.aura-compartilhar-url{
+  margin-top:16px;
+  padding:11px 13px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  background:color-mix(in srgb,var(--aura-surface-soft) 50%,transparent);
+  color:var(--aura-text-secondary);
+  font-family:'JetBrains Mono',monospace;
+  font-size:10px;
+  word-break:break-all;
+}
+
+.aura-compartilhar-actions{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:8px;
+  margin-top:16px;
+}
+
+.aura-compartilhar-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  min-height:42px;
+  padding:0 12px;
+  border-radius:12px;
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+  font-size:10px;
+  font-weight:800;
+  cursor:pointer;
+  text-decoration:none;
+  transition:background .2s ease,border-color .2s ease,color .2s ease;
+}
+
+.aura-compartilhar-btn:hover{
+  color:var(--aura-text);
+  border-color:color-mix(in srgb,var(--aura-primary) 30%,transparent);
+  background:color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-compartilhar-btn.is-copiado{
+  color:#34D399;
+  border-color:rgba(52,211,153,.35);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-compartilhar-btn-primary{
+  grid-column:1 / -1;
+  color:#fff;
+  border-color:transparent;
+  background:linear-gradient(135deg,var(--aura-primary),var(--aura-accent));
+}
+
+.aura-compartilhar-btn-primary:hover{
+  color:#fff;
+  filter:brightness(1.08);
+}
+
+.aura-compartilhar-btn svg{
+  width:14px;
+  height:14px;
+  flex-shrink:0;
+}
+
 .aura-lp-metricas-total{
   display:flex;
   align-items:baseline;
