@@ -2079,6 +2079,43 @@
     transform .22s var(--rd-ease);
 }
 
+.aura-store-status-copy{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+  width:100%;
+  margin-top:7px;
+  padding:8px;
+  border-radius:11px;
+  color:var(--aura-text-secondary);
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.02);
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.02em;
+  cursor:pointer;
+  transition:background .2s var(--rd-ease),border-color .2s var(--rd-ease),color .2s var(--rd-ease);
+}
+
+.aura-store-status-copy:hover{
+  color:var(--aura-text);
+  border-color:color-mix(in srgb,var(--aura-primary) 30%,transparent);
+  background:color-mix(in srgb,var(--aura-primary) 8%,transparent);
+}
+
+.aura-store-status-copy.is-copiado{
+  color:#34D399;
+  border-color:rgba(52,211,153,.35);
+  background:rgba(52,211,153,.08);
+}
+
+.aura-store-status-copy svg{
+  width:13px;
+  height:13px;
+  flex-shrink:0;
+}
+
 .aura-store-status-link:hover{
   transform:translateY(-1px);
   color:var(--aura-text) !important;

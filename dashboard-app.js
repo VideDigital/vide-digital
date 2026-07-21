@@ -1101,6 +1101,43 @@ function atualizarLinksLojaPublica(slug) {
     });
 }
 
+window.copiarLinkLoja = async function(botao) {
+    const url = obterLinkPublicoValido("link-minha-loja", "link-minha-loja-cockpit");
+    if (!url) {
+        showToast("Publique/configure sua loja primeiro pra ter um link.", "error");
+        return;
+    }
+    const rotulo = botao?.querySelector("[data-copiar-texto]");
+    const textoOriginal = rotulo?.textContent;
+    const marcarCopiado = () => {
+        botao?.classList.add("is-copiado");
+        if (rotulo) rotulo.textContent = "Link copiado!";
+        setTimeout(() => {
+            botao?.classList.remove("is-copiado");
+            if (rotulo && textoOriginal) rotulo.textContent = textoOriginal;
+        }, 2000);
+    };
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(url);
+        } else {
+            // Fallback pra contextos sem a API moderna de clipboard.
+            const tmp = document.createElement("textarea");
+            tmp.value = url;
+            tmp.style.position = "fixed";
+            tmp.style.opacity = "0";
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand("copy");
+            document.body.removeChild(tmp);
+        }
+        marcarCopiado();
+    } catch (err) {
+        console.error(err);
+        showToast("Não consegui copiar. O link é: " + url, "error");
+    }
+};
+
 function obterLinkPublicoValido(...ids) {
     for (const id of ids) {
         const link = document.getElementById(id);
