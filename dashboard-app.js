@@ -3175,15 +3175,24 @@ btn.classList.add("opacity-40");
                 return;
             }
 
-            const ehSucesso = type === "success";
+            // "success" e "info" tinham título e cor próprios pensados na hora
+            // de escrever esta função, mas só "success" ficou com checagem
+            // própria — qualquer outro tipo (inclusive "info") caía direto no
+            // estilo de erro ("Atenção necessária", vermelho), mesmo pra avisos
+            // neutros como "Abrindo editor...".
+            const estilosPorTipo = {
+                success: { classe: "success", titulo: "Operação concluída" },
+                info: { classe: "info", titulo: "Aviso" }
+            };
+            const estilo = estilosPorTipo[type] || { classe: "error", titulo: "Atenção necessária" };
 
             const toast = document.createElement("div");
 
             toast.className =
-                `aura-toast aura-toast-${ehSucesso ? "success" : "error"} pointer-events-auto`;
+                `aura-toast aura-toast-${estilo.classe} pointer-events-auto`;
 
-            const icone = ehSucesso
-                ? `
+            const icones = {
+                success: `
                     <svg viewBox="0 0 24 24"
                          fill="none"
                          stroke="currentColor">
@@ -3194,8 +3203,27 @@ btn.classList.add("opacity-40");
                         </path>
 
                     </svg>
-                `
-                : `
+                `,
+                info: `
+                    <svg viewBox="0 0 24 24"
+                         fill="none"
+                         stroke="currentColor">
+
+                        <circle cx="12" cy="12" r="9"></circle>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 11v5">
+                        </path>
+
+                        <path stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 8h.01">
+                        </path>
+
+                    </svg>
+                `,
+                error: `
                     <svg viewBox="0 0 24 24"
                          fill="none"
                          stroke="currentColor">
@@ -3216,7 +3244,9 @@ btn.classList.add("opacity-40");
                         </path>
 
                     </svg>
-                `;
+                `
+            };
+            const icone = icones[estilo.classe];
 
             toast.innerHTML = `
                 <div class="aura-toast-icon">
@@ -3226,7 +3256,7 @@ btn.classList.add("opacity-40");
                 <div class="aura-toast-content">
 
                     <p class="aura-toast-title no-contrast">
-                        ${ehSucesso ? "Operação concluída" : "Atenção necessária"}
+                        ${estilo.titulo}
                     </p>
 
                     <p class="aura-toast-message no-contrast"></p>
@@ -3562,7 +3592,31 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                     rascunhosElemento.innerText = rascunhos;
                 }
 
+                // Visualizações reais só existem pra LPs publicadas (o doc de
+                // métrica nasce quando alguém acessa a página no ar). Busca em
+                // paralelo, uma por LP -- se alguma falhar, não trava o card,
+                // só deixa a contagem daquela LP como null (mostra "--").
+                const visualizacoesPorId = {};
+                await Promise.all(lps.filter(lp => lp.publicado).map(async (lp) => {
+                    try {
+                        const docIdMetrica = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
+                        const metricaSnap = await getDoc(doc(db, "metricas_landing_pages", docIdMetrica));
+                        visualizacoesPorId[lp.id] = metricaSnap.exists() ? (metricaSnap.data().totalVisualizacoes || 0) : 0;
+                    } catch (err) {
+                        visualizacoesPorId[lp.id] = null;
+                    }
+                }));
+
                 if (lps.length === 0) {
+                    const destaques = [MODELOS_LP[0], MODELOS_LP[1], MODELOS_LP[6]];
+                    const cartoesDestaque = destaques.map((modelo) => `
+                        <button type="button" class="aura-lp-modelo-card" onclick="iniciarLPComModelo('${modelo.id}')">
+                            <span class="aura-lp-modelo-dot" style="background:${modelo.cor}"></span>
+                            <strong>${modelo.nome}</strong>
+                            <small>${modelo.objetivo}</small>
+                        </button>
+                    `).join("");
+
                     grid.innerHTML = `
                         <div class="aura-lp-empty">
 
@@ -3582,11 +3636,15 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                             </strong>
 
                             <p>
-                                Crie sua primeira página para começar a construir uma experiência focada em conversão.
+                                Comece com um modelo pronto ou crie do zero -- tudo continua editável depois.
                             </p>
 
+                            <div class="aura-lp-empty-modelos">
+                                ${cartoesDestaque}
+                            </div>
+
                             <button onclick="abrirModalLP()">
-                                Criar primeira página
+                                Ou comece do zero
                             </button>
 
                         </div>
@@ -3610,6 +3668,13 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         Array.isArray(lp.ordemBlocos)
                             ? lp.ordemBlocos.length
                             : 0;
+
+                    const visualizacoes = visualizacoesPorId[lp.id];
+                    const textoVisualizacoes = !lp.publicado
+                        ? "Ainda não publicada"
+                        : visualizacoes === null
+                            ? "Visitas indisponíveis"
+                            : `${visualizacoes} ${visualizacoes === 1 ? "visualização" : "visualizações"}`;
 
                     return `
                         <div class="glass-card aura-lp-card ${lp.publicado ? "is-published" : "is-draft"}">
@@ -3681,6 +3746,30 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                     ${quantidadeBlocos} bloco(s)
 
                                 </span>
+
+                                ${lp.publicado ? `
+                                <button type="button" class="aura-lp-card-views" title="Ver tendência de visitas" data-metrica-doc-id="${`${slugAtualSalvo}__${lp.pagina}`.toLowerCase()}" data-lp-titulo="${escaparHtmlChat(lp.titulo || "Landing Page")}" onclick="abrirMetricasLP(this)">
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+
+                                    ${textoVisualizacoes}
+
+                                </button>
+                                ` : `
+                                <span class="aura-lp-card-views" title="Publique a página pra começar a receber visitas">
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
+                                        <circle cx="12" cy="12" r="3"></circle>
+                                    </svg>
+
+                                    ${textoVisualizacoes}
+
+                                </span>
+                                `}
 
                             </div>
 
@@ -3789,6 +3878,158 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 `;
             }
         }
+        // Modelos prontos pra começar a Landing Page: só a vitrine (id, nome,
+        // objetivo, cor) fica aqui, pra aparecer no modal de criação sem
+        // precisar carregar o Studio inteiro (~600KB) ainda. Os blocos de
+        // verdade de cada modelo continuam só em studio-library.js (pageKits)
+        // e são inseridos via window.AuraStudioPro.insertPreset(id) depois que
+        // o editor abre — os ids abaixo têm que bater com os de lá.
+        const MODELOS_LP = [
+            { id: "kit-vendas-premium", nome: "Página de vendas", objetivo: "Vender", cor: "#7C3AED" },
+            { id: "kit-lancamento", nome: "Lançamento", objetivo: "Lançar", cor: "#A78BFA" },
+            { id: "kit-evento", nome: "Evento", objetivo: "Inscrever", cor: "#2563EB" },
+            { id: "kit-servicos", nome: "Serviços", objetivo: "Apresentar", cor: "#10B981" },
+            { id: "kit-institucional", nome: "Institucional", objetivo: "Construir marca", cor: "#E5E7EB" },
+            { id: "kit-catalogo", nome: "Catálogo de produtos", objetivo: "Vender", cor: "#E11D48" },
+            { id: "kit-lead", nome: "Captação de leads", objetivo: "Captar", cor: "#D97706" },
+            { id: "kit-whatsapp", nome: "Atendimento no WhatsApp", objetivo: "Atender", cor: "#22C55E" }
+        ];
+        let lpModeloEscolhido = null;
+
+        function renderizarModelosLP() {
+            const grid = document.getElementById("lp-modelos-grid");
+            if (!grid) return;
+            const cartaoEmBranco = `
+                <button type="button" class="aura-lp-modelo-card is-active" data-modelo-id="" onclick="selecionarModeloLP('')">
+                    <span class="aura-lp-modelo-dot" style="background:var(--aura-text-muted)">✎</span>
+                    <strong>Em branco</strong>
+                    <small>Comece do zero</small>
+                </button>
+            `;
+            const cartoesModelos = MODELOS_LP.map((modelo) => `
+                <button type="button" class="aura-lp-modelo-card" data-modelo-id="${modelo.id}" onclick="selecionarModeloLP('${modelo.id}')">
+                    <span class="aura-lp-modelo-dot" style="background:${modelo.cor}"></span>
+                    <strong>${modelo.nome}</strong>
+                    <small>${modelo.objetivo}</small>
+                </button>
+            `).join("");
+            grid.innerHTML = cartaoEmBranco + cartoesModelos;
+        }
+
+        window.selecionarModeloLP = function(id) {
+            lpModeloEscolhido = id || null;
+            document.querySelectorAll(".aura-lp-modelo-card").forEach((card) => {
+                card.classList.toggle("is-active", card.dataset.modeloId === (id || ""));
+            });
+        };
+
+        // Atalho pro estado vazio (nenhuma LP criada ainda): abre o modal já
+        // com um modelo pré-selecionado, poupando o clique extra de escolher
+        // de novo algo que a pessoa já escolheu na tela anterior.
+        window.iniciarLPComModelo = function(modeloId) {
+            abrirModalLP();
+            if (modeloId) selecionarModeloLP(modeloId);
+        };
+
+        window.fecharMetricasLP = function() {
+            document.getElementById("lp-metricas-modal")?.classList.add("hidden");
+            window._lpMetricasChart?.destroy();
+            window._lpMetricasChart = null;
+        };
+
+        window.abrirMetricasLP = async function(botao) {
+            const docId = botao.dataset.metricaDocId;
+            const titulo = botao.dataset.lpTitulo || "Landing Page";
+            document.getElementById("lp-metricas-titulo").textContent = titulo;
+            document.getElementById("lp-metricas-total-numero").textContent = "...";
+            document.getElementById("lp-metricas-modal")?.classList.remove("hidden");
+
+            try {
+                const snap = await getDoc(doc(db, "metricas_landing_pages", docId));
+                const dados = snap.exists() ? snap.data() : {};
+
+                document.getElementById("lp-metricas-total-numero").textContent =
+                    dados.totalVisualizacoes || 0;
+
+                // incrementPublicMetric grava com uma chave de campo tipo
+                // `porDia.${dia}.visualizacoes` dentro de um .set(...,{merge:true})
+                // -- o SDK Admin trata isso como um NOME DE CAMPO LITERAL (com
+                // pontos mesmo), não como caminho aninhado. Então o doc não tem
+                // um objeto "porDia" pra navegar; cada dia é seu próprio campo
+                // solto na raiz do documento.
+                const labels = [];
+                const valores = [];
+                for (let i = 13; i >= 0; i--) {
+                    const dia = new Date();
+                    dia.setDate(dia.getDate() - i);
+                    const chave = dia.toISOString().slice(0, 10);
+                    labels.push(dia.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }));
+                    valores.push(dados[`porDia.${chave}.visualizacoes`] || 0);
+                }
+
+                const canvas = document.getElementById("lp-metricas-chart");
+                const vazio = document.getElementById("lp-metricas-vazio");
+                const temAlgumaVisita = valores.some(v => v > 0);
+                // O gráfico depende do Chart.js (CDN). Se ele não estiver
+                // disponível, o número total ainda é útil sozinho -- então
+                // caímos no mesmo estado "sem gráfico" em vez de quebrar.
+                const podeDesenharGrafico = temAlgumaVisita && typeof Chart !== "undefined";
+
+                window._lpMetricasChart?.destroy();
+                window._lpMetricasChart = null;
+                if (!podeDesenharGrafico) {
+                    canvas.classList.add("hidden");
+                    vazio?.classList.remove("hidden");
+                    if (vazio) {
+                        vazio.textContent = temAlgumaVisita
+                            ? "Gráfico indisponível no momento, mas o total acima está correto."
+                            : "Ainda sem visitas registradas nos últimos dias.";
+                    }
+                } else {
+                    canvas.classList.remove("hidden");
+                    vazio?.classList.add("hidden");
+                    const estilos = getComputedStyle(document.documentElement);
+                    const corPrimaria = estilos.getPropertyValue("--sys-primaria").trim() || "#5B3DF5";
+                    window._lpMetricasChart = new Chart(canvas.getContext("2d"), {
+                        type: "line",
+                        data: {
+                            labels,
+                            datasets: [{
+                                label: "Visualizações",
+                                data: valores,
+                                borderColor: corPrimaria,
+                                backgroundColor: converterHexParaRgba(corPrimaria, 0.18),
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.35,
+                                pointRadius: 0,
+                                pointHoverRadius: 5
+                            }]
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: { legend: { display: false } },
+                            scales: {
+                                x: { ticks: { color: "rgba(255,255,255,.4)", font: { size: 9 } }, grid: { display: false } },
+                                y: { beginAtZero: true, ticks: { color: "rgba(255,255,255,.4)", font: { size: 9 }, precision: 0 }, grid: { color: "rgba(255,255,255,.05)" } }
+                            }
+                        }
+                    });
+                }
+            } catch (err) {
+                console.error(err);
+                // Não sobrescreve o total (já mostrado acima) -- só sinaliza o
+                // gráfico como indisponível pra não deixar a área quebrada.
+                const vazio = document.getElementById("lp-metricas-vazio");
+                document.getElementById("lp-metricas-chart")?.classList.add("hidden");
+                if (vazio) {
+                    vazio.classList.remove("hidden");
+                    vazio.textContent = "Não foi possível carregar o gráfico agora.";
+                }
+            }
+        };
+
         window.abrirModalLP = function() {
             document.getElementById("lp-modal-titulo").innerText =
                 "Nova Landing Page";
@@ -3796,6 +4037,8 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             document.getElementById("lp-id-edicao").value = "";
             document.getElementById("lp-titulo").value = "";
             document.getElementById("lp-slug").value = "";
+            lpModeloEscolhido = null;
+            renderizarModelosLP();
 
             document
                 .getElementById("lp-modal")
@@ -3888,6 +4131,23 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
             const painelCamadas = document.getElementById("lped-painel-camadas");
             if (painelCamadas && !painelCamadas.classList.contains("hidden")) {
                 painelCamadas.classList.add("hidden");
+                return;
+            }
+
+            // Auditoria e Comando são superfícies do Aura Studio Pro (carregado
+            // sob demanda), então este arquivo não conhece suas funções de
+            // fechar — só o estado visível (classe "hidden"). Sem isto, Esc
+            // não achava nenhuma superfície conhecida aberta e fechava o
+            // editor inteiro junto com o painel.
+            const painelAuditoria = document.querySelector(".aura-studio-audit");
+            if (painelAuditoria && !painelAuditoria.classList.contains("hidden")) {
+                painelAuditoria.classList.add("hidden");
+                return;
+            }
+
+            const painelComando = document.getElementById("aura-studio-command");
+            if (painelComando && !painelComando.classList.contains("hidden")) {
+                painelComando.classList.add("hidden");
                 return;
             }
 
@@ -5633,22 +5893,42 @@ window.abrirPreviewEditorLP = async function() {
                     if (!exigirEdicaoModulo("landing-pages")) return;
 
                     const novoId = `lp_${Date.now()}`;
-                    const bloco1Id = `lpb_${Date.now()}_1`;
-                    const bloco2Id = `lpb_${Date.now()}_2`;
-                    await setDoc(doc(db, "landing_pages", novoId), {
-                        donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
-                        ordemBlocos: [bloco1Id, bloco2Id],
-                        criadoEm: Date.now(), atualizadoEm: Date.now()
-                    });
-                    await setDoc(doc(db, "landing_pages_blocos", bloco1Id), {
-                        lpId: novoId, donoUID: usuarioUID, tipo: "texto_midia", visivel: true,
-                        props: { titulo: "Seu titulo aqui", subtitulo: "Sua descricao aqui", botaoTexto: "Quero comecar", botaoLink: "#", posicaoImagem: "direita" }
-                    });
-                    await setDoc(doc(db, "landing_pages_blocos", bloco2Id), {
-                        lpId: novoId, donoUID: usuarioUID, tipo: "formulario_captura", visivel: true,
-                        props: { titulo: "Garanta sua vaga", campos: ["nome", "whatsapp"], textoBotao: "Enviar" }
-                    });
+                    const modeloEscolhido = lpModeloEscolhido;
+
+                    if (modeloEscolhido) {
+                        // Modelo pronto: a página nasce sem blocos aqui. Os blocos
+                        // de verdade só existem depois que o editor carrega (studio-library.js),
+                        // então em vez de duplicar aquele conteúdo, abrimos o editor
+                        // dessa LP recém-criada e inserimos o modelo por lá.
+                        await setDoc(doc(db, "landing_pages", novoId), {
+                            donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
+                            ordemBlocos: [],
+                            criadoEm: Date.now(), atualizadoEm: Date.now()
+                        });
+                    } else {
+                        const bloco1Id = `lpb_${Date.now()}_1`;
+                        const bloco2Id = `lpb_${Date.now()}_2`;
+                        await setDoc(doc(db, "landing_pages", novoId), {
+                            donoUID: usuarioUID, titulo, pagina: slug, publicado: false,
+                            ordemBlocos: [bloco1Id, bloco2Id],
+                            criadoEm: Date.now(), atualizadoEm: Date.now()
+                        });
+                        await setDoc(doc(db, "landing_pages_blocos", bloco1Id), {
+                            lpId: novoId, donoUID: usuarioUID, tipo: "texto_midia", visivel: true,
+                            props: { titulo: "Seu titulo aqui", subtitulo: "Sua descricao aqui", botaoTexto: "Quero comecar", botaoLink: "#", posicaoImagem: "direita" }
+                        });
+                        await setDoc(doc(db, "landing_pages_blocos", bloco2Id), {
+                            lpId: novoId, donoUID: usuarioUID, tipo: "formulario_captura", visivel: true,
+                            props: { titulo: "Garanta sua vaga", campos: ["nome", "whatsapp"], textoBotao: "Enviar" }
+                        });
+                    }
                     showToast("Landing Page criada! Ja da pra publicar.");
+                    fecharModalLP();
+                    carregarLandingPages();
+                    if (modeloEscolhido) {
+                        await aplicarModeloNaLP(novoId, modeloEscolhido);
+                    }
+                    return;
                 }
                 fecharModalLP();
                 carregarLandingPages();
@@ -5657,6 +5937,25 @@ window.abrirPreviewEditorLP = async function() {
                 showToast("Erro ao salvar: " + err.message, "error");
             }
         };
+
+        async function aplicarModeloNaLP(id, modeloId) {
+            try {
+                await editarLP(id);
+                if (typeof window.carregarEditorLandingPages === "function") {
+                    await window.carregarEditorLandingPages();
+                }
+                const antes = lpEditorBlocos.length;
+                window.AuraStudioPro?.insertPreset?.(modeloId);
+                if (lpEditorBlocos.length === antes) {
+                    showToast("Não consegui aplicar o modelo, mas a página foi criada em branco.", "error");
+                    return;
+                }
+                await salvarEditorLP();
+            } catch (err) {
+                console.error("[LP] falha ao aplicar modelo:", err);
+                showToast("Não consegui aplicar o modelo, mas a página foi criada em branco.", "error");
+            }
+        }
         window.alternarPublicacaoLP = async function(id, publicarAgora) {
             if (!exigirEdicaoModulo("landing-pages")) return;
 
@@ -7153,6 +7452,44 @@ function() {
 
 };
 
+function escaparHtmlChat(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+window.enviarRespostaChatLead = function(event) {
+    event.preventDefault();
+    const input = document.getElementById("lead-painel-chat-input");
+    const chatId = window._leadPainelChatId;
+    const texto = input?.value.trim();
+    if (!texto || !chatId) return false;
+
+    const chatBox = document.getElementById("lead-painel-chat");
+    input.disabled = true;
+    VideFunctions.sendAdminChatMessage({ chatId, texto })
+        .then(() => {
+            input.value = "";
+            const bolha = document.createElement("div");
+            bolha.className = "flex justify-end";
+            bolha.innerHTML = `<div class="max-w-[80%] px-3 py-2 rounded-xl text-xs bg-blue-500/20 text-blue-300 rounded-tr-none">${escaparHtmlChat(texto)}</div>`;
+            chatBox?.appendChild(bolha);
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch((err) => {
+            console.error(err);
+            showToast("Erro ao enviar resposta: " + err.message, "error");
+        })
+        .finally(() => {
+            input.disabled = false;
+            input.focus();
+        });
+    return false;
+};
+
 window.abrirPainelLead = async function(lead) {
             document.getElementById("lead-painel-id").value = lead.id;
             document.getElementById("lead-painel-avatar").innerText = (lead.nome || "?")[0].toUpperCase();
@@ -7303,12 +7640,28 @@ void carregarHistoricoLead(
                 btnWhats.classList.add("opacity-40", "cursor-not-allowed");
             }
             const chatBox = document.getElementById("lead-painel-chat");
+            const chatInput = document.getElementById("lead-painel-chat-input");
             chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Buscando histórico...</p>";
+            window._leadPainelChatId = null;
+            if (chatInput) chatInput.disabled = true;
             try {
-                const chats = await getDocs(query(collection(db, "chats"), where("clienteNome", "==", lead.nome)));
+                // As regras do Firestore só liberam "list" em /chats quando a
+                // própria query já restringe por donoUID (o campo que a regra
+                // checa) -- sem isso, a query inteira era negada com
+                // permission-denied, mesmo pro dono de verdade, e caía direto
+                // no catch() lá embaixo mostrando "Sem histórico de chat.".
+                const chats = await getDocs(query(collection(db, "chats"), where("donoUID", "==", usuarioUID), where("clienteNome", "==", lead.nome)));
                 if (chats.empty) {
                     chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Nenhum chat encontrado.</p>";
                 } else {
+                    // Responde sempre no chat mais recente do lead (o normal é
+                    // ter só um; se houver vários, o mais novo é o relevante).
+                    const chatMaisRecente = chats.docs.reduce((mais, atual) =>
+                        (atual.data().timestamp || 0) > (mais.data().timestamp || 0) ? atual : mais
+                    );
+                    window._leadPainelChatId = chatMaisRecente.id;
+                    if (chatInput) chatInput.disabled = false;
+
                     let msgs = [];
                     for (const c of chats.docs) {
                         const mSnap = await getDocs(collection(db, "chats", c.id, "mensagens"));
@@ -7321,8 +7674,9 @@ void carregarHistoricoLead(
                         chatBox.innerHTML = msgs.map(m =>
                             "<div class='flex " + (m.sender === 'admin' ? "justify-end" : "justify-start") + "'>" +
                             "<div class='max-w-[80%] px-3 py-2 rounded-xl text-xs " + (m.sender === 'admin' ? "bg-blue-500/20 text-blue-300 rounded-tr-none" : "bg-red-500/10 text-red-300 rounded-tl-none border border-red-500/10") + "'>" +
-                            m.texto + "</div></div>"
+                            escaparHtmlChat(m.texto) + "</div></div>"
                         ).join("");
+                        chatBox.scrollTop = chatBox.scrollHeight;
                     }
                 }
             } catch(e) {

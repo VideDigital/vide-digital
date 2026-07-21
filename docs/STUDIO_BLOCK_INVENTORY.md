@@ -2,19 +2,17 @@
 
 Este inventário mapeia os tipos de bloco ativos e a transição para o registro canônico.
 
-## Tipos com renderer legado conhecido
+## Tipos registrados e renderers
 
-Os tipos abaixo estão registrados como catálogo canônico, mas seus renderers ainda não são funções canônicas ativas. O campo `renderer` do registro usa referências descritivas em formato `legacy:*`.
-
-`BlockRegistry.render()` não executa essas strings; ele só executa funções. Portanto, o renderer funcional continua sendo o caminho legado.
+A Fase 2 converteu seis tipos para funções canônicas reais usadas no catálogo e preview do Studio. O renderer público efetivo continua legado. Os demais tipos preservam referências descritivas `legacy:*`.
 
 | Tipo persistido | Categoria canônica | Referência de renderer | Status | Observações |
 | --- | --- | --- | --- | --- |
-| `texto_midia` | Hero | `legacy:renderTextMedia` | Catálogo canônico / renderer legado | Também representa hero, banner e texto com imagem. |
-| `formulario_captura` | Formulários | `legacy:renderForm` | Catálogo canônico / renderer legado | Mantém contrato público de captação de leads. |
-| `faq` | FAQ | `legacy:renderFAQ` | Catálogo canônico / renderer legado | Bloco estável de perguntas frequentes. |
-| `galeria_imagens` | Galerias | `legacy:renderGallery` | Catálogo canônico / renderer legado | Atenção a mídia/base64 em fases futuras. |
-| `lista_cards` | Conteúdo | `legacy:renderCardList` | Catálogo canônico / renderer legado | Usado para benefícios, serviços, etapas e recursos. |
+| `texto_midia` | Hero | `textMediaRenderer` | Renderer e preview canônicos | Fallback legado preservado; renderer público não migrado. |
+| `formulario_captura` | Formulários | `formRenderer` | Renderer e preview canônicos | Preview não envia dados; fluxo público continua legado. |
+| `faq` | FAQ | `faqRenderer` | Renderer e preview canônicos | Conteúdo textual sempre escapado. |
+| `galeria_imagens` | Galerias | `galleryRenderer` | Renderer e preview canônicos | URLs de mídia passam por allow-list. |
+| `lista_cards` | Conteúdo | `cardListRenderer` | Renderer e preview canônicos | Suporta `itens`, `cards` e defaults seguros. |
 | `tabela_comparativo` | Comparações | `legacy:renderComparison` | Catálogo canônico / renderer legado | Usado para planos e comparações. |
 | `texto_rico` | Texto | `legacy:renderRichText` | Catálogo canônico / renderer legado | Requer atenção contínua a conteúdo rico. |
 | `codigo_iframe` | Código | `legacy:renderIframe` | Experimental / renderer legado | Conteúdo potencialmente inseguro via `capabilities.unsafeContent`; não expandir sem política própria. |
@@ -22,7 +20,7 @@ Os tipos abaixo estão registrados como catálogo canônico, mas seus renderers 
 | `carrossel_produtos` | Produtos | `legacy:renderProductCarousel` | Catálogo canônico / renderer legado | Depende de dados de produto/tenant. |
 | `carrossel_cards` | Depoimentos | `legacy:renderCardCarousel` | Catálogo canônico / renderer legado | Usado para cards, prova social e depoimentos. |
 | `navegacao` | Navegação | `legacy:renderNavigation` | Catálogo canônico / renderer legado | Requer validação de links. |
-| `rodape` | Rodapés | `legacy:renderFooter` | Catálogo canônico / renderer legado | Requer validação de links e redes sociais. |
+| `rodape` | Rodapés | `footerRenderer` | Renderer e preview canônicos | Links passam por allow-list; fallback legado preservado. |
 | `seletor_cores` | Utilidades | `legacy:renderColorSelector` | Experimental / renderer legado | Controle utilitário preservado. |
 | `breadcrumb` | Navegação | `legacy:renderBreadcrumb` | Catálogo canônico / renderer legado | Estrutura simples de navegação contextual. |
 | `forma` | Estrutura | `legacy:renderShape` | Catálogo canônico / renderer legado | Usado em layout livre e elementos decorativos. |
@@ -36,7 +34,10 @@ Os tipos abaixo estão registrados como catálogo canônico, mas seus renderers 
 | `studio-max-library.js` | Biblioteca expandida legada. | Continua compatível via adaptador. |
 | `studio-ultimate-library.js` | Biblioteca avançada legada. | Continua compatível via adaptador. |
 | `studio-blocks-v4.js` | Famílias e presets V4. | Continua compatível via adaptador. |
-| `studio-pro.js` | Shell/editor ativo. | Ainda consome presets legados nesta fase. |
+| `studio-library-v2-adapter.js` | Catálogo normalizado, busca, filtros e inserção. | Usa Registry como fonte principal e adapta todos os presets ativos. |
+| `studio-canonical-renderers-v1.js` | Renderers canônicos iniciais. | Substitui seis referências `legacy:*` por funções reais com fallback. |
+| `studio-library-v2.js` | Interface ativa sob feature flag. | Consome o catálogo unificado e preserva Library Clean/Pro como fallback. |
+| `studio-pro.js` | Shell/editor ativo. | Continua responsável pelo mecanismo funcional de inserção e pelo contrato salvo. |
 | `studio-inspector.js` | Inspector ativo. | Ainda usa lógica própria; schema canônico fica preparado para fase futura. |
 | `studio-canvas-v4.js` | Canvas ativo. | Não muda nesta fase. |
 | `lp-public-v4.js` | Renderer legado/planejado. | Tenta registro se presente e cai no renderer legado, mas não está carregado por HTML público atual. |
@@ -84,8 +85,8 @@ Equivalências principais:
 
 - `codigo_iframe` exige política específica antes de qualquer expansão.
 - `carrossel_produtos` depende de isolamento por tenant e dados dinâmicos.
-- Inspector e biblioteca visual ainda precisam migrar gradualmente para o schema canônico.
-- Renderers `legacy:*` ainda são metadados descritivos; a migração para funções reais é bloqueador para usar o registro como fonte real da biblioteca visual.
+- O Inspector ainda precisa migrar gradualmente para o schema canônico.
+- Dez renderers `legacy:*` ainda são metadados descritivos e precisam de migração futura.
 - O renderer público efetivo ainda está em `index.html`; a unificação com `lp-public-v4.js` é bloqueador para depender do registro no fluxo público.
 - Presets legados podem conter variações sem renderer público; por isso o fallback continua obrigatório.
 - O adaptador de presets ainda reprocessa o array em reatribuições completas. Isso não é bloqueador, mas pode ser otimizado em fase futura com cursor/identidade de presets processados.

@@ -54,9 +54,15 @@
 }
 
 .aura-v4-toolbar{
+  /* A barra inferior do Studio Pro (Grade/Contornos/Inspetor/zoom) fica fixa
+     em bottom:0 com uns 47px de altura. Antes esta barra flutuante (V4)
+     ficava em bottom:17px, caindo bem em cima da barra do Pro e bloqueando
+     clique nos botões dela (z-index mais alto ganhava o toque, mas a ação
+     de baixo nunca disparava). Subindo o suficiente pra sobrar espaço entre
+     as duas. */
   position:fixed;
   left:50%;
-  bottom:17px;
+  bottom:65px;
   z-index:146;
   display:flex;
   align-items:center;

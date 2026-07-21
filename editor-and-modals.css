@@ -446,7 +446,8 @@
   margin-top:15px;
 }
 
-.aura-lp-card-info span{
+.aura-lp-card-info span,
+.aura-lp-card-views{
   display:flex;
   align-items:center;
   gap:6px;
@@ -458,6 +459,19 @@
   width:12px;
   height:12px;
   stroke-width:2;
+}
+
+button.aura-lp-card-views{
+  padding:0;
+  border:none;
+  background:none;
+  font-family:inherit;
+  cursor:pointer;
+  transition:color .15s ease;
+}
+
+button.aura-lp-card-views:hover{
+  color:var(--aura-primary);
 }
 
 .aura-lp-card-actions{
@@ -562,7 +576,15 @@
   line-height:1.55;
 }
 
-.aura-lp-empty button{
+.aura-lp-empty-modelos{
+  display:flex;
+  flex-wrap:wrap;
+  justify-content:center;
+  gap:8px;
+  margin-top:20px;
+}
+
+.aura-lp-empty > button{
   min-height:38px;
   margin-top:14px;
   padding:0 13px;
@@ -694,6 +716,90 @@
   padding-left:31px !important;
 }
 
+.aura-lp-modelo-secao{
+  margin-top:18px;
+}
+
+.aura-lp-modelo-secao > label{
+  display:block;
+  margin-bottom:9px;
+  color:var(--aura-text-secondary);
+  font-size:10px;
+  font-weight:800;
+}
+
+.aura-lp-modelo-secao > p{
+  margin-top:9px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.45;
+}
+
+.aura-lp-modelo-grid{
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  padding-bottom:4px;
+  scrollbar-width:thin;
+}
+
+.aura-lp-modelo-card{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:7px;
+  flex:0 0 108px;
+  min-height:88px;
+  padding:11px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:color-mix(in srgb,var(--aura-surface-soft) 50%,transparent);
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .15s ease,background .15s ease,transform .15s ease;
+}
+
+.aura-lp-modelo-card:hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb,var(--aura-primary) 35%,transparent);
+}
+
+.aura-lp-modelo-card.is-active{
+  border-color:var(--aura-primary);
+  background:color-mix(in srgb,var(--aura-primary) 12%,transparent);
+  box-shadow:0 0 0 1px var(--aura-primary) inset;
+}
+
+.aura-lp-modelo-dot{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:26px;
+  height:26px;
+  flex-shrink:0;
+  border-radius:9px;
+  color:#0b0b0f;
+  font-size:12px;
+  font-weight:900;
+}
+
+.aura-lp-modelo-card strong{
+  display:block;
+  color:var(--aura-text);
+  font-size:10px;
+  font-weight:800;
+  line-height:1.3;
+}
+
+.aura-lp-modelo-card small{
+  display:block;
+  color:var(--aura-text-muted);
+  font-size:8px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
 .aura-lp-modal-note{
   display:flex;
   align-items:flex-start;
@@ -733,6 +839,53 @@
 .aura-lp-cancel-button,
 .aura-lp-save-button{
   min-width:165px;
+}
+
+.aura-lp-metricas-modal-card{
+  max-width:480px;
+}
+
+.aura-lp-metricas-total{
+  display:flex;
+  align-items:baseline;
+  gap:8px;
+  margin-top:20px;
+  padding:14px 16px;
+  border:1px solid
+    color-mix(in srgb,var(--aura-primary) 20%,transparent);
+  border-radius:14px;
+  background:
+    color-mix(in srgb,var(--aura-primary) 6%,transparent);
+}
+
+.aura-lp-metricas-total strong{
+  color:var(--aura-text);
+  font-size:22px;
+  font-weight:850;
+}
+
+.aura-lp-metricas-total span{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+}
+
+.aura-lp-metricas-chart-wrap{
+  position:relative;
+  height:200px;
+  margin-top:18px;
+}
+
+.aura-lp-metricas-chart-wrap p{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  text-align:center;
 }
 
 /* Tema claro */
@@ -1922,6 +2075,53 @@
   min-height:85px;
   padding:15px;
   text-align:center;
+}
+
+.aura-lead-chat-reply{
+  display:flex;
+  gap:7px;
+  margin-top:9px;
+}
+
+.aura-lead-chat-reply input{
+  flex:1;
+  min-height:38px;
+  padding:0 12px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  color:var(--aura-text);
+  background:
+    color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+  font-size:10px;
+}
+
+.aura-lead-chat-reply input:focus{
+  outline:none;
+  border-color:
+    color-mix(in srgb,var(--aura-primary) 45%,transparent);
+}
+
+.aura-lead-chat-reply button{
+  display:flex;
+  flex-shrink:0;
+  align-items:center;
+  justify-content:center;
+  width:38px;
+  height:38px;
+  border-radius:11px;
+  color:#fff;
+  background:
+    linear-gradient(135deg,var(--aura-primary),var(--aura-accent));
+}
+
+.aura-lead-chat-reply button:disabled{
+  opacity:.5;
+}
+
+.aura-lead-chat-reply button svg{
+  width:15px;
+  height:15px;
+  stroke-width:2;
 }
 
 .aura-lead-drawer-footer{

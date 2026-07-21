@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="./business-modules.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
 <link rel="stylesheet" href="./late-overrides.css">
-<link rel="stylesheet" href="./studio-pro.css">
+<link rel="stylesheet" href="./studio-pro.css?v=200">
 <link rel="stylesheet" href="./studio-desktop-shell-v1.css?v=104">
 <link rel="stylesheet" href="./studio-max.css">
 <link rel="stylesheet" href="./studio-ultimate.css">
@@ -27,6 +27,7 @@
 <!-- <link rel="stylesheet" href="./studio-performance-v51.css"> -->
 <!-- <link rel="stylesheet" href="./studio-library-performance-v52.css"> -->
 <link rel="stylesheet" href="./studio-library-clean-v53.css?v=530">
+<link rel="stylesheet" href="./studio-library-v2.css?v=202">
 <!-- Vide Aura Editor Clean V6 -->
 <link rel="stylesheet" href="./studio-clean-v6.css?v=600">
 <!-- Workspace V6.1 desativado temporariamente -->
@@ -6607,6 +6608,26 @@ id="lead-painel-chat"
 class="aura-lead-chat-history"
 ></div>
 
+<form onsubmit="return enviarRespostaChatLead(event)" class="aura-lead-chat-reply">
+
+<input
+type="text"
+id="lead-painel-chat-input"
+placeholder="Responder ao cliente..."
+autocomplete="off"
+>
+
+<button type="submit" aria-label="Enviar resposta">
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="m22 2-7 20-4-9-9-4Z"></path>
+<path d="M22 2 11 13"></path>
+</svg>
+
+</button>
+
+</form>
+
 </div>
 
 </div>
@@ -7682,6 +7703,20 @@ Use somente letras minúsculas, números, hífen ou underline.
 
 </div>
 
+<div class="aura-lp-modelo-secao">
+
+<label>
+Escolha um ponto de partida
+</label>
+
+<div id="lp-modelos-grid" class="aura-lp-modelo-grid"></div>
+
+<p>
+Comece do zero ou escolha um modelo pronto — dá pra mudar tudo depois, título, textos, imagens e blocos.
+</p>
+
+</div>
+
 <div class="aura-lp-modal-note">
 
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -7721,6 +7756,61 @@ Criar Landing Page
 
 </button>
 
+</div>
+
+</div>
+
+</div>
+
+<div
+id="lp-metricas-modal"
+class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+onclick="if(event.target === this) fecharMetricasLP()"
+>
+
+<div class="glass-card aura-lp-modal aura-lp-metricas-modal-card">
+
+<button
+type="button"
+onclick="fecharMetricasLP()"
+class="aura-lp-modal-close"
+aria-label="Fechar"
+>
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="m6 6 12 12"></path>
+<path d="M18 6 6 18"></path>
+</svg>
+
+</button>
+
+<div class="aura-lp-modal-header">
+
+<span>
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"></path>
+<circle cx="12" cy="12" r="3"></circle>
+</svg>
+
+</span>
+
+<div>
+<small>Desempenho</small>
+<h3 id="lp-metricas-titulo">Visitas da página</h3>
+<p>Visualizações reais de quem acessou a página publicada, por dia.</p>
+</div>
+
+</div>
+
+<div class="aura-lp-metricas-total">
+<strong id="lp-metricas-total-numero">0</strong>
+<span>visualizações no total</span>
+</div>
+
+<div class="aura-lp-metricas-chart-wrap">
+<canvas id="lp-metricas-chart"></canvas>
+<p id="lp-metricas-vazio" class="hidden">Ainda sem visitas registradas nos últimos dias.</p>
 </div>
 
 </div>
@@ -8225,7 +8315,7 @@ Confirmar
 <!-- Editor de Landing Pages (Aura Studio): carregado sob demanda por
      studio-loader.js só quando o usuário abre o editor (editarLP), em vez de
      em toda carga do painel. Ver studio-loader.js para a lista/ordem completa. -->
-<script src="./studio-loader.js"></script>
+<script src="./studio-loader.js?v=204"></script>
 <script type="module" src="./lead-engine-v5.js?v=501"></script>
 
 <!-- Workspace e Mobile Safe desativados para evitar conflito no celular -->

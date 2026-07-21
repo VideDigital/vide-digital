@@ -182,6 +182,7 @@
       <button type="button" data-aura-mobile-view="blocks" aria-controls="lped-painel-lateral">Blocos</button>
       <button type="button" data-aura-mobile-view="preview" aria-controls="lped-browser-frame">Previa</button>
       <button type="button" data-aura-mobile-view="properties" aria-controls="aura-studio-inspector">Propriedades</button>
+      <button type="button" data-studio-library-open="true" aria-label="Abrir Biblioteca do Studio">Biblioteca</button>
     `;
     topbar.after(nav);
   }
@@ -313,6 +314,11 @@
 
     const signal = state.mobile.controller.signal;
     document.getElementById("aura-studio-mobile-shell-nav")?.addEventListener("click", (event) => {
+      const libraryButton = event.target.closest("[data-studio-library-open='true']");
+      if (libraryButton) {
+        openActiveLibrary();
+        return;
+      }
       const button = event.target.closest("[data-aura-mobile-view]");
       if (button) setMobileView(button.dataset.auraMobileView);
     }, { signal });
@@ -439,6 +445,8 @@
     const libraryButton = document.createElement("button");
     libraryButton.type = "button";
     libraryButton.className = "aura-studio-top-command";
+    libraryButton.dataset.studioLibraryOpen = "true";
+    libraryButton.setAttribute("aria-label", "Abrir Biblioteca do Studio");
     libraryButton.title = "Biblioteca Pro (B)";
     libraryButton.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -449,7 +457,7 @@
       </svg>
       <span>Biblioteca</span>
     `;
-    libraryButton.addEventListener("click", openLibrary);
+    libraryButton.addEventListener("click", openActiveLibrary);
     const modeGroup = document.getElementById("lped-btn-modo-empilhado")?.parentElement;
     modeGroup?.classList.add("aura-studio-mobile-mode-group");
     modeGroup?.before(libraryButton);
@@ -489,26 +497,42 @@
     `;
     header.appendChild(tools);
 
-    tools.querySelector("[data-studio-left='library']")?.addEventListener("click", openLibrary);
+    tools.querySelector("[data-studio-left='library']")?.addEventListener("click", openActiveLibrary);
     tools.querySelector("[data-studio-left='layers']")?.addEventListener("click", () => window.alternarPainelCamadas?.());
     tools.querySelector("[data-studio-left='pages']")?.addEventListener("click", () => document.getElementById("lped-barra-paginas")?.scrollIntoView({ behavior: "smooth", block: "center" }));
     tools.querySelector("[data-studio-left='audit']")?.addEventListener("click", openAudit);
 
     const addButton = panel.querySelector("button.aura-lped-add-block");
-    if (addButton) {
+    if (addButton && !addButton.closest(".aura-studio-add-row")) {
+      // Antes a Biblioteca Pro era um cartão inteiro (ícone + título + descrição)
+      // empilhado ACIMA do botão "Adicionar Novo Bloco" — dois blocos quase do
+      // mesmo tamanho, um em cima do outro, davam sensação de painel poluído.
+      // Aqui os dois viram uma única linha: o botão principal continua igual
+      // (mesmo texto, mesmo clique) e a Biblioteca Pro vira um atalho compacto
+      // ao lado, mantendo a mesma classe/seletor que as demais camadas do
+      // Studio já escutam pra abrir a biblioteca.
+      const row = document.createElement("div");
+      row.className = "aura-studio-add-row mt-6";
+      addButton.classList.remove("mt-6");
+      addButton.before(row);
+      row.appendChild(addButton);
+
       const proButton = document.createElement("button");
       proButton.type = "button";
       proButton.className = "aura-studio-library-launch";
+      proButton.title = "Biblioteca Pro — mais de 100 estruturas e páginas completas";
+      proButton.setAttribute("aria-label", "Explorar Biblioteca Pro: mais de 100 estruturas e páginas completas");
       proButton.innerHTML = `
-        <span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v18"></path><path d="M3 12h18"></path></svg>
-        </span>
-        <div><strong>Explorar Biblioteca Pro</strong><small>Mais de 100 estruturas e páginas completas</small></div>
-        <b>⌘ B</b>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 3v18"></path><path d="M3 12h18"></path></svg>
       `;
-      proButton.addEventListener("click", openLibrary);
-      addButton.before(proButton);
+      proButton.addEventListener("click", openActiveLibrary);
+      row.appendChild(proButton);
     }
+  }
+
+  function openActiveLibrary() {
+    const handler = window.AuraStudioPro?.openLibrary;
+    return (typeof handler === "function" ? handler : openLibrary)();
   }
 
   function injectBottomBar() {

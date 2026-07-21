@@ -51,6 +51,13 @@
   }
 
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-title-group {
+    /* studio-pro.css força "order:1" num seletor antigo (nth-child(2)) pensado
+       pra uma topbar com poucos grupos. Hoje existem mais grupos depois dela
+       (device switcher, histórico, ações) que ficam em order:0 por padrão,
+       então esse order:1 jogava o título/botão fechar pro fim da fila,
+       fora da tela. Aqui igualamos a marca (order:0) pra voltar a ordem
+       natural: marca, depois título/fechar, depois o resto. */
+    order: 0 !important;
     align-self: center !important;
     flex: 1 1 260px !important;
     min-width: 220px !important;
@@ -59,18 +66,21 @@
   }
 
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] [data-lp-editor-close] {
-    position: fixed;
-    top: 10px;
-    left: 212px;
-    z-index: 45;
+    /* Antes ficava em position:fixed com um "left" fixo em pixels, calculado
+       pra cair logo depois da coluna da marca (180px). Isso quebrava sempre
+       que a topbar ficava mais apertada (mais botões, viewport menor) e o
+       grupo do título/outros elementos se moviam, mas o botão fixo não —
+       ele passava a cair em cima de quem estivesse ali. Em fluxo normal ele
+       acompanha a marca de verdade, sem precisar adivinhar posição.
+     */
     display: inline-flex !important;
     align-items: center;
     justify-content: center;
     width: 44px;
     min-width: 44px;
     height: 44px;
+    flex: 0 0 44px;
     padding: 0 !important;
-    pointer-events: auto;
   }
 
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-lped-topbar button {
@@ -78,6 +88,31 @@
     border-radius: 10px !important;
     font-size: 13.5px !important;
     letter-spacing: 0 !important;
+  }
+
+  /* Seletor de celular/tablet/PC: continua com a mesma função (pré-visualizar
+     antes de publicar), só fica visualmente mais leve — sem vidro/sombra
+     pesados, ícones um pouco menores — pra não competir tanto com o resto
+     da topbar. */
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-device-group {
+    padding: 3px !important;
+    gap: 2px !important;
+    border-color: transparent !important;
+    background: rgba(255, 255, 255, .04) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+    box-shadow: none !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-device-group button {
+    width: 30px !important;
+    height: 30px !important;
+    padding: 0 !important;
+  }
+
+  #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] .aura-studio-mobile-device-group svg {
+    width: 14px !important;
+    height: 14px !important;
   }
 
   #lp-editor-modal.aura-studio-pro[data-vh-desktop-shell="true"] #lped-titulo {

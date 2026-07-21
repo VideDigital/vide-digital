@@ -160,9 +160,14 @@
                     button.getAttribute("onclick") || ""
                 );
 
+                // "criar landing page" foi removido daqui: é o texto do botão
+                // de SALVAR dentro do modal (onclick="salvarLP()"), não do
+                // botão que ABRE o modal. Com esse texto na lista, todo clique
+                // em "Criar Landing Page" era sequestrado por este bind e
+                // reabria o modal de novo em vez de salvar — a página nunca
+                // era criada de fato ao clicar no botão.
                 const isNewLandingButton =
                     text === "nova landing page" ||
-                    text === "criar landing page" ||
                     onclick.includes("abrirModalLP");
 
                 if (!isNewLandingButton) {
@@ -205,10 +210,7 @@
                     target.textContent
                 );
 
-                if (
-                    text === "nova landing page" ||
-                    text === "criar landing page"
-                ) {
+                if (text === "nova landing page") {
                     event.preventDefault();
                     event.stopPropagation();
 
