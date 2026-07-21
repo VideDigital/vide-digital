@@ -1101,6 +1101,128 @@ function atualizarLinksLojaPublica(slug) {
     });
 }
 
+// ===== Compartilhar (QR Code + link) =====
+window._compartilharUrl = "";
+
+// Desenha o QR num canvas e devolve PNG nítido (melhor que o GIF nativo
+// da lib). Retorna null se a lib de QR não tiver carregado.
+function gerarQrCodePng(url, tamanhoPx) {
+    if (typeof qrcode !== "function") return null;
+    try {
+        const qr = qrcode(0, "M");
+        qr.addData(url);
+        qr.make();
+        const count = qr.getModuleCount();
+        const margem = 4;
+        const total = count + margem * 2;
+        const cell = Math.max(2, Math.floor((tamanhoPx || 640) / total));
+        const size = cell * total;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, size, size);
+        ctx.fillStyle = "#000000";
+        for (let r = 0; r < count; r++) {
+            for (let c = 0; c < count; c++) {
+                if (qr.isDark(r, c)) ctx.fillRect((c + margem) * cell, (r + margem) * cell, cell, cell);
+            }
+        }
+        return canvas.toDataURL("image/png");
+    } catch (err) {
+        console.error("Falha ao gerar QR:", err);
+        return null;
+    }
+}
+
+window.abrirCompartilhar = function(url, titulo) {
+    if (!url) {
+        showToast("Publique/configure isso primeiro pra ter um link.", "error");
+        return;
+    }
+    window._compartilharUrl = url;
+    document.getElementById("compartilhar-titulo").textContent = titulo || "Compartilhar";
+    document.getElementById("compartilhar-url").textContent = url;
+
+    const img = document.getElementById("compartilhar-qr-img");
+    const indisponivel = document.getElementById("compartilhar-qr-indisponivel");
+    const download = document.getElementById("compartilhar-download");
+    const png = gerarQrCodePng(url, 640);
+    if (png) {
+        img.src = png;
+        img.classList.remove("hidden");
+        indisponivel?.classList.add("hidden");
+        if (download) {
+            download.href = png;
+            const nome = (titulo || "loja").toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "") || "qrcode";
+            download.setAttribute("download", "qrcode-" + nome + ".png");
+            download.style.display = "";
+        }
+    } else {
+        img.removeAttribute("src");
+        img.classList.add("hidden");
+        indisponivel?.classList.remove("hidden");
+        if (download) download.style.display = "none";
+    }
+    document.getElementById("compartilhar-modal").classList.remove("hidden");
+};
+
+window.fecharCompartilhar = function() {
+    document.getElementById("compartilhar-modal")?.classList.add("hidden");
+};
+
+window.abrirLinkCompartilhar = function() {
+    if (window._compartilharUrl) window.open(window._compartilharUrl, "_blank", "noopener,noreferrer");
+};
+
+// Copia um texto pra área de transferência com fallback, dando retorno
+// visual no botão (troca o rótulo e a classe .is-copiado por 2s).
+async function copiarTextoComFeedback(texto, botao, rotuloCopiado) {
+    const rotulo = botao?.querySelector("[data-copiar-texto]");
+    const textoOriginal = rotulo?.textContent;
+    try {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(texto);
+        } else {
+            const tmp = document.createElement("textarea");
+            tmp.value = texto;
+            tmp.style.position = "fixed";
+            tmp.style.opacity = "0";
+            document.body.appendChild(tmp);
+            tmp.select();
+            document.execCommand("copy");
+            document.body.removeChild(tmp);
+        }
+        botao?.classList.add("is-copiado");
+        if (rotulo) rotulo.textContent = rotuloCopiado || "Copiado!";
+        setTimeout(() => {
+            botao?.classList.remove("is-copiado");
+            if (rotulo && textoOriginal) rotulo.textContent = textoOriginal;
+        }, 2000);
+        return true;
+    } catch (err) {
+        console.error(err);
+        showToast("Não consegui copiar. O link é: " + texto, "error");
+        return false;
+    }
+}
+
+window.copiarLinkCompartilhar = function(botao) {
+    if (!window._compartilharUrl) return;
+    copiarTextoComFeedback(window._compartilharUrl, botao, "Link copiado!");
+};
+
+window.abrirCompartilharLoja = function() {
+    const url = obterLinkPublicoValido("link-minha-loja", "link-minha-loja-cockpit");
+    const nome = (typeof nomeLojaAtual !== "undefined" && nomeLojaAtual) ? nomeLojaAtual : "Minha loja";
+    window.abrirCompartilhar(url, nome);
+};
+
+window.abrirCompartilharLP = function(botao) {
+    window.abrirCompartilhar(botao?.dataset?.shareUrl, botao?.dataset?.shareTitulo || "Landing Page");
+};
+
 window.copiarLinkLoja = async function(botao) {
     const url = obterLinkPublicoValido("link-minha-loja", "link-minha-loja-cockpit");
     if (!url) {
@@ -3867,6 +3989,28 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                                     }
 
                                 </button>
+
+                                ${lp.publicado ? `
+                                <button
+                                    onclick="abrirCompartilharLP(this)"
+                                    data-share-url="${escaparHtmlChat(url)}"
+                                    data-share-titulo="${escaparHtmlChat(lp.titulo || "Landing Page")}"
+                                    title="Compartilhar / QR Code"
+                                    class="aura-lp-icon-button"
+                                >
+
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="3" y="3" width="7" height="7" rx="1"></rect>
+                                        <rect x="14" y="3" width="7" height="7" rx="1"></rect>
+                                        <rect x="3" y="14" width="7" height="7" rx="1"></rect>
+                                        <path d="M14 14h3v3"></path>
+                                        <path d="M17 21h4v-4"></path>
+                                        <path d="M14 21h.01"></path>
+                                        <path d="M21 14v.01"></path>
+                                    </svg>
+
+                                </button>
+                                ` : ``}
 
                                 <button
                                     onclick="duplicarLP('${lp.id}')"

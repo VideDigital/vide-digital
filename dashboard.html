@@ -21,6 +21,8 @@
 <link rel="stylesheet" href="./studio-canvas-v4.css">
 <script src="./error-boundary.js"></script>
 <script src="./version.js"></script>
+<!-- Gerador de QR Code (offline, sem CDN) para compartilhar loja e páginas -->
+<script src="./vendor/qrcode.js"></script>
 <link rel="stylesheet" href="./lead-engine-v5.css?v=501">
 <link rel="stylesheet" href="./leads-mobile-hotfix-v51.css?v=510">
 <!-- Aura Performance Core + Interface Confortável V5.1 -->
@@ -441,10 +443,16 @@ stroke="currentColor">
 
 </a>
 
+<div class="aura-store-status-share">
 <button type="button" id="btn-copiar-link-loja" onclick="copiarLinkLoja(this)" class="aura-store-status-copy">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-<span data-copiar-texto>Copiar link da loja</span>
+<span data-copiar-texto>Copiar link</span>
 </button>
+<button type="button" id="btn-qr-loja" onclick="abrirCompartilharLoja()" class="aura-store-status-copy">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3"/><path d="M21 14v.01"/><path d="M14 21h.01"/><path d="M17 21h4v-4"/></svg>
+<span>QR Code</span>
+</button>
+</div>
 
 </div>
 
@@ -7765,6 +7773,47 @@ Criar Landing Page
 
 </div>
 
+</div>
+
+<div
+id="compartilhar-modal"
+class="hidden fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/80 backdrop-blur-xl"
+onclick="if(event.target === this) fecharCompartilhar()"
+>
+<div class="glass-card aura-lp-modal aura-compartilhar-card">
+<button type="button" onclick="fecharCompartilhar()" class="aura-lp-modal-close" aria-label="Fechar">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m6 6 12 12"></path><path d="M18 6 6 18"></path></svg>
+</button>
+<div class="aura-lp-modal-header">
+<span>
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><path d="m8.6 13.5 6.8 4"/><path d="m15.4 6.5-6.8 4"/></svg>
+</span>
+<div>
+<small>Compartilhar</small>
+<h3 id="compartilhar-titulo">Compartilhar</h3>
+<p>Aponte a câmera do celular para o código, ou copie o link.</p>
+</div>
+</div>
+<div class="aura-compartilhar-qr">
+<img id="compartilhar-qr-img" alt="QR Code do link">
+<p id="compartilhar-qr-indisponivel" class="hidden">Não foi possível gerar o QR Code agora, mas o link abaixo funciona.</p>
+</div>
+<div class="aura-compartilhar-url" id="compartilhar-url"></div>
+<div class="aura-compartilhar-actions">
+<button type="button" onclick="copiarLinkCompartilhar(this)" class="aura-compartilhar-btn">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+<span data-copiar-texto>Copiar link</span>
+</button>
+<a id="compartilhar-download" download="qrcode.png" class="aura-compartilhar-btn">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/></svg>
+Baixar QR Code
+</a>
+<button type="button" onclick="abrirLinkCompartilhar()" class="aura-compartilhar-btn aura-compartilhar-btn-primary">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 5h5v5"/><path d="M10 14 19 5"/><path d="M19 13v6H5V5h6"/></svg>
+Abrir
+</button>
+</div>
+</div>
 </div>
 
 <div
