@@ -6391,10 +6391,10 @@ await setDoc(doc(db, "landing_pages", novoId), {
                     document.getElementById("perf-social-youtube").value = dados.youtubeUrl || "";
                     document.getElementById("perf-link1-titulo").value = dados.link1Titulo || "";
                     document.getElementById("perf-link1-url").value = dados.link1Url || "";
-                    document.getElementById("perf-link1-icone").value = dados.link1Icone || "🔗";
+                    document.getElementById("perf-link1-icone").value = chaveIconeLink(dados.link1Icone);
                     document.getElementById("perf-link2-titulo").value = dados.link2Titulo || "";
                     document.getElementById("perf-link2-url").value = dados.link2Url || "";
-                    document.getElementById("perf-link2-icone").value = dados.link2Icone || "🔗";
+                    document.getElementById("perf-link2-icone").value = chaveIconeLink(dados.link2Icone);
                     document.getElementById("perf-aba-padrao").value = dados.abaPadrao || "fisicos";
 
                     // Número do Chat e Botão Ativo
@@ -7462,6 +7462,18 @@ function escaparHtmlChat(valor) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
+}
+
+// Normaliza o ícone dos "Links Personalizados" para uma CHAVE estável
+// (link, chat, entrega...). Lojas antigas salvaram o valor como emoji
+// (🔗, 💬...); aqui mapeamos esses valores legados pra chave nova, pra o
+// seletor selecionar a opção certa e o valor virar chave ao salvar de novo.
+function chaveIconeLink(valor) {
+    const legado = { "🔗": "link", "💬": "chat", "📦": "entrega", "🎁": "promo", "📱": "app", "⭐": "avaliacoes", "📍": "local" };
+    const validas = ["link", "chat", "entrega", "promo", "app", "avaliacoes", "local"];
+    if (!valor) return "link";
+    if (legado[valor]) return legado[valor];
+    return validas.includes(valor) ? valor : "link";
 }
 
 window.enviarRespostaChatLead = function(event) {
