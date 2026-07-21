@@ -1,0 +1,158 @@
+name: Deploy Firebase Backend
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: ID real do projeto Firebase de produção
+        required: true
+        type: string
+      confirm_production:
+        description: Digite DEPLOY para confirmar a publicação em produção
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: firebase-production-backend-deploy
+  cancel-in-progress: false
+
+jobs:
+  validate-and-test:
+    name: Validar solicitação e executar testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Validar branch e confirmação de produção
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            echo "Erro: este workflow aceita somente execução manual."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Erro: execute este workflow somente a partir da branch main."
+            exit 1
+          fi
+
+          if [[ -z "${PROJECT_ID//[[:space:]]/}" ]]; then
+            echo "Erro: project_id é obrigatório."
+            exit 1
+          fi
+
+          NORMALIZED_PROJECT_ID="$(printf '%s' "${PROJECT_ID}" | tr '[:upper:]' '[:lower:]')"
+          if [[ "${NORMALIZED_PROJECT_ID}" == *demo* ]]; then
+            echo "Erro: projetos com 'demo' no ID não podem receber deploy de produção."
+            exit 1
+          fi
+
+          if [[ ! "${PROJECT_ID}" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
+            echo "Erro: project_id não possui o formato esperado de um ID de projeto Google Cloud."
+            exit 1
+          fi
+
+          if [[ "${CONFIRM_PRODUCTION}" != "DEPLOY" ]]; then
+            echo "Erro: confirm_production deve ser exatamente DEPLOY."
+            exit 1
+          fi
+
+      - name: Checkout da main
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar sintaxe do projeto
+        run: pnpm run check
+
+      - name: Testar Cloud Functions
+        run: pnpm run test:functions
+
+      - name: Configurar Java 21 para o Firestore Emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Verificar versão do Java
+        run: java -version
+
+      - name: Testar regras no Emulator Suite
+        run: pnpm run test:rules
+
+  deploy:
+    name: Publicar backend Firebase em produção
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment: production
+
+    steps:
+      - name: Checkout da main validada
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+
+      - name: Configurar Node.js 20
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Autenticar com a conta de serviço de produção
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Publicar somente as duas Cloud Functions autorizadas
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only functions:sendAdminChatMessage,functions:incrementPublicMetric \
+            --project "${PROJECT_ID}" \
+            --non-interactive
+
+      - name: Publicar somente as regras do Firestore
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only firestore:rules \
+            --project "${PROJECT_ID}" \
+            --non-interactive
