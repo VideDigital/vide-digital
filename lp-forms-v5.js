@@ -4,10 +4,11 @@
  * Versão 5.0.0
  */
 import { db } from "./firebase-init.js";
-import { VideFunctions } from "./core/vide-functions.js";
 import {
     doc,
-    getDoc
+    getDoc,
+    collection,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const VERSION = "5.0.0";
@@ -43,8 +44,14 @@ function detectBase() {
 function parseRoute() {
     let path = decodeURIComponent(window.location.pathname || "/");
 
-    if (path.startsWith(state?.base || detectBase())) {
-        path = path.slice((state?.base || detectBase()).length);
+    // Não referenciar `state` aqui: parseRoute() roda enquanto o objeto
+    // `state` ainda está sendo inicializado (linha `route: parseRoute()`),
+    // então `state` está na zona morta temporal e qualquer acesso lança
+    // "Cannot access 'state' before initialization", quebrando o módulo
+    // inteiro. detectBase() é barato e não depende de `state`.
+    const base = detectBase();
+    if (path.startsWith(base)) {
+        path = path.slice(base.length);
     } else {
         path = path.replace(/^\/+/, "");
     }
@@ -504,12 +511,12 @@ async function handleSubmit(event) {
             throw new Error(validationError);
         }
 
-        const result = await VideFunctions.createPublicLead({
-            publicPageId: state.meta?.id || state.route.paginaSlug,
-            pageSlug: state.route.paginaSlug,
-            lojaOrigem: state.route.lojaSlug,
-            ...payload
-        });
+        // Escrita direta do lead (sem Cloud Function). O payload já traz
+        // criadoPor = dono da LP e status "novo", exatamente o que as
+        // regras exigem para uma captura pública.
+        const leadRef = doc(collection(db, "leads"));
+        await setDoc(leadRef, payload);
+        const result = { leadId: leadRef.id };
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");

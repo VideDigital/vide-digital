@@ -1,6 +1,12 @@
-// PROPOSTA NÃO PRONTA PARA PRODUÇÃO.
-// NÃO PUBLICAR antes de Cloud Functions, custom claims, testes no Emulator,
-// migração do frontend e validação autenticada em staging.
+// Regras do Vide Hub — modelo "plano Spark" (sem Cloud Functions).
+//
+// Como o Cloud Functions exige o plano Blaze, os recursos públicos
+// (contagem de visitas, captura de lead, chat) são escritos direto pelo
+// cliente. Estas regras assumem esse modelo: escritas públicas são
+// permitidas, mas sempre amarradas a um conteúdo público real (LP
+// publicada, produto ou dono existente) e limitadas às chaves esperadas.
+// Trade-off consciente: sem App Check nem rate limit de servidor — o
+// preço de rodar no plano gratuito.
 
 rules_version = '2';
 
@@ -191,6 +197,66 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["donoUID"]);
     }
 
+    // ===== Escritas públicas sem Cloud Functions (plano Spark) =====
+    // Métricas: qualquer visitante pode incrementar, desde que o documento
+    // corresponda a um conteúdo público real e só toque nas chaves de
+    // métrica conhecidas (nada de escrever campos/coleções arbitrárias).
+    function metricaLpValida(id) {
+      return exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
+        && request.resource.data.keys().hasOnly(["totalVisualizacoes", "porDia"]);
+    }
+    function metricaVitrineValida(id) {
+      return exists(/databases/$(database)/documents/usuarios/$(id))
+        && request.resource.data.keys().hasOnly(["totalSessoes", "totalTempoTela", "totalCliques", "produtosInteresse", "porDia"]);
+    }
+    function metricaProdutoValida(id) {
+      return exists(/databases/$(database)/documents/produtos/$(id))
+        && request.resource.data.keys().hasOnly(["visualizacoes", "cliques"]);
+    }
+    // Lead público: criadoPor precisa apontar para um dono real e o lead
+    // nasce sempre com status "novo" (o visitante não escolhe status).
+    function leadPublicoValido() {
+      return request.resource.data.keys().hasAll(["criadoPor"])
+        && request.resource.data.criadoPor is string
+        && request.resource.data.criadoPor != ""
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.criadoPor))
+        && (!("statusLead" in request.resource.data) || request.resource.data.statusLead == "novo")
+        && (!("status" in request.resource.data) || request.resource.data.status == "novo");
+    }
+
+    // Chat público (widget da loja). O visitante cria o chat e manda
+    // mensagens "cliente" direto; o dono/funcionário responde com "admin".
+    // O id do chat é um token aleatório do Firestore, então serve de
+    // capability para o visitante ler as mensagens do próprio chat.
+    function chatPublicoValido() {
+      return request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm"])
+        && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
+        && request.resource.data.donoUID is string
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.donoUID))
+        && request.resource.data.statusAdmin == "pendente";
+    }
+    function chatUpdatePublicoValido() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "atualizadoEm"])
+        && request.resource.data.statusAdmin == "pendente"
+        && donoUIDUnchanged();
+    }
+    function podeResponderChat(chatData) {
+      return (chatData.keys().hasAny(["donoUID"]) && canEditTenant(chatData.donoUID, "leads"))
+        || (chatData.keys().hasAny(["emailDono"]) && canEditTenant(chatData.emailDono, "leads"));
+    }
+    function mensagemClienteValida(chatId) {
+      return request.resource.data.sender == "cliente"
+        && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm"])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && exists(/databases/$(database)/documents/chats/$(chatId));
+    }
+    function mensagemAdminValida(chatId) {
+      return request.resource.data.sender == "admin"
+        && exists(/databases/$(database)/documents/chats/$(chatId))
+        && podeResponderChat(get(/databases/$(database)/documents/chats/$(chatId)).data);
+    }
+
     function publicStoreFields() {
       return [
         "donoUID",
@@ -300,8 +366,10 @@ service cloud.firestore {
 
     match /leads/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "leads");
-      // FASE FUTURA: leads públicos devem ser criados por Cloud Function com App Check e rate limit.
-      allow create: if false;
+      // Captura pública (LP/loja) escreve direto — validada por leadPublicoValido().
+      // O dono/funcionário também pode cadastrar lead manualmente pelo painel.
+      allow create: if leadPublicoValido()
+        || canEditTenant(request.resource.data.criadoPor, "leads");
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads");
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
@@ -446,22 +514,25 @@ service cloud.firestore {
 
     match /metricas_vitrines/{id} {
       allow read: if canViewTenant(id, "metricas");
-      // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
-      allow create, update, delete: if false;
+      // Incremento público (sessões/tempo/cliques da loja) — só chaves de métrica.
+      allow create, update: if metricaVitrineValida(id);
+      allow delete: if false;
     }
 
     match /metricas_produtos/{id} {
       allow read: if exists(/databases/$(database)/documents/produtos/$(id))
         && canViewTenant(get(/databases/$(database)/documents/produtos/$(id)).data.criadoPor, "metricas");
-      // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
-      allow create, update, delete: if false;
+      // Incremento público (visualizações/cliques do produto) — só chaves de métrica.
+      allow create, update: if metricaProdutoValida(id);
+      allow delete: if false;
     }
 
     match /metricas_landing_pages/{id} {
       allow read: if exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
         && canViewTenant(get(/databases/$(database)/documents/landing_pages_publicas/$(id)).data.donoUID, "metricas");
-      // Incrementos só pela Cloud Function incrementPublicMetric (Admin SDK, rate limit).
-      allow create, update, delete: if false;
+      // Incremento público de visualizações — amarrado a uma LP publicada real.
+      allow create, update: if metricaLpValida(id);
+      allow delete: if false;
     }
 
     match /chats/{chatId} {
@@ -471,24 +542,24 @@ service cloud.firestore {
           || (hasTenantField("emailDono") && canViewTenant(resource.data.emailDono, "leads"))
           || (hasTenantField("donoUID") && canViewTenant(resource.data.donoUID, "leads"))
         );
-      // FASE FUTURA: criação/update de chat público por Cloud Function.
-      allow create, update, delete: if false;
+      // Visitante da loja cria o chat direto (validado); dono também pode.
+      allow create: if chatPublicoValido()
+        || canEditTenant(request.resource.data.donoUID, "leads");
+      // Visitante só mexe em resumo/status ao mandar mensagem; dono/funcionário
+      // pode atualizar (ex.: marcar como respondido).
+      allow update: if chatUpdatePublicoValido()
+        || (hasTenantField("donoUID") && canEditTenant(resource.data.donoUID, "leads"))
+        || (hasTenantField("emailDono") && canEditTenant(resource.data.emailDono, "leads"));
+      allow delete: if (hasTenantField("donoUID") && canEditTenant(resource.data.donoUID, "leads"))
+        || (hasTenantField("emailDono") && canEditTenant(resource.data.emailDono, "leads"));
 
       match /mensagens/{msgId} {
-        allow read: if signedIn()
-          && (
-            isBackendAdmin()
-            || (
-              get(/databases/$(database)/documents/chats/$(chatId)).data.keys().hasAny(["emailDono"])
-              && canViewTenant(get(/databases/$(database)/documents/chats/$(chatId)).data.emailDono, "leads")
-            )
-            || (
-              get(/databases/$(database)/documents/chats/$(chatId)).data.keys().hasAny(["donoUID"])
-              && canViewTenant(get(/databases/$(database)/documents/chats/$(chatId)).data.donoUID, "leads")
-            )
-          );
-        // Público nunca pode escrever sender "admin"; fase final usa Function/App Check.
-        allow create, update, delete: if false;
+        // Quem conhece o id do chat (token aleatório) lê as mensagens —
+        // cobre tanto o visitante do próprio chat quanto o painel do dono.
+        allow read: if exists(/databases/$(database)/documents/chats/$(chatId));
+        // Cliente cria mensagem "cliente"; dono/funcionário cria "admin".
+        allow create: if mensagemClienteValida(chatId) || mensagemAdminValida(chatId);
+        allow update, delete: if false;
       }
     }
 

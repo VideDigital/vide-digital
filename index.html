@@ -43,9 +43,8 @@
 
     // Import absoluto (nao relativo) -- evita quebrar quando a URL "fake" tem varios niveis (ex: /teste/lp1)
     const firebaseInit = await import(base + "firebase-init.js");
-    const { doc, getDoc, getDocs, setDoc, collection, query, where } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
+    const { doc, getDoc, getDocs, setDoc, collection, query, where, increment } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-    const { VideFunctions } = await import(base + "core/vide-functions.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
 
@@ -182,8 +181,16 @@ executarScriptsEmElemento(container);
             container.innerHTML = "";
             // Só conta visita de página publicada de verdade (não a prévia do
             // dono) -- silencioso: uma métrica que falha não pode quebrar a
-            // visita real de ninguém.
-            VideFunctions.incrementPublicMetric({ publicPageId: docId, event: "lp_view" })
+            // visita real de ninguém. Escrita direta (sem Cloud Function),
+            // liberada pelas regras porque o doc é o da LP publicada real.
+            const hojeMetrica = new Date().toISOString().slice(0, 10);
+            // porDia como mapa aninhado de verdade (setDoc não interpreta
+            // chave com ponto como caminho -- criaria um campo literal). Assim
+            // o "porDia" fica sendo a única chave nova, batendo com as regras.
+            setDoc(doc(db, "metricas_landing_pages", docId), {
+                totalVisualizacoes: increment(1),
+                porDia: { [hojeMetrica]: { visualizacoes: increment(1) } }
+            }, { merge: true })
                 .catch((err) => console.warn("Métrica de visita não registrada:", err?.message || err));
 await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", meta.ordemBlocos || [], meta.modoLayout || "empilhado", meta.paginas || []);
         } catch (erro) {
