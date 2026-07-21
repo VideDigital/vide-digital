@@ -6569,3 +6569,99 @@
   .aura-week-stat strong{ font-size:17px; }
   .aura-week-bar{ width:8px; }
 }
+
+/* ===== Cartões grandes da Central de módulos =====
+   Selecionados por #grid-hub-modulos + classe para vencer, em
+   especificidade, as regras antigas (dos cartões pequenos) que ainda
+   moram mais acima neste arquivo com vários !important. */
+#grid-hub-modulos > div.aura-hub-card{
+  position:relative;
+  min-height:0 !important;
+  display:flex !important;
+  align-items:center !important;
+  justify-content:flex-start !important;
+  gap:14px !important;
+  padding:16px 18px !important;
+  border:1px solid var(--aura-border,rgba(255,255,255,.08)) !important;
+  border-radius:18px !important;
+  background:rgba(255,255,255,.022) !important;
+  box-shadow:none !important;
+  cursor:pointer;
+  transition:transform .2s ease,border-color .2s ease,background .2s ease,box-shadow .2s ease !important;
+}
+/* Desliga as decorações dos cartões antigos (bolha + caixa do ícone) */
+#grid-hub-modulos > div.aura-hub-card::before,
+#grid-hub-modulos > div.aura-hub-card::after{
+  display:none !important;
+  content:none !important;
+}
+#grid-hub-modulos > div.aura-hub-card:hover{
+  transform:translateY(-3px) !important;
+  border-color:color-mix(in srgb,var(--sys-primaria,#5B3DF5) 45%,transparent) !important;
+  background:color-mix(in srgb,var(--sys-primaria,#5B3DF5) 8%,rgba(255,255,255,.02)) !important;
+  box-shadow:0 20px 44px -26px color-mix(in srgb,var(--sys-primaria,#5B3DF5) 80%,transparent) !important;
+}
+#grid-hub-modulos > div.aura-hub-card:active{ transform:translateY(-1px) scale(.99) !important; }
+
+#grid-hub-modulos > div.aura-hub-card > span.aura-hub-card-icon{
+  position:static !important;
+  left:auto !important;
+  top:auto !important;
+  display:inline-flex !important;
+  align-items:center;
+  justify-content:center;
+  width:48px !important;
+  height:48px !important;
+  min-width:48px;
+  border-radius:14px;
+  border:1px solid var(--aura-border,rgba(255,255,255,.08));
+  background:color-mix(in srgb,var(--sys-primaria,#5B3DF5) 12%,transparent);
+  font-size:0 !important;
+}
+#grid-hub-modulos > div.aura-hub-card.is-acao > span.aura-hub-card-icon{
+  background:color-mix(in srgb,var(--sys-destaque,#00d4ff) 12%,transparent);
+  border-color:color-mix(in srgb,var(--sys-destaque,#00d4ff) 30%,transparent);
+}
+#grid-hub-modulos > div.aura-hub-card:hover > span.aura-hub-card-icon{ transform:none !important; }
+#grid-hub-modulos > div.aura-hub-card > span.aura-hub-card-icon svg{
+  position:static !important;
+  width:23px !important;
+  height:23px !important;
+  display:block;
+}
+#grid-hub-modulos > div.aura-hub-card > span.aura-hub-card-text{
+  position:static !important;
+  flex:1;
+  min-width:0;
+  padding-right:0 !important;
+}
+#grid-hub-modulos > div.aura-hub-card > span.aura-hub-card-text::after{ content:none !important; display:none !important; }
+#grid-hub-modulos > div.aura-hub-card > span.aura-hub-card-text strong{
+  display:block;
+  color:var(--aura-text,#fff) !important;
+  font-size:14.5px !important;
+  font-weight:800 !important;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+#grid-hub-modulos > div.aura-hub-card > span.aura-hub-card-text small{
+  display:block;
+  margin-top:3px;
+  color:var(--aura-text-muted,rgba(255,255,255,.5)) !important;
+  font-size:11.5px !important;
+  font-weight:500 !important;
+  line-height:1.4;
+}
+#grid-hub-modulos > div.aura-hub-card > .aura-hub-card-arrow{
+  width:18px;
+  height:18px;
+  color:var(--aura-text-muted,rgba(255,255,255,.32));
+  flex-shrink:0;
+  transition:transform .2s ease,color .2s ease;
+}
+#grid-hub-modulos > div.aura-hub-card:hover > .aura-hub-card-arrow{
+  color:var(--sys-primaria,#5B3DF5);
+  transform:translateX(2px);
+}
