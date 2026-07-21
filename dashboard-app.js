@@ -1138,7 +1138,7 @@ window.renderizarPrimeirosPassos = async function() {
 
     const passos = [
         { feito: temLoja, titulo: "Configure sua loja", desc: "Defina nome, endereço e identidade da loja.", acao: "ativarAba('view-perfil')" },
-        { feito: temProduto, titulo: "Adicione um produto", desc: "Cadastre pelo menos um item pra vender.", acao: "ativarAba('view-produtos')" },
+        { feito: temProduto, titulo: "Adicione um produto", desc: "Cadastre pelo menos um item pra vender.", acao: "document.getElementById('btn-abrir-criacao')?.click()" },
         { feito: temLP, titulo: "Crie uma Landing Page", desc: "Monte uma página focada em conversão.", acao: "ativarAba('view-landing-pages')" },
         { feito: lpPublicada, titulo: "Publique uma página", desc: "Deixe uma Landing Page no ar pra receber visitas.", acao: "ativarAba('view-landing-pages')" }
     ];
@@ -1354,6 +1354,92 @@ window.renderizarAtividadeRecente = async function() {
                 </div>
             </div>
             <div class="aura-activity-list">${linhas}</div>
+        </div>
+    `;
+    container.classList.remove("hidden");
+};
+
+// Leva o dono ao catálogo de produtos. O catálogo fica dentro da própria
+// tela inicial (não existe aba "view-produtos"), então garantimos que o
+// dashboard está ativo e rolamos até a grade de produtos.
+window.irParaCatalogoProdutos = function() {
+    if (typeof ativarAba === "function") ativarAba("view-dashboard");
+    setTimeout(() => {
+        document.getElementById("produtos-container")
+            ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 140);
+};
+
+// ===== Alertas / ações que precisam de atenção (dashboard) =====
+// Diferente da "Atividade recente" (o que aconteceu), aqui mostramos o
+// que precisa de uma ação do dono AGORA: pedidos aguardando confirmação
+// e produtos com estoque baixo. Some quando não há nada pendente.
+window.renderizarAlertasAtencao = async function() {
+    const container = document.getElementById("alertas-atencao-container");
+    if (!container || !usuarioUID) return;
+
+    const chips = [];
+    const podePedidos = typeof temFeature !== "function" || temFeature("hub");
+
+    // Pedidos aguardando confirmação.
+    if (podePedidos) {
+        try {
+            const pedSnap = await getDocs(query(collection(db, "pedidos"), where("criadoPor", "==", usuarioUID)));
+            let aguardando = 0;
+            pedSnap.forEach(d => { if ((d.data().status || "aguardando") === "aguardando") aguardando++; });
+            if (aguardando > 0) {
+                chips.push({
+                    tom: "warning",
+                    icone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>',
+                    texto: `<strong>${aguardando}</strong> ${aguardando === 1 ? "pedido aguardando" : "pedidos aguardando"} confirmação`,
+                    acao: "ativarAba('view-pedidos')"
+                });
+            }
+        } catch (e) { /* pedidos indisponível: ignora */ }
+    }
+
+    // Produtos ativos com estoque baixo (até 5 unidades).
+    try {
+        const prodSnap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
+        let estoqueBaixo = 0;
+        prodSnap.forEach(d => {
+            const p = d.data();
+            if (p.statusProduto === "rascunho") return;
+            const temEstoque = p.estoque !== "" && p.estoque !== undefined && p.estoque !== null;
+            if (!temEstoque) return;
+            const n = Number(p.estoque);
+            if (Number.isFinite(n) && n <= 5) estoqueBaixo++;
+        });
+        if (estoqueBaixo > 0) {
+            chips.push({
+                tom: "danger",
+                icone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M12 9v4"/><path d="M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>',
+                texto: `<strong>${estoqueBaixo}</strong> ${estoqueBaixo === 1 ? "produto com estoque baixo" : "produtos com estoque baixo"}`,
+                acao: "irParaCatalogoProdutos()"
+            });
+        }
+    } catch (e) { /* produtos indisponível: ignora */ }
+
+    if (chips.length === 0) {
+        container.classList.add("hidden");
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="aura-alerts">
+            <span class="aura-alerts-label">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
+                Precisa da sua atenção
+            </span>
+            <div class="aura-alerts-chips">
+                ${chips.map(c => `
+                    <button type="button" class="aura-alert-chip is-${c.tom}" onclick="${c.acao}">
+                        <span class="aura-alert-chip-icon">${c.icone}</span>
+                        <span class="aura-alert-chip-text">${c.texto}</span>
+                        <svg class="aura-alert-chip-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                `).join("")}
+            </div>
         </div>
     `;
     container.classList.remove("hidden");
@@ -1951,6 +2037,10 @@ if (targetId === "view-dashboard" && typeof window.atualizarKpisDashboard === "f
 
 if (targetId === "view-dashboard" && typeof window.renderizarAtividadeRecente === "function") {
     window.renderizarAtividadeRecente();
+}
+
+if (targetId === "view-dashboard" && typeof window.renderizarAlertasAtencao === "function") {
+    window.renderizarAlertasAtencao();
 }
 
 if (targetId === "view-metricas") {
@@ -6975,6 +7065,9 @@ listaBanners = [];
                 }
                 if (typeof window.renderizarAtividadeRecente === "function") {
                     window.renderizarAtividadeRecente();
+                }
+                if (typeof window.renderizarAlertasAtencao === "function") {
+                    window.renderizarAlertasAtencao();
                 }
                 if (temFeature("leads")) carregarLeads();
                 if (temFeature("hub")) carregarPedidos();

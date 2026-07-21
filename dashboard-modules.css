@@ -6338,3 +6338,64 @@
 .aura-activity-badge.is-confirmado{ color:#60a5fa; background:rgba(96,165,250,.12); }
 .aura-activity-badge.is-pago{ color:#34D399; background:rgba(52,211,153,.12); }
 .aura-activity-badge.is-cancelado{ color:#f87171; background:rgba(248,113,113,.12); }
+
+/* ===== Alertas / ações que precisam de atenção (dashboard) ===== */
+.aura-alerts{
+  display:flex;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:12px;
+  padding:14px 16px;
+  border:1px solid color-mix(in srgb,#fbbf24 22%,var(--aura-border));
+  border-radius:18px;
+  background:
+    radial-gradient(360px 120px at 0% 0%,rgba(251,191,36,.08),transparent 70%),
+    color-mix(in srgb,var(--aura-surface-soft) 45%,transparent);
+}
+.aura-alerts-label{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:#fbbf24;
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.aura-alerts-chips{
+  display:flex;
+  flex-wrap:wrap;
+  gap:9px;
+  flex:1;
+  min-width:0;
+}
+.aura-alert-chip{
+  display:inline-flex;
+  align-items:center;
+  gap:9px;
+  padding:8px 12px;
+  border-radius:12px;
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.02);
+  color:var(--aura-text-secondary);
+  font-size:12px;
+  cursor:pointer;
+  transition:border-color .2s ease,background .2s ease,transform .2s ease;
+}
+.aura-alert-chip:hover{ transform:translateY(-1px); }
+.aura-alert-chip strong{ color:var(--aura-text); font-weight:850; }
+.aura-alert-chip-icon{ display:inline-flex; align-items:center; }
+.aura-alert-chip-arrow{ color:var(--aura-text-muted); flex-shrink:0; }
+.aura-alert-chip.is-warning{
+  border-color:color-mix(in srgb,#fbbf24 34%,transparent);
+  background:rgba(251,191,36,.06);
+}
+.aura-alert-chip.is-warning .aura-alert-chip-icon{ color:#fbbf24; }
+.aura-alert-chip.is-warning:hover{ background:rgba(251,191,36,.11); }
+.aura-alert-chip.is-danger{
+  border-color:color-mix(in srgb,#f87171 34%,transparent);
+  background:rgba(248,113,113,.06);
+}
+.aura-alert-chip.is-danger .aura-alert-chip-icon{ color:#f87171; }
+.aura-alert-chip.is-danger:hover{ background:rgba(248,113,113,.11); }
