@@ -7312,6 +7312,14 @@ throw errBanners;
             const statTempo = document.getElementById("lead-time-count");
             if (!usuarioUID) return;
             try {
+                // Esqueleto enquanto a lista de leads carrega.
+                if (tableBody) {
+                    tableBody.innerHTML = Array.from({ length: 5 }).map(() => `
+                        <tr class="border-b border-white/5">
+                            <td class="p-4" colspan="9"><span class="aura-skel aura-skel-cell"></span></td>
+                        </tr>
+                    `).join("");
+                }
                 const q = query(collection(db, "leads"), where("criadoPor", "==", usuarioUID));
                 const querySnapshot = await getDocs(q);
                 const agora = Date.now();
@@ -11106,6 +11114,18 @@ window.sincronizarCatalogoAvancado = function() {
 
         async function carregarProdutos() {
             try {
+                // Esqueleto enquanto o catálogo carrega (some assim que os
+                // produtos reais chegam logo abaixo).
+                if (produtosContainer) {
+                    produtosContainer.innerHTML = Array.from({ length: 8 }).map(() => `
+                        <div class="aura-skel-card">
+                            <span class="aura-skel aura-skel-card-img"></span>
+                            <span class="aura-skel aura-skel-line" style="width:75%"></span>
+                            <span class="aura-skel aura-skel-line" style="width:45%"></span>
+                        </div>
+                    `).join("");
+                }
+
                 const q = query(
                     collection(db, "produtos"),
                     where("criadoPor", "==", usuarioUID)

@@ -6436,3 +6436,15 @@
 @media (prefers-reduced-motion: reduce){
   .aura-enter{ animation:none; }
 }
+
+/* Skeleton de cartão de produto (catálogo) */
+.aura-skel-card{
+  border:1px solid var(--aura-border);
+  border-radius:16px;
+  padding:14px;
+  background:rgba(255,255,255,.015);
+}
+.aura-skel-card-img{ width:100%; height:120px; border-radius:12px; margin-bottom:14px; display:block; }
+.aura-skel-line{ height:12px; border-radius:6px; margin-top:9px; display:block; }
+/* Skeleton de linha de tabela (leads) */
+.aura-skel-cell{ height:14px; border-radius:6px; display:block; }
