@@ -4,10 +4,11 @@
  * Versão 5.0.0
  */
 import { db } from "./firebase-init.js";
-import { VideFunctions } from "./core/vide-functions.js";
 import {
     doc,
-    getDoc
+    getDoc,
+    collection,
+    setDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 const VERSION = "5.0.0";
@@ -510,12 +511,12 @@ async function handleSubmit(event) {
             throw new Error(validationError);
         }
 
-        const result = await VideFunctions.createPublicLead({
-            publicPageId: state.meta?.id || state.route.paginaSlug,
-            pageSlug: state.route.paginaSlug,
-            lojaOrigem: state.route.lojaSlug,
-            ...payload
-        });
+        // Escrita direta do lead (sem Cloud Function). O payload já traz
+        // criadoPor = dono da LP e status "novo", exatamente o que as
+        // regras exigem para uma captura pública.
+        const leadRef = doc(collection(db, "leads"));
+        await setDoc(leadRef, payload);
+        const result = { leadId: leadRef.id };
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");

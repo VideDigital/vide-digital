@@ -8038,7 +8038,19 @@ window.enviarRespostaChatLead = function(event) {
 
     const chatBox = document.getElementById("lead-painel-chat");
     input.disabled = true;
-    VideFunctions.sendAdminChatMessage({ chatId, texto })
+    // Resposta gravada direto no banco (sem Cloud Function): mensagem
+    // "admin" na subcoleção + atualização do resumo/status do chat. As
+    // regras liberam porque quem escreve é o dono/funcionário do tenant.
+    setDoc(doc(collection(db, "chats", chatId, "mensagens")), {
+        texto,
+        sender: "admin",
+        timestamp: Date.now()
+    })
+        .then(() => setDoc(doc(db, "chats", chatId), {
+            ultimaMensagem: texto,
+            statusAdmin: "respondido",
+            atualizadoEm: Date.now()
+        }, { merge: true }))
         .then(() => {
             input.value = "";
             const bolha = document.createElement("div");
@@ -8049,17 +8061,7 @@ window.enviarRespostaChatLead = function(event) {
         })
         .catch((err) => {
             console.error(err);
-            // Enquanto a Cloud Function de resposta não estiver publicada no
-            // Firebase, a chamada falha com not-found/internal. Mostramos um
-            // aviso amigável em vez do erro técnico -- quando o backend for
-            // publicado, o envio passa a funcionar sem mexer aqui.
-            const aindaNaoAtiva = ["not-found", "functions/not-found", "internal", "functions/internal"].includes(err?.code);
-            showToast(
-                aindaNaoAtiva
-                    ? "A resposta pelo painel ainda está sendo ativada. Tente novamente em breve."
-                    : "Não foi possível enviar a resposta agora. Tente de novo.",
-                "error"
-            );
+            showToast("Não foi possível enviar a resposta agora. Tente de novo.", "error");
         })
         .finally(() => {
             input.disabled = false;

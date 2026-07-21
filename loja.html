@@ -444,7 +444,6 @@
 
     <script type="module">
         import { db } from "./firebase-init.js";
-        import { VideFunctions } from "./core/vide-functions.js";
         import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -1129,12 +1128,18 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (!clienteRegistrado) {
                 clienteNome = txt;
                 clienteRegistrado = true;
-                const chatCriado = await VideFunctions.createPublicChat({
-                    storeSlug: lojaSlug,
-                    clienteNome: txt,
-                    utmSource: utmSourceCapturada
+                // Cria o chat direto no banco (sem Cloud Function). O id
+                // gerado vira o "token" que dá acesso a este chat.
+                const chatRef = doc(collection(db, "chats"));
+                await setDoc(chatRef, {
+                    donoUID: fornecedorEmail,
+                    emailDono: fornecedorEmail,
+                    clienteNome: txt.slice(0, 120),
+                    statusAdmin: "pendente",
+                    utmSource: (utmSourceCapturada || "").toString().slice(0, 120),
+                    timestamp: Date.now()
                 });
-                salaChatId = chatCriado.chatId;
+                salaChatId = chatRef.id;
                 input.value = "";
                 input.placeholder = "Escreva sua mensagem...";
                 document.getElementById("chat-send-btn").innerText = "Enviar";
@@ -1159,7 +1164,18 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     box.scrollTop = box.scrollHeight;
                 });
             } else {
-                await VideFunctions.sendPublicChatMessage({ chatId: salaChatId, texto: txt });
+                // Mensagem do cliente + atualização do resumo do chat, direto.
+                const txtLimitado = txt.slice(0, 1000);
+                await setDoc(doc(collection(db, "chats/" + salaChatId + "/mensagens")), {
+                    texto: txtLimitado,
+                    sender: "cliente",
+                    timestamp: Date.now()
+                });
+                await setDoc(doc(db, "chats", salaChatId), {
+                    ultimaMensagem: txtLimitado,
+                    statusAdmin: "pendente",
+                    atualizadoEm: Date.now()
+                }, { merge: true });
                 input.value = "";
                 clearTimeout(timeoutRedirecionamentoWhats);
                 timeoutRedirecionamentoWhats = setTimeout(function() {

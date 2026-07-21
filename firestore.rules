@@ -224,6 +224,39 @@ service cloud.firestore {
         && (!("status" in request.resource.data) || request.resource.data.status == "novo");
     }
 
+    // Chat público (widget da loja). O visitante cria o chat e manda
+    // mensagens "cliente" direto; o dono/funcionário responde com "admin".
+    // O id do chat é um token aleatório do Firestore, então serve de
+    // capability para o visitante ler as mensagens do próprio chat.
+    function chatPublicoValido() {
+      return request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm"])
+        && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
+        && request.resource.data.donoUID is string
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.donoUID))
+        && request.resource.data.statusAdmin == "pendente";
+    }
+    function chatUpdatePublicoValido() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "atualizadoEm"])
+        && request.resource.data.statusAdmin == "pendente"
+        && donoUIDUnchanged();
+    }
+    function podeResponderChat(chatData) {
+      return (chatData.keys().hasAny(["donoUID"]) && canEditTenant(chatData.donoUID, "leads"))
+        || (chatData.keys().hasAny(["emailDono"]) && canEditTenant(chatData.emailDono, "leads"));
+    }
+    function mensagemClienteValida(chatId) {
+      return request.resource.data.sender == "cliente"
+        && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm"])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && exists(/databases/$(database)/documents/chats/$(chatId));
+    }
+    function mensagemAdminValida(chatId) {
+      return request.resource.data.sender == "admin"
+        && exists(/databases/$(database)/documents/chats/$(chatId))
+        && podeResponderChat(get(/databases/$(database)/documents/chats/$(chatId)).data);
+    }
+
     function publicStoreFields() {
       return [
         "donoUID",
@@ -509,24 +542,24 @@ service cloud.firestore {
           || (hasTenantField("emailDono") && canViewTenant(resource.data.emailDono, "leads"))
           || (hasTenantField("donoUID") && canViewTenant(resource.data.donoUID, "leads"))
         );
-      // FASE FUTURA: criação/update de chat público por Cloud Function.
-      allow create, update, delete: if false;
+      // Visitante da loja cria o chat direto (validado); dono também pode.
+      allow create: if chatPublicoValido()
+        || canEditTenant(request.resource.data.donoUID, "leads");
+      // Visitante só mexe em resumo/status ao mandar mensagem; dono/funcionário
+      // pode atualizar (ex.: marcar como respondido).
+      allow update: if chatUpdatePublicoValido()
+        || (hasTenantField("donoUID") && canEditTenant(resource.data.donoUID, "leads"))
+        || (hasTenantField("emailDono") && canEditTenant(resource.data.emailDono, "leads"));
+      allow delete: if (hasTenantField("donoUID") && canEditTenant(resource.data.donoUID, "leads"))
+        || (hasTenantField("emailDono") && canEditTenant(resource.data.emailDono, "leads"));
 
       match /mensagens/{msgId} {
-        allow read: if signedIn()
-          && (
-            isBackendAdmin()
-            || (
-              get(/databases/$(database)/documents/chats/$(chatId)).data.keys().hasAny(["emailDono"])
-              && canViewTenant(get(/databases/$(database)/documents/chats/$(chatId)).data.emailDono, "leads")
-            )
-            || (
-              get(/databases/$(database)/documents/chats/$(chatId)).data.keys().hasAny(["donoUID"])
-              && canViewTenant(get(/databases/$(database)/documents/chats/$(chatId)).data.donoUID, "leads")
-            )
-          );
-        // Público nunca pode escrever sender "admin"; fase final usa Function/App Check.
-        allow create, update, delete: if false;
+        // Quem conhece o id do chat (token aleatório) lê as mensagens —
+        // cobre tanto o visitante do próprio chat quanto o painel do dono.
+        allow read: if exists(/databases/$(database)/documents/chats/$(chatId));
+        // Cliente cria mensagem "cliente"; dono/funcionário cria "admin".
+        allow create: if mensagemClienteValida(chatId) || mensagemAdminValida(chatId);
+        allow update, delete: if false;
       }
     }
 
