@@ -4497,12 +4497,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 document.getElementById("lp-metricas-total-numero").textContent =
                     dados.totalVisualizacoes || 0;
 
-                // incrementPublicMetric grava com uma chave de campo tipo
-                // `porDia.${dia}.visualizacoes` dentro de um .set(...,{merge:true})
-                // -- o SDK Admin trata isso como um NOME DE CAMPO LITERAL (com
-                // pontos mesmo), não como caminho aninhado. Então o doc não tem
-                // um objeto "porDia" pra navegar; cada dia é seu próprio campo
-                // solto na raiz do documento.
+                // A visita é gravada com porDia como mapa aninhado
+                // ({ porDia: { "2026-07-21": { visualizacoes: N } } }), então
+                // navegamos porDia[dia].visualizacoes.
+                const porDiaLP = dados.porDia || {};
                 const labels = [];
                 const valores = [];
                 for (let i = 13; i >= 0; i--) {
@@ -4510,7 +4508,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                     dia.setDate(dia.getDate() - i);
                     const chave = dia.toISOString().slice(0, 10);
                     labels.push(dia.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }));
-                    valores.push(dados[`porDia.${chave}.visualizacoes`] || 0);
+                    valores.push(porDiaLP[chave]?.visualizacoes || 0);
                 }
 
                 const canvas = document.getElementById("lp-metricas-chart");

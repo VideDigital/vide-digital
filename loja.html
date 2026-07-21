@@ -469,23 +469,81 @@
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
         }
 
-        function registrarMetricaPublica(payload) {
-            return VideFunctions.incrementPublicMetric({
-                storeSlug: lojaSlug,
-                ...payload
-            }).catch((err) => {
-                console.warn("Métrica pública não registrada:", err?.message || err);
-            });
+        function silenciarMetrica(err) {
+            console.warn("Métrica pública não registrada:", err?.message || err);
         }
 
+        // Escrita direta das métricas (sem Cloud Function, roda no plano Spark).
+        // Amarrada ao dono real da loja (fornecedorEmail) e liberada pelas
+        // regras só nas chaves de métrica conhecidas.
+        function registrarMetricaPublica(payload) {
+            const ownerUid = fornecedorEmail;
+            if (!ownerUid || !payload) return Promise.resolve();
+            const hoje = chaveDataHoje();
+            const evento = payload.event;
+            try {
+                if (evento === "store_session") {
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        totalSessoes: increment(1),
+                        porDia: { [hoje]: { sessoes: increment(1) } }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "store_time") {
+                    const seg = Math.max(0, Math.min(Number(payload.seconds || 0), 3600));
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        totalTempoTela: increment(seg),
+                        porDia: { [hoje]: { tempo: increment(seg) } }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "product_view" && payload.productId) {
+                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
+                        visualizacoes: increment(1)
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "product_click" && payload.productId) {
+                    const nomeProd = (payload.productName || payload.productId).toString().slice(0, 160);
+                    return Promise.all([
+                        setDoc(doc(db, "metricas_produtos", payload.productId), {
+                            cliques: increment(1)
+                        }, { merge: true }).catch(silenciarMetrica),
+                        setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                            totalCliques: increment(1),
+                            produtosInteresse: { [nomeProd]: increment(1) },
+                            porDia: { [hoje]: { cliques: increment(1) } }
+                        }, { merge: true }).catch(silenciarMetrica)
+                    ]);
+                }
+            } catch (err) {
+                silenciarMetrica(err);
+            }
+            return Promise.resolve();
+        }
+
+        // Captura de lead direto no banco (sem Cloud Function). O lead nasce
+        // com status "novo" e criadoPor = dono da loja, exatamente o que as
+        // regras exigem para uma escrita pública.
         function capturarLeadPublico(payload) {
-            return VideFunctions.createPublicLead({
-                storeSlug: lojaSlug,
-                urlPagina: window.location.href,
-                referrer: document.referrer || "",
-                utmSource: utmSourceCapturada,
-                ...payload
-            });
+            const ownerUid = fornecedorEmail;
+            if (!ownerUid) return Promise.reject(new Error("Loja sem dono válido."));
+            payload = payload || {};
+            const lead = {
+                criadoPor: ownerUid,
+                nome: (payload.nome || payload.name || "").toString().slice(0, 120),
+                whatsapp: (payload.whatsapp || payload.telefone || payload.phone || "").toString().slice(0, 40),
+                email: (payload.email || "").toString().slice(0, 160),
+                origem: (payload.origem || utmSourceCapturada || "Loja").toString().slice(0, 120),
+                produtoInteresse: (payload.produtoInteresse || "Interesse geral").toString().slice(0, 160),
+                lojaOrigem: (lojaSlug || "").toString().slice(0, 160),
+                paginaOrigem: (payload.paginaOrigem || "").toString().slice(0, 160),
+                utmSource: (payload.utmSource || utmSourceCapturada || "").toString().slice(0, 120),
+                urlPagina: window.location.href.slice(0, 500),
+                referrer: (document.referrer || "").slice(0, 500),
+                cliques: Number(payload.cliques || 0),
+                statusLead: "novo",
+                status: "novo",
+                data: Date.now()
+            };
+            return setDoc(doc(db, "leads", "lead_loja_" + Date.now()), lead);
         }
 
         if (lojaSlug) {

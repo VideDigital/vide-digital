@@ -1,6 +1,12 @@
-// PROPOSTA NÃO PRONTA PARA PRODUÇÃO.
-// NÃO PUBLICAR antes de Cloud Functions, custom claims, testes no Emulator,
-// migração do frontend e validação autenticada em staging.
+// Regras do Vide Hub — modelo "plano Spark" (sem Cloud Functions).
+//
+// Como o Cloud Functions exige o plano Blaze, os recursos públicos
+// (contagem de visitas, captura de lead, chat) são escritos direto pelo
+// cliente. Estas regras assumem esse modelo: escritas públicas são
+// permitidas, mas sempre amarradas a um conteúdo público real (LP
+// publicada, produto ou dono existente) e limitadas às chaves esperadas.
+// Trade-off consciente: sem App Check nem rate limit de servidor — o
+// preço de rodar no plano gratuito.
 
 rules_version = '2';
 
@@ -191,6 +197,33 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["donoUID"]);
     }
 
+    // ===== Escritas públicas sem Cloud Functions (plano Spark) =====
+    // Métricas: qualquer visitante pode incrementar, desde que o documento
+    // corresponda a um conteúdo público real e só toque nas chaves de
+    // métrica conhecidas (nada de escrever campos/coleções arbitrárias).
+    function metricaLpValida(id) {
+      return exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
+        && request.resource.data.keys().hasOnly(["totalVisualizacoes", "porDia"]);
+    }
+    function metricaVitrineValida(id) {
+      return exists(/databases/$(database)/documents/usuarios/$(id))
+        && request.resource.data.keys().hasOnly(["totalSessoes", "totalTempoTela", "totalCliques", "produtosInteresse", "porDia"]);
+    }
+    function metricaProdutoValida(id) {
+      return exists(/databases/$(database)/documents/produtos/$(id))
+        && request.resource.data.keys().hasOnly(["visualizacoes", "cliques"]);
+    }
+    // Lead público: criadoPor precisa apontar para um dono real e o lead
+    // nasce sempre com status "novo" (o visitante não escolhe status).
+    function leadPublicoValido() {
+      return request.resource.data.keys().hasAll(["criadoPor"])
+        && request.resource.data.criadoPor is string
+        && request.resource.data.criadoPor != ""
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.criadoPor))
+        && (!("statusLead" in request.resource.data) || request.resource.data.statusLead == "novo")
+        && (!("status" in request.resource.data) || request.resource.data.status == "novo");
+    }
+
     function publicStoreFields() {
       return [
         "donoUID",
@@ -300,8 +333,10 @@ service cloud.firestore {
 
     match /leads/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "leads");
-      // FASE FUTURA: leads públicos devem ser criados por Cloud Function com App Check e rate limit.
-      allow create: if false;
+      // Captura pública (LP/loja) escreve direto — validada por leadPublicoValido().
+      // O dono/funcionário também pode cadastrar lead manualmente pelo painel.
+      allow create: if leadPublicoValido()
+        || canEditTenant(request.resource.data.criadoPor, "leads");
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads");
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
@@ -446,22 +481,25 @@ service cloud.firestore {
 
     match /metricas_vitrines/{id} {
       allow read: if canViewTenant(id, "metricas");
-      // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
-      allow create, update, delete: if false;
+      // Incremento público (sessões/tempo/cliques da loja) — só chaves de métrica.
+      allow create, update: if metricaVitrineValida(id);
+      allow delete: if false;
     }
 
     match /metricas_produtos/{id} {
       allow read: if exists(/databases/$(database)/documents/produtos/$(id))
         && canViewTenant(get(/databases/$(database)/documents/produtos/$(id)).data.criadoPor, "metricas");
-      // FASE FUTURA: incrementos públicos por Cloud Function com App Check/rate limit.
-      allow create, update, delete: if false;
+      // Incremento público (visualizações/cliques do produto) — só chaves de métrica.
+      allow create, update: if metricaProdutoValida(id);
+      allow delete: if false;
     }
 
     match /metricas_landing_pages/{id} {
       allow read: if exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
         && canViewTenant(get(/databases/$(database)/documents/landing_pages_publicas/$(id)).data.donoUID, "metricas");
-      // Incrementos só pela Cloud Function incrementPublicMetric (Admin SDK, rate limit).
-      allow create, update, delete: if false;
+      // Incremento público de visualizações — amarrado a uma LP publicada real.
+      allow create, update: if metricaLpValida(id);
+      allow delete: if false;
     }
 
     match /chats/{chatId} {

@@ -43,8 +43,14 @@ function detectBase() {
 function parseRoute() {
     let path = decodeURIComponent(window.location.pathname || "/");
 
-    if (path.startsWith(state?.base || detectBase())) {
-        path = path.slice((state?.base || detectBase()).length);
+    // Não referenciar `state` aqui: parseRoute() roda enquanto o objeto
+    // `state` ainda está sendo inicializado (linha `route: parseRoute()`),
+    // então `state` está na zona morta temporal e qualquer acesso lança
+    // "Cannot access 'state' before initialization", quebrando o módulo
+    // inteiro. detectBase() é barato e não depende de `state`.
+    const base = detectBase();
+    if (path.startsWith(base)) {
+        path = path.slice(base.length);
     } else {
         path = path.replace(/^\/+/, "");
     }
