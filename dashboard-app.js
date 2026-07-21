@@ -1156,7 +1156,7 @@ window.renderizarPrimeirosPassos = async function() {
     const iconeSeta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M9 18l6-6-6-6"/></svg>';
 
     container.innerHTML = `
-        <div class="aura-onboarding">
+        <div class="aura-onboarding aura-enter">
             <div class="aura-onboarding-head">
                 <div>
                     <p class="aura-onboarding-kicker">Primeiros passos</p>
@@ -1238,6 +1238,11 @@ window.atualizarKpisDashboard = async function() {
         }
     } catch (err) {
         console.error("KPIs do dashboard: falha ao apurar:", err);
+        // Nunca deixa o esqueleto girando pra sempre: se algo falhou, mostra
+        // um traço nos indicadores que ainda não receberam valor.
+        [elProd, elLps, elVis].forEach(el => {
+            if (el && el.querySelector(".aura-skel")) el.innerText = "—";
+        });
     }
 };
 
@@ -1346,7 +1351,7 @@ window.renderizarAtividadeRecente = async function() {
     }).join("");
 
     container.innerHTML = `
-        <div class="aura-activity">
+        <div class="aura-activity aura-enter">
             <div class="aura-activity-head">
                 <div>
                     <p class="aura-activity-kicker">Atividade recente</p>
@@ -1426,7 +1431,7 @@ window.renderizarAlertasAtencao = async function() {
     }
 
     container.innerHTML = `
-        <div class="aura-alerts">
+        <div class="aura-alerts aura-enter">
             <span class="aura-alerts-label">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M12 9v4"/><path d="M12 17h.01"/><circle cx="12" cy="12" r="9"/></svg>
                 Precisa da sua atenção
