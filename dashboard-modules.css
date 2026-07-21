@@ -6448,3 +6448,124 @@
 .aura-skel-line{ height:12px; border-radius:6px; margin-top:9px; display:block; }
 /* Skeleton de linha de tabela (leads) */
 .aura-skel-cell{ height:14px; border-radius:6px; display:block; }
+
+/* ===== Resumo da semana (gráfico de barras dos últimos 7 dias) ===== */
+.aura-week{
+  padding:20px 22px;
+  border:1px solid var(--aura-border);
+  border-radius:22px;
+  background:
+    radial-gradient(420px 200px at 100% 0%,color-mix(in srgb,var(--aura-primary) 9%,transparent),transparent 70%),
+    color-mix(in srgb,var(--aura-surface-soft) 45%,transparent);
+}
+.aura-week-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.aura-week-kicker{
+  color:var(--aura-primary);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+.aura-week-title{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:850;
+  letter-spacing:-.01em;
+}
+.aura-week-legend{
+  display:flex;
+  gap:14px;
+  flex-shrink:0;
+}
+.aura-week-legend span{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  color:var(--aura-text-muted);
+  font-size:11px;
+  font-weight:700;
+}
+.aura-week-dot{
+  width:9px;
+  height:9px;
+  border-radius:3px;
+  display:inline-block;
+}
+.aura-week-dot.is-leads{ background:var(--aura-primary); }
+.aura-week-dot.is-pedidos{ background:#34D399; }
+.aura-week-stats{
+  display:grid;
+  grid-template-columns:repeat(3,1fr);
+  gap:10px;
+  margin:16px 0 18px;
+}
+.aura-week-stat{
+  padding:11px 13px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+}
+.aura-week-stat small{
+  display:block;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.1em;
+}
+.aura-week-stat strong{
+  display:block;
+  margin-top:5px;
+  color:var(--aura-text);
+  font-size:20px;
+  font-weight:850;
+  letter-spacing:-.02em;
+}
+.aura-week-chart{
+  display:flex;
+  align-items:flex-end;
+  gap:8px;
+  height:132px;
+  padding-top:6px;
+}
+.aura-week-col{
+  flex:1;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:8px;
+  height:100%;
+}
+.aura-week-bars{
+  flex:1;
+  width:100%;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+  gap:4px;
+}
+.aura-week-bar{
+  width:11px;
+  max-width:32%;
+  border-radius:5px 5px 0 0;
+  min-height:3px;
+  transition:height .5s cubic-bezier(.22,.61,.36,1);
+}
+.aura-week-bar.is-leads{ background:linear-gradient(180deg,var(--aura-primary),color-mix(in srgb,var(--aura-primary) 55%,transparent)); }
+.aura-week-bar.is-pedidos{ background:linear-gradient(180deg,#34D399,rgba(52,211,153,.55)); }
+.aura-week-day{
+  color:var(--aura-text-muted);
+  font-size:10px;
+  font-weight:700;
+  text-transform:capitalize;
+}
+@media (max-width:520px){
+  .aura-week-stat strong{ font-size:17px; }
+  .aura-week-bar{ width:8px; }
+}

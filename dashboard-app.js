@@ -1364,6 +1364,124 @@ window.renderizarAtividadeRecente = async function() {
     container.classList.remove("hidden");
 };
 
+// ===== Resumo da semana (gráfico dos últimos 7 dias no dashboard) =====
+// Mostra, em barras, quantos leads e pedidos entraram por dia nos últimos
+// 7 dias, mais os totais da semana e a receita (pedidos pagos). Gráfico
+// feito só com CSS — nada de biblioteca externa/CDN, então funciona mesmo
+// se algum script de fora falhar.
+window.renderizarResumoSemana = async function() {
+    const container = document.getElementById("resumo-semana-container");
+    if (!container || !usuarioUID) return;
+
+    const podeLeads = typeof temFeature !== "function" || temFeature("leads");
+    const podePedidos = typeof temFeature !== "function" || temFeature("hub");
+    if (!podeLeads && !podePedidos) {
+        container.classList.add("hidden");
+        return;
+    }
+
+    // 7 baldes de dia (de 6 dias atrás até hoje).
+    const dias = [];
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setHours(0, 0, 0, 0);
+        d.setDate(d.getDate() - i);
+        const inicio = d.getTime();
+        dias.push({
+            inicio,
+            fim: inicio + 86400000,
+            label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
+            leads: 0,
+            pedidos: 0
+        });
+    }
+    const janelaInicio = dias[0].inicio;
+
+    let algumDado = false;
+    let receita = 0;
+
+    try {
+        if (podeLeads) {
+            const leadSnap = await getDocs(query(collection(db, "leads"), where("criadoPor", "==", usuarioUID)));
+            if (leadSnap.size > 0) algumDado = true;
+            leadSnap.forEach(docSnap => {
+                const t = docSnap.data().data || 0;
+                if (t < janelaInicio) return;
+                const dia = dias.find(d => t >= d.inicio && t < d.fim);
+                if (dia) dia.leads++;
+            });
+        }
+    } catch (e) { /* leads indisponível */ }
+
+    try {
+        if (podePedidos) {
+            const pedSnap = await getDocs(query(collection(db, "pedidos"), where("criadoPor", "==", usuarioUID)));
+            if (pedSnap.size > 0) algumDado = true;
+            pedSnap.forEach(docSnap => {
+                const p = docSnap.data();
+                const t = p.data || 0;
+                if (t < janelaInicio) return;
+                const dia = dias.find(d => t >= d.inicio && t < d.fim);
+                if (dia) dia.pedidos++;
+                if (p.status === "pago") receita += Number(p.valor || 0);
+            });
+        }
+    } catch (e) { /* pedidos indisponível */ }
+
+    // Conta ainda nova (nunca teve lead nem pedido): não mostra o gráfico.
+    if (!algumDado) {
+        container.classList.add("hidden");
+        return;
+    }
+
+    const totalLeads = dias.reduce((s, d) => s + d.leads, 0);
+    const totalPedidos = dias.reduce((s, d) => s + d.pedidos, 0);
+    const maxVal = Math.max(1, ...dias.map(d => Math.max(d.leads, d.pedidos)));
+    const alturaPct = v => (v <= 0 ? 0 : Math.max(8, Math.round((v / maxVal) * 100)));
+    const receitaTxt = receita.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    const colunas = dias.map(d => `
+        <div class="aura-week-col">
+            <div class="aura-week-bars">
+                <span class="aura-week-bar is-leads" style="height:${alturaPct(d.leads)}%" title="${d.leads} lead(s)"></span>
+                <span class="aura-week-bar is-pedidos" style="height:${alturaPct(d.pedidos)}%" title="${d.pedidos} pedido(s)"></span>
+            </div>
+            <span class="aura-week-day">${d.label}</span>
+        </div>
+    `).join("");
+
+    container.innerHTML = `
+        <div class="aura-week aura-enter">
+            <div class="aura-week-head">
+                <div>
+                    <p class="aura-week-kicker">Últimos 7 dias</p>
+                    <h3 class="aura-week-title">Resumo da semana</h3>
+                </div>
+                <div class="aura-week-legend">
+                    <span><i class="aura-week-dot is-leads"></i>Leads</span>
+                    <span><i class="aura-week-dot is-pedidos"></i>Pedidos</span>
+                </div>
+            </div>
+            <div class="aura-week-stats">
+                <div class="aura-week-stat">
+                    <small>Leads na semana</small>
+                    <strong>${totalLeads}</strong>
+                </div>
+                <div class="aura-week-stat">
+                    <small>Pedidos na semana</small>
+                    <strong>${totalPedidos}</strong>
+                </div>
+                <div class="aura-week-stat">
+                    <small>Receita (pagos)</small>
+                    <strong>${receitaTxt}</strong>
+                </div>
+            </div>
+            <div class="aura-week-chart">${colunas}</div>
+        </div>
+    `;
+    container.classList.remove("hidden");
+};
+
 // Leva o dono ao catálogo de produtos. O catálogo fica dentro da própria
 // tela inicial (não existe aba "view-produtos"), então garantimos que o
 // dashboard está ativo e rolamos até a grade de produtos.
@@ -2042,6 +2160,10 @@ if (targetId === "view-dashboard" && typeof window.atualizarKpisDashboard === "f
 
 if (targetId === "view-dashboard" && typeof window.renderizarAtividadeRecente === "function") {
     window.renderizarAtividadeRecente();
+}
+
+if (targetId === "view-dashboard" && typeof window.renderizarResumoSemana === "function") {
+    window.renderizarResumoSemana();
 }
 
 if (targetId === "view-dashboard" && typeof window.renderizarAlertasAtencao === "function") {
@@ -7068,6 +7190,9 @@ listaBanners = [];
                 }
                 if (typeof window.renderizarAtividadeRecente === "function") {
                     window.renderizarAtividadeRecente();
+                }
+                if (typeof window.renderizarResumoSemana === "function") {
+                    window.renderizarResumoSemana();
                 }
                 if (typeof window.renderizarAlertasAtencao === "function") {
                     window.renderizarAlertasAtencao();
