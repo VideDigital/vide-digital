@@ -1778,3 +1778,31 @@ body.aura-command-open{
 
 .dashboard-ops-empty strong{ font-size:14px !important; }
 .dashboard-ops-empty span{ font-size:11.5px !important; margin-top:6px !important; }
+
+/* =========================================================
+   LEGIBILIDADE — Central de catálogo (fontes maiores)
+   As regras acima usavam fontes de 6 a 9px; este bloco
+   (mais abaixo no arquivo) aumenta para ficar legível.
+   ========================================================= */
+.aura-catalog-command-icon{ width:48px !important; height:48px !important; min-width:48px !important; }
+.aura-catalog-command-icon svg{ width:22px !important; height:22px !important; }
+.aura-catalog-command-title small{ font-size:10px !important; letter-spacing:.12em !important; }
+.aura-catalog-command-title h4{ font-size:17px !important; }
+.aura-catalog-command-title p{ font-size:12px !important; margin-top:5px !important; }
+.aura-catalog-result-count{ font-size:10.5px !important; min-height:32px !important; padding:0 13px !important; }
+
+.aura-catalog-summary-card small{ font-size:10px !important; letter-spacing:.06em; }
+.aura-catalog-summary-card strong{ font-size:22px !important; margin-top:6px !important; }
+.aura-catalog-summary-card span{ font-size:10px !important; margin-top:5px !important; }
+
+.aura-catalog-search{ min-height:50px !important; }
+.aura-catalog-search input{ min-height:48px !important; font-size:13.5px !important; padding:0 44px 0 42px !important; }
+.aura-catalog-search > svg{ width:18px !important; height:18px !important; }
+
+.aura-catalog-sort > span{ font-size:9px !important; top:7px !important; letter-spacing:.08em; }
+.aura-catalog-sort select{ min-height:50px !important; font-size:12.5px !important; padding-top:18px !important; padding-bottom:6px !important; }
+
+.aura-catalog-selection-toggle{ font-size:10.5px !important; min-height:50px !important; }
+.aura-catalog-selection-toggle svg{ width:17px !important; height:17px !important; }
+.aura-catalog-view-switch button{ width:40px !important; height:40px !important; }
+.aura-catalog-view-switch svg{ width:17px !important; height:17px !important; }
