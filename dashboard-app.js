@@ -1101,6 +1101,92 @@ function atualizarLinksLojaPublica(slug) {
     });
 }
 
+// ===== Primeiros passos (guia de configuração inicial) =====
+window.ocultarPrimeirosPassos = function() {
+    try { if (usuarioUID) localStorage.setItem("primeirosPassosOcultos_" + usuarioUID, "1"); } catch (e) {}
+    document.getElementById("primeiros-passos-container")?.classList.add("hidden");
+};
+
+window.renderizarPrimeirosPassos = async function() {
+    const container = document.getElementById("primeiros-passos-container");
+    if (!container || !usuarioUID) return;
+    // Se o dono já dispensou, não mostra mais.
+    try {
+        if (localStorage.getItem("primeirosPassosOcultos_" + usuarioUID) === "1") {
+            container.classList.add("hidden");
+            return;
+        }
+    } catch (e) {}
+
+    let temLoja = false, temProduto = false, temLP = false, lpPublicada = false;
+    try {
+        const perfilSnap = await getDoc(doc(db, "usuarios", usuarioUID));
+        const perfil = perfilSnap.exists() ? perfilSnap.data() : {};
+        temLoja = Boolean(perfil.nomeLoja && perfil.urlLoja);
+
+        const prodSnap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
+        temProduto = prodSnap.size > 0;
+
+        const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
+        temLP = lpSnap.size > 0;
+        lpSnap.forEach(d => { if (d.data().publicado) lpPublicada = true; });
+    } catch (err) {
+        console.error("Primeiros passos: falha ao apurar estado:", err);
+        container.classList.add("hidden");
+        return;
+    }
+
+    const passos = [
+        { feito: temLoja, titulo: "Configure sua loja", desc: "Defina nome, endereço e identidade da loja.", acao: "ativarAba('view-perfil')" },
+        { feito: temProduto, titulo: "Adicione um produto", desc: "Cadastre pelo menos um item pra vender.", acao: "ativarAba('view-produtos')" },
+        { feito: temLP, titulo: "Crie uma Landing Page", desc: "Monte uma página focada em conversão.", acao: "ativarAba('view-landing-pages')" },
+        { feito: lpPublicada, titulo: "Publique uma página", desc: "Deixe uma Landing Page no ar pra receber visitas.", acao: "ativarAba('view-landing-pages')" }
+    ];
+    const concluidos = passos.filter(p => p.feito).length;
+    const total = passos.length;
+
+    // Tudo pronto: não precisa mais do guia.
+    if (concluidos >= total) {
+        container.classList.add("hidden");
+        return;
+    }
+
+    const pct = Math.round((concluidos / total) * 100);
+    const iconeCheck = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><path d="M20 6 9 17l-5-5"/></svg>';
+    const iconeSeta = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M9 18l6-6-6-6"/></svg>';
+
+    container.innerHTML = `
+        <div class="aura-onboarding">
+            <div class="aura-onboarding-head">
+                <div>
+                    <p class="aura-onboarding-kicker">Primeiros passos</p>
+                    <h3 class="aura-onboarding-title">Deixe sua operação pronta pra vender</h3>
+                </div>
+                <button type="button" class="aura-onboarding-dismiss" onclick="ocultarPrimeirosPassos()" title="Ocultar guia">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="m6 6 12 12"/><path d="M18 6 6 18"/></svg>
+                </button>
+            </div>
+            <div class="aura-onboarding-progress">
+                <div class="aura-onboarding-progress-bar"><span style="width:${pct}%"></span></div>
+                <span class="aura-onboarding-progress-label">${concluidos} de ${total} concluídos</span>
+            </div>
+            <div class="aura-onboarding-steps">
+                ${passos.map(p => `
+                    <button type="button" class="aura-onboarding-step ${p.feito ? "is-feito" : ""}" onclick="${p.feito ? "" : p.acao}" ${p.feito ? "disabled" : ""}>
+                        <span class="aura-onboarding-step-check">${p.feito ? iconeCheck : ""}</span>
+                        <span class="aura-onboarding-step-texto">
+                            <strong>${p.titulo}</strong>
+                            <small>${p.desc}</small>
+                        </span>
+                        ${p.feito ? "" : `<span class="aura-onboarding-step-seta">${iconeSeta}</span>`}
+                    </button>
+                `).join("")}
+            </div>
+        </div>
+    `;
+    container.classList.remove("hidden");
+};
+
 // ===== Compartilhar (QR Code + link) =====
 window._compartilharUrl = "";
 
@@ -1618,7 +1704,9 @@ function ativarAba(targetId) {
             document.getElementById("btn-restaurar-layout");
 
         if (btnEditar) {
-            btnEditar.innerText = "✏️ Editar Layout desta Aba";
+            // innerHTML (não innerText) pra manter o ícone SVG em vez do emoji
+            // — antes esta linha re-injetava "✏️" ao sair do modo de edição.
+            btnEditar.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg> Editar Layout desta Aba';
         }
 
         if (btnSalvarAba) {
@@ -1679,6 +1767,10 @@ if (
     typeof carregarCockpitReal === "function"
 ) {
     carregarCockpitReal();
+}
+
+if (targetId === "view-dashboard" && typeof window.renderizarPrimeirosPassos === "function") {
+    window.renderizarPrimeirosPassos();
 }
 
 if (targetId === "view-metricas") {
@@ -6694,6 +6786,9 @@ listaBanners = [];
                     document.getElementById("view-dashboard")?.classList.contains("active")
                 ) {
                     carregarCockpitReal();
+                }
+                if (typeof window.renderizarPrimeirosPassos === "function") {
+                    window.renderizarPrimeirosPassos();
                 }
                 if (temFeature("leads")) carregarLeads();
                 if (temFeature("hub")) carregarPedidos();

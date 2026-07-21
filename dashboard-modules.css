@@ -6084,3 +6084,138 @@
 .aura-sidebar-group-header{
   margin-bottom:0 !important;
 }
+
+/* ===== Primeiros passos (onboarding) ===== */
+.aura-onboarding{
+  padding:20px 22px;
+  border:1px solid color-mix(in srgb,var(--aura-primary) 22%,var(--aura-border));
+  border-radius:22px;
+  background:
+    radial-gradient(420px 180px at 100% 0%,color-mix(in srgb,var(--aura-primary) 12%,transparent),transparent 70%),
+    color-mix(in srgb,var(--aura-surface-soft) 45%,transparent);
+}
+.aura-onboarding-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+}
+.aura-onboarding-kicker{
+  color:var(--aura-primary);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+.aura-onboarding-title{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:850;
+  letter-spacing:-.01em;
+}
+.aura-onboarding-dismiss{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:30px;
+  height:30px;
+  flex-shrink:0;
+  border-radius:9px;
+  color:var(--aura-text-muted);
+  border:1px solid var(--aura-border);
+  background:rgba(255,255,255,.02);
+  cursor:pointer;
+  transition:color .2s ease,border-color .2s ease;
+}
+.aura-onboarding-dismiss:hover{ color:var(--aura-text); border-color:var(--aura-border-strong); }
+.aura-onboarding-progress{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-top:15px;
+}
+.aura-onboarding-progress-bar{
+  flex:1;
+  height:7px;
+  border-radius:999px;
+  background:rgba(255,255,255,.07);
+  overflow:hidden;
+}
+.aura-onboarding-progress-bar span{
+  display:block;
+  height:100%;
+  border-radius:999px;
+  background:linear-gradient(90deg,var(--aura-primary),var(--aura-accent));
+  transition:width .4s ease;
+}
+.aura-onboarding-progress-label{
+  color:var(--aura-text-muted);
+  font-size:9px;
+  font-weight:800;
+  text-transform:uppercase;
+  letter-spacing:.03em;
+  white-space:nowrap;
+}
+.aura-onboarding-steps{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+  margin-top:16px;
+}
+@media (max-width:640px){ .aura-onboarding-steps{ grid-template-columns:1fr; } }
+.aura-onboarding-step{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  padding:12px 13px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .2s ease,background .2s ease,transform .2s ease;
+}
+.aura-onboarding-step:not(.is-feito):hover{
+  transform:translateY(-2px);
+  border-color:color-mix(in srgb,var(--aura-primary) 35%,transparent);
+  background:color-mix(in srgb,var(--aura-primary) 7%,transparent);
+}
+.aura-onboarding-step.is-feito{
+  cursor:default;
+  border-color:rgba(52,211,153,.28);
+  background:rgba(52,211,153,.06);
+}
+.aura-onboarding-step-check{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  min-width:24px;
+  border-radius:8px;
+  color:#0b0b0f;
+  border:1px solid var(--aura-border-strong);
+  background:transparent;
+}
+.aura-onboarding-step.is-feito .aura-onboarding-step-check{
+  color:#04130d;
+  border-color:transparent;
+  background:#34D399;
+}
+.aura-onboarding-step-texto{ flex:1; min-width:0; }
+.aura-onboarding-step-texto strong{
+  display:block;
+  color:var(--aura-text);
+  font-size:11px;
+  font-weight:800;
+}
+.aura-onboarding-step.is-feito .aura-onboarding-step-texto strong{ color:var(--aura-text-secondary); }
+.aura-onboarding-step-texto small{
+  display:block;
+  margin-top:2px;
+  color:var(--aura-text-muted);
+  font-size:9px;
+  line-height:1.4;
+}
+.aura-onboarding-step-seta{ color:var(--aura-text-muted); flex-shrink:0; }
