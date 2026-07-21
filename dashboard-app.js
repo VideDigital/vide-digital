@@ -3682,21 +3682,29 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                         ? `${visualizacoes} ${visualizacoes === 1 ? "visualização" : "visualizações"}`
                         : "";
 
+                    // Mini-preview: em vez de um ícone genérico igual em todo
+                    // card, desenhamos uma "miniatura" da página -- uma faixa
+                    // de topo (tipo o hero) e algumas linhas de conteúdo cuja
+                    // quantidade reflete quantos blocos a página tem. Larguras
+                    // variadas dão um ar de página real. Usa só o número de
+                    // blocos que já temos em mãos, sem leitura extra.
+                    const linhasPreview = Math.max(1, Math.min(quantidadeBlocos, 4));
+                    const largurasPreview = ["92%", "70%", "84%", "58%"];
+                    const preview = `
+                        <span class="aura-lp-card-preview" aria-hidden="true">
+                            <span class="aura-lp-card-preview-hero"></span>
+                            ${Array.from({ length: linhasPreview }).map((_, i) =>
+                                `<span class="aura-lp-card-preview-line" style="width:${largurasPreview[i % largurasPreview.length]}"></span>`
+                            ).join("")}
+                        </span>
+                    `;
+
                     return `
                         <div class="glass-card aura-lp-card ${lp.publicado ? "is-published" : "is-draft"}">
 
                             <div class="aura-lp-card-top">
 
-                                <span class="aura-lp-card-icon">
-
-                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect x="3" y="4" width="18" height="14" rx="2"></rect>
-                                        <path d="M3 8h18"></path>
-                                        <path d="M8 21h8"></path>
-                                        <path d="M12 18v3"></path>
-                                    </svg>
-
-                                </span>
+                                ${preview}
 
                                 <span class="aura-lp-card-status">
 
