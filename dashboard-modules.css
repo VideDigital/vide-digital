@@ -6219,3 +6219,122 @@
   line-height:1.4;
 }
 .aura-onboarding-step-seta{ color:var(--aura-text-muted); flex-shrink:0; }
+
+/* ===== Atividade recente (dashboard) ===== */
+.aura-activity{
+  padding:20px 22px;
+  border:1px solid var(--aura-border);
+  border-radius:22px;
+  background:
+    radial-gradient(420px 180px at 0% 0%,color-mix(in srgb,var(--aura-accent) 10%,transparent),transparent 70%),
+    color-mix(in srgb,var(--aura-surface-soft) 45%,transparent);
+}
+.aura-activity-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:12px;
+  margin-bottom:14px;
+}
+.aura-activity-kicker{
+  color:var(--aura-accent);
+  font-size:9px;
+  font-weight:850;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+}
+.aura-activity-title{
+  margin-top:4px;
+  color:var(--aura-text);
+  font-size:15px;
+  font-weight:850;
+  letter-spacing:-.01em;
+}
+.aura-activity-list{
+  display:flex;
+  flex-direction:column;
+  gap:7px;
+}
+.aura-activity-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  width:100%;
+  padding:11px 13px;
+  border:1px solid var(--aura-border);
+  border-radius:14px;
+  background:rgba(255,255,255,.02);
+  text-align:left;
+  cursor:pointer;
+  transition:border-color .2s ease,background .2s ease,transform .2s ease;
+}
+.aura-activity-row:hover{
+  transform:translateY(-1px);
+  border-color:var(--aura-border-strong);
+  background:rgba(255,255,255,.035);
+}
+.aura-activity-icon{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:34px;
+  height:34px;
+  min-width:34px;
+  border-radius:10px;
+  border:1px solid var(--aura-border);
+}
+.aura-activity-icon.is-lead{
+  color:var(--aura-primary);
+  background:color-mix(in srgb,var(--aura-primary) 12%,transparent);
+  border-color:color-mix(in srgb,var(--aura-primary) 30%,transparent);
+}
+.aura-activity-icon.is-pedido{
+  color:#34D399;
+  background:rgba(52,211,153,.1);
+  border-color:rgba(52,211,153,.28);
+}
+.aura-activity-body{ flex:1; min-width:0; }
+.aura-activity-top{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.aura-activity-top strong{
+  color:var(--aura-text);
+  font-size:12px;
+  font-weight:800;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.aura-activity-body small{
+  display:block;
+  margin-top:2px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  line-height:1.4;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.aura-activity-time{
+  color:var(--aura-text-muted);
+  font-size:10px;
+  font-weight:700;
+  white-space:nowrap;
+  flex-shrink:0;
+}
+.aura-activity-badge{
+  padding:2px 7px;
+  border-radius:999px;
+  font-size:8px;
+  font-weight:850;
+  text-transform:uppercase;
+  letter-spacing:.04em;
+  flex-shrink:0;
+}
+.aura-activity-badge.is-aguardando{ color:#fbbf24; background:rgba(251,191,36,.12); }
+.aura-activity-badge.is-confirmado{ color:#60a5fa; background:rgba(96,165,250,.12); }
+.aura-activity-badge.is-pago{ color:#34D399; background:rgba(52,211,153,.12); }
+.aura-activity-badge.is-cancelado{ color:#f87171; background:rgba(248,113,113,.12); }

@@ -1241,6 +1241,124 @@ window.atualizarKpisDashboard = async function() {
     }
 };
 
+// ===== Atividade recente (últimos leads e pedidos no dashboard) =====
+// Descreve há quanto tempo algo aconteceu, em português e sem depender
+// de biblioteca. Recebe timestamp em milissegundos.
+function tempoRelativoBR(ms) {
+    if (!ms) return "";
+    const diff = Date.now() - ms;
+    if (diff < 0) return "agora";
+    const min = Math.floor(diff / 60000);
+    if (min < 1) return "agora";
+    if (min < 60) return `há ${min} min`;
+    const horas = Math.floor(min / 60);
+    if (horas < 24) return `há ${horas} h`;
+    const dias = Math.floor(horas / 24);
+    if (dias === 1) return "ontem";
+    if (dias < 30) return `há ${dias} dias`;
+    const meses = Math.floor(dias / 30);
+    if (meses < 12) return `há ${meses} ${meses === 1 ? "mês" : "meses"}`;
+    const anos = Math.floor(meses / 12);
+    return `há ${anos} ${anos === 1 ? "ano" : "anos"}`;
+}
+
+// Monta o painel "Atividade recente" no topo do dashboard, unindo os
+// últimos leads e pedidos numa linha do tempo. Some se o plano não tiver
+// nem leads nem pedidos, ou se ainda não houver nenhuma atividade.
+window.renderizarAtividadeRecente = async function() {
+    const container = document.getElementById("atividade-recente-container");
+    if (!container || !usuarioUID) return;
+
+    const podeLeads = typeof temFeature !== "function" || temFeature("leads");
+    const podePedidos = typeof temFeature !== "function" || temFeature("hub");
+    if (!podeLeads && !podePedidos) {
+        container.classList.add("hidden");
+        return;
+    }
+
+    const itens = [];
+    // Cada fonte é independente: se uma falhar (regra/permrmissão), a outra
+    // ainda aparece. Buscamos tudo do dono e recortamos os mais recentes.
+    try {
+        if (podeLeads) {
+            const leadSnap = await getDocs(query(collection(db, "leads"), where("criadoPor", "==", usuarioUID)));
+            leadSnap.forEach(d => {
+                const l = d.data();
+                itens.push({
+                    tipo: "lead",
+                    quando: l.data || 0,
+                    titulo: l.nome || "Novo contato",
+                    detalhe: l.origem ? `Origem: ${l.origem}` : (l.whatsapp ? l.whatsapp : "Lead capturado"),
+                    acao: "ativarAba('view-leads')"
+                });
+            });
+        }
+    } catch (e) { /* fonte de leads indisponível: ignora */ }
+
+    try {
+        if (podePedidos) {
+            const pedSnap = await getDocs(query(collection(db, "pedidos"), where("criadoPor", "==", usuarioUID)));
+            pedSnap.forEach(d => {
+                const p = d.data();
+                const valorTxt = (p.valor || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                itens.push({
+                    tipo: "pedido",
+                    quando: p.data || 0,
+                    titulo: p.cliente || "Novo pedido",
+                    detalhe: `${valorTxt}${p.produtos ? " · " + p.produtos : ""}`,
+                    status: p.status || "aguardando",
+                    acao: "ativarAba('view-pedidos')"
+                });
+            });
+        }
+    } catch (e) { /* fonte de pedidos indisponível: ignora */ }
+
+    if (itens.length === 0) {
+        container.classList.add("hidden");
+        return;
+    }
+
+    itens.sort((a, b) => (b.quando || 0) - (a.quando || 0));
+    const recentes = itens.slice(0, 6);
+
+    const iconeLead = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><circle cx="12" cy="8" r="3.2"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>';
+    const iconePedido = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" width="16" height="16"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"/><path d="M3 6h18"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>';
+    const rotuloStatus = { aguardando: "Aguardando", confirmado: "Confirmado", pago: "Pago", cancelado: "Cancelado" };
+
+    const linhas = recentes.map(it => {
+        const ehLead = it.tipo === "lead";
+        const badge = (!ehLead && it.status)
+            ? `<span class="aura-activity-badge is-${it.status}">${rotuloStatus[it.status] || it.status}</span>`
+            : "";
+        return `
+            <button type="button" class="aura-activity-row" onclick="${it.acao}">
+                <span class="aura-activity-icon is-${it.tipo}">${ehLead ? iconeLead : iconePedido}</span>
+                <span class="aura-activity-body">
+                    <span class="aura-activity-top">
+                        <strong>${escaparHtmlChat ? escaparHtmlChat(it.titulo) : it.titulo}</strong>
+                        ${badge}
+                    </span>
+                    <small>${escaparHtmlChat ? escaparHtmlChat(it.detalhe) : it.detalhe}</small>
+                </span>
+                <span class="aura-activity-time">${tempoRelativoBR(it.quando)}</span>
+            </button>
+        `;
+    }).join("");
+
+    container.innerHTML = `
+        <div class="aura-activity">
+            <div class="aura-activity-head">
+                <div>
+                    <p class="aura-activity-kicker">Atividade recente</p>
+                    <h3 class="aura-activity-title">O que acabou de acontecer na sua operação</h3>
+                </div>
+            </div>
+            <div class="aura-activity-list">${linhas}</div>
+        </div>
+    `;
+    container.classList.remove("hidden");
+};
+
 // ===== Compartilhar (QR Code + link) =====
 window._compartilharUrl = "";
 
@@ -1829,6 +1947,10 @@ if (targetId === "view-dashboard" && typeof window.renderizarPrimeirosPassos ===
 
 if (targetId === "view-dashboard" && typeof window.atualizarKpisDashboard === "function") {
     window.atualizarKpisDashboard();
+}
+
+if (targetId === "view-dashboard" && typeof window.renderizarAtividadeRecente === "function") {
+    window.renderizarAtividadeRecente();
 }
 
 if (targetId === "view-metricas") {
@@ -6850,6 +6972,9 @@ listaBanners = [];
                 }
                 if (typeof window.atualizarKpisDashboard === "function") {
                     window.atualizarKpisDashboard();
+                }
+                if (typeof window.renderizarAtividadeRecente === "function") {
+                    window.renderizarAtividadeRecente();
                 }
                 if (temFeature("leads")) carregarLeads();
                 if (temFeature("hub")) carregarPedidos();
