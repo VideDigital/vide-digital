@@ -875,11 +875,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             itensCarrinho.forEach(function(item) {
                 const subtotal = item.preco * item.quantidade;
                 totalGeral += subtotal;
-                mensagem += "▫️ " + item.quantidade + "x " + item.nome + " — R$ " + subtotal.toFixed(2) + "\n";
+                mensagem += "• " + item.quantidade + "x " + item.nome + " — R$ " + subtotal.toFixed(2) + "\n";
             });
 
-            mensagem += "\n💰 *Total: " + totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + "*";
-            mensagem += "\n\nAguardo confirmação! 😊";
+            mensagem += "\n*Total: " + totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + "*";
+            mensagem += "\n\nAguardo a confirmação, por favor.";
 
             window.open("https://wa.me/" + whatsappDono + "?text=" + encodeURIComponent(mensagem), "_blank");
 
