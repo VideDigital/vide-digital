@@ -44,7 +44,8 @@ export const VideFunctions = Object.freeze({
     createPublicChat: (payload) => callFunction("createPublicChat", payload),
     sendPublicChatMessage: (payload) => callFunction("sendPublicChatMessage", payload),
     markNotificationRead: (payload) => callFunction("markNotificationRead", payload),
-    auditWrite: (payload) => callFunction("auditWrite", payload)
+    auditWrite: (payload) => callFunction("auditWrite", payload),
+    sendAdminChatMessage: (payload) => callFunction("sendAdminChatMessage", payload)
 });
 
 export default VideFunctions;

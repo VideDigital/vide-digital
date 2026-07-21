@@ -7340,6 +7340,44 @@ function() {
 
 };
 
+function escaparHtmlChat(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+window.enviarRespostaChatLead = function(event) {
+    event.preventDefault();
+    const input = document.getElementById("lead-painel-chat-input");
+    const chatId = window._leadPainelChatId;
+    const texto = input?.value.trim();
+    if (!texto || !chatId) return false;
+
+    const chatBox = document.getElementById("lead-painel-chat");
+    input.disabled = true;
+    VideFunctions.sendAdminChatMessage({ chatId, texto })
+        .then(() => {
+            input.value = "";
+            const bolha = document.createElement("div");
+            bolha.className = "flex justify-end";
+            bolha.innerHTML = `<div class="max-w-[80%] px-3 py-2 rounded-xl text-xs bg-blue-500/20 text-blue-300 rounded-tr-none">${escaparHtmlChat(texto)}</div>`;
+            chatBox?.appendChild(bolha);
+            if (chatBox) chatBox.scrollTop = chatBox.scrollHeight;
+        })
+        .catch((err) => {
+            console.error(err);
+            showToast("Erro ao enviar resposta: " + err.message, "error");
+        })
+        .finally(() => {
+            input.disabled = false;
+            input.focus();
+        });
+    return false;
+};
+
 window.abrirPainelLead = async function(lead) {
             document.getElementById("lead-painel-id").value = lead.id;
             document.getElementById("lead-painel-avatar").innerText = (lead.nome || "?")[0].toUpperCase();
@@ -7490,12 +7528,28 @@ void carregarHistoricoLead(
                 btnWhats.classList.add("opacity-40", "cursor-not-allowed");
             }
             const chatBox = document.getElementById("lead-painel-chat");
+            const chatInput = document.getElementById("lead-painel-chat-input");
             chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Buscando histórico...</p>";
+            window._leadPainelChatId = null;
+            if (chatInput) chatInput.disabled = true;
             try {
-                const chats = await getDocs(query(collection(db, "chats"), where("clienteNome", "==", lead.nome)));
+                // As regras do Firestore só liberam "list" em /chats quando a
+                // própria query já restringe por donoUID (o campo que a regra
+                // checa) -- sem isso, a query inteira era negada com
+                // permission-denied, mesmo pro dono de verdade, e caía direto
+                // no catch() lá embaixo mostrando "Sem histórico de chat.".
+                const chats = await getDocs(query(collection(db, "chats"), where("donoUID", "==", usuarioUID), where("clienteNome", "==", lead.nome)));
                 if (chats.empty) {
                     chatBox.innerHTML = "<p class='text-gray-600 text-xs'>Nenhum chat encontrado.</p>";
                 } else {
+                    // Responde sempre no chat mais recente do lead (o normal é
+                    // ter só um; se houver vários, o mais novo é o relevante).
+                    const chatMaisRecente = chats.docs.reduce((mais, atual) =>
+                        (atual.data().timestamp || 0) > (mais.data().timestamp || 0) ? atual : mais
+                    );
+                    window._leadPainelChatId = chatMaisRecente.id;
+                    if (chatInput) chatInput.disabled = false;
+
                     let msgs = [];
                     for (const c of chats.docs) {
                         const mSnap = await getDocs(collection(db, "chats", c.id, "mensagens"));
@@ -7508,8 +7562,9 @@ void carregarHistoricoLead(
                         chatBox.innerHTML = msgs.map(m =>
                             "<div class='flex " + (m.sender === 'admin' ? "justify-end" : "justify-start") + "'>" +
                             "<div class='max-w-[80%] px-3 py-2 rounded-xl text-xs " + (m.sender === 'admin' ? "bg-blue-500/20 text-blue-300 rounded-tr-none" : "bg-red-500/10 text-red-300 rounded-tl-none border border-red-500/10") + "'>" +
-                            m.texto + "</div></div>"
+                            escaparHtmlChat(m.texto) + "</div></div>"
                         ).join("");
+                        chatBox.scrollTop = chatBox.scrollHeight;
                     }
                 }
             } catch(e) {

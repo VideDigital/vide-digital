@@ -11,6 +11,7 @@ const adminFns = require("./admin");
 const publicFns = require("./public");
 const audit = require("./audit");
 const notifications = require("./notifications");
+const leads = require("./leads");
 
 exports.createEmployee = employee.createEmployee;
 exports.updateEmployee = employee.updateEmployee;
@@ -30,3 +31,5 @@ exports.sendPublicChatMessage = publicFns.sendPublicChatMessage;
 
 exports.auditWrite = audit.auditWrite;
 exports.markNotificationRead = notifications.markNotificationRead;
+
+exports.sendAdminChatMessage = leads.sendAdminChatMessage;
