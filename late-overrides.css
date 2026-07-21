@@ -1727,3 +1727,54 @@ body.aura-command-open{
     transition:none !important;
   }
 }
+
+/* =========================================================
+   LEGIBILIDADE — Central de decisões (fontes/áreas maiores)
+   As regras acima usavam fontes de 7–9px, difíceis de ler.
+   Este bloco (mais abaixo no arquivo) aumenta tudo.
+   ========================================================= */
+.dashboard-ops{ padding:26px !important; }
+.dashboard-ops-header{ padding-bottom:22px !important; }
+.dashboard-ops-title{ gap:15px !important; }
+.dashboard-ops-title-icon{ width:52px !important; height:52px !important; min-width:52px !important; border-radius:16px !important; }
+.dashboard-ops-title-icon svg{ width:24px !important; height:24px !important; }
+.dashboard-ops-title small,
+.dashboard-ops-section-header small{ font-size:11px !important; letter-spacing:.14em !important; }
+.dashboard-ops-title h3{ font-size:21px !important; margin-top:4px !important; }
+.dashboard-ops-title p{ font-size:13px !important; margin-top:6px !important; }
+.dashboard-ops-live{ font-size:10.5px !important; min-height:34px !important; padding:0 14px !important; gap:8px !important; }
+.dashboard-ops-live i{ width:7px !important; height:7px !important; }
+
+.dashboard-ops-alerts{ gap:12px !important; margin-top:22px !important; }
+.dashboard-ops-alert{ min-height:132px !important; padding:18px !important; border-radius:18px !important; }
+.dashboard-ops-alert > span{ font-size:11.5px !important; letter-spacing:.06em !important; }
+.dashboard-ops-alert strong{ font-size:34px !important; margin-top:14px !important; }
+.dashboard-ops-alert small{ font-size:11.5px !important; margin-top:10px !important; }
+
+.dashboard-ops-grid{ gap:16px !important; margin-top:16px !important; }
+.dashboard-ops-section{ padding:20px !important; border-radius:20px !important; }
+.dashboard-ops-section-header{ padding-bottom:16px !important; }
+.dashboard-ops-section-header h4{ font-size:17px !important; margin-top:5px !important; }
+.dashboard-ops-section-header > span{ font-size:11px !important; }
+
+.dashboard-ops-activity-list{ margin-top:14px !important; gap:9px !important; }
+.dashboard-ops-activity{ min-height:70px !important; padding:13px !important; gap:12px !important; border-radius:14px !important; }
+.dashboard-ops-activity-dot{ width:10px !important; height:10px !important; }
+.dashboard-ops-activity-copy strong{ font-size:13.5px !important; }
+.dashboard-ops-activity-copy small{ font-size:11.5px !important; margin-top:4px !important; }
+.dashboard-ops-activity-meta b{ font-size:10px !important; min-height:24px !important; padding:0 9px !important; }
+.dashboard-ops-activity-meta small{ font-size:10px !important; margin-top:6px !important; }
+
+.dashboard-ops-actions{ gap:10px !important; margin-top:14px !important; }
+.dashboard-ops-actions button{ min-height:76px !important; padding:14px !important; gap:13px !important; border-radius:14px !important; }
+.dashboard-ops-actions button > span{ width:42px !important; height:42px !important; min-width:42px !important; border-radius:12px !important; font-size:21px !important; }
+.dashboard-ops-actions strong{ font-size:14px !important; }
+.dashboard-ops-actions small{ font-size:11.5px !important; margin-top:3px !important; }
+
+.dashboard-ops-summary{ gap:10px !important; margin-top:12px !important; }
+.dashboard-ops-summary > div{ padding:15px !important; border-radius:14px !important; }
+.dashboard-ops-summary span{ font-size:10.5px !important; letter-spacing:.08em !important; }
+.dashboard-ops-summary strong{ font-size:24px !important; margin-top:8px !important; }
+
+.dashboard-ops-empty strong{ font-size:14px !important; }
+.dashboard-ops-empty span{ font-size:11.5px !important; margin-top:6px !important; }
