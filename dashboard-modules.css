@@ -6399,3 +6399,40 @@
 }
 .aura-alert-chip.is-danger .aura-alert-chip-icon{ color:#f87171; }
 .aura-alert-chip.is-danger:hover{ background:rgba(248,113,113,.11); }
+
+/* ===== Skeleton shimmer + entrada suave (polimento do dashboard) ===== */
+.aura-skel{
+  position:relative;
+  overflow:hidden;
+  background:rgba(255,255,255,.06);
+  border-radius:7px;
+}
+.aura-skel::after{
+  content:"";
+  position:absolute;
+  inset:0;
+  transform:translateX(-100%);
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.10),transparent);
+  animation:aura-shimmer 1.25s infinite;
+}
+@keyframes aura-shimmer{ to{ transform:translateX(100%); } }
+/* Barra que ocupa o lugar do número do KPI enquanto carrega */
+.aura-skel-kpi{
+  display:inline-block;
+  width:46px;
+  height:24px;
+  vertical-align:middle;
+}
+@media (prefers-reduced-motion: reduce){
+  .aura-skel::after{ animation:none; }
+}
+
+/* Entrada suave (fade + subida) das seções da tela inicial */
+.aura-enter{ animation:aura-enter-up .5s cubic-bezier(.22,.61,.36,1) both; }
+@keyframes aura-enter-up{
+  from{ opacity:0; transform:translateY(10px); }
+  to{ opacity:1; transform:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .aura-enter{ animation:none; }
+}
