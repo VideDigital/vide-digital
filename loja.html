@@ -564,11 +564,24 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     }
 
                     const linksBox = document.getElementById("links-extras-container");
+                    // Antes a loja sempre mostrava o mesmo ícone genérico (link-2),
+                    // ignorando o tipo escolhido pelo dono. Agora cada link mostra
+                    // o ícone certo. Aceita tanto a chave nova (link, chat...)
+                    // quanto o emoji legado que lojas antigas salvaram.
+                    const iconeLinkLucide = function(valor) {
+                        const mapa = {
+                            link: "link-2", chat: "message-circle", entrega: "package",
+                            promo: "gift", app: "smartphone", avaliacoes: "star", local: "map-pin",
+                            "🔗": "link-2", "💬": "message-circle", "📦": "package",
+                            "🎁": "gift", "📱": "smartphone", "⭐": "star", "📍": "map-pin"
+                        };
+                        return mapa[valor] || "link-2";
+                    };
                     if (dados.link1Titulo && dados.link1Url) {
-                        linksBox.innerHTML += '<a href="' + dados.link1Url + '" target="_blank" class="text-xs font-semibold px-4 py-2.5 rounded-full border transition-all hover:brightness-110 inline-flex items-center gap-2" style="border-color: ' + brandColor + '; color: ' + brandColor + ';"><i data-lucide="link-2" style="width:12px;height:12px"></i> ' + dados.link1Titulo + "</a>";
+                        linksBox.innerHTML += '<a href="' + dados.link1Url + '" target="_blank" class="text-xs font-semibold px-4 py-2.5 rounded-full border transition-all hover:brightness-110 inline-flex items-center gap-2" style="border-color: ' + brandColor + '; color: ' + brandColor + ';"><i data-lucide="' + iconeLinkLucide(dados.link1Icone) + '" style="width:12px;height:12px"></i> ' + dados.link1Titulo + "</a>";
                     }
                     if (dados.link2Titulo && dados.link2Url) {
-                        linksBox.innerHTML += '<a href="' + dados.link2Url + '" target="_blank" class="text-xs font-semibold px-4 py-2.5 rounded-full border transition-all hover:brightness-110 inline-flex items-center gap-2" style="border-color: ' + brandColor + '; color: ' + brandColor + ';"><i data-lucide="link-2" style="width:12px;height:12px"></i> ' + dados.link2Titulo + "</a>";
+                        linksBox.innerHTML += '<a href="' + dados.link2Url + '" target="_blank" class="text-xs font-semibold px-4 py-2.5 rounded-full border transition-all hover:brightness-110 inline-flex items-center gap-2" style="border-color: ' + brandColor + '; color: ' + brandColor + ';"><i data-lucide="' + iconeLinkLucide(dados.link2Icone) + '" style="width:12px;height:12px"></i> ' + dados.link2Titulo + "</a>";
                     }
 
                     let listaBannersVitrine = [];
