@@ -1056,10 +1056,17 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
                     await registrarMetricaPublica({ event: "store_session" });
 
+                    // Duas igualdades (criadoPor + statusProduto) NÃO exigem
+                    // índice composto no Firestore; o "!= rascunho" exigiria e
+                    // quebraria a loja em produção enquanto o índice não fosse
+                    // criado. Os produtos do painel usam só "ativo"/"rascunho",
+                    // então filtrar por "ativo" é equivalente e dispensa índice.
+                    // A regra pública de leitura (statusProduto != "rascunho")
+                    // continua satisfeita, pois só retornamos itens "ativo".
                     const qProd = query(
                         collection(db, "produtos"),
                         where("criadoPor", "==", fornecedorEmail),
-                        where("statusProduto", "!=", "rascunho")
+                        where("statusProduto", "==", "ativo")
                     );
                     const queryProdSnap = await getDocs(qProd);
 
