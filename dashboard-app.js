@@ -1390,6 +1390,13 @@ window.renderizarAtividadeRecente = async function() {
 // 7 dias, mais os totais da semana e a receita (pedidos pagos). Gráfico
 // feito só com CSS — nada de biblioteca externa/CDN, então funciona mesmo
 // se algum script de fora falhar.
+// Período selecionado do resumo (7 ou 30 dias). Lembra a escolha.
+window._resumoDias = window._resumoDias || 7;
+window.mudarPeriodoResumo = function(dias) {
+    window._resumoDias = (Number(dias) === 30) ? 30 : 7;
+    if (typeof window.renderizarResumoSemana === "function") window.renderizarResumoSemana();
+};
+
 window.renderizarResumoSemana = async function() {
     const container = document.getElementById("resumo-semana-container");
     if (!container || !usuarioUID) return;
@@ -1401,20 +1408,22 @@ window.renderizarResumoSemana = async function() {
         return;
     }
 
-    // 7 baldes de dia (de 6 dias atrás até hoje).
+    const totalDias = (window._resumoDias === 30) ? 30 : 7;
+    const ehMes = totalDias === 30;
+
+    // N baldes de dia (de N-1 dias atrás até hoje).
     const dias = [];
-    for (let i = 6; i >= 0; i--) {
+    for (let i = totalDias - 1; i >= 0; i--) {
         const d = new Date();
         d.setHours(0, 0, 0, 0);
         d.setDate(d.getDate() - i);
         const inicio = d.getTime();
-        dias.push({
-            inicio,
-            fim: inicio + 86400000,
-            label: d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", ""),
-            leads: 0,
-            pedidos: 0
-        });
+        // No modo mês, rótulo é o número do dia (e só mostramos alguns pra
+        // não poluir); no modo semana, o dia da semana abreviado.
+        const label = ehMes
+            ? String(d.getDate())
+            : d.toLocaleDateString("pt-BR", { weekday: "short" }).replace(".", "");
+        dias.push({ inicio, fim: inicio + 86400000, label, leads: 0, pedidos: 0 });
     }
     const janelaInicio = dias[0].inicio;
 
@@ -1460,36 +1469,43 @@ window.renderizarResumoSemana = async function() {
     const maxVal = Math.max(1, ...dias.map(d => Math.max(d.leads, d.pedidos)));
     const alturaPct = v => (v <= 0 ? 0 : Math.max(8, Math.round((v / maxVal) * 100)));
     const receitaTxt = receita.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    // No modo mês, mostra rótulo só a cada 5 dias (e no último) pra não poluir.
+    const mostrarLabel = (idx) => !ehMes || idx % 5 === 0 || idx === dias.length - 1;
 
-    const colunas = dias.map(d => `
+    const colunas = dias.map((d, idx) => `
         <div class="aura-week-col">
             <div class="aura-week-bars">
-                <span class="aura-week-bar is-leads" style="height:${alturaPct(d.leads)}%" title="${d.leads} lead(s)"></span>
-                <span class="aura-week-bar is-pedidos" style="height:${alturaPct(d.pedidos)}%" title="${d.pedidos} pedido(s)"></span>
+                <span class="aura-week-bar is-leads" style="height:${alturaPct(d.leads)}%" title="${d.label}: ${d.leads} lead(s)"></span>
+                <span class="aura-week-bar is-pedidos" style="height:${alturaPct(d.pedidos)}%" title="${d.label}: ${d.pedidos} pedido(s)"></span>
             </div>
-            <span class="aura-week-day">${d.label}</span>
+            <span class="aura-week-day">${mostrarLabel(idx) ? d.label : ""}</span>
         </div>
     `).join("");
+
+    const btn = (valor, texto) => `<button type="button" class="aura-week-period-btn ${totalDias === valor ? "is-active" : ""}" onclick="mudarPeriodoResumo(${valor})">${texto}</button>`;
 
     container.innerHTML = `
         <div class="aura-week aura-enter">
             <div class="aura-week-head">
                 <div>
-                    <p class="aura-week-kicker">Últimos 7 dias</p>
-                    <h3 class="aura-week-title">Resumo da semana</h3>
+                    <p class="aura-week-kicker">Últimos ${totalDias} dias</p>
+                    <h3 class="aura-week-title">Resumo ${ehMes ? "do mês" : "da semana"}</h3>
                 </div>
-                <div class="aura-week-legend">
-                    <span><i class="aura-week-dot is-leads"></i>Leads</span>
-                    <span><i class="aura-week-dot is-pedidos"></i>Pedidos</span>
+                <div class="aura-week-head-right">
+                    <div class="aura-week-period">${btn(7, "7 dias")}${btn(30, "30 dias")}</div>
+                    <div class="aura-week-legend">
+                        <span><i class="aura-week-dot is-leads"></i>Leads</span>
+                        <span><i class="aura-week-dot is-pedidos"></i>Pedidos</span>
+                    </div>
                 </div>
             </div>
             <div class="aura-week-stats">
                 <div class="aura-week-stat">
-                    <small>Leads na semana</small>
+                    <small>Leads no período</small>
                     <strong>${totalLeads}</strong>
                 </div>
                 <div class="aura-week-stat">
-                    <small>Pedidos na semana</small>
+                    <small>Pedidos no período</small>
                     <strong>${totalPedidos}</strong>
                 </div>
                 <div class="aura-week-stat">
@@ -1497,7 +1513,7 @@ window.renderizarResumoSemana = async function() {
                     <strong>${receitaTxt}</strong>
                 </div>
             </div>
-            <div class="aura-week-chart">${colunas}</div>
+            <div class="aura-week-chart ${ehMes ? "is-mes" : ""}">${colunas}</div>
         </div>
     `;
     container.classList.remove("hidden");

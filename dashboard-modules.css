@@ -6686,7 +6686,40 @@
   align-items:flex-start;
   justify-content:space-between;
   gap:12px;
+  flex-wrap:wrap;
 }
+.aura-week-head-right{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:9px;
+}
+.aura-week-period{
+  display:inline-flex;
+  padding:3px;
+  border:1px solid var(--aura-border);
+  border-radius:11px;
+  background:rgba(255,255,255,.02);
+}
+.aura-week-period-btn{
+  padding:5px 12px;
+  border-radius:8px;
+  color:var(--aura-text-muted);
+  font-size:11px;
+  font-weight:800;
+  cursor:pointer;
+  transition:color .2s ease,background .2s ease;
+}
+.aura-week-period-btn:hover{ color:var(--aura-text); }
+.aura-week-period-btn.is-active{
+  color:#04130d;
+  background:linear-gradient(135deg,var(--aura-primary),var(--aura-accent));
+}
+/* Modo mês (30 dias): barras mais finas e menos espaço pra caber tudo */
+.aura-week-chart.is-mes{ gap:3px; }
+.aura-week-chart.is-mes .aura-week-bars{ gap:2px; }
+.aura-week-chart.is-mes .aura-week-bar{ width:5px; border-radius:3px 3px 0 0; }
+.aura-week-chart.is-mes .aura-week-day{ font-size:9px; }
 .aura-week-kicker{
   color:var(--aura-primary);
   font-size:9px;
