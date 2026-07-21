@@ -1187,6 +1187,60 @@ window.renderizarPrimeirosPassos = async function() {
     container.classList.remove("hidden");
 };
 
+// ===== KPIs do dashboard (números reais na central de comando) =====
+// Preenche os três cartões do topo com dados reais: produtos ativos,
+// Landing Pages no ar e total de visitas. Cada número degrada pra 0 sem
+// quebrar caso a métrica ainda não exista (ou a regra não esteja no ar).
+window.atualizarKpisDashboard = async function() {
+    if (!usuarioUID) return;
+    const elProd = document.getElementById("kpi-produtos-valor");
+    const elLps = document.getElementById("kpi-lps-valor");
+    const elLpsSub = document.getElementById("kpi-lps-sub");
+    const elVis = document.getElementById("kpi-visitas-valor");
+    if (!elProd && !elLps && !elVis) return;
+
+    try {
+        // Produtos ativos (não conta rascunhos).
+        const prodSnap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
+        let produtosAtivos = 0;
+        prodSnap.forEach(d => { if (d.data().statusProduto !== "rascunho") produtosAtivos++; });
+        if (elProd) elProd.innerText = produtosAtivos;
+
+        // Landing Pages: quantas estão publicadas e o total.
+        const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
+        let lpsTotal = 0, lpsPublicadas = 0;
+        const publicadas = [];
+        lpSnap.forEach(d => {
+            lpsTotal++;
+            const dados = d.data();
+            if (dados.publicado) { lpsPublicadas++; publicadas.push(dados); }
+        });
+        if (elLps) elLps.innerText = lpsPublicadas;
+        if (elLpsSub) elLpsSub.innerText = lpsTotal > lpsPublicadas ? ` de ${lpsTotal}` : "";
+
+        // Visitas: soma o totalVisualizacoes das métricas das LPs publicadas.
+        // A métrica só existe depois que a página recebe acessos no ar, então
+        // qualquer falha/ausência vira 0 sem travar o cartão.
+        if (elVis) {
+            if (!slugAtualSalvo || publicadas.length === 0) {
+                elVis.innerText = "0";
+            } else {
+                const somas = await Promise.all(publicadas.map(async (lp) => {
+                    try {
+                        const docId = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
+                        const snap = await getDoc(doc(db, "metricas_landing_pages", docId));
+                        return snap.exists() ? (snap.data().totalVisualizacoes || 0) : 0;
+                    } catch (e) { return 0; }
+                }));
+                const total = somas.reduce((a, b) => a + b, 0);
+                elVis.innerText = total.toLocaleString("pt-BR");
+            }
+        }
+    } catch (err) {
+        console.error("KPIs do dashboard: falha ao apurar:", err);
+    }
+};
+
 // ===== Compartilhar (QR Code + link) =====
 window._compartilharUrl = "";
 
@@ -1771,6 +1825,10 @@ if (
 
 if (targetId === "view-dashboard" && typeof window.renderizarPrimeirosPassos === "function") {
     window.renderizarPrimeirosPassos();
+}
+
+if (targetId === "view-dashboard" && typeof window.atualizarKpisDashboard === "function") {
+    window.atualizarKpisDashboard();
 }
 
 if (targetId === "view-metricas") {
@@ -6789,6 +6847,9 @@ listaBanners = [];
                 }
                 if (typeof window.renderizarPrimeirosPassos === "function") {
                     window.renderizarPrimeirosPassos();
+                }
+                if (typeof window.atualizarKpisDashboard === "function") {
+                    window.atualizarKpisDashboard();
                 }
                 if (temFeature("leads")) carregarLeads();
                 if (temFeature("hub")) carregarPedidos();
