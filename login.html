@@ -19,9 +19,93 @@
 .btn-marca:hover { filter: brightness(1.08); }
 .link-marca { color: var(--sys-destaque); }
 .link-marca:hover { filter: brightness(1.15); }
+
+/* Layout dividido (marca + acesso). Feito em CSS puro (sem depender do JIT
+   do Tailwind) pra o split funcionar de forma consistente. */
+.login-split { min-height: 100%; width: 100%; display: flex; flex-direction: column; }
+.brand-panel { display: none; }
+.auth-panel { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden; padding: 24px; }
+@media (min-width: 1024px) {
+  .login-split { flex-direction: row; }
+  .brand-panel { display: flex; width: 48%; }
+  .auth-panel { width: 52%; padding: 48px; }
+}
+.brand-panel {
+  position: relative;
+  overflow: hidden;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 56px;
+  background:
+    linear-gradient(160deg, color-mix(in srgb, var(--sys-primaria) 24%, #0b0a1a), #0b0a1a 62%);
+  border-right: 1px solid rgba(255,255,255,.06);
+}
+.brand-blob {
+  position: absolute; border-radius: 999px; pointer-events: none;
+  background: radial-gradient(circle, color-mix(in srgb, var(--sys-primaria) 42%, transparent), transparent 70%);
+  filter: blur(34px);
+}
+.brand-blob-b {
+  background: radial-gradient(circle, color-mix(in srgb, var(--sys-destaque) 32%, transparent), transparent 70%);
+}
+.brand-logo {
+  height: 52px; width: 52px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, var(--sys-primaria), var(--sys-destaque));
+  box-shadow: 0 0 34px color-mix(in srgb, var(--sys-primaria) 40%, transparent);
+}
+.brand-feature { display: flex; align-items: center; gap: 14px; }
+.brand-feature-ic {
+  height: 42px; width: 42px; min-width: 42px; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff;
+  background: color-mix(in srgb, var(--sys-primaria) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--sys-primaria) 30%, transparent);
+}
     </style>
 </head>
-<body class="h-full flex items-center justify-center p-4 relative overflow-hidden text-white">
+<body class="h-full text-white">
+
+<div class="login-split">
+
+    <!-- PAINEL DE MARCA (aparece só no desktop) -->
+    <aside class="brand-panel">
+        <div class="brand-blob" style="height:340px;width:340px;top:-80px;left:-60px;"></div>
+        <div class="brand-blob brand-blob-b" style="height:300px;width:300px;bottom:-70px;right:-40px;"></div>
+
+        <div class="relative z-10 flex items-center gap-3">
+            <div class="brand-logo"><span class="fonte-display font-extrabold text-lg">V</span></div>
+            <div>
+                <p class="fonte-display font-bold text-white text-lg leading-none">Vide Hub</p>
+                <p class="text-[11px] text-gray-400 tracking-widest uppercase mt-1">Premium SaaS Platform</p>
+            </div>
+        </div>
+
+        <div class="relative z-10 max-w-[420px]">
+            <h2 class="fonte-display font-extrabold text-white text-3xl xl:text-4xl leading-tight tracking-tight">Tudo pra sua loja vender mais, num só lugar.</h2>
+            <p class="text-gray-400 text-sm mt-4 leading-relaxed">Crie páginas, organize seus contatos e acompanhe resultados reais — sem depender de várias ferramentas soltas.</p>
+
+            <div class="mt-9 space-y-5">
+                <div class="brand-feature">
+                    <span class="brand-feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></span>
+                    <div><p class="text-white text-sm font-bold">Editor de páginas visual</p><p class="text-gray-400 text-xs">Monte landing pages arrastando blocos prontos.</p></div>
+                </div>
+                <div class="brand-feature">
+                    <span class="brand-feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>
+                    <div><p class="text-white text-sm font-bold">CRM de leads e atendimento</p><p class="text-gray-400 text-xs">Capture contatos e responda direto pelo painel.</p></div>
+                </div>
+                <div class="brand-feature">
+                    <span class="brand-feature-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="19" height="19"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>
+                    <div><p class="text-white text-sm font-bold">Métricas em tempo real</p><p class="text-gray-400 text-xs">Veja visitas e resultados das suas páginas.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="relative z-10 text-[11px] text-gray-500">© Vide Hub — sua operação em um só ambiente.</p>
+    </aside>
+
+    <!-- ÁREA DE ACESSO -->
+    <main class="auth-panel">
 
     <div class="absolute top-[-15%] left-[-10%] h-[550px] w-[550px] rounded-full farol-glow pointer-events-none"></div>
     <div class="absolute bottom-[-20%] right-[-10%] h-[500px] w-[500px] rounded-full farol-glow pointer-events-none opacity-60"></div>
@@ -68,7 +152,7 @@
                     </div>
                     <div class="relative">
                         <input type="password" required id="login-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
-                        <button type="button" id="toggle-senha-login" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                        <button type="button" id="toggle-senha-login" aria-label="Mostrar ou ocultar senha" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors select-none inline-flex items-center justify-center h-8 w-8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
                     </div>
                 </div>
                 <button type="submit" id="btn-submit-login" class="w-full py-4 mt-2 btn-marca text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(91,61,245,0.25)] active:scale-[0.99] transition-all duration-300 flex items-center justify-center gap-2">
@@ -116,7 +200,7 @@
                         <label class="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">Senha</label>
                         <div class="relative">
                             <input type="password" required id="cadastro-senha" class="w-full premium-input rounded-xl p-4 pr-12 text-sm text-white outline-none placeholder-gray-600" placeholder="••••••••">
-                            <button type="button" id="toggle-senha-cadastro" class="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors text-base select-none">👁️</button>
+                            <button type="button" id="toggle-senha-cadastro" aria-label="Mostrar ou ocultar senha" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors select-none inline-flex items-center justify-center h-8 w-8"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg></button>
                         </div>
                     </div>
                     <button type="submit" id="btn-submit-cadastro" class="w-full py-4 mt-2 btn-marca text-white font-bold text-xs uppercase tracking-widest rounded-xl shadow-[0_4px_25px_rgba(91,61,245,0.25)] active:scale-[0.99] transition-all duration-300">
@@ -161,6 +245,10 @@
         </div>
 
     </div>
+
+    </main>
+
+</div>
 
 <script type="module">
 
@@ -342,6 +430,9 @@ document.getElementById("btn-esqueci-senha").addEventListener("click", () => mos
 
 document.getElementById("btn-voltar-login").addEventListener("click", () => mostrarCard("login"));
 
+const ICONE_OLHO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M1.5 12S5 5 12 5s10.5 7 10.5 7-3.5 7-10.5 7S1.5 12 1.5 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+const ICONE_OLHO_FECHADO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M9.9 4.24A9.1 9.1 0 0 1 12 4c7 0 10.5 7 10.5 7a13.2 13.2 0 0 1-2.16 3.19"/><path d="M6.6 6.6C3.9 8.24 1.5 12 1.5 12S5 19 12 19a9.3 9.3 0 0 0 5.4-1.6"/><path d="m2 2 20 20"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>';
+
 function setupToggleSenha(inputId, buttonId) {
 
 const input = document.getElementById(inputId); const btn = document.getElementById(buttonId);
@@ -354,7 +445,7 @@ const isPassword = input.type === "password";
 
 input.type = isPassword ? "text" : "password";
 
-btn.textContent = isPassword ? "��" : "��️";
+btn.innerHTML = isPassword ? ICONE_OLHO_FECHADO : ICONE_OLHO;
 
 });
 
