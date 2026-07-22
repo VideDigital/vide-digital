@@ -12,6 +12,7 @@ const publicFns = require("./public");
 const audit = require("./audit");
 const notifications = require("./notifications");
 const leads = require("./leads");
+const ai = require("./ai");
 
 exports.createEmployee = employee.createEmployee;
 exports.updateEmployee = employee.updateEmployee;
@@ -33,3 +34,5 @@ exports.auditWrite = audit.auditWrite;
 exports.markNotificationRead = notifications.markNotificationRead;
 
 exports.sendAdminChatMessage = leads.sendAdminChatMessage;
+
+exports.askBusinessAI = ai.askBusinessAI;

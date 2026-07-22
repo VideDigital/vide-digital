@@ -327,6 +327,40 @@ describe("configuracoes_ia: permissões e isolamento multi-tenant", () => {
   });
 });
 
+describe("ia_negocio_uso: contador de uso mensal (só leitura, nunca escrita do cliente)", () => {
+  async function semearContadorUso(docId, overrides = {}) {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "ia_negocio_uso", docId), {
+        ownerUid: "ownerA",
+        periodo: "2026-07",
+        count: 3,
+        ...overrides
+      });
+    });
+  }
+
+  it("dono lê o próprio contador; funcionário com central-ia também lê", async () => {
+    await semearContadorUso("ownerA_2026-07");
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "ia_negocio_uso", "ownerA_2026-07")));
+    await assertSucceeds(getDoc(doc(authed("employeeIaRead"), "ia_negocio_uso", "ownerA_2026-07")));
+  });
+
+  it("funcionário sem central-ia, outro tenant e visitante anônimo não leem", async () => {
+    await semearContadorUso("ownerA_2026-08", { periodo: "2026-08" });
+    await assertFails(getDoc(doc(authed("employeeRead"), "ia_negocio_uso", "ownerA_2026-08")));
+    await assertFails(getDoc(doc(authed("ownerB"), "ia_negocio_uso", "ownerA_2026-08")));
+    await assertFails(getDoc(doc(anon(), "ia_negocio_uso", "ownerA_2026-08")));
+  });
+
+  it("cliente nunca escreve o contador, nem o próprio dono", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "ia_negocio_uso", "ownerA_2026-09"), {
+      ownerUid: "ownerA", periodo: "2026-09", count: 0
+    }));
+    await semearContadorUso("ownerA_2026-07");
+    await assertFails(updateDoc(doc(authed("ownerA"), "ia_negocio_uso", "ownerA_2026-07"), { count: 999 }));
+  });
+});
+
 describe("public writes", () => {
   it("público lê vitrine e só escreve leads/métricas válidos", async () => {
     await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-a")));

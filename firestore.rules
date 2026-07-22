@@ -1136,6 +1136,17 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Contador de uso mensal da IA de Negócio (askBusinessAI, Cloud
+    // Function). Só a Function escreve (Admin SDK ignora Rules) — aqui só
+    // liberamos LEITURA pro próprio tenant, pra UI mostrar "restam N
+    // mensagens este mês". Nenhuma escrita do cliente é aceita: o teto
+    // só vale de verdade se o cliente nunca puder tocar no contador.
+    match /ia_negocio_uso/{docId} {
+      allow read: if resource.data.keys().hasAny(["ownerUid"])
+        && canViewTenant(resource.data.ownerUid, "central-ia");
+      allow write: if false;
+    }
+
     // ===== Base de Conhecimento da IA (por tenant) =====
     // Itens que alimentarão a futura assistente: FAQ, dados da empresa,
     // políticas, manuais etc. Escrita direta (Spark), sempre presa ao

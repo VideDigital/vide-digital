@@ -6,7 +6,7 @@
     "node": "20"
   },
   "scripts": {
-    "lint": "node --check src/index.js && node --check src/shared/context.js && node --check src/shared/validators.js && node --check src/employees/index.js && node --check src/admin/index.js && node --check src/public/index.js && node --check src/notifications/index.js && node --check src/audit/index.js",
+    "lint": "node --check src/index.js && node --check src/shared/context.js && node --check src/shared/validators.js && node --check src/shared/rateLimit.js && node --check src/employees/index.js && node --check src/admin/index.js && node --check src/public/index.js && node --check src/notifications/index.js && node --check src/audit/index.js && node --check src/leads/index.js && node --check src/ai/promptBuilder.js && node --check src/ai/index.js",
     "serve": "firebase emulators:start --only functions,auth,firestore,storage --project demo-vide-hub"
   },
   "dependencies": {
