@@ -981,16 +981,44 @@ service cloud.firestore {
 
     // Template de mensagem — usado tanto pelo fluxo de automação de leads
     // (campo "fluxo", já existente) quanto pelas respostas prontas da
-    // Central de Atendimento (categoria/atalho/ativo, novos). Mesma
-    // coleção, mesmo dono; nunca conteúdo executável (só texto).
+    // Central de Atendimento (categoria/atalho/ativo/favorito/uso, Fase
+    // "Templates Avançados"). Mesma coleção, mesmo dono; nunca conteúdo
+    // executável (só texto). categoria continua texto livre (compat com o
+    // módulo genérico "Templates", que usa outro vocabulário) — só é
+    // validada contra o enum fechado de atendimento quando contexto ==
+    // "atendimento" (o único caso que a UI nova sempre grava).
     function validTemplateFluxo(fluxo) {
       return fluxo.keys().hasOnly(["ativo", "statusLead", "followupDias", "prioridade", "anotacao"])
         && (!fluxo.keys().hasAny(["ativo"]) || fluxo.ativo is bool)
         && (!fluxo.keys().hasAny(["followupDias"]) || fluxo.followupDias is number)
         && (!fluxo.keys().hasAny(["anotacao"]) || (fluxo.anotacao is string && fluxo.anotacao.size() <= 500));
     }
+    function categoriaTemplateAtendimentoValida(categoria) {
+      return categoria in ["saudacao", "orcamento", "pagamento", "prazo", "entrega", "pedido",
+        "indisponibilidade", "suporte", "acompanhamento", "pos_venda", "encerramento", "personalizada"];
+    }
+    function validTemplateCamposAvancados(data) {
+      return (!data.keys().hasAny(["contexto"]) || data.contexto in ["atendimento", "leads"])
+        && (!(data.keys().hasAny(["contexto"]) && data.contexto == "atendimento") || categoriaTemplateAtendimentoValida(data.categoria))
+        && (!data.keys().hasAny(["favorito"]) || data.favorito is bool)
+        && (!data.keys().hasAny(["ordem"]) || data.ordem is number)
+        && (!data.keys().hasAny(["atualizadoPor"]) || data.atualizadoPor == request.auth.uid)
+        && (!data.keys().hasAny(["arquivadoEm"]) || data.arquivadoEm is number || data.arquivadoEm == null)
+        && (!data.keys().hasAny(["versaoSchema"]) || data.versaoSchema is number)
+        && (!data.keys().hasAny(["descricaoInterna"]) || (data.descricaoInterna is string && data.descricaoInterna.size() <= 300))
+        && (!data.keys().hasAny(["tagsBusca"]) || (data.tagsBusca is list && data.tagsBusca.size() <= 8))
+        && (!data.keys().hasAny(["canal"]) || data.canal is string)
+        && (!data.keys().hasAny(["requerPedido"]) || data.requerPedido is bool)
+        && (!data.keys().hasAny(["requerProduto"]) || data.requerProduto is bool)
+        && (!data.keys().hasAny(["requerConfirmacao"]) || data.requerConfirmacao is bool)
+        && (!data.keys().hasAny(["usoTotal"]) || data.usoTotal is number)
+        && (!data.keys().hasAny(["ultimoUsoEm"]) || data.ultimoUsoEm is number || data.ultimoUsoEm is timestamp);
+    }
     function validTemplateData(data) {
-      return data.keys().hasOnly(["titulo", "mensagem", "categoria", "atalho", "ativo", "fluxo", "criadoPor", "criadoEm", "atualizadoEm"])
+      return data.keys().hasOnly(["titulo", "mensagem", "categoria", "atalho", "ativo", "fluxo",
+          "criadoPor", "criadoEm", "atualizadoEm", "contexto", "favorito", "ordem", "atualizadoPor",
+          "arquivadoEm", "versaoSchema", "descricaoInterna", "tagsBusca", "canal", "requerPedido",
+          "requerProduto", "requerConfirmacao", "usoTotal", "ultimoUsoEm"])
         && data.keys().hasAll(["titulo", "mensagem", "categoria", "criadoPor"])
         && data.titulo is string && data.titulo.size() >= 1 && data.titulo.size() <= 160
         && data.mensagem is string && data.mensagem.size() >= 1 && data.mensagem.size() <= 2000
@@ -998,13 +1026,32 @@ service cloud.firestore {
         && data.criadoPor is string
         && (!data.keys().hasAny(["atalho"]) || (data.atalho is string && data.atalho.size() <= 40))
         && (!data.keys().hasAny(["ativo"]) || data.ativo is bool)
-        && (!data.keys().hasAny(["fluxo"]) || (data.fluxo is map && validTemplateFluxo(data.fluxo)));
+        && (!data.keys().hasAny(["fluxo"]) || (data.fluxo is map && validTemplateFluxo(data.fluxo)))
+        && validTemplateCamposAvancados(data);
+    }
+    // Caminho estreito de "uso": incrementa usoTotal em exatamente +1 e
+    // marca ultimoUsoEm == request.time — nada mais muda. Permite que
+    // quem só tem permissão de atendimento/leads (sem "templates" editar)
+    // registre o uso real ao enviar uma mensagem, sem poder reescrever o
+    // conteúdo do template. Espelha o padrão já usado em naoLidasLoja
+    // (chats) — increment() validado contra o valor anterior.
+    function podeUsarTemplateAtendimento(criadoPor) {
+      return canEditTenant(criadoPor, "atendimento") || canEditTenant(criadoPor, "leads");
+    }
+    function templateUsoValido() {
+      let antes = resource.data.keys().hasAny(["usoTotal"]) && resource.data.usoTotal is number ? resource.data.usoTotal : 0;
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["usoTotal", "ultimoUsoEm"])
+        && request.resource.data.usoTotal == antes + 1
+        && request.resource.data.ultimoUsoEm == request.time;
     }
 
     match /templates/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "templates");
       allow create: if canEditTenant(request.resource.data.criadoPor, "templates") && validTemplateData(request.resource.data);
-      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "templates") && validTemplateData(request.resource.data);
+      allow update: if criadoPorUnchanged() && (
+          (canEditTenant(resource.data.criadoPor, "templates") && validTemplateData(request.resource.data))
+          || (podeUsarTemplateAtendimento(resource.data.criadoPor) && templateUsoValido())
+        );
       allow delete: if canEditTenant(resource.data.criadoPor, "templates");
     }
 

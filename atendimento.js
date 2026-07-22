@@ -5,6 +5,15 @@
 // autoria real (derivada do login) e transições de status validadas dos
 // dois lados (app + firestore.rules).
 
+import {
+    CATEGORIAS_TEMPLATE_ATENDIMENTO, LIMITES_TEMPLATE_ATENDIMENTO, VARIAVEIS_TEMPLATE_ATENDIMENTO,
+    categoriaTemplateAtendimento, rotuloCategoriaTemplate, normalizarAtalho, atalhoJaEmUso,
+    substituirVariaveisTemplate, resolverVariaveisTemplate, validarTemplateAtendimentoAvancado,
+    filtrarTemplatesAtendimento, ordenarTemplatesAtendimento, templatesRecentementeUsados,
+    templatesMaisUsados, sugerirTemplatesPorAtalho, pedidoVinculadoIdDaConversa,
+    variaveisUsadasNoTexto, contemVariavelNaoResolvida
+} from "./templates-atendimento.js";
+
 export const STATUS_CONVERSA = Object.freeze({
     nova: "Nova",
     aberta: "Aberta",
@@ -282,77 +291,20 @@ export const CANAIS_CONVERSA = Object.freeze({
     whatsapp_futuro: "WhatsApp (futuro)"
 });
 
-export const CATEGORIAS_TEMPLATE = Object.freeze({
-    saudacao: "Saudação",
-    orcamento: "Orçamento",
-    pagamento: "Pagamento",
-    prazo: "Prazo",
-    entrega: "Entrega",
-    indisponibilidade: "Indisponibilidade",
-    suporte: "Suporte",
-    encerramento: "Encerramento",
-    personalizada: "Personalizada"
-});
+// Modelo, categorias, variáveis e validação de templates evoluíram pra um
+// módulo próprio (Fase "Templates Avançados de Atendimento") — ver
+// templates-atendimento.js. CATEGORIAS_TEMPLATE/VARIAVEIS_TEMPLATE_PERMITIDAS/
+// substituirVariaveisTemplate/validarTemplateAtendimento/filtrarTemplates
+// (o vocabulário de 4 variáveis e 9 categorias original) saíram daqui —
+// nada mais neste repositório os importava além deste próprio arquivo e
+// seus testes, então a evolução ficou só no módulo novo, sem duplicar.
 
 export const LIMITES_ATENDIMENTO = Object.freeze({
     mensagemMax: 4000,
-    tituloTemplateMax: 160,
-    conteudoTemplateMax: 2000,
-    atalhoMax: 40,
     setorMax: 80,
     observacoesMax: 2000,
     maxTags: 10
 });
-
-// Único vocabulário de variáveis que um template pode usar. Qualquer
-// outra coisa entre {{ }} passa direto sem virar dado nenhum — nunca é
-// avaliada como código, é troca de texto por texto.
-export const VARIAVEIS_TEMPLATE_PERMITIDAS = Object.freeze([
-    "nome_cliente",
-    "nome_loja",
-    "nome_funcionario",
-    "numero_pedido"
-]);
-
-export function substituirVariaveisTemplate(texto, valores = {}) {
-    const origem = String(texto || "");
-    return origem.replace(/\{\{\s*([a-zA-Z_]+)\s*\}\}/g, (match, chave) => {
-        if (!VARIAVEIS_TEMPLATE_PERMITIDAS.includes(chave)) return match;
-        const valor = valores[chave];
-        return (valor !== undefined && valor !== null && String(valor).trim() !== "")
-            ? String(valor)
-            : match;
-    });
-}
-
-export function validarTemplateAtendimento(item) {
-    const titulo = String(item?.titulo || "").trim();
-    const mensagem = String(item?.mensagem || "").trim();
-    if (titulo.length < 1) return "Informe um título para o template.";
-    if (titulo.length > LIMITES_ATENDIMENTO.tituloTemplateMax) {
-        return `O título pode ter no máximo ${LIMITES_ATENDIMENTO.tituloTemplateMax} caracteres.`;
-    }
-    if (!mensagem) return "O conteúdo do template é obrigatório.";
-    if (mensagem.length > LIMITES_ATENDIMENTO.conteudoTemplateMax) {
-        return `O conteúdo pode ter no máximo ${LIMITES_ATENDIMENTO.conteudoTemplateMax} caracteres.`;
-    }
-    if (!(item?.categoria in CATEGORIAS_TEMPLATE)) return "Escolha uma categoria válida.";
-    if (item?.atalho && String(item.atalho).length > LIMITES_ATENDIMENTO.atalhoMax) {
-        return `O atalho pode ter no máximo ${LIMITES_ATENDIMENTO.atalhoMax} caracteres.`;
-    }
-    return "";
-}
-
-export function filtrarTemplates(templates, { busca = "", categoria = "todas", apenasAtivos = false } = {}) {
-    const termo = String(busca || "").trim().toLowerCase();
-    return (templates || []).filter(item => {
-        if (categoria !== "todas" && item.categoria !== categoria) return false;
-        if (apenasAtivos && item.ativo === false) return false;
-        if (!termo) return true;
-        const texto = [item.titulo, item.mensagem, item.atalho, item.categoria].join(" ").toLowerCase();
-        return texto.includes(termo);
-    });
-}
 
 function normalizarMs(valor) {
     if (!valor) return 0;
@@ -515,7 +467,7 @@ export function criarAtendimentoController(deps) {
     const { db, context, firestore, notify = () => {}, onAbrirDadosCliente = () => {} } = deps;
     const {
         collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, startAfter,
-        serverTimestamp, onSnapshot, writeBatch
+        serverTimestamp, onSnapshot, writeBatch, increment
     } = firestore;
 
     const state = {
@@ -543,6 +495,19 @@ export function criarAtendimentoController(deps) {
         historicoAnteriorErro: false,
         funcionarios: [],
         templates: [],
+        templatesCarregando: false,
+        // Filtro/aba do seletor de templates do compositor (não confundir
+        // com o filtro de conversas acima) — só estado de UI, não persiste.
+        templatesFiltro: { busca: "", categoria: "todas", aba: "todos" },
+        // Pendências da última inserção de template no compositor — usado
+        // pro aviso "variável pendente" e pra bloquear o envio enquanto o
+        // texto ainda tiver {{variavel}} literal (Fase 7 do mandato).
+        templatePendencias: [],
+        pedidoVinculadoCache: null,
+        pedidoVinculadoCacheId: "",
+        atalhoSugestoes: [],
+        // Gestão de templates (Fase 8: criar/editar/duplicar/arquivar).
+        gestaoTemplates: { aberta: false, editandoId: "", salvando: false, erro: "" },
         filtro: { busca: "", status: "todas", canal: "todos", apenasMinhas: false, apenasSemResponsavel: false },
         enviando: false,
         unsubscribeMensagens: null,
@@ -763,36 +728,108 @@ export function criarAtendimentoController(deps) {
 
     // Reaproveita a coleção "templates" (mesma usada pelo módulo Templates
     // já existente, inclusive templates de automação de leads com o campo
-    // "fluxo") — aqui só lemos e inserimos, sem CRUD próprio duplicado.
+    // "fluxo") — nunca uma segunda coleção. templateVisivelNoAtendimento
+    // (templates-atendimento.js) já esconde os templates marcados
+    // contexto:"leads"; o resto (sem "contexto", ou "atendimento") aparece.
     async function carregarTemplatesAtendimento() {
+        state.templatesCarregando = true;
         try {
             const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", storeUid())));
             state.templates = [];
             snap.forEach(d => state.templates.push({ id: d.id, ...d.data() }));
         } catch (error) {
             state.templates = [];
+        } finally {
+            state.templatesCarregando = false;
         }
+    }
+
+    // Pedido "vinculado à conversa" é derivado do último evento
+    // pedido_vinculado/pedido_desvinculado do histórico — nunca um campo
+    // novo em chats (evitaria repetir o teto de complexidade das Rules já
+    // registrado na Fase 9 do histórico de eventos). Cacheado por
+    // pedidoId pra não reler o mesmo pedido a cada tecla digitada.
+    async function pedidoVinculadoAtual() {
+        const pedidoId = pedidoVinculadoIdDaConversa(state.eventos);
+        if (!pedidoId) {
+            state.pedidoVinculadoCache = null;
+            state.pedidoVinculadoCacheId = "";
+            return null;
+        }
+        if (state.pedidoVinculadoCacheId === pedidoId) return state.pedidoVinculadoCache;
+        try {
+            const snap = await getDoc(doc(db, "pedidos", pedidoId));
+            // Nunca confia só no id salvo no evento: revalida que o pedido
+            // pertence ao mesmo tenant antes de usar qualquer dado dele.
+            const dados = snap.exists() && snap.data()?.criadoPor === storeUid()
+                ? { id: snap.id, ...snap.data() }
+                : null;
+            state.pedidoVinculadoCache = dados;
+            state.pedidoVinculadoCacheId = pedidoId;
+            return dados;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    function templatesFiltrados() {
+        const { busca, categoria, aba } = state.templatesFiltro;
+        const base = filtrarTemplatesAtendimento(state.templates, { busca, categoria, apenasAtivos: true });
+        if (aba === "favoritos") return base.filter(t => t.favorito);
+        if (aba === "recentes") return templatesRecentementeUsados(base, 20);
+        if (aba === "mais_usados") return templatesMaisUsados(base, 20);
+        return ordenarTemplatesAtendimento(base, "ordem");
+    }
+
+    function templateItemHtml(t) {
+        const variaveis = variaveisUsadasTemplateHtml(t.mensagem);
+        return `
+            <button type="button" class="atend-btn atend-template-item" data-atend-template-id="${escaparHtml(t.id)}" style="width:100%;justify-content:flex-start;text-align:left;margin-bottom:6px;flex-direction:column;align-items:flex-start;gap:2px;">
+                <span style="display:flex;align-items:center;gap:6px;width:100%;">
+                    <strong style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escaparHtml(t.titulo)}</strong>
+                    ${t.favorito ? `<span title="Favorito" aria-hidden="true">★</span>` : ""}
+                    ${t.atalho ? `<span class="atend-chip">/${escaparHtml(t.atalho)}</span>` : ""}
+                </span>
+                <span style="color:var(--at-muted);font-size:11.5px;">${escaparHtml(String(t.mensagem || "").slice(0, 90))}</span>
+                ${variaveis}
+            </button>
+        `;
+    }
+
+    function variaveisUsadasTemplateHtml(mensagem) {
+        const usadas = variaveisUsadasNoTexto(mensagem);
+        if (usadas.length === 0) return "";
+        return `<span style="font-size:10px;color:var(--sys-destaque,#00d4ff);">Usa: ${usadas.map(escaparHtml).join(", ")}</span>`;
+    }
+
+    function renderAbasTemplates() {
+        const abas = el("atend-templates-abas");
+        if (!abas) return;
+        abas.querySelectorAll("[data-atend-template-aba]").forEach(btn => {
+            btn.classList.toggle("is-ativa", btn.getAttribute("data-atend-template-aba") === state.templatesFiltro.aba);
+        });
+        if (el("atend-templates-busca")) el("atend-templates-busca").value = state.templatesFiltro.busca;
+        if (el("atend-templates-categoria")) el("atend-templates-categoria").value = state.templatesFiltro.categoria;
     }
 
     function renderSeletorTemplates() {
         const lista = el("atend-templates-lista");
         if (!lista) return;
-        const disponiveis = filtrarTemplates(state.templates, { apenasAtivos: true });
-        if (disponiveis.length === 0) {
-            lista.innerHTML = `<div class="atend-vazio"><p>Nenhum template disponível ainda. Cadastre em "Templates".</p></div>`;
+        renderAbasTemplates();
+        if (state.templatesCarregando) {
+            lista.innerHTML = `<div class="atend-mensagens-skel"><span class="aura-skel" style="width:60%;height:32px"></span></div>`;
             return;
         }
-        lista.innerHTML = disponiveis.map(t => `
-            <button type="button" class="atend-btn atend-template-item" data-atend-template-id="${escaparHtml(t.id)}" style="width:100%;justify-content:flex-start;text-align:left;margin-bottom:6px;">
-                <span>
-                    <strong style="display:block;">${escaparHtml(t.titulo)}</strong>
-                    <span style="color:var(--at-muted);font-size:11.5px;">${escaparHtml(String(t.mensagem || "").slice(0, 90))}</span>
-                </span>
-            </button>
-        `).join("");
+        const disponiveis = templatesFiltrados();
+        if (disponiveis.length === 0) {
+            lista.innerHTML = `<div class="atend-vazio"><p>Nenhum template encontrado. Cadastre um novo em "Gerenciar templates".</p></div>`;
+            return;
+        }
+        lista.innerHTML = disponiveis.map(templateItemHtml).join("");
     }
 
     function abrirSeletorTemplates() {
+        state.templatesFiltro = { busca: "", categoria: "todas", aba: "todos" };
         renderSeletorTemplates();
         el("atend-templates-modal")?.classList.remove("hidden");
     }
@@ -801,27 +838,340 @@ export function criarAtendimentoController(deps) {
         el("atend-templates-modal")?.classList.add("hidden");
     }
 
-    function inserirTemplateNaResposta(templateId) {
+    // Pré-visualização + pendências antes de inserir no compositor — nunca
+    // resolve pedido "pelo nome do cliente": só usa o pedido explicitamente
+    // vinculado à conversa atual (ou nenhum, se não houver vínculo).
+    async function inserirTemplateNaResposta(templateId) {
         const template = state.templates.find(t => t.id === templateId);
         const conversa = conversaSelecionada();
         if (!template) return;
         const snapshot = context.getSnapshot();
-        const substituido = substituirVariaveisTemplate(template.mensagem, {
-            nome_cliente: conversa?.clienteNome || "",
-            nome_loja: snapshot.owner?.nomeLoja || snapshot.owner?.nome || "",
-            nome_funcionario: nomeAutorAtual(),
-            numero_pedido: ""
+        const pedido = await pedidoVinculadoAtual();
+        const { textoResolvido, pendentes } = resolverVariaveisTemplate(template.mensagem, {
+            nomeCliente: conversa?.clienteNome || "",
+            nomeLoja: snapshot.owner?.nomeLoja || snapshot.owner?.nome || "",
+            nomeFuncionario: nomeAutorAtual(),
+            pedido
         });
         const input = el("atend-resposta-input");
         if (input) {
-            input.value = input.value ? `${input.value}\n${substituido}` : substituido;
+            input.value = input.value ? `${input.value}\n${textoResolvido}` : textoResolvido;
             input.focus();
         }
-        // Só vira evento "template_utilizado" se a resposta realmente for
-        // enviada em seguida (enviarResposta consome e limpa isto).
+        state.templatePendencias = pendentes;
+        renderPendenciasTemplate();
+        // Só vira evento "template_utilizado" (e só conta usoTotal) se a
+        // resposta realmente for enviada em seguida — enviarResposta
+        // consome e limpa isto. Inserir e depois apagar/trocar de
+        // conversa nunca registra uso (Fase 10/11 do mandato).
         state.templateUsadoId = template.id;
         state.templateUsadoTitulo = template.titulo || "";
         fecharSeletorTemplates();
+    }
+
+    // Aviso compacto acima do compositor — nunca bloqueia a digitação,
+    // só avisa e explica a origem esperada de cada pendência (Fase 7).
+    function renderPendenciasTemplate() {
+        const box = el("atend-template-pendencias");
+        if (!box) return;
+        if (state.templatePendencias.length === 0) {
+            box.hidden = true;
+            box.innerHTML = "";
+            return;
+        }
+        box.hidden = false;
+        box.innerHTML = `
+            <strong>Variáveis pendentes:</strong>
+            <ul>
+                ${state.templatePendencias.map(p => `<li>{{${escaparHtml(p.chave)}}} — ${escaparHtml(p.origem)}</li>`).join("")}
+            </ul>
+            <span>Edite o texto manualmente ou cancele o envio.</span>
+        `;
+    }
+
+    // ===== Gestão de templates (Fase 8) =====
+    // Permissão própria — diferente de "atendimento" (que só deixa USAR um
+    // template já existente numa conversa). Mesmo modelo de permissão por
+    // módulo já usado em todo o resto da base (canViewTenant/canEditTenant).
+    function podeGerenciarTemplates() {
+        return context.canEdit("templates");
+    }
+
+    function templateEmEdicao() {
+        return state.templates.find(t => t.id === state.gestaoTemplates.editandoId) || null;
+    }
+
+    function abrirGestaoTemplates() {
+        if (!podeGerenciarTemplates()) {
+            notify("Você não tem permissão para gerenciar templates.", "error");
+            return;
+        }
+        state.gestaoTemplates = { aberta: true, editandoId: "", salvando: false, erro: "" };
+        renderGestaoTemplates();
+        el("atend-gestao-modal")?.classList.remove("hidden");
+    }
+
+    function fecharGestaoTemplates() {
+        state.gestaoTemplates.aberta = false;
+        el("atend-gestao-modal")?.classList.add("hidden");
+    }
+
+    function abrirFormularioTemplate(id = "") {
+        const template = id ? state.templates.find(t => t.id === id) : null;
+        state.gestaoTemplates.editandoId = id || "";
+        state.gestaoTemplates.erro = "";
+        renderFormularioTemplate(template);
+        el("atend-template-form-painel")?.classList.remove("hidden");
+    }
+
+    function fecharFormularioTemplate() {
+        state.gestaoTemplates.editandoId = "";
+        el("atend-template-form-painel")?.classList.add("hidden");
+    }
+
+    function renderFormularioTemplate(template) {
+        if (el("atend-tpl-titulo")) el("atend-tpl-titulo").value = template?.titulo || "";
+        if (el("atend-tpl-mensagem")) el("atend-tpl-mensagem").value = template?.mensagem || "";
+        if (el("atend-tpl-categoria")) el("atend-tpl-categoria").value = categoriaTemplateAtendimento(template?.categoria);
+        if (el("atend-tpl-atalho")) el("atend-tpl-atalho").value = template?.atalho || "";
+        if (el("atend-tpl-favorito")) el("atend-tpl-favorito").checked = !!template?.favorito;
+        if (el("atend-tpl-descricao")) el("atend-tpl-descricao").value = template?.descricaoInterna || "";
+        if (el("atend-template-form-titulo")) {
+            el("atend-template-form-titulo").textContent = template ? "Editar template" : "Novo template";
+        }
+        const erroBox = el("atend-tpl-erro");
+        if (erroBox) {
+            erroBox.textContent = state.gestaoTemplates.erro;
+            erroBox.hidden = !state.gestaoTemplates.erro;
+        }
+    }
+
+    // Cria ou edita — nunca reescreve criadoPor/criadoEm num template
+    // existente (mesma trava de imutabilidade das Rules, checada aqui
+    // primeiro só pra dar erro cedo, sem depender só do servidor negar).
+    async function salvarTemplateAtendimento(dadosForm) {
+        if (!podeGerenciarTemplates() || state.gestaoTemplates.salvando) return;
+        const atalhoNormalizado = normalizarAtalho(dadosForm.atalho);
+        const editandoId = state.gestaoTemplates.editandoId;
+        const itemValidar = { titulo: dadosForm.titulo, mensagem: dadosForm.mensagem, atalho: atalhoNormalizado, descricaoInterna: dadosForm.descricaoInterna };
+        const duplicado = atalhoJaEmUso(state.templates, atalhoNormalizado, { ignorarId: editandoId });
+        const erro = validarTemplateAtendimentoAvancado(itemValidar, { atalhoDuplicado: duplicado });
+        if (erro) {
+            state.gestaoTemplates.erro = erro;
+            renderFormularioTemplate(templateEmEdicao());
+            return;
+        }
+        state.gestaoTemplates.salvando = true;
+        try {
+            const agora = Date.now();
+            const categoria = categoriaTemplateAtendimento(dadosForm.categoria);
+            const existente = templateEmEdicao();
+            const payload = {
+                titulo: dadosForm.titulo.trim(),
+                mensagem: dadosForm.mensagem.trim(),
+                categoria,
+                contexto: "atendimento",
+                atalho: atalhoNormalizado || "",
+                favorito: !!dadosForm.favorito,
+                descricaoInterna: String(dadosForm.descricaoInterna || "").trim().slice(0, LIMITES_TEMPLATE_ATENDIMENTO.descricaoInternaMax),
+                ativo: existente ? (existente.ativo !== false) : true,
+                versaoSchema: LIMITES_TEMPLATE_ATENDIMENTO.VERSAO_SCHEMA,
+                atualizadoPor: authUid(),
+                atualizadoEm: agora
+            };
+            if (!atalhoNormalizado) delete payload.atalho;
+            const ref = existente ? doc(db, "templates", existente.id) : doc(collection(db, "templates"));
+            if (!existente) {
+                payload.criadoPor = storeUid();
+                payload.criadoEm = agora;
+                payload.ordem = state.templates.length;
+                payload.usoTotal = 0;
+            }
+            await setDoc(ref, payload, { merge: true });
+            await carregarTemplatesAtendimento();
+            notify(existente ? "Template atualizado." : "Template criado.");
+            fecharFormularioTemplate();
+            renderGestaoTemplates();
+            renderSeletorTemplates();
+        } catch (error) {
+            console.error("[Atendimento] Falha ao salvar template:", codigoErroFirebase(error), error?.message);
+            state.gestaoTemplates.erro = "Não foi possível salvar agora. Tente de novo.";
+            renderFormularioTemplate(templateEmEdicao());
+        } finally {
+            state.gestaoTemplates.salvando = false;
+        }
+    }
+
+    async function duplicarTemplateAtendimento(id) {
+        if (!podeGerenciarTemplates()) return;
+        const original = state.templates.find(t => t.id === id);
+        if (!original) return;
+        try {
+            const agora = Date.now();
+            const ref = doc(collection(db, "templates"));
+            await setDoc(ref, {
+                titulo: `${original.titulo || "Template"} (cópia)`.slice(0, LIMITES_TEMPLATE_ATENDIMENTO.tituloMax),
+                mensagem: original.mensagem || "",
+                categoria: categoriaTemplateAtendimento(original.categoria),
+                contexto: "atendimento",
+                // Cópia nunca herda o atalho original (evitaria duplicidade
+                // automática) — quem duplicar define um atalho novo se quiser.
+                favorito: false,
+                ativo: true,
+                usoTotal: 0,
+                ordem: state.templates.length,
+                versaoSchema: LIMITES_TEMPLATE_ATENDIMENTO.VERSAO_SCHEMA,
+                criadoPor: storeUid(),
+                criadoEm: agora,
+                atualizadoPor: authUid(),
+                atualizadoEm: agora
+            });
+            await carregarTemplatesAtendimento();
+            notify("Template duplicado.");
+            renderGestaoTemplates();
+        } catch (error) {
+            notify("Não foi possível duplicar agora.", "error");
+        }
+    }
+
+    async function alternarAtivoTemplateAtendimento(id) {
+        if (!podeGerenciarTemplates()) return;
+        const template = state.templates.find(t => t.id === id);
+        if (!template) return;
+        try {
+            await setDoc(doc(db, "templates", id), {
+                ativo: template.ativo === false,
+                atualizadoPor: authUid(),
+                atualizadoEm: Date.now()
+            }, { merge: true });
+            await carregarTemplatesAtendimento();
+            renderGestaoTemplates();
+            renderSeletorTemplates();
+        } catch (error) {
+            notify("Não foi possível atualizar agora.", "error");
+        }
+    }
+
+    async function alternarFavoritoTemplateAtendimento(id) {
+        if (!podeGerenciarTemplates()) return;
+        const template = state.templates.find(t => t.id === id);
+        if (!template) return;
+        try {
+            await setDoc(doc(db, "templates", id), {
+                favorito: !template.favorito,
+                atualizadoPor: authUid(),
+                atualizadoEm: Date.now()
+            }, { merge: true });
+            await carregarTemplatesAtendimento();
+            renderGestaoTemplates();
+            renderSeletorTemplates();
+        } catch (error) {
+            notify("Não foi possível atualizar agora.", "error");
+        }
+    }
+
+    // Arquivar é preferido a excluir (Fase 8): a exclusão física continua
+    // permitida nas Rules só pelo módulo genérico "Templates" (legado, não
+    // mexido aqui) — a gestão nova nunca oferece delete físico.
+    async function arquivarTemplateAtendimento(id, arquivar = true) {
+        if (!podeGerenciarTemplates()) return;
+        try {
+            await setDoc(doc(db, "templates", id), {
+                arquivadoEm: arquivar ? Date.now() : null,
+                atualizadoPor: authUid(),
+                atualizadoEm: Date.now()
+            }, { merge: true });
+            await carregarTemplatesAtendimento();
+            notify(arquivar ? "Template arquivado." : "Template restaurado.");
+            renderGestaoTemplates();
+            renderSeletorTemplates();
+        } catch (error) {
+            notify("Não foi possível atualizar agora.", "error");
+        }
+    }
+
+    function gestaoTemplateItemHtml(t) {
+        const arquivado = !!t.arquivadoEm;
+        const usoTexto = t.usoTotal ? `${t.usoTotal} uso(s)` : "Nunca usado";
+        return `
+            <div class="atend-gestao-tpl-item ${arquivado ? "is-arquivado" : ""}">
+                <div class="atend-gestao-tpl-info">
+                    <strong>${escaparHtml(t.titulo)}</strong>
+                    <span>${escaparHtml(rotuloCategoriaTemplate(t.categoria))}${t.atalho ? ` · /${escaparHtml(t.atalho)}` : ""} · ${escaparHtml(usoTexto)}</span>
+                </div>
+                <div class="atend-gestao-tpl-acoes">
+                    <button type="button" class="atend-btn" data-atend-tpl-acao="favorito" data-atend-tpl-id="${escaparHtml(t.id)}" aria-label="${t.favorito ? "Remover dos favoritos" : "Marcar como favorito"}">${t.favorito ? "★" : "☆"}</button>
+                    ${arquivado
+                        ? `<button type="button" class="atend-btn" data-atend-tpl-acao="restaurar" data-atend-tpl-id="${escaparHtml(t.id)}">Restaurar</button>`
+                        : `
+                            <button type="button" class="atend-btn" data-atend-tpl-acao="editar" data-atend-tpl-id="${escaparHtml(t.id)}">Editar</button>
+                            <button type="button" class="atend-btn" data-atend-tpl-acao="duplicar" data-atend-tpl-id="${escaparHtml(t.id)}">Duplicar</button>
+                            <button type="button" class="atend-btn" data-atend-tpl-acao="ativo" data-atend-tpl-id="${escaparHtml(t.id)}">${t.ativo === false ? "Ativar" : "Desativar"}</button>
+                            <button type="button" class="atend-btn" data-atend-tpl-acao="arquivar" data-atend-tpl-id="${escaparHtml(t.id)}">Arquivar</button>
+                        `}
+                </div>
+            </div>
+        `;
+    }
+
+    function renderGestaoTemplates() {
+        const lista = el("atend-gestao-tpl-lista");
+        if (!lista) return;
+        const incluirArquivados = !!el("atend-gestao-mostrar-arquivados")?.checked;
+        const busca = el("atend-gestao-busca")?.value || "";
+        const categoria = el("atend-gestao-categoria")?.value || "todas";
+        const visiveis = filtrarTemplatesAtendimento(state.templates, { busca, categoria, apenasAtivos: false, incluirArquivados });
+        if (visiveis.length === 0) {
+            lista.innerHTML = `<div class="atend-vazio"><p>Nenhum template encontrado.</p></div>`;
+            return;
+        }
+        lista.innerHTML = ordenarTemplatesAtendimento(visiveis, "recente").map(gestaoTemplateItemHtml).join("");
+    }
+
+    // Atalho "/" no compositor — só filtra a lista já carregada em
+    // memória, nunca executa nada. Enter insere; Esc fecha; navegação por
+    // teclado entre as sugestões (Fase 9).
+    function atualizarSugestoesAtalho(valorInput) {
+        const ultimaBarra = valorInput.lastIndexOf("/");
+        if (ultimaBarra === -1 || /\s/.test(valorInput.slice(ultimaBarra))) {
+            state.atalhoSugestoes = [];
+            renderSugestoesAtalho();
+            return;
+        }
+        const prefixo = valorInput.slice(ultimaBarra + 1);
+        state.atalhoSugestoes = sugerirTemplatesPorAtalho(state.templates.filter(templateVisivelParaAtalho), prefixo);
+        renderSugestoesAtalho();
+    }
+
+    function templateVisivelParaAtalho(t) {
+        return t.contexto !== "leads";
+    }
+
+    function renderSugestoesAtalho() {
+        const box = el("atend-atalho-sugestoes");
+        if (!box) return;
+        if (state.atalhoSugestoes.length === 0) {
+            box.hidden = true;
+            box.innerHTML = "";
+            return;
+        }
+        box.hidden = false;
+        box.innerHTML = state.atalhoSugestoes.map((t, i) => `
+            <button type="button" class="atend-atalho-sugestao-item" data-atend-atalho-index="${i}" data-atend-template-id="${escaparHtml(t.id)}">
+                <strong>/${escaparHtml(t.atalho)}</strong> <span>${escaparHtml(t.titulo)}</span>
+            </button>
+        `).join("");
+    }
+
+    async function inserirTemplatePorAtalho(templateId) {
+        const input = el("atend-resposta-input");
+        if (input) {
+            const ultimaBarra = input.value.lastIndexOf("/");
+            if (ultimaBarra !== -1) input.value = input.value.slice(0, ultimaBarra);
+        }
+        state.atalhoSugestoes = [];
+        renderSugestoesAtalho();
+        await inserirTemplateNaResposta(templateId);
     }
 
     function itemMensagemHtml(msg) {
@@ -1190,6 +1540,13 @@ export function criarAtendimentoController(deps) {
             notify("Reabra a conversa antes de responder.", "error");
             return;
         }
+        // Nunca deixa {{variavel}} sair como texto literal pro cliente —
+        // bloqueia o envio (não remove nem envia do jeito que está) até a
+        // pendência ser editada manualmente ou o envio ser cancelado.
+        if (contemVariavelNaoResolvida(mensagem)) {
+            notify("A mensagem ainda tem uma variável pendente entre chaves duplas. Edite antes de enviar.", "error");
+            return;
+        }
         state.enviando = true;
         const templateUsadoId = state.templateUsadoId;
         const templateUsadoTitulo = state.templateUsadoTitulo;
@@ -1241,6 +1598,14 @@ export function criarAtendimentoController(deps) {
                 batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, "template_utilizado", {
                     templateId: templateUsadoId, templateTitulo: templateUsadoTitulo || "", clienteId, mensagemId: mensagemRef.id
                 }));
+                // usoTotal/ultimoUsoEm no mesmo lote atômico do envio — só
+                // conta uso quando a mensagem realmente sai (nunca em
+                // preview/inserção). Rules validam o incremento de +1
+                // exato (mesmo padrão de naoLidasLoja em chats).
+                batch.update(doc(db, "templates", templateUsadoId), {
+                    usoTotal: increment(1),
+                    ultimoUsoEm: serverTimestamp()
+                });
             }
             await batch.commit();
             conversa.ultimaMensagem = mensagem;
@@ -1248,6 +1613,8 @@ export function criarAtendimentoController(deps) {
             conversa.atualizadoEm = agora;
             state.templateUsadoId = "";
             state.templateUsadoTitulo = "";
+            state.templatePendencias = [];
+            renderPendenciasTemplate();
             // CRM 360 (best-effort, não trava o envio se falhar): marca a
             // interação mais recente do cliente vinculado, usada pelo
             // alerta de "cliente sem retorno".
@@ -1455,6 +1822,66 @@ export function criarAtendimentoController(deps) {
             const alvo = event.target.closest("[data-atend-template-id]");
             if (alvo) inserirTemplateNaResposta(alvo.getAttribute("data-atend-template-id"));
         });
+        el("atend-templates-abas")?.addEventListener("click", event => {
+            const botao = event.target.closest("[data-atend-template-aba]");
+            if (!botao) return;
+            state.templatesFiltro.aba = botao.getAttribute("data-atend-template-aba");
+            renderSeletorTemplates();
+        });
+        el("atend-templates-busca")?.addEventListener("input", event => {
+            state.templatesFiltro.busca = event.target.value;
+            renderSeletorTemplates();
+        });
+        el("atend-templates-categoria")?.addEventListener("change", event => {
+            state.templatesFiltro.categoria = event.target.value;
+            renderSeletorTemplates();
+        });
+        el("atend-btn-gerenciar-templates")?.addEventListener("click", () => {
+            fecharSeletorTemplates();
+            abrirGestaoTemplates();
+        });
+
+        // Gestão de templates (Fase 8): abrir/fechar, criar/editar,
+        // filtros da lista e as ações por item (delegadas, mesma lista é
+        // reconstruída a cada render).
+        el("atend-gestao-fechar")?.addEventListener("click", fecharGestaoTemplates);
+        el("atend-gestao-btn-novo")?.addEventListener("click", () => abrirFormularioTemplate());
+        el("atend-tpl-form-cancelar")?.addEventListener("click", fecharFormularioTemplate);
+        el("atend-gestao-busca")?.addEventListener("input", renderGestaoTemplates);
+        el("atend-gestao-categoria")?.addEventListener("change", renderGestaoTemplates);
+        el("atend-gestao-mostrar-arquivados")?.addEventListener("change", renderGestaoTemplates);
+        el("atend-gestao-tpl-lista")?.addEventListener("click", event => {
+            const botao = event.target.closest("[data-atend-tpl-acao]");
+            if (!botao) return;
+            const id = botao.getAttribute("data-atend-tpl-id");
+            const acao = botao.getAttribute("data-atend-tpl-acao");
+            if (acao === "editar") abrirFormularioTemplate(id);
+            if (acao === "duplicar") duplicarTemplateAtendimento(id);
+            if (acao === "ativo") alternarAtivoTemplateAtendimento(id);
+            if (acao === "favorito") alternarFavoritoTemplateAtendimento(id);
+            if (acao === "arquivar") arquivarTemplateAtendimento(id, true);
+            if (acao === "restaurar") arquivarTemplateAtendimento(id, false);
+        });
+        el("atend-tpl-form")?.addEventListener("submit", event => {
+            event.preventDefault();
+            salvarTemplateAtendimento({
+                titulo: el("atend-tpl-titulo")?.value || "",
+                mensagem: el("atend-tpl-mensagem")?.value || "",
+                categoria: el("atend-tpl-categoria")?.value || "personalizada",
+                atalho: el("atend-tpl-atalho")?.value || "",
+                favorito: !!el("atend-tpl-favorito")?.checked,
+                descricaoInterna: el("atend-tpl-descricao")?.value || ""
+            });
+        });
+        // Escape fecha os modais de templates (acessibilidade — Fase 16).
+        [el("atend-templates-modal"), el("atend-gestao-modal")].forEach(modal => {
+            modal?.addEventListener("keydown", event => {
+                if (event.key !== "Escape") return;
+                fecharSeletorTemplates();
+                fecharFormularioTemplate();
+                fecharGestaoTemplates();
+            });
+        });
 
         const formResposta = el("atend-form-resposta");
         formResposta?.addEventListener("submit", event => {
@@ -1465,6 +1892,46 @@ export function criarAtendimentoController(deps) {
             enviarResposta(texto).then(() => {
                 if (input) input.value = "";
             });
+        });
+
+        // Atalhos "/" no compositor (Fase 9): digitar "/" abre sugestões;
+        // setas navegam; Enter insere; Esc fecha; foco volta pro campo.
+        const inputResposta = el("atend-resposta-input");
+        let indiceAtalhoAtivo = -1;
+        inputResposta?.addEventListener("input", event => {
+            atualizarSugestoesAtalho(event.target.value);
+            indiceAtalhoAtivo = -1;
+        });
+        inputResposta?.addEventListener("keydown", event => {
+            if (state.atalhoSugestoes.length === 0) return;
+            if (event.key === "ArrowDown") {
+                event.preventDefault();
+                indiceAtalhoAtivo = Math.min(indiceAtalhoAtivo + 1, state.atalhoSugestoes.length - 1);
+                destacarSugestaoAtalho(indiceAtalhoAtivo);
+            } else if (event.key === "ArrowUp") {
+                event.preventDefault();
+                indiceAtalhoAtivo = Math.max(indiceAtalhoAtivo - 1, 0);
+                destacarSugestaoAtalho(indiceAtalhoAtivo);
+            } else if (event.key === "Enter" && indiceAtalhoAtivo >= 0) {
+                event.preventDefault();
+                const alvo = state.atalhoSugestoes[indiceAtalhoAtivo];
+                if (alvo) inserirTemplatePorAtalho(alvo.id).then(() => inputResposta.focus());
+            } else if (event.key === "Escape") {
+                state.atalhoSugestoes = [];
+                renderSugestoesAtalho();
+            }
+        });
+        el("atend-atalho-sugestoes")?.addEventListener("click", event => {
+            const alvo = event.target.closest("[data-atend-template-id]");
+            if (alvo) inserirTemplatePorAtalho(alvo.getAttribute("data-atend-template-id")).then(() => inputResposta?.focus());
+        });
+    }
+
+    function destacarSugestaoAtalho(indice) {
+        const box = el("atend-atalho-sugestoes");
+        if (!box) return;
+        box.querySelectorAll("[data-atend-atalho-index]").forEach(item => {
+            item.classList.toggle("is-ativa", Number(item.getAttribute("data-atend-atalho-index")) === indice);
         });
     }
 
