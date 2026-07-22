@@ -1,0 +1,183 @@
+# Quality Gate — nunca faz deploy de nada. O deploy de produção continua
+# manual e separado, em "Deploy Firebase Spark" (.github/workflows/
+# firebase-deploy.yml). Este workflow só valida: sintaxe, testes
+# unitários, Firestore/Storage Rules no Emulator, smoke de frontend e
+# (ui-login) o smoke de UI com login real via Playwright — que hoje só
+# passa em ambientes cujo egress alcance www.gstatic.com (ver
+# docs/QUALITY_GATE_RELEASE.md, "Limitações reais").
+name: Quality Gate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-gate-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # Node >= 22.13 é exigido pelo pnpm 11.9.0 fixado no packageManager.
+  NODE_VERSION: "22"
+  PNPM_VERSION: "11.9.0"
+  JAVA_VERSION: "21"
+
+jobs:
+  static-and-unit:
+    name: Sintaxe e testes unitários
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: pnpm run check (sintaxe de todo o projeto)
+        run: pnpm run check
+
+      - name: Testes unitários (pure functions, sem emulador)
+        run: pnpm run test:unit
+
+  security:
+    name: Firestore Rules, Storage Rules e Functions legadas
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java (Firestore Emulator)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Testar Firestore Rules + Storage Rules no Emulator
+        run: pnpm run test:rules
+
+      - name: Testar validadores compartilhados de Functions (legado, sem deploy)
+        run: pnpm run test:functions
+
+  frontend-emulator:
+    name: Smoke de frontend (SDK direto, sem navegador)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    needs: [static-and-unit]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java (Firestore Emulator)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Smoke de frontend contra o Emulator Suite
+        run: pnpm run test:frontend:emulator
+
+  ui-login:
+    name: UI com login real (Playwright + Auth Emulator)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [static-and-unit]
+    # Não bloqueia o merge sozinho: ambientes cujo egress não alcance
+    # www.gstatic.com (CDN do SDK do Firebase) sempre falham aqui por
+    # motivo de rede, não de código — ver docs/QUALITY_GATE_RELEASE.md.
+    # Runners hospedados do GitHub Actions alcançam a internet normalmente,
+    # então isso é esperado passar em CI mesmo tendo falhado no sandbox de
+    # desenvolvimento usado pra escrever este workflow.
+    continue-on-error: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java (Firestore Emulator)
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar o Chromium do Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Login real + navegação pelos 3 perfis (owner/editor/reader)
+        run: pnpm run test:ui:login
+
+      - name: Fluxos profundos (Pedidos, Atendimento, Templates, CRM 360, Base de Conhecimento, Central de IA)
+        run: pnpm run test:ui:flows
+
+      - name: Responsividade (5 viewports)
+        run: pnpm run test:ui:responsive
+
+      - name: Publicar diagnósticos de falha (screenshot/HTML/JSON)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-diagnostics
+          path: test-results/ui-diagnostics/
+          retention-days: 14
+          if-no-files-found: ignore
