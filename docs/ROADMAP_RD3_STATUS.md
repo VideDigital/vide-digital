@@ -27,6 +27,7 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 | Documentação Firebase alinhada à realidade (Blaze, não Spark puro) — corrige contradição real entre docs; Blaze explicado como requisito do Storage em produção, não decisão de usar Functions | `docs/FIREBASE_SPARK_ARCHITECTURE.md` |
 | Quality Gate — infraestrutura de testes de UI portátil (Playwright como devDependency real, servidor HTTP em Node puro, sem `/opt` nem Python), 3 perfis seedados (owner/editor/reader), fluxos profundos escritos para Pedidos/Atendimento/Templates/CRM 360/Base de Conhecimento/Central de IA, responsividade em 5 viewports, workflow CI dedicado (nunca faz deploy) | `docs/QUALITY_GATE_RELEASE.md`, `tests/emulator/ui/*`, `scripts/seed-emulator.mjs`, `.github/workflows/quality-gate.yml` |
 | Copiloto de IA do Atendimento — Fase 1 (sugestões/resumos/próximas ações pro atendente revisar, nunca envio automático; provedor mock local sem nenhuma chamada externa e nenhuma chave de IA em lugar nenhum; permissão de módulo `ia-copilot` separada de `atendimento`; log controlado só em uso/descarte de sugestão, campos whitelisted; contrato documentado — não implementado — para um backend externo futuro) | `docs/IA_COPILOT_ATENDIMENTO.md`, `ia-copilot.js`, `ia-copilot.css`, `firestore.rules`, `core/vide-module-aliases.js`, `dashboard.html`, `dashboard-app.js` |
+| IA de Negócio — código pronto (chat real do dono com um provedor de IA de verdade — Google Gemini — sobre produtos/pedidos/o que melhorar; exclusivo do plano Pro; teto mensal de mensagens reforçado no servidor; primeira Cloud Function do projeto com lógica pronta para publicação real). **Ainda não publicada em produção** — falta a chave real do provedor e um workflow de deploy dedicado, ver PARCIAL abaixo | `docs/IA_NEGOCIO.md`, `functions/src/ai/`, `ia-negocio.js`, `ia-negocio.css`, `firestore.rules`, `dashboard.html`, `dashboard-app.js` |
 | Migração definitiva para Spark, depois para Blaze sem reintroduzir Functions (zero dependência viva) | `docs/FIREBASE_SPARK_ARCHITECTURE.md` |
 | Correção do bug real: formulários das LPs V4 chamavam Function inexistente (todo envio falhava) | `lp-public-v4.js` |
 | Gestão de funcionários sem Functions (app secundário + regras dono-only) | `dashboard-app.js`, `firestore.rules` |
@@ -44,13 +45,14 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 | Entrega | Estado | Próximo passo |
 |---|---|---|
 | Quality Gate — validação da suíte de UI com login real (`test:ui:login`, `test:ui:flows` — inclui `ia-copilot.flow.mjs` desde a Fase 1 do copiloto —, `test:ui:responsive`) | Código escrito e revisado linha por linha contra os seletores reais do app, sintaxe verificada (`pnpm run check`), harness confirmado funcionando (servidor Node + Playwright + Emulators + seed) até o exato ponto do bloqueio — **mas não passou de ponta a ponta nesta sessão**. Motivo confirmado, não suposto: o sandbox de desenvolvimento usado bloqueia por política de egress o host `www.gstatic.com` (`curl` via o proxy do ambiente retorna `403` de política, não timeout) — e o app carrega o SDK do Firebase direto desse CDN, então a tela de login nunca inicializa o listener do formulário nesse ambiente específico. Ver `docs/QUALITY_GATE_RELEASE.md`, seção "Limitações reais". | Rodar `pnpm run test:ui:login`/`test:ui:flows`/`test:ui:responsive` num ambiente que alcance `www.gstatic.com` (qualquer runner GitHub Actions padrão serve) e corrigir qualquer seletor que não bater com a realidade — depois trocar `continue-on-error: true` por `false` no job `ui-login` de `quality-gate.yml` |
+| IA de Negócio (`askBusinessAI`) — código completo, não publicada | Cloud Function, prompt builder (12 testes reais), Rules (3 testes reais) e UI todos prontos e testados — **exceto o handler onCall em si**, que não pôde ser exercitado de ponta a ponta (precisa da chave real do provedor, que ainda não existe). Ver "Limitações reais" em `docs/IA_NEGOCIO.md`. | Criar a chave da API do Gemini, configurar como secret do Firebase Functions, criar um workflow de deploy dedicado (nunca reaproveitar "Deploy Firebase Spark") e rodá-lo com confirmação explícita — só depois, testar o fluxo completo em produção |
 
 ## NÃO INICIADO
 
 | Entrega | Observação |
 |---|---|
 | Anonymous Auth no chat público | Hoje a capability é o id aleatório do chat. Ativar Firebase Anonymous Auth é etapa EXTERNA (console); depois, vincular `visitorUid` ao `request.auth.uid` nas regras |
-| Cloudflare Worker (IA real) | Contrato documentado em `docs/FIREBASE_SPARK_ARCHITECTURE.md`; nenhum provedor chamado |
+| IA de Negócio na loja pública (toggle `canais.lojaPublica`) | O botão já existe no schema da Central de IA ("Em breve"); a Fase 1 da IA de Negócio cobriu só o dono no dashboard. Ativar o visitante da loja pública exige uma Function separada (ou um modo novo na mesma), sem autenticação de funcionário, rate limit por IP, e contexto restrito a dados seguros de expor (produtos ativos, nunca pedidos/leads internos) |
 | WhatsApp oficial | Depende do backend externo |
 | Auditoria centralizada pós-Functions | `writeAudit` deixou de existir nas operações migradas |
 
@@ -58,10 +60,12 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 1. ~~**Deploy das Rules**~~ — **resolvido neste ciclo**: o secret `FIREBASE_SERVICE_ACCOUNT` foi configurado em Settings → Secrets and variables → Actions e o workflow "Deploy Firebase Spark" publicou `firestore.rules` em produção com sucesso. As Rules de `chats`/`chats/eventos`/`mensagens`/`templates`/`pedidos`/`clientes`/`tags_clientes` reforçadas nos últimos ciclos já valem em produção.
 2. **Claim videAdmin**: precisa ser concedida uma vez via `scripts/set-admin-claim.mjs` (Admin SDK local) para o painel master operar em produção, caso ainda não tenha sido.
-3. **IA real / WhatsApp oficial**: dependem de segredo de provedor externo — nenhuma chave foi ou deve ser colocada no frontend; ficam para quando uma Cloud Function for realmente necessária.
+3. **IA real de negócio (`askBusinessAI`)**: código pronto, falta a chave real do provedor (Google Gemini) — ninguém além do dono do projeto pode criá-la — e configurá-la como secret do Firebase Functions. Ver "O que falta pra isso funcionar em produção" em `docs/IA_NEGOCIO.md`.
+4. **WhatsApp oficial**: depende do backend externo, nada implementado ainda.
 
 ## Próximas prioridades reais
 
-1. **Confirmar a suíte `test:ui:*` rodando de verdade num ambiente com acesso a `www.gstatic.com`** (qualquer runner GitHub Actions padrão) — é o único item PARCIAL deste ciclo, com causa raiz já confirmada (ver seção PARCIAL acima e `docs/QUALITY_GATE_RELEASE.md`).
-2. Se um dia `collectionGroup("eventos")` for realmente necessário (ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`, Fase 19), vai precisar de um campo achatado no documento do chat em vez de uma regra nova de Rules.
-3. Busca server-side no catálogo de produtos (Base de Conhecimento e Pedidos) se algum tenant um dia passar de ~300 produtos ativos — hoje nenhum plano chega perto disso.
+1. **IA de Negócio: criar a chave do Gemini, configurar o secret, criar o workflow de deploy dedicado e publicar `askBusinessAI`** — é o item mais próximo de virar valor real pro usuário; todo o código já está pronto e testado (ver `docs/IA_NEGOCIO.md`).
+2. **Confirmar a suíte `test:ui:*` rodando de verdade num ambiente com acesso a `www.gstatic.com`** (qualquer runner GitHub Actions padrão).
+3. Se um dia `collectionGroup("eventos")` for realmente necessário (ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`, Fase 19), vai precisar de um campo achatado no documento do chat em vez de uma regra nova de Rules.
+4. Busca server-side no catálogo de produtos (Base de Conhecimento e Pedidos) se algum tenant um dia passar de ~300 produtos ativos — hoje nenhum plano chega perto disso.

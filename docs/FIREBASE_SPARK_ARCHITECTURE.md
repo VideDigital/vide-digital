@@ -28,12 +28,22 @@
   Configurar isso é responsabilidade externa (console do Google Cloud), fora
   do escopo deste repositório.
 
-## Quando uma Cloud Function passa a se justificar (ainda nenhuma publicada)
+## Quando uma Cloud Function passa a se justificar
+
+> **Atualização**: o primeiro desses cenários deixou de ser hipotético.
+> `askBusinessAI` (`functions/src/ai/`) chama um provedor de IA real
+> (Google Gemini) com a chave guardada como secret do Firebase
+> Functions — código pronto e testado (funções puras + Rules), mas
+> **ainda não publicado em produção**: falta a chave real existir e um
+> workflow de deploy dedicado ser criado e rodado, com confirmação
+> explícita. Ver `docs/IA_NEGOCIO.md`. Nenhum outro cenário abaixo foi
+> implementado.
 
 Cloud Functions ficam reservadas para quando existir uma necessidade real
 que a escrita direta do cliente não consegue cobrir com segurança:
 
-- **IA real** (chamada a um provedor externo com chave secreta);
+- **IA real** (chamada a um provedor externo com chave secreta) —
+  implementado em código (`askBusinessAI`), ainda não publicado;
 - **WhatsApp oficial** (integração que exige backend e credenciais próprias);
 - **qualquer segredo** que não pode existir no frontend (chave de API,
   token de terceiro);
@@ -118,6 +128,13 @@ Workflow **"Deploy Firebase Spark"** (`.github/workflows/firebase-deploy.yml`, n
 **Nunca publica Cloud Functions.** Autenticação: Workload Identity Federation (`GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT`) ou chave `FIREBASE_SERVICE_ACCOUNT`; sem nenhum dos dois o job falha com instrução clara — nunca finge sucesso. Nenhuma chave secreta fica no frontend em nenhum momento: as credenciais de deploy só existem como GitHub Secrets, consumidas pelo job de deploy, nunca por código que roda no navegador.
 
 O **Quality Gate** (`.github/workflows/quality-gate.yml`) é um workflow **separado**, disparado em push/PR/dispatch, que só roda testes — nunca faz deploy de nada (ver `docs/QUALITY_GATE_RELEASE.md`).
+
+Quando `askBusinessAI` (ver acima) estiver pronta pra publicar de verdade
+(chave real configurada como secret), o deploy dela vai por um **workflow
+novo e separado** — "Deploy Firebase Spark" continua, por nome e por
+escopo, nunca publicando Functions. Nenhum deploy de Function acontece
+sem confirmação explícita, do mesmo jeito que o deploy de Rules já exige
+hoje.
 
 Deploy manual equivalente:
 
