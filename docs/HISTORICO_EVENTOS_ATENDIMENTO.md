@@ -167,12 +167,12 @@ Controles do usuário (`#atend-timeline-filtro`, `#atend-timeline-mostrar-evento
   `vh_atend_mostrar_eventos`) — **nunca** no documento do chat (Fase 6 do
   mandato original: preferência de visualização não é dado de negócio).
 
-**Paginação**: cada conversa carrega até 200 mensagens e até 100 eventos
-mais recentes (`limit()` nas duas queries) — não existe ainda "carregar
-mais itens antigos" além dessa janela inicial. Isso é uma limitação
-conhecida e intencional para não gastar mais uma fase reescrevendo a
-paginação da Central de Atendimento inteira nesta etapa (documentado abaixo,
-sem fingir que existe).
+**Paginação**: cada conversa carrega uma janela inicial menor e mais barata
+de até 50 mensagens e 50 eventos recentes (`limit()` nas duas queries) e
+exibe o botão **"Carregar histórico anterior"** quando ainda pode haver itens
+mais antigos. Mensagens e eventos mantêm cursores independentes (`startAfter`)
+e continuam mesclados no frontend por horário, sem feed global duplicado e
+sem criar `collectionGroup`.
 
 **Resiliência**: mensagens e eventos usam dois `onSnapshot` independentes —
 se a subcoleção `eventos` falhar por qualquer motivo (regra, rede, doc
@@ -223,7 +223,8 @@ conversaEstaPriorizada(eventos) // → bool, olhando só o ÚLTIMO
 Isso não é só um workaround: é uma fonte única de verdade sem risco de
 agregados divergirem do histórico bruto (o problema clássico de cache
 desatualizado em campo calculado). O preço é reprocessar o array a cada
-render — aceitável no volume atual (até 100 eventos por conversa, Fase 6/7).
+render — aceitável no volume paginado atual; eventos antigos entram sob
+demanda quando o atendente carrega páginas anteriores.
 
 **Se essas métricas precisarem ficar mais baratas ou virar KPI agregado
 entre conversas (não só por conversa aberta)**, o caminho correto é migrar
@@ -395,8 +396,6 @@ Chats criados antes desta etapa não têm nenhum documento em
 
 ## Limitações conhecidas (honestas, não escondidas)
 
-- **Paginação incompleta**: só a janela inicial (200 mensagens / 100
-  eventos) carrega; não há "carregar mais itens antigos" nesta etapa.
 - **`dedupeKey` reservado, não usado ainda**: existe no schema e nas Rules,
   mas nada persiste notificações a partir de eventos hoje — não há contra o
   que fazer dedupe. Ver Fase 8.
@@ -404,9 +403,9 @@ Chats criados antes desta etapa não têm nenhum documento em
   você") exigiriam um índice composto novo** (`collectionGroup("eventos")`
   por `tenantId`+`criadoEm`) — decisão de infraestrutura fora do escopo
   desta etapa, registrada como próxima prioridade.
-- **Métricas são recalculadas a cada render**, não cacheadas — aceitável no
-  volume atual (até 100 eventos por conversa); um agregado real por Cloud
-  Function só se justifica se isso virar KPI comparado entre conversas.
+- **Métricas são recalculadas a cada render**, não cacheadas — aceitável com
+  a janela paginada da conversa aberta; um agregado real por Cloud Function
+  só se justifica se isso virar KPI comparado entre conversas.
 - **`chats/{chatId}/eventos` não é global**: cada evento pertence a UMA
   conversa. Para ver o histórico combinado de todas as conversas de um
   cliente, a fonte continua sendo `clientes/{id}/eventos` (CRM 360) — as
@@ -416,12 +415,12 @@ Chats criados antes desta etapa não têm nenhum documento em
 
 ## Próximas três prioridades reais
 
-1. Paginação "carregar mais" além da janela inicial de mensagens/eventos,
-   quando uma conversa tiver histórico maior que os limites atuais.
-2. Índice composto em `eventos` (`collectionGroup`, `tenantId`+`criadoEm`)
+1. Índice composto em `eventos` (`collectionGroup`, `tenantId`+`criadoEm`)
    para notificações mais precisas por tipo de evento, não só por estado
    atual do chat.
-3. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa
+2. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa
    migrar para um agregado gravado por Cloud Function (trigger em
    `chats/*/eventos`) — hoje o cálculo em runtime é suficiente e mais
    confiável que um campo que pudesse divergir do histórico bruto.
+3. Validar a experiência visual autenticada em conversas de alto volume,
+   especialmente no mobile, agora que o carregamento anterior existe.

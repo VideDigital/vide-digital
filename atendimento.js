@@ -362,6 +362,37 @@ function normalizarMs(valor) {
     return Number.isFinite(numero) ? numero : 0;
 }
 
+export const LIMITES_TIMELINE_ATENDIMENTO = Object.freeze({
+    paginaMensagens: 50,
+    paginaEventos: 50
+});
+
+export function mesclarDocumentosTimeline(atuais, novos) {
+    const mapa = new Map();
+    for (const item of atuais || []) {
+        if (item?.id) mapa.set(item.id, item);
+    }
+    for (const item of novos || []) {
+        if (item?.id) mapa.set(item.id, item);
+    }
+    return Array.from(mapa.values());
+}
+
+export function mesclarItensTimeline({
+    mensagens = [],
+    eventos = [],
+    mostrarEventos = true,
+    filtroCategoria = "todos"
+} = {}) {
+    const eventosVisiveis = mostrarEventos
+        ? (eventos || []).filter(e => filtroCategoria === "todos" || categoriaEventoAtendimento(e.tipo) === filtroCategoria)
+        : [];
+    return [
+        ...(mensagens || []).map(m => ({ tipoItem: "mensagem", ms: normalizarMs(m.timestamp), dado: m })),
+        ...eventosVisiveis.map(e => ({ tipoItem: "evento", ms: eventoMs(e), dado: e }))
+    ].sort((a, b) => a.ms - b.ms);
+}
+
 export function timestampConversaMs(conversa) {
     return normalizarMs(conversa?.atualizadoEm || conversa?.timestamp || conversa?.criadoEm);
 }
@@ -483,7 +514,7 @@ function salvarPreferenciaLocal(chave, valor) {
 export function criarAtendimentoController(deps) {
     const { db, context, firestore, notify = () => {}, onAbrirDadosCliente = () => {} } = deps;
     const {
-        collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit,
+        collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, startAfter,
         serverTimestamp, onSnapshot, writeBatch
     } = firestore;
 
@@ -492,6 +523,8 @@ export function criarAtendimentoController(deps) {
         eventos: [],
         eventosCarregando: false,
         eventosErro: false,
+        eventosCursorAntigo: null,
+        temMaisEventos: false,
         unsubscribeEventos: null,
         templateUsadoId: "",
         templateUsadoTitulo: "",
@@ -504,6 +537,10 @@ export function criarAtendimentoController(deps) {
         mensagens: [],
         mensagensCarregando: false,
         mensagensErro: false,
+        mensagensCursorAntigo: null,
+        temMaisMensagens: false,
+        historicoAnteriorCarregando: false,
+        historicoAnteriorErro: false,
         funcionarios: [],
         templates: [],
         filtro: { busca: "", status: "todas", canal: "todos", apenasMinhas: false, apenasSemResponsavel: false },
@@ -848,26 +885,34 @@ export function criarAtendimentoController(deps) {
             return;
         }
 
-        const eventosVisiveis = state.mostrarEventos && !state.eventosErro
-            ? state.eventos.filter(e => state.filtroTimelineCategoria === "todos" || categoriaEventoAtendimento(e.tipo) === state.filtroTimelineCategoria)
-            : [];
-
-        const itens = [
-            ...state.mensagens.map(m => ({ tipoItem: "mensagem", ms: normalizarMs(m.timestamp), dado: m })),
-            ...eventosVisiveis.map(e => ({ tipoItem: "evento", ms: eventoMs(e), dado: e }))
-        ].sort((a, b) => a.ms - b.ms);
+        const itens = mesclarItensTimeline({
+            mensagens: state.mensagens,
+            eventos: state.eventosErro ? [] : state.eventos,
+            mostrarEventos: state.mostrarEventos,
+            filtroCategoria: state.filtroTimelineCategoria
+        });
 
         if (itens.length === 0) {
             box.innerHTML = `<div class="atend-vazio"><p>Nenhuma mensagem ainda.</p></div>`;
             return;
         }
 
+        const temMaisHistorico = state.temMaisMensagens || state.temMaisEventos;
+        const historicoAnteriorHtml = temMaisHistorico || state.historicoAnteriorCarregando || state.historicoAnteriorErro
+            ? `<div class="atend-historico-anterior">
+                <button type="button" class="atend-btn" data-atend-acao="carregar-historico-anterior" ${state.historicoAnteriorCarregando ? "disabled" : ""}>
+                    ${state.historicoAnteriorCarregando ? "Carregando..." : "Carregar histórico anterior"}
+                </button>
+                ${state.historicoAnteriorErro ? `<span class="atend-historico-anterior-erro">Não deu pra carregar parte do histórico antigo.</span>` : ""}
+              </div>`
+            : `<div class="atend-historico-fim" aria-label="Todo o histórico disponível foi carregado">Início do histórico carregado</div>`;
+
         const eventosErroAviso = (state.eventosErro && state.mostrarEventos)
             ? `<div class="atend-evento-erro">Não deu pra carregar o histórico de eventos. <button type="button" class="atend-btn" data-atend-acao="recarregar-eventos">Tentar novamente</button></div>`
             : "";
 
         const pertoDoFim = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-        box.innerHTML = eventosErroAviso + itens.map(item => item.tipoItem === "mensagem" ? itemMensagemHtml(item.dado) : itemEventoHtml(item.dado)).join("");
+        box.innerHTML = historicoAnteriorHtml + eventosErroAviso + itens.map(item => item.tipoItem === "mensagem" ? itemMensagemHtml(item.dado) : itemEventoHtml(item.dado)).join("");
         if (pertoDoFim || !box.dataset.atendJaRenderizou) {
             box.scrollTop = box.scrollHeight;
         }
@@ -957,29 +1002,66 @@ export function criarAtendimentoController(deps) {
         state.unsubscribeEventos = null;
     }
 
+    function docsComoItens(snap) {
+        const itens = [];
+        snap.forEach(d => itens.push({ id: d.id, ...d.data() }));
+        return itens;
+    }
+
+    function docMaisAntigo(docs, campoTempo) {
+        return (docs || []).reduce((maisAntigo, atual) => {
+            if (!maisAntigo) return atual;
+            const atualMs = normalizarMs(atual.data()?.[campoTempo]);
+            const antigoMs = normalizarMs(maisAntigo.data()?.[campoTempo]);
+            return atualMs < antigoMs ? atual : maisAntigo;
+        }, null);
+    }
+
+    function cursorMaisAntigo(cursorAtual, docs, campoTempo) {
+        const candidato = docMaisAntigo(docs, campoTempo);
+        if (!cursorAtual) return candidato;
+        if (!candidato) return cursorAtual;
+        return normalizarMs(candidato.data()?.[campoTempo]) < normalizarMs(cursorAtual.data()?.[campoTempo])
+            ? candidato
+            : cursorAtual;
+    }
+
+    function resetarEstadoTimeline() {
+        state.mensagens = [];
+        state.mensagensErro = false;
+        state.mensagensCarregando = true;
+        state.mensagensCursorAntigo = null;
+        state.temMaisMensagens = false;
+        state.eventos = [];
+        state.eventosErro = false;
+        state.eventosCarregando = true;
+        state.eventosCursorAntigo = null;
+        state.temMaisEventos = false;
+        state.historicoAnteriorCarregando = false;
+        state.historicoAnteriorErro = false;
+        const box = el("atend-mensagens");
+        if (box) delete box.dataset.atendJaRenderizou;
+    }
+
     async function selecionarConversa(id) {
         if (!id || id === state.conversaSelecionadaId) return;
         pararEscutaMensagens();
         pararEscutaEventos();
         state.conversaSelecionadaId = id;
-        state.mensagens = [];
-        state.mensagensErro = false;
-        state.mensagensCarregando = true;
-        state.eventos = [];
-        state.eventosErro = false;
-        state.eventosCarregando = true;
+        resetarEstadoTimeline();
         state.etapaMobile = "conversa";
         await render();
 
         try {
             const mensagensQuery = query(
                 collection(db, "chats", id, "mensagens"),
-                orderBy("timestamp", "asc"),
-                limit(200)
+                orderBy("timestamp", "desc"),
+                limit(LIMITES_TIMELINE_ATENDIMENTO.paginaMensagens)
             );
             state.unsubscribeMensagens = onSnapshot(mensagensQuery, snap => {
-                state.mensagens = [];
-                snap.forEach(d => state.mensagens.push({ id: d.id, ...d.data() }));
+                state.mensagens = mesclarDocumentosTimeline(state.mensagens, docsComoItens(snap));
+                state.mensagensCursorAntigo = cursorMaisAntigo(state.mensagensCursorAntigo, snap.docs, "timestamp");
+                state.temMaisMensagens = snap.size === LIMITES_TIMELINE_ATENDIMENTO.paginaMensagens;
                 state.mensagensCarregando = false;
                 renderTimelineConversa();
             }, error => {
@@ -1001,11 +1083,12 @@ export function criarAtendimentoController(deps) {
             const eventosQuery = query(
                 collection(db, "chats", id, "eventos"),
                 orderBy("criadoEm", "desc"),
-                limit(100)
+                limit(LIMITES_TIMELINE_ATENDIMENTO.paginaEventos)
             );
             state.unsubscribeEventos = onSnapshot(eventosQuery, snap => {
-                state.eventos = [];
-                snap.forEach(d => state.eventos.push({ id: d.id, ...d.data() }));
+                state.eventos = mesclarDocumentosTimeline(state.eventos, docsComoItens(snap));
+                state.eventosCursorAntigo = cursorMaisAntigo(state.eventosCursorAntigo, snap.docs, "criadoEm");
+                state.temMaisEventos = snap.size === LIMITES_TIMELINE_ATENDIMENTO.paginaEventos;
                 state.eventosCarregando = false;
                 renderTimelineConversa();
             }, error => {
@@ -1034,6 +1117,61 @@ export function criarAtendimentoController(deps) {
         }
         await selecionarConversa(id);
         return true;
+    }
+
+    async function carregarHistoricoAnterior() {
+        const id = state.conversaSelecionadaId;
+        if (!id || state.historicoAnteriorCarregando) return;
+        if (!state.temMaisMensagens && !state.temMaisEventos) return;
+        const box = el("atend-mensagens");
+        const scrollAnterior = box ? { top: box.scrollTop, height: box.scrollHeight } : null;
+        state.historicoAnteriorCarregando = true;
+        state.historicoAnteriorErro = false;
+        renderTimelineConversa();
+
+        const carregarMensagens = state.temMaisMensagens && state.mensagensCursorAntigo
+            ? getDocs(query(
+                collection(db, "chats", id, "mensagens"),
+                orderBy("timestamp", "desc"),
+                startAfter(state.mensagensCursorAntigo),
+                limit(LIMITES_TIMELINE_ATENDIMENTO.paginaMensagens)
+            )).then(snap => ({ tipo: "mensagens", snap })).catch(error => ({ tipo: "mensagens", error }))
+            : Promise.resolve({ tipo: "mensagens", ignorado: true });
+
+        const carregarEventos = state.temMaisEventos && state.eventosCursorAntigo
+            ? getDocs(query(
+                collection(db, "chats", id, "eventos"),
+                orderBy("criadoEm", "desc"),
+                startAfter(state.eventosCursorAntigo),
+                limit(LIMITES_TIMELINE_ATENDIMENTO.paginaEventos)
+            )).then(snap => ({ tipo: "eventos", snap })).catch(error => ({ tipo: "eventos", error }))
+            : Promise.resolve({ tipo: "eventos", ignorado: true });
+
+        const resultados = await Promise.all([carregarMensagens, carregarEventos]);
+        for (const resultado of resultados) {
+            if (resultado.ignorado) continue;
+            if (resultado.error) {
+                state.historicoAnteriorErro = true;
+                console.error("[Atendimento] Falha ao carregar histÃ³rico antigo:", codigoErroFirebase(resultado.error), resultado.error?.message);
+                continue;
+            }
+            if (resultado.tipo === "mensagens") {
+                state.mensagens = mesclarDocumentosTimeline(state.mensagens, docsComoItens(resultado.snap));
+                state.mensagensCursorAntigo = cursorMaisAntigo(state.mensagensCursorAntigo, resultado.snap.docs, "timestamp");
+                state.temMaisMensagens = resultado.snap.size === LIMITES_TIMELINE_ATENDIMENTO.paginaMensagens;
+            }
+            if (resultado.tipo === "eventos") {
+                state.eventos = mesclarDocumentosTimeline(state.eventos, docsComoItens(resultado.snap));
+                state.eventosCursorAntigo = cursorMaisAntigo(state.eventosCursorAntigo, resultado.snap.docs, "criadoEm");
+                state.temMaisEventos = resultado.snap.size === LIMITES_TIMELINE_ATENDIMENTO.paginaEventos;
+            }
+        }
+
+        state.historicoAnteriorCarregando = false;
+        renderTimelineConversa();
+        if (box && scrollAnterior) {
+            box.scrollTop = Math.max(0, box.scrollHeight - scrollAnterior.height + scrollAnterior.top);
+        }
     }
 
     async function enviarResposta(texto) {
@@ -1302,6 +1440,9 @@ export function criarAtendimentoController(deps) {
                 state.conversaSelecionadaId = "";
                 selecionarConversa(idAtual);
             }
+            if (event.target.closest("[data-atend-acao='carregar-historico-anterior']")) {
+                carregarHistoricoAnterior();
+            }
         });
 
         // O painel de dados do cliente evoluiu pro CRM 360 (crm360.js) —
@@ -1332,6 +1473,7 @@ export function criarAtendimentoController(deps) {
         bindEventos,
         selecionarConversa,
         abrirConversaPorId,
+        carregarHistoricoAnterior,
         enviarResposta,
         alterarStatus,
         atribuirResponsavel,

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
     CATEGORIAS_EVENTO_ATENDIMENTO,
     CATEGORIAS_TEMPLATE,
+    LIMITES_TIMELINE_ATENDIMENTO,
     STATUS_CONVERSA,
     TIPOS_EVENTO_ATENDIMENTO,
     VARIAVEIS_TEMPLATE_PERMITIDAS,
@@ -19,6 +20,8 @@ import {
     funcionarioPodeAtender,
     funcionariosElegiveisAtendimento,
     iniciaisNome,
+    mesclarDocumentosTimeline,
+    mesclarItensTimeline,
     ordenarConversas,
     podeTransicionarStatus,
     substituirVariaveisTemplate,
@@ -449,5 +452,56 @@ describe("descrição legível do evento (sem identificador técnico)", () => {
             const frase = descreverEventoAtendimento(eventoFixture({ tipo, autorNome: "Alguém" }));
             assert.ok(frase && frase.length > 0, tipo);
         }
+    });
+});
+
+describe("timeline paginada de atendimento", () => {
+    it("usa uma janela inicial menor e razoável para mensagens e eventos", () => {
+        assert.equal(LIMITES_TIMELINE_ATENDIMENTO.paginaMensagens, 50);
+        assert.equal(LIMITES_TIMELINE_ATENDIMENTO.paginaEventos, 50);
+    });
+
+    it("deduplica documentos por id ao mesclar listener recente com páginas antigas", () => {
+        const resultado = mesclarDocumentosTimeline(
+            [{ id: "m1", texto: "antigo" }, { id: "m2", texto: "mantém" }],
+            [{ id: "m1", texto: "atualizado" }, { id: "m3", texto: "novo" }]
+        );
+        assert.deepEqual(resultado.map(item => [item.id, item.texto]), [
+            ["m1", "atualizado"],
+            ["m2", "mantém"],
+            ["m3", "novo"]
+        ]);
+    });
+
+    it("mescla mensagens e eventos em ordem cronológica crescente", () => {
+        const itens = mesclarItensTimeline({
+            mensagens: [
+                { id: "m2", timestamp: 3000 },
+                { id: "m1", timestamp: 1000 }
+            ],
+            eventos: [
+                { id: "e1", tipo: "conversa_aberta", criadoEm: { seconds: 2 } }
+            ]
+        });
+        assert.deepEqual(itens.map(item => `${item.tipoItem}:${item.dado.id}`), [
+            "mensagem:m1",
+            "evento:e1",
+            "mensagem:m2"
+        ]);
+    });
+
+    it("respeita toggle e filtro de categoria sem apagar dados carregados", () => {
+        const eventos = [
+            { id: "e1", tipo: "conversa_aberta", criadoEm: 1000 },
+            { id: "e2", tipo: "lead_vinculado", criadoEm: 2000 }
+        ];
+        assert.deepEqual(
+            mesclarItensTimeline({ eventos, filtroCategoria: "vinculos" }).map(item => item.dado.id),
+            ["e2"]
+        );
+        assert.deepEqual(
+            mesclarItensTimeline({ eventos, mostrarEventos: false }).map(item => item.dado.id),
+            []
+        );
     });
 });
