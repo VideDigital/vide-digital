@@ -145,14 +145,20 @@ test("aviso de carregamento oferece nova tentativa pelo controlador", () => {
   assert.match(dashboardApp, /getElementById\("ia-tentar-novamente"\)[\s\S]*?centralIAController\.load\(\{ force: true \}\)/);
 });
 
-test("deploy das Rules usa o mesmo projeto do frontend e ocorre antes das Functions", () => {
+test("deploy Spark usa o projeto do frontend, publica Rules antes de Storage/índices e nunca publica Functions", () => {
   assert.match(firebaseInit, /projectId:\s*"vide-digital-saas"/);
   assert.match(firebaseDeployWorkflow, /\$\{PROJECT_ID\}" != "vide-digital-saas"/);
   const rulesDeploy = firebaseDeployWorkflow.indexOf("--only firestore:rules");
-  const functionsDeploy = firebaseDeployWorkflow.indexOf("--only functions:sendAdminChatMessage,functions:incrementPublicMetric");
+  const storageDeploy = firebaseDeployWorkflow.indexOf("--only storage");
+  const indexesDeploy = firebaseDeployWorkflow.indexOf("--only firestore:indexes");
   assert.ok(rulesDeploy >= 0);
-  assert.ok(functionsDeploy >= 0);
-  assert.ok(rulesDeploy < functionsDeploy);
+  assert.ok(storageDeploy >= 0);
+  assert.ok(indexesDeploy >= 0);
+  assert.ok(rulesDeploy < storageDeploy);
+  assert.ok(storageDeploy < indexesDeploy);
+  // Decisão definitiva do plano Spark: nenhum deploy de Cloud Functions.
+  assert.ok(!firebaseDeployWorkflow.includes("--only functions"));
+  assert.ok(!firebaseDeployWorkflow.includes("gcloud functions"));
 });
 
 test("layout possui breakpoints para desktop, tablet e celulares de 360/390px", () => {
