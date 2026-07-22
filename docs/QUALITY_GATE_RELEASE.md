@@ -71,7 +71,7 @@ Rodado automaticamente antes de cada suíte que usa o Emulator (`node scripts/se
 | Papel | E-mail | Senha | Permissões relevantes |
 |---|---|---|---|
 | Owner | `owner.pro@local.test` | `Local123!pro` | Tudo (dono do tenant `owner-pro`) |
-| Editor | `employee.edit@local.test` | `Local123!edit` | ver+editar: produtos, leads, funcionarios, central-ia, atendimento, crm, pedidos, base-conhecimento-ia |
+| Editor | `employee.edit@local.test` | `Local123!edit` | ver+editar: produtos, leads, funcionarios, central-ia, atendimento, crm, pedidos, base-conhecimento-ia, ia-copilot |
 | Leitor | `employee.read@local.test` | `Local123!read` | só ver: os mesmos módulos do editor, sem editar |
 | Funcionário inativo | `employee.inactive@local.test` | `Local123!inactive` | login não deve funcionar de verdade (status inativo) |
 | Admin com claim | `admin.claim@local.test` | `Local123!admin` | `videAdmin: true` |
@@ -87,6 +87,7 @@ Dados seedados de apoio pros fluxos profundos: `clientes/cliente-local-1` (CRM),
 - `pedidos.flow.mjs` — fluxo completo de criação de pedido: cliente, busca de produto, item estruturado, quantidade, subtotal, edição manual de texto livre e valor não sobrescrita, prazo de entrega, criação, status inicial, mudança de status.
 - `atendimento-templates.flow.mjs` — selecionar conversa, responder, mudar status, usar template, gestão de templates (criar).
 - `crm-base-ia.flow.mjs` — CRM 360 (busca, drawer, observação, tag, status), Base de Conhecimento (FAQ e produto por referência), Central de IA (salvar config, confirmar persistência após reload, seletor de modo de resposta).
+- `ia-copilot.flow.mjs` — copiloto de IA do Atendimento (`docs/IA_COPILOT_ATENDIMENTO.md`): gerar sugestão, usar (com e sem confirmação de substituir/anexar quando o compositor já tem texto), confirmar que nada é enviado sozinho, descartar; toggle do painel oculto para funcionário sem a permissão dedicada `ia-copilot`, visível com ela concedida.
 - `responsive.smoke.mjs` — 5 viewports (1440×900, 1366×768, 768×1024, 390×844, 360×640) × 5 telas, checando overflow horizontal e a coluna de mensagens do Atendimento rolando internamente (regressão do bug real corrigido na Fase 21 de `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`).
 
 ## Como depurar uma falha de login/UI

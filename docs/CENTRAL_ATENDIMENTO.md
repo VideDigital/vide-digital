@@ -151,6 +151,18 @@ template usado) — ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md` para o modelo
 completo, o enum de tipos e a decisão de manter métricas derivadas em runtime
 em vez de campos agregados em `chats`.
 
+## Copiloto de IA
+
+Desde a Fase 1 do copiloto (`docs/IA_COPILOT_ATENDIMENTO.md`), a coluna de
+detalhe ganhou um painel colapsável com sugestões geradas por um provedor
+mock local — resumo, sugestão de resposta, próxima ação, e mais 11 ações.
+Nunca envia nada sozinho: o atendente clica "Usar resposta" pra inserir no
+compositor, e ainda precisa clicar "Enviar". Permissão própria
+(`ia-copilot`), separada de `atendimento` — ver detalhe completo no
+documento dedicado, incluindo o que fica de fora desta fase (nenhum
+provedor externo, nenhuma chave de IA em lugar nenhum, nenhuma automação
+total).
+
 ## Limitações conhecidas
 
 - Notificações continuam derivadas do estado atual do chat, não do histórico

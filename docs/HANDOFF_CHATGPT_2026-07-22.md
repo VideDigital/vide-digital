@@ -159,3 +159,45 @@ preparação de release" foi executado. Resumo essencial pra quem continuar:
   (antes só produtos/leads), e há dados de apoio pros fluxos profundos
   (cliente, chat com mensagem+evento, template, 2 itens de base de
   conhecimento, config de IA, pedido com itens estruturados).
+
+## Addendum — Copiloto de IA do Atendimento, Fase 1 (ciclo seguinte ao Quality Gate)
+
+Depois do Quality Gate, foi construída a Fase 1 do "Copiloto de IA do
+Atendimento": sugestões/resumos/próximas ações pro atendente revisar,
+**nunca** resposta automática ao cliente, **nunca** WhatsApp, **nunca**
+chamada a um provedor de IA externo, **nenhuma** chave de IA em lugar
+nenhum (frontend/Firestore/GitHub). Documentação completa em
+`docs/IA_COPILOT_ATENDIMENTO.md` — resumo essencial pra quem continuar:
+
+- **Módulo novo `ia-copilot.js`**: mesmo padrão de módulo do projeto
+  (funções puras + `criarIaCopilotController(deps)`). Provedor mock local
+  determinístico, 14 ações estruturadas, context builder que só relê o
+  que `atendimentoController`/`crm360Controller`/`baseConhecimentoController`/
+  `centralIAController` já carregaram em memória — nenhuma leitura nova no
+  Firestore, nenhuma segunda estrutura de chats/CRM/Base/templates.
+- **Permissão própria `ia-copilot`**, separada de `atendimento` — um
+  funcionário com acesso à Central de Atendimento não ganha o copiloto
+  automaticamente. `podeUsarIaCopilot(chatData)` em `firestore.rules`
+  exige as duas permissões ao mesmo tempo.
+- **Log controlado**: só grava evento (`ia_sugestao_usada`/
+  `ia_sugestao_descartada`, nova categoria `"ia"`) quando a sugestão é
+  usada ou descartada — nunca a cada geração. Campos whitelisted em
+  `dados` (`iaAction`/`iaProvider`/`iaConfidenceBucket`, bucket
+  grosseiro, nunca o float bruto); nunca o prompt completo.
+- **UI**: painel colapsável na Central de Atendimento, "Gerar sugestão"
+  (nunca "Enviar automaticamente"), "Usar resposta" só insere no
+  compositor (pede substituir/anexar/cancelar se já tem texto), nunca
+  envia sozinho.
+- **Contrato documentado, não implementado**, para um backend externo
+  futuro (`CONTRATO_BACKEND_IA_FUTURO`, `ia-copilot.js`) — a chave de um
+  provedor real ficaria só nesse backend, nunca no frontend.
+- **Mesma limitação de rede do Quality Gate**: `tests/emulator/ui/
+  ia-copilot.flow.mjs` foi escrito e revisado, e rodado de verdade contra
+  o Emulator real neste sandbox — falhou no mesmo ponto exato (bloqueio de
+  egress a `www.gstatic.com`), mesma causa raiz já diagnosticada, não um
+  bug novo. Confirmar num ambiente com acesso a esse host antes de
+  confiar neste teste específico.
+- 27 testes unitários novos (`tests/ia-copilot.test.mjs`) + 6 testes de
+  Rules novos (`tests/emulator/firestore-security.test.mjs`) — todos
+  rodados de verdade contra o Emulator real, todos verdes junto com a
+  suíte completa existente (nenhuma regressão).

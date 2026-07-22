@@ -39,6 +39,16 @@ O CRM 360 reaproveita a permissão `atendimento` (além da dedicada `crm`)
 porque hoje só é alcançável de dentro de uma conversa já aberta — ver a
 limitação registrada em `docs/CRM_360_CLIENTE.md`.
 
+O Copiloto de IA do Atendimento (`ia-copilot`, ver
+`docs/IA_COPILOT_ATENDIMENTO.md`) é o oposto desse padrão de propósito:
+NÃO é alias de `atendimento` nem herdado por quem já pode responder
+conversas — é uma permissão própria que o dono precisa conceder à parte.
+`podeUsarIaCopilot(chatData)` em `firestore.rules` exige as duas coisas ao
+mesmo tempo (`podeResponderChat` **e** `canEditTenant(tenantId,
+"ia-copilot")`), então um funcionário com atendimento mas sem a concessão
+explícita nunca grava um evento `ia_sugestao_usada`/`ia_sugestao_descartada`
+— e a UI nem mostra o toggle do painel pra esse funcionário.
+
 Achado do ciclo "Templates Avançados de Atendimento": `atendimento` e `crm`
 tinham Rules e controllers prontos há ciclos, mas nunca apareciam na tela
 de gestão de acessos do dono (`MODULOS_PERMISSAO`, `dashboard-app.js`) —
