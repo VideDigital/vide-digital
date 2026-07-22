@@ -1,0 +1,139 @@
+/* IA de Negócio — chat do dono com a IA real dentro da Central de IA.
+   Vive sempre dentro de .central-ia-view, então reaproveita as variáveis
+   --ia-border/--ia-muted já definidas em central-ia.css — nunca duplica
+   um novo sistema de cor. Sem emoji, ícones só via texto/SVG existente. */
+
+.ia-negocio-painel {
+    margin-top: 18px;
+    padding: 20px;
+    border-radius: 20px;
+    border: 1px solid var(--ia-border);
+    background: linear-gradient(150deg, rgba(91, 61, 245, 0.08), rgba(0, 212, 255, 0.04));
+}
+
+.ia-negocio-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.ia-negocio-titulo { font-size: 16px; font-weight: 800; color: #f7f8fc; margin: 0; }
+.ia-negocio-descricao { margin-top: 6px; color: var(--ia-muted); font-size: 13px; line-height: 1.6; max-width: 640px; }
+
+.ia-negocio-badge {
+    flex-shrink: 0;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--ia-border);
+    background: rgba(255, 255, 255, 0.05);
+    color: #d7dbe6;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
+.ia-negocio-bloqueado {
+    margin-top: 14px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    border: 1px solid var(--ia-border);
+    background: rgba(255, 255, 255, 0.04);
+    color: #fde68a;
+    font-size: 13px;
+}
+
+.ia-negocio-mensagens {
+    margin-top: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+
+.ia-negocio-mensagem {
+    max-width: 80%;
+    padding: 10px 14px;
+    border-radius: 14px;
+    font-size: 13px;
+    line-height: 1.55;
+    white-space: pre-wrap;
+    border: 1px solid var(--ia-border);
+}
+
+.ia-negocio-mensagem.is-dono {
+    align-self: flex-end;
+    background: linear-gradient(135deg, var(--sys-primaria, #5b3df5), var(--sys-destaque, #00d4ff));
+    color: #fff;
+    border: none;
+}
+
+.ia-negocio-mensagem.is-ia {
+    align-self: flex-start;
+    background: rgba(255, 255, 255, 0.04);
+    color: #f7f8fc;
+}
+
+.ia-negocio-vazio {
+    color: var(--ia-muted);
+    font-size: 13px;
+    padding: 8px 2px;
+}
+
+.ia-negocio-restante {
+    margin-top: 8px;
+    font-size: 11.5px;
+    color: var(--ia-muted);
+}
+
+#ia-negocio-form {
+    margin-top: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* .atend-btn/.atend-input são reaproveitadas do vocabulário visual do
+   projeto, mas essas classes dependem de --at-border/--at-muted (só
+   definidas dentro de .atendimento-view) — este painel vive dentro de
+   .central-ia-view, então fixamos aqui os mesmos valores via --ia-*. */
+.ia-negocio-painel .atend-input,
+.ia-negocio-painel .atend-btn {
+    border: 1px solid var(--ia-border);
+}
+.ia-negocio-painel .atend-input {
+    background: rgba(255, 255, 255, 0.03);
+    color: #f7f8fc;
+}
+.ia-negocio-painel .atend-btn {
+    background: rgba(255, 255, 255, 0.04);
+    color: #e5e7eb;
+}
+.ia-negocio-painel .atend-btn:hover { background: rgba(255, 255, 255, 0.08); }
+.ia-negocio-painel .atend-btn:disabled { opacity: .5; cursor: not-allowed; }
+.ia-negocio-painel .atend-btn-primario {
+    border: 0;
+    color: #fff;
+    background: linear-gradient(135deg, var(--sys-primaria, #5b3df5), var(--sys-destaque, #00d4ff));
+}
+
+#ia-negocio-input {
+    min-height: 64px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    resize: vertical;
+}
+
+.ia-negocio-botoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+@media (max-width: 720px) {
+    .ia-negocio-mensagem { max-width: 100%; }
+}

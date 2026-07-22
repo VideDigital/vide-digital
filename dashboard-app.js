@@ -5,6 +5,8 @@ import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
 import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
 import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
+import { criarIaNegocioController } from "./ia-negocio.js";
+import { VideFunctions } from "./core/vide-functions.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
     adicionarItemPedido, removerItemPedido, atualizarQuantidadeItem
@@ -4393,6 +4395,84 @@ btn.classList.add("opacity-40");
         });
         window.iaCopilotController = iaCopilotController;
         bindIaCopilotPainel(iaCopilotController, atendimentoController);
+
+        // Painel de chat da IA de Negócio dentro da Central de IA — só
+        // texto (nunca innerHTML) pro conteúdo das mensagens.
+        function bindIaNegocioPainel(controller) {
+            const badge = document.getElementById("ia-negocio-badge");
+            const bloqueado = document.getElementById("ia-negocio-bloqueado");
+            const conteudo = document.getElementById("ia-negocio-conteudo");
+            const mensagensEl = document.getElementById("ia-negocio-mensagens");
+            const restanteEl = document.getElementById("ia-negocio-restante");
+            const form = document.getElementById("ia-negocio-form");
+            const input = document.getElementById("ia-negocio-input");
+            const enviarBtn = document.getElementById("ia-negocio-enviar");
+            const limparBtn = document.getElementById("ia-negocio-limpar");
+            if (!form || !mensagensEl) return;
+
+            function renderizarMensagens() {
+                mensagensEl.innerHTML = "";
+                if (!controller.state.mensagens.length) {
+                    const vazio = document.createElement("div");
+                    vazio.className = "ia-negocio-vazio";
+                    vazio.textContent = "Nenhuma pergunta ainda. Pergunte sobre seus produtos, pedidos ou o que pode melhorar.";
+                    mensagensEl.appendChild(vazio);
+                } else {
+                    controller.state.mensagens.forEach((mensagem) => {
+                        const bolha = document.createElement("div");
+                        bolha.className = `ia-negocio-mensagem ${mensagem.autor === "dono" ? "is-dono" : "is-ia"}`;
+                        bolha.textContent = mensagem.texto;
+                        mensagensEl.appendChild(bolha);
+                    });
+                }
+                mensagensEl.scrollTop = mensagensEl.scrollHeight;
+
+                restanteEl.textContent = Number.isFinite(controller.state.restanteNoMes)
+                    ? `Restam ${controller.state.restanteNoMes} mensagem(ns) neste mês.`
+                    : "";
+            }
+
+            function render() {
+                const disponivel = controller.atualizarDisponibilidade();
+                badge.textContent = disponivel ? "IA de Negócio ativa" : "Exclusivo do plano Pro";
+                badge.classList.toggle("is-ativa", disponivel);
+                bloqueado.hidden = disponivel;
+                conteudo.hidden = !disponivel;
+                if (enviarBtn) enviarBtn.disabled = controller.state.enviando;
+                if (input) input.disabled = controller.state.enviando;
+                renderizarMensagens();
+            }
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const pergunta = input.value;
+                if (!pergunta.trim() || controller.state.enviando) return;
+                input.value = "";
+                render();
+                await controller.enviarPergunta(pergunta);
+                render();
+            });
+
+            limparBtn?.addEventListener("click", () => {
+                controller.limparConversa();
+                render();
+            });
+
+            render();
+            window.addEventListener("videhub:context-ready", render);
+        }
+
+        // IA de Negócio (provedor real, Google Gemini): o dono conversa
+        // sobre o próprio negócio dentro da Central de IA. Só plano Pro
+        // ou superior — a Cloud Function valida de novo no servidor,
+        // isto aqui só evita uma chamada perdida e mostra o aviso certo.
+        const iaNegocioController = criarIaNegocioController({
+            context: VideHubContext,
+            chamarAskBusinessAI: VideFunctions.askBusinessAI,
+            notify: showToast
+        });
+        window.iaNegocioController = iaNegocioController;
+        bindIaNegocioPainel(iaNegocioController);
 
         // Navegação a partir de uma notificação de atendimento: nunca abre
         // uma conversa por um id "solto" — abrirConversaPorId só mostra a

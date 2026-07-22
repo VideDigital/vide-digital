@@ -1,8 +1,11 @@
-// LEGADO — nenhuma página de produção importa este módulo. O projeto roda
-// no plano Firebase Spark (sem Cloud Functions): métricas, leads, chat,
+// A maior parte deste módulo continua LEGADO — métricas, leads, chat,
 // notificações e funcionários usam escrita direta no Firestore protegida
-// por regras. O arquivo permanece como referência do contrato antigo e
-// para uso eventual com o Emulator. Ver docs/FIREBASE_SPARK_ARCHITECTURE.md.
+// por regras, nenhuma página de produção chama createEmployee/
+// updateEmployee/etc. por aqui. A EXCEÇÃO é askBusinessAI: a primeira
+// Cloud Function que o projeto realmente publica e chama em produção —
+// existe porque, dessa vez, há um segredo de verdade envolvido (a chave
+// do provedor de IA), o caso exato que justifica sair da escrita direta.
+// Ver docs/IA_NEGOCIO.md e docs/FIREBASE_SPARK_ARCHITECTURE.md.
 import { app, shouldUseVideEmulators } from "../firebase-init.js";
 import {
     connectFunctionsEmulator,
@@ -50,7 +53,8 @@ export const VideFunctions = Object.freeze({
     sendPublicChatMessage: (payload) => callFunction("sendPublicChatMessage", payload),
     markNotificationRead: (payload) => callFunction("markNotificationRead", payload),
     auditWrite: (payload) => callFunction("auditWrite", payload),
-    sendAdminChatMessage: (payload) => callFunction("sendAdminChatMessage", payload)
+    sendAdminChatMessage: (payload) => callFunction("sendAdminChatMessage", payload),
+    askBusinessAI: (payload) => callFunction("askBusinessAI", payload)
 });
 
 export default VideFunctions;

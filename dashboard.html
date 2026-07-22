@@ -15,6 +15,7 @@
 <link rel="stylesheet" href="./central-ia.css">
 <link rel="stylesheet" href="./atendimento.css">
 <link rel="stylesheet" href="./ia-copilot.css">
+<link rel="stylesheet" href="./ia-negocio.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
 <link rel="stylesheet" href="./late-overrides.css">
 <link rel="stylesheet" href="./studio-pro.css?v=200">
@@ -3932,6 +3933,32 @@ Atualizar
 <span class="bc-jornada-texto"><strong>Assistente &amp; WhatsApp</strong><small>Em breve — nenhuma IA conectada ainda</small></span>
 </span>
 </nav>
+
+<section id="ia-negocio-painel" class="ia-negocio-painel">
+<div class="ia-negocio-cabecalho">
+<div>
+<h3 class="ia-negocio-titulo">Converse com a IA sobre o seu negócio</h3>
+<p class="ia-negocio-descricao">Pergunte sobre produtos, pedidos e o que pode melhorar — respostas geradas por IA real, com base nos dados reais da sua loja. O contexto nunca sai da sua conta; a pergunta é enviada só quando você clica em "Perguntar".</p>
+</div>
+<span id="ia-negocio-badge" class="ia-negocio-badge">Exclusivo do plano Pro</span>
+</div>
+
+<div id="ia-negocio-bloqueado" class="ia-negocio-bloqueado" role="status" hidden>
+A IA de Negócio é exclusiva do plano Pro (ou superior). Fale com o suporte pra fazer upgrade.
+</div>
+
+<div id="ia-negocio-conteudo">
+<div id="ia-negocio-mensagens" class="ia-negocio-mensagens" role="log" aria-live="polite" aria-label="Conversa com a IA de Negócio"></div>
+<div id="ia-negocio-restante" class="ia-negocio-restante" aria-live="polite"></div>
+<form id="ia-negocio-form">
+<textarea id="ia-negocio-input" class="atend-input" placeholder="Pergunte, por exemplo: quais são meus produtos mais vendidos?" maxlength="800" aria-label="Pergunta para a IA de Negócio"></textarea>
+<div class="ia-negocio-botoes">
+<button type="button" id="ia-negocio-limpar" class="atend-btn">Limpar conversa</button>
+<button type="submit" id="ia-negocio-enviar" class="atend-btn atend-btn-primario">Perguntar</button>
+</div>
+</form>
+</div>
+</section>
 
 <div id="ia-unsaved-status" class="central-ia-state-line" aria-live="polite">Configurações atualizadas</div>
 <div id="ia-load-error" class="central-ia-load-error" role="alert">
