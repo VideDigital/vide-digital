@@ -84,6 +84,13 @@ service cloud.firestore {
           "conversas" in permissions
           || "atendimento_chat" in permissions
           || "templates_atendimento" in permissions
+        ))
+        || (moduleKey == "crm" && (
+          "clientes" in permissions
+          || "crm-360" in permissions
+          || "crm_360" in permissions
+          || "observacoes_clientes" in permissions
+          || "tags_clientes" in permissions
         ));
     }
 
@@ -489,6 +496,15 @@ service cloud.firestore {
       return (chatData.keys().hasAny(["donoUID"]) && (canViewTenant(chatData.donoUID, "atendimento") || canViewTenant(chatData.donoUID, "leads")))
         || (chatData.keys().hasAny(["emailDono"]) && (canViewTenant(chatData.emailDono, "atendimento") || canViewTenant(chatData.emailDono, "leads")));
     }
+    // CRM 360: aberto de dentro da Central de Atendimento, então quem já
+    // pode ver/editar atendimento também pode ver/editar o CRM — mais a
+    // permissão dedicada "crm" pra quem só deve mexer no CRM.
+    function podeVerCRM(tenantId) {
+      return canViewTenant(tenantId, "crm") || canViewTenant(tenantId, "atendimento");
+    }
+    function podeEditarCRM(tenantId) {
+      return canEditTenant(tenantId, "crm") || canEditTenant(tenantId, "atendimento");
+    }
     // "arquivada" não recebe mensagem sem ser reaberta antes (escrita
     // separada de status, feita por quem atende). Docs antigos sem o
     // campo status ainda não existiam quando essa regra foi criada, então
@@ -550,11 +566,23 @@ service cloud.firestore {
         || alvo == donoUID
         || (exists(/databases/$(database)/documents/funcionarios/$(alvo)) && funcionarioAtivoDoTenant(alvo, donoUID));
     }
+    // CRM 360: só permite gravar clienteId quando ele aponta pra um
+    // clientes/{id} do MESMO tenant — usado por chats/leads/pedidos.
+    // Curto-circuita (não gasta get()/exists()) quando clienteId não
+    // está sendo alterado nesta escrita.
+    function clienteIdValidoParaTenant(tenantId) {
+      let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["clienteId"]);
+      let alvo = request.resource.data.clienteId;
+      return !mudou
+        || alvo == ""
+        || (exists(/databases/$(database)/documents/clientes/$(alvo)) && get(/databases/$(database)/documents/clientes/$(alvo)).data.tenantId == tenantId);
+    }
     // Escrita autenticada do dono/funcionário no próprio chat: permissão
     // (atendimento OU leads, compatibilidade com quem só tinha leads
     // antes), tenant imutável, status dentro do enum, atribuição
     // validada, sem campos fora da lista conhecida da Central de
-    // Atendimento.
+    // Atendimento. clienteId/telefone/email (CRM 360) são opcionais e
+    // preenchidos pela equipe a partir do painel do cliente.
     function chatAdminUpdateValido() {
       let donoUID = hasTenantField("donoUID") ? resource.data.donoUID : resource.data.emailDono;
       return podeResponderChat(resource.data)
@@ -562,13 +590,132 @@ service cloud.firestore {
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             "status", "statusAdmin", "setor", "atribuidoPara", "atribuidoPor", "atribuidoEm",
             "statusAtualizadoPor", "statusAtualizadoEm", "ultimaMensagem", "atualizadoEm",
-            "naoLidasLoja", "naoLidasCliente", "observacoesInternas", "tags"
+            "naoLidasLoja", "naoLidasCliente", "observacoesInternas", "tags",
+            "clienteId", "telefone", "telefoneNormalizado", "email", "emailNormalizado"
           ])
         && (!request.resource.data.keys().hasAny(["status"]) || statusConversaValido(request.resource.data.status))
         && (!request.resource.data.keys().hasAny(["setor"]) || (request.resource.data.setor is string && request.resource.data.setor.size() <= 80))
         && (!request.resource.data.keys().hasAny(["observacoesInternas"]) || (request.resource.data.observacoesInternas is string && request.resource.data.observacoesInternas.size() <= 2000))
         && (!request.resource.data.keys().hasAny(["tags"]) || (request.resource.data.tags is list && request.resource.data.tags.size() <= 10))
-        && atribuicaoChatValida(donoUID);
+        && (!request.resource.data.keys().hasAny(["telefone"]) || (request.resource.data.telefone is string && request.resource.data.telefone.size() <= 30))
+        && (!request.resource.data.keys().hasAny(["telefoneNormalizado"]) || (request.resource.data.telefoneNormalizado is string && request.resource.data.telefoneNormalizado.size() <= 15))
+        && (!request.resource.data.keys().hasAny(["email"]) || (request.resource.data.email is string && request.resource.data.email.size() <= 160))
+        && (!request.resource.data.keys().hasAny(["emailNormalizado"]) || (request.resource.data.emailNormalizado is string && request.resource.data.emailNormalizado.size() <= 160))
+        && atribuicaoChatValida(donoUID)
+        && clienteIdValidoParaTenant(donoUID);
+    }
+
+    // ===== CRM 360 do Cliente =====
+    // Hub mínimo criado porque chats/leads/pedidos não compartilhavam
+    // nenhuma chave antes (ver docs/CRM_360_CLIENTE.md). Sem valor
+    // monetário sigiloso, sem segredo — continua escrita direta.
+    function statusRelacionamentoValido(status) {
+      return status in ["novo", "lead", "qualificado", "negociacao", "cliente", "recorrente", "inativo", "perdido"];
+    }
+    function responsavelClienteValido(tenantId) {
+      let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["responsavelUid"]);
+      let alvo = request.resource.data.responsavelUid;
+      return !mudou
+        || alvo == ""
+        || alvo == tenantId
+        || (exists(/databases/$(database)/documents/funcionarios/$(alvo)) && funcionarioAtivoDoTenant(alvo, tenantId));
+    }
+    function validClienteData(data) {
+      return data.keys().hasOnly([
+          "tenantId", "lojaId", "nome", "telefone", "telefoneNormalizado", "email", "emailNormalizado",
+          "authUid", "origem", "statusRelacionamento", "statusAtualizadoPor", "statusAtualizadoEm",
+          "responsavelUid", "tags", "produtosInteresse", "primeiraInteracaoEm", "ultimaInteracaoEm",
+          "criadoEm", "criadoPor", "atualizadoEm", "atualizadoPor", "arquivadoEm"
+        ])
+        && data.keys().hasAll(["tenantId", "lojaId", "criadoPor", "criadoEm", "atualizadoPor", "atualizadoEm"])
+        && data.tenantId is string && data.tenantId == data.lojaId
+        && data.criadoPor is string
+        && data.atualizadoPor is string
+        && (!data.keys().hasAny(["nome"]) || (data.nome is string && data.nome.size() <= 160))
+        && (!data.keys().hasAny(["telefone"]) || (data.telefone is string && data.telefone.size() <= 30))
+        && (!data.keys().hasAny(["telefoneNormalizado"]) || (data.telefoneNormalizado is string && data.telefoneNormalizado.size() <= 15))
+        && (!data.keys().hasAny(["email"]) || (data.email is string && data.email.size() <= 160))
+        && (!data.keys().hasAny(["emailNormalizado"]) || (data.emailNormalizado is string && data.emailNormalizado.size() <= 160))
+        && (!data.keys().hasAny(["statusRelacionamento"]) || statusRelacionamentoValido(data.statusRelacionamento))
+        && (!data.keys().hasAny(["tags"]) || (data.tags is list && data.tags.size() <= 15))
+        && (!data.keys().hasAny(["produtosInteresse"]) || (data.produtosInteresse is list && data.produtosInteresse.size() <= 20));
+    }
+    function validClienteCreateData() {
+      let data = request.resource.data;
+      return validClienteData(data)
+        && podeEditarCRM(data.tenantId)
+        && data.criadoPor == request.auth.uid
+        && data.atualizadoPor == request.auth.uid
+        && data.criadoEm == request.time
+        && data.atualizadoEm == request.time
+        && (!data.keys().hasAny(["responsavelUid"]) || data.responsavelUid == "" || data.responsavelUid == data.tenantId || data.responsavelUid == request.auth.uid);
+    }
+    function validClienteUpdateData() {
+      let data = request.resource.data;
+      let tenantId = resource.data.tenantId;
+      return validClienteData(data)
+        && podeEditarCRM(tenantId)
+        && data.tenantId == resource.data.tenantId
+        && data.lojaId == resource.data.lojaId
+        && data.criadoPor == resource.data.criadoPor
+        && data.criadoEm == resource.data.criadoEm
+        && data.atualizadoPor == request.auth.uid
+        && data.atualizadoEm == request.time
+        && responsavelClienteValido(tenantId);
+    }
+    function validObservacaoClienteCreate(clienteId) {
+      let clienteRef = /databases/$(database)/documents/clientes/$(clienteId);
+      let data = request.resource.data;
+      return exists(clienteRef)
+        && podeEditarCRM(get(clienteRef).data.tenantId)
+        && data.keys().hasOnly(["conteudo", "autorUid", "autorNome", "criadoEm", "atualizadoEm", "arquivado"])
+        && data.keys().hasAll(["conteudo", "autorUid", "criadoEm"])
+        && data.conteudo is string && data.conteudo.size() >= 1 && data.conteudo.size() <= 2000
+        && data.autorUid == request.auth.uid
+        && data.criadoEm == request.time
+        && (!data.keys().hasAny(["autorNome"]) || (data.autorNome is string && data.autorNome.size() <= 120))
+        && (!data.keys().hasAny(["arquivado"]) || data.arquivado is bool);
+    }
+    function validObservacaoClienteUpdate(clienteId) {
+      let clienteRef = /databases/$(database)/documents/clientes/$(clienteId);
+      let mudou = request.resource.data.diff(resource.data).affectedKeys();
+      return exists(clienteRef)
+        && podeEditarCRM(get(clienteRef).data.tenantId)
+        && !mudou.hasAny(["autorUid", "criadoEm"])
+        && mudou.hasOnly(["conteudo", "atualizadoEm", "arquivado"])
+        && (!request.resource.data.keys().hasAny(["conteudo"]) || (request.resource.data.conteudo is string && request.resource.data.conteudo.size() >= 1 && request.resource.data.conteudo.size() <= 2000))
+        // Só exige atualizadoEm == agora quando o PRÓPRIO write muda esse
+        // campo — reexigir isso contra um valor antigo carregado de uma
+        // escrita anterior (não tocado nesta) sempre negaria a escrita.
+        && (!mudou.hasAny(["atualizadoEm"]) || request.resource.data.atualizadoEm == request.time)
+        && (!request.resource.data.keys().hasAny(["arquivado"]) || request.resource.data.arquivado is bool);
+    }
+    // Timeline: só cria, nunca edita/apaga (Fase 11 — "Eventos: create
+    // apenas; update bloqueado; delete bloqueado").
+    function validEventoClienteCreate(clienteId) {
+      let clienteRef = /databases/$(database)/documents/clientes/$(clienteId);
+      let data = request.resource.data;
+      return exists(clienteRef)
+        && podeEditarCRM(get(clienteRef).data.tenantId)
+        && data.keys().hasOnly(["tipo", "categoria", "resumo", "autorUid", "autorNome", "criadoEm", "origem", "refColecao", "refId"])
+        && data.keys().hasAll(["tipo", "autorUid", "criadoEm"])
+        && data.tipo is string && data.tipo.size() <= 60
+        && data.autorUid == request.auth.uid
+        && data.criadoEm == request.time
+        && (!data.keys().hasAny(["resumo"]) || (data.resumo is string && data.resumo.size() <= 300))
+        && (!data.keys().hasAny(["refColecao"]) || (data.refColecao is string && data.refColecao.size() <= 40))
+        && (!data.keys().hasAny(["refId"]) || (data.refId is string && data.refId.size() <= 200));
+    }
+    function validTagClienteData() {
+      let data = request.resource.data;
+      return data.keys().hasOnly(["tenantId", "nome", "slug", "ativo", "criadoEm", "criadoPor"])
+        && data.keys().hasAll(["tenantId", "nome", "slug", "criadoPor", "criadoEm"])
+        && podeEditarCRM(data.tenantId)
+        && data.criadoPor == request.auth.uid
+        && data.criadoEm == request.time
+        && data.nome is string && data.nome.size() >= 1 && data.nome.size() <= 40
+        && data.slug is string && data.slug.size() >= 1 && data.slug.size() <= 40
+        && (!data.keys().hasAny(["ativo"]) || data.ativo is bool);
     }
 
     function publicStoreFields() {
@@ -724,7 +871,10 @@ service cloud.firestore {
     match /pedidos/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "pedidos");
       allow create: if canEditTenant(request.resource.data.criadoPor, "pedidos");
-      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "pedidos");
+      // clienteId (CRM 360, opcional): só grava se apontar pra um
+      // clientes/{id} do mesmo tenant — nunca vínculo cruzado.
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "pedidos")
+        && clienteIdValidoParaTenant(resource.data.criadoPor);
       allow delete: if canEditTenant(resource.data.criadoPor, "pedidos");
     }
 
@@ -734,7 +884,9 @@ service cloud.firestore {
       // O dono/funcionário também pode cadastrar lead manualmente pelo painel.
       allow create: if leadPublicoValido()
         || canEditTenant(request.resource.data.criadoPor, "leads");
-      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads");
+      // clienteId (CRM 360, opcional): mesma checagem de pedidos.
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads")
+        && clienteIdValidoParaTenant(resource.data.criadoPor);
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
 
@@ -981,6 +1133,38 @@ service cloud.firestore {
         allow create: if mensagemClienteValida(chatId) || mensagemAdminValida(chatId);
         allow update, delete: if false;
       }
+    }
+
+    // ===== CRM 360 do Cliente =====
+    match /clientes/{clienteId} {
+      allow read: if isBackendAdmin() || podeVerCRM(resource.data.tenantId);
+      allow create: if validClienteCreateData();
+      allow update: if validClienteUpdateData();
+      allow delete: if false;
+
+      match /observacoes/{obsId} {
+        allow read: if isBackendAdmin() || (exists(/databases/$(database)/documents/clientes/$(clienteId)) && podeVerCRM(get(/databases/$(database)/documents/clientes/$(clienteId)).data.tenantId));
+        allow create: if validObservacaoClienteCreate(clienteId);
+        allow update: if validObservacaoClienteUpdate(clienteId);
+        allow delete: if false;
+      }
+
+      match /eventos/{eventoId} {
+        allow read: if isBackendAdmin() || (exists(/databases/$(database)/documents/clientes/$(clienteId)) && podeVerCRM(get(/databases/$(database)/documents/clientes/$(clienteId)).data.tenantId));
+        allow create: if validEventoClienteCreate(clienteId);
+        allow update, delete: if false;
+      }
+    }
+
+    match /tags_clientes/{tagId} {
+      allow read: if isBackendAdmin() || podeVerCRM(resource.data.tenantId);
+      allow create: if validTagClienteData();
+      allow update: if criadoPorUnchanged()
+        && !request.resource.data.diff(resource.data).affectedKeys().hasAny(["tenantId", "nome", "slug"])
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ativo"])
+        && podeEditarCRM(resource.data.tenantId)
+        && request.resource.data.ativo is bool;
+      allow delete: if false;
     }
 
     match /{document=**} {

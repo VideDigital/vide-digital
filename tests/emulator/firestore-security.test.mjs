@@ -1120,3 +1120,307 @@ describe("templates: validação segura (respostas prontas + fluxo de leads)", (
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "templates", "tplOwn1"), { ativo: false, atualizadoEm: Date.now() }));
   });
 });
+
+// ===== CRM 360 do Cliente =====
+
+function clienteFixture(overrides = {}) {
+  return {
+    tenantId: "ownerA",
+    lojaId: "ownerA",
+    nome: "Maria Silva",
+    telefone: "(11) 99999-8888",
+    telefoneNormalizado: "5511999998888",
+    email: "maria@exemplo.com",
+    emailNormalizado: "maria@exemplo.com",
+    statusRelacionamento: "novo",
+    tags: [],
+    produtosInteresse: [],
+    criadoEm: serverTimestamp(),
+    criadoPor: "ownerA",
+    atualizadoEm: serverTimestamp(),
+    atualizadoPor: "ownerA",
+    ...overrides
+  };
+}
+
+async function semearCliente(id, overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "clientes", id), {
+      ...clienteFixture(overrides),
+      criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+      atualizadoEm: new Date("2026-07-01T10:00:00.000Z")
+    });
+  });
+}
+
+describe("clientes: criação, tenant e autoria", () => {
+  it("dono cria o hub do cliente do próprio tenant", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "clientes", "cli1"), clienteFixture()));
+  });
+
+  it("funcionário com permissão de atendimento também pode criar (CRM é aberto de dentro do Atendimento)", async () => {
+    await semearFuncionarioAtendimento("employeeAtendCrm1");
+    await assertSucceeds(setDoc(doc(authed("employeeAtendCrm1"), "clientes", "cliByAtend"), clienteFixture({
+      criadoPor: "employeeAtendCrm1", atualizadoPor: "employeeAtendCrm1"
+    })));
+  });
+
+  it("funcionário só com permissão dedicada 'crm' também cria", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "funcionarios", "employeeCrmOnly"), {
+        donoUID: "ownerA", status: "ativo", permissoes: { ver: ["crm"], editar: ["crm"] }
+      });
+    });
+    await assertSucceeds(setDoc(doc(authed("employeeCrmOnly"), "clientes", "cliByCrmOnly"), clienteFixture({
+      criadoPor: "employeeCrmOnly", atualizadoPor: "employeeCrmOnly"
+    })));
+  });
+
+  it("funcionário sem permissão de atendimento nem de crm não cria", async () => {
+    await assertFails(setDoc(doc(authed("employeeRead"), "clientes", "cliBloqueado"), clienteFixture({
+      criadoPor: "employeeRead", atualizadoPor: "employeeRead"
+    })));
+  });
+
+  it("rejeita campo extra, tenantId diferente de lojaId, timestamp manual e autoria falsa", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "clientes", "cliExtra"), clienteFixture({ campoMalicioso: true })));
+    await assertFails(setDoc(doc(authed("ownerA"), "clientes", "cliTenant"), clienteFixture({ lojaId: "outraLoja" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "clientes", "cliTs"), clienteFixture({ criadoEm: new Date("2020-01-01") })));
+    await assertFails(setDoc(doc(authed("ownerA"), "clientes", "cliAutor"), clienteFixture({ criadoPor: "ownerB", atualizadoPor: "ownerB" })));
+  });
+
+  it("rejeita statusRelacionamento fora do enum e tags/produtosInteresse acima do limite", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "clientes", "cliStatus"), clienteFixture({ statusRelacionamento: "fidelizado" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "clientes", "cliTags"), clienteFixture({ tags: Array.from({ length: 16 }, (_, i) => `tag${i}`) })));
+  });
+
+  it("outro tenant não lê o cliente alheio", async () => {
+    await semearCliente("cliOwnerA");
+    await assertFails(getDoc(doc(authed("ownerB"), "clientes", "cliOwnerA")));
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "clientes", "cliOwnerA")));
+  });
+
+  it("cliente público (não autenticado) nunca lê nem escreve o CRM interno", async () => {
+    await semearCliente("cliPublicoNegado");
+    await assertFails(getDoc(doc(anon(), "clientes", "cliPublicoNegado")));
+    await assertFails(setDoc(doc(anon(), "clientes", "cliAnon"), clienteFixture()));
+  });
+});
+
+describe("clientes: atualização (status, responsável, tags) e imutabilidade", () => {
+  it("dono muda status e atribui responsável a si mesmo ou a funcionário elegível", async () => {
+    await semearCliente("cliUpd1");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "clientes", "cliUpd1"), {
+      statusRelacionamento: "cliente", statusAtualizadoPor: "ownerA", statusAtualizadoEm: serverTimestamp(),
+      atualizadoPor: "ownerA", atualizadoEm: serverTimestamp()
+    }));
+    await semearFuncionarioAtendimento("employeeAtendCrm2");
+    await semearCliente("cliUpd2");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "clientes", "cliUpd2"), {
+      responsavelUid: "employeeAtendCrm2", atualizadoPor: "ownerA", atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("não atribui a funcionário inativo, de outro tenant, nem a uid arbitrário", async () => {
+    await semearCliente("cliUpd3");
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliUpd3"), {
+      responsavelUid: "employeeInactive", atualizadoPor: "ownerA", atualizadoEm: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliUpd3"), {
+      responsavelUid: "uidQueNaoExiste", atualizadoPor: "ownerA", atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("criadoPor, criadoEm, tenantId e lojaId são imutáveis", async () => {
+    await semearCliente("cliImut1");
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliImut1"), { criadoPor: "ownerB" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliImut1"), { tenantId: "ownerB" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliImut1"), { criadoEm: serverTimestamp() }));
+  });
+
+  it("funcionário só-leitura não altera nada do CRM", async () => {
+    await semearCliente("cliReadOnly");
+    await assertFails(updateDoc(doc(authed("employeeRead"), "clientes", "cliReadOnly"), {
+      statusRelacionamento: "cliente", atualizadoPor: "employeeRead", atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("outro tenant não edita cliente alheio", async () => {
+    await semearCliente("cliOutroTenant");
+    await assertFails(updateDoc(doc(authed("ownerB"), "clientes", "cliOutroTenant"), {
+      statusRelacionamento: "cliente", atualizadoPor: "ownerB", atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("delete físico é sempre bloqueado (arquivar é só um campo)", async () => {
+    await semearCliente("cliDelete");
+    await assertFails(deleteDoc(doc(authed("ownerA"), "clientes", "cliDelete")));
+  });
+});
+
+describe("clientes/observacoes: notas internas da equipe", () => {
+  it("dono cria observação com autoria real; funcionário editor também cria", async () => {
+    await semearCliente("cliObs1");
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "clientes", "cliObs1", "observacoes")), {
+      conteudo: "Prefere contato à tarde.", autorUid: "ownerA", autorNome: "Dono", criadoEm: serverTimestamp()
+    }));
+    await semearFuncionarioAtendimento("employeeAtendObs");
+    await assertSucceeds(setDoc(doc(collection(authed("employeeAtendObs"), "clientes", "cliObs1", "observacoes")), {
+      conteudo: "Já recebeu orçamento.", autorUid: "employeeAtendObs", criadoEm: serverTimestamp()
+    }));
+  });
+
+  it("funcionário não falsifica autorUid; funcionário só-leitura não cria; outro tenant não cria", async () => {
+    await semearCliente("cliObs2");
+    await semearFuncionarioAtendimento("employeeAtendObs2");
+    await assertFails(setDoc(doc(collection(authed("employeeAtendObs2"), "clientes", "cliObs2", "observacoes")), {
+      conteudo: "Forjando autoria", autorUid: "ownerA", criadoEm: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(collection(authed("employeeRead"), "clientes", "cliObs2", "observacoes")), {
+      conteudo: "Não deveria conseguir", autorUid: "employeeRead", criadoEm: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(collection(authed("ownerB"), "clientes", "cliObs2", "observacoes")), {
+      conteudo: "Invasão de outro tenant", autorUid: "ownerB", criadoEm: serverTimestamp()
+    }));
+  });
+
+  it("rejeita observação vazia, gigante, com campo extra ou timestamp manual", async () => {
+    await semearCliente("cliObs3");
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "clientes", "cliObs3", "observacoes")), {
+      conteudo: "", autorUid: "ownerA", criadoEm: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "clientes", "cliObs3", "observacoes")), {
+      conteudo: "x".repeat(2001), autorUid: "ownerA", criadoEm: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "clientes", "cliObs3", "observacoes")), {
+      conteudo: "ok", autorUid: "ownerA", criadoEm: serverTimestamp(), htmlMalicioso: "<script>"
+    }));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "clientes", "cliObs3", "observacoes")), {
+      conteudo: "ok", autorUid: "ownerA", criadoEm: new Date("2020-01-01")
+    }));
+  });
+
+  it("edita conteúdo/arquiva mas nunca troca autorUid nem criadoEm; observação nunca é apagada fisicamente", async () => {
+    await semearCliente("cliObs4");
+    let obsRef;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      obsRef = doc(collection(context.firestore(), "clientes", "cliObs4", "observacoes"));
+      await setDoc(obsRef, { conteudo: "Original", autorUid: "ownerA", criadoEm: new Date("2026-07-01T10:00:00.000Z") });
+    });
+    const obsId = obsRef.id;
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "clientes", "cliObs4", "observacoes", obsId), {
+      conteudo: "Editado", atualizadoEm: serverTimestamp()
+    }));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "clientes", "cliObs4", "observacoes", obsId), { arquivado: true }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliObs4", "observacoes", obsId), { autorUid: "ownerB" }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "clientes", "cliObs4", "observacoes", obsId)));
+  });
+});
+
+describe("clientes/eventos: linha do tempo (create-only)", () => {
+  it("cria evento com autoria real; update e delete são sempre bloqueados", async () => {
+    await semearCliente("cliEvt1");
+    let evtRef;
+    await assertSucceeds((async () => {
+      evtRef = doc(collection(authed("ownerA"), "clientes", "cliEvt1", "eventos"));
+      return setDoc(evtRef, { tipo: "tag_adicionada", resumo: "vip", autorUid: "ownerA", criadoEm: serverTimestamp() });
+    })());
+    await assertFails(updateDoc(doc(authed("ownerA"), "clientes", "cliEvt1", "eventos", evtRef.id), { resumo: "editado" }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "clientes", "cliEvt1", "eventos", evtRef.id)));
+  });
+
+  it("funcionário não falsifica autoria do evento; outro tenant não cria", async () => {
+    await semearCliente("cliEvt2");
+    await semearFuncionarioAtendimento("employeeAtendEvt");
+    await assertFails(setDoc(doc(collection(authed("employeeAtendEvt"), "clientes", "cliEvt2", "eventos")), {
+      tipo: "status_alterado", autorUid: "ownerA", criadoEm: serverTimestamp()
+    }));
+    await assertFails(setDoc(doc(collection(authed("ownerB"), "clientes", "cliEvt2", "eventos")), {
+      tipo: "status_alterado", autorUid: "ownerB", criadoEm: serverTimestamp()
+    }));
+  });
+});
+
+describe("tags_clientes: catálogo por loja", () => {
+  it("dono cria tag; funcionário sem permissão não cria", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "tags_clientes", "tagVip"), {
+      tenantId: "ownerA", nome: "VIP", slug: "vip", ativo: true, criadoEm: serverTimestamp(), criadoPor: "ownerA"
+    }));
+    await assertFails(setDoc(doc(authed("employeeRead"), "tags_clientes", "tagBloqueada"), {
+      tenantId: "ownerA", nome: "Bloqueada", slug: "bloqueada", ativo: true, criadoEm: serverTimestamp(), criadoPor: "employeeRead"
+    }));
+  });
+
+  it("só permite alternar 'ativo' — nome/slug são imutáveis; outro tenant não edita", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "tags_clientes", "tagFixa"), {
+        tenantId: "ownerA", nome: "Suporte", slug: "suporte", ativo: true,
+        criadoEm: new Date("2026-07-01T10:00:00.000Z"), criadoPor: "ownerA"
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "tags_clientes", "tagFixa"), { ativo: false }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "tags_clientes", "tagFixa"), { nome: "Renomeada" }));
+    await assertFails(updateDoc(doc(authed("ownerB"), "tags_clientes", "tagFixa"), { ativo: false }));
+  });
+
+  it("delete físico é bloqueado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "tags_clientes", "tagDelete"), {
+        tenantId: "ownerA", nome: "X", slug: "x", ativo: true, criadoEm: new Date(), criadoPor: "ownerA"
+      });
+    });
+    await assertFails(deleteDoc(doc(authed("ownerA"), "tags_clientes", "tagDelete")));
+  });
+});
+
+describe("CRM 360: vínculo de clienteId em leads/pedidos e chats respeita o tenant", () => {
+  it("chat: vincula clienteId do mesmo tenant; rejeita clienteId de outro tenant ou inexistente", async () => {
+    await semearCliente("cliParaChat", { tenantId: "ownerA", lojaId: "ownerA" });
+    await semearChat("chatVinculo1");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatVinculo1"), {
+      clienteId: "cliParaChat", atualizadoEm: Date.now()
+    }));
+    await semearChat("chatVinculo2");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatVinculo2"), {
+      clienteId: "idQueNaoExiste", atualizadoEm: Date.now()
+    }));
+    await semearCliente("cliDeOutroTenant", { tenantId: "ownerB", lojaId: "ownerB", criadoPor: "ownerB", atualizadoPor: "ownerB" });
+    await semearChat("chatVinculo3");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatVinculo3"), {
+      clienteId: "cliDeOutroTenant", atualizadoEm: Date.now()
+    }));
+  });
+
+  it("chat: grava telefone/email opcionais dentro do limite; desvincular (clienteId vazio) sempre funciona", async () => {
+    await semearChat("chatContato1");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatContato1"), {
+      telefone: "(11) 99999-8888", telefoneNormalizado: "5511999998888",
+      email: "cliente@exemplo.com", emailNormalizado: "cliente@exemplo.com"
+    }));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatContato1"), { clienteId: "" }));
+  });
+
+  it("lead: vincula clienteId do mesmo tenant; rejeita de outro tenant", async () => {
+    await semearCliente("cliParaLead", { tenantId: "ownerA", lojaId: "ownerA" });
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "leads", "leadVinculo1"), { criadoPor: "ownerA", nome: "Lead 1" });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadVinculo1"), { clienteId: "cliParaLead" }));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "leads", "leadVinculo2"), { criadoPor: "ownerA", nome: "Lead 2" });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadVinculo2"), { clienteId: "cliDeOutroTenant" }));
+  });
+
+  it("pedido: vincula clienteId do mesmo tenant; rejeita de outro tenant", async () => {
+    await semearCliente("cliParaPedido", { tenantId: "ownerA", lojaId: "ownerA" });
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedidos", "pedVinculo1"), { criadoPor: "ownerA", cliente: "Fulano", produtos: "X", valor: 10, status: "aguardando", data: Date.now() });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "pedidos", "pedVinculo1"), { clienteId: "cliParaPedido" }));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedidos", "pedVinculo2"), { criadoPor: "ownerA", cliente: "Fulano", produtos: "X", valor: 10, status: "aguardando", data: Date.now() });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "pedidos", "pedVinculo2"), { clienteId: "cliDeOutroTenant" }));
+  });
+});
