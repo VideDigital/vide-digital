@@ -25,7 +25,8 @@ está envolvida aqui.
   `podeResponderChat/podeVerChat`, `mensagemClienteValida/AdminValida`,
   `funcionarioAtivoDoTenant`, `atribuicaoChatValida`, `chatAdminUpdateValido`,
   `validTemplateData` + `match /chats/{chatId}` (e subcoleção `mensagens`).
-- `tests/atendimento.test.mjs` — 27 testes unitários de lógica pura.
+- `tests/atendimento.test.mjs` — 52 testes unitários de lógica pura (inclui o
+  histórico de eventos, ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`).
 - `tests/emulator/firestore-security.test.mjs` — suítes de chats/mensagens/templates
   para a Central de Atendimento.
 
@@ -136,12 +137,23 @@ coleção de eventos nem Cloud Function. Clicar chama
 só seleciona a conversa depois de confirmar que ela pertence às conversas já
 carregadas do tenant atual — nunca aceita um id arbitrário da URL/payload.
 
+## Histórico de eventos
+
+Desde o ciclo "Histórico de Eventos do Atendimento", cada conversa tem uma
+subcoleção append-only `chats/{chatId}/eventos` com tudo que acontece nela
+(mensagem, mudança de status, atribuição/transferência, prioridade, vínculos,
+template usado) — ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md` para o modelo
+completo, o enum de tipos e a decisão de manter métricas derivadas em runtime
+em vez de campos agregados em `chats`.
+
 ## Limitações conhecidas
 
-- Notificações são derivadas do estado atual, não de um log de eventos: "conversa
-  atribuída", "transferência" e "conversa reaberta" não geram avisos distintos
-  (ficam cobertos pelo estado geral "precisa de resposta"). Um log de eventos
-  exigiria Cloud Function/trigger, fora do escopo deste ciclo.
+- Notificações continuam derivadas do estado atual do chat, não do histórico
+  de eventos: "conversa atribuída", "transferência" e "conversa reaberta" não
+  geram avisos distintos (ficam cobertos pelo estado geral "precisa de
+  resposta"). O histórico de eventos já existe (ver seção acima) mas usá-lo
+  pra notificações mais ricas exigiria um índice composto novo — registrado
+  como próxima prioridade em `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`.
 - ~~O painel de dados do cliente mostra o que já está na própria conversa~~ —
   **resolvido no ciclo do CRM 360**: o botão "Dados do cliente" agora abre o
   drawer completo (identidade, resumo comercial, leads/pedidos/conversas

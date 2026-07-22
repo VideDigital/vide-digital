@@ -67,8 +67,10 @@ escolha registrada em `docs/CENTRAL_ATENDIMENTO.md`.
   relacionamento do cliente, atribuição/responsável — sempre gravam
   `...AtualizadoPor`/`...AtualizadoEm` junto com o novo valor.
 - **Append-only, sem update/delete**: `clientes/{id}/eventos` (timeline do
-  CRM) e mensagens de chat (`chats/{id}/mensagens`) — nunca se edita o
-  passado, só se acrescenta um novo registro.
+  CRM), `chats/{id}/eventos` (histórico da conversa — ver
+  `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`) e mensagens de chat
+  (`chats/{id}/mensagens`) — nunca se edita o passado, só se acrescenta um
+  novo registro.
 - **"Exclusão" é sempre lógica**: arquivar observação, arquivar item da base
   de conhecimento, tag `ativo: false` — delete físico é bloqueado
   (`allow delete: if false`) em todas as coleções onde histórico importa.
@@ -85,9 +87,11 @@ conversar) — nunca listagem, sempre um documento específico já conhecido.
 
 - IA real (nenhum provedor externo é chamado; nenhuma chave no frontend).
 - WhatsApp oficial.
-- Log de eventos administrativos centralizado pós-migração de Cloud
-  Functions (`writeAudit` foi descontinuado nas operações migradas — ver
-  `docs/ROADMAP_RD3_STATUS.md`).
+- Log de eventos administrativo **centralizado entre tenants/módulos**
+  pós-migração de Cloud Functions (`writeAudit` foi descontinuado nas
+  operações migradas — ver `docs/ROADMAP_RD3_STATUS.md`). O que existe hoje
+  é por escopo: `chats/{id}/eventos` (por conversa) e `clientes/{id}/eventos`
+  (por cliente) — nenhum dos dois é um log global entre tenants.
 
 Cloud Functions continuam reservadas para quando existir segredo real,
 integração externa, operação administrativa privilegiada, rate limit

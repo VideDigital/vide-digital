@@ -289,6 +289,16 @@ notificação "sem retorno" já são números reais derivados de pedidos/cliente
 do próprio tenant. Não foi criado um dashboard comercial separado nesta etapa
 — os números vivem dentro do próprio drawer do CRM, por cliente.
 
+## Fase 10 (ciclo seguinte) — Espelho no histórico da conversa
+
+O ciclo "Histórico de Eventos do Atendimento" adicionou `chats/{chatId}/eventos`
+como uma timeline por conversa (independente desta, `clientes/{id}/eventos`,
+que continua sendo a timeline por cliente). Quando o CRM 360 é aberto a
+partir de uma conversa (`abrirParaConversa`), vincular/desvincular cliente,
+lead, pedido ou produto passa a gravar um evento em **ambas** as
+subcoleções — ligadas por `correlationId`, nunca uma cópia da outra. Ver
+`docs/HISTORICO_EVENTOS_ATENDIMENTO.md` (Fase 10) para o detalhe completo.
+
 ## Limitações conhecidas
 
 - **CRM só é alcançável de dentro do Atendimento**: um funcionário com
