@@ -20,6 +20,7 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 | CRM 360 — navegação própria (entrada de menu e Hub dedicadas, lista de todos os clientes do tenant com busca/filtro/ordenação, permissão `crm` isolada de `leads` também no client — corrige achado de auditoria) | `docs/CRM_360_CLIENTE.md`, `crm360.js`, `dashboard.html`, `dashboard-app.js`, `core/vide-module-aliases.js` |
 | Notificação "conversa atribuída a você" (aviso real de atribuição/transferência, sem índice novo nem risco de Rules — ver decisão em `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`, Fase 19) | `dashboard-app.js` |
 | Produtos por referência para a IA (tipo `produto` referencia produtos reais do catálogo por ID, `conteudo` remontado do catálogo atual ao salvar, nada duplicado permanentemente) | `docs/RD3_BASE_CONHECIMENTO_IA.md`, `base-conhecimento-ia.js`, `dashboard.html`, `firestore.rules` |
+| Onboarding ampliado (8 passos, todos derivados de dado real, nunca de clique: loja, produto, LP criada, LP publicada, 1ª conversa no Atendimento, IA ativa, 1ª FAQ na Base, 1º funcionário) | `dashboard-app.js` (`renderizarPrimeirosPassos`) |
 | Migração definitiva para Spark, depois para Blaze sem reintroduzir Functions (zero dependência viva) | `docs/FIREBASE_SPARK_ARCHITECTURE.md` |
 | Correção do bug real: formulários das LPs V4 chamavam Function inexistente (todo envio falhava) | `lp-public-v4.js` |
 | Gestão de funcionários sem Functions (app secundário + regras dono-only) | `dashboard-app.js`, `firestore.rules` |
@@ -34,9 +35,7 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 ## PARCIAL
 
-| Entrega | Estado | Próximo passo |
-|---|---|---|
-| Onboarding (checklist "primeiros passos") | Existe versão do ciclo anterior no dashboard (4 etapas derivadas de dados reais) | Ampliar critérios (atendimento, IA, FAQ, funcionário) mantendo conclusão derivada de dados, nunca de clique |
+Nenhum item nesta categoria no momento.
 
 ## NÃO INICIADO
 
@@ -55,6 +54,8 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 ## Próximas prioridades reais
 
-1. Ampliar o Onboarding (checklist "primeiros passos") com mais critérios (atendimento, IA, FAQ, funcionário), mantendo conclusão derivada de dados reais, nunca de clique — em andamento neste ciclo.
-2. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa migrar para um agregado gravado por Cloud Function.
-3. Validar a experiência visual autenticada em conversas de alto volume, especialmente no mobile.
+As três prioridades do ciclo anterior (deploy das Rules, navegação própria do CRM 360, índice/notificação de atribuição, produtos por referência na IA, onboarding ampliado) foram todas entregues. Candidatos para o próximo ciclo, nenhum bloqueante:
+
+1. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa migrar para um agregado gravado por Cloud Function (trigger em `chats/*/eventos`) — hoje o cálculo em runtime é suficiente e mais confiável que um campo que pudesse divergir do histórico bruto.
+2. Validar a experiência visual autenticada em conversas de alto volume, especialmente no mobile, agora que o carregamento anterior existe.
+3. Produtos por referência (Base de Conhecimento) hoje resolve o catálogo do dono inteiro a cada abertura do formulário — considerar paginação/busca server-side se algum tenant tiver um catálogo muito grande.

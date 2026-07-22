@@ -1213,6 +1213,7 @@ window.renderizarPrimeirosPassos = async function() {
     } catch (e) {}
 
     let temLoja = false, temProduto = false, temLP = false, lpPublicada = false;
+    let temAtendimento = false, iaAtiva = false, temFaq = false, temFuncionario = false;
     try {
         const perfilSnap = await getDoc(doc(db, "usuarios", usuarioUID));
         const perfil = perfilSnap.exists() ? perfilSnap.data() : {};
@@ -1224,6 +1225,21 @@ window.renderizarPrimeirosPassos = async function() {
         const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
         temLP = lpSnap.size > 0;
         lpSnap.forEach(d => { if (d.data().publicado) lpPublicada = true; });
+
+        // Os quatro passos abaixo são opcionais/avançados de propósito (só
+        // aparecem se ainda faltarem — ver "concluídos >= total" mais
+        // abaixo) — cada um deriva de dado real, nunca de um clique que só
+        // "marca como visto".
+        const [chatsSnap, configIaSnap, faqSnap, funcSnap] = await Promise.all([
+            getDocs(query(collection(db, "chats"), where("donoUID", "==", usuarioUID), limit(1))).catch(() => null),
+            getDoc(doc(db, "configuracoes_ia", usuarioUID)).catch(() => null),
+            getDocs(query(collection(db, "base_conhecimento_ia"), where("tenantId", "==", usuarioUID), where("tipo", "==", "faq"), limit(1))).catch(() => null),
+            getDocs(query(collection(db, "funcionarios"), where("donoUID", "==", usuarioUID), limit(1))).catch(() => null)
+        ]);
+        temAtendimento = Boolean(chatsSnap && chatsSnap.size > 0);
+        iaAtiva = Boolean(configIaSnap && configIaSnap.exists() && configIaSnap.data()?.ativo === true);
+        temFaq = Boolean(faqSnap && faqSnap.size > 0);
+        temFuncionario = Boolean(funcSnap && funcSnap.size > 0);
     } catch (err) {
         console.error("Primeiros passos: falha ao apurar estado:", err);
         container.classList.add("hidden");
@@ -1234,7 +1250,11 @@ window.renderizarPrimeirosPassos = async function() {
         { feito: temLoja, titulo: "Configure sua loja", desc: "Defina nome, endereço e identidade da loja.", acao: "ativarAba('view-perfil')" },
         { feito: temProduto, titulo: "Adicione um produto", desc: "Cadastre pelo menos um item pra vender.", acao: "document.getElementById('btn-abrir-criacao')?.click()" },
         { feito: temLP, titulo: "Crie uma Landing Page", desc: "Monte uma página focada em conversão.", acao: "ativarAba('view-landing-pages')" },
-        { feito: lpPublicada, titulo: "Publique uma página", desc: "Deixe uma Landing Page no ar pra receber visitas.", acao: "ativarAba('view-landing-pages')" }
+        { feito: lpPublicada, titulo: "Publique uma página", desc: "Deixe uma Landing Page no ar pra receber visitas.", acao: "ativarAba('view-landing-pages')" },
+        { feito: temAtendimento, titulo: "Receba sua primeira conversa", desc: "A Central de Atendimento centraliza o contato com clientes.", acao: "ativarAba('view-atendimento')" },
+        { feito: iaAtiva, titulo: "Ative a assistente de IA", desc: "Configure e ligue a assistente virtual da loja.", acao: "ativarAba('view-central-ia')" },
+        { feito: temFaq, titulo: "Cadastre uma FAQ", desc: "Adicione uma pergunta frequente na Base de Conhecimento.", acao: "ativarAba('view-base-conhecimento')" },
+        { feito: temFuncionario, titulo: "Convide um funcionário", desc: "Dê acesso à equipe pra ajudar na operação.", acao: "ativarAba('view-funcionarios')" }
     ];
     const concluidos = passos.filter(p => p.feito).length;
     const total = passos.length;
