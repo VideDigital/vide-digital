@@ -53,6 +53,16 @@ beforeEach(async () => {
       status: "inativo",
       permissoes: { ver: ["produtos"], editar: ["produtos"] }
     });
+    await setDoc(doc(db, "funcionarios", "employeeIaRead"), {
+      donoUID: "ownerA",
+      status: "ativo",
+      permissoes: { ver: ["central-ia"], editar: [] }
+    });
+    await setDoc(doc(db, "funcionarios", "employeeIaEdit"), {
+      donoUID: "ownerA",
+      status: "ativo",
+      permissoes: { ver: ["central-ia"], editar: ["central-ia"] }
+    });
     await setDoc(doc(db, "produtos", "prodA"), { criadoPor: "ownerA", statusProduto: "ativo", nome: "Produto A" });
     await setDoc(doc(db, "produtos", "prodPrivate"), { criadoPor: "ownerA", statusProduto: "rascunho", nome: "Produto Privado" });
     await setDoc(doc(db, "produtos", "prodB"), { criadoPor: "ownerB", statusProduto: "ativo", nome: "Produto B" });
@@ -92,6 +102,30 @@ beforeEach(async () => {
     await setDoc(doc(db, "notificacoes", "notifTodos"), { titulo: "Broadcast", destinatarios: "todos" });
     await setDoc(doc(db, "notificacoes", "notifOwnerA"), { titulo: "Só ownerA", destinatarios: ["ownerA"] });
     await setDoc(doc(db, "notificacoes", "notifOwnerB"), { titulo: "Só ownerB", destinatarios: ["ownerB"] });
+    await setDoc(doc(db, "configuracoes_ia", "ownerA"), {
+      ativo: false,
+      nomeAssistente: "Assistente Virtual",
+      mensagemApresentacao: "Olá! Como posso ajudar?",
+      idioma: "pt-BR",
+      personalidade: "amigavel",
+      tamanhoResposta: "media",
+      instrucoes: "",
+      canais: {
+        lojaPublica: false,
+        sugestoesFuncionarios: false,
+        respostasAutomaticas: false,
+        criacaoConteudo: false,
+        whatsapp: false
+      },
+      modoRespostaAutomatica: "nunca",
+      mensagemFallback: "Vou encaminhar sua pergunta para nossa equipe.",
+      tenantId: "ownerA",
+      lojaId: "ownerA",
+      criadoPor: "ownerA",
+      criadoEm: new Date("2026-07-21T10:00:00.000Z"),
+      atualizadoPor: "ownerA",
+      atualizadoEm: new Date("2026-07-21T10:00:00.000Z")
+    });
   });
 });
 
@@ -116,6 +150,34 @@ function avaliacaoValida(overrides = {}) {
     comentario: "Gostei do produto.",
     status: "novo",
     data: serverTimestamp(),
+    ...overrides
+  };
+}
+
+function configuracaoIaValida(storeUid, authUid, overrides = {}) {
+  return {
+    ativo: false,
+    nomeAssistente: "Assistente Virtual",
+    mensagemApresentacao: "Olá! Como posso ajudar?",
+    idioma: "pt-BR",
+    personalidade: "amigavel",
+    tamanhoResposta: "media",
+    instrucoes: "",
+    canais: {
+      lojaPublica: false,
+      sugestoesFuncionarios: false,
+      respostasAutomaticas: false,
+      criacaoConteudo: false,
+      whatsapp: false
+    },
+    modoRespostaAutomatica: "nunca",
+    mensagemFallback: "Vou encaminhar sua pergunta para nossa equipe.",
+    tenantId: storeUid,
+    lojaId: storeUid,
+    criadoPor: authUid,
+    criadoEm: serverTimestamp(),
+    atualizadoPor: authUid,
+    atualizadoEm: serverTimestamp(),
     ...overrides
   };
 }
@@ -179,6 +241,71 @@ describe("tenant isolation", () => {
 
   it("employee inativo bloqueado", async () => {
     await assertFails(getDoc(doc(authed("employeeInactive"), "produtos", "prodPrivate")));
+  });
+});
+
+describe("configuracoes_ia: permissões e isolamento multi-tenant", () => {
+  it("proprietário lê, cria e atualiza a configuração da própria loja", async () => {
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "configuracoes_ia", "ownerA")));
+    await assertSucceeds(setDoc(
+      doc(authed("ownerB"), "configuracoes_ia", "ownerB"),
+      configuracaoIaValida("ownerB", "ownerB")
+    ));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "configuracoes_ia", "ownerA"), {
+      nomeAssistente: "Luna",
+      atualizadoPor: "ownerA",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("funcionário com Ver lê, mas não salva", async () => {
+    await assertSucceeds(getDoc(doc(authed("employeeIaRead"), "configuracoes_ia", "ownerA")));
+    await assertFails(updateDoc(doc(authed("employeeIaRead"), "configuracoes_ia", "ownerA"), {
+      nomeAssistente: "Sem permissão",
+      atualizadoPor: "employeeIaRead",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("funcionário autorizado salva a configuração da loja vinculada", async () => {
+    await assertSucceeds(updateDoc(doc(authed("employeeIaEdit"), "configuracoes_ia", "ownerA"), {
+      nomeAssistente: "Assistente da equipe",
+      atualizadoPor: "employeeIaEdit",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("funcionário sem permissão não lê nem salva", async () => {
+    await assertFails(getDoc(doc(authed("employeeRead"), "configuracoes_ia", "ownerA")));
+    await assertFails(updateDoc(doc(authed("employeeRead"), "configuracoes_ia", "ownerA"), {
+      nomeAssistente: "Tentativa",
+      atualizadoPor: "employeeRead",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("usuário de outra loja e visitante anônimo não acessam", async () => {
+    await assertFails(getDoc(doc(authed("ownerB"), "configuracoes_ia", "ownerA")));
+    await assertFails(updateDoc(doc(authed("ownerB"), "configuracoes_ia", "ownerA"), {
+      nomeAssistente: "Outra loja",
+      atualizadoPor: "ownerB",
+      atualizadoEm: serverTimestamp()
+    }));
+    await assertFails(getDoc(doc(anon(), "configuracoes_ia", "ownerA")));
+  });
+
+  it("tenantId, lojaId e criadoPor não podem ser trocados", async () => {
+    const ref = doc(authed("ownerA"), "configuracoes_ia", "ownerA");
+    await assertFails(updateDoc(ref, { tenantId: "ownerB", atualizadoPor: "ownerA", atualizadoEm: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { lojaId: "ownerB", atualizadoPor: "ownerA", atualizadoEm: serverTimestamp() }));
+    await assertFails(updateDoc(ref, { criadoPor: "employeeIaEdit", atualizadoPor: "ownerA", atualizadoEm: serverTimestamp() }));
+  });
+
+  it("regras rejeitam identificadores, limites e campos extras", async () => {
+    const db = authed("ownerB");
+    await assertFails(setDoc(doc(db, "configuracoes_ia", "ownerB"), configuracaoIaValida("ownerB", "ownerB", { idioma: "xx" })));
+    await assertFails(setDoc(doc(db, "configuracoes_ia", "ownerB"), configuracaoIaValida("ownerB", "ownerB", { nomeAssistente: "x".repeat(41) })));
+    await assertFails(setDoc(doc(db, "configuracoes_ia", "ownerB"), configuracaoIaValida("ownerB", "ownerB", { apiKey: "não permitido" })));
   });
 });
 

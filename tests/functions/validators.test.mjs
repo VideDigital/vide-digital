@@ -10,10 +10,10 @@ describe("function validators", () => {
 
   it("sanitizes permissions to known modules and makes edit imply view", () => {
     const result = validators.sanitizePermissions({
-      ver: ["produtos", "unknown"],
+      ver: ["produtos", "central-ia", "unknown"],
       editar: ["leads", "produtos"]
     });
-    assert.deepEqual(result.ver.sort(), ["leads", "produtos"].sort());
+    assert.deepEqual(result.ver.sort(), ["central-ia", "leads", "produtos"].sort());
     assert.deepEqual(result.editar.sort(), ["leads", "produtos"].sort());
   });
 
