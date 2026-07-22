@@ -401,10 +401,10 @@ Chats criados antes desta etapa não têm nenhum documento em
 - **`dedupeKey` reservado, não usado ainda**: existe no schema e nas Rules,
   mas nada persiste notificações a partir de eventos hoje — não há contra o
   que fazer dedupe. Ver Fase 8.
-- **Notificações mais ricas por evento (ex.: "conversa transferida pra
-  você") exigiriam um índice composto novo** (`collectionGroup("eventos")`
-  por `tenantId`+`criadoEm`) — decisão de infraestrutura fora do escopo
-  desta etapa, registrada como próxima prioridade.
+- **Notificação "conversa atribuída a você" existe, mas não distingue
+  atribuição de transferência no texto** — decisão deliberada da Fase 19
+  para não depender de `collectionGroup("eventos")` (ver Fase 19 acima: a
+  tentativa real esbarrou no teto de 1000 expressões das Rules).
 - **Métricas são recalculadas a cada render**, não cacheadas — aceitável com
   a janela paginada da conversa aberta; um agregado real por Cloud Function
   só se justifica se isso virar KPI comparado entre conversas.
@@ -415,14 +415,48 @@ Chats criados antes desta etapa não têm nenhum documento em
 - Sem testes de UI automatizados cobrindo login real (mesma limitação já
   registrada em `docs/CENTRAL_ATENDIMENTO.md`/`docs/CRM_360_CLIENTE.md`).
 
+## Fase 19 — Notificação de atribuição/transferência (tentativa e decisão)
+
+Investigado no ciclo seguinte ("CRM 360: navegação própria" + prioridades
+reais): a ideia original era ler `collectionGroup("eventos")` filtrado por
+`tenantId`+`criadoEm` (índice composto novo) para gerar um aviso "conversa
+transferida/atribuída pra você" a partir do log de eventos, não do estado
+atual do chat.
+
+**Tentativa real no emulador, revertida por um motivo concreto**: as regras
+de leitura de `chats/{id}/eventos` e `clientes/{id}/eventos` usam `get()` no
+documento pai (`podeVerChat`/`podeVerCRM`) — funcionam bem para ler os
+eventos de UMA conversa/cliente por vez (é o padrão já usado pela timeline),
+mas um `list` via `collectionGroup` precisa que o Firestore prove a regra
+para o grupo de coleção inteiro. Duas tentativas de regra (a específica
+existente e depois uma reescrita no formato `{path=**}`, a forma
+documentada para collectionGroup) foram testadas de verdade contra o
+emulador: a primeira nega a consulta inteira caindo no catch-all
+`match /{document=**}`; a segunda esbarra no teto de **1000 expressões**
+(o mesmo limite que já orientou decisões de Rules nesta base — ver
+`docs/SECURITY_MODEL.md`). Nenhuma das duas foi mantida.
+
+**Decisão**: a notificação "conversa atribuída a você" foi entregue sem
+`collectionGroup` nem índice novo, reaproveitando os campos
+`atribuidoPara`/`atribuidoPor`/`atribuidoEm` que `atribuirResponsavel()`
+(`atendimento.js`) já grava no próprio documento do chat a cada
+atribuição/transferência — os mesmos chats que a notificação de "conversa
+aguardando resposta" já lê, então zero leitura extra. O preço: o aviso não
+distingue "atribuída pela primeira vez" de "transferida de outra pessoa" no
+texto (as duas viram "Conversa atribuída a você") — essa distinção só existe
+no log de eventos, que continua existindo e acessível dentro da própria
+conversa (Fase 6/7), só não alimenta esta notificação específica. Ver
+`dashboard-app.js`, função `carregarEventosNegocioNotificacoes`.
+
 ## Próximas três prioridades reais
 
-1. Índice composto em `eventos` (`collectionGroup`, `tenantId`+`criadoEm`)
-   para notificações mais precisas por tipo de evento, não só por estado
-   atual do chat.
-2. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa
+1. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa
    migrar para um agregado gravado por Cloud Function (trigger em
    `chats/*/eventos`) — hoje o cálculo em runtime é suficiente e mais
    confiável que um campo que pudesse divergir do histórico bruto.
-3. Validar a experiência visual autenticada em conversas de alto volume,
+2. Validar a experiência visual autenticada em conversas de alto volume,
    especialmente no mobile, agora que o carregamento anterior existe.
+3. Se um dia `collectionGroup("eventos")` for realmente necessário, ele
+   provavelmente vai precisar de um campo achatado direto no documento do
+   chat (ex.: espelhar o último evento relevante) em vez de uma regra nova
+   — ver Fase 19 acima antes de tentar de novo.

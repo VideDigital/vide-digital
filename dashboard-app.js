@@ -16421,10 +16421,10 @@ async function() {
             try {
                 // Deriva do estado atual da conversa (mesmo padrão de leads/
                 // pedidos/avaliações acima) — não é um log de eventos, então
-                // "atribuída"/"transferência"/"reaberta" não viram avisos
-                // distintos aqui, só o estado "precisa de resposta" (nova ou
-                // aguardando_equipe, que cobre inclusive cliente respondendo
-                // depois de uma conversa encerrada).
+                // "reaberta" não vira aviso distinto aqui, só o estado
+                // "precisa de resposta" (nova ou aguardando_equipe, que
+                // cobre inclusive cliente respondendo depois de uma
+                // conversa encerrada).
                 const [porDono, porEmail] = await Promise.all([
                     getDocs(query(collection(db, "chats"), where("donoUID", "==", usuarioUID), limit(200))),
                     getDocs(query(collection(db, "chats"), where("emailDono", "==", usuarioUID), limit(200)))
@@ -16432,7 +16432,9 @@ async function() {
                 const mapaChats = new Map();
                 porDono.forEach(d => mapaChats.set(d.id, { id: d.id, ...d.data() }));
                 porEmail.forEach(d => mapaChats.set(d.id, { id: d.id, ...d.data() }));
-                const pendentes = Array.from(mapaChats.values()).filter(c => c.status === "nova" || c.status === "aguardando_equipe");
+                const todosChats = Array.from(mapaChats.values());
+
+                const pendentes = todosChats.filter(c => c.status === "nova" || c.status === "aguardando_equipe");
                 pendentes.sort((a, b) => normalizarMs(b.atualizadoEm || b.timestamp) - normalizarMs(a.atualizadoEm || a.timestamp));
                 pendentes.slice(0, 10).forEach(c => {
                     const trecho = c.ultimaMensagem ? `: “${esc(String(c.ultimaMensagem).slice(0, 80))}”` : "";
@@ -16451,6 +16453,43 @@ async function() {
                         acao: `abrirConversaAtendimentoPorNotificacao('${c.id}')`
                     });
                 });
+
+                // "Atribuíram/transferiram uma conversa pra mim": reaproveita
+                // os mesmos chats já lidos acima (nenhuma leitura extra),
+                // usando os campos atribuidoPara/atribuidoPor/atribuidoEm que
+                // atribuirResponsavel() já grava no próprio documento do chat
+                // a cada atribuição/transferência (atendimento.js). Chegou a
+                // ser desenhado sobre collectionGroup("eventos") com um
+                // índice composto novo (tenantId+criadoEm), mas o Firestore
+                // nega a consulta inteira: as regras de leitura de
+                // chats/{id}/eventos e clientes/{id}/eventos usam get() no
+                // documento pai, e um `list` de collectionGroup precisa
+                // provar a regra pro grupo de coleção inteiro — tentativa
+                // real no emulador estourou "máximo de 1000 expressões" (o
+                // mesmo teto que já limitou decisões de Rules nesta base).
+                // Esta versão entrega o mesmo aviso ao usuário sem esse
+                // custo/risco, ao preço de não distinguir "atribuída" de
+                // "transferida" no texto (ambas viram o mesmo aviso).
+                const meuUid = obterAuthUidAtual();
+                if (meuUid) {
+                    const recebidas = todosChats.filter(c => c.atribuidoPara === meuUid && c.atribuidoPor && c.atribuidoPor !== meuUid);
+                    recebidas.sort((a, b) => normalizarMs(b.atribuidoEm) - normalizarMs(a.atribuidoEm));
+                    recebidas.slice(0, 10).forEach(c => {
+                        // Sem leitura extra só pra resolver o nome de quem
+                        // atribuiu — distingue apenas "dono da loja" (uid
+                        // conhecido, é usuarioUID) de "um colega".
+                        const nomeAutor = c.atribuidoPor === usuarioUID ? "O dono da loja" : "Um colega";
+                        eventos.push({
+                            id: `atendimento-resp-${c.id}-${normalizarMs(c.atribuidoEm)}`,
+                            origem: "negocio",
+                            tipo: "atendimento",
+                            titulo: "Conversa atribuída a você",
+                            mensagem: `${nomeAutor} passou uma conversa pra você: ${esc(c.clienteNome || "Cliente")}.`,
+                            criadoEm: normalizarMs(c.atribuidoEm),
+                            acao: `abrirConversaAtendimentoPorNotificacao('${c.id}')`
+                        });
+                    });
+                }
             } catch (e) { /* atendimento indisponível: ignora esta fonte */ }
 
             try {
