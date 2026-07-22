@@ -3130,6 +3130,114 @@ div:not(.aura-product-modal-actions){
   resize:vertical;
 }
 
+/* Produtos estruturados dentro do modal de pedido */
+.aura-order-item-resultados{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+  margin-top:8px;
+  max-height:180px;
+  overflow-y:auto;
+  border-radius:12px;
+  border:1px solid color-mix(in srgb, var(--aura-primary) 18%, transparent);
+  background:color-mix(in srgb, var(--aura-primary) 5%, transparent);
+  padding:6px;
+}
+
+.aura-order-item-sugestao{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  width:100%;
+  padding:8px 10px;
+  border:0;
+  border-radius:9px;
+  background:transparent;
+  color:var(--aura-text);
+  font-size:10px;
+  text-align:left;
+  cursor:pointer;
+}
+.aura-order-item-sugestao:hover{
+  background:color-mix(in srgb, var(--aura-primary) 12%, transparent);
+}
+
+.aura-order-item-vazio{
+  padding:8px 10px;
+  color:var(--aura-text-muted);
+  font-size:10px;
+}
+
+.aura-order-itens-lista{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:10px;
+}
+
+.aura-order-item-row{
+  display:grid;
+  grid-template-columns:1fr 56px 90px 28px;
+  align-items:center;
+  gap:8px;
+  padding:8px 10px;
+  border-radius:10px;
+  border:1px solid var(--aura-border, rgba(255,255,255,.08));
+  background:rgba(255,255,255,.02);
+}
+.aura-order-item-nome{
+  min-width:0;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  font-size:10px;
+  color:var(--aura-text);
+}
+.aura-order-item-qtd{
+  width:100%;
+  min-height:30px !important;
+  padding:2px 6px !important;
+  border-radius:8px !important;
+  font-size:10px !important;
+  text-align:center;
+}
+.aura-order-item-preco{
+  font-size:10px;
+  font-weight:800;
+  color:var(--aura-primary);
+  text-align:right;
+}
+.aura-order-item-remover{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:24px;
+  height:24px;
+  border:0;
+  border-radius:50%;
+  background:rgba(248,113,113,.12);
+  color:#fca5a5;
+  font-size:14px;
+  line-height:1;
+  cursor:pointer;
+}
+.aura-order-item-remover:hover{
+  background:rgba(248,113,113,.22);
+}
+
+.aura-order-itens-subtotal{
+  margin-top:6px;
+  font-size:10px;
+  font-weight:700;
+  color:var(--aura-text-secondary);
+}
+
+@media (max-width:640px){
+  .aura-order-item-row{
+    grid-template-columns:1fr 48px 76px 26px;
+  }
+}
+
 .aura-order-modal-note{
   display:flex;
   align-items:flex-start;

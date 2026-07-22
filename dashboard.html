@@ -8287,12 +8287,53 @@ autocomplete="off"
 
 <div class="aura-order-field aura-order-field-full">
 
+<label for="ped-item-busca">
+
+<span>Produtos do catálogo (opcional)</span>
+
+<small>
+Busque e adicione produtos já cadastrados — o texto abaixo e o valor se preenchem sozinhos, mas continuam editáveis.
+</small>
+
+</label>
+
+<div class="aura-order-input-with-icon">
+
+<span>
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+<circle cx="11" cy="11" r="7"></circle>
+<path d="m21 21-4.3-4.3"></path>
+</svg>
+
+</span>
+
+<input
+type="text"
+id="ped-item-busca"
+class="w-full glass-input"
+placeholder="Digite o nome de um produto do seu catálogo"
+autocomplete="off"
+oninput="buscarProdutoParaPedido(this.value)"
+>
+
+</div>
+
+<div id="ped-item-resultados" class="aura-order-item-resultados" hidden></div>
+
+<div id="ped-itens-lista" class="aura-order-itens-lista"></div>
+<p id="ped-itens-subtotal" class="aura-order-itens-subtotal"></p>
+
+</div>
+
+<div class="aura-order-field aura-order-field-full">
+
 <label for="ped-produtos">
 
 <span>Produtos ou serviços</span>
 
 <small>
-Descreva os itens incluídos neste pedido.
+Descreva os itens incluídos neste pedido (ou deixe o preenchimento automático dos itens acima).
 </small>
 
 </label>
@@ -8315,6 +8356,7 @@ id="ped-produtos"
 class="w-full glass-input"
 placeholder="Ex: Curso Confeitaria + Kit Básico"
 autocomplete="off"
+oninput="marcarPedidoCampoEditadoManual('ped-produtos')"
 >
 
 </div>
@@ -8347,6 +8389,7 @@ id="ped-valor"
 class="w-full glass-input"
 placeholder="0,00"
 inputmode="decimal"
+oninput="marcarPedidoCampoEditadoManual('ped-valor')"
 >
 
 </div>
@@ -8376,6 +8419,26 @@ class="w-full glass-input aura-order-status-select"
 </select>
 
 </div>
+
+</div>
+
+<div class="aura-order-field aura-order-field-full">
+
+<label for="ped-prazo-entrega">
+
+<span>Prazo de entrega (opcional)</span>
+
+<small>
+Preenche automaticamente a variável {{prazo_entrega}} nos templates de atendimento.
+</small>
+
+</label>
+
+<input
+type="date"
+id="ped-prazo-entrega"
+class="w-full glass-input"
+>
 
 </div>
 

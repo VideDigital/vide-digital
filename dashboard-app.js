@@ -4,6 +4,10 @@ import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
 import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
+import {
+    validarItensPedido, calcularValorItens, resumoTextoItens,
+    adicionarItemPedido, removerItemPedido, atualizarQuantidadeItem
+} from "./pedidos-estruturados.js";
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -15480,6 +15484,113 @@ async function() {
 };
 
         
+        // Itens estruturados do pedido em edição no modal — vive só
+        // enquanto o modal está aberto (não é state persistido). Cada
+        // item é { produtoId, nomeSnapshot, precoSnapshot, quantidade }.
+        // O campo de texto livre "ped-produtos" continua existindo e
+        // editável — os itens só pré-preenchem um resumo nele, nunca o
+        // substituem de verdade (compatibilidade total com pedidos
+        // digitados à mão, como sempre foi).
+        window._itensPedidoAtual = [];
+        window._catalogoProdutosPedido = null;
+
+        async function carregarCatalogoProdutosPedido() {
+            if (window._catalogoProdutosPedido || !usuarioUID) return window._catalogoProdutosPedido || [];
+            try {
+                const snap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
+                const todos = [];
+                snap.forEach(d => { const p = d.data(); if (p.statusProduto !== "arquivado") todos.push({ id: d.id, ...p }); });
+                window._catalogoProdutosPedido = todos;
+                return todos;
+            } catch (err) {
+                window._catalogoProdutosPedido = [];
+                return [];
+            }
+        }
+
+        function renderItensPedido() {
+            const lista = document.getElementById("ped-itens-lista");
+            const resumoValor = document.getElementById("ped-itens-subtotal");
+            if (!lista) return;
+            const itens = window._itensPedidoAtual;
+            if (itens.length === 0) {
+                lista.innerHTML = `<p class="text-xs text-gray-500">Nenhum produto do catálogo adicionado ainda — busque acima ou descreva livremente no campo de texto.</p>`;
+            } else {
+                lista.innerHTML = itens.map(item => `
+                    <div class="aura-order-item-row">
+                        <span class="aura-order-item-nome">${escaparHtmlChat(item.nomeSnapshot)}</span>
+                        <input type="number" min="1" max="999" value="${item.quantidade}" class="aura-order-item-qtd" onchange="atualizarQuantidadeItemPedido('${item.produtoId}', this.value)" aria-label="Quantidade de ${escaparHtmlChat(item.nomeSnapshot)}">
+                        <span class="aura-order-item-preco">${(item.precoSnapshot * item.quantidade).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                        <button type="button" onclick="removerItemDoPedido('${item.produtoId}')" aria-label="Remover ${escaparHtmlChat(item.nomeSnapshot)}" class="aura-order-item-remover">&times;</button>
+                    </div>
+                `).join("");
+            }
+            const subtotal = calcularValorItens(itens);
+            if (resumoValor) {
+                resumoValor.textContent = itens.length > 0 ? `Subtotal dos itens: ${subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}` : "";
+            }
+            const campoProdutos = document.getElementById("ped-produtos");
+            const campoValor = document.getElementById("ped-valor");
+            if (itens.length > 0) {
+                if (campoProdutos && !campoProdutos.dataset.pedEditadoManual) campoProdutos.value = resumoTextoItens(itens);
+                if (campoValor && !campoValor.dataset.pedEditadoManual) campoValor.value = subtotal.toFixed(2);
+            }
+        }
+
+        async function renderBuscaProdutosPedido(termo) {
+            const box = document.getElementById("ped-item-resultados");
+            if (!box) return;
+            const termoLimpo = String(termo || "").trim().toLowerCase();
+            if (!termoLimpo) { box.innerHTML = ""; box.hidden = true; return; }
+            const catalogo = await carregarCatalogoProdutosPedido();
+            const encontrados = catalogo.filter(p => String(p.nome || "").toLowerCase().includes(termoLimpo)).slice(0, 8);
+            if (encontrados.length === 0) {
+                box.innerHTML = `<p class="aura-order-item-vazio">Nenhum produto do catálogo encontrado.</p>`;
+                box.hidden = false;
+                return;
+            }
+            box.innerHTML = encontrados.map(p => `
+                <button type="button" class="aura-order-item-sugestao" onclick="adicionarProdutoAoPedido('${p.id}')">
+                    <span>${escaparHtmlChat(p.nome)}</span>
+                    <span>${(Number(p.preco) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+                </button>
+            `).join("");
+            box.hidden = false;
+        }
+
+        window.buscarProdutoParaPedido = function(termo) {
+            renderBuscaProdutosPedido(termo);
+        };
+
+        window.adicionarProdutoAoPedido = function(produtoId) {
+            const produto = (window._catalogoProdutosPedido || []).find(p => p.id === produtoId);
+            if (!produto) return;
+            window._itensPedidoAtual = adicionarItemPedido(window._itensPedidoAtual, produto, 1);
+            renderItensPedido();
+            const busca = document.getElementById("ped-item-busca");
+            const resultados = document.getElementById("ped-item-resultados");
+            if (busca) busca.value = "";
+            if (resultados) { resultados.innerHTML = ""; resultados.hidden = true; }
+        };
+
+        window.removerItemDoPedido = function(produtoId) {
+            window._itensPedidoAtual = removerItemPedido(window._itensPedidoAtual, produtoId);
+            renderItensPedido();
+        };
+
+        window.atualizarQuantidadeItemPedido = function(produtoId, valor) {
+            window._itensPedidoAtual = atualizarQuantidadeItem(window._itensPedidoAtual, produtoId, valor);
+            renderItensPedido();
+        };
+
+        // Depois que a equipe edita manualmente o texto/valor, o
+        // preenchimento automático a partir dos itens para de sobrescrever
+        // (nunca some o que a pessoa acabou de digitar).
+        window.marcarPedidoCampoEditadoManual = function(campoId) {
+            const campo = document.getElementById(campoId);
+            if (campo) campo.dataset.pedEditadoManual = "1";
+        };
+
         window.abrirModalPedido = function() {
 
             const modal =
@@ -15500,11 +15611,22 @@ async function() {
             const observacao =
                 document.getElementById("ped-obs");
 
+            const prazoEntrega =
+                document.getElementById("ped-prazo-entrega");
+
             if (cliente) cliente.value = "";
-            if (produtos) produtos.value = "";
-            if (valor) valor.value = "";
+            if (produtos) { produtos.value = ""; delete produtos.dataset.pedEditadoManual; }
+            if (valor) { valor.value = ""; delete valor.dataset.pedEditadoManual; }
             if (status) status.value = "aguardando";
             if (observacao) observacao.value = "";
+            if (prazoEntrega) prazoEntrega.value = "";
+
+            window._itensPedidoAtual = [];
+            renderItensPedido();
+            const buscaItem = document.getElementById("ped-item-busca");
+            if (buscaItem) buscaItem.value = "";
+            const resultados = document.getElementById("ped-item-resultados");
+            if (resultados) { resultados.innerHTML = ""; resultados.hidden = true; }
 
             modal?.classList.remove("hidden");
 
@@ -15536,11 +15658,16 @@ async function() {
             const observacao =
                 document.getElementById("ped-obs");
 
+            const prazoEntrega =
+                document.getElementById("ped-prazo-entrega");
+
             if (cliente) cliente.value = "";
             if (produtos) produtos.value = "";
             if (valor) valor.value = "";
             if (status) status.value = "aguardando";
             if (observacao) observacao.value = "";
+            if (prazoEntrega) prazoEntrega.value = "";
+            window._itensPedidoAtual = [];
 
         };
 
@@ -15552,13 +15679,20 @@ async function() {
             const valor = parseFloat(document.getElementById("ped-valor").value || 0);
             const status = document.getElementById("ped-status").value;
             const obs = document.getElementById("ped-obs").value.trim();
+            const prazoEntregaInput = document.getElementById("ped-prazo-entrega")?.value || "";
+            const itens = window._itensPedidoAtual || [];
             if (!cliente || !produtos) return showToast("Preencha cliente e produto.", "error");
+            const erroItens = validarItensPedido(itens);
+            if (erroItens) return showToast(erroItens, "error");
             try {
-                await setDoc(doc(db, "pedidos", `ped_${Date.now()}`), {
+                const payload = {
                     cliente, produtos, valor, status, obs,
                     criadoPor: usuarioUID,
                     data: Date.now()
-                });
+                };
+                if (itens.length > 0) payload.itens = itens;
+                if (prazoEntregaInput) payload.prazoEntrega = new Date(prazoEntregaInput + "T00:00:00").getTime();
+                await setDoc(doc(db, "pedidos", `ped_${Date.now()}`), payload);
                 fecharModalPedido();
                 carregarPedidos();
                 showToast("Pedido registrado!");
