@@ -113,11 +113,11 @@ export function contemVariavelNaoResolvida(texto) {
 }
 
 // Formata um pedido (schema real: valor number, status enum, data
-// timestamp — "pedidos.itens"/"produtoId" estruturados ficam pra próxima
-// fase, RD3 "Pedidos estruturados") nos 4 valores de variável de pedido.
-// `numero_pedido` usa o próprio id do documento (`ped_<timestamp>`) como
-// identificador visível — não existe hoje um campo de "número" amigável
-// separado (limitação documentada, não inventamos um).
+// timestamp, prazoEntrega timestamp opcional desde a etapa "Pedidos
+// Estruturados") nos valores de variável de pedido. `numero_pedido` usa
+// o próprio id do documento (`ped_<timestamp>`) como identificador
+// visível — não existe hoje um campo de "número" amigável separado
+// (limitação documentada, não inventamos um).
 export function valoresDePedido(pedido) {
     if (!pedido) return {};
     const valores = {};
@@ -130,9 +130,12 @@ export function valoresDePedido(pedido) {
         const ms = typeof pedido.data === "number" ? pedido.data : null;
         if (ms) valores.data_pedido = new Date(ms).toLocaleDateString("pt-BR");
     }
-    // prazo_entrega: não existe campo canônico de prazo de entrega em
-    // `pedidos` hoje (auditado — nenhuma referência no repositório) —
-    // fica sempre pendente até essa estrutura existir num ciclo futuro.
+    // prazoEntrega (opcional, "Pedidos Estruturados") — só resolve
+    // quando o pedido realmente tem essa data; sem ela, continua
+    // pendente (nunca inventa uma data).
+    if (typeof pedido.prazoEntrega === "number") {
+        valores.prazo_entrega = new Date(pedido.prazoEntrega).toLocaleDateString("pt-BR");
+    }
     return valores;
 }
 
@@ -149,7 +152,7 @@ const ORIGEM_PENDENCIA = Object.freeze({
     status_pedido: "Nenhum pedido vinculado a esta conversa.",
     valor_pedido: "Nenhum pedido vinculado a esta conversa.",
     data_pedido: "Nenhum pedido vinculado a esta conversa.",
-    prazo_entrega: "Prazo de entrega ainda não é um dado estruturado do pedido."
+    prazo_entrega: "Pedido vinculado não tem prazo de entrega preenchido."
 });
 
 export function resolverVariaveisTemplate(texto, { nomeCliente = "", nomeLoja = "", nomeFuncionario = "", pedido = null } = {}) {

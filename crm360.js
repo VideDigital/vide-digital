@@ -4,6 +4,7 @@
 // sem automação nesta etapa — só identidade, relacionamento e histórico.
 
 import { CANAIS_CONVERSA, STATUS_CONVERSA, funcionarioPodeAtender, funcionariosElegiveisAtendimento, categoriaEventoAtendimento } from "./atendimento.js";
+import { contarProdutosMaisComprados, produtosInteresseConvertidos } from "./pedidos-estruturados.js";
 
 export { funcionarioPodeAtender };
 
@@ -160,19 +161,12 @@ export function calcularResumoComercial(pedidosDoCliente) {
         ? Math.floor((Date.now() - Number(ultimoPedido.data)) / 86400000)
         : null;
 
-    // "Produtos mais comprados": pedidos.produtos é texto livre (não é FK),
-    // então isto é uma contagem best-effort por texto idêntico após
-    // normalizar espaços/caixa — não uma contagem por produtoId real.
-    const contagemProdutos = new Map();
-    pedidos.forEach(p => {
-        String(p.produtos || "").split(",").map(s => s.trim()).filter(Boolean).forEach(nome => {
-            const chave = nome.toLowerCase();
-            contagemProdutos.set(chave, { nome, total: (contagemProdutos.get(chave)?.total || 0) + 1 });
-        });
-    });
-    const produtosMaisComprados = Array.from(contagemProdutos.values())
-        .sort((a, b) => b.total - a.total)
-        .slice(0, 5);
+    // "Produtos mais comprados": desde a etapa "Pedidos Estruturados",
+    // pedidos com `itens` (produtoId real) contam com precisão real;
+    // pedidos antigos sem `itens` continuam contando pelo texto livre de
+    // `produtos` (best-effort) — nunca descarta nenhum pedido, só usa o
+    // melhor dado disponível em cada um (ver pedidos-estruturados.js).
+    const produtosMaisComprados = contarProdutosMaisComprados(pedidos, 5);
 
     return {
         totalPedidos: pedidos.length,
@@ -564,6 +558,13 @@ export function criarCrm360Controller(deps) {
         const box = el("crm-produtos-interesse-lista");
         if (!box) return;
         const lista = state.cliente?.produtosInteresse || [];
+        // "Convertido": o produtoId do interesse aparece nos itens
+        // estruturados de algum pedido real deste cliente (Fase de
+        // Pedidos Estruturados) — só um selo informativo, não altera
+        // nenhum dado; pedidos antigos sem `itens` nunca geram esse selo
+        // (não há como saber sem dado estruturado, e não inventamos).
+        const todosItens = (state.pedidos || []).flatMap(p => Array.isArray(p.itens) ? p.itens : []);
+        const convertidos = new Set(produtosInteresseConvertidos(lista, todosItens).map(p => p.produtoId));
         box.innerHTML = lista.length === 0
             ? `<p class="crm-vazio-texto">Nenhum produto de interesse ainda.</p>`
             : lista.map(p => `
@@ -571,6 +572,7 @@ export function criarCrm360Controller(deps) {
                     <div>
                         <strong>${escaparHtml(p.nomeSnapshot)}</strong>
                         <span class="crm-item-meta">${formatarMoeda(p.precoSnapshot)} · vinculado em ${formatarData(p.vinculadoEm)}</span>
+                        ${convertidos.has(p.produtoId) ? `<span class="atend-chip is-status-resolvida">Convertido em pedido</span>` : ""}
                     </div>
                     <button type="button" class="atend-btn" data-crm-remover-produto="${escaparHtml(p.produtoId)}">Remover</button>
                 </div>
