@@ -8,3 +8,4 @@ ui-debug.log
 emulator-*.log
 .firebase/
 gha-creds-*.json
+test-results/

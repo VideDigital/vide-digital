@@ -102,13 +102,21 @@ await setDoc("usuarios/owner-pro", {
   chatAtivo: true
 });
 
+// employee-read/employee-edit cobrem os perfis "leitor" e "editor" do
+// Quality Gate (owner/editor/reader) — precisam de ver/editar em
+// atendimento, crm, pedidos (hub), templates e base-conhecimento-ia além
+// do que já existia, senão o smoke autenticado não tem como validar
+// "vê mas não edita" nesses módulos.
 await setDoc("funcionarios/employee-read", {
   donoUID: "owner-pro",
   email: "employee.read@local.test",
   nome: "Funcionário Leitura",
   status: "ativo",
   cargo: "Atendimento",
-  permissoes: { ver: ["dashboard", "produtos", "leads"], editar: [] }
+  permissoes: {
+    ver: ["dashboard", "produtos", "leads", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia"],
+    editar: []
+  }
 });
 
 await setDoc("funcionarios/employee-edit", {
@@ -117,7 +125,10 @@ await setDoc("funcionarios/employee-edit", {
   nome: "Funcionário Editor",
   status: "ativo",
   cargo: "Operação",
-  permissoes: { ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia"], editar: ["produtos", "leads", "funcionarios", "central-ia"] }
+  permissoes: {
+    ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia"],
+    editar: ["produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia"]
+  }
 });
 
 await setDoc("funcionarios/employee-inactive", {
@@ -171,11 +182,157 @@ await setDoc("leads/lead-local-1", {
   origem: "seed"
 });
 
+// clientes/{id} (CRM 360) — criado ANTES do chat pra poder linkar
+// clienteId nele, espelhando o vínculo real que crm360.js cria.
+await setDoc("clientes/cliente-local-1", {
+  tenantId: "owner-pro",
+  lojaId: "owner-pro",
+  nome: "Cliente Local",
+  telefone: "5511999990000",
+  telefoneNormalizado: "5511999990000",
+  email: "cliente.local@local.test",
+  emailNormalizado: "cliente.local@local.test",
+  origem: "atendimento",
+  statusRelacionamento: "cliente",
+  tags: ["vip"],
+  produtosInteresse: [],
+  primeiraInteracaoEm: Date.now() - 86400000,
+  ultimaInteracaoEm: Date.now(),
+  criadoEm: FieldValue.serverTimestamp(),
+  criadoPor: "owner-pro",
+  atualizadoEm: FieldValue.serverTimestamp(),
+  atualizadoPor: "owner-pro"
+});
+
 await setDoc("chats/chat-local-1", {
   donoUID: "owner-pro",
+  emailDono: "owner-pro",
+  clienteId: "cliente-local-1",
   clienteNome: "Cliente Local",
   statusAdmin: "pending",
-  atualizadoEm: FieldValue.serverTimestamp()
+  status: "aberta",
+  canal: "loja_publica",
+  timestamp: Date.now() - 3600000,
+  ultimaMensagem: "Olá, gostaria de saber o prazo de entrega.",
+  atualizadoEm: FieldValue.serverTimestamp(),
+  naoLidasLoja: 1,
+  atribuidoPara: ""
+});
+
+await setDoc("chats/chat-local-1/mensagens/msg-local-1", {
+  tipo: "cliente",
+  texto: "Olá, gostaria de saber o prazo de entrega.",
+  criadoEm: FieldValue.serverTimestamp()
+});
+
+await setDoc("chats/chat-local-1/eventos/evt-local-1", {
+  tenantId: "owner-pro",
+  lojaId: "owner-pro",
+  chatId: "chat-local-1",
+  tipo: "mensagem_cliente_recebida",
+  categoria: "mensagens",
+  autorUid: "",
+  autorTipo: "cliente",
+  autorNome: "Cliente Local",
+  origem: "cliente",
+  criadoEm: FieldValue.serverTimestamp(),
+  versaoSchema: 1
+});
+
+// templates/{id} — categoria fechada real (ver CATEGORIAS_TEMPLATE em
+// templates-atendimento.js), com uma variável válida no corpo pra exercer
+// a resolução de variáveis no smoke.
+await setDoc("templates/tpl-local-1", {
+  titulo: "Saudação inicial",
+  mensagem: "Olá {{nome_cliente}}! Como posso ajudar hoje?",
+  categoria: "saudacao",
+  contexto: "atendimento",
+  atalho: "saudacao",
+  favorito: true,
+  descricaoInterna: "Template seedado pro Quality Gate",
+  ativo: true,
+  versaoSchema: 1,
+  ordem: 0,
+  usoTotal: 0,
+  criadoPor: "owner-pro",
+  criadoEm: Date.now(),
+  atualizadoPor: "owner-pro",
+  atualizadoEm: Date.now()
+});
+
+// base_conhecimento_ia/{id} — uma FAQ manual e um item por referência de
+// produto (produtoIds aponta pra produtos/prod-local-1 já seedado acima).
+await setDoc("base_conhecimento_ia/kb-local-1", {
+  tenantId: "owner-pro",
+  lojaId: "owner-pro",
+  tipo: "faq",
+  titulo: "Qual o prazo de entrega?",
+  conteudo: "Enviamos em até 3 dias úteis para todo o Brasil.",
+  resumo: "Prazo padrão de entrega.",
+  tags: ["entrega", "prazo"],
+  categoria: "entrega",
+  prioridade: "normal",
+  status: "ativo",
+  ativo: true,
+  criadoEm: FieldValue.serverTimestamp(),
+  criadoPor: "owner-pro",
+  atualizadoEm: FieldValue.serverTimestamp(),
+  atualizadoPor: "owner-pro"
+});
+
+await setDoc("base_conhecimento_ia/kb-local-2", {
+  tenantId: "owner-pro",
+  lojaId: "owner-pro",
+  tipo: "produto",
+  titulo: "Produto Local — referência de catálogo",
+  conteudo: "Produto Local — R$ 99,00",
+  produtoIds: ["prod-local-1"],
+  tags: [],
+  prioridade: "normal",
+  status: "ativo",
+  ativo: true,
+  criadoEm: FieldValue.serverTimestamp(),
+  criadoPor: "owner-pro",
+  atualizadoEm: FieldValue.serverTimestamp(),
+  atualizadoPor: "owner-pro"
+});
+
+// configuracoes_ia/{storeUid} — config real da Central de IA (id = uid do dono).
+await setDoc("configuracoes_ia/owner-pro", {
+  ativo: false,
+  nomeAssistente: "Assistente Local",
+  mensagemApresentacao: "Olá! Sou a assistente virtual da Loja Pro Local.",
+  idioma: "pt-BR",
+  personalidade: "amigavel",
+  tamanhoResposta: "media",
+  instrucoes: "",
+  canais: {
+    lojaPublica: false,
+    sugestoesFuncionarios: false,
+    respostasAutomaticas: false,
+    criacaoConteudo: false,
+    whatsapp: false
+  },
+  modoRespostaAutomatica: "nunca",
+  mensagemFallback: "Não encontrei essa informação. Vou encaminhar sua pergunta para nossa equipe."
+});
+
+// pedidos/{id} — itens estruturados reais (produtoId aponta pro produto
+// seedado), pra exercer "produtos mais comprados" e {{prazo_entrega}}.
+await setDoc("pedidos/pedido-local-1", {
+  cliente: "Cliente Local",
+  clienteId: "cliente-local-1",
+  produtos: "1x Produto Local",
+  itens: [
+    { produtoId: "prod-local-1", nomeSnapshot: "Produto Local", precoSnapshot: 99, quantidade: 1 }
+  ],
+  valor: 99,
+  status: "aguardando",
+  obs: "",
+  prazoEntrega: "3 dias úteis",
+  criadoPor: "owner-pro",
+  data: Date.now(),
+  statusAtualizadoEm: Date.now()
 });
 
 await setDoc("notificacoes/notif-local-1", {
