@@ -2366,6 +2366,10 @@ if (targetId === "view-metricas") {
         atendimentoController.load();
     }
 
+    if (targetId === "view-crm360") {
+        crm360Controller.loadLista();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3878,6 +3882,7 @@ if (document.readyState === "loading") {
             "view-central-ia": "central-ia",
             "view-base-conhecimento": "base-conhecimento-ia",
             "view-atendimento": "atendimento",
+            "view-crm360": "crm",
             "view-funcionarios": "funcionarios",
             "view-landing-pages": "landing-pages"
         };

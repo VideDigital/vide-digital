@@ -582,6 +582,52 @@
 
 .crm-vincular-busca { margin-top: 10px; font-size: 12px; }
 .crm-vincular-busca summary { cursor: pointer; color: var(--at-muted, #a7afc0); font-weight: 700; }
+
+/* Lista própria do CRM 360 (navegação direta, fora do Atendimento) */
+.crm-lista-clientes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 16px;
+}
+.crm-lista-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: 100%;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--at-border, rgba(255, 255, 255, 0.09));
+    background: rgba(255, 255, 255, 0.02);
+    color: inherit;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: background .15s ease, border-color .15s ease;
+}
+.crm-lista-item:hover,
+.crm-lista-item:focus-visible {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.18);
+}
+.crm-lista-item-info {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-width: 0;
+}
+.crm-lista-item-info strong {
+    font-size: 13px;
+    font-weight: 700;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.crm-lista-item-data {
+    flex-shrink: 0;
+    font-size: 11px;
+    color: var(--at-muted, #a7afc0);
+}
 .crm-vincular-busca input { margin-top: 8px; }
 
 .crm-candidato-item { text-align: left; }

@@ -9,9 +9,11 @@ import {
     categoriaEvento,
     emailValido,
     encontrarCorrespondencias,
+    filtrarListaClientes,
     filtrarTimeline,
     normalizarEmail,
     normalizarTelefone,
+    ordenarListaClientes,
     ordenarTimeline,
     removerProdutoInteresse,
     removerTagCliente,
@@ -295,5 +297,55 @@ describe("linha do tempo unificada", () => {
         assert.equal(filtrarTimeline(eventos, "leads").length, 1);
         assert.equal(filtrarTimeline(eventos, "pedidos").length, 1);
         assert.equal(filtrarTimeline(eventos, "todos").length, 3);
+    });
+});
+
+describe("lista própria do CRM 360 (navegação direta)", () => {
+    const clientes = [
+        { id: "1", nome: "Ana Silva", telefone: "5511999990001", email: "ana@x.com", statusRelacionamento: "cliente", ultimaInteracaoEm: 3000 },
+        { id: "2", nome: "Bruno Costa", telefone: "5511999990002", email: "bruno@x.com", statusRelacionamento: "lead", ultimaInteracaoEm: 5000 },
+        { id: "3", nome: "Carla Dias", telefone: "5511999990003", email: "carla@x.com", statusRelacionamento: "cliente", ultimaInteracaoEm: 1000 }
+    ];
+
+    it("sem filtro, retorna todos", () => {
+        assert.equal(filtrarListaClientes(clientes).length, 3);
+        assert.equal(filtrarListaClientes(clientes, {}).length, 3);
+    });
+
+    it("filtra por status de relacionamento", () => {
+        const filtrado = filtrarListaClientes(clientes, { status: "cliente" });
+        assert.deepEqual(filtrado.map(c => c.id).sort(), ["1", "3"]);
+    });
+
+    it("busca por nome, telefone ou e-mail, sem diferenciar maiúsculas/minúsculas", () => {
+        assert.deepEqual(filtrarListaClientes(clientes, { busca: "bruno" }).map(c => c.id), ["2"]);
+        assert.deepEqual(filtrarListaClientes(clientes, { busca: "990003" }).map(c => c.id), ["3"]);
+        assert.deepEqual(filtrarListaClientes(clientes, { busca: "ANA@X.COM" }).map(c => c.id), ["1"]);
+    });
+
+    it("combina busca e status", () => {
+        assert.equal(filtrarListaClientes(clientes, { busca: "carla", status: "lead" }).length, 0);
+        assert.equal(filtrarListaClientes(clientes, { busca: "carla", status: "cliente" }).length, 1);
+    });
+
+    it("nunca lança erro com lista vazia ou nula", () => {
+        assert.deepEqual(filtrarListaClientes([]), []);
+        assert.deepEqual(filtrarListaClientes(null), []);
+    });
+
+    it("ordena por mais recente por padrão", () => {
+        const ordenado = ordenarListaClientes(clientes);
+        assert.deepEqual(ordenado.map(c => c.id), ["2", "1", "3"]);
+    });
+
+    it("ordena por nome (A-Z)", () => {
+        const ordenado = ordenarListaClientes(clientes, "nome");
+        assert.deepEqual(ordenado.map(c => c.id), ["1", "2", "3"]);
+    });
+
+    it("não muta a lista original", () => {
+        const copia = [...clientes];
+        ordenarListaClientes(clientes, "nome");
+        assert.deepEqual(clientes, copia);
     });
 });

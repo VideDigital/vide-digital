@@ -298,6 +298,10 @@ Automação de Leads
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
 Central de Atendimento
 </button>
+<button data-target="view-crm360" data-module-permission="crm" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1" aria-label="Abrir CRM 360 do Cliente">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M22 21v-2a4 4 0 0 0-3-3.87"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+CRM 360 do Cliente
+</button>
 <button data-target="view-central-ia" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1" aria-label="Abrir Central de IA">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h1M19 5h1M3 10h2M19 10h2"></path></svg>
 Central de IA
@@ -951,6 +955,7 @@ HUB
 <div class="aura-hub-card" data-nome="leads capturas contatos funil" onclick="ativarAba('view-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="aura-hub-card-text"><strong>Leads (Capturas)</strong><small>Contatos capturados e funil de vendas</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="automação de leads automacao regras disparos" onclick="ativarAba('view-automacao-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span class="aura-hub-card-text"><strong>Automação de Leads</strong><small>Regras e disparos automáticos</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card hidden" data-target="view-atendimento" data-module-permission="atendimento" data-nome="central de atendimento conversas chat suporte inbox mensagens clientes" role="button" tabindex="0" onclick="ativarAba('view-atendimento')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-atendimento'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></span><span class="aura-hub-card-text"><strong>Central de Atendimento</strong><small>Converse com clientes e organize as conversas</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
+<div class="aura-hub-card hidden" data-target="view-crm360" data-module-permission="crm" data-nome="crm 360 clientes cadastro relacionamento historico" role="button" tabindex="0" onclick="ativarAba('view-crm360')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-crm360'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="aura-hub-card-text"><strong>CRM 360 do Cliente</strong><small>Todos os clientes, relacionamento e histórico</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card hidden" data-target="view-central-ia" data-module-permission="central-ia" data-nome="central de ia inteligência artificial inteligencia artificial assistente automação automacao chatbot atendimento" role="button" tabindex="0" onclick="ativarAba('view-central-ia')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-central-ia'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"/><path d="M4 5h1M19 5h1M3 10h2M19 10h2"/></svg></span><span class="aura-hub-card-text"><strong>Central de IA</strong><small>Configure a assistente virtual da sua loja</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card hidden" data-target="view-base-conhecimento" data-module-permission="base-conhecimento-ia" data-nome="base de conhecimento ia faq politicas empresa manuais assistente" role="button" tabindex="0" onclick="ativarAba('view-base-conhecimento')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-base-conhecimento'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span><span class="aura-hub-card-text"><strong>Base de Conhecimento</strong><small>FAQ, políticas e dados que a IA vai usar</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="templates mensagens prontas" onclick="ativarAba('view-templates')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="aura-hub-card-text"><strong>Templates</strong><small>Mensagens prontas de atendimento</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
@@ -3803,6 +3808,50 @@ Enviar
 </div>
 </div>
 </div>
+
+</section>
+
+<section id="view-crm360" class="view-section space-y-6 max-w-6xl mx-auto" aria-labelledby="crm360-title">
+<header class="atendimento-header">
+<div>
+<h1 id="crm360-title" class="atendimento-title">CRM 360 do Cliente</h1>
+<p class="atendimento-subtitle">Todos os clientes identificados na sua loja — conversas, leads e pedidos vinculados num só lugar.</p>
+</div>
+<button type="button" class="atend-btn" id="crm-lista-atualizar" aria-label="Atualizar lista de clientes">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+Atualizar
+</button>
+</header>
+
+<div class="atend-filtros">
+<div class="atend-filtro-grupo">
+<label for="crm-lista-busca">Buscar</label>
+<input type="text" id="crm-lista-busca" class="atend-input" placeholder="Nome, telefone ou e-mail">
+</div>
+<div class="atend-filtro-grupo">
+<label for="crm-lista-filtro-status">Status</label>
+<select id="crm-lista-filtro-status" class="atend-select">
+<option value="todos">Todos os status</option>
+<option value="novo">Novo</option>
+<option value="lead">Lead</option>
+<option value="qualificado">Qualificado</option>
+<option value="negociacao">Em negociação</option>
+<option value="cliente">Cliente</option>
+<option value="recorrente">Recorrente</option>
+<option value="inativo">Inativo</option>
+<option value="perdido">Perdido</option>
+</select>
+</div>
+<div class="atend-filtro-grupo">
+<label for="crm-lista-ordem">Ordenar por</label>
+<select id="crm-lista-ordem" class="atend-select">
+<option value="recente">Mais recentes</option>
+<option value="nome">Nome (A-Z)</option>
+</select>
+</div>
+</div>
+
+<div id="crm-lista-clientes" class="crm-lista-clientes"></div>
 
 </section>
 

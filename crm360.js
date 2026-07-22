@@ -261,6 +261,31 @@ export function filtrarTimeline(eventos, filtro = "todos") {
     return (eventos || []).filter(e => categoriaEvento(e.tipo) === filtro);
 }
 
+// Lista de clientes do CRM 360 (Fase de navegação própria) — busca por
+// nome/telefone/e-mail e filtro por status de relacionamento, tudo em
+// memória sobre os clientes já carregados do tenant. Nunca busca em
+// outro tenant (a query que carrega a lista já filtra por tenantId).
+export function filtrarListaClientes(clientes, { busca = "", status = "todos" } = {}) {
+    const termo = String(busca || "").trim().toLowerCase();
+    return (clientes || []).filter(c => {
+        if (status !== "todos" && c.statusRelacionamento !== status) return false;
+        if (!termo) return true;
+        const texto = [c.nome, c.telefone, c.email].filter(Boolean).join(" ").toLowerCase();
+        return texto.includes(termo);
+    });
+}
+
+export function ordenarListaClientes(clientes, criterio = "recente") {
+    const lista = [...(clientes || [])];
+    switch (criterio) {
+        case "nome":
+            return lista.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
+        case "recente":
+        default:
+            return lista.sort((a, b) => (Number(b.ultimaInteracaoEm) || 0) - (Number(a.ultimaInteracaoEm) || 0));
+    }
+}
+
 function escaparHtml(valor) {
     return String(valor ?? "")
         .replace(/&/g, "&amp;")
@@ -311,7 +336,13 @@ export function criarCrm360Controller(deps) {
         funcionarios: [],
         filtroTimeline: "todos",
         salvandoObservacao: false,
-        buscaProdutoResultado: []
+        buscaProdutoResultado: [],
+        // Lista própria de clientes (navegação direta, fora de uma
+        // conversa) — mesma coleção `clientes`, nenhum dado duplicado.
+        listaClientes: [],
+        listaCarregando: false,
+        listaErro: false,
+        listaFiltro: { busca: "", status: "todos", ordem: "recente" }
     };
 
     function el(id) {
@@ -747,6 +778,75 @@ export function criarCrm360Controller(deps) {
         }
     }
 
+    // ===== Lista própria do CRM 360 (navegação direta, fora do Atendimento) =====
+    // Mesma coleção `clientes`, mesmo drawer (abrirParaClienteId) — só uma
+    // porta de entrada nova, sem duplicar dado nem estrutura nenhuma.
+    async function carregarListaClientes() {
+        if (!podeVer()) return;
+        state.listaCarregando = true;
+        state.listaErro = false;
+        renderListaClientes();
+        try {
+            const snap = await getDocs(query(collection(db, "clientes"), where("tenantId", "==", storeUid()), limit(500)));
+            state.listaClientes = [];
+            snap.forEach(d => state.listaClientes.push({ id: d.id, ...d.data() }));
+        } catch (error) {
+            console.error("[CRM 360] Falha ao carregar lista de clientes:", codigoErroFirebase(error), error?.message);
+            state.listaClientes = [];
+            state.listaErro = true;
+        } finally {
+            state.listaCarregando = false;
+            renderListaClientes();
+        }
+    }
+
+    function renderListaClientes() {
+        const box = el("crm-lista-clientes");
+        if (!box) return;
+        if (!podeVer()) {
+            box.innerHTML = `<p class="crm-vazio-texto">Você não tem permissão para ver o CRM 360.</p>`;
+            return;
+        }
+        if (state.listaCarregando) {
+            box.innerHTML = `<div class="atend-mensagens-skel"><span class="aura-skel" style="width:60%;height:32px"></span><span class="aura-skel" style="width:40%;height:32px"></span></div>`;
+            return;
+        }
+        if (state.listaErro) {
+            box.innerHTML = `<div class="atend-vazio"><strong>Não deu pra carregar os clientes.</strong><button type="button" class="atend-btn" data-crm-lista-acao="recarregar">Tentar novamente</button></div>`;
+            return;
+        }
+        const visiveis = ordenarListaClientes(filtrarListaClientes(state.listaClientes, state.listaFiltro), state.listaFiltro.ordem);
+        if (visiveis.length === 0) {
+            box.innerHTML = state.listaClientes.length === 0
+                ? `<p class="crm-vazio-texto">Nenhum cliente identificado ainda — clientes aparecem aqui assim que forem vinculados a uma conversa, lead ou pedido.</p>`
+                : `<p class="crm-vazio-texto">Nenhum cliente encontrado com esse filtro.</p>`;
+            return;
+        }
+        box.innerHTML = visiveis.map(c => `
+            <button type="button" class="crm-lista-item" data-crm-abrir-cliente="${escaparHtml(c.id)}">
+                <span class="atend-avatar">${escaparHtml((c.nome || "?").trim().slice(0, 1).toUpperCase())}</span>
+                <span class="crm-lista-item-info">
+                    <strong>${escaparHtml(c.nome || "Cliente sem nome")}</strong>
+                    <span class="crm-item-meta">${escaparHtml(STATUS_RELACIONAMENTO[c.statusRelacionamento] || "Novo")}${c.telefone ? " · " + escaparHtml(c.telefone) : ""}</span>
+                </span>
+                <span class="crm-lista-item-data">${c.ultimaInteracaoEm ? formatarData(c.ultimaInteracaoEm) : "—"}</span>
+            </button>
+        `).join("");
+    }
+
+    // Ponto de entrada chamado pelo ativarAba('view-crm360') — mesmo padrão
+    // de carregarTemplatesAtendimento/carregarPedidos: só recarrega do
+    // zero se ainda não tinha carregado, evitando releitura a cada troca
+    // de aba.
+    async function loadLista({ force = false } = {}) {
+        if (!podeVer()) return;
+        if (state.listaClientes.length > 0 && !force && !state.listaErro) {
+            renderListaClientes();
+            return;
+        }
+        await carregarListaClientes();
+    }
+
     // Vincula a conversa ATUAL a um cliente já existente (candidato
     // sugerido) — grava clienteId no chat e recarrega o perfil.
     async function vincularConversaACliente(clienteId) {
@@ -1061,6 +1161,26 @@ export function criarCrm360Controller(deps) {
         el("crm-cliente-fechar")?.addEventListener("click", fechar);
         el("crm-btn-criar-cliente")?.addEventListener("click", criarClienteDaConversa);
 
+        // Lista própria (navegação direta pro CRM 360, view-crm360).
+        el("crm-lista-clientes")?.addEventListener("click", event => {
+            const abrir = event.target.closest("[data-crm-abrir-cliente]");
+            if (abrir) abrirParaClienteId(abrir.getAttribute("data-crm-abrir-cliente"));
+            if (event.target.closest("[data-crm-lista-acao='recarregar']")) loadLista({ force: true });
+        });
+        el("crm-lista-busca")?.addEventListener("input", event => {
+            state.listaFiltro.busca = event.target.value;
+            renderListaClientes();
+        });
+        el("crm-lista-filtro-status")?.addEventListener("change", event => {
+            state.listaFiltro.status = event.target.value;
+            renderListaClientes();
+        });
+        el("crm-lista-ordem")?.addEventListener("change", event => {
+            state.listaFiltro.ordem = event.target.value;
+            renderListaClientes();
+        });
+        el("crm-lista-atualizar")?.addEventListener("click", () => loadLista({ force: true }));
+
         el("crm-candidatos-lista")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-crm-candidato-id]");
             if (alvo) vincularConversaACliente(alvo.getAttribute("data-crm-candidato-id"));
@@ -1172,6 +1292,7 @@ export function criarCrm360Controller(deps) {
         vincularPedido,
         buscarLeadsParaVincular,
         buscarPedidosParaVincular,
+        loadLista,
         bindEventos,
         state
     };
