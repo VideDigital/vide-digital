@@ -1741,6 +1741,78 @@ describe("chats/eventos: criação pela equipe (autoria real, enum, categoria)",
   });
 });
 
+describe("chats/eventos: copiloto de IA (permissão dedicada, separada de atendimento)", () => {
+  it("dono sempre pode gravar uso/descarte de sugestão de IA", async () => {
+    await semearChat("chatIa1");
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatIa1", "eventos")), eventoStaffFixture({
+      chatId: "chatIa1", tipo: "ia_sugestao_usada", categoria: "ia",
+      resumo: "Pedido #1042, FAQ: Prazo de entrega",
+      dados: { iaAction: "sugerir_resposta", iaProvider: "mock", iaConfidenceBucket: "alta" }
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatIa1", "eventos")), eventoStaffFixture({
+      chatId: "chatIa1", tipo: "ia_sugestao_descartada", categoria: "ia"
+    })));
+  });
+
+  it("funcionário só com 'atendimento' NÃO pode gravar evento de IA (falta a permissão dedicada 'ia-copilot')", async () => {
+    await semearFuncionarioAtendimento("employeeAtendSemIa", { permissoes: { ver: ["atendimento"], editar: ["atendimento"] } });
+    await semearChat("chatIa2");
+    await assertFails(setDoc(doc(collection(authed("employeeAtendSemIa"), "chats", "chatIa2", "eventos")), eventoStaffFixture({
+      chatId: "chatIa2", tipo: "ia_sugestao_usada", categoria: "ia",
+      autorUid: "employeeAtendSemIa", autorTipo: "funcionario",
+      dados: { iaAction: "sugerir_resposta", iaProvider: "mock", iaConfidenceBucket: "media" }
+    })));
+  });
+
+  it("funcionário com 'atendimento' + 'ia-copilot' concedidos pode gravar evento de IA", async () => {
+    await semearFuncionarioAtendimento("employeeAtendComIa", {
+      permissoes: { ver: ["atendimento", "ia-copilot"], editar: ["atendimento", "ia-copilot"] }
+    });
+    await semearChat("chatIa3");
+    await assertSucceeds(setDoc(doc(collection(authed("employeeAtendComIa"), "chats", "chatIa3", "eventos")), eventoStaffFixture({
+      chatId: "chatIa3", tipo: "ia_sugestao_usada", categoria: "ia",
+      autorUid: "employeeAtendComIa", autorTipo: "funcionario",
+      dados: { iaAction: "resumir_conversa", iaProvider: "mock", iaConfidenceBucket: "baixa" }
+    })));
+  });
+
+  it("funcionário com 'ia-copilot' mas sem 'atendimento' também não pode (precisa poder responder o chat primeiro)", async () => {
+    await semearFuncionarioAtendimento("employeeSoIa", {
+      permissoes: { ver: ["ia-copilot"], editar: ["ia-copilot"] }
+    });
+    await semearChat("chatIa4");
+    await assertFails(setDoc(doc(collection(authed("employeeSoIa"), "chats", "chatIa4", "eventos")), eventoStaffFixture({
+      chatId: "chatIa4", tipo: "ia_sugestao_usada", categoria: "ia",
+      autorUid: "employeeSoIa", autorTipo: "funcionario",
+      dados: { iaAction: "sugerir_resposta", iaProvider: "mock", iaConfidenceBucket: "alta" }
+    })));
+  });
+
+  it("rejeita categoria errada, tipo fora do enum de IA e chave desconhecida em 'dados' (nunca prompt/resposta completa)", async () => {
+    await semearChat("chatIa5");
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatIa5", "eventos")), eventoStaffFixture({
+      chatId: "chatIa5", tipo: "ia_sugestao_usada", categoria: "atendimento"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatIa5", "eventos")), eventoStaffFixture({
+      chatId: "chatIa5", tipo: "ia_sugestao_gerada", categoria: "ia"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatIa5", "eventos")), eventoStaffFixture({
+      chatId: "chatIa5", tipo: "ia_sugestao_usada", categoria: "ia",
+      dados: { iaAction: "sugerir_resposta", promptCompleto: "não pode" }
+    })));
+  });
+
+  it("visitante público (cliente) nunca pode criar evento de categoria 'ia'", async () => {
+    await semearChat("chatIa6");
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatIa6", "eventos")), {
+      tenantId: "ownerA", lojaId: "ownerA", chatId: "chatIa6",
+      tipo: "ia_sugestao_usada", categoria: "ia",
+      autorUid: "", autorTipo: "cliente", origem: "cliente",
+      criadoEm: serverTimestamp(), versaoSchema: 1
+    }));
+  });
+});
+
 describe("chats/eventos: criação pelo visitante anônimo (whitelist estreita)", () => {
   it("visitante cria mensagem_cliente_recebida e aguardando_equipe do próprio chat", async () => {
     await semearChat("chatEvt9");
