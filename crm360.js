@@ -3,7 +3,7 @@
 // Blaze, escrita direta protegida por Rules: sem IA real, sem WhatsApp,
 // sem automação nesta etapa — só identidade, relacionamento e histórico.
 
-import { CANAIS_CONVERSA, STATUS_CONVERSA, funcionarioPodeAtender, funcionariosElegiveisAtendimento } from "./atendimento.js";
+import { CANAIS_CONVERSA, STATUS_CONVERSA, funcionarioPodeAtender, funcionariosElegiveisAtendimento, categoriaEventoAtendimento } from "./atendimento.js";
 
 export { funcionarioPodeAtender };
 
@@ -349,19 +349,56 @@ export function criarCrm360Controller(deps) {
     // Nunca cria/edita evento sem antes garantir que o cliente pertence ao
     // tenant atual — quem chama já resolveu clienteId a partir de dados do
     // próprio tenant, isto é só uma segunda trava defensiva client-side
-    // (a trava real está nas Rules).
+    // (a trava real está nas Rules). Retorna o id do evento criado (usado
+    // como correlationId pelo espelho em chats/*/eventos, quando a ação
+    // parte de uma conversa aberta) ou "" se não gravou.
     async function registrarEvento(tipo, extra = {}) {
-        if (!state.clienteId) return;
+        if (!state.clienteId) return "";
         try {
-            await setDoc(doc(collection(db, "clientes", state.clienteId, "eventos")), {
+            const ref = doc(collection(db, "clientes", state.clienteId, "eventos"));
+            await setDoc(ref, {
                 tipo,
                 autorUid: authUid(),
                 autorNome: nomeAutorAtual(),
                 criadoEm: serverTimestamp(),
                 ...extra
             });
+            return ref.id;
         } catch (error) {
             console.error("[CRM 360] Falha ao registrar evento:", codigoErroFirebase(error), error?.message);
+            return "";
+        }
+    }
+
+    // Espelha (sem duplicar) uma ação de vínculo do CRM 360 no histórico
+    // da conversa — só quando o drawer foi aberto A PARTIR de uma
+    // conversa (state.conversa setado por abrirParaConversa). O
+    // correlationId aponta pro evento irmão em clientes/*/eventos: são
+    // dois registros de escopos diferentes (por chat / por cliente)
+    // sobre o mesmo fato, nunca uma cópia do conteúdo um do outro. Falha
+    // aqui nunca interrompe a ação principal do CRM (best-effort, mesmo
+    // padrão de registrarEvento).
+    async function registrarEventoConversa(tipo, extra = {}, correlationId = "") {
+        if (!state.conversa?.id) return;
+        try {
+            await setDoc(doc(collection(db, "chats", state.conversa.id, "eventos")), {
+                tenantId: storeUid(),
+                lojaId: storeUid(),
+                chatId: state.conversa.id,
+                tipo,
+                categoria: categoriaEventoAtendimento(tipo),
+                autorUid: authUid(),
+                autorTipo: context.getSnapshot().isEmployee ? "funcionario" : "proprietario",
+                autorNome: nomeAutorAtual(),
+                origem: "equipe",
+                criadoEm: serverTimestamp(),
+                versaoSchema: 1,
+                clienteId: state.clienteId,
+                ...(correlationId ? { correlationId } : {}),
+                ...extra
+            });
+        } catch (error) {
+            console.error("[CRM 360] Falha ao espelhar evento na conversa:", codigoErroFirebase(error), error?.message);
         }
     }
 
@@ -716,6 +753,7 @@ export function criarCrm360Controller(deps) {
             await updateDoc(doc(db, "chats", state.conversa.id), { clienteId, atualizadoEm: Date.now() });
             state.conversa.clienteId = clienteId;
             await carregarClientePorId(clienteId);
+            await registrarEventoConversa("cliente_vinculado", { clienteId });
             notify("Conversa vinculada ao cliente.");
             render();
         } catch (error) {
@@ -755,6 +793,7 @@ export function criarCrm360Controller(deps) {
             state.conversa.clienteId = ref.id;
             await carregarClientePorId(ref.id);
             await registrarEvento("primeiro_contato", { resumo: "Cliente cadastrado a partir da conversa.", refColecao: "chats", refId: conversa.id });
+            await registrarEventoConversa("cliente_vinculado", { clienteId: ref.id });
             notify("Cliente cadastrado.");
             render();
         } catch (error) {
@@ -919,7 +958,8 @@ export function criarCrm360Controller(deps) {
         const novaLista = adicionarProdutoInteresse(state.cliente?.produtosInteresse, produto, { vinculadoPor: authUid() });
         const ok = await atualizarCliente({ produtosInteresse: novaLista });
         if (ok) {
-            await registrarEvento("produto_vinculado", { resumo: produto.nome, refColecao: "produtos", refId: produtoId });
+            const correlationId = await registrarEvento("produto_vinculado", { resumo: produto.nome, refColecao: "produtos", refId: produtoId });
+            await registrarEventoConversa("produto_vinculado", { produtoId, resumo: produto.nome.slice(0, 300) }, correlationId);
             render();
         }
     }
@@ -928,6 +968,7 @@ export function criarCrm360Controller(deps) {
         if (!state.clienteId || !podeEditar()) return;
         const novaLista = removerProdutoInteresse(state.cliente?.produtosInteresse, produtoId);
         await atualizarCliente({ produtosInteresse: novaLista });
+        await registrarEventoConversa("produto_desvinculado", { produtoId });
         render();
     }
 
@@ -938,7 +979,8 @@ export function criarCrm360Controller(deps) {
         if (!state.clienteId || !podeEditar()) return;
         try {
             await updateDoc(doc(db, "leads", leadId), { clienteId: state.clienteId });
-            await registrarEvento("lead_vinculado", { refColecao: "leads", refId: leadId });
+            const correlationId = await registrarEvento("lead_vinculado", { refColecao: "leads", refId: leadId });
+            await registrarEventoConversa("lead_vinculado", { leadId }, correlationId);
             await carregarDadosRelacionados();
             notify("Lead vinculado.");
             render();
@@ -951,6 +993,7 @@ export function criarCrm360Controller(deps) {
     async function desvincularLead(leadId) {
         try {
             await updateDoc(doc(db, "leads", leadId), { clienteId: "" });
+            await registrarEventoConversa("lead_desvinculado", { leadId });
             await carregarDadosRelacionados();
             render();
         } catch (error) {
@@ -962,7 +1005,8 @@ export function criarCrm360Controller(deps) {
         if (!state.clienteId || !podeEditar()) return;
         try {
             await updateDoc(doc(db, "pedidos", pedidoId), { clienteId: state.clienteId });
-            await registrarEvento("pedido_vinculado", { refColecao: "pedidos", refId: pedidoId });
+            const correlationId = await registrarEvento("pedido_vinculado", { refColecao: "pedidos", refId: pedidoId });
+            await registrarEventoConversa("pedido_vinculado", { pedidoId }, correlationId);
             await carregarDadosRelacionados();
             notify("Pedido vinculado.");
             render();
@@ -975,6 +1019,7 @@ export function criarCrm360Controller(deps) {
     async function desvincularPedido(pedidoId) {
         try {
             await updateDoc(doc(db, "pedidos", pedidoId), { clienteId: "" });
+            await registrarEventoConversa("pedido_desvinculado", { pedidoId });
             await carregarDadosRelacionados();
             render();
         } catch (error) {

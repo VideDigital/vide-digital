@@ -585,7 +585,7 @@
 
     <script type="module">
         import { db } from "./firebase-init.js";
-        import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get("loja");
@@ -601,6 +601,10 @@
         let clienteRegistrado = false;
         let clienteNome = "";
         let salaChatId = null;
+        // Reflete o status atual do chat (via onSnapshot próprio, abaixo)
+        // só pra decidir, no envio de mensagem, se o evento é o normal
+        // "aguardando_equipe" ou o distinto "cliente_respondeu_apos_resolucao".
+        let chatStatusAtual = "nova";
         let notaAvaliacaoSelecionada = 0;
         let enviandoAvaliacao = false;
         let avaliacoesPublicadasPorProduto = new Map();
@@ -1508,10 +1512,35 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     naoLidasLoja: 1
                 });
                 salaChatId = chatRef.id;
+                chatStatusAtual = "nova";
+                // Histórico de eventos: registra a criação da conversa
+                // (tipo público estreito, autoria sempre "cliente" e vazia
+                // em autorUid — Rules não deixam forjar outro valor).
+                try {
+                    await setDoc(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
+                        tenantId: fornecedorEmail,
+                        lojaId: fornecedorEmail,
+                        chatId: salaChatId,
+                        tipo: "conversa_criada",
+                        categoria: "atendimento",
+                        autorUid: "",
+                        autorTipo: "cliente",
+                        origem: "cliente",
+                        criadoEm: serverTimestamp(),
+                        versaoSchema: 1
+                    });
+                } catch (erroEvento) {
+                    console.error(erroEvento);
+                }
                 input.value = "";
                 input.placeholder = "Escreva sua mensagem...";
                 document.getElementById("chat-send-btn").innerText = "Enviar";
                 document.getElementById("chat-client-messages").innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" style="background: color-mix(in oklch, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);">Conectado como ' + clienteNome + ".</div>";
+
+                onSnapshot(doc(db, "chats", salaChatId), function(snap) {
+                    const dadosChat = snap.data();
+                    if (dadosChat && dadosChat.status) chatStatusAtual = dadosChat.status;
+                });
 
                 onSnapshot(query(collection(db, "chats/" + salaChatId + "/mensagens"), orderBy("timestamp", "asc")), function(snapshot) {
                     const box = document.getElementById("chat-client-messages");
@@ -1532,20 +1561,58 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     box.scrollTop = box.scrollHeight;
                 });
             } else {
-                // Mensagem do cliente + atualização do resumo do chat, direto.
+                // Mensagem do cliente + atualização do resumo do chat + o(s)
+                // evento(s) correspondentes, tudo no mesmo lote atômico
+                // (nunca fica mensagem sem o registro de histórico, nem
+                // vice-versa).
                 const txtLimitado = txt.slice(0, 1000);
-                await setDoc(doc(collection(db, "chats/" + salaChatId + "/mensagens")), {
+                const statusAntes = chatStatusAtual;
+                const batch = writeBatch(db);
+                batch.set(doc(collection(db, "chats/" + salaChatId + "/mensagens")), {
                     texto: txtLimitado,
                     sender: "cliente",
                     timestamp: Date.now()
                 });
-                await setDoc(doc(db, "chats", salaChatId), {
+                batch.set(doc(db, "chats", salaChatId), {
                     ultimaMensagem: txtLimitado,
                     statusAdmin: "pendente",
                     status: "aguardando_equipe",
                     atualizadoEm: Date.now(),
                     naoLidasLoja: increment(1)
                 }, { merge: true });
+                const eventoBase = {
+                    tenantId: fornecedorEmail,
+                    lojaId: fornecedorEmail,
+                    chatId: salaChatId,
+                    autorUid: "",
+                    autorTipo: "cliente",
+                    origem: "cliente",
+                    criadoEm: serverTimestamp(),
+                    versaoSchema: 1
+                };
+                batch.set(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
+                    ...eventoBase,
+                    tipo: "mensagem_cliente_recebida",
+                    categoria: "mensagens"
+                });
+                if (statusAntes === "resolvida") {
+                    batch.set(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
+                        ...eventoBase,
+                        tipo: "cliente_respondeu_apos_resolucao",
+                        categoria: "mensagens"
+                    });
+                } else if (statusAntes !== "aguardando_equipe") {
+                    batch.set(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
+                        ...eventoBase,
+                        tipo: "aguardando_equipe",
+                        categoria: "atendimento"
+                    });
+                }
+                try {
+                    await batch.commit();
+                } catch (erroEnvio) {
+                    console.error(erroEnvio);
+                }
                 input.value = "";
                 clearTimeout(timeoutRedirecionamentoWhats);
                 timeoutRedirecionamentoWhats = setTimeout(function() {

@@ -1536,6 +1536,30 @@ describe("chats/eventos: criação pela equipe (autoria real, enum, categoria)",
       chatId: "chatEvt8", tipo: "pedido_vinculado", categoria: "vinculos", pedidoId: "ped1", clienteId: "cli1"
     })));
   });
+
+  // Espelho do CRM 360 (Fase 10): quando lead/pedido/produto/cliente é
+  // vinculado a partir de uma conversa aberta, crm360.js grava tanto o
+  // evento em clientes/{id}/eventos (não coberto aqui, é outra
+  // subcoleção) quanto este espelho em chats/{chatId}/eventos, com o
+  // mesmo correlationId — nunca o mesmo documento duplicado duas vezes.
+  it("aceita o espelho de vínculo do CRM 360 (cliente/lead/produto, com e sem correlationId)", async () => {
+    await semearChat("chatEvt8b");
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8b", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8b", tipo: "cliente_vinculado", categoria: "vinculos", clienteId: "cli1"
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8b", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8b", tipo: "lead_vinculado", categoria: "vinculos", leadId: "lead1", correlationId: "corr-lead-1"
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8b", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8b", tipo: "lead_desvinculado", categoria: "vinculos", leadId: "lead1"
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8b", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8b", tipo: "produto_vinculado", categoria: "vinculos", produtoId: "prod1", resumo: "Kit Premium"
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8b", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8b", tipo: "produto_desvinculado", categoria: "vinculos", produtoId: "prod1"
+    })));
+  });
 });
 
 describe("chats/eventos: criação pelo visitante anônimo (whitelist estreita)", () => {
