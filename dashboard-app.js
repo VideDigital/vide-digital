@@ -16289,11 +16289,16 @@ async function() {
                 pendentes.sort((a, b) => normalizarMs(b.atualizadoEm || b.timestamp) - normalizarMs(a.atualizadoEm || a.timestamp));
                 pendentes.slice(0, 10).forEach(c => {
                     const trecho = c.ultimaMensagem ? `: “${esc(String(c.ultimaMensagem).slice(0, 80))}”` : "";
+                    // naoLidasLoja já é o mesmo contador usado no badge da
+                    // Central de Atendimento — reaproveita aqui pra dar um
+                    // sinal mais preciso de urgência sem nenhuma leitura extra.
+                    const naoLidas = Number(c.naoLidasLoja) || 0;
+                    const sufixoNaoLidas = naoLidas > 1 ? ` (${naoLidas} mensagens sem resposta)` : "";
                     eventos.push({
                         id: `atendimento-${c.id}`,
                         origem: "negocio",
                         tipo: "atendimento",
-                        titulo: c.status === "nova" ? "Nova conversa" : "Conversa aguardando resposta",
+                        titulo: (c.status === "nova" ? "Nova conversa" : "Conversa aguardando resposta") + sufixoNaoLidas,
                         mensagem: `${esc(c.clienteNome || "Cliente")}${trecho}`,
                         criadoEm: normalizarMs(c.atualizadoEm || c.timestamp),
                         acao: `abrirConversaAtendimentoPorNotificacao('${c.id}')`
