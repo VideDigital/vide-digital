@@ -180,6 +180,102 @@ export function classificarEventoStatus({ statusAnterior = "", statusNovo = "" }
     return "status_alterado";
 }
 
+// ===== Métricas preparatórias (Fase 9) =====
+// Derivadas do histórico de eventos já carregado — não são campos
+// agregados gravados no chat. O documento chats/{chatId} já tem uma regra
+// de update grande (acumulada de 3 fases), e adicionar mais campos
+// validados nela esbarra no limite real de complexidade de avaliação do
+// Firestore Rules ("maximum of 1000 expressions to evaluate", confirmado
+// empiricamente). Calcular a partir dos eventos evita essa fragilidade e
+// mantém uma única fonte de verdade (o histórico bruto).
+function eventoMs(evento) {
+    const valor = evento?.criadoEm;
+    if (valor?.toMillis) return valor.toMillis();
+    if (typeof valor?.seconds === "number") return valor.seconds * 1000;
+    const numero = Number(valor);
+    return Number.isFinite(numero) ? numero : 0;
+}
+
+export function calcularMetricasAtendimento(eventos) {
+    const lista = Array.isArray(eventos) ? eventos : [];
+    const ordenados = [...lista].sort((a, b) => eventoMs(a) - eventoMs(b));
+
+    const primeiraMensagemCliente = ordenados.find(e => e.tipo === "mensagem_cliente_recebida");
+    const primeiraRespostaEquipe = ordenados.find(e => e.tipo === "primeira_resposta_equipe" || e.tipo === "mensagem_equipe_enviada");
+    const ultimaResolucao = [...ordenados].reverse().find(e => e.tipo === "conversa_resolvida");
+
+    const primeiraMensagemClienteEm = primeiraMensagemCliente ? eventoMs(primeiraMensagemCliente) : null;
+    const primeiraRespostaEquipeEm = primeiraRespostaEquipe ? eventoMs(primeiraRespostaEquipe) : null;
+    const primeiraRespostaMs = (primeiraMensagemClienteEm && primeiraRespostaEquipeEm && primeiraRespostaEquipeEm >= primeiraMensagemClienteEm)
+        ? primeiraRespostaEquipeEm - primeiraMensagemClienteEm
+        : null;
+
+    return {
+        primeiraMensagemClienteEm,
+        primeiraRespostaEquipeEm,
+        primeiraRespostaMs,
+        resolvidaEm: ultimaResolucao ? eventoMs(ultimaResolucao) : null,
+        quantidadeTransferencias: ordenados.filter(e => e.tipo === "conversa_transferida").length,
+        quantidadeReaberturas: ordenados.filter(e => e.tipo === "conversa_reaberta" || e.tipo === "conversa_restaurada").length,
+        quantidadeMensagensCliente: ordenados.filter(e => e.tipo === "mensagem_cliente_recebida").length,
+        quantidadeMensagensEquipe: ordenados.filter(e => e.tipo === "mensagem_equipe_enviada").length,
+        templatesUtilizados: ordenados.filter(e => e.tipo === "template_utilizado").length
+    };
+}
+
+// "Prioridade" também é derivada do último evento conversa_priorizada/
+// prioridade_removida — sem campo próprio no chat (mesma razão acima).
+export function conversaEstaPriorizada(eventos) {
+    const lista = Array.isArray(eventos) ? eventos : [];
+    const relevantes = lista.filter(e => e.tipo === "conversa_priorizada" || e.tipo === "prioridade_removida");
+    if (relevantes.length === 0) return false;
+    const ultimo = [...relevantes].sort((a, b) => eventoMs(a) - eventoMs(b)).pop();
+    return ultimo?.tipo === "conversa_priorizada";
+}
+
+// Frase pronta pra exibir na timeline — nunca mostra id técnico, só nome
+// derivado da autoria real e, quando existir, o rótulo do que mudou.
+export function descreverEventoAtendimento(evento) {
+    const autor = evento?.autorNome || "Alguém";
+    switch (evento?.tipo) {
+        case "conversa_criada": return "Conversa criada.";
+        case "conversa_aberta": return "Conversa aberta.";
+        case "conversa_resolvida": return `Conversa resolvida por ${autor}.`;
+        case "conversa_reaberta": return "Cliente respondeu após a resolução. A conversa foi reaberta.";
+        case "conversa_arquivada": return `Conversa arquivada por ${autor}.`;
+        case "conversa_restaurada": return `Conversa restaurada por ${autor}.`;
+        case "conversa_priorizada": return `${autor} marcou esta conversa como prioridade.`;
+        case "prioridade_removida": return `${autor} removeu a prioridade desta conversa.`;
+        case "mensagem_cliente_recebida": return "Cliente enviou uma mensagem.";
+        case "mensagem_equipe_enviada": return `${autor} respondeu.`;
+        case "mensagem_envio_falhou": return "Falha ao enviar uma mensagem.";
+        case "cliente_respondeu_apos_resolucao": return "Cliente respondeu após a resolução.";
+        case "primeira_resposta_equipe": return `${autor} deu a primeira resposta.`;
+        case "status_alterado": return `Status alterado de ${STATUS_CONVERSA[evento.statusAnterior] || evento.statusAnterior} para ${STATUS_CONVERSA[evento.statusNovo] || evento.statusNovo}.`;
+        case "aguardando_cliente": return "Conversa aguardando resposta do cliente.";
+        case "aguardando_equipe": return "Conversa aguardando resposta da equipe.";
+        case "conversa_assumida": return `${autor} assumiu esta conversa.`;
+        case "responsavel_atribuido": return `${autor} atribuiu a conversa para ${evento.responsavelNovoNome || "alguém"}.`;
+        case "conversa_transferida": return `${autor} transferiu a conversa${evento.responsavelAnteriorNome ? ` de ${evento.responsavelAnteriorNome}` : ""} para ${evento.responsavelNovoNome || "alguém"}.`;
+        case "responsavel_removido": return `${autor} removeu o responsável desta conversa.`;
+        case "setor_alterado": return `Setor alterado${evento.setorAnterior ? ` de ${evento.setorAnterior}` : ""} para ${evento.setorNovo || "—"}.`;
+        case "tag_adicionada": return `${autor} adicionou uma tag.`;
+        case "tag_removida": return `${autor} removeu uma tag.`;
+        case "observacao_interna_adicionada": return `${autor} adicionou uma observação interna.`;
+        case "observacao_interna_atualizada": return `${autor} atualizou uma observação interna.`;
+        case "cliente_vinculado": return `${autor} vinculou esta conversa a um cliente do CRM.`;
+        case "cliente_desvinculado": return `${autor} desvinculou o cliente desta conversa.`;
+        case "lead_vinculado": return `${autor} vinculou um lead.`;
+        case "lead_desvinculado": return `${autor} desvinculou um lead.`;
+        case "pedido_vinculado": return `${autor} vinculou um pedido.`;
+        case "pedido_desvinculado": return `${autor} desvinculou um pedido.`;
+        case "produto_vinculado": return `${autor} vinculou um produto de interesse.`;
+        case "produto_desvinculado": return `${autor} desvinculou um produto de interesse.`;
+        case "template_utilizado": return `Template "${evento.templateTitulo || "sem título"}" utilizado por ${autor}.`;
+        default: return TIPOS_EVENTO_ATENDIMENTO[evento?.tipo] || "Evento registrado.";
+    }
+}
+
 export const CANAIS_CONVERSA = Object.freeze({
     loja_publica: "Loja pública",
     interno: "Interno",
@@ -363,6 +459,24 @@ function tempoRelativo(ms) {
     return new Date(ms).toLocaleDateString("pt-BR");
 }
 
+// Preferência só de exibição (filtro/mostrar-ocultar da timeline) — nunca
+// vai pro documento do chat, só localStorage do próprio navegador.
+function lerPreferenciaLocal(chave, padrao) {
+    try {
+        const bruto = window.localStorage?.getItem(chave);
+        if (bruto === null || bruto === undefined) return padrao;
+        return JSON.parse(bruto);
+    } catch (e) {
+        return padrao;
+    }
+}
+
+function salvarPreferenciaLocal(chave, valor) {
+    try {
+        window.localStorage?.setItem(chave, JSON.stringify(valor));
+    } catch (e) { /* localStorage indisponível: só não persiste */ }
+}
+
 // Controller da tela — recebe dependências (db, contexto autenticado,
 // funções do SDK e notificador) pra ficar testável sem navegador real,
 // no mesmo formato de central-ia.js / base-conhecimento-ia.js.
@@ -370,11 +484,19 @@ export function criarAtendimentoController(deps) {
     const { db, context, firestore, notify = () => {}, onAbrirDadosCliente = () => {} } = deps;
     const {
         collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit,
-        serverTimestamp, onSnapshot
+        serverTimestamp, onSnapshot, writeBatch
     } = firestore;
 
     const state = {
         conversas: [],
+        eventos: [],
+        eventosCarregando: false,
+        eventosErro: false,
+        unsubscribeEventos: null,
+        templateUsadoId: "",
+        templateUsadoTitulo: "",
+        alterandoStatus: false,
+        atribuindo: false,
         carregado: false,
         carregando: false,
         erro: false,
@@ -389,7 +511,11 @@ export function criarAtendimentoController(deps) {
         unsubscribeMensagens: null,
         // Navegação em etapas no mobile (a mesma marcação de 3 colunas do
         // desktop; no mobile só uma etapa fica visível por vez via CSS).
-        etapaMobile: "lista"
+        etapaMobile: "lista",
+        // Preferência de exibição da timeline — só local (localStorage),
+        // nunca gravada no documento do chat (Fase 6).
+        mostrarEventos: lerPreferenciaLocal("vh_atend_mostrar_eventos", true),
+        filtroTimelineCategoria: lerPreferenciaLocal("vh_atend_timeline_categoria", "todos")
     };
 
     function el(id) {
@@ -521,6 +647,38 @@ export function criarAtendimentoController(deps) {
         ].join("");
     }
 
+    function nomeResponsavel(uid) {
+        if (!uid) return "";
+        if (uid === storeUid()) {
+            const snapshot = context.getSnapshot();
+            return snapshot.owner?.nomeLoja || snapshot.owner?.nome || "Dono da loja";
+        }
+        return state.funcionarios.find(f => f.id === uid)?.nome || "";
+    }
+
+    // Toda escrita de evento passa por aqui — id novo, tenant/loja/chatId
+    // sempre derivados do contexto (nunca de input), autoria sempre real.
+    function novoEventoRef(chatId) {
+        return doc(collection(db, "chats", chatId, "eventos"));
+    }
+
+    function montarEvento(chatId, tipo, extras = {}) {
+        return {
+            tenantId: storeUid(),
+            lojaId: storeUid(),
+            chatId,
+            tipo,
+            categoria: categoriaEventoAtendimento(tipo),
+            autorUid: authUid(),
+            autorTipo: tipoAutorAtual(),
+            autorNome: nomeAutorAtual(),
+            origem: "equipe",
+            criadoEm: serverTimestamp(),
+            versaoSchema: LIMITES_EVENTO_ATENDIMENTO.VERSAO_SCHEMA,
+            ...extras
+        };
+    }
+
     function renderCabecalhoConversa(conversa) {
         const painel = el("atend-detalhe");
         if (painel) painel.classList.remove("is-vazio");
@@ -538,6 +696,32 @@ export function criarAtendimentoController(deps) {
         renderOpcoesResponsavel();
         const selectResponsavel = el("atend-responsavel-select");
         if (selectResponsavel) selectResponsavel.value = conversa.atribuidoPara || "";
+    }
+
+    // Prioridade e métricas dependem do histórico (eventos), que carrega
+    // de forma assíncrona e separada da conversa — atualizadas junto da
+    // timeline, não do cabeçalho estático.
+    function renderPrioridadeEMetricas() {
+        const priorizada = conversaEstaPriorizada(state.eventos);
+        const btnPrioridade = el("atend-btn-prioridade");
+        if (btnPrioridade) {
+            btnPrioridade.classList.toggle("is-priorizada", priorizada);
+            btnPrioridade.setAttribute("aria-pressed", String(priorizada));
+            btnPrioridade.textContent = priorizada ? "Prioridade" : "Marcar prioridade";
+        }
+        const metricas = calcularMetricasAtendimento(state.eventos);
+        const boxMetricas = el("atend-metricas");
+        if (boxMetricas) {
+            const partes = [];
+            if (metricas.primeiraRespostaMs !== null) {
+                const minutos = Math.round(metricas.primeiraRespostaMs / 60000);
+                partes.push(`1ª resposta em ${minutos < 1 ? "menos de 1 min" : `${minutos} min`}`);
+            }
+            if (metricas.quantidadeTransferencias > 0) partes.push(`${metricas.quantidadeTransferencias} transferência(s)`);
+            if (metricas.quantidadeReaberturas > 0) partes.push(`${metricas.quantidadeReaberturas} reabertura(s)`);
+            boxMetricas.textContent = partes.join(" · ");
+            boxMetricas.hidden = partes.length === 0;
+        }
     }
 
     // Reaproveita a coleção "templates" (mesma usada pelo módulo Templates
@@ -596,12 +780,58 @@ export function criarAtendimentoController(deps) {
             input.value = input.value ? `${input.value}\n${substituido}` : substituido;
             input.focus();
         }
+        // Só vira evento "template_utilizado" se a resposta realmente for
+        // enviada em seguida (enviarResposta consome e limpa isto).
+        state.templateUsadoId = template.id;
+        state.templateUsadoTitulo = template.titulo || "";
         fecharSeletorTemplates();
     }
 
-    function renderMensagens() {
+    function itemMensagemHtml(msg) {
+        const doAdmin = msg.sender === "admin";
+        const autorLabel = doAdmin
+            ? `${escaparHtml(msg.autorNome || "Equipe")} · Resposta do ${msg.autorTipo === "proprietario" ? "dono" : "funcionário"}`
+            : "Cliente";
+        const horario = new Date(normalizarMs(msg.timestamp) || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        return `
+            <div class="atend-mensagem ${doAdmin ? "is-admin" : "is-cliente"}">
+                <span class="atend-mensagem-autor">${autorLabel}</span>
+                <div class="atend-mensagem-bolha">${escaparHtml(msg.texto)}</div>
+                <span class="atend-mensagem-hora" title="Enviada às ${horario}">${horario}</span>
+            </div>
+        `;
+    }
+
+    const ICONE_EVENTO_SVG = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="12" height="12" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v4l3 2"></path></svg>';
+
+    // Linha compacta — visualmente distinta dos balões de mensagem, sem
+    // nenhum identificador técnico (id/uid) exibido ao usuário.
+    function itemEventoHtml(evento) {
+        const horario = new Date(eventoMs(evento) || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        return `
+            <div class="atend-evento-linha" data-atend-evento-categoria="${escaparHtml(categoriaEventoAtendimento(evento.tipo))}">
+                <span class="atend-evento-icone" aria-hidden="true">${ICONE_EVENTO_SVG}</span>
+                <span class="atend-evento-texto">${escaparHtml(descreverEventoAtendimento(evento))}</span>
+                <span class="atend-evento-hora" title="Registrado às ${horario}">${horario}</span>
+            </div>
+        `;
+    }
+
+    function renderFiltroTimeline() {
+        const select = el("atend-timeline-filtro");
+        if (select) select.value = state.filtroTimelineCategoria;
+        const toggle = el("atend-timeline-mostrar-eventos");
+        if (toggle) toggle.checked = state.mostrarEventos;
+    }
+
+    // Mensagens e eventos vêm de duas subcoleções (Fase 7: opção 1 — juntar
+    // no cliente por criadoEm, sem duplicar dado nem criar um feed novo no
+    // Firestore). Preserva a posição do scroll: só desce pro fim sozinho
+    // quando o usuário já estava perto do fim (ou é a primeira renderização).
+    function renderTimelineConversa() {
         const box = el("atend-mensagens");
         if (!box) return;
+        renderPrioridadeEMetricas();
 
         if (state.mensagensErro) {
             box.innerHTML = `
@@ -618,26 +848,30 @@ export function criarAtendimentoController(deps) {
             return;
         }
 
-        if (state.mensagens.length === 0) {
+        const eventosVisiveis = state.mostrarEventos && !state.eventosErro
+            ? state.eventos.filter(e => state.filtroTimelineCategoria === "todos" || categoriaEventoAtendimento(e.tipo) === state.filtroTimelineCategoria)
+            : [];
+
+        const itens = [
+            ...state.mensagens.map(m => ({ tipoItem: "mensagem", ms: normalizarMs(m.timestamp), dado: m })),
+            ...eventosVisiveis.map(e => ({ tipoItem: "evento", ms: eventoMs(e), dado: e }))
+        ].sort((a, b) => a.ms - b.ms);
+
+        if (itens.length === 0) {
             box.innerHTML = `<div class="atend-vazio"><p>Nenhuma mensagem ainda.</p></div>`;
             return;
         }
 
-        box.innerHTML = state.mensagens.map(msg => {
-            const doAdmin = msg.sender === "admin";
-            const autorLabel = doAdmin
-                ? `${escaparHtml(msg.autorNome || "Equipe")} · Resposta do ${msg.autorTipo === "proprietario" ? "dono" : "funcionário"}`
-                : "Cliente";
-            const horario = new Date(normalizarMs(msg.timestamp) || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
-            return `
-                <div class="atend-mensagem ${doAdmin ? "is-admin" : "is-cliente"}">
-                    <span class="atend-mensagem-autor">${autorLabel}</span>
-                    <div class="atend-mensagem-bolha">${escaparHtml(msg.texto)}</div>
-                    <span class="atend-mensagem-hora" title="Enviada às ${horario}">${horario}</span>
-                </div>
-            `;
-        }).join("");
-        box.scrollTop = box.scrollHeight;
+        const eventosErroAviso = (state.eventosErro && state.mostrarEventos)
+            ? `<div class="atend-evento-erro">Não deu pra carregar o histórico de eventos. <button type="button" class="atend-btn" data-atend-acao="recarregar-eventos">Tentar novamente</button></div>`
+            : "";
+
+        const pertoDoFim = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
+        box.innerHTML = eventosErroAviso + itens.map(item => item.tipoItem === "mensagem" ? itemMensagemHtml(item.dado) : itemEventoHtml(item.dado)).join("");
+        if (pertoDoFim || !box.dataset.atendJaRenderizou) {
+            box.scrollTop = box.scrollHeight;
+        }
+        box.dataset.atendJaRenderizou = "1";
     }
 
     function renderFiltros() {
@@ -661,7 +895,8 @@ export function criarAtendimentoController(deps) {
         const conversa = conversaSelecionada();
         if (conversa) {
             renderCabecalhoConversa(conversa);
-            renderMensagens();
+            renderFiltroTimeline();
+            renderTimelineConversa();
         } else {
             renderPainelVazio();
         }
@@ -715,13 +950,24 @@ export function criarAtendimentoController(deps) {
         state.unsubscribeMensagens = null;
     }
 
+    function pararEscutaEventos() {
+        if (typeof state.unsubscribeEventos === "function") {
+            state.unsubscribeEventos();
+        }
+        state.unsubscribeEventos = null;
+    }
+
     async function selecionarConversa(id) {
         if (!id || id === state.conversaSelecionadaId) return;
         pararEscutaMensagens();
+        pararEscutaEventos();
         state.conversaSelecionadaId = id;
         state.mensagens = [];
         state.mensagensErro = false;
         state.mensagensCarregando = true;
+        state.eventos = [];
+        state.eventosErro = false;
+        state.eventosCarregando = true;
         state.etapaMobile = "conversa";
         await render();
 
@@ -735,18 +981,44 @@ export function criarAtendimentoController(deps) {
                 state.mensagens = [];
                 snap.forEach(d => state.mensagens.push({ id: d.id, ...d.data() }));
                 state.mensagensCarregando = false;
-                renderMensagens();
+                renderTimelineConversa();
             }, error => {
                 console.error("[Atendimento] Falha ao ouvir mensagens:", codigoErroFirebase(error), error?.message);
                 state.mensagensErro = true;
                 state.mensagensCarregando = false;
-                renderMensagens();
+                renderTimelineConversa();
             });
         } catch (error) {
             console.error("[Atendimento] Falha ao abrir conversa:", codigoErroFirebase(error), error?.message);
             state.mensagensErro = true;
             state.mensagensCarregando = false;
-            renderMensagens();
+            renderTimelineConversa();
+        }
+
+        // Eventos: mesma conversa, própria coleção — se falhar, não
+        // derruba as mensagens (cada seção trata seu próprio erro).
+        try {
+            const eventosQuery = query(
+                collection(db, "chats", id, "eventos"),
+                orderBy("criadoEm", "desc"),
+                limit(100)
+            );
+            state.unsubscribeEventos = onSnapshot(eventosQuery, snap => {
+                state.eventos = [];
+                snap.forEach(d => state.eventos.push({ id: d.id, ...d.data() }));
+                state.eventosCarregando = false;
+                renderTimelineConversa();
+            }, error => {
+                console.error("[Atendimento] Falha ao ouvir eventos:", codigoErroFirebase(error), error?.message);
+                state.eventosErro = true;
+                state.eventosCarregando = false;
+                renderTimelineConversa();
+            });
+        } catch (error) {
+            console.error("[Atendimento] Falha ao abrir histórico:", codigoErroFirebase(error), error?.message);
+            state.eventosErro = true;
+            state.eventosCarregando = false;
+            renderTimelineConversa();
         }
     }
 
@@ -781,9 +1053,21 @@ export function criarAtendimentoController(deps) {
             return;
         }
         state.enviando = true;
+        const templateUsadoId = state.templateUsadoId;
+        const templateUsadoTitulo = state.templateUsadoTitulo;
+        const primeiraResposta = !state.mensagens.some(m => m.sender === "admin");
+        const statusAnterior = conversa.status;
+        const statusEventoTipo = classificarEventoStatus({ statusAnterior, statusNovo: "aguardando_cliente" });
+        const clienteId = conversa.clienteId || "";
+        let mensagemRef;
         try {
             const agora = Date.now();
-            await setDoc(doc(collection(db, "chats", conversa.id, "mensagens")), {
+            // Escrita atômica: mensagem + resumo do chat + evento(s) do
+            // histórico saem juntos ou nenhum sai — nunca fica um estado
+            // incompleto (chat mudou mas sem registro no histórico).
+            const batch = writeBatch(db);
+            mensagemRef = doc(collection(db, "chats", conversa.id, "mensagens"));
+            batch.set(mensagemRef, {
                 texto: mensagem,
                 sender: "admin",
                 timestamp: agora,
@@ -791,7 +1075,7 @@ export function criarAtendimentoController(deps) {
                 autorTipo: tipoAutorAtual(),
                 autorNome: nomeAutorAtual()
             });
-            await setDoc(doc(db, "chats", conversa.id), {
+            batch.set(doc(db, "chats", conversa.id), {
                 ultimaMensagem: mensagem,
                 statusAdmin: "respondido",
                 status: "aguardando_cliente",
@@ -799,14 +1083,38 @@ export function criarAtendimentoController(deps) {
                 statusAtualizadoEm: agora,
                 atualizadoEm: agora
             }, { merge: true });
+            // Nunca copia o texto da mensagem pro evento — só o link
+            // (mensagemId) pra quem quiser o conteúdo real na subcoleção
+            // mensagens, que já tem suas próprias Rules de leitura.
+            batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, "mensagem_equipe_enviada", {
+                clienteId, mensagemId: mensagemRef.id
+            }));
+            if (primeiraResposta) {
+                batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, "primeira_resposta_equipe", {
+                    clienteId, mensagemId: mensagemRef.id
+                }));
+            }
+            if (statusEventoTipo) {
+                batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, statusEventoTipo, {
+                    statusAnterior, statusNovo: "aguardando_cliente", clienteId
+                }));
+            }
+            if (templateUsadoId) {
+                batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, "template_utilizado", {
+                    templateId: templateUsadoId, templateTitulo: templateUsadoTitulo || "", clienteId, mensagemId: mensagemRef.id
+                }));
+            }
+            await batch.commit();
             conversa.ultimaMensagem = mensagem;
             conversa.status = "aguardando_cliente";
             conversa.atualizadoEm = agora;
+            state.templateUsadoId = "";
+            state.templateUsadoTitulo = "";
             // CRM 360 (best-effort, não trava o envio se falhar): marca a
             // interação mais recente do cliente vinculado, usada pelo
             // alerta de "cliente sem retorno".
-            if (conversa.clienteId) {
-                setDoc(doc(db, "clientes", conversa.clienteId), {
+            if (clienteId) {
+                setDoc(doc(db, "clientes", clienteId), {
                     ultimaInteracaoEm: agora,
                     atualizadoPor: authUid(),
                     atualizadoEm: serverTimestamp()
@@ -816,6 +1124,13 @@ export function criarAtendimentoController(deps) {
         } catch (error) {
             console.error("[Atendimento] Falha ao enviar resposta:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível enviar a resposta agora. Tente de novo.", "error");
+            // Best-effort fora do batch (que já falhou) — se isto também
+            // falhar (ex.: sem conexão), sobra só o toast de erro acima;
+            // não há como garantir persistência de um evento sobre uma
+            // falha causada por falta de conectividade.
+            setDoc(novoEventoRef(conversa.id), montarEvento(conversa.id, "mensagem_envio_falhou", {
+                resumo: String(error?.code || error?.message || "erro desconhecido").slice(0, 300)
+            })).catch(() => {});
         } finally {
             state.enviando = false;
         }
@@ -823,31 +1138,43 @@ export function criarAtendimentoController(deps) {
 
     async function alterarStatus(novoStatus) {
         const conversa = conversaSelecionada();
-        if (!conversa || !podeResponder()) return;
+        if (!conversa || !podeResponder() || state.alterandoStatus) return;
         if (!podeTransicionarStatus(conversa.status, novoStatus)) {
             notify("Essa mudança de status não é permitida a partir do status atual.", "error");
             return;
         }
+        const statusAnterior = conversa.status;
+        const tipoEvento = classificarEventoStatus({ statusAnterior, statusNovo: novoStatus });
+        state.alterandoStatus = true;
         try {
             const agora = Date.now();
-            await setDoc(doc(db, "chats", conversa.id), {
+            const batch = writeBatch(db);
+            batch.set(doc(db, "chats", conversa.id), {
                 status: novoStatus,
                 statusAtualizadoPor: authUid(),
                 statusAtualizadoEm: agora,
                 atualizadoEm: agora
             }, { merge: true });
+            if (tipoEvento) {
+                batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, tipoEvento, {
+                    statusAnterior, statusNovo: novoStatus, clienteId: conversa.clienteId || ""
+                }));
+            }
+            await batch.commit();
             conversa.status = novoStatus;
             notify("Status atualizado.");
             await render();
         } catch (error) {
             console.error("[Atendimento] Falha ao mudar status:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível atualizar o status.", "error");
+        } finally {
+            state.alterandoStatus = false;
         }
     }
 
     async function atribuirResponsavel(uidResponsavel) {
         const conversa = conversaSelecionada();
-        if (!conversa || !podeResponder()) return;
+        if (!conversa || !podeResponder() || state.atribuindo) return;
         const alvo = String(uidResponsavel || "").trim();
         const valido = alvo === "" || alvo === storeUid()
             || funcionarioPodeAtender(state.funcionarios.find(f => f.id === alvo));
@@ -855,20 +1182,56 @@ export function criarAtendimentoController(deps) {
             notify("Não é possível atribuir a este responsável.", "error");
             return;
         }
+        const anterior = conversa.atribuidoPara || "";
+        if (anterior === alvo) return;
+        const tipoEvento = classificarEventoAtribuicao({ anteriorUid: anterior, novoUid: alvo, autorUid: authUid() });
+        state.atribuindo = true;
         try {
             const agora = Date.now();
-            await setDoc(doc(db, "chats", conversa.id), {
+            const batch = writeBatch(db);
+            batch.set(doc(db, "chats", conversa.id), {
                 atribuidoPara: alvo,
                 atribuidoPor: authUid(),
                 atribuidoEm: agora,
                 atualizadoEm: agora
             }, { merge: true });
+            if (tipoEvento) {
+                batch.set(novoEventoRef(conversa.id), montarEvento(conversa.id, tipoEvento, {
+                    responsavelAnteriorUid: anterior,
+                    responsavelNovoUid: alvo,
+                    responsavelAnteriorNome: nomeResponsavel(anterior),
+                    responsavelNovoNome: nomeResponsavel(alvo),
+                    clienteId: conversa.clienteId || ""
+                }));
+            }
+            await batch.commit();
             conversa.atribuidoPara = alvo;
-            notify(alvo ? "Conversa atribuída." : "Responsável removido.");
+            notify(alvo ? "Conversa atualizada." : "Responsável removido.");
             await render();
         } catch (error) {
             console.error("[Atendimento] Falha ao atribuir conversa:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível atualizar o responsável.", "error");
+        } finally {
+            state.atribuindo = false;
+        }
+    }
+
+    // Prioridade não tem campo próprio no chat (ver calcularMetricasAtendimento
+    // no topo do arquivo) — é só um evento, aplicado/lido a partir do
+    // histórico já carregado.
+    async function alternarPrioridade() {
+        const conversa = conversaSelecionada();
+        if (!conversa || !podeResponder() || state.alterandoStatus) return;
+        const estaPriorizada = conversaEstaPriorizada(state.eventos);
+        const tipo = estaPriorizada ? "prioridade_removida" : "conversa_priorizada";
+        try {
+            await setDoc(novoEventoRef(conversa.id), montarEvento(conversa.id, tipo, {
+                clienteId: conversa.clienteId || ""
+            }));
+            notify(estaPriorizada ? "Prioridade removida." : "Conversa marcada como prioridade.");
+        } catch (error) {
+            console.error("[Atendimento] Falha ao alternar prioridade:", codigoErroFirebase(error), error?.message);
+            notify("Não foi possível atualizar a prioridade.", "error");
         }
     }
 
@@ -918,6 +1281,28 @@ export function criarAtendimentoController(deps) {
 
         el("atend-status-select")?.addEventListener("change", event => alterarStatus(event.target.value));
         el("atend-responsavel-select")?.addEventListener("change", event => atribuirResponsavel(event.target.value));
+        el("atend-btn-prioridade")?.addEventListener("click", alternarPrioridade);
+
+        el("atend-timeline-filtro")?.addEventListener("change", event => {
+            state.filtroTimelineCategoria = event.target.value;
+            salvarPreferenciaLocal("vh_atend_timeline_categoria", state.filtroTimelineCategoria);
+            renderTimelineConversa();
+        });
+        el("atend-timeline-mostrar-eventos")?.addEventListener("change", event => {
+            state.mostrarEventos = event.target.checked;
+            salvarPreferenciaLocal("vh_atend_mostrar_eventos", state.mostrarEventos);
+            renderTimelineConversa();
+        });
+
+        // Recarregar mensagens/eventos: reabre a mesma conversa (reassina
+        // os dois listeners do zero) sem perder a seleção atual.
+        el("atend-mensagens")?.addEventListener("click", event => {
+            if (event.target.closest("[data-atend-acao='recarregar-mensagens']") || event.target.closest("[data-atend-acao='recarregar-eventos']")) {
+                const idAtual = state.conversaSelecionadaId;
+                state.conversaSelecionadaId = "";
+                selecionarConversa(idAtual);
+            }
+        });
 
         // O painel de dados do cliente evoluiu pro CRM 360 (crm360.js) —
         // aqui só entrega a conversa selecionada pra quem sabe abri-lo.

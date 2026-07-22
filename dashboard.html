@@ -3533,7 +3533,24 @@ Filtros
 <option value="arquivada">Arquivada</option>
 </select>
 <select id="atend-responsavel-select" class="atend-select" aria-label="Atribuir responsável"></select>
+<button type="button" class="atend-btn" id="atend-btn-prioridade" aria-pressed="false" aria-label="Marcar ou desmarcar esta conversa como prioridade">Marcar prioridade</button>
 <button type="button" class="atend-btn" id="atend-btn-dados-cliente">Dados do cliente</button>
+</div>
+</div>
+
+<div class="atend-timeline-barra">
+<span id="atend-metricas" class="atend-metricas" hidden></span>
+<div class="atend-timeline-controles">
+<label class="atend-checkbox-linha" for="atend-timeline-mostrar-eventos">
+<input type="checkbox" id="atend-timeline-mostrar-eventos" checked> Mostrar histórico de eventos
+</label>
+<select id="atend-timeline-filtro" class="atend-select" aria-label="Filtrar histórico por categoria">
+<option value="todos">Todos os eventos</option>
+<option value="mensagens">Mensagens</option>
+<option value="atendimento">Atendimento</option>
+<option value="vinculos">Vínculos</option>
+<option value="alteracoes">Alterações internas</option>
+</select>
 </div>
 </div>
 

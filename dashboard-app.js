@@ -31,7 +31,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -4140,7 +4140,7 @@ btn.classList.add("opacity-40");
         const atendimentoController = criarAtendimentoController({
             db,
             context: VideHubContext,
-            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp },
+            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, writeBatch },
             notify: showToast,
             onAbrirDadosCliente: conversa => crm360Controller.abrirParaConversa(conversa)
         });

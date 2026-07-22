@@ -7,9 +7,12 @@ import {
     TIPOS_EVENTO_ATENDIMENTO,
     VARIAVEIS_TEMPLATE_PERMITIDAS,
     calcularContadoresAtendimento,
+    calcularMetricasAtendimento,
     categoriaEventoAtendimento,
     classificarEventoAtribuicao,
     classificarEventoStatus,
+    conversaEstaPriorizada,
+    descreverEventoAtendimento,
     conversaPrecisaResposta,
     filtrarConversas,
     filtrarTemplates,
@@ -333,5 +336,118 @@ describe("histórico de eventos: classificação de transição de status", () =
 
     it("sem mudança real não classifica nada", () => {
         assert.equal(classificarEventoStatus({ statusAnterior: "aberta", statusNovo: "aberta" }), null);
+    });
+});
+
+function eventoFixture(overrides = {}) {
+    return { tipo: "mensagem_cliente_recebida", criadoEm: Date.now(), ...overrides };
+}
+
+describe("métricas de atendimento derivadas do histórico de eventos", () => {
+    it("calcula primeira mensagem do cliente, primeira resposta e tempo entre elas", () => {
+        const eventos = [
+            eventoFixture({ tipo: "conversa_criada", criadoEm: 1000 }),
+            eventoFixture({ tipo: "mensagem_cliente_recebida", criadoEm: 2000 }),
+            eventoFixture({ tipo: "mensagem_equipe_enviada", criadoEm: 5000 })
+        ];
+        const metricas = calcularMetricasAtendimento(eventos);
+        assert.equal(metricas.primeiraMensagemClienteEm, 2000);
+        assert.equal(metricas.primeiraRespostaEquipeEm, 5000);
+        assert.equal(metricas.primeiraRespostaMs, 3000);
+    });
+
+    it("sem mensagem do cliente ainda, tempo de primeira resposta fica nulo", () => {
+        const metricas = calcularMetricasAtendimento([eventoFixture({ tipo: "mensagem_equipe_enviada", criadoEm: 5000 })]);
+        assert.equal(metricas.primeiraMensagemClienteEm, null);
+        assert.equal(metricas.primeiraRespostaMs, null);
+    });
+
+    it("resolvidaEm usa a resolução MAIS RECENTE (conversa pode reabrir e resolver de novo)", () => {
+        const eventos = [
+            eventoFixture({ tipo: "conversa_resolvida", criadoEm: 3000 }),
+            eventoFixture({ tipo: "conversa_reaberta", criadoEm: 4000 }),
+            eventoFixture({ tipo: "conversa_resolvida", criadoEm: 9000 })
+        ];
+        assert.equal(calcularMetricasAtendimento(eventos).resolvidaEm, 9000);
+    });
+
+    it("conta transferências, reaberturas (reaberta + restaurada) e mensagens de cada lado", () => {
+        const eventos = [
+            eventoFixture({ tipo: "conversa_transferida" }),
+            eventoFixture({ tipo: "conversa_transferida" }),
+            eventoFixture({ tipo: "conversa_reaberta" }),
+            eventoFixture({ tipo: "conversa_restaurada" }),
+            eventoFixture({ tipo: "mensagem_cliente_recebida" }),
+            eventoFixture({ tipo: "mensagem_cliente_recebida" }),
+            eventoFixture({ tipo: "mensagem_equipe_enviada" }),
+            eventoFixture({ tipo: "template_utilizado" })
+        ];
+        const metricas = calcularMetricasAtendimento(eventos);
+        assert.equal(metricas.quantidadeTransferencias, 2);
+        assert.equal(metricas.quantidadeReaberturas, 2);
+        assert.equal(metricas.quantidadeMensagensCliente, 2);
+        assert.equal(metricas.quantidadeMensagensEquipe, 1);
+        assert.equal(metricas.templatesUtilizados, 1);
+    });
+
+    it("lida com lista vazia sem lançar erro", () => {
+        const metricas = calcularMetricasAtendimento([]);
+        assert.equal(metricas.primeiraMensagemClienteEm, null);
+        assert.equal(metricas.quantidadeTransferencias, 0);
+    });
+});
+
+describe("prioridade derivada do último evento (sem campo próprio no chat)", () => {
+    it("sem nenhum evento de prioridade, não está priorizada", () => {
+        assert.equal(conversaEstaPriorizada([]), false);
+    });
+
+    it("último evento decide o estado, mesmo fora de ordem na lista", () => {
+        const eventos = [
+            eventoFixture({ tipo: "prioridade_removida", criadoEm: 5000 }),
+            eventoFixture({ tipo: "conversa_priorizada", criadoEm: 1000 })
+        ];
+        // Mesmo com "removida" vindo primeiro na lista, o mais RECENTE
+        // (criadoEm maior) é quem decide — aqui é a remoção (5000 > 1000).
+        assert.equal(conversaEstaPriorizada(eventos), false);
+    });
+
+    it("marcar depois de remover deixa priorizada", () => {
+        const eventos = [
+            eventoFixture({ tipo: "prioridade_removida", criadoEm: 1000 }),
+            eventoFixture({ tipo: "conversa_priorizada", criadoEm: 5000 })
+        ];
+        assert.equal(conversaEstaPriorizada(eventos), true);
+    });
+});
+
+describe("descrição legível do evento (sem identificador técnico)", () => {
+    it("nunca inclui id técnico na frase (só nome de autor e rótulos conhecidos)", () => {
+        const frase = descreverEventoAtendimento(eventoFixture({
+            tipo: "conversa_transferida", autorNome: "Maria S",
+            responsavelAnteriorNome: "João C", responsavelNovoNome: "Ana P"
+        }));
+        assert.equal(frase, "Maria S transferiu a conversa de João C para Ana P.");
+        assert.doesNotMatch(frase, /[a-zA-Z0-9]{15,}/);
+    });
+
+    it("monta as frases de exemplo do escopo", () => {
+        assert.equal(descreverEventoAtendimento(eventoFixture({ tipo: "conversa_assumida", autorNome: "João C" })), "João C assumiu esta conversa.");
+        assert.equal(descreverEventoAtendimento(eventoFixture({ tipo: "conversa_resolvida", autorNome: "João C" })), "Conversa resolvida por João C.");
+        assert.equal(
+            descreverEventoAtendimento(eventoFixture({ tipo: "template_utilizado", autorNome: "João C", templateTitulo: "Prazo de entrega" })),
+            'Template "Prazo de entrega" utilizado por João C.'
+        );
+        assert.equal(
+            descreverEventoAtendimento(eventoFixture({ tipo: "status_alterado", statusAnterior: "aberta", statusNovo: "aguardando_cliente" })),
+            "Status alterado de Aberta para Aguardando cliente."
+        );
+    });
+
+    it("todo tipo do enum tem uma descrição não vazia (nunca cai só no fallback silencioso)", () => {
+        for (const tipo of Object.keys(TIPOS_EVENTO_ATENDIMENTO)) {
+            const frase = descreverEventoAtendimento(eventoFixture({ tipo, autorNome: "Alguém" }));
+            assert.ok(frase && frase.length > 0, tipo);
+        }
     });
 });
