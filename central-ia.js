@@ -174,6 +174,7 @@ export function criarCentralIAController({
         initialized: false,
         loading: false,
         saving: false,
+        loadError: false,
         exists: false,
         persisted: normalizarConfiguracaoIA(CONFIG_IA_PADRAO)
     };
@@ -264,7 +265,7 @@ export function criarCentralIAController({
         const validation = validarConfiguracaoIA(current);
         const dirty = configuracaoIaTemAlteracoes(current, state.persisted);
         const snapshot = context.getSnapshot();
-        const canEdit = snapshot.active && context.canEdit("central-ia");
+        const canEdit = snapshot.active && state.initialized && !state.loadError && context.canEdit("central-ia");
         const saveButton = byId("ia-salvar");
 
         renderErrors(validation.errors);
@@ -330,12 +331,13 @@ export function criarCentralIAController({
         if (!storeUid) return;
 
         setLoading(true);
-        setText("ia-load-error", "");
+        setText("ia-load-error-message", "");
         byId("ia-load-error")?.classList.remove("is-visible");
         try {
             const ref = firestore.doc(db, "configuracoes_ia", storeUid);
             const snap = await firestore.getDoc(ref);
             state.exists = snap.exists();
+            state.loadError = false;
             state.persisted = normalizarConfiguracaoIA(
                 state.exists ? snap.data() : CONFIG_IA_PADRAO
             );
@@ -344,8 +346,9 @@ export function criarCentralIAController({
             applyPermission();
         } catch (error) {
             logger.error("[Central de IA] Erro ao carregar configuração:", error);
+            state.loadError = true;
             if (!state.initialized) fill(state.persisted);
-            setText("ia-load-error", "Não foi possível carregar as configurações. Tente novamente.");
+            setText("ia-load-error-message", "Não foi possível carregar as configurações.");
             byId("ia-load-error")?.classList.add("is-visible");
             if (byId("ia-fieldset")) byId("ia-fieldset").disabled = true;
         } finally {

@@ -65,7 +65,8 @@ function criarDomFakeCentralIA() {
     "ia-resumo-status", "ia-resumo-canais", "ia-status-badge",
     "ia-contador-apresentacao", "ia-contador-instrucoes", "ia-contador-fallback",
     "ia-modo-resposta-dependencia", "ia-unsaved-status", "ia-salvar", "ia-loading",
-    "ia-content", "ia-fieldset", "ia-readonly-notice", "ia-load-error"
+    "ia-content", "ia-fieldset", "ia-readonly-notice", "ia-load-error",
+    "ia-load-error-message", "ia-tentar-novamente"
   ];
   const elements = Object.fromEntries(ids.map(id => [id, criarElementoFake()]));
   const checkboxIds = [
@@ -135,6 +136,11 @@ test("formulário contém os campos obrigatórios e controles acessíveis", () =
   assert.match(dashboardHtml, /role="switch"/);
   assert.match(dashboardHtml, /aria-live="polite"/);
   assert.match(dashboardHtml, /<button type="button" class="central-ia-choice"/);
+});
+
+test("aviso de carregamento oferece nova tentativa pelo controlador", () => {
+  assert.match(dashboardHtml, /id="ia-tentar-novamente"[^>]*>Tentar novamente<\/button>/);
+  assert.match(dashboardApp, /getElementById\("ia-tentar-novamente"\)[\s\S]*?centralIAController\.load\(\{ force: true \}\)/);
 });
 
 test("layout possui breakpoints para desktop, tablet e celulares de 360/390px", () => {
@@ -317,7 +323,57 @@ test("falha no carregamento mantém defaults coerentes e bloqueia edição", asy
   assert.equal(elements["ia-nome-assistente"].value, CONFIG_IA_PADRAO.nomeAssistente);
   assert.equal(elements["ia-fieldset"].disabled, true);
   assert.equal(elements["ia-load-error"].classList.contains("is-visible"), true);
+  assert.equal(elements["ia-load-error-message"].textContent, "Não foi possível carregar as configurações.");
   assert.equal(controller.getState().initialized, false);
+  assert.equal(controller.getState().loadError, true);
+
+  elements["ia-nome-assistente"].value = "Não pode salvar";
+  controller.updateState();
+  assert.equal(elements["ia-salvar"].disabled, true);
+});
+
+test("nova tentativa mostra loading e desbloqueia somente após leitura bem-sucedida", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  let attempts = 0;
+  let resolveRetry;
+  const context = {
+    getSnapshot: () => ({ initialized: true, active: true, storeUid: "ownerA", authUid: "ownerA" }),
+    canView: () => true,
+    canEdit: () => true
+  };
+  const controller = criarCentralIAController({
+    db: {}, context, root,
+    firestore: {
+      doc: () => ({}),
+      getDoc: async () => {
+        attempts += 1;
+        if (attempts === 1) throw new Error("offline");
+        return await new Promise(resolve => { resolveRetry = resolve; });
+      },
+      setDoc: async () => {},
+      serverTimestamp: () => ({})
+    },
+    logger: { error() {} }
+  });
+
+  await controller.load();
+  const retryPromise = controller.load({ force: true });
+
+  assert.equal(attempts, 2);
+  assert.equal(elements["ia-loading"].classList.contains("hidden"), false);
+  assert.equal(elements["ia-content"].classList.contains("hidden"), true);
+  assert.equal(elements["ia-fieldset"].disabled, true);
+  assert.equal(elements["ia-load-error"].classList.contains("is-visible"), false);
+
+  resolveRetry({ exists: () => false, data: () => null });
+  await retryPromise;
+
+  assert.equal(elements["ia-loading"].classList.contains("hidden"), true);
+  assert.equal(elements["ia-content"].classList.contains("hidden"), false);
+  assert.equal(elements["ia-fieldset"].disabled, false);
+  assert.equal(elements["ia-load-error"].classList.contains("is-visible"), false);
+  assert.equal(controller.getState().initialized, true);
+  assert.equal(controller.getState().loadError, false);
 });
 
 test("alterações não salvas ignoram apenas diferenças normalizadas", () => {

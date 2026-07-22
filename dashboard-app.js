@@ -4042,6 +4042,10 @@ btn.classList.add("opacity-40");
             notify: showToast
         });
 
+        document.getElementById("ia-tentar-novamente")?.addEventListener("click", () => {
+            centralIAController.load({ force: true });
+        });
+
         window.carregarConfiguracaoIA = function(opcoes) {
             return centralIAController.load(opcoes);
         };
