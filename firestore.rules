@@ -957,13 +957,45 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Pedidos Estruturados: até esta etapa, pedidos não tinha NENHUMA
+    // validação de campo nas Rules (só dono/tenant) — corrigido aqui.
+    // `itens` é validado só de forma rasa (lista + tamanho máximo): a
+    // Rules do Firestore não itera elementos de lista de forma barata, e
+    // a lição do ciclo do histórico de eventos (teto de 1000 expressões
+    // numa regra grande) pesou na decisão de não tentar validar o
+    // formato de cada item aqui — a validação profunda de cada item
+    // (produtoId/nomeSnapshot/precoSnapshot/quantidade) é feita no
+    // cliente (pedidos-estruturados.js, validarItemPedido) antes do
+    // envio; o histórico de eventos (chats/{id}/eventos, tipo
+    // pedido_vinculado) continua sendo a fonte confiável de auditoria
+    // para quem precisar reconstituir o que aconteceu.
+    function itensPedidoValidos(itens) {
+      return itens == null || (itens is list && itens.size() <= 20);
+    }
+    function validPedidoData(data) {
+      return data.keys().hasOnly(["cliente", "produtos", "valor", "status", "obs", "criadoPor",
+          "data", "clienteId", "statusAtualizadoEm", "itens", "prazoEntrega"])
+        && data.keys().hasAll(["cliente", "produtos", "valor", "status", "criadoPor"])
+        && data.cliente is string && data.cliente.size() >= 1 && data.cliente.size() <= 160
+        && data.produtos is string && data.produtos.size() >= 1 && data.produtos.size() <= 2000
+        && data.valor is number && data.valor >= 0
+        && data.status in ["aguardando", "confirmado", "pago", "cancelado"]
+        && data.criadoPor is string
+        && (!data.keys().hasAny(["obs"]) || (data.obs is string && data.obs.size() <= 2000))
+        && (!data.keys().hasAny(["statusAtualizadoEm"]) || data.statusAtualizadoEm is number)
+        && (!data.keys().hasAny(["itens"]) || itensPedidoValidos(data.itens))
+        && (!data.keys().hasAny(["prazoEntrega"]) || data.prazoEntrega is number || data.prazoEntrega == null)
+        && (!data.keys().hasAny(["clienteId"]) || data.clienteId is string);
+    }
+
     match /pedidos/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "pedidos");
-      allow create: if canEditTenant(request.resource.data.criadoPor, "pedidos");
+      allow create: if canEditTenant(request.resource.data.criadoPor, "pedidos") && validPedidoData(request.resource.data);
       // clienteId (CRM 360, opcional): só grava se apontar pra um
       // clientes/{id} do mesmo tenant — nunca vínculo cruzado.
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "pedidos")
-        && clienteIdValidoParaTenant(resource.data.criadoPor);
+        && clienteIdValidoParaTenant(resource.data.criadoPor)
+        && validPedidoData(request.resource.data);
       allow delete: if canEditTenant(resource.data.criadoPor, "pedidos");
     }
 
