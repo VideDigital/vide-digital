@@ -66,7 +66,8 @@ const MODULE_ALIASES = Object.freeze({
     metricas: ["metricas", "métricas"],
     configuracoes: ["configuracoes", "configurações", "personalizacao", "personalização"],
     "landing-pages": ["landing-pages", "landing_pages", "landingPages", "paginas", "páginas", "landing", "lp", "studio"],
-    funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"]
+    funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"],
+    "central-ia": ["central-ia", "central_ia", "gerenciar_ia", "ia", "inteligencia-artificial"]
 });
 
 const MODULE_ALIAS_LOOKUP = Object.freeze(

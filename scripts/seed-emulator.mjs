@@ -117,7 +117,7 @@ await setDoc("funcionarios/employee-edit", {
   nome: "Funcionário Editor",
   status: "ativo",
   cargo: "Operação",
-  permissoes: { ver: ["dashboard", "produtos", "leads", "funcionarios"], editar: ["produtos", "leads", "funcionarios"] }
+  permissoes: { ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia"], editar: ["produtos", "leads", "funcionarios", "central-ia"] }
 });
 
 await setDoc("funcionarios/employee-inactive", {

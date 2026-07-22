@@ -16,7 +16,7 @@ Ele não publica Hosting, regras do Storage ou outras Functions. O workflow só 
 4. Na aba **Geral**, copie o campo **ID do projeto**.
 5. Compare o ID com os aplicativos e domínios exibidos nessa página e confirme com a pessoa responsável pelo ambiente de produção.
 
-O repositório não possui `.firebaserc`. Portanto, nenhum alias local comprova qual projeto é produção. O valor `demo-vide-hub` pertence aos emuladores e é recusado pelo workflow. Não use um ID apenas porque ele parece correto.
+O repositório não possui `.firebaserc`. O frontend publicado em `firebase-init.js` usa o projeto `vide-digital-saas`, e o workflow recusa qualquer outro ID para impedir que as Rules sejam publicadas em um projeto diferente. O valor `demo-vide-hub` pertence somente aos emuladores.
 
 ## 2. Criar uma conta de serviço exclusiva
 
@@ -95,19 +95,19 @@ Abra a execução na aba **Actions** e acompanhe cada etapa. A ordem esperada é
 6. `java -version`;
 7. `pnpm run test:rules`;
 8. aprovação do Environment e autenticação;
-9. deploy de `sendAdminChatMessage` e `incrementPublicMetric`;
-10. deploy de `firestore.rules`;
+9. deploy de `firestore.rules` no projeto `vide-digital-saas`;
+10. deploy de `sendAdminChatMessage` e `incrementPublicMetric`;
 11. deploy de `firestore.indexes.json`.
 
 O computador local pode ter apenas Java 8 (`1.8.0_481`), enquanto o Firebase Emulator exige Java 11 ou superior. O workflow instala Java 21 apenas no runner temporário do GitHub Actions, antes de `pnpm run test:rules`, e o teste completo é validado pela execução do GitHub Actions antes de qualquer autenticação ou deploy.
 
-As regras só são publicadas se o deploy das duas Functions terminar com sucesso. Nos logs, confirme que o primeiro comando contém apenas:
+As regras são publicadas antes das Functions para que uma falha independente no deploy das Functions não mantenha políticas antigas no Firestore. Nos logs, confirme que o primeiro comando contém apenas:
 
-`functions:sendAdminChatMessage,functions:incrementPublicMetric`
+`firestore:rules`
 
 E que o segundo contém apenas:
 
-`firestore:rules`
+`functions:sendAdminChatMessage,functions:incrementPublicMetric`
 
 E que o terceiro contém apenas:
 

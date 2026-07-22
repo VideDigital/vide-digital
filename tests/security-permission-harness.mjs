@@ -8,7 +8,8 @@ const MODULE_ALIASES = {
     metricas: ["metricas", "métricas"],
     configuracoes: ["configuracoes", "configurações", "personalizacao", "personalização"],
     "landing-pages": ["landing-pages", "landing_pages", "landingPages", "paginas", "páginas", "landing", "lp", "studio"],
-    funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"]
+    funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"],
+    "central-ia": ["central-ia", "central_ia", "gerenciar_ia", "ia", "inteligencia-artificial"]
 };
 
 const lookup = Object.entries(MODULE_ALIASES).reduce((acc, [canonical, aliases]) => {
@@ -69,6 +70,8 @@ const scenarios = [
     ["employee edit products", buildContext("employee", { editar: ["produtos"] }), "produtos", true, true],
     ["employee read leads", buildContext("employee", { ver: ["leads"] }), "leads", true, false],
     ["employee read orders", buildContext("employee", { ver: ["pedidos"] }), "pedidos", true, false],
+    ["employee read AI settings", buildContext("employee", { ver: ["central-ia"] }), "central-ia", true, false],
+    ["employee edit AI settings through alias", buildContext("employee", { editar: ["gerenciar_ia"] }), "central-ia", true, true],
     ["settings does not grant landing pages", buildContext("employee", { editar: ["configuracoes"] }), "landing-pages", false, false],
     ["landing alias grants studio", buildContext("employee", { editar: ["landing_pages"] }), "studio", true, true],
     ["common user cannot use store module", buildContext("invalid"), "produtos", false, false],

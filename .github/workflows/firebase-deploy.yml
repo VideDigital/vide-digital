@@ -60,6 +60,11 @@ jobs:
             exit 1
           fi
 
+          if [[ "${PROJECT_ID}" != "vide-digital-saas" ]]; then
+            echo "Erro: o frontend de produção usa o projeto vide-digital-saas."
+            exit 1
+          fi
+
           if [[ "${CONFIRM_PRODUCTION}" != "DEPLOY" ]]; then
             echo "Erro: confirm_production deve ser exatamente DEPLOY."
             exit 1
@@ -135,6 +140,17 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
+      - name: Publicar primeiro as regras do Firestore
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only firestore:rules \
+            --project "${PROJECT_ID}" \
+            --non-interactive
+
       - name: Publicar somente as duas Cloud Functions autorizadas
         shell: bash
         env:
@@ -143,17 +159,6 @@ jobs:
           set -euo pipefail
           pnpm dlx firebase-tools@13.35.1 deploy \
             --only functions:sendAdminChatMessage,functions:incrementPublicMetric \
-            --project "${PROJECT_ID}" \
-            --non-interactive
-
-      - name: Publicar somente as regras do Firestore
-        shell: bash
-        env:
-          PROJECT_ID: ${{ inputs.project_id }}
-        run: |
-          set -euo pipefail
-          pnpm dlx firebase-tools@13.35.1 deploy \
-            --only firestore:rules \
             --project "${PROJECT_ID}" \
             --non-interactive
 
