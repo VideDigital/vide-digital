@@ -110,6 +110,8 @@ test("buscas do hub e da lateral preservam módulos ocultos por permissão", () 
   assert.match(dashboardApp, /!podeVer \|\| !correspondeBusca/);
   assert.match(sidebarNavigation, /!botao\.classList\.contains\("hidden"\)/);
   assert.match(sidebarNavigation, /window\.atualizarBuscaSidebarModulos = aplicarBusca/);
+  assert.match(dashboardApp, /const termoBuscaHub = buscaHub\?\.value \?\? buscaHub\?\.textContent \?\? ""/);
+  assert.match(dashboardApp, /window\.filtrarHubModulos\?\.\(termoBuscaHub\)/);
   assert.match(dashboardApp, /function atualizarElementosComPermissao[\s\S]*?window\.atualizarBuscaSidebarModulos\?\.\(\)/);
 });
 

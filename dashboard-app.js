@@ -3805,7 +3805,9 @@ if (document.readyState === "loading") {
                 const moduleKey = element.getAttribute("data-module-permission");
                 element.classList.toggle("hidden", !podeVerModuloNoContexto(moduleKey));
             });
-            window.filtrarHubModulos?.(document.getElementById("busca-hub-modulos")?.textContent || "");
+            const buscaHub = document.getElementById("busca-hub-modulos");
+            const termoBuscaHub = buscaHub?.value ?? buscaHub?.textContent ?? "";
+            window.filtrarHubModulos?.(termoBuscaHub);
             window.atualizarBuscaSidebarModulos?.();
         }
 
