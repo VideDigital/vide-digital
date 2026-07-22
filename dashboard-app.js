@@ -1,6 +1,7 @@
 import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { criarCentralIAController } from "./central-ia.js";
+import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -2343,6 +2344,10 @@ if (targetId === "view-metricas") {
         centralIAController.load();
     }
 
+    if (targetId === "view-base-conhecimento") {
+        baseConhecimentoController.load();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3853,6 +3858,7 @@ if (document.readyState === "loading") {
             "view-metricas": "metricas",
             "view-personalizacao": "configuracoes",
             "view-central-ia": "central-ia",
+            "view-base-conhecimento": "base-conhecimento-ia",
             "view-funcionarios": "funcionarios",
             "view-landing-pages": "landing-pages"
         };
@@ -4106,6 +4112,14 @@ btn.classList.add("opacity-40");
             firestore: { doc, getDoc, setDoc, serverTimestamp },
             notify: showToast
         });
+
+        const baseConhecimentoController = criarBaseConhecimentoController({
+            db,
+            context: VideHubContext,
+            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, serverTimestamp },
+            notify: showToast
+        });
+        baseConhecimentoController.bindEventos();
 
         document.getElementById("ia-tentar-novamente")?.addEventListener("click", () => {
             centralIAController.load({ force: true });

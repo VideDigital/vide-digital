@@ -68,6 +68,13 @@ service cloud.firestore {
           || "gerenciar_ia" in permissions
           || "ia" in permissions
           || "inteligencia-artificial" in permissions
+        ))
+        || (moduleKey == "base-conhecimento-ia" && (
+          "base_conhecimento_ia" in permissions
+          || "conhecimento-ia" in permissions
+          || "conhecimento_ia" in permissions
+          || "knowledge-base" in permissions
+          || "base-ia" in permissions
         ));
     }
 
@@ -295,6 +302,59 @@ service cloud.firestore {
     function validIaConfigUpdate(storeUid) {
       return canEditTenant(storeUid, "central-ia")
         && validIaConfigData(request.resource.data, storeUid)
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.lojaId == resource.data.lojaId
+        && request.resource.data.criadoPor == resource.data.criadoPor
+        && request.resource.data.criadoEm == resource.data.criadoEm
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
+    // ===== Base de Conhecimento da IA =====
+    // Item de conhecimento por tenant. Opções fechadas, limites de tamanho
+    // e autoria/timestamps do servidor; metadados de criação imutáveis.
+    function validConhecimentoData(data) {
+      return data.keys().hasOnly([
+          "tenantId", "lojaId", "tipo", "titulo", "conteudo", "resumo",
+          "tags", "categoria", "prioridade", "status", "ativo",
+          "criadoEm", "criadoPor", "atualizadoEm", "atualizadoPor"
+        ])
+        && data.keys().hasAll([
+          "tenantId", "lojaId", "tipo", "titulo", "conteudo",
+          "prioridade", "status", "ativo",
+          "criadoEm", "criadoPor", "atualizadoEm", "atualizadoPor"
+        ])
+        && data.tenantId is string
+        && data.lojaId == data.tenantId
+        && data.tipo in ["faq", "empresa", "politica", "atendimento", "manual", "produto", "documento", "catalogo"]
+        && data.titulo is string
+        && data.titulo.size() >= 3
+        && data.titulo.size() <= 160
+        && data.conteudo is string
+        && data.conteudo.size() >= 1
+        && data.conteudo.size() <= 8000
+        && (!data.keys().hasAny(["resumo"]) || (data.resumo is string && data.resumo.size() <= 300))
+        && (!data.keys().hasAny(["categoria"]) || (data.categoria is string && data.categoria.size() <= 80))
+        && (!data.keys().hasAny(["tags"]) || (data.tags is list && data.tags.size() <= 10))
+        && data.prioridade in ["baixa", "normal", "alta", "critica"]
+        && data.status in ["ativo", "rascunho", "arquivado"]
+        && data.ativo is bool
+        && data.criadoPor is string
+        && data.atualizadoPor is string;
+    }
+
+    function validConhecimentoCreate() {
+      return canEditTenant(request.resource.data.tenantId, "base-conhecimento-ia")
+        && validConhecimentoData(request.resource.data)
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
+    function validConhecimentoUpdate() {
+      return canEditTenant(resource.data.tenantId, "base-conhecimento-ia")
+        && validConhecimentoData(request.resource.data)
         && request.resource.data.tenantId == resource.data.tenantId
         && request.resource.data.lojaId == resource.data.lojaId
         && request.resource.data.criadoPor == resource.data.criadoPor
@@ -588,6 +648,18 @@ service cloud.firestore {
       allow read: if canViewTenant(storeUid, "central-ia");
       allow create: if validIaConfigCreate(storeUid);
       allow update: if validIaConfigUpdate(storeUid);
+      allow delete: if false;
+    }
+
+    // ===== Base de Conhecimento da IA (por tenant) =====
+    // Itens que alimentarão a futura assistente: FAQ, dados da empresa,
+    // políticas, manuais etc. Escrita direta (Spark), sempre presa ao
+    // tenant autenticado. Sem delete físico: arquivar é a exclusão lógica.
+    match /base_conhecimento_ia/{id} {
+      allow read: if resource.data.keys().hasAny(["tenantId"])
+        && canViewTenant(resource.data.tenantId, "base-conhecimento-ia");
+      allow create: if validConhecimentoCreate();
+      allow update: if validConhecimentoUpdate();
       allow delete: if false;
     }
 

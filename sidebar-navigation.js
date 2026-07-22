@@ -40,6 +40,7 @@
             alvos: [
                 "view-automacao-leads",
                 "view-central-ia",
+                "view-base-conhecimento",
                 "view-templates",
                 "view-campanhas",
                 "view-landing-pages",

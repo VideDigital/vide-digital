@@ -297,6 +297,10 @@ Automação de Leads
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h1M19 5h1M3 10h2M19 10h2"></path></svg>
 Central de IA
 </button>
+<button data-target="view-base-conhecimento" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1" aria-label="Abrir Base de Conhecimento da IA">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"></path></svg>
+Base de Conhecimento
+</button>
 <button data-target="view-templates" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
 Templates
@@ -942,6 +946,7 @@ HUB
 <div class="aura-hub-card" data-nome="leads capturas contatos funil" onclick="ativarAba('view-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="aura-hub-card-text"><strong>Leads (Capturas)</strong><small>Contatos capturados e funil de vendas</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="automação de leads automacao regras disparos" onclick="ativarAba('view-automacao-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span class="aura-hub-card-text"><strong>Automação de Leads</strong><small>Regras e disparos automáticos</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card hidden" data-target="view-central-ia" data-module-permission="central-ia" data-nome="central de ia inteligência artificial inteligencia artificial assistente automação automacao chatbot atendimento" role="button" tabindex="0" onclick="ativarAba('view-central-ia')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-central-ia'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"/><path d="M4 5h1M19 5h1M3 10h2M19 10h2"/></svg></span><span class="aura-hub-card-text"><strong>Central de IA</strong><small>Configure a assistente virtual da sua loja</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
+<div class="aura-hub-card hidden" data-target="view-base-conhecimento" data-module-permission="base-conhecimento-ia" data-nome="base de conhecimento ia faq politicas empresa manuais assistente" role="button" tabindex="0" onclick="ativarAba('view-base-conhecimento')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-base-conhecimento'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span><span class="aura-hub-card-text"><strong>Base de Conhecimento</strong><small>FAQ, políticas e dados que a IA vai usar</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="templates mensagens prontas" onclick="ativarAba('view-templates')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="aura-hub-card-text"><strong>Templates</strong><small>Mensagens prontas de atendimento</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="campanhas marketing disparos" onclick="ativarAba('view-campanhas')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span><span class="aura-hub-card-text"><strong>Campanhas</strong><small>Marketing e disparos em massa</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="landing pages lp páginas conversão" onclick="ativarAba('view-landing-pages')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></span><span class="aura-hub-card-text"><strong>Landing Pages</strong><small>Páginas de conversão da sua marca</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
@@ -3595,6 +3600,160 @@ Você pode consultar esta configuração, mas não possui permissão para editá
 </fieldset>
 </form>
 </div>
+</section>
+
+<section id="view-base-conhecimento" class="view-section central-ia-view bc-view max-w-6xl mx-auto" aria-labelledby="bc-title">
+
+<header class="central-ia-header bc-header">
+<div class="central-ia-heading">
+<span class="central-ia-heading-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg>
+</span>
+<div>
+<p class="central-ia-eyebrow">Central de IA</p>
+<h1 id="bc-title" class="central-ia-title">Base de Conhecimento</h1>
+<p class="central-ia-description">Cadastre FAQs, dados da empresa, políticas e manuais. É este acervo que a futura assistente virtual vai usar para responder pela sua loja.</p>
+</div>
+</div>
+<div class="central-ia-header-actions">
+<button type="button" id="bc-btn-atualizar" class="bc-btn" aria-label="Atualizar lista de conteúdos">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 4v6h-6"/></svg>
+Atualizar
+</button>
+<button type="button" id="bc-btn-novo" class="bc-btn bc-btn-primario">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14"><path d="M12 5v14M5 12h14"/></svg>
+Novo conteúdo
+</button>
+</div>
+</header>
+
+<div class="bc-kpis">
+<div class="central-ia-summary-card bc-kpi">
+<small>Conteúdos</small>
+<strong id="bc-kpi-total">0</strong>
+<span>Cadastrados (sem contar arquivados)</span>
+</div>
+<div class="central-ia-summary-card bc-kpi">
+<small>Ativos</small>
+<strong id="bc-kpi-ativos">0</strong>
+<span>Disponíveis para a assistente</span>
+</div>
+<div class="central-ia-summary-card bc-kpi bc-kpi-prontidao">
+<small>Prontidão da assistente</small>
+<div class="bc-prontidao-linha">
+<strong id="bc-kpi-prontidao">0</strong>
+<span class="bc-prontidao-max">/100</span>
+<span id="bc-prontidao-nivel" class="bc-chip">Incompleta</span>
+</div>
+<div class="bc-prontidao-track" role="progressbar" aria-label="Prontidão da assistente" aria-valuemin="0" aria-valuemax="100">
+<div id="bc-prontidao-barra" class="bc-prontidao-fill" style="width:0%"></div>
+</div>
+<div id="bc-prontidao-pendentes" class="bc-prontidao-pendentes"></div>
+</div>
+</div>
+
+<div class="central-ia-card bc-toolbar-card">
+<div class="bc-toolbar">
+<label class="bc-campo bc-campo-busca">
+<span class="sr-only">Buscar conteúdo</span>
+<input type="search" id="bc-busca" placeholder="Buscar por título, conteúdo ou tag..." aria-label="Buscar conteúdo">
+</label>
+<label class="bc-campo">
+<span>Tipo</span>
+<select id="bc-filtro-tipo" aria-label="Filtrar por tipo">
+<option value="todos">Todos</option>
+<option value="faq">FAQ</option>
+<option value="empresa">Empresa</option>
+<option value="politica">Política</option>
+<option value="atendimento">Atendimento</option>
+<option value="manual">Manual</option>
+<option value="produto">Produto</option>
+<option value="documento">Documento</option>
+<option value="catalogo">Catálogo</option>
+</select>
+</label>
+<label class="bc-campo">
+<span>Status</span>
+<select id="bc-filtro-status" aria-label="Filtrar por status">
+<option value="todos">Todos</option>
+<option value="ativo">Ativos</option>
+<option value="rascunho">Rascunhos</option>
+<option value="arquivado">Arquivados</option>
+</select>
+</label>
+</div>
+<div id="bc-lista" class="bc-lista" aria-live="polite"></div>
+</div>
+
+<div id="bc-modal" class="hidden bc-modal-overlay" role="dialog" aria-modal="true" aria-labelledby="bc-modal-titulo">
+<div class="bc-modal">
+<div class="bc-modal-head">
+<h2 id="bc-modal-titulo">Novo conteúdo</h2>
+<button type="button" id="bc-modal-fechar" class="bc-btn" aria-label="Fechar">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15"><path d="M18 6 6 18M6 6l12 12"/></svg>
+</button>
+</div>
+<div class="bc-modal-corpo">
+<label class="bc-campo">
+<span>Título</span>
+<input type="text" id="bc-form-titulo" maxlength="160" placeholder="Ex.: Qual o prazo de entrega?">
+</label>
+<div class="bc-modal-grid">
+<label class="bc-campo">
+<span>Tipo</span>
+<select id="bc-form-tipo">
+<option value="faq">FAQ</option>
+<option value="empresa">Empresa</option>
+<option value="politica">Política</option>
+<option value="atendimento">Atendimento</option>
+<option value="manual">Manual</option>
+<option value="produto">Produto</option>
+<option value="documento">Documento</option>
+<option value="catalogo">Catálogo</option>
+</select>
+</label>
+<label class="bc-campo">
+<span>Status</span>
+<select id="bc-form-status">
+<option value="ativo">Ativo</option>
+<option value="rascunho">Rascunho</option>
+<option value="arquivado">Arquivado</option>
+</select>
+</label>
+<label class="bc-campo">
+<span>Prioridade</span>
+<select id="bc-form-prioridade">
+<option value="baixa">Baixa</option>
+<option value="normal" selected>Normal</option>
+<option value="alta">Alta</option>
+<option value="critica">Crítica</option>
+</select>
+</label>
+<label class="bc-campo">
+<span>Categoria (opcional)</span>
+<input type="text" id="bc-form-categoria" maxlength="80" placeholder="Ex.: entrega, troca...">
+</label>
+</div>
+<label class="bc-campo">
+<span>Resumo (opcional, até 300 caracteres)</span>
+<input type="text" id="bc-form-resumo" maxlength="300" placeholder="Uma frase que resume este conteúdo">
+</label>
+<label class="bc-campo">
+<span>Conteúdo</span>
+<textarea id="bc-form-conteudo" rows="7" maxlength="8000" placeholder="Escreva a resposta ou o texto completo que a assistente deve conhecer."></textarea>
+</label>
+<label class="bc-campo">
+<span>Tags (separadas por vírgula, até 10)</span>
+<input type="text" id="bc-form-tags" placeholder="entrega, prazo, frete">
+</label>
+</div>
+<div class="bc-modal-acoes">
+<button type="button" id="bc-form-cancelar" class="bc-btn">Cancelar</button>
+<button type="button" id="bc-form-salvar" class="bc-btn bc-btn-primario">Salvar conteúdo</button>
+</div>
+</div>
+</div>
+
 </section>
 
 <section id="view-notificacoes" class="view-section space-y-6 max-w-6xl mx-auto aura-notifications-view">

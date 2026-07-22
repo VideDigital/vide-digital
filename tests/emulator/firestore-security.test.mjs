@@ -569,3 +569,213 @@ describe("admin claims", () => {
     await assertSucceeds(updateDoc(doc(authed("admin", { videAdmin: true }), "usuarios", "ownerB"), { status: "inativo" }));
   });
 });
+
+function conhecimentoValido(overrides = {}) {
+  return {
+    tenantId: "ownerA",
+    lojaId: "ownerA",
+    tipo: "faq",
+    titulo: "Qual o prazo de entrega?",
+    conteudo: "Enviamos em até 3 dias úteis.",
+    resumo: "Prazo padrão.",
+    tags: ["entrega"],
+    prioridade: "normal",
+    status: "ativo",
+    ativo: true,
+    criadoEm: serverTimestamp(),
+    criadoPor: "ownerA",
+    atualizadoEm: serverTimestamp(),
+    atualizadoPor: "ownerA",
+    ...overrides
+  };
+}
+
+describe("base_conhecimento_ia: multi-tenant e validação", () => {
+  it("dono cria item válido do próprio tenant", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbOwnerA1"), conhecimentoValido()));
+  });
+
+  it("dono não cria item apontando para outro tenant", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbInvasao"), conhecimentoValido({
+      tenantId: "ownerB",
+      lojaId: "ownerB",
+      criadoPor: "ownerA",
+      atualizadoPor: "ownerA"
+    })));
+  });
+
+  it("rejeita campos extras, enum inválido e conteúdo excessivo", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbExtra"), conhecimentoValido({ campoMalicioso: true })));
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbEnum"), conhecimentoValido({ tipo: "outro" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbGrande"), conhecimentoValido({ conteudo: "x".repeat(8001) })));
+  });
+
+  it("rejeita timestamp manual e autoria falsa", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbTs"), conhecimentoValido({ criadoEm: new Date("2020-01-01") })));
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbAutor"), conhecimentoValido({ criadoPor: "ownerB", atualizadoPor: "ownerB" })));
+  });
+
+  it("update preserva tenant/autoria; delete físico é bloqueado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "base_conhecimento_ia", "kbFixo"), {
+        ...conhecimentoValido(),
+        criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+        atualizadoEm: new Date("2026-07-01T10:00:00.000Z")
+      });
+    });
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbFixo"), {
+      ...conhecimentoValido(),
+      criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+      titulo: "Prazo atualizado de entrega",
+      status: "rascunho",
+      ativo: false,
+      atualizadoEm: serverTimestamp(),
+      atualizadoPor: "ownerA"
+    }));
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbFixo"), {
+      ...conhecimentoValido(),
+      criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+      tenantId: "ownerB",
+      lojaId: "ownerB"
+    }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbFixo")));
+  });
+
+  it("outro tenant, funcionário sem permissão e anônimo não leem", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "base_conhecimento_ia", "kbLeitura"), {
+        ...conhecimentoValido(),
+        criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+        atualizadoEm: new Date("2026-07-01T10:00:00.000Z")
+      });
+    });
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbLeitura")));
+    await assertFails(getDoc(doc(authed("ownerB"), "base_conhecimento_ia", "kbLeitura")));
+    await assertFails(getDoc(doc(authed("employeeRead"), "base_conhecimento_ia", "kbLeitura")));
+    await assertFails(getDoc(doc(anon(), "base_conhecimento_ia", "kbLeitura")));
+  });
+
+  it("funcionário com permissão (inclusive alias) lê e edita; inativo não", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "employeeKb"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["base-conhecimento-ia"], editar: ["base-conhecimento-ia"] }
+      });
+      await setDoc(doc(db, "funcionarios", "employeeKbAlias"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["conhecimento-ia"], editar: ["knowledge-base"] }
+      });
+      await setDoc(doc(db, "funcionarios", "employeeKbInativo"), {
+        donoUID: "ownerA",
+        status: "inativo",
+        permissoes: { ver: ["base-conhecimento-ia"], editar: ["base-conhecimento-ia"] }
+      });
+      await setDoc(doc(db, "base_conhecimento_ia", "kbEquipe"), {
+        ...conhecimentoValido(),
+        criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+        atualizadoEm: new Date("2026-07-01T10:00:00.000Z")
+      });
+    });
+    await assertSucceeds(getDoc(doc(authed("employeeKb"), "base_conhecimento_ia", "kbEquipe")));
+    await assertSucceeds(getDoc(doc(authed("employeeKbAlias"), "base_conhecimento_ia", "kbEquipe")));
+    await assertFails(getDoc(doc(authed("employeeKbInativo"), "base_conhecimento_ia", "kbEquipe")));
+    await assertSucceeds(setDoc(doc(authed("employeeKb"), "base_conhecimento_ia", "kbNovoEquipe"), conhecimentoValido({
+      criadoPor: "employeeKb",
+      atualizadoPor: "employeeKb"
+    })));
+  });
+
+  it("list() filtrado por tenant funciona; sem filtro não", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "base_conhecimento_ia", "kbListA"), {
+        ...conhecimentoValido(),
+        criadoEm: new Date("2026-07-01T10:00:00.000Z"),
+        atualizadoEm: new Date("2026-07-01T10:00:00.000Z")
+      });
+    });
+    await assertSucceeds(getDocs(query(
+      collection(authed("ownerA"), "base_conhecimento_ia"),
+      where("tenantId", "==", "ownerA")
+    )));
+    await assertFails(getDocs(collection(authed("ownerA"), "base_conhecimento_ia")));
+  });
+});
+
+function funcionarioValido(overrides = {}) {
+  return {
+    donoUID: "ownerA",
+    nome: "Novo Funcionário",
+    email: "novo@local.test",
+    cargo: "Atendimento",
+    status: "ativo",
+    senhaTemporaria: true,
+    permissoes: { ver: ["produtos"], editar: [] },
+    criadoEm: serverTimestamp(),
+    criadoPorAuthUid: "ownerA",
+    ...overrides
+  };
+}
+
+describe("funcionarios: gestão direta pelo dono (Spark)", () => {
+  it("dono cria funcionário válido do próprio tenant", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
+  });
+
+  it("dono não cria funcionário apontando para outro tenant nem para si mesmo", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp2"), funcionarioValido({ donoUID: "ownerB" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "ownerA"), funcionarioValido()));
+  });
+
+  it("rejeita status inicial diferente de ativo, campos extras e timestamp manual", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp3"), funcionarioValido({ status: "inativo" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp4"), funcionarioValido({ admin: true })));
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp5"), funcionarioValido({ criadoEm: new Date("2020-01-01") })));
+  });
+
+  it("dono atualiza permissões/status; não muda o donoUID", async () => {
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
+      nome: "Leitor Renomeado",
+      cargo: "Suporte",
+      permissoes: { ver: ["produtos", "leads"], editar: [] },
+      atualizadoEm: serverTimestamp(),
+      atualizadoPorAuthUid: "ownerA"
+    }));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
+      status: "inativo",
+      atualizadoEm: serverTimestamp(),
+      atualizadoPorAuthUid: "ownerA"
+    }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
+      donoUID: "ownerB"
+    }));
+  });
+
+  it("funcionário (mesmo com edição de funcionarios) e outro dono não gerenciam", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "funcionarios", "employeeGestor"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["funcionarios"], editar: ["funcionarios"] }
+      });
+    });
+    await assertFails(updateDoc(doc(authed("employeeGestor"), "funcionarios", "employeeRead"), {
+      permissoes: { ver: ["produtos"], editar: ["produtos"] }
+    }));
+    await assertFails(updateDoc(doc(authed("ownerB"), "funcionarios", "employeeRead"), {
+      status: "inativo",
+      atualizadoEm: serverTimestamp(),
+      atualizadoPorAuthUid: "ownerB"
+    }));
+    await assertFails(setDoc(doc(authed("employeeGestor"), "funcionarios", "novoDoGestor"), funcionarioValido({ criadoPorAuthUid: "employeeGestor" })));
+  });
+
+  it("funcionário não reativa a si mesmo nem edita as próprias permissões; delete bloqueado", async () => {
+    await assertFails(updateDoc(doc(authed("employeeRead"), "funcionarios", "employeeRead"), {
+      permissoes: { ver: ["produtos"], editar: ["produtos"] }
+    }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "funcionarios", "employeeRead")));
+  });
+});
