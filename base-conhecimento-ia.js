@@ -196,7 +196,7 @@ function codigoErroFirebase(error) {
 // funções do SDK e notificador) pra ficar testável sem navegador real.
 export function criarBaseConhecimentoController(deps) {
     const { db, context, firestore, notify } = deps;
-    const { collection, doc, getDoc, getDocs, setDoc, query, where, serverTimestamp } = firestore;
+    const { collection, doc, getDoc, getDocs, setDoc, query, where, limit, serverTimestamp } = firestore;
 
     const state = {
         itens: [],
@@ -243,11 +243,16 @@ export function criarBaseConhecimentoController(deps) {
 
     // Catálogo real de produtos, carregado sob demanda (só quando o tipo
     // "produto" é escolhido no formulário) e cacheado em memória pra não
-    // reler a cada tecla digitada na busca.
+    // reler a cada tecla digitada na busca. limit(300): teto de leitura
+    // (mesmo padrão usado em outras fontes deste app) — não é "os 300
+    // primeiros" de forma determinística, é um limite pra nunca escanear
+    // um catálogo gigante inteiro só pra abrir um formulário. Busca real
+    // por nome no servidor (Firestore não tem "contains") ficaria para uma
+    // eventual necessidade real de tenant com catálogo muito grande.
     async function carregarCatalogoProdutos() {
         if (state.catalogoProdutos || !storeUid()) return state.catalogoProdutos || [];
         try {
-            const snap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", storeUid())));
+            const snap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", storeUid()), limit(300)));
             const todos = [];
             snap.forEach(d => { const p = d.data(); if (p.statusProduto !== "arquivado") todos.push({ id: d.id, ...p }); });
             state.catalogoProdutos = todos;

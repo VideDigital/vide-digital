@@ -4160,7 +4160,7 @@ btn.classList.add("opacity-40");
         const baseConhecimentoController = criarBaseConhecimentoController({
             db,
             context: VideHubContext,
-            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, serverTimestamp },
+            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, limit, serverTimestamp },
             notify: showToast
         });
         baseConhecimentoController.bindEventos();

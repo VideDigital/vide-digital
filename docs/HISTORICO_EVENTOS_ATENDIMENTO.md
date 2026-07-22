@@ -448,15 +448,45 @@ no log de eventos, que continua existindo e acessível dentro da própria
 conversa (Fase 6/7), só não alimenta esta notificação específica. Ver
 `dashboard-app.js`, função `carregarEventosNegocioNotificacoes`.
 
-## Próximas três prioridades reais
+## Fase 20 — Métricas em runtime: decisão de não migrar (avaliado)
 
-1. Avaliar, com volume real de uso, se `calcularMetricasAtendimento` precisa
-   migrar para um agregado gravado por Cloud Function (trigger em
-   `chats/*/eventos`) — hoje o cálculo em runtime é suficiente e mais
-   confiável que um campo que pudesse divergir do histórico bruto.
-2. Validar a experiência visual autenticada em conversas de alto volume,
-   especialmente no mobile, agora que o carregamento anterior existe.
-3. Se um dia `collectionGroup("eventos")` for realmente necessário, ele
+`calcularMetricasAtendimento` roda sobre `state.eventos`, que já é
+carregado com `limit(LIMITES_TIMELINE_ATENDIMENTO.paginaEventos)` = **50**
+(ver `carregarConversaDetalhe`/paginação em `atendimento.js`) — nunca sobre
+o histórico bruto inteiro de uma conversa. Recalcular filtros/agrupamentos
+sobre, no máximo, 50 itens é um custo desprezível (sub-milissegundo) a cada
+render. Migrar para um agregado gravado por Cloud Function adicionaria uma
+Function, um trigger e um campo que pode divergir do histórico bruto — sem
+ganho real na escala atual. **Decisão: manter em runtime.** Reavaliar só se
+`paginaEventos` crescer muito (não está nos planos) ou se as métricas
+precisarem comparar entre conversas em lote (aí sim justificaria um
+agregado).
+
+## Fase 21 — Experiência em conversas de alto volume: bug real encontrado e corrigido
+
+Validação real via Playwright (150 mensagens sintéticas injetadas na
+estrutura DOM real de `#atend-mensagens`, viewport mobile 375×667 e
+desktop 1440×900) revelou que `.atend-layout` (`atendimento.css`) usava só
+`min-height` (nunca `height`/`max-height`) — sem uma altura de fato limitada
+nos ancestrais do grid, `overflow-y: auto` de `#atend-mensagens` nunca
+chegava a valer: a **página inteira** crescia pra caber todas as mensagens
+(medido: `scrollHeight` da página passando de 10.000px) em vez da coluna
+central rolar internamente. No mobile o mesmo problema existia em
+`.atend-coluna { min-height: 60vh }`.
+
+**Corrigido**: `.atend-layout` agora usa `height: 620px` (desktop) e
+`height: 72vh` (mobile, dentro do media query de etapas); `.atend-coluna`
+usa `height: 100%` no mobile. Reconfirmado com o mesmo teste: mensagens
+passaram a rolar dentro da própria coluna (`scrollHeight > clientHeight`),
+página parou de crescer sem limite, sem overflow horizontal — em ambos os
+viewports.
+
+## Próximas prioridades reais
+
+1. Se um dia `collectionGroup("eventos")` for realmente necessário, ele
    provavelmente vai precisar de um campo achatado direto no documento do
    chat (ex.: espelhar o último evento relevante) em vez de uma regra nova
    — ver Fase 19 acima antes de tentar de novo.
+2. Testes de UI automatizados cobrindo login real continuam pendentes (ver
+   Limitações conhecidas) — a validação da Fase 21 usou dado sintético
+   injetado no DOM real, não uma sessão autenticada de verdade.

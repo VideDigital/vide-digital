@@ -48,7 +48,13 @@
     display: grid;
     grid-template-columns: 260px 340px 1fr;
     gap: 14px;
-    min-height: 560px;
+    /* height fixo (não só min-height): sem isso, as linhas do grid crescem
+       pra caber TODO o conteúdo (ex.: uma conversa com 100+ mensagens), e
+       o overflow-y:auto de #atend-mensagens nunca chega a valer — a página
+       inteira cresce em vez da coluna rolar internamente. Achado real ao
+       validar a experiência em conversas de alto volume (Playwright: sem
+       este height, scrollHeight da página passava de 10.000px). */
+    height: 620px;
 }
 
 .atend-coluna {
@@ -470,10 +476,10 @@
 
     .atend-layout {
         grid-template-columns: 1fr;
-        min-height: 0;
+        height: 72vh;
     }
 
-    .atend-coluna { display: none; min-height: 60vh; }
+    .atend-coluna { display: none; height: 100%; }
     .atend-layout[data-atend-etapa="filtros"] .atend-coluna.atend-col-filtros { display: flex; }
     .atend-layout[data-atend-etapa="lista"] .atend-coluna.atend-col-lista { display: flex; }
     .atend-layout[data-atend-etapa="conversa"] .atend-coluna.atend-col-detalhe { display: flex; }
