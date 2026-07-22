@@ -197,6 +197,70 @@ service cloud.firestore {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["donoUID"]);
     }
 
+    function validIaConfigData(data, storeUid) {
+      return data.keys().hasOnly([
+          "ativo", "nomeAssistente", "mensagemApresentacao", "idioma",
+          "personalidade", "tamanhoResposta", "instrucoes", "canais",
+          "modoRespostaAutomatica", "mensagemFallback", "tenantId", "lojaId",
+          "criadoPor", "criadoEm", "atualizadoPor", "atualizadoEm"
+        ])
+        && data.keys().hasAll([
+          "ativo", "nomeAssistente", "mensagemApresentacao", "idioma",
+          "personalidade", "tamanhoResposta", "instrucoes", "canais",
+          "modoRespostaAutomatica", "mensagemFallback", "tenantId", "lojaId",
+          "criadoPor", "criadoEm", "atualizadoPor", "atualizadoEm"
+        ])
+        && data.tenantId == storeUid
+        && data.lojaId == storeUid
+        && data.ativo is bool
+        && data.nomeAssistente is string
+        && data.nomeAssistente.size() >= 2
+        && data.nomeAssistente.size() <= 40
+        && data.mensagemApresentacao is string
+        && data.mensagemApresentacao.size() <= 300
+        && data.idioma in ["pt-BR", "en", "es", "automatico"]
+        && data.personalidade in ["amigavel", "profissional", "direta", "consultiva", "vendedora", "suporte", "personalizada"]
+        && data.tamanhoResposta in ["curta", "media", "detalhada"]
+        && data.instrucoes is string
+        && data.instrucoes.size() <= 5000
+        && data.canais is map
+        && data.canais.keys().hasOnly(["lojaPublica", "sugestoesFuncionarios", "respostasAutomaticas", "criacaoConteudo", "whatsapp"])
+        && data.canais.keys().hasAll(["lojaPublica", "sugestoesFuncionarios", "respostasAutomaticas", "criacaoConteudo", "whatsapp"])
+        && data.canais.lojaPublica is bool
+        && data.canais.sugestoesFuncionarios is bool
+        && data.canais.respostasAutomaticas is bool
+        && data.canais.criacaoConteudo is bool
+        && data.canais.whatsapp is bool
+        && data.modoRespostaAutomatica in ["nunca", "sempre", "fora_horario", "sem_funcionario"]
+        && data.mensagemFallback is string
+        && data.mensagemFallback.size() > 0
+        && data.mensagemFallback.size() <= 300
+        && data.criadoPor is string
+        && data.criadoEm is timestamp
+        && data.atualizadoPor is string
+        && data.atualizadoEm is timestamp;
+    }
+
+    function validIaConfigCreate(storeUid) {
+      return canEditTenant(storeUid, "central-ia")
+        && validIaConfigData(request.resource.data, storeUid)
+        && request.resource.data.criadoPor == request.auth.uid
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
+    function validIaConfigUpdate(storeUid) {
+      return canEditTenant(storeUid, "central-ia")
+        && validIaConfigData(request.resource.data, storeUid)
+        && request.resource.data.tenantId == resource.data.tenantId
+        && request.resource.data.lojaId == resource.data.lojaId
+        && request.resource.data.criadoPor == resource.data.criadoPor
+        && request.resource.data.criadoEm == resource.data.criadoEm
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
     // ===== Escritas públicas sem Cloud Functions (plano Spark) =====
     // Métricas: qualquer visitante pode incrementar, desde que o documento
     // corresponda a um conteúdo público real e só toque nas chaves de
@@ -434,6 +498,13 @@ service cloud.firestore {
     match /campanhas/{ownerUid} {
       allow read: if canViewTenant(ownerUid, "campanhas");
       allow write: if canEditTenant(ownerUid, "campanhas");
+    }
+
+    match /configuracoes_ia/{storeUid} {
+      allow read: if canViewTenant(storeUid, "central-ia");
+      allow create: if validIaConfigCreate(storeUid);
+      allow update: if validIaConfigUpdate(storeUid);
+      allow delete: if false;
     }
 
     match /campanhas_historico/{id} {
