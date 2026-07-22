@@ -3,6 +3,13 @@ import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide
 import { VideFunctions } from "./core/vide-functions.js";
 import { criarCentralIAController } from "./central-ia.js";
 
+function podeVerModuloNoContexto(moduleKey) {
+    const modulo = normalizeModuleKey(moduleKey);
+    const contexto = VideHubContext.getSnapshot();
+    if (!contexto.initialized || !contexto.active) return false;
+    return !modulo || VideHubContext.canView(modulo);
+}
+
 // Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
 // de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
 window.addEventListener("pageshow", function(event) {
@@ -2054,9 +2061,18 @@ window.filtrarHubModulos = function(termo) {
                 card.getAttribute("data-nome") || ""
             ).toLowerCase();
 
+            const modulo = normalizeModuleKey(
+                card.getAttribute("data-module-permission") || ""
+            );
+
+            const podeVer = !modulo || podeVerModuloNoContexto(modulo);
+
+            const correspondeBusca =
+                valor === "" || nome.includes(valor);
+
             card.classList.toggle(
                 "hidden",
-                valor !== "" && !nome.includes(valor)
+                !podeVer || !correspondeBusca
             );
         });
 };
@@ -3781,10 +3797,16 @@ if (document.readyState === "loading") {
         }
 
         function podeVerAba(targetId) {
-            const contexto = VideHubContext.getSnapshot();
-            if (!contexto.initialized) return false;
-            const modulo = moduloPermissaoPorAba(targetId);
-            return !modulo || VideHubContext.canView(modulo);
+            return podeVerModuloNoContexto(moduloPermissaoPorAba(targetId));
+        }
+
+        function atualizarElementosComPermissao() {
+            document.querySelectorAll("[data-module-permission]").forEach(element => {
+                const moduleKey = element.getAttribute("data-module-permission");
+                element.classList.toggle("hidden", !podeVerModuloNoContexto(moduleKey));
+            });
+            window.filtrarHubModulos?.(document.getElementById("busca-hub-modulos")?.textContent || "");
+            window.atualizarBuscaSidebarModulos?.();
         }
 
         function podeEditarModulo(modulo) {
@@ -7080,10 +7102,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
                         }
                     });
 
-                    document.querySelectorAll("[data-module-permission]").forEach(element => {
-                        const moduleKey = element.getAttribute("data-module-permission");
-                        element.classList.toggle("hidden", !VideHubContext.canView(moduleKey));
-                    });
+                    atualizarElementosComPermissao();
                     window._planoCarregado = true;
 
                     // MOSTRAR BADGE DO PLANO NO SIDEBAR (sem duplicar em recargas)
@@ -7113,10 +7132,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
                         const badgeExistente = btn.querySelector(".cadeado-badge");
                         if (badgeExistente) badgeExistente.remove();
                     });
-                    document.querySelectorAll("[data-module-permission]").forEach(element => {
-                        const moduleKey = element.getAttribute("data-module-permission");
-                        element.classList.toggle("hidden", !VideHubContext.canView(moduleKey));
-                    });
+                    atualizarElementosComPermissao();
                 }
 
                 const userSnap = userSnap2;

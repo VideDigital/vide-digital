@@ -255,9 +255,12 @@
                             );
 
                         const encontrado =
-                            termo === "" ||
-                            nomeBotao.includes(termo) ||
-                            alvoBotao.includes(termo);
+                            !botao.classList.contains("hidden") &&
+                            (
+                                termo === "" ||
+                                nomeBotao.includes(termo) ||
+                                alvoBotao.includes(termo)
+                            );
 
                         botao.classList.toggle(
                             "aura-sidebar-search-hidden",
@@ -303,6 +306,8 @@
         campoBusca.textContent = "";
         aplicarBusca();
     }
+
+    window.atualizarBuscaSidebarModulos = aplicarBusca;
 
     campoBusca.addEventListener("input", aplicarBusca);
 

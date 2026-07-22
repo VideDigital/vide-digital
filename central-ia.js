@@ -344,6 +344,7 @@ export function criarCentralIAController({
             applyPermission();
         } catch (error) {
             logger.error("[Central de IA] Erro ao carregar configuração:", error);
+            if (!state.initialized) fill(state.persisted);
             setText("ia-load-error", "Não foi possível carregar as configurações. Tente novamente.");
             byId("ia-load-error")?.classList.add("is-visible");
             if (byId("ia-fieldset")) byId("ia-fieldset").disabled = true;

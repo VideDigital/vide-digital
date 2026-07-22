@@ -5,6 +5,7 @@ import test from "node:test";
 import {
   CONFIG_IA_PADRAO,
   configuracaoIaTemAlteracoes,
+  criarCentralIAController,
   criarPayloadConfiguracaoIA,
   normalizarConfiguracaoIA,
   validarConfiguracaoIA
@@ -16,6 +17,73 @@ const dashboardApp = fs.readFileSync(path.join(rootDir, "dashboard-app.js"), "ut
 const centralIaSource = fs.readFileSync(path.join(rootDir, "central-ia.js"), "utf8");
 const centralIaCss = fs.readFileSync(path.join(rootDir, "central-ia.css"), "utf8");
 const sidebarNavigation = fs.readFileSync(path.join(rootDir, "sidebar-navigation.js"), "utf8");
+const firestoreRules = fs.readFileSync(path.join(rootDir, "firestore.rules"), "utf8");
+
+function criarElementoFake(overrides = {}) {
+  const classes = new Set();
+  const attributes = new Map();
+  const listeners = new Map();
+  return {
+    value: "",
+    checked: false,
+    disabled: false,
+    hidden: false,
+    textContent: "",
+    dataset: {},
+    classList: {
+      add: (...names) => names.forEach(name => classes.add(name)),
+      remove: (...names) => names.forEach(name => classes.delete(name)),
+      contains: name => classes.has(name),
+      toggle(name, force) {
+        const enabled = force === undefined ? !classes.has(name) : Boolean(force);
+        if (enabled) classes.add(name);
+        else classes.delete(name);
+        return enabled;
+      }
+    },
+    addEventListener(type, listener) {
+      listeners.set(type, listener);
+    },
+    setAttribute(name, value) {
+      attributes.set(name, String(value));
+    },
+    getAttribute(name) {
+      return attributes.get(name) ?? null;
+    },
+    ...overrides
+  };
+}
+
+function criarDomFakeCentralIA() {
+  const ids = [
+    "central-ia-form", "ia-ativo", "ia-nome-assistente", "ia-mensagem-apresentacao",
+    "ia-idioma", "ia-personalidade", "ia-tamanho-resposta", "ia-instrucoes",
+    "ia-canal-lojaPublica", "ia-canal-sugestoesFuncionarios",
+    "ia-canal-respostasAutomaticas", "ia-canal-criacaoConteudo", "ia-canal-whatsapp",
+    "ia-modo-resposta", "ia-mensagem-fallback", "ia-resumo-nome",
+    "ia-resumo-personalidade", "ia-resumo-idioma", "ia-resumo-resposta",
+    "ia-resumo-status", "ia-resumo-canais", "ia-status-badge",
+    "ia-contador-apresentacao", "ia-contador-instrucoes", "ia-contador-fallback",
+    "ia-modo-resposta-dependencia", "ia-unsaved-status", "ia-salvar", "ia-loading",
+    "ia-content", "ia-fieldset", "ia-readonly-notice", "ia-load-error"
+  ];
+  const elements = Object.fromEntries(ids.map(id => [id, criarElementoFake()]));
+  const checkboxIds = [
+    "ia-ativo", "ia-canal-lojaPublica", "ia-canal-sugestoesFuncionarios",
+    "ia-canal-respostasAutomaticas", "ia-canal-criacaoConteudo", "ia-canal-whatsapp"
+  ];
+  const root = {
+    getElementById: id => elements[id] || null,
+    querySelector: () => null,
+    querySelectorAll(selector) {
+      if (selector === "#central-ia-form input[type=checkbox]") {
+        return checkboxIds.map(id => elements[id]);
+      }
+      return [];
+    }
+  };
+  return { root, elements };
+}
 
 test("Central de IA existe na view, menu reutilizado no mobile e Central de módulos", () => {
   assert.match(dashboardHtml, /<section id="view-central-ia"/);
@@ -30,6 +98,25 @@ test("busca do hub encontra todos os termos pedidos para a Central de IA", () =>
   const card = dashboardHtml.match(/<div class="aura-hub-card hidden" data-target="view-central-ia"[^>]+>/)?.[0] || "";
   for (const term of ["central de ia", "inteligência artificial", "inteligencia artificial", "assistente", "automação", "chatbot", "atendimento"]) {
     assert.ok(card.includes(term), `termo ausente: ${term}`);
+  }
+  assert.match(card, /role="button"/);
+  assert.match(card, /tabindex="0"/);
+  assert.match(card, /event\.key === 'Enter'/);
+});
+
+test("buscas do hub e da lateral preservam módulos ocultos por permissão", () => {
+  assert.match(dashboardApp, /const modulo = normalizeModuleKey\([\s\S]*?data-module-permission/);
+  assert.match(dashboardApp, /function podeVerModuloNoContexto[\s\S]*?!contexto\.initialized \|\| !contexto\.active[\s\S]*?VideHubContext\.canView\(modulo\)/);
+  assert.match(dashboardApp, /!podeVer \|\| !correspondeBusca/);
+  assert.match(sidebarNavigation, /!botao\.classList\.contains\("hidden"\)/);
+  assert.match(sidebarNavigation, /window\.atualizarBuscaSidebarModulos = aplicarBusca/);
+  assert.match(dashboardApp, /function atualizarElementosComPermissao[\s\S]*?window\.atualizarBuscaSidebarModulos\?\.\(\)/);
+});
+
+test("aliases da permissão são reconhecidos pelo frontend, Functions e Rules", () => {
+  assert.match(firestoreRules, /function employeeHasModulePermission/);
+  for (const alias of ["central_ia", "gerenciar_ia", "ia", "inteligencia-artificial"]) {
+    assert.ok(firestoreRules.includes(`"${alias}" in permissions`));
   }
 });
 
@@ -154,6 +241,81 @@ test("atualização preserva metadados de criação ao omiti-los do merge", () =
   );
   assert.equal(Object.hasOwn(payload, "criadoEm"), false);
   assert.equal(Object.hasOwn(payload, "criadoPor"), false);
+});
+
+test("controlador carrega defaults e salva no documento da loja autenticada", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  const writes = [];
+  const notifications = [];
+  const timestamp = { sentinel: "server" };
+  const context = {
+    getSnapshot: () => ({
+      initialized: true,
+      active: true,
+      storeUid: "ownerA",
+      authUid: "employeeEdit"
+    }),
+    canView: moduleKey => moduleKey === "central-ia",
+    canEdit: moduleKey => moduleKey === "central-ia"
+  };
+  const firestore = {
+    doc: (_db, collection, id) => ({ collection, id }),
+    getDoc: async () => ({ exists: () => false, data: () => null }),
+    setDoc: async (...args) => writes.push(args),
+    serverTimestamp: () => timestamp
+  };
+  const controller = criarCentralIAController({
+    db: {}, context, firestore, root,
+    notify: (...args) => notifications.push(args),
+    logger: { error() {} }
+  });
+
+  await controller.load();
+  assert.equal(elements["ia-nome-assistente"].value, CONFIG_IA_PADRAO.nomeAssistente);
+  assert.equal(elements["ia-fieldset"].disabled, false);
+
+  elements["ia-nome-assistente"].value = "Luna";
+  controller.updateState();
+  assert.equal(elements["ia-salvar"].disabled, false);
+  await controller.save();
+
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0][0], { collection: "configuracoes_ia", id: "ownerA" });
+  assert.equal(writes[0][1].nomeAssistente, "Luna");
+  assert.equal(writes[0][1].tenantId, "ownerA");
+  assert.equal(writes[0][1].lojaId, "ownerA");
+  assert.equal(writes[0][1].criadoPor, "employeeEdit");
+  assert.equal(writes[0][1].atualizadoPor, "employeeEdit");
+  assert.equal(writes[0][1].criadoEm, timestamp);
+  assert.equal(writes[0][1].atualizadoEm, timestamp);
+  assert.deepEqual(writes[0][2], { merge: true });
+  assert.deepEqual(notifications.at(-1), ["Configurações da IA salvas com sucesso.", "success"]);
+  assert.equal(controller.getState().exists, true);
+});
+
+test("falha no carregamento mantém defaults coerentes e bloqueia edição", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  const context = {
+    getSnapshot: () => ({ initialized: true, active: true, storeUid: "ownerA", authUid: "ownerA" }),
+    canView: () => true,
+    canEdit: () => true
+  };
+  const controller = criarCentralIAController({
+    db: {}, context, root,
+    firestore: {
+      doc: () => ({}),
+      getDoc: async () => { throw new Error("offline"); },
+      setDoc: async () => {},
+      serverTimestamp: () => ({})
+    },
+    logger: { error() {} }
+  });
+
+  await controller.load();
+  assert.equal(elements["ia-nome-assistente"].value, CONFIG_IA_PADRAO.nomeAssistente);
+  assert.equal(elements["ia-fieldset"].disabled, true);
+  assert.equal(elements["ia-load-error"].classList.contains("is-visible"), true);
+  assert.equal(controller.getState().initialized, false);
 });
 
 test("alterações não salvas ignoram apenas diferenças normalizadas", () => {

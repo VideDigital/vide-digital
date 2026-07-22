@@ -91,6 +91,7 @@
 
 .central-ia-save:hover:not(:disabled) { transform: translateY(-1px); }
 .central-ia-save:disabled { cursor: not-allowed; opacity: .48; box-shadow: none; }
+.aura-hub-card[data-target="view-central-ia"]:focus-visible { outline: 3px solid var(--sys-destaque, #00d4ff); outline-color: color-mix(in srgb, var(--sys-destaque, #00d4ff) 60%, white); outline-offset: 3px; }
 
 .central-ia-state-line {
     display: flex;
@@ -202,7 +203,7 @@
 }
 .central-ia-switch-row:first-of-type { border-top: 0; padding-top: 0; }
 .central-ia-switch-copy { min-width: 0; }
-.central-ia-switch-copy strong { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.central-ia-switch-copy strong { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; }
 .central-ia-switch-copy p { margin-top: 4px; color: var(--ia-muted); font-size: 12px; line-height: 1.55; }
 .central-ia-switch-control { display: flex; align-items: center; gap: 9px; flex: 0 0 auto; }
 .central-ia-switch-state { color: #aeb7c7; font-size: 11px; font-weight: 700; }

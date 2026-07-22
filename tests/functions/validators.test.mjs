@@ -10,11 +10,11 @@ describe("function validators", () => {
 
   it("sanitizes permissions to known modules and makes edit imply view", () => {
     const result = validators.sanitizePermissions({
-      ver: ["produtos", "central-ia", "unknown"],
-      editar: ["leads", "produtos"]
+      ver: ["produtos", "gerenciar_ia", "unknown"],
+      editar: ["leads", "produtos", "central_ia"]
     });
     assert.deepEqual(result.ver.sort(), ["central-ia", "leads", "produtos"].sort());
-    assert.deepEqual(result.editar.sort(), ["leads", "produtos"].sort());
+    assert.deepEqual(result.editar.sort(), ["central-ia", "leads", "produtos"].sort());
   });
 
   it("keeps public text bounded", () => {

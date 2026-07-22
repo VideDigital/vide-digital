@@ -14,6 +14,13 @@ const MODULES = new Set([
   "landing-pages"
 ]);
 
+const MODULE_ALIASES = new Map([
+  ["central_ia", "central-ia"],
+  ["gerenciar_ia", "central-ia"],
+  ["ia", "central-ia"],
+  ["inteligencia-artificial", "central-ia"]
+]);
+
 const PLAN_LIMITS = {
   starter: { employees: 0, products: 3, landingPages: 0 },
   basico: { employees: 0, products: 5, landingPages: 0 },
@@ -46,7 +53,10 @@ function isValidEmail(value) {
 
 function sanitizePermissionList(value) {
   if (!Array.isArray(value)) return [];
-  return [...new Set(value.map((item) => normalizeString(item, 60)).filter((item) => MODULES.has(item)))];
+  return [...new Set(value
+    .map((item) => normalizeString(item, 60))
+    .map((item) => MODULE_ALIASES.get(item) || item)
+    .filter((item) => MODULES.has(item)))];
 }
 
 function sanitizePermissions(value) {

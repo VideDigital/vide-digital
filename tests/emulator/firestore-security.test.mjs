@@ -63,6 +63,11 @@ beforeEach(async () => {
       status: "ativo",
       permissoes: { ver: ["central-ia"], editar: ["central-ia"] }
     });
+    await setDoc(doc(db, "funcionarios", "employeeIaAlias"), {
+      donoUID: "ownerA",
+      status: "ativo",
+      permissoes: { ver: ["gerenciar_ia"], editar: ["gerenciar_ia"] }
+    });
     await setDoc(doc(db, "produtos", "prodA"), { criadoPor: "ownerA", statusProduto: "ativo", nome: "Produto A" });
     await setDoc(doc(db, "produtos", "prodPrivate"), { criadoPor: "ownerA", statusProduto: "rascunho", nome: "Produto Privado" });
     await setDoc(doc(db, "produtos", "prodB"), { criadoPor: "ownerB", statusProduto: "ativo", nome: "Produto B" });
@@ -271,6 +276,16 @@ describe("configuracoes_ia: permissões e isolamento multi-tenant", () => {
     await assertSucceeds(updateDoc(doc(authed("employeeIaEdit"), "configuracoes_ia", "ownerA"), {
       nomeAssistente: "Assistente da equipe",
       atualizadoPor: "employeeIaEdit",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("alias legado da permissão mantém leitura e edição no backend", async () => {
+    const ref = doc(authed("employeeIaAlias"), "configuracoes_ia", "ownerA");
+    await assertSucceeds(getDoc(ref));
+    await assertSucceeds(updateDoc(ref, {
+      nomeAssistente: "Assistente compatível",
+      atualizadoPor: "employeeIaAlias",
       atualizadoEm: serverTimestamp()
     }));
   });

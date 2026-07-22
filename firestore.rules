@@ -61,13 +61,26 @@ service cloud.firestore {
       return employeeExists() && isActiveEmployeeForData(ownerUid, employeeDoc().data);
     }
 
+    function employeeHasModulePermission(permissions, moduleKey) {
+      return moduleKey in permissions
+        || (moduleKey == "central-ia" && (
+          "central_ia" in permissions
+          || "gerenciar_ia" in permissions
+          || "ia" in permissions
+          || "inteligencia-artificial" in permissions
+        ));
+    }
+
     function employeeCanView(ownerUid, moduleKey) {
       return employeeExists() && employeeCanViewData(ownerUid, moduleKey, employeeDoc().data);
     }
 
     function employeeCanViewData(ownerUid, moduleKey, empData) {
       return isActiveEmployeeForData(ownerUid, empData)
-        && (moduleKey in empData.permissoes.ver || moduleKey in empData.permissoes.editar);
+        && (
+          employeeHasModulePermission(empData.permissoes.ver, moduleKey)
+          || employeeHasModulePermission(empData.permissoes.editar, moduleKey)
+        );
     }
 
     function employeeCanEdit(ownerUid, moduleKey) {
@@ -76,7 +89,7 @@ service cloud.firestore {
 
     function employeeCanEditData(ownerUid, moduleKey, empData) {
       return isActiveEmployeeForData(ownerUid, empData)
-        && moduleKey in empData.permissoes.editar;
+        && employeeHasModulePermission(empData.permissoes.editar, moduleKey);
     }
 
     function canViewTenant(ownerUid, moduleKey) {
