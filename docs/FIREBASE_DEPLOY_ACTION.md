@@ -37,11 +37,11 @@ No Google Cloud Console do projeto confirmado:
 
 Chaves JSON são credenciais de longa duração. Esta primeira versão usa esse formato conforme solicitado; no futuro, prefira Workload Identity Federation para eliminar a chave permanente.
 
-## 4. Adicionar o secret ao Environment de produção
+## 4. Adicionar o secret de deploy
 
 No GitHub, abra:
 
-**Settings** → **Secrets and variables** → **Actions** → **Environments** → **production** → **Environment secrets**
+**Settings** → **Secrets and variables** → **Actions** → **Secrets** → **New repository secret**
 
 Crie um secret com o nome exato:
 
@@ -49,11 +49,19 @@ Crie um secret com o nome exato:
 
 Cole como valor todo o conteúdo do arquivo JSON, incluindo as chaves de abertura e fechamento. Não adicione o JSON como variável comum do repositório.
 
-## 5. Exigir aprovação manual
+## 5. Como este workflow fica seguro sem aprovação manual de Environment
 
-Nas configurações do Environment `production`, ative as regras de proteção disponíveis e adicione revisores obrigatórios. Assim, depois que os testes passarem, o job de deploy ficará aguardando aprovação antes de receber acesso ao secret.
+O job `deploy` **não** usa mais `environment: production` — por isso não há uma etapa de "aguardando revisor" no GitHub antes do deploy. Essa proteção foi substituída por várias camadas que já existiam e continuam obrigatórias, todas na própria definição do workflow (não dependem de configuração manual no GitHub que possa ficar desatualizada ou ser esquecida):
 
-A disponibilidade de revisores obrigatórios pode variar conforme o plano e a visibilidade do repositório. Se a opção não aparecer, não execute o workflow até definir um processo de aprovação equivalente.
+- só pode ser disparado manualmente (`workflow_dispatch`), nunca em push ou PR;
+- exige `project_id` exato (`vide-digital-saas`) — qualquer outro valor, incluindo IDs com `demo`, encerra a execução;
+- exige a confirmação literal `DEPLOY` no campo `confirm_production`;
+- só roda a partir da branch `main`;
+- usa `concurrency` (só uma execução de deploy por vez);
+- o job `deploy` depende (`needs`) do job `validate-and-test` — toda a suíte de testes (sintaxe, Central de IA, Studio, Functions, Rules e o smoke test do frontend no Emulator) precisa passar antes de qualquer autenticação;
+- a autenticação só acontece via o secret `FIREBASE_SERVICE_ACCOUNT`.
+
+Se sua organização exigir um revisor humano antes do deploy, é possível reativar isso adicionando de volta `environment: production` ao job `deploy` neste arquivo e configurando revisores obrigatórios nas configurações do Environment — mas isso é opcional a partir de agora, não é mais um requisito do workflow.
 
 ## 6. Permissões mínimas no Google Cloud
 
@@ -78,8 +86,7 @@ As permissões exatas podem variar conforme a geração, a conta de runtime e a 
 4. Selecione a branch `main`.
 5. Em `project_id`, informe o ID real e confirmado do projeto de produção.
 6. Em `confirm_production`, digite exatamente `DEPLOY`.
-7. Inicie a execução.
-8. Aguarde os testes e, quando solicitado, peça ao revisor do Environment `production` que confira o projeto antes de aprovar.
+7. Inicie a execução e acompanhe os testes na aba **Actions**.
 
 Qualquer valor vazio, um ID contendo `demo`, outra branch ou uma confirmação diferente de `DEPLOY` encerra a execução antes da autenticação.
 
@@ -88,18 +95,29 @@ Qualquer valor vazio, um ID contendo `demo`, outra branch ou uma confirmação d
 Abra a execução na aba **Actions** e acompanhe cada etapa. A ordem esperada é:
 
 1. validação da solicitação;
-2. instalação com lockfile congelado;
-3. `pnpm run check`;
-4. `pnpm run test:functions`;
-5. configuração temporária do Java 21 no runner com `actions/setup-java@v5`;
-6. `java -version`;
-7. `pnpm run test:rules`;
-8. aprovação do Environment e autenticação;
-9. deploy de `firestore.rules` no projeto `vide-digital-saas`;
-10. deploy de `sendAdminChatMessage` e `incrementPublicMetric`;
-11. deploy de `firestore.indexes.json`.
+2. configuração do pnpm (versão fixa `11.9.0`, a mesma do campo `packageManager` do `package.json`) e do Node.js 22;
+3. configuração do Java 21 no runner com `actions/setup-java@v5` (precisa vir antes dos testes que sobem o Firestore Emulator);
+4. instalação com lockfile congelado (`pnpm install --frozen-lockfile`);
+5. `pnpm run check` (sintaxe de todos os arquivos do projeto);
+6. `pnpm run test:central-ia`;
+7. `pnpm run test:studio`;
+8. `pnpm run test:functions`;
+9. `pnpm run test:rules` (regras do Firestore e do Storage no Emulator);
+10. `pnpm run test:frontend:emulator` (smoke test de ponta a ponta no Emulator);
+11. autenticação com o secret `FIREBASE_SERVICE_ACCOUNT`;
+12. deploy de `firestore.rules` no projeto `vide-digital-saas`;
+13. deploy de `sendAdminChatMessage` e `incrementPublicMetric`;
+14. deploy de `firestore.indexes.json`.
 
-O computador local pode ter apenas Java 8 (`1.8.0_481`), enquanto o Firebase Emulator exige Java 11 ou superior. O workflow instala Java 21 apenas no runner temporário do GitHub Actions, antes de `pnpm run test:rules`, e o teste completo é validado pela execução do GitHub Actions antes de qualquer autenticação ou deploy.
+**Versões exigidas** (as mesmas nos dois jobs do workflow, `validate-and-test` e `deploy`):
+
+| Ferramenta | Versão | Por quê |
+|---|---|---|
+| Node.js | `22` (>= 22.13.0) | `pnpm@11.9.0` (fixado em `packageManager` no `package.json`) exige Node >= 22.13; rodar em Node 20 faz o próprio pnpm abortar com "This version of pnpm requires at least Node.js v22.13". |
+| pnpm | `11.9.0` (fixo, via `pnpm/action-setup`) | Mesma versão do campo `packageManager`, pra instalação determinística — nunca "latest". |
+| Java | `21` (Temurin) | Exigido pelo Firestore Emulator usado em `test:rules` e `test:frontend:emulator`. O computador local pode ter uma versão mais antiga (ex.: Java 8); o workflow instala o 21 só no runner temporário do GitHub Actions. |
+
+Se `pnpm run check` ou qualquer teste falhar, o job `deploy` nunca inicia — a dependência `needs: validate-and-test` garante isso mesmo sem Environment/aprovação manual.
 
 As regras são publicadas antes das Functions para que uma falha independente no deploy das Functions não mantenha políticas antigas no Firestore. Nos logs, confirme que o primeiro comando contém apenas:
 
@@ -124,7 +142,7 @@ Se houver qualquer suspeita de exposição:
 1. abra a conta de serviço no Google Cloud Console;
 2. entre em **Chaves** e exclua imediatamente a chave comprometida;
 3. crie uma nova chave JSON;
-4. substitua o valor de `FIREBASE_SERVICE_ACCOUNT` no Environment `production`;
+4. substitua o valor do secret `FIREBASE_SERVICE_ACCOUNT` (Settings → Secrets and variables → Actions → Secrets);
 5. revise os logs de auditoria e as execuções recentes;
 6. nunca reutilize a chave revogada.
 

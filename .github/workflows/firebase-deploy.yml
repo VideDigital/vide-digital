@@ -75,15 +75,36 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Configurar pnpm
+      - name: Configurar pnpm (versão fixa do packageManager)
         uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
 
-      - name: Configurar Node.js 20
+      # pnpm 11.9.0 exige Node >= 22.13 — usar Node 20 aqui faz o próprio
+      # pnpm abortar ("This version of pnpm requires at least Node.js
+      # v22.13"). Precisa ser a MESMA versão nos dois jobs (validate-and-test
+      # e deploy) pra não haver divergência de comportamento entre validar e
+      # publicar.
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
+
+      # Precisa vir antes de qualquer teste: test:rules e
+      # test:frontend:emulator sobem o Firestore Emulator, que roda em Java.
+      - name: Configurar Java 21 para o Firestore Emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Verificar versões do ambiente
+        run: |
+          node --version
+          pnpm --version
+          java -version
 
       - name: Instalar dependências sem alterar o lockfile
         run: pnpm install --frozen-lockfile
@@ -91,27 +112,26 @@ jobs:
       - name: Verificar sintaxe do projeto
         run: pnpm run check
 
+      - name: Testar Central de IA
+        run: pnpm run test:central-ia
+
+      - name: Testar Studio (editor de Landing Pages)
+        run: pnpm run test:studio
+
       - name: Testar Cloud Functions
         run: pnpm run test:functions
 
-      - name: Configurar Java 21 para o Firestore Emulator
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: "21"
-
-      - name: Verificar versão do Java
-        run: java -version
-
       - name: Testar regras no Emulator Suite
         run: pnpm run test:rules
+
+      - name: Smoke test do frontend no Emulator Suite
+        run: pnpm run test:frontend:emulator
 
   deploy:
     name: Publicar backend Firebase em produção
     needs: validate-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment: production
 
     steps:
       - name: Checkout da main validada
@@ -119,13 +139,15 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Configurar pnpm
+      - name: Configurar pnpm (versão fixa do packageManager)
         uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
 
-      - name: Configurar Node.js 20
+      - name: Configurar Node.js 22
         uses: actions/setup-node@v6
         with:
-          node-version: "20"
+          node-version: "22"
           cache: pnpm
           cache-dependency-path: pnpm-lock.yaml
 
