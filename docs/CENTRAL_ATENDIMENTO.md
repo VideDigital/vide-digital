@@ -8,10 +8,13 @@ está envolvida aqui.
 
 ## Arquivos
 
-- `atendimento.js` — constantes (status, canais, categorias de template), lógica pura
-  testável (transições de status, substituição de variáveis de template, filtros,
-  contadores, elegibilidade de atribuição) e o controller da tela (`db`/`context`/
-  `firestore`/`notify` por injeção, mesmo padrão de `central-ia.js`/`base-conhecimento-ia.js`).
+- `atendimento.js` — constantes (status, canais), lógica pura testável
+  (transições de status, filtros, contadores, elegibilidade de atribuição) e
+  o controller da tela (`db`/`context`/`firestore`/`notify` por injeção,
+  mesmo padrão de `central-ia.js`/`base-conhecimento-ia.js`). Modelo,
+  categorias e variáveis de template moraram aqui até o ciclo "Templates
+  Avançados de Atendimento", quando evoluíram para `templates-atendimento.js`
+  (companion module, mesmo padrão de `crm360.js`).
 - `atendimento.css` — layout de 3 colunas no desktop, navegação em etapas no mobile
   (`data-atend-etapa="filtros|lista|conversa"`), mesma família visual das outras centrais.
 - `dashboard.html` — seção `#view-atendimento`, botão da sidebar e card do Hub
@@ -93,15 +96,17 @@ antes — validado nas Rules (`chatNaoArquivado`) e no controller. `podeTransici
 
 A Central de Atendimento reaproveita a coleção `templates` já existente (mesma
 usada pelo módulo "Templates" e pelos templates de automação de leads com o
-campo `fluxo`) — sem CRUD duplicado. `substituirVariaveisTemplate()` só troca
-as 4 variáveis da whitelist por texto simples (sem `eval`, sem HTML executado):
-
-- `{{nome_cliente}}`
-- `{{nome_loja}}`
-- `{{nome_funcionario}}`
-- `{{numero_pedido}}` (ainda não preenchido automaticamente — fica como placeholder)
-
-Qualquer outra `{{variavel}}` passa direto, sem virar dado.
+campo `fluxo`). Desde o ciclo "Templates Avançados de Atendimento" isso
+evoluiu para um módulo próprio (`templates-atendimento.js`) com categorias
+fechadas, atalhos, favoritos, gestão completa (criar/editar/duplicar/
+arquivar) e 8 variáveis (`{{nome_cliente}}`, `{{nome_loja}}`,
+`{{nome_funcionario}}`, `{{numero_pedido}}`, `{{status_pedido}}`,
+`{{valor_pedido}}`, `{{data_pedido}}`, `{{prazo_entrega}}`) com detecção de
+pendência e trava contra envio de variável não resolvida — ver
+`docs/TEMPLATES_ATENDIMENTO_AVANCADOS.md` para o modelo completo.
+Substituição continua por regex determinística, sem `eval`, sem HTML
+executado; qualquer `{{variavel}}` fora da whitelist passa direto, sem virar
+dado.
 
 ## Atribuição
 
@@ -159,12 +164,17 @@ em vez de campos agregados em `chats`.
   drawer completo (identidade, resumo comercial, leads/pedidos/conversas
   relacionados, produtos de interesse, observações e timeline). Ver
   `docs/CRM_360_CLIENTE.md`.
-- `{{numero_pedido}}` existe na whitelist de variáveis mas não é preenchido
-  automaticamente ainda (fica como texto do template até haver um pedido
-  vinculado à conversa).
-- Templates de atendimento continuam sem categorias fechadas nem ações de
-  duplicar/arquivar dedicadas — usam o módulo "Templates" já existente, cuja
-  `categoria` é texto livre na coleção compartilhada.
+- ~~`{{numero_pedido}}` existe na whitelist mas não é preenchido
+  automaticamente~~ — **resolvido no ciclo "Templates Avançados de
+  Atendimento"**: quando há um pedido explicitamente vinculado à conversa,
+  `{{numero_pedido}}`/`{{status_pedido}}`/`{{valor_pedido}}`/`{{data_pedido}}`
+  resolvem de verdade; sem vínculo, ficam pendentes (nunca escondidas nem
+  preenchidas com dado incorreto). Ver `docs/TEMPLATES_ATENDIMENTO_AVANCADOS.md`.
+- ~~Templates de atendimento continuam sem categorias fechadas nem ações de
+  duplicar/arquivar~~ — **resolvido no mesmo ciclo**: categorias fechadas,
+  atalhos, favoritos e gestão completa (criar/editar/duplicar/arquivar/
+  restaurar), sem quebrar o módulo genérico "Templates" nem a automação de
+  leads que compartilha a mesma coleção.
 - Testes de UI automatizados (Playwright) não cobrem o fluxo de login real
   neste ciclo (ambiente sem acesso de rede ao Firebase); a verificação de UI
   foi por inspeção de DOM/ausência de erros de console num Chromium headless

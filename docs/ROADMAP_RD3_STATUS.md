@@ -15,6 +15,7 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 | CRM 360 do cliente (identidade canônica, hub `clientes/{id}`, resumo comercial, leads/pedidos/conversas relacionados, produtos de interesse, observações, tags, timeline, notificações) | `docs/CRM_360_CLIENTE.md`, `crm360.js`, `firestore.rules` |
 | Central de Atendimento nativa completa (3 colunas + mobile em etapas, status, atribuição, templates, notificações, painel do cliente) | `docs/CENTRAL_ATENDIMENTO.md`, `atendimento.js`, `atendimento.css`, `firestore.rules` |
 | Histórico de eventos do atendimento (`chats/{id}/eventos` append-only, escrita atômica, timeline visual mesclada, métricas derivadas, espelho no CRM 360) | `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`, `atendimento.js`, `crm360.js`, `loja.html`, `firestore.rules` |
+| Templates Avançados de Atendimento (categorias fechadas, 8 variáveis com pendência/confirmação, gestão completa, atalhos, favoritos, uso atômico com integridade real via Rules) | `docs/TEMPLATES_ATENDIMENTO_AVANCADOS.md`, `templates-atendimento.js`, `atendimento.js`, `firestore.rules` |
 | Migração definitiva para Spark, depois para Blaze sem reintroduzir Functions (zero dependência viva) | `docs/FIREBASE_SPARK_ARCHITECTURE.md` |
 | Correção do bug real: formulários das LPs V4 chamavam Function inexistente (todo envio falhava) | `lp-public-v4.js` |
 | Gestão de funcionários sem Functions (app secundário + regras dono-only) | `dashboard-app.js`, `firestore.rules` |
@@ -31,9 +32,8 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 | Entrega | Estado | Próximo passo |
 |---|---|---|
-| Templates de atendimento | Reaproveita o módulo "Templates" legado; inserção na resposta com variáveis seguras já funciona | Categorias dedicadas (saudação/orçamento/pagamento/prazo/entrega/indisponibilidade/suporte/encerramento/personalizada) e ações de duplicar/arquivar no contexto de atendimento |
 | CRM 360 — vínculo automático de pedidos | `pedidos.cliente`/`pedidos.produtos` continuam texto livre; vínculo ao cliente é sempre manual (busca por nome) | Estruturar `pedidos.itens`/`produtoId` pra permitir correspondência e "produtos mais comprados" precisos |
-| CRM 360 — navegação própria | Só é alcançável de dentro de uma conversa da Central de Atendimento | Entrada de menu dedicada, destravando a permissão `crm` isolada de `atendimento` |
+| CRM 360 — navegação própria | Só é alcançável de dentro de uma conversa da Central de Atendimento; a permissão `atendimento`/`crm` já pode ser concedida pela tela de acessos desde o ciclo "Templates Avançados" (achado de auditoria corrigido), mas ainda não existe entrada de menu própria | Entrada de menu dedicada pro CRM 360 |
 | Produtos por referência para a IA | Tipo `produto`/`catalogo` manual na Base | Configuração incluir/excluir IDs sem copiar produtos |
 | Onboarding (checklist "primeiros passos") | Existe versão do ciclo anterior no dashboard (4 etapas derivadas de dados reais) | Ampliar critérios (atendimento, IA, FAQ, funcionário) mantendo conclusão derivada de dados, nunca de clique |
 
@@ -48,12 +48,12 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 ## Bloqueios externos (fora do repositório)
 
-1. **Deploy das Rules deste ciclo**: as Rules de `chats`/`mensagens`/`templates`/`clientes`/`tags_clientes` reforçadas nos últimos dois ciclos (Atendimento + CRM 360) só valem depois de o workflow de deploy publicar `firestore.rules` em produção — até lá, produção continua na versão anterior.
+1. **Deploy das Rules deste ciclo**: as Rules de `chats`/`chats/eventos`/`mensagens`/`templates`/`clientes`/`tags_clientes` reforçadas nos últimos ciclos (Atendimento + CRM 360 + Histórico de Eventos + Templates Avançados) só valem depois de o workflow de deploy publicar `firestore.rules` em produção — até lá, produção continua na versão anterior.
 2. **Claim videAdmin**: precisa ser concedida uma vez via `scripts/set-admin-claim.mjs` (Admin SDK local) para o painel master operar em produção, caso ainda não tenha sido.
 3. **IA real / WhatsApp oficial**: dependem de segredo de provedor externo — nenhuma chave foi ou deve ser colocada no frontend; ficam para quando uma Cloud Function for realmente necessária.
 
 ## Próximas três prioridades reais
 
-1. Estruturar `pedidos.itens`/`produtoId` pra permitir vínculo automático e "produtos mais comprados" precisos no CRM 360 (hoje é tudo texto livre).
-2. Entrada de navegação própria para o CRM 360 (hoje só alcançável de dentro de uma conversa do Atendimento).
-3. Categorias e ações dedicadas (duplicar/arquivar) para templates de atendimento, sem quebrar os templates de automação de leads que já usam a mesma coleção.
+1. Pedidos Estruturados e Vinculados ao Atendimento — próxima fase oficial anunciada no mandato de Templates Avançados: estruturar `pedidos.itens`/`produtoId`, permitindo vínculo automático, "produtos mais comprados" precisos no CRM 360, e destravando de vez as variáveis de pedido dos templates (`{{prazo_entrega}}` inclusive).
+2. Entrada de navegação própria para o CRM 360 (hoje só alcançável de dentro de uma conversa do Atendimento) — a permissão em si já pode ser concedida pela tela de acessos.
+3. Índice composto em `chats/*/eventos` (`collectionGroup`, `tenantId`+`criadoEm`) pra notificações mais precisas por tipo de evento — já registrado em `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`.

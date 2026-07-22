@@ -299,6 +299,15 @@ lead, pedido ou produto passa a gravar um evento em **ambas** as
 subcoleções — ligadas por `correlationId`, nunca uma cópia da outra. Ver
 `docs/HISTORICO_EVENTOS_ATENDIMENTO.md` (Fase 10) para o detalhe completo.
 
+## Fase 11 (ciclo seguinte) — Permissão finalmente concedível pela UI
+
+O ciclo "Templates Avançados de Atendimento" corrigiu um achado de
+auditoria que afetava diretamente este módulo: `atendimento` e `crm` nunca
+apareciam na tela de gestão de acessos do dono, então nenhum funcionário
+conseguia recebê-las pela UI (Rules e controllers já suportavam, só faltava
+o checkbox). Ver `docs/SECURITY_MODEL.md` e
+`docs/TEMPLATES_ATENDIMENTO_AVANCADOS.md`.
+
 ## Limitações conhecidas
 
 - **CRM só é alcançável de dentro do Atendimento**: um funcionário com

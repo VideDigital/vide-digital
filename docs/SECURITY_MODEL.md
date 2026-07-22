@@ -39,6 +39,19 @@ O CRM 360 reaproveita a permissão `atendimento` (além da dedicada `crm`)
 porque hoje só é alcançável de dentro de uma conversa já aberta — ver a
 limitação registrada em `docs/CRM_360_CLIENTE.md`.
 
+Achado do ciclo "Templates Avançados de Atendimento": `atendimento` e `crm`
+tinham Rules e controllers prontos há ciclos, mas nunca apareciam na tela
+de gestão de acessos do dono (`MODULOS_PERMISSAO`, `dashboard-app.js`) —
+nenhum funcionário conseguia receber essas permissões pela UI, só o dono e
+o admin de backend alcançavam esses módulos na prática. Corrigido no mesmo
+ciclo (a lista de módulos exibidos, não a lógica de permissão em si).
+Templates também ganhou um segundo eixo de permissão nesse ciclo: `templates`
+(editar) continua exigido pra gerenciar (criar/editar/arquivar), mas
+`atendimento` (editar) ou `leads` (editar) já bastam pra *usar* um template
+numa conversa e registrar `usoTotal` — via um caminho de Rules estreito que
+só aceita esse incremento específico, nunca o conteúdo do template. Ver
+`docs/TEMPLATES_ATENDIMENTO_AVANCADOS.md`.
+
 ## Isolamento entre tenants
 
 Toda leitura/escrita valida o campo de tenant do documento contra o

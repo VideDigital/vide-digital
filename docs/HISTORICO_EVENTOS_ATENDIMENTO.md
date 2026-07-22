@@ -115,6 +115,8 @@ mudança real ter acontecido.
 //   4. (condicional) chats/{id}/eventos/{novo}   primeira_resposta_equipe
 //   5. (condicional) chats/{id}/eventos/{novo}   evento de status (classificarEventoStatus)
 //   6. (condicional) chats/{id}/eventos/{novo}   template_utilizado
+//   7. (condicional) templates/{templateId}      usoTotal +1, ultimoUsoEm  — desde o
+//      ciclo "Templates Avançados de Atendimento" (docs/TEMPLATES_ATENDIMENTO_AVANCADOS.md)
 ```
 
 Se o `batch.commit()` falhar (ex.: rede), o catch grava um evento
