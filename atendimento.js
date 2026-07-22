@@ -239,7 +239,10 @@ export function criarAtendimentoController(deps) {
         templates: [],
         filtro: { busca: "", status: "todas", canal: "todos", apenasMinhas: false, apenasSemResponsavel: false },
         enviando: false,
-        unsubscribeMensagens: null
+        unsubscribeMensagens: null,
+        // Navegação em etapas no mobile (a mesma marcação de 3 colunas do
+        // desktop; no mobile só uma etapa fica visível por vez via CSS).
+        etapaMobile: "lista"
     };
 
     function el(id) {
@@ -360,6 +363,24 @@ export function criarAtendimentoController(deps) {
         }
     }
 
+    function nomeResponsavel(uid) {
+        if (!uid) return "Sem responsável";
+        if (uid === storeUid()) return "Você (dono da loja)";
+        const funcionario = state.funcionarios.find(f => f.id === uid);
+        return funcionario?.nome || "Funcionário removido";
+    }
+
+    function renderOpcoesResponsavel() {
+        const select = el("atend-responsavel-select");
+        if (!select) return;
+        const elegiveis = funcionariosElegiveisAtendimento(state.funcionarios);
+        select.innerHTML = [
+            `<option value="">Sem responsável</option>`,
+            `<option value="${escaparHtml(storeUid())}">Você (dono da loja)</option>`,
+            ...elegiveis.map(f => `<option value="${escaparHtml(f.id)}">${escaparHtml(f.nome || f.id)}</option>`)
+        ].join("");
+    }
+
     function renderCabecalhoConversa(conversa) {
         const painel = el("atend-detalhe");
         if (painel) painel.classList.remove("is-vazio");
@@ -374,8 +395,52 @@ export function criarAtendimentoController(deps) {
         }
         const selectStatus = el("atend-status-select");
         if (selectStatus) selectStatus.value = conversa.status || "aberta";
+        renderOpcoesResponsavel();
         const selectResponsavel = el("atend-responsavel-select");
         if (selectResponsavel) selectResponsavel.value = conversa.atribuidoPara || "";
+        renderPainelCliente(conversa);
+    }
+
+    // Painel de dados do cliente: mostra o que já existe na própria
+    // conversa (nome, canal, setor, responsável, notas internas, tags).
+    // Não cruza com pedidos/leads ainda — limitação registrada na doc.
+    function renderPainelCliente(conversa) {
+        if (el("atend-cliente-nome")) el("atend-cliente-nome").textContent = conversa.clienteNome || "Cliente";
+        if (el("atend-cliente-canal")) el("atend-cliente-canal").textContent = CANAIS_CONVERSA[conversa.canal] || "—";
+        if (el("atend-cliente-setor")) el("atend-cliente-setor").textContent = conversa.setor || "Sem setor";
+        if (el("atend-cliente-responsavel")) el("atend-cliente-responsavel").textContent = nomeResponsavel(conversa.atribuidoPara);
+        if (el("atend-cliente-notas")) el("atend-cliente-notas").value = conversa.observacoesInternas || "";
+        if (el("atend-cliente-tags")) el("atend-cliente-tags").value = Array.isArray(conversa.tags) ? conversa.tags.join(", ") : "";
+    }
+
+    function abrirPainelCliente() {
+        el("atend-cliente-modal")?.classList.remove("hidden");
+    }
+
+    function fecharPainelCliente() {
+        el("atend-cliente-modal")?.classList.add("hidden");
+    }
+
+    async function salvarNotasCliente() {
+        const conversa = conversaSelecionada();
+        if (!conversa || !podeResponder()) return;
+        const notas = (el("atend-cliente-notas")?.value || "").trim().slice(0, LIMITES_ATENDIMENTO.observacoesMax);
+        const tags = (el("atend-cliente-tags")?.value || "")
+            .split(",").map(t => t.trim()).filter(Boolean).slice(0, LIMITES_ATENDIMENTO.maxTags);
+        try {
+            await setDoc(doc(db, "chats", conversa.id), {
+                observacoesInternas: notas,
+                tags,
+                atualizadoEm: Date.now()
+            }, { merge: true });
+            conversa.observacoesInternas = notas;
+            conversa.tags = tags;
+            notify("Dados do cliente atualizados.");
+            fecharPainelCliente();
+        } catch (error) {
+            console.error("[Atendimento] Falha ao salvar dados do cliente:", codigoErroFirebase(error), error?.message);
+            notify("Não foi possível salvar agora.", "error");
+        }
     }
 
     function renderMensagens() {
@@ -427,10 +492,16 @@ export function criarAtendimentoController(deps) {
         if (el("atend-filtro-sem-responsavel")) el("atend-filtro-sem-responsavel").checked = state.filtro.apenasSemResponsavel;
     }
 
+    function aplicarEtapaMobile() {
+        const layout = el("atend-layout");
+        if (layout) layout.setAttribute("data-atend-etapa", state.etapaMobile);
+    }
+
     async function render() {
         renderContadores();
         renderFiltros();
         renderListaConversas();
+        aplicarEtapaMobile();
         const conversa = conversaSelecionada();
         if (conversa) {
             renderCabecalhoConversa(conversa);
@@ -494,6 +565,7 @@ export function criarAtendimentoController(deps) {
         state.mensagens = [];
         state.mensagensErro = false;
         state.mensagensCarregando = true;
+        state.etapaMobile = "conversa";
         await render();
 
         try {
@@ -656,6 +728,21 @@ export function criarAtendimentoController(deps) {
         });
         el("atend-btn-atualizar")?.addEventListener("click", () => load({ force: true }));
 
+        // Navegação em etapas no mobile: mesma marcação de 3 colunas do
+        // desktop, só uma etapa visível por vez (ver atendimento.css).
+        // Delegado no layout inteiro porque os botões "abrir filtros" e
+        // "voltar" existem em mais de uma coluna (filtros e conversa).
+        el("atend-layout")?.addEventListener("click", event => {
+            if (event.target.closest("[data-atend-acao='abrir-filtros']")) {
+                state.etapaMobile = "filtros";
+                aplicarEtapaMobile();
+            }
+            if (event.target.closest("[data-atend-acao='voltar-lista']")) {
+                state.etapaMobile = "lista";
+                aplicarEtapaMobile();
+            }
+        });
+
         el("atend-lista-conversas")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-atend-conversa-id]");
             if (alvo) selecionarConversa(alvo.getAttribute("data-atend-conversa-id"));
@@ -664,6 +751,10 @@ export function criarAtendimentoController(deps) {
 
         el("atend-status-select")?.addEventListener("change", event => alterarStatus(event.target.value));
         el("atend-responsavel-select")?.addEventListener("change", event => atribuirResponsavel(event.target.value));
+
+        el("atend-btn-dados-cliente")?.addEventListener("click", abrirPainelCliente);
+        el("atend-cliente-fechar")?.addEventListener("click", fecharPainelCliente);
+        el("atend-cliente-salvar")?.addEventListener("click", salvarNotasCliente);
 
         const formResposta = el("atend-form-resposta");
         formResposta?.addEventListener("submit", event => {

@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="./dashboard-modules.css">
 <link rel="stylesheet" href="./business-modules.css">
 <link rel="stylesheet" href="./central-ia.css">
+<link rel="stylesheet" href="./atendimento.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
 <link rel="stylesheet" href="./late-overrides.css">
 <link rel="stylesheet" href="./studio-pro.css?v=200">
@@ -292,6 +293,10 @@ Leads
 <button data-target="view-automacao-leads" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
 Automação de Leads
+</button>
+<button data-target="view-atendimento" data-module-permission="atendimento" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1" aria-label="Abrir Central de Atendimento">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
+Central de Atendimento
 </button>
 <button data-target="view-central-ia" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1" aria-label="Abrir Central de IA">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h1M19 5h1M3 10h2M19 10h2"></path></svg>
@@ -945,6 +950,7 @@ HUB
 <div class="aura-hub-card" data-nome="pixels domínio dominio rastreamento" onclick="ativarAba('view-dominios')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg></span><span class="aura-hub-card-text"><strong>Pixels &amp; Domínio</strong><small>Rastreamento, pixels e domínio próprio</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="leads capturas contatos funil" onclick="ativarAba('view-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="aura-hub-card-text"><strong>Leads (Capturas)</strong><small>Contatos capturados e funil de vendas</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="automação de leads automacao regras disparos" onclick="ativarAba('view-automacao-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span class="aura-hub-card-text"><strong>Automação de Leads</strong><small>Regras e disparos automáticos</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+<div class="aura-hub-card hidden" data-target="view-atendimento" data-module-permission="atendimento" data-nome="central de atendimento conversas chat suporte inbox mensagens clientes" role="button" tabindex="0" onclick="ativarAba('view-atendimento')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-atendimento'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></span><span class="aura-hub-card-text"><strong>Central de Atendimento</strong><small>Converse com clientes e organize as conversas</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card hidden" data-target="view-central-ia" data-module-permission="central-ia" data-nome="central de ia inteligência artificial inteligencia artificial assistente automação automacao chatbot atendimento" role="button" tabindex="0" onclick="ativarAba('view-central-ia')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-central-ia'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"/><path d="M4 5h1M19 5h1M3 10h2M19 10h2"/></svg></span><span class="aura-hub-card-text"><strong>Central de IA</strong><small>Configure a assistente virtual da sua loja</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card hidden" data-target="view-base-conhecimento" data-module-permission="base-conhecimento-ia" data-nome="base de conhecimento ia faq politicas empresa manuais assistente" role="button" tabindex="0" onclick="ativarAba('view-base-conhecimento')" onkeydown="if(event.key === 'Enter' || event.key === ' '){ event.preventDefault(); ativarAba('view-base-conhecimento'); }"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2Z"/></svg></span><span class="aura-hub-card-text"><strong>Base de Conhecimento</strong><small>FAQ, políticas e dados que a IA vai usar</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="templates mensagens prontas" onclick="ativarAba('view-templates')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="aura-hub-card-text"><strong>Templates</strong><small>Mensagens prontas de atendimento</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
@@ -3426,6 +3432,144 @@ class="aura-metrics-chart-labels"
 
 </div>
 
+</div>
+
+</section>
+
+<section id="view-atendimento" class="view-section atendimento-view" aria-labelledby="atendimento-title">
+<header class="atendimento-header">
+<div>
+<h1 id="atendimento-title" class="atendimento-title">Central de Atendimento</h1>
+<p class="atendimento-subtitle">Converse com clientes, organize por status e responda direto pelo painel.</p>
+</div>
+<button type="button" class="atend-btn" id="atend-btn-atualizar" aria-label="Atualizar conversas">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+Atualizar
+</button>
+</header>
+
+<div class="atend-kpis">
+<div class="atend-kpi"><strong id="atend-kpi-novas">0</strong><span>Novas</span></div>
+<div class="atend-kpi"><strong id="atend-kpi-abertas">0</strong><span>Abertas</span></div>
+<div class="atend-kpi"><strong id="atend-kpi-nao-lidas">0</strong><span>Não lidas</span></div>
+<div class="atend-kpi"><strong id="atend-kpi-aguardando-equipe">0</strong><span>Aguardando equipe</span></div>
+<div class="atend-kpi"><strong id="atend-kpi-minhas">0</strong><span>Minhas conversas</span></div>
+<div class="atend-kpi"><strong id="atend-kpi-resolvidas-hoje">0</strong><span>Resolvidas hoje</span></div>
+</div>
+
+<div class="atend-layout" id="atend-layout" data-atend-etapa="lista">
+
+<div class="atend-coluna atend-col-filtros">
+<div class="atend-filtros">
+<button type="button" class="atend-btn atend-mobile-voltar" data-atend-acao="voltar-lista" aria-label="Voltar para a lista de conversas">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+Voltar
+</button>
+<div class="atend-filtro-grupo">
+<label for="atend-busca">Buscar</label>
+<input type="text" id="atend-busca" class="atend-input" placeholder="Nome do cliente ou mensagem">
+</div>
+<div class="atend-filtro-grupo">
+<label for="atend-filtro-status">Status</label>
+<select id="atend-filtro-status" class="atend-select">
+<option value="todas">Todos os status</option>
+<option value="nova">Nova</option>
+<option value="aberta">Aberta</option>
+<option value="aguardando_cliente">Aguardando cliente</option>
+<option value="aguardando_equipe">Aguardando equipe</option>
+<option value="resolvida">Resolvida</option>
+<option value="arquivada">Arquivada</option>
+</select>
+</div>
+<div class="atend-filtro-grupo">
+<label for="atend-filtro-canal">Canal</label>
+<select id="atend-filtro-canal" class="atend-select">
+<option value="todos">Todos os canais</option>
+<option value="loja_publica">Loja pública</option>
+<option value="interno">Interno</option>
+<option value="whatsapp_futuro">WhatsApp (futuro)</option>
+</select>
+</div>
+<div class="atend-filtro-grupo">
+<label class="atend-checkbox-linha"><input type="checkbox" id="atend-filtro-minhas"> Minhas conversas</label>
+<label class="atend-checkbox-linha"><input type="checkbox" id="atend-filtro-sem-responsavel"> Sem responsável</label>
+</div>
+</div>
+</div>
+
+<div class="atend-coluna atend-col-lista">
+<div class="atend-lista-topo" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+<strong style="font-size:13px;">Conversas</strong>
+<button type="button" class="atend-btn atend-mobile-voltar" data-atend-acao="abrir-filtros" aria-label="Abrir filtros">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
+Filtros
+</button>
+</div>
+<div id="atend-lista-conversas" role="list" aria-label="Lista de conversas"></div>
+</div>
+
+<div class="atend-coluna atend-col-detalhe atend-detalhe is-vazio" id="atend-detalhe">
+<div class="atend-detalhe-cabecalho">
+<button type="button" class="atend-btn atend-mobile-voltar" data-atend-acao="voltar-lista" aria-label="Voltar para a lista de conversas">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+</button>
+<span class="atend-avatar" id="atend-detalhe-avatar">?</span>
+<div class="atend-detalhe-info">
+<strong id="atend-detalhe-nome">Cliente</strong>
+<div class="atend-detalhe-meta-linha">
+<span id="atend-detalhe-status">Aberta</span>
+<span id="atend-detalhe-canal">—</span>
+<span id="atend-detalhe-setor">Sem setor</span>
+<span>Início: <span id="atend-detalhe-inicio">—</span></span>
+</div>
+</div>
+<div class="atend-detalhe-acoes">
+<select id="atend-status-select" class="atend-select" aria-label="Mudar status da conversa">
+<option value="nova">Nova</option>
+<option value="aberta">Aberta</option>
+<option value="aguardando_cliente">Aguardando cliente</option>
+<option value="aguardando_equipe">Aguardando equipe</option>
+<option value="resolvida">Resolvida</option>
+<option value="arquivada">Arquivada</option>
+</select>
+<select id="atend-responsavel-select" class="atend-select" aria-label="Atribuir responsável"></select>
+<button type="button" class="atend-btn" id="atend-btn-dados-cliente">Dados do cliente</button>
+</div>
+</div>
+
+<div id="atend-detalhe-corpo">
+<div id="atend-mensagens" role="log" aria-live="polite" aria-label="Histórico da conversa"></div>
+</div>
+
+<form id="atend-form-resposta">
+<textarea id="atend-resposta-input" class="atend-input" placeholder="Digite sua resposta..." aria-label="Escrever resposta" maxlength="4000"></textarea>
+<button type="submit" class="atend-btn atend-btn-primario">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
+Enviar
+</button>
+</form>
+</div>
+
+</div>
+
+<div class="atend-cliente-modal hidden" id="atend-cliente-modal" role="dialog" aria-modal="true" aria-labelledby="atend-cliente-titulo">
+<div class="atend-cliente-painel">
+<h3 id="atend-cliente-titulo">Dados do cliente</h3>
+<dl>
+<dt>Nome</dt><dd id="atend-cliente-nome">—</dd>
+<dt>Canal</dt><dd id="atend-cliente-canal">—</dd>
+<dt>Setor</dt><dd id="atend-cliente-setor">—</dd>
+<dt>Responsável atual</dt><dd id="atend-cliente-responsavel">—</dd>
+<dt>Notas internas (não aparecem para o cliente)</dt>
+<dd><textarea id="atend-cliente-notas" maxlength="2000" placeholder="Anotações da equipe sobre este cliente..."></textarea></dd>
+<dt>Tags (separadas por vírgula)</dt>
+<dd><input type="text" id="atend-cliente-tags" class="atend-input" placeholder="vip, atraso, reclamacao"></dd>
+</dl>
+<div class="atend-cliente-acoes">
+<button type="button" class="atend-btn" id="atend-cliente-fechar">Fechar</button>
+<button type="button" class="atend-btn atend-btn-primario" id="atend-cliente-salvar">Salvar</button>
+</div>
+</div>
 </div>
 
 </section>

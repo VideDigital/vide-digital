@@ -2,6 +2,7 @@ import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-ini
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
+import { criarAtendimentoController } from "./atendimento.js";
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -29,7 +30,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or, serverTimestamp, arrayUnion, arrayRemove, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -2348,6 +2349,10 @@ if (targetId === "view-metricas") {
         baseConhecimentoController.load();
     }
 
+    if (targetId === "view-atendimento") {
+        atendimentoController.load();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3859,6 +3864,7 @@ if (document.readyState === "loading") {
             "view-personalizacao": "configuracoes",
             "view-central-ia": "central-ia",
             "view-base-conhecimento": "base-conhecimento-ia",
+            "view-atendimento": "atendimento",
             "view-funcionarios": "funcionarios",
             "view-landing-pages": "landing-pages"
         };
@@ -4120,6 +4126,15 @@ btn.classList.add("opacity-40");
             notify: showToast
         });
         baseConhecimentoController.bindEventos();
+
+        const atendimentoController = criarAtendimentoController({
+            db,
+            context: VideHubContext,
+            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp },
+            notify: showToast
+        });
+        atendimentoController.bindEventos();
+        window.atendimentoController = atendimentoController;
 
         document.getElementById("ia-tentar-novamente")?.addEventListener("click", () => {
             centralIAController.load({ force: true });
