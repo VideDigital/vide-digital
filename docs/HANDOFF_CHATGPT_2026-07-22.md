@@ -117,7 +117,45 @@ pnpm run test:all      # tudo junto (demora mais)
 ## Não bloqueado, mas fica registrado pro próximo ciclo
 
 Ver a seção "Próximas prioridades reais" no fim de
-`docs/ROADMAP_RD3_STATUS.md` — resumo: reavaliar `collectionGroup` só se
-um campo achatado não resolver; testes de UI com login real autenticado
-(hoje só validação sintética/DOM); busca server-side no catálogo de
-produtos se algum tenant passar de ~300 produtos ativos.
+`docs/ROADMAP_RD3_STATUS.md` — resumo: confirmar `pnpm run test:ui:*`
+rodando de ponta a ponta num ambiente com acesso a `www.gstatic.com`
+(ver próxima seção); reavaliar `collectionGroup` só se um campo achatado
+não resolver; busca server-side no catálogo de produtos se algum tenant
+passar de ~300 produtos ativos.
+
+## Addendum — Quality Gate (ciclo seguinte a este handoff)
+
+Depois deste handoff, um ciclo de "Gate de Qualidade, QA autenticado e
+preparação de release" foi executado. Resumo essencial pra quem continuar:
+
+- **Documentação Spark/Blaze corrigida**: `docs/FIREBASE_SPARK_ARCHITECTURE.md`
+  dizia "não migra para Blaze", contradizendo a realidade (e este próprio
+  handoff). Corrigido — o nome do arquivo ficou (é referenciado em outros
+  lugares), o conteúdo agora reflete Blaze de verdade, com a razão real
+  (Storage em produção passou a exigir faturamento) e deixa claro que
+  Blaze **não** significa usar Functions pra tudo.
+- **Testes de UI com login real tornados 100% portáteis**: `playwright` virou
+  devDependency real do projeto (antes dependia de um Chromium global em
+  `/opt`); o servidor estático que serve o app pros testes agora é Node
+  puro (`node:http`), não Python; a porta é escolhida automaticamente.
+  Estrutura nova em `tests/emulator/ui/` (login, 3 perfis, fluxos
+  profundos de Pedidos/Atendimento/Templates/CRM/Base de
+  Conhecimento/Central de IA, responsividade em 5 viewports).
+- **Achado crítico**: o sandbox onde isso foi escrito bloqueia por
+  política de rede o host `www.gstatic.com` (confirmado via
+  `curl -x $HTTPS_PROXY https://www.gstatic.com` → `403` de política, não
+  timeout). Como o app carrega o SDK do Firebase direto desse CDN, a
+  suíte de UI **não pôde ser validada rodando de verdade** nesse sandbox
+  — o harness em si (servidor, Playwright, Emulators, seed) foi
+  confirmado funcionando até esse ponto exato. **Antes de confiar nesses
+  testes, rode `pnpm run test:ui:login` num ambiente que alcance
+  `www.gstatic.com`** (qualquer runner GitHub Actions padrão) e corrija o
+  que não bater. Detalhe completo em `docs/QUALITY_GATE_RELEASE.md`.
+- **Workflow novo**: `.github/workflows/quality-gate.yml` — nunca faz
+  deploy, só valida (check, unit, Rules, frontend:emulator, UI real). O
+  deploy continua manual e separado em `firebase-deploy.yml`.
+- `scripts/seed-emulator.mjs` evoluído: `employee-edit`/`employee-read`
+  agora têm permissão em atendimento/crm/pedidos/base-conhecimento-ia
+  (antes só produtos/leads), e há dados de apoio pros fluxos profundos
+  (cliente, chat com mensagem+evento, template, 2 itens de base de
+  conhecimento, config de IA, pedido com itens estruturados).
