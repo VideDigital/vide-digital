@@ -3565,22 +3565,130 @@ Enviar
 </div>
 </div>
 
-<div class="atend-cliente-modal hidden" id="atend-cliente-modal" role="dialog" aria-modal="true" aria-labelledby="atend-cliente-titulo">
-<div class="atend-cliente-painel">
-<h3 id="atend-cliente-titulo">Dados do cliente</h3>
-<dl>
-<dt>Nome</dt><dd id="atend-cliente-nome">—</dd>
-<dt>Canal</dt><dd id="atend-cliente-canal">—</dd>
-<dt>Setor</dt><dd id="atend-cliente-setor">—</dd>
-<dt>Responsável atual</dt><dd id="atend-cliente-responsavel">—</dd>
-<dt>Notas internas (não aparecem para o cliente)</dt>
-<dd><textarea id="atend-cliente-notas" maxlength="2000" placeholder="Anotações da equipe sobre este cliente..."></textarea></dd>
-<dt>Tags (separadas por vírgula)</dt>
-<dd><input type="text" id="atend-cliente-tags" class="atend-input" placeholder="vip, atraso, reclamacao"></dd>
+<div class="crm-modal hidden" id="crm-cliente-modal" role="dialog" aria-modal="true" aria-labelledby="crm-titulo">
+<div class="crm-drawer">
+<header class="crm-drawer-header">
+<span class="atend-avatar" id="crm-avatar">?</span>
+<h3 id="crm-titulo" class="crm-drawer-titulo">CRM 360 do cliente</h3>
+<button type="button" class="atend-btn" id="crm-cliente-fechar" aria-label="Fechar CRM do cliente">Fechar</button>
+</header>
+
+<div id="crm-loading" class="crm-vazio-texto" style="padding:24px;">Carregando perfil do cliente...</div>
+
+<div id="crm-nao-identificado" class="crm-secao hidden">
+<h4>Cliente ainda não identificado</h4>
+<p class="crm-vazio-texto">Não foi possível reconhecer automaticamente este contato (a conversa não tem telefone/e-mail vinculado ainda). Você pode cadastrar como novo cliente ou vincular a um já existente.</p>
+<div id="crm-ambiguo-aviso" class="crm-aviso hidden">Encontramos mais de um cliente parecido — confirme manualmente qual é o certo.</div>
+<button type="button" class="atend-btn atend-btn-primario" id="crm-btn-criar-cliente">Cadastrar como novo cliente</button>
+<div id="crm-candidatos-lista" style="margin-top:12px;"></div>
+</div>
+
+<div id="crm-conteudo" class="hidden">
+
+<section class="crm-secao">
+<h4>Identidade</h4>
+<dl class="crm-dl">
+<dt>Nome</dt><dd id="crm-nome">—</dd>
+<dt>Telefone</dt><dd id="crm-telefone">—</dd>
+<dt>E-mail</dt><dd id="crm-email">—</dd>
+<dt>Origem</dt><dd id="crm-origem">—</dd>
+<dt>Primeiro contato</dt><dd id="crm-primeiro-contato">—</dd>
+<dt>Último contato</dt><dd id="crm-ultimo-contato">—</dd>
 </dl>
-<div class="atend-cliente-acoes">
-<button type="button" class="atend-btn" id="atend-cliente-fechar">Fechar</button>
-<button type="button" class="atend-btn atend-btn-primario" id="atend-cliente-salvar">Salvar</button>
+<div class="crm-linha-campos">
+<label>Status do relacionamento
+<select id="crm-status-select" class="atend-select">
+<option value="novo">Novo</option>
+<option value="lead">Lead</option>
+<option value="qualificado">Qualificado</option>
+<option value="negociacao">Em negociação</option>
+<option value="cliente">Cliente</option>
+<option value="recorrente">Recorrente</option>
+<option value="inativo">Inativo</option>
+<option value="perdido">Perdido</option>
+</select>
+</label>
+<label>Responsável comercial
+<select id="crm-responsavel-select" class="atend-select"></select>
+</label>
+</div>
+<div id="crm-status-sugestao" class="crm-aviso hidden"></div>
+<div id="crm-tags-lista" class="crm-tags-lista"></div>
+<form id="crm-tag-form" class="crm-linha-campos">
+<input type="text" id="crm-tag-input" class="atend-input" placeholder="Adicionar tag (ex.: vip)" maxlength="40">
+<button type="submit" class="atend-btn">Adicionar tag</button>
+</form>
+</section>
+
+<section class="crm-secao">
+<h4>Resumo comercial</h4>
+<div class="crm-kpis">
+<div class="crm-kpi"><strong id="crm-kpi-total-pedidos">0</strong><span>Pedidos</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-pedidos-pagos">0</strong><span>Pagos</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-pedidos-cancelados">0</strong><span>Cancelados</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-valor-total">R$ 0</strong><span>Valor total</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-ticket-medio">R$ 0</strong><span>Ticket médio</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-dias-ultima-compra">—</strong><span>Última compra</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-conversas">0</strong><span>Conversas</span></div>
+<div class="crm-kpi"><strong id="crm-kpi-leads">0</strong><span>Leads</span></div>
+</div>
+<div id="crm-produtos-comprados" class="crm-tags-lista"></div>
+</section>
+
+<section class="crm-secao">
+<h4>Leads relacionados</h4>
+<div id="crm-leads-lista"></div>
+<details class="crm-vincular-busca">
+<summary>Vincular lead existente</summary>
+<input type="text" id="crm-busca-lead" class="atend-input" placeholder="Buscar lead pelo nome...">
+<div id="crm-busca-lead-resultado"></div>
+</details>
+</section>
+
+<section class="crm-secao">
+<h4>Pedidos relacionados</h4>
+<div id="crm-pedidos-lista"></div>
+<details class="crm-vincular-busca">
+<summary>Vincular pedido existente</summary>
+<input type="text" id="crm-busca-pedido" class="atend-input" placeholder="Buscar pedido pelo nome do cliente...">
+<div id="crm-busca-pedido-resultado"></div>
+</details>
+</section>
+
+<section class="crm-secao">
+<h4>Conversas relacionadas</h4>
+<div id="crm-conversas-lista"></div>
+</section>
+
+<section class="crm-secao">
+<h4>Produtos de interesse</h4>
+<input type="text" id="crm-produtos-busca-input" class="atend-input" placeholder="Buscar produto para vincular...">
+<div id="crm-produtos-busca-resultado"></div>
+<div id="crm-produtos-interesse-lista" style="margin-top:8px;"></div>
+</section>
+
+<section class="crm-secao">
+<h4>Observações internas</h4>
+<p class="crm-vazio-texto">Visíveis só para a equipe — nunca aparecem na loja pública.</p>
+<div id="crm-observacoes-lista"></div>
+<form id="crm-observacao-form" class="crm-linha-campos">
+<textarea id="crm-observacao-input" class="atend-input" maxlength="2000" placeholder="Nova observação sobre este cliente..."></textarea>
+<button type="submit" class="atend-btn atend-btn-primario">Salvar observação</button>
+</form>
+</section>
+
+<section class="crm-secao">
+<h4>Linha do tempo</h4>
+<select id="crm-timeline-filtro" class="atend-select">
+<option value="todos">Todos os eventos</option>
+<option value="conversas">Conversas</option>
+<option value="leads">Leads</option>
+<option value="pedidos">Pedidos</option>
+<option value="alteracoes">Alterações internas</option>
+</select>
+<div id="crm-timeline-lista"></div>
+</section>
+
 </div>
 </div>
 </div>

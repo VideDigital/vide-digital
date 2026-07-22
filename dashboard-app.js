@@ -3,6 +3,7 @@ import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
+import { criarCrm360Controller } from "./crm360.js";
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -30,7 +31,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -4127,11 +4128,21 @@ btn.classList.add("opacity-40");
         });
         baseConhecimentoController.bindEventos();
 
+        const crm360Controller = criarCrm360Controller({
+            db,
+            context: VideHubContext,
+            firestore: { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, limit, serverTimestamp },
+            notify: showToast
+        });
+        crm360Controller.bindEventos();
+        window.crm360Controller = crm360Controller;
+
         const atendimentoController = criarAtendimentoController({
             db,
             context: VideHubContext,
             firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp },
-            notify: showToast
+            notify: showToast,
+            onAbrirDadosCliente: conversa => crm360Controller.abrirParaConversa(conversa)
         });
         atendimentoController.bindEventos();
         window.atendimentoController = atendimentoController;

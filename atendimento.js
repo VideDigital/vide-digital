@@ -220,7 +220,7 @@ function tempoRelativo(ms) {
 // funções do SDK e notificador) pra ficar testável sem navegador real,
 // no mesmo formato de central-ia.js / base-conhecimento-ia.js.
 export function criarAtendimentoController(deps) {
-    const { db, context, firestore, notify = () => {} } = deps;
+    const { db, context, firestore, notify = () => {}, onAbrirDadosCliente = () => {} } = deps;
     const {
         collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit,
         serverTimestamp, onSnapshot
@@ -363,13 +363,6 @@ export function criarAtendimentoController(deps) {
         }
     }
 
-    function nomeResponsavel(uid) {
-        if (!uid) return "Sem responsável";
-        if (uid === storeUid()) return "Você (dono da loja)";
-        const funcionario = state.funcionarios.find(f => f.id === uid);
-        return funcionario?.nome || "Funcionário removido";
-    }
-
     function renderOpcoesResponsavel() {
         const select = el("atend-responsavel-select");
         if (!select) return;
@@ -398,49 +391,6 @@ export function criarAtendimentoController(deps) {
         renderOpcoesResponsavel();
         const selectResponsavel = el("atend-responsavel-select");
         if (selectResponsavel) selectResponsavel.value = conversa.atribuidoPara || "";
-        renderPainelCliente(conversa);
-    }
-
-    // Painel de dados do cliente: mostra o que já existe na própria
-    // conversa (nome, canal, setor, responsável, notas internas, tags).
-    // Não cruza com pedidos/leads ainda — limitação registrada na doc.
-    function renderPainelCliente(conversa) {
-        if (el("atend-cliente-nome")) el("atend-cliente-nome").textContent = conversa.clienteNome || "Cliente";
-        if (el("atend-cliente-canal")) el("atend-cliente-canal").textContent = CANAIS_CONVERSA[conversa.canal] || "—";
-        if (el("atend-cliente-setor")) el("atend-cliente-setor").textContent = conversa.setor || "Sem setor";
-        if (el("atend-cliente-responsavel")) el("atend-cliente-responsavel").textContent = nomeResponsavel(conversa.atribuidoPara);
-        if (el("atend-cliente-notas")) el("atend-cliente-notas").value = conversa.observacoesInternas || "";
-        if (el("atend-cliente-tags")) el("atend-cliente-tags").value = Array.isArray(conversa.tags) ? conversa.tags.join(", ") : "";
-    }
-
-    function abrirPainelCliente() {
-        el("atend-cliente-modal")?.classList.remove("hidden");
-    }
-
-    function fecharPainelCliente() {
-        el("atend-cliente-modal")?.classList.add("hidden");
-    }
-
-    async function salvarNotasCliente() {
-        const conversa = conversaSelecionada();
-        if (!conversa || !podeResponder()) return;
-        const notas = (el("atend-cliente-notas")?.value || "").trim().slice(0, LIMITES_ATENDIMENTO.observacoesMax);
-        const tags = (el("atend-cliente-tags")?.value || "")
-            .split(",").map(t => t.trim()).filter(Boolean).slice(0, LIMITES_ATENDIMENTO.maxTags);
-        try {
-            await setDoc(doc(db, "chats", conversa.id), {
-                observacoesInternas: notas,
-                tags,
-                atualizadoEm: Date.now()
-            }, { merge: true });
-            conversa.observacoesInternas = notas;
-            conversa.tags = tags;
-            notify("Dados do cliente atualizados.");
-            fecharPainelCliente();
-        } catch (error) {
-            console.error("[Atendimento] Falha ao salvar dados do cliente:", codigoErroFirebase(error), error?.message);
-            notify("Não foi possível salvar agora.", "error");
-        }
     }
 
     // Reaproveita a coleção "templates" (mesma usada pelo módulo Templates
@@ -812,9 +762,9 @@ export function criarAtendimentoController(deps) {
         el("atend-status-select")?.addEventListener("change", event => alterarStatus(event.target.value));
         el("atend-responsavel-select")?.addEventListener("change", event => atribuirResponsavel(event.target.value));
 
-        el("atend-btn-dados-cliente")?.addEventListener("click", abrirPainelCliente);
-        el("atend-cliente-fechar")?.addEventListener("click", fecharPainelCliente);
-        el("atend-cliente-salvar")?.addEventListener("click", salvarNotasCliente);
+        // O painel de dados do cliente evoluiu pro CRM 360 (crm360.js) —
+        // aqui só entrega a conversa selecionada pra quem sabe abri-lo.
+        el("atend-btn-dados-cliente")?.addEventListener("click", () => onAbrirDadosCliente(conversaSelecionada()));
 
         el("atend-btn-templates")?.addEventListener("click", abrirSeletorTemplates);
         el("atend-templates-fechar")?.addEventListener("click", fecharSeletorTemplates);
