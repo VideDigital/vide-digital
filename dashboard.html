@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="./business-modules.css">
 <link rel="stylesheet" href="./central-ia.css">
 <link rel="stylesheet" href="./atendimento.css">
+<link rel="stylesheet" href="./ia-copilot.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
 <link rel="stylesheet" href="./late-overrides.css">
 <link rel="stylesheet" href="./studio-pro.css?v=200">
@@ -3562,6 +3563,45 @@ Filtros
 
 <div id="atend-detalhe-corpo">
 <div id="atend-mensagens" role="log" aria-live="polite" aria-label="Histórico da conversa"></div>
+</div>
+
+<div id="ia-copilot-toggle-linha" class="ia-copilot-toggle-linha" hidden>
+<button type="button" class="atend-btn ia-copilot-toggle" id="ia-copilot-toggle" aria-expanded="false" aria-controls="ia-copilot-painel">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M12 2v4"/><path d="M12 18v4"/><path d="M4.93 4.93l2.83 2.83"/><path d="M16.24 16.24l2.83 2.83"/><path d="M2 12h4"/><path d="M18 12h4"/><path d="M4.93 19.07l2.83-2.83"/><path d="M16.24 7.76l2.83-2.83"/></svg>
+Copiloto de IA
+</button>
+</div>
+
+<div id="ia-copilot-painel" class="ia-copilot-painel" hidden>
+<div class="ia-copilot-cabecalho">
+<span class="ia-copilot-titulo">Copiloto de IA — sugestões para revisar, nunca envio automático</span>
+<button type="button" class="ia-copilot-fechar" id="ia-copilot-fechar" aria-label="Fechar copiloto de IA">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+</button>
+</div>
+<div class="ia-copilot-acoes">
+<select id="ia-copilot-acao" class="atend-select" aria-label="Ação do copiloto de IA"></select>
+<button type="button" class="atend-btn atend-btn-primario" id="ia-copilot-gerar">Gerar sugestão</button>
+</div>
+<div id="ia-copilot-carregando" class="ia-copilot-carregando" hidden>Gerando sugestão...</div>
+<div id="ia-copilot-vazio" class="ia-copilot-vazio">Escolha uma ação e clique em "Gerar sugestão" — o copiloto analisa esta conversa e sugere um rascunho pra você revisar.</div>
+<div id="ia-copilot-resultado" class="ia-copilot-resultado" hidden>
+<div id="ia-copilot-texto" class="ia-copilot-texto"></div>
+<ul id="ia-copilot-avisos" class="ia-copilot-avisos" hidden></ul>
+<div id="ia-copilot-fontes" class="ia-copilot-fontes" hidden></div>
+<div id="ia-copilot-confirmar" class="ia-copilot-confirmar" hidden>
+<span>O campo de resposta já tem texto. O que fazer?</span>
+<div class="ia-copilot-confirmar-botoes">
+<button type="button" class="atend-btn atend-btn-primario" id="ia-copilot-substituir">Substituir</button>
+<button type="button" class="atend-btn" id="ia-copilot-anexar">Anexar</button>
+<button type="button" class="atend-btn" id="ia-copilot-cancelar-uso">Cancelar</button>
+</div>
+</div>
+<div class="ia-copilot-botoes">
+<button type="button" class="atend-btn atend-btn-primario" id="ia-copilot-usar">Usar resposta</button>
+<button type="button" class="atend-btn" id="ia-copilot-descartar">Descartar</button>
+</div>
+</div>
 </div>
 
 <div id="atend-template-pendencias" class="atend-template-pendencias" hidden></div>

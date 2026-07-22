@@ -4,6 +4,7 @@ import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
 import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
+import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
     adicionarItemPedido, removerItemPedido, atualizarQuantidadeItem
@@ -721,6 +722,9 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
             { key: "metricas", label: "Métricas" },
             { key: "configuracoes", label: "Configurações da Loja" },
             { key: "central-ia", label: "Central de IA" },
+            // Separada de "atendimento" de propósito: ver a Central de
+            // Atendimento não dá acesso ao copiloto de IA automaticamente.
+            { key: "ia-copilot", label: "Copiloto de IA (Atendimento)" },
             { key: "landing-pages", label: "Landing Pages / Studio" },
             { key: "funcionarios", label: "Funcionários" }
         ];
@@ -4183,6 +4187,212 @@ btn.classList.add("opacity-40");
         });
         atendimentoController.bindEventos();
         window.atendimentoController = atendimentoController;
+
+        // Painel do copiloto de IA dentro da Central de Atendimento — só
+        // texto (nunca innerHTML) pro conteúdo gerado, pra nunca renderizar
+        // HTML vindo de uma sugestão (mesmo sendo só o mock local hoje).
+        function bindIaCopilotPainel(controller, atendController) {
+            const toggleLinha = document.getElementById("ia-copilot-toggle-linha");
+            const toggleBtn = document.getElementById("ia-copilot-toggle");
+            const painel = document.getElementById("ia-copilot-painel");
+            const fecharBtn = document.getElementById("ia-copilot-fechar");
+            const selectAcao = document.getElementById("ia-copilot-acao");
+            const gerarBtn = document.getElementById("ia-copilot-gerar");
+            const carregando = document.getElementById("ia-copilot-carregando");
+            const vazio = document.getElementById("ia-copilot-vazio");
+            const resultado = document.getElementById("ia-copilot-resultado");
+            const textoEl = document.getElementById("ia-copilot-texto");
+            const avisosEl = document.getElementById("ia-copilot-avisos");
+            const fontesEl = document.getElementById("ia-copilot-fontes");
+            const confirmarEl = document.getElementById("ia-copilot-confirmar");
+            const usarBtn = document.getElementById("ia-copilot-usar");
+            const descartarBtn = document.getElementById("ia-copilot-descartar");
+            const substituirBtn = document.getElementById("ia-copilot-substituir");
+            const anexarBtn = document.getElementById("ia-copilot-anexar");
+            const cancelarUsoBtn = document.getElementById("ia-copilot-cancelar-uso");
+            if (!toggleLinha || !painel || !selectAcao) return;
+
+            selectAcao.innerHTML = Object.entries(ACOES_IA_COPILOT)
+                .map(([valor, rotulo]) => `<option value="${valor}">${rotulo}</option>`)
+                .join("");
+
+            function referenciasChatAtual() {
+                const snapshot = VideHubContext.getSnapshot();
+                const conversa = atendController.state.conversas.find(
+                    c => c.id === atendController.state.conversaSelecionadaId
+                ) || null;
+                return {
+                    chatId: atendController.state.conversaSelecionadaId,
+                    tenantId: snapshot.storeUid,
+                    lojaId: snapshot.storeUid,
+                    clienteId: conversa?.clienteId || null
+                };
+            }
+
+            function limparResultado() {
+                resultado.hidden = true;
+                confirmarEl.hidden = true;
+                vazio.hidden = false;
+                textoEl.textContent = "";
+                avisosEl.innerHTML = "";
+                fontesEl.innerHTML = "";
+            }
+
+            function atualizarVisibilidadeToggle() {
+                const snapshot = VideHubContext.getSnapshot();
+                const podeUsar = Boolean(snapshot.active) && VideHubContext.canEdit("ia-copilot");
+                toggleLinha.hidden = !podeUsar;
+                if (!podeUsar) {
+                    painel.hidden = true;
+                    toggleBtn?.setAttribute("aria-expanded", "false");
+                }
+            }
+
+            function renderizarSugestao(sugestao) {
+                resultado.hidden = false;
+                vazio.hidden = true;
+                confirmarEl.hidden = true;
+                textoEl.textContent = sugestao.text || "(sem sugestão de texto para esta ação)";
+
+                avisosEl.innerHTML = "";
+                if (sugestao.warnings?.length) {
+                    avisosEl.hidden = false;
+                    sugestao.warnings.forEach(aviso => {
+                        const li = document.createElement("li");
+                        li.textContent = aviso;
+                        avisosEl.appendChild(li);
+                    });
+                } else {
+                    avisosEl.hidden = true;
+                }
+
+                fontesEl.innerHTML = "";
+                if (sugestao.usedSources?.length) {
+                    fontesEl.hidden = false;
+                    const rotulo = document.createElement("strong");
+                    rotulo.textContent = "Fontes usadas: ";
+                    fontesEl.appendChild(rotulo);
+                    const lista = document.createElement("span");
+                    lista.textContent = sugestao.usedSources.join(" · ");
+                    fontesEl.appendChild(lista);
+                } else {
+                    fontesEl.hidden = true;
+                }
+
+                usarBtn.disabled = !sugestao.text;
+            }
+
+            toggleBtn?.addEventListener("click", () => {
+                const abrir = painel.hidden;
+                painel.hidden = !abrir;
+                toggleBtn.setAttribute("aria-expanded", String(abrir));
+            });
+            fecharBtn?.addEventListener("click", () => {
+                painel.hidden = true;
+                toggleBtn?.setAttribute("aria-expanded", "false");
+            });
+
+            gerarBtn?.addEventListener("click", async () => {
+                if (!atendController.state.conversaSelecionadaId) {
+                    showToast("Selecione uma conversa primeiro.", "error");
+                    return;
+                }
+                gerarBtn.disabled = true;
+                carregando.hidden = false;
+                resultado.hidden = true;
+                vazio.hidden = true;
+                try {
+                    const sugestao = await controller.gerarSugestao(selectAcao.value);
+                    if (sugestao) renderizarSugestao(sugestao);
+                    else limparResultado();
+                } finally {
+                    carregando.hidden = true;
+                    gerarBtn.disabled = false;
+                }
+            });
+
+            async function confirmarUso(modo) {
+                const sugestao = controller.state.sugestaoAtual;
+                if (!sugestao) return;
+                await controller.usarSugestao(sugestao, { modo, ...referenciasChatAtual() });
+                limparResultado();
+            }
+
+            usarBtn?.addEventListener("click", () => {
+                const textarea = document.getElementById("atend-resposta-input");
+                if (textarea && textarea.value.trim()) {
+                    confirmarEl.hidden = false;
+                    return;
+                }
+                confirmarUso("substituir");
+            });
+            substituirBtn?.addEventListener("click", () => confirmarUso("substituir"));
+            anexarBtn?.addEventListener("click", () => confirmarUso("anexar"));
+            cancelarUsoBtn?.addEventListener("click", () => { confirmarEl.hidden = true; });
+
+            descartarBtn?.addEventListener("click", async () => {
+                const sugestao = controller.state.sugestaoAtual;
+                if (!sugestao) return;
+                await controller.descartarSugestao(sugestao, referenciasChatAtual());
+                limparResultado();
+            });
+
+            // Troca de conversa: a sugestão de uma conversa nunca deve
+            // sobreviver visualmente para a próxima que for aberta.
+            ["selecionarConversa", "abrirConversaPorId"].forEach(metodo => {
+                const original = atendController[metodo]?.bind(atendController);
+                if (!original) return;
+                atendController[metodo] = async (...args) => {
+                    const resultadoOriginal = await original(...args);
+                    controller.state.sugestaoAtual = null;
+                    limparResultado();
+                    return resultadoOriginal;
+                };
+            });
+
+            atualizarVisibilidadeToggle();
+            window.addEventListener("videhub:context-ready", atualizarVisibilidadeToggle);
+        }
+
+        // Copiloto de IA (Fase 1): nunca lê o Firestore por conta própria —
+        // obterContexto() só relê o que os controllers acima já carregaram
+        // em memória (atendimento/CRM/base de conhecimento/Central de IA),
+        // e inserirNoComposer() só escreve no textarea quando o humano
+        // clica "Usar resposta" (nunca sozinho, nunca envia).
+        const iaCopilotController = criarIaCopilotController({
+            db,
+            context: VideHubContext,
+            firestore: { doc, collection, setDoc, serverTimestamp },
+            notify: showToast,
+            obterContexto: async () => {
+                const conversa = atendimentoController.state.conversas.find(
+                    c => c.id === atendimentoController.state.conversaSelecionadaId
+                ) || null;
+                const clienteId = conversa?.clienteId || null;
+                const clienteCarregado = clienteId && crm360Controller.state.cliente?.id === clienteId
+                    ? crm360Controller.state.cliente
+                    : null;
+                return {
+                    mensagens: atendimentoController.state.mensagens,
+                    eventos: atendimentoController.state.eventos,
+                    cliente: clienteCarregado,
+                    pedidos: clienteCarregado ? (crm360Controller.state.pedidos || []) : [],
+                    templates: atendimentoController.state.templates,
+                    conhecimento: baseConhecimentoController.state.itens,
+                    assistantConfig: centralIAController.getState().persisted
+                };
+            },
+            inserirNoComposer: (texto, modo) => {
+                const textarea = document.getElementById("atend-resposta-input");
+                if (!textarea) return;
+                const atual = textarea.value.trim();
+                textarea.value = modo === "anexar" && atual ? `${atual}\n${texto}` : texto;
+                textarea.dispatchEvent(new Event("input", { bubbles: true }));
+                textarea.focus();
+            }
+        });
+        window.iaCopilotController = iaCopilotController;
+        bindIaCopilotPainel(iaCopilotController, atendimentoController);
 
         // Navegação a partir de uma notificação de atendimento: nunca abre
         // uma conversa por um id "solto" — abrirConversaPorId só mostra a
