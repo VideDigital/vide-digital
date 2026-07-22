@@ -2,14 +2,18 @@ const MODULE_ALIASES = {
     dashboard: ["dashboard", "cockpit"],
     produtos: ["produtos", "catalogo", "catálogo"],
     pedidos: ["pedidos", "hub"],
-    leads: ["leads", "crm", "automacao-leads", "automacao_leads", "automacaoLeads"],
+    leads: ["leads", "automacao-leads", "automacao_leads", "automacaoLeads"],
     templates: ["templates"],
     campanhas: ["campanhas"],
     metricas: ["metricas", "métricas"],
     configuracoes: ["configuracoes", "configurações", "personalizacao", "personalização"],
     "landing-pages": ["landing-pages", "landing_pages", "landingPages", "paginas", "páginas", "landing", "lp", "studio"],
     funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"],
-    "central-ia": ["central-ia", "central_ia", "gerenciar_ia", "ia", "inteligencia-artificial"]
+    "central-ia": ["central-ia", "central_ia", "gerenciar_ia", "ia", "inteligencia-artificial"],
+    // "crm" é permissão própria, nunca alias de "leads" — espelha
+    // core/vide-module-aliases.js e firestore.rules (achado de auditoria
+    // da fase "navegação própria do CRM 360").
+    crm: ["crm", "clientes", "crm-360", "crm_360", "observacoes_clientes", "tags_clientes"]
 };
 
 const lookup = Object.entries(MODULE_ALIASES).reduce((acc, [canonical, aliases]) => {
@@ -69,6 +73,9 @@ const scenarios = [
     ["employee read products", buildContext("employee", { ver: ["produtos"] }), "produtos", true, false],
     ["employee edit products", buildContext("employee", { editar: ["produtos"] }), "produtos", true, true],
     ["employee read leads", buildContext("employee", { ver: ["leads"] }), "leads", true, false],
+    ["employee with only leads permission cannot view crm", buildContext("employee", { ver: ["leads"] }), "crm", false, false],
+    ["employee with crm permission cannot view leads", buildContext("employee", { ver: ["crm"] }), "leads", false, false],
+    ["employee read crm through clientes alias", buildContext("employee", { ver: ["clientes"] }), "crm", true, false],
     ["employee read orders", buildContext("employee", { ver: ["pedidos"] }), "pedidos", true, false],
     ["employee read AI settings", buildContext("employee", { ver: ["central-ia"] }), "central-ia", true, false],
     ["employee edit AI settings through alias", buildContext("employee", { editar: ["gerenciar_ia"] }), "central-ia", true, true],

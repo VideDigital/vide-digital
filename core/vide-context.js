@@ -56,37 +56,9 @@ function normalizeArray(value) {
         : [];
 }
 
-const MODULE_ALIASES = Object.freeze({
-    dashboard: ["dashboard", "cockpit"],
-    produtos: ["produtos", "catalogo", "catálogo"],
-    pedidos: ["pedidos", "hub"],
-    leads: ["leads", "crm", "automacao-leads", "automacao_leads", "automacaoLeads"],
-    templates: ["templates"],
-    campanhas: ["campanhas"],
-    metricas: ["metricas", "métricas"],
-    configuracoes: ["configuracoes", "configurações", "personalizacao", "personalização"],
-    "landing-pages": ["landing-pages", "landing_pages", "landingPages", "paginas", "páginas", "landing", "lp", "studio"],
-    funcionarios: ["funcionarios", "funcionários", "subcontas", "equipe"],
-    "central-ia": ["central-ia", "central_ia", "gerenciar_ia", "ia", "inteligencia-artificial"],
-    "base-conhecimento-ia": ["base-conhecimento-ia", "base_conhecimento_ia", "conhecimento-ia", "conhecimento_ia", "knowledge-base", "base-ia"],
-    atendimento: ["atendimento", "conversas", "atendimento_chat", "templates_atendimento"]
-});
+import { normalizeModuleKey } from "./vide-module-aliases.js";
 
-const MODULE_ALIAS_LOOKUP = Object.freeze(
-    Object.entries(MODULE_ALIASES).reduce((acc, [canonical, aliases]) => {
-        aliases.forEach(alias => {
-            acc[String(alias).trim().toLowerCase()] = canonical;
-        });
-        acc[String(canonical).trim().toLowerCase()] = canonical;
-        return acc;
-    }, {})
-);
-
-export function normalizeModuleKey(moduleKey) {
-    const key = String(moduleKey || "").trim();
-    if (!key) return "";
-    return MODULE_ALIAS_LOOKUP[key.toLowerCase()] || key;
-}
+export { normalizeModuleKey };
 
 function normalizeModuleArray(value) {
     return Array.from(new Set(normalizeArray(value).map(normalizeModuleKey).filter(Boolean)));
