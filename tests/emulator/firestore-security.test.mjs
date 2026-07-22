@@ -611,6 +611,18 @@ describe("base_conhecimento_ia: multi-tenant e validação", () => {
     await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbGrande"), conhecimentoValido({ conteudo: "x".repeat(8001) })));
   });
 
+  it("produtoIds (produtos por referência): aceita lista curta, rejeita não-lista e lista longa demais", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbProdRefs1"), conhecimentoValido({
+      tipo: "produto", produtoIds: ["prod1", "prod2"]
+    })));
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbProdRefs2"), conhecimentoValido({
+      tipo: "produto", produtoIds: "prod1"
+    })));
+    await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbProdRefs3"), conhecimentoValido({
+      tipo: "produto", produtoIds: Array.from({ length: 21 }, (_, i) => `prod${i}`)
+    })));
+  });
+
   it("rejeita timestamp manual e autoria falsa", async () => {
     await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbTs"), conhecimentoValido({ criadoEm: new Date("2020-01-01") })));
     await assertFails(setDoc(doc(authed("ownerA"), "base_conhecimento_ia", "kbAutor"), conhecimentoValido({ criadoPor: "ownerB", atualizadoPor: "ownerB" })));

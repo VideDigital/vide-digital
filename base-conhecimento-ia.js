@@ -39,8 +39,34 @@ export const LIMITES_CONHECIMENTO = Object.freeze({
     resumoMax: 300,
     categoriaMax: 80,
     maxTags: 10,
-    tagMax: 40
+    tagMax: 40,
+    produtoRefsMax: 20
 });
+
+// Produtos por referência (tipo "produto"): em vez de digitar nome/preço à
+// mão na Base de Conhecimento (duplicando o cadastro do catálogo e ficando
+// desatualizado quando o preço muda), o item guarda só os IDs reais dos
+// produtos (produtoIds). Nada do catálogo é copiado permanentemente — o
+// texto que a IA vai ler (conteudo) é remontado a partir dos produtos
+// atuais toda vez que o item é salvo.
+export function normalizarProdutoRefs(produtoIds) {
+    if (!Array.isArray(produtoIds)) return [];
+    return Array.from(new Set(
+        produtoIds.map(id => String(id || "").trim()).filter(Boolean)
+    )).slice(0, LIMITES_CONHECIMENTO.produtoRefsMax);
+}
+
+// `produtos` já vem filtrado/resolvido pelo catálogo real (controller que
+// chama isto é quem faz a busca por ID) — esta função só formata o texto,
+// nunca decide quais produtos existem.
+export function montarConteudoProdutoRefs(produtos) {
+    if (!Array.isArray(produtos) || produtos.length === 0) return "";
+    return produtos.map(p => {
+        const preco = (Number(p.preco) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+        const linha = `${p.nome || "Produto sem nome"} — ${preco}`;
+        return p.descricao ? `${linha}: ${String(p.descricao).trim().slice(0, 300)}` : linha;
+    }).join("\n");
+}
 
 export function normalizarTagsConhecimento(valor) {
     const lista = Array.isArray(valor)
@@ -181,7 +207,10 @@ export function criarBaseConhecimentoController(deps) {
         filtroTipo: "todos",
         filtroStatus: "todos",
         salvando: false,
-        editandoId: ""
+        editandoId: "",
+        // Produtos por referência (tipo "produto") — ver normalizarProdutoRefs.
+        produtoRefsSelecionados: [],
+        catalogoProdutos: null
     };
 
     function el(id) {
@@ -210,6 +239,79 @@ export function criarBaseConhecimentoController(deps) {
         } catch (e) {
             return null;
         }
+    }
+
+    // Catálogo real de produtos, carregado sob demanda (só quando o tipo
+    // "produto" é escolhido no formulário) e cacheado em memória pra não
+    // reler a cada tecla digitada na busca.
+    async function carregarCatalogoProdutos() {
+        if (state.catalogoProdutos || !storeUid()) return state.catalogoProdutos || [];
+        try {
+            const snap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", storeUid())));
+            const todos = [];
+            snap.forEach(d => { const p = d.data(); if (p.statusProduto !== "arquivado") todos.push({ id: d.id, ...p }); });
+            state.catalogoProdutos = todos;
+        } catch (e) {
+            state.catalogoProdutos = [];
+        }
+        return state.catalogoProdutos;
+    }
+
+    function produtosSelecionadosResolvidos() {
+        const catalogo = state.catalogoProdutos || [];
+        return state.produtoRefsSelecionados
+            .map(id => catalogo.find(p => p.id === id))
+            .filter(Boolean);
+    }
+
+    async function renderProdutoRefs() {
+        const box = el("bc-produto-refs-lista");
+        if (!box) return;
+        await carregarCatalogoProdutos();
+        const selecionados = produtosSelecionadosResolvidos();
+        box.innerHTML = selecionados.length === 0
+            ? `<p class="bc-produto-refs-vazio">Nenhum produto do catálogo vinculado ainda — busque acima.</p>`
+            : selecionados.map(p => `
+                <span class="bc-produto-ref-chip">
+                    ${escaparHtml(p.nome || "Produto sem nome")}
+                    <button type="button" data-bc-remover-produto="${escaparHtml(p.id)}" aria-label="Remover ${escaparHtml(p.nome || "produto")}">&times;</button>
+                </span>
+            `).join("");
+    }
+
+    async function renderBuscaProdutoRefs(termo) {
+        const box = el("bc-produto-refs-resultados");
+        if (!box) return;
+        const termoLimpo = String(termo || "").trim().toLowerCase();
+        if (!termoLimpo) { box.innerHTML = ""; box.hidden = true; return; }
+        const catalogo = await carregarCatalogoProdutos();
+        const encontrados = catalogo
+            .filter(p => !state.produtoRefsSelecionados.includes(p.id))
+            .filter(p => String(p.nome || "").toLowerCase().includes(termoLimpo))
+            .slice(0, 8);
+        if (encontrados.length === 0) {
+            box.innerHTML = `<p class="bc-produto-refs-vazio">Nenhum produto encontrado.</p>`;
+            box.hidden = false;
+            return;
+        }
+        box.innerHTML = encontrados.map(p => `
+            <button type="button" class="bc-produto-ref-sugestao" data-bc-adicionar-produto="${escaparHtml(p.id)}">
+                <span>${escaparHtml(p.nome || "Produto sem nome")}</span>
+                <span>${(Number(p.preco) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })}</span>
+            </button>
+        `).join("");
+        box.hidden = false;
+    }
+
+    function alternarSecaoProdutoRefs() {
+        const secao = el("bc-produto-refs-secao");
+        const campoConteudo = el("bc-form-conteudo");
+        const ehProduto = el("bc-form-tipo")?.value === "produto";
+        if (secao) secao.classList.toggle("hidden", !ehProduto);
+        // Com produtos vinculados, o conteúdo é remontado automaticamente
+        // ao salvar — o textarea manual fica só pra tipos sem referência.
+        if (campoConteudo) campoConteudo.disabled = ehProduto && state.produtoRefsSelecionados.length > 0;
+        if (ehProduto) renderProdutoRefs();
     }
 
     function renderResumo(configIa) {
@@ -370,6 +472,8 @@ export function criarBaseConhecimentoController(deps) {
         el("bc-form-resumo").value = item?.resumo || "";
         el("bc-form-conteudo").value = item?.conteudo || "";
         el("bc-form-tags").value = Array.isArray(item?.tags) ? item.tags.join(", ") : "";
+        state.produtoRefsSelecionados = normalizarProdutoRefs(item?.produtoIds);
+        alternarSecaoProdutoRefs();
     }
 
     function abrirModal(item = null) {
@@ -388,25 +492,34 @@ export function criarBaseConhecimentoController(deps) {
 
     function fecharModal() {
         state.editandoId = "";
+        state.produtoRefsSelecionados = [];
         el("bc-modal")?.classList.add("hidden");
     }
 
     function lerFormulario() {
+        const tipo = el("bc-form-tipo").value;
+        const comProdutoRefs = tipo === "produto" && state.produtoRefsSelecionados.length > 0;
         return {
             titulo: el("bc-form-titulo").value.trim(),
-            tipo: el("bc-form-tipo").value,
+            tipo,
             status: el("bc-form-status").value,
             prioridade: el("bc-form-prioridade").value,
             categoria: el("bc-form-categoria").value.trim().slice(0, LIMITES_CONHECIMENTO.categoriaMax),
             resumo: el("bc-form-resumo").value.trim().slice(0, LIMITES_CONHECIMENTO.resumoMax),
-            conteudo: el("bc-form-conteudo").value.trim(),
-            tags: normalizarTagsConhecimento(el("bc-form-tags").value)
+            conteudo: comProdutoRefs
+                ? montarConteudoProdutoRefs(produtosSelecionadosResolvidos())
+                : el("bc-form-conteudo").value.trim(),
+            tags: normalizarTagsConhecimento(el("bc-form-tags").value),
+            ...(comProdutoRefs ? { produtoIds: state.produtoRefsSelecionados } : {})
         };
     }
 
     async function salvar() {
         if (state.salvando) return;
         if (!podeEditar()) return;
+        if (el("bc-form-tipo").value === "produto" && state.produtoRefsSelecionados.length > 0) {
+            await carregarCatalogoProdutos();
+        }
         const dados = lerFormulario();
         const erro = validarItemConhecimento(dados);
         if (erro) {
@@ -508,6 +621,34 @@ export function criarBaseConhecimentoController(deps) {
         el("bc-form-salvar")?.addEventListener("click", salvar);
         el("bc-form-cancelar")?.addEventListener("click", fecharModal);
         el("bc-modal-fechar")?.addEventListener("click", fecharModal);
+
+        el("bc-form-tipo")?.addEventListener("change", () => alternarSecaoProdutoRefs());
+
+        el("bc-produto-refs-busca")?.addEventListener("input", event => {
+            renderBuscaProdutoRefs(event.target.value);
+        });
+
+        el("bc-produto-refs-resultados")?.addEventListener("click", event => {
+            const alvo = event.target.closest("[data-bc-adicionar-produto]");
+            if (!alvo) return;
+            const id = alvo.getAttribute("data-bc-adicionar-produto");
+            state.produtoRefsSelecionados = normalizarProdutoRefs([...state.produtoRefsSelecionados, id]);
+            const busca = el("bc-produto-refs-busca");
+            if (busca) busca.value = "";
+            el("bc-produto-refs-resultados").innerHTML = "";
+            el("bc-produto-refs-resultados").hidden = true;
+            renderProdutoRefs();
+            alternarSecaoProdutoRefs();
+        });
+
+        el("bc-produto-refs-lista")?.addEventListener("click", event => {
+            const alvo = event.target.closest("[data-bc-remover-produto]");
+            if (!alvo) return;
+            const id = alvo.getAttribute("data-bc-remover-produto");
+            state.produtoRefsSelecionados = state.produtoRefsSelecionados.filter(pid => pid !== id);
+            renderProdutoRefs();
+            alternarSecaoProdutoRefs();
+        });
 
         el("bc-lista")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-bc-acao]");

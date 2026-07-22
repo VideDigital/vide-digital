@@ -9,7 +9,7 @@ Módulo por tenant que guarda o acervo que a futura assistente virtual usará pa
 - `central-ia.css` — estilos `bc-*` (mesma família visual da Central de IA) + a jornada `bc-jornada` exibida na Central de IA.
 - `core/vide-context.js` — chave canônica `base-conhecimento-ia` e aliases.
 - `firestore.rules` — `validConhecimentoData/Create/Update` + `match /base_conhecimento_ia/{id}`.
-- `tests/base-conhecimento-ia.test.mjs` — 14 testes unitários.
+- `tests/base-conhecimento-ia.test.mjs` — 20 testes unitários.
 - `tests/emulator/firestore-security.test.mjs` — suíte "base_conhecimento_ia: multi-tenant e validação".
 
 ## Coleção `base_conhecimento_ia/{id}` (id automático)
@@ -30,7 +30,8 @@ Módulo por tenant que guarda o acervo que a futura assistente virtual usará pa
   criadoEm: serverTimestamp(),  // imutável
   criadoPor: "{authUid}",       // imutável
   atualizadoEm: serverTimestamp(),
-  atualizadoPor: "{authUid}"
+  atualizadoPor: "{authUid}",
+  produtoIds: ["prodId1", "prodId2"]  // opcional, só tipo "produto" — ver seção abaixo
 }
 ```
 
@@ -60,9 +61,17 @@ Chave canônica **`base-conhecimento-ia`**; aliases aceitos (frontend e Rules): 
 
 Critérios objetivos e pesos (somam 100): identidade da assistente 10, saudação 10, fallback 10, instruções 10, canal habilitado 5 (da `configuracoes_ia`); empresa 15, política 15, FAQ 15, 3+ conteúdos ativos 10 (do acervo). Faixas: 0–20 Incompleta · 21–50 Inicial · 51–75 Boa · 76–100 Preparada. A tela lista exatamente o que falta e quantos pontos cada pendência vale.
 
-## Produtos para a IA (decisão registrada)
+## Produtos por referência (tipo `produto`)
 
-O tipo `produto`/`catalogo` permite descrever produtos manualmente hoje. A configuração **por referência** (usar todos os ativos / incluir/excluir IDs, sem copiar produtos) ficou para a próxima iteração — registrada em `docs/ROADMAP_RD3_STATUS.md` — para não criar uma segunda fonte de verdade sem a camada de leitura da futura IA definida.
+O tipo `produto` continua aceitando descrição manual (campo `conteudo` livre), mas agora também suporta **referenciar produtos reais do catálogo por ID**, sem copiar o cadastro:
+
+- No modal, escolher tipo "Produto" mostra um buscador de produtos do catálogo (`bc-produto-refs-secao`). Cada produto adicionado vira um chip removível; os IDs ficam em `produtoIds` (até 20).
+- Ao salvar, se `produtoIds` não estiver vazio, `conteudo` é **remontado automaticamente** a partir dos produtos atuais (`montarConteudoProdutoRefs`) — nome, preço formatado e descrição. O textarea manual fica desabilitado nesse caso (evita editar um texto que vai ser sobrescrito).
+- **Nada é duplicado de forma permanente**: `produtoIds` é a única referência persistida; nome/preço são lidos do catálogo (`produtos`, filtrado por `criadoPor == storeUid`) toda vez que o item é aberto para edição ou salvo — se o preço mudar no catálogo, o próximo salvamento do item de conhecimento já reflete o valor novo.
+- Rules: `produtoIds` é validado de forma rasa (`is list && size() <= 20`) — mesmo padrão de `pedidos.itens`, validação profunda fica no client (teto de 1000 expressões, ver `docs/SECURITY_MODEL.md`).
+- Itens de conhecimento sem `produtoIds` (tipo `produto` digitado à mão, ou qualquer outro tipo) continuam funcionando exatamente como antes — compatibilidade total.
+
+Ver `base-conhecimento-ia.js` (`normalizarProdutoRefs`, `montarConteudoProdutoRefs`, `carregarCatalogoProdutos`) e `dashboard.html` (`#bc-produto-refs-secao`).
 
 ## Como testar
 

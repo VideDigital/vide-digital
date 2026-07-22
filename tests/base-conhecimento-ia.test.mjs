@@ -9,6 +9,8 @@ import {
     calcularProntidaoIA,
     classificarProntidao,
     filtrarItensConhecimento,
+    montarConteudoProdutoRefs,
+    normalizarProdutoRefs,
     normalizarTagsConhecimento,
     validarItemConhecimento
 } from "../base-conhecimento-ia.js";
@@ -146,5 +148,51 @@ describe("indicador de prontidão", () => {
         assert.equal(classificarProntidao(51).rotulo, "Boa");
         assert.equal(classificarProntidao(75).rotulo, "Boa");
         assert.equal(classificarProntidao(76).rotulo, "Preparada");
+    });
+});
+
+describe("produtos por referência (tipo 'produto', sem duplicar cadastro)", () => {
+    it("normaliza, remove duplicados e vazios, respeita o teto", () => {
+        assert.deepEqual(normalizarProdutoRefs(["p1", "p2", "p1", "", null, "p3"]), ["p1", "p2", "p3"]);
+        assert.deepEqual(normalizarProdutoRefs(Array.from({ length: 25 }, (_, i) => `p${i}`)).length, LIMITES_CONHECIMENTO.produtoRefsMax);
+    });
+
+    it("valor não-array vira lista vazia, sem lançar erro", () => {
+        assert.deepEqual(normalizarProdutoRefs(null), []);
+        assert.deepEqual(normalizarProdutoRefs(undefined), []);
+        assert.deepEqual(normalizarProdutoRefs("p1"), []);
+    });
+
+    it("monta o conteúdo a partir dos produtos reais (nome, preço, descrição)", () => {
+        const texto = montarConteudoProdutoRefs([
+            { nome: "Caneca azul", preco: 39.9, descricao: "Caneca de cerâmica 300ml" },
+            { nome: "Camiseta preta", preco: 59 }
+        ]);
+        assert.match(texto, /Caneca azul — R\$\s?39,90: Caneca de cerâmica 300ml/);
+        assert.match(texto, /Camiseta preta — R\$\s?59,00/);
+        assert.equal(texto.split("\n").length, 2);
+    });
+
+    it("lista vazia ou inválida vira texto vazio, nunca lança erro", () => {
+        assert.equal(montarConteudoProdutoRefs([]), "");
+        assert.equal(montarConteudoProdutoRefs(null), "");
+    });
+
+    it("produto sem nome usa um rótulo padrão, nunca 'undefined'", () => {
+        const texto = montarConteudoProdutoRefs([{ preco: 10 }]);
+        assert.match(texto, /^Produto sem nome/);
+    });
+
+    it("item de conhecimento tipo 'produto' com conteúdo montado a partir de produtoIds continua válido", () => {
+        const produtos = [{ id: "prod1", nome: "Caneca azul", preco: 39.9 }];
+        const item = {
+            titulo: "Caneca azul — referência de catálogo",
+            tipo: "produto",
+            status: "ativo",
+            prioridade: "normal",
+            conteudo: montarConteudoProdutoRefs(produtos),
+            produtoIds: normalizarProdutoRefs(["prod1"])
+        };
+        assert.equal(validarItemConhecimento(item), "");
     });
 });

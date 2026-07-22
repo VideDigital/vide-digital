@@ -332,7 +332,7 @@ service cloud.firestore {
     function validConhecimentoData(data) {
       return data.keys().hasOnly([
           "tenantId", "lojaId", "tipo", "titulo", "conteudo", "resumo",
-          "tags", "categoria", "prioridade", "status", "ativo",
+          "tags", "categoria", "prioridade", "status", "ativo", "produtoIds",
           "criadoEm", "criadoPor", "atualizadoEm", "atualizadoPor"
         ])
         && data.keys().hasAll([
@@ -352,6 +352,11 @@ service cloud.firestore {
         && (!data.keys().hasAny(["resumo"]) || (data.resumo is string && data.resumo.size() <= 300))
         && (!data.keys().hasAny(["categoria"]) || (data.categoria is string && data.categoria.size() <= 80))
         && (!data.keys().hasAny(["tags"]) || (data.tags is list && data.tags.size() <= 10))
+        // Produtos por referência (tipo "produto"): só a lista de IDs — a
+        // validação profunda (produto existe, pertence ao tenant) fica no
+        // client, mesmo padrão já usado em pedidos.itens (teto de 1000
+        // expressões nas Rules, ver docs/SECURITY_MODEL.md).
+        && (!data.keys().hasAny(["produtoIds"]) || (data.produtoIds is list && data.produtoIds.size() <= 20))
         && data.prioridade in ["baixa", "normal", "alta", "critica"]
         && data.status in ["ativo", "rascunho", "arquivado"]
         && data.ativo is bool
