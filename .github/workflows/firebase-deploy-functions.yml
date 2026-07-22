@@ -1,0 +1,213 @@
+# Deploy dedicado só pra Cloud Functions — SEPARADO de "Deploy Firebase
+# Spark" (esse continua, por nome e por escopo, nunca publicando
+# Functions; ver docs/FIREBASE_SPARK_ARCHITECTURE.md). Publica SÓ
+# askBusinessAI (--only functions:askBusinessAI), nunca "todas as
+# functions" — as demais (createEmployee, updateEmployee, etc.)
+# continuam código não usado em produção, sem mudar esse estado aqui.
+#
+# Pré-requisito externo, fora deste repositório: o secret GEMINI_API_KEY
+# já precisa existir no Secret Manager do projeto (Google Cloud Console
+# → Security → Secret Manager → GEMINI_API_KEY) antes de rodar este
+# workflow — sem isso o deploy falha na hora de resolver o secret.
+name: Deploy Firebase Functions (IA de Negócio)
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: ID real do projeto Firebase de produção
+        required: true
+        type: string
+      confirm_production:
+        description: Digite DEPLOY_FUNCTIONS para confirmar a publicação em produção (chama um provedor de IA externo real)
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-production-functions-deploy
+  cancel-in-progress: false
+
+jobs:
+  validate-and-test:
+    name: Validar solicitação e executar testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Validar branch e confirmação de produção
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            echo "Erro: este workflow aceita somente execução manual."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Erro: execute este workflow somente a partir da branch main."
+            exit 1
+          fi
+
+          if [[ -z "${PROJECT_ID//[[:space:]]/}" ]]; then
+            echo "Erro: project_id é obrigatório."
+            exit 1
+          fi
+
+          NORMALIZED_PROJECT_ID="$(printf '%s' "${PROJECT_ID}" | tr '[:upper:]' '[:lower:]')"
+          if [[ "${NORMALIZED_PROJECT_ID}" == *demo* ]]; then
+            echo "Erro: projetos com 'demo' no ID não podem receber deploy de produção."
+            exit 1
+          fi
+
+          if [[ ! "${PROJECT_ID}" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
+            echo "Erro: project_id não possui o formato esperado de um ID de projeto Google Cloud."
+            exit 1
+          fi
+
+          if [[ "${PROJECT_ID}" != "vide-digital-saas" ]]; then
+            echo "Erro: o backend de produção usa o projeto vide-digital-saas."
+            exit 1
+          fi
+
+          if [[ "${CONFIRM_PRODUCTION}" != "DEPLOY_FUNCTIONS" ]]; then
+            echo "Erro: confirm_production deve ser exatamente DEPLOY_FUNCTIONS."
+            exit 1
+          fi
+
+      - name: Checkout da main
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java 21 para o Firestore Emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar sintaxe do projeto
+        run: pnpm run check
+
+      - name: Testar funções puras (validadores + IA de Negócio)
+        run: pnpm run test:functions
+
+      - name: Testar regras no Emulator Suite (inclui ia_negocio_uso)
+        run: pnpm run test:rules
+
+      - name: Smoke test do frontend no Emulator Suite
+        run: pnpm run test:frontend:emulator
+
+  deploy:
+    name: Publicar askBusinessAI
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout da main validada
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar dependências das Functions
+        run: pnpm install --frozen-lockfile --dir functions
+
+      # Mesmo detector de autenticação de firebase-deploy.yml — a conta
+      # de serviço usada lá pode não ter as roles necessárias pra
+      # publicar Functions (Cloud Functions Admin, Service Account User,
+      # Artifact Registry/Cloud Build). Se faltar permissão, este passo
+      # de deploy falha com um erro claro do próprio Google Cloud —
+      # nunca finge sucesso.
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            echo "Configure UM dos métodos abaixo em Settings → Secrets and variables → Actions:"
+            echo "  1. GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT (Workload Identity Federation), ou"
+            echo "  2. FIREBASE_SERVICE_ACCOUNT (conteúdo JSON completo da chave da conta de serviço)."
+            echo "Alternativa manual, com o Firebase CLI logado localmente:"
+            echo "  firebase use vide-digital-saas"
+            echo "  firebase deploy --only functions:askBusinessAI"
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Publicar SÓ askBusinessAI
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only functions:askBusinessAI \
+            --project "${PROJECT_ID}" \
+            --non-interactive

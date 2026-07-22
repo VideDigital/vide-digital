@@ -133,25 +133,31 @@ exigência do plano Pro quando o tenant não tem acesso. `ia-negocio.js`
 (frontend) faz uma checagem de plano só pra UX (evitar uma chamada que
 sabidamente vai falhar) — quem decide de verdade é sempre o servidor.
 
-## O que falta pra isso funcionar em produção (bloqueado fora do código)
+## O que falta pra isso funcionar em produção
 
-1. **Criar a chave da API do Gemini** — ninguém além do dono do projeto
-   pode fazer isso (precisa de uma conta Google/faturamento). Criar em
-   ai.google.dev (Google AI Studio) ou no console do Google Cloud
-   (Vertex AI), no mesmo projeto GCP do Firebase (`vide-digital-saas`)
-   pra manter o faturamento num único lugar.
-2. **Configurar a chave como secret do Firebase Functions** — nunca como
-   variável de ambiente comum, nunca em nenhum arquivo do repositório:
-   ```bash
-   firebase functions:secrets:set GEMINI_API_KEY --project vide-digital-saas
-   ```
-   (pede a chave interativamente; fica guardada no Google Secret Manager,
-   nunca no código).
-3. **Publicar a Function** — precisa de um workflow de deploy dedicado
-   (ainda não criado; "Deploy Firebase Spark" nunca publica Functions, de
-   propósito — nome e escopo do workflow continuam exatamente como
-   estão). Só depois de 1 e 2 estarem prontos, e com confirmação
-   explícita, faz sentido criar esse workflow e rodá-lo.
+1. ~~**Criar a chave da API do Gemini**~~ — feito pelo usuário (Google AI
+   Studio, nível gratuito, sem faturamento ativado ainda).
+2. ~~**Configurar a chave como secret**~~ — feito pelo usuário, direto no
+   Google Cloud Console → Secret Manager → `GEMINI_API_KEY`, no projeto
+   `vide-digital-saas`. (Caminho alternativo via Firebase CLI, se algum
+   dia for necessário recriar: `firebase functions:secrets:set
+   GEMINI_API_KEY --project vide-digital-saas`.)
+3. **Publicar a Function** — workflow dedicado já criado:
+   `.github/workflows/firebase-deploy-functions.yml` ("Deploy Firebase
+   Functions (IA de Negócio)"). Roda toda a suíte de testes antes de
+   publicar, exige `project_id: vide-digital-saas` e
+   `confirm_production: DEPLOY_FUNCTIONS` (frase diferente do deploy de
+   Rules, de propósito — é a primeira vez que este projeto chama um
+   provedor externo de verdade). Publica **só** `askBusinessAI`
+   (`--only functions:askBusinessAI`), nunca as outras Functions do
+   repositório. **Ainda não foi executado** — falta confirmação explícita
+   do usuário antes de rodar, mesmo cuidado já usado pro deploy de Rules.
+   Risco conhecido: a conta de serviço usada pro deploy de Rules pode não
+   ter as roles necessárias pra publicar Functions (Cloud Functions
+   Admin, Service Account User, Artifact Registry/Cloud Build) — se
+   faltar, o deploy falha com um erro claro do Google Cloud, nunca finge
+   sucesso; nesse caso é preciso conceder essas roles à conta de serviço
+   no IAM do projeto antes de tentar de novo.
 
 ## Limitações reais desta fase (sem maquiar)
 
