@@ -135,7 +135,31 @@
 .central-ia-summary-card h3 { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
 .central-ia-card-head p,
 .central-ia-help,
-.central-ia-dependency { margin-top: 5px; color: var(--ia-muted); font-size: 12px; line-height: 1.6; }
+.central-ia-dependency {
+    display: flex;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 8px 10px;
+    margin-top: 9px;
+    padding: 11px 13px;
+    border: 1px solid var(--ia-border);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, .03);
+    color: var(--ia-muted);
+    font-size: 12px;
+    line-height: 1.6;
+}
+.central-ia-dependency svg { flex: 0 0 auto; margin-top: 2px; color: var(--sys-destaque, #00d4ff); }
+.central-ia-dependency span { flex: 1 1 220px; min-width: 0; }
+.central-ia-dependency strong { color: inherit; }
+.central-ia-dependency .central-ia-retry {
+    flex: 0 0 auto;
+    border-color: color-mix(in srgb, var(--sys-destaque, #00d4ff) 35%, transparent);
+    background: color-mix(in srgb, var(--sys-destaque, #00d4ff) 10%, transparent);
+    color: var(--sys-destaque, #00d4ff);
+}
+.central-ia-dependency .central-ia-retry:hover { background: color-mix(in srgb, var(--sys-destaque, #00d4ff) 18%, transparent); }
+.central-ia-dependency .central-ia-retry:focus-visible { outline-color: var(--sys-destaque, #00d4ff); }
 
 .central-ia-field-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .central-ia-field { min-width: 0; }

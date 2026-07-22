@@ -3577,7 +3577,11 @@ Você pode consultar esta configuração, mas não possui permissão para editá
 <select id="ia-modo-resposta" class="central-ia-select" aria-describedby="ia-modo-resposta-dependencia ia-erro-modo">
 <option value="nunca">Nunca responder automaticamente</option><option value="sempre">Sempre</option><option value="fora_horario">Fora do horário de atendimento</option><option value="sem_funcionario">Quando nenhum funcionário estiver disponível</option>
 </select>
-<p id="ia-modo-resposta-dependencia" class="central-ia-dependency">Este seletor depende da ativação de respostas automáticas. A seleção atual será preservada.</p>
+<div id="ia-modo-resposta-dependencia" class="central-ia-dependency" role="status">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="15" height="15" aria-hidden="true"><circle cx="12" cy="12" r="9"></circle><path d="M12 8v5"></path><path d="M12 16h.01"></path></svg>
+<span>Este campo só é usado quando <strong>Respostas automáticas</strong> estiver ligada em "Locais de uso" — por enquanto não há erro nem IA real conectada; sua escolha atual fica salva e será aplicada assim que você ligar essa opção.</span>
+<button type="button" id="ia-modo-resposta-ativar-btn" class="central-ia-retry">Ir para "Respostas automáticas"</button>
+</div>
 <span id="ia-erro-modo" class="central-ia-error" data-ia-error-for="modoRespostaAutomatica"></span>
 </div>
 </article>

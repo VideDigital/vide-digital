@@ -271,8 +271,12 @@ export function criarCentralIAController({
         const select = byId("ia-modo-resposta");
         const hint = byId("ia-modo-resposta-dependencia");
         if (!select) return;
-        select.disabled = !config.canais.respostasAutomaticas;
-        if (hint) hint.hidden = config.canais.respostasAutomaticas;
+        const ligado = Boolean(config.canais.respostasAutomaticas);
+        select.disabled = !ligado;
+        // Um <select> desabilitado sem explicação parece bug. O aviso deixa
+        // claro POR QUE está desabilitado e oferece um atalho pra ativar —
+        // nunca ativa nada sozinho, a decisão continua sendo do usuário.
+        if (hint) hint.hidden = ligado;
     }
 
     function updateState() {
@@ -442,6 +446,14 @@ export function criarCentralIAController({
                 byId(targetId).value = button.dataset.value;
                 updateState();
             });
+        });
+
+        // Leva até o switch "Respostas automáticas" e o foca — nunca ativa
+        // sozinho, só ajuda quem quiser ligar a encontrar o controle certo.
+        byId("ia-modo-resposta-ativar-btn")?.addEventListener("click", () => {
+            const switchEl = byId("ia-canal-respostasAutomaticas");
+            switchEl?.scrollIntoView({ behavior: "smooth", block: "center" });
+            switchEl?.focus({ preventScroll: true });
         });
     }
 
