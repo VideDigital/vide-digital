@@ -505,6 +505,95 @@ service cloud.firestore {
     function podeEditarCRM(tenantId) {
       return canEditTenant(tenantId, "crm") || canEditTenant(tenantId, "atendimento");
     }
+
+    // ===== Histórico de eventos do Atendimento (chats/{chatId}/eventos) =====
+    // Espelha o enum/categorias de atendimento.js — mantidos em sincronia
+    // manualmente (mesmo padrão de STATUS_CONVERSA/statusConversaValido()).
+    function mapHasField(mapa, campo) {
+      return mapa.keys().hasAny([campo]);
+    }
+    function donoUidDoChat(chatData) {
+      return mapHasField(chatData, "donoUID") ? chatData.donoUID : chatData.emailDono;
+    }
+    function categoriaEventoAtendimentoEsperada(tipo) {
+      return tipo in ["mensagem_cliente_recebida", "mensagem_equipe_enviada", "mensagem_envio_falhou", "cliente_respondeu_apos_resolucao", "primeira_resposta_equipe"] ? "mensagens"
+        : tipo in ["conversa_criada", "conversa_aberta", "conversa_resolvida", "conversa_reaberta", "conversa_arquivada", "conversa_restaurada", "conversa_priorizada", "prioridade_removida", "status_alterado", "aguardando_cliente", "aguardando_equipe", "conversa_assumida", "responsavel_atribuido", "conversa_transferida", "responsavel_removido"] ? "atendimento"
+        : tipo in ["cliente_vinculado", "cliente_desvinculado", "lead_vinculado", "lead_desvinculado", "pedido_vinculado", "pedido_desvinculado", "produto_vinculado", "produto_desvinculado", "template_utilizado"] ? "vinculos"
+        : tipo in ["setor_alterado", "tag_adicionada", "tag_removida", "observacao_interna_adicionada", "observacao_interna_atualizada"] ? "alteracoes"
+        : "";
+    }
+    function tipoEventoAtendimentoValido(tipo) {
+      return categoriaEventoAtendimentoEsperada(tipo) != "";
+    }
+    function eventoAtendimentoDadosValido(dados) {
+      return dados == null
+        || (dados is map && dados.keys().hasOnly(["quantidade", "motivo", "canal", "duracaoMs", "origemDispositivo", "detalhe"]));
+    }
+    // Campos de texto opcionais compartilhados pelos dois caminhos de
+    // criação (equipe e cliente público) — mesma checagem, evita repetir.
+    function eventoAtendimentoCamposOpcionaisValidos(data) {
+      return (!data.keys().hasAny(["resumo"]) || (data.resumo is string && data.resumo.size() <= 300))
+        && (!data.keys().hasAny(["autorNome"]) || (data.autorNome is string && data.autorNome.size() <= 120))
+        && (!data.keys().hasAny(["clienteId"]) || (data.clienteId is string && data.clienteId.size() <= 200))
+        && (!data.keys().hasAny(["correlationId"]) || (data.correlationId is string && data.correlationId.size() <= 200))
+        && (!data.keys().hasAny(["dedupeKey"]) || (data.dedupeKey is string && data.dedupeKey.size() <= 200));
+    }
+    // Criação pela equipe (dono/funcionário/admin): qualquer tipo do enum,
+    // autoria sempre = request.auth.uid, autorTipo nunca "cliente"/"ia"/
+    // "sistema" — nada disso pode ser forjado pelo frontend comum.
+    function eventoAtendimentoStaffValido(chatId) {
+      let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      let chatData = get(chatRef).data;
+      let data = request.resource.data;
+      return exists(chatRef)
+        && podeResponderChat(chatData)
+        && data.keys().hasOnly([
+            "tenantId", "lojaId", "chatId", "clienteId", "tipo", "categoria", "autorUid", "autorTipo",
+            "autorNome", "origem", "resumo", "criadoEm", "versaoSchema",
+            "statusAnterior", "statusNovo", "responsavelAnteriorUid", "responsavelNovoUid",
+            "responsavelAnteriorNome", "responsavelNovoNome", "setorAnterior", "setorNovo",
+            "prioridadeAnterior", "prioridadeNova", "templateId", "templateTitulo",
+            "leadId", "pedidoId", "produtoId", "mensagemId", "dados", "correlationId", "dedupeKey"
+          ])
+        && data.keys().hasAll(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "criadoEm", "versaoSchema"])
+        && data.chatId == chatId
+        && data.tenantId == donoUidDoChat(chatData)
+        && data.lojaId == data.tenantId
+        && tipoEventoAtendimentoValido(data.tipo)
+        && data.categoria == categoriaEventoAtendimentoEsperada(data.tipo)
+        && data.autorUid == request.auth.uid
+        && data.autorTipo in ["proprietario", "funcionario"]
+        && data.origem == "equipe"
+        && data.criadoEm == request.time
+        && data.versaoSchema == 1
+        && eventoAtendimentoCamposOpcionaisValidos(data)
+        && (!data.keys().hasAny(["dados"]) || eventoAtendimentoDadosValido(data.dados));
+    }
+    // Criação pelo visitante anônimo (widget público): só os tipos que
+    // genuinamente nascem de uma ação do cliente, sem autoria forjada —
+    // autorUid sempre vazio (visitante não tem uid real), autorTipo
+    // sempre "cliente". Nunca lê a subcoleção (ver "allow read" abaixo).
+    function eventoAtendimentoClientePublicoValido(chatId) {
+      let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      let chatData = get(chatRef).data;
+      let data = request.resource.data;
+      return exists(chatRef)
+        && chatNaoArquivado(chatData)
+        && data.keys().hasOnly(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "resumo", "criadoEm", "versaoSchema"])
+        && data.keys().hasAll(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "criadoEm", "versaoSchema"])
+        && data.chatId == chatId
+        && data.tenantId == donoUidDoChat(chatData)
+        && data.lojaId == data.tenantId
+        && data.tipo in ["conversa_criada", "mensagem_cliente_recebida", "aguardando_equipe", "cliente_respondeu_apos_resolucao"]
+        && data.categoria == categoriaEventoAtendimentoEsperada(data.tipo)
+        && data.autorUid == ""
+        && data.autorTipo == "cliente"
+        && data.origem == "cliente"
+        && data.criadoEm == request.time
+        && data.versaoSchema == 1
+        && (!data.keys().hasAny(["resumo"]) || (data.resumo is string && data.resumo.size() <= 300));
+    }
+
     // "arquivada" não recebe mensagem sem ser reaberta antes (escrita
     // separada de status, feita por quem atende). Docs antigos sem o
     // campo status ainda não existiam quando essa regra foi criada, então
@@ -1131,6 +1220,15 @@ service cloud.firestore {
           );
         // Cliente cria mensagem "cliente"; dono/funcionário cria "admin".
         allow create: if mensagemClienteValida(chatId) || mensagemAdminValida(chatId);
+        allow update, delete: if false;
+      }
+
+      // Histórico imutável da conversa. Preferência do produto: nunca
+      // expor esta subcoleção ao cliente público em leitura (mesmo sabendo
+      // o id do chat) — só quem tem acesso à conversa como equipe.
+      match /eventos/{eventoId} {
+        allow read: if isBackendAdmin() || (exists(/databases/$(database)/documents/chats/$(chatId)) && podeVerChat(get(/databases/$(database)/documents/chats/$(chatId)).data));
+        allow create: if eventoAtendimentoStaffValido(chatId) || eventoAtendimentoClientePublicoValido(chatId);
         allow update, delete: if false;
       }
     }

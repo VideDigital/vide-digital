@@ -33,6 +33,153 @@ export function podeTransicionarStatus(statusAtual, novoStatus) {
     return (TRANSICOES_STATUS[statusAtual] || []).includes(novoStatus);
 }
 
+// ===== Histórico de eventos da conversa (chats/{chatId}/eventos) =====
+// Enum fechado — nunca dois eventos equivalentes para a mesma ação (ex.:
+// uma transferência gera só "conversa_transferida", não também
+// "responsavel_atribuido"). Cada tipo pertence a exatamente uma categoria,
+// usada pelo filtro da timeline (Fase 6: mensagens/atendimento/vinculos/alteracoes).
+export const TIPOS_EVENTO_ATENDIMENTO = Object.freeze({
+    conversa_criada: "Conversa criada",
+    conversa_aberta: "Conversa aberta",
+    conversa_resolvida: "Conversa resolvida",
+    conversa_reaberta: "Conversa reaberta",
+    conversa_arquivada: "Conversa arquivada",
+    conversa_restaurada: "Conversa restaurada",
+    conversa_priorizada: "Conversa marcada como prioridade",
+    prioridade_removida: "Prioridade removida",
+    mensagem_cliente_recebida: "Mensagem do cliente recebida",
+    mensagem_equipe_enviada: "Resposta da equipe enviada",
+    mensagem_envio_falhou: "Falha ao enviar mensagem",
+    cliente_respondeu_apos_resolucao: "Cliente respondeu após a resolução",
+    primeira_resposta_equipe: "Primeira resposta da equipe",
+    status_alterado: "Status alterado",
+    aguardando_cliente: "Aguardando resposta do cliente",
+    aguardando_equipe: "Aguardando resposta da equipe",
+    conversa_assumida: "Conversa assumida",
+    responsavel_atribuido: "Responsável atribuído",
+    conversa_transferida: "Conversa transferida",
+    responsavel_removido: "Responsável removido",
+    setor_alterado: "Setor alterado",
+    tag_adicionada: "Tag adicionada",
+    tag_removida: "Tag removida",
+    observacao_interna_adicionada: "Observação interna adicionada",
+    observacao_interna_atualizada: "Observação interna atualizada",
+    cliente_vinculado: "Cliente vinculado",
+    cliente_desvinculado: "Cliente desvinculado",
+    lead_vinculado: "Lead vinculado",
+    lead_desvinculado: "Lead desvinculado",
+    pedido_vinculado: "Pedido vinculado",
+    pedido_desvinculado: "Pedido desvinculado",
+    produto_vinculado: "Produto de interesse vinculado",
+    produto_desvinculado: "Produto de interesse desvinculado",
+    template_utilizado: "Template utilizado"
+});
+
+const CATEGORIA_POR_TIPO_EVENTO = Object.freeze({
+    mensagem_cliente_recebida: "mensagens",
+    mensagem_equipe_enviada: "mensagens",
+    mensagem_envio_falhou: "mensagens",
+    cliente_respondeu_apos_resolucao: "mensagens",
+    primeira_resposta_equipe: "mensagens",
+    conversa_criada: "atendimento",
+    conversa_aberta: "atendimento",
+    conversa_resolvida: "atendimento",
+    conversa_reaberta: "atendimento",
+    conversa_arquivada: "atendimento",
+    conversa_restaurada: "atendimento",
+    conversa_priorizada: "atendimento",
+    prioridade_removida: "atendimento",
+    status_alterado: "atendimento",
+    aguardando_cliente: "atendimento",
+    aguardando_equipe: "atendimento",
+    conversa_assumida: "atendimento",
+    responsavel_atribuido: "atendimento",
+    conversa_transferida: "atendimento",
+    responsavel_removido: "atendimento",
+    cliente_vinculado: "vinculos",
+    cliente_desvinculado: "vinculos",
+    lead_vinculado: "vinculos",
+    lead_desvinculado: "vinculos",
+    pedido_vinculado: "vinculos",
+    pedido_desvinculado: "vinculos",
+    produto_vinculado: "vinculos",
+    produto_desvinculado: "vinculos",
+    template_utilizado: "vinculos",
+    setor_alterado: "alteracoes",
+    tag_adicionada: "alteracoes",
+    tag_removida: "alteracoes",
+    observacao_interna_adicionada: "alteracoes",
+    observacao_interna_atualizada: "alteracoes"
+});
+
+export const CATEGORIAS_EVENTO_ATENDIMENTO = Object.freeze({
+    mensagens: "Mensagens",
+    atendimento: "Atendimento",
+    vinculos: "Vínculos",
+    alteracoes: "Alterações internas"
+});
+
+export function categoriaEventoAtendimento(tipo) {
+    return CATEGORIA_POR_TIPO_EVENTO[tipo] || "alteracoes";
+}
+
+export function tipoEventoValido(tipo) {
+    return tipo in TIPOS_EVENTO_ATENDIMENTO;
+}
+
+export const LIMITES_EVENTO_ATENDIMENTO = Object.freeze({
+    resumoMax: 300,
+    dadosChavesMax: 6,
+    dadosTamanhoMax: 500,
+    VERSAO_SCHEMA: 1
+});
+
+// Só as chaves conhecidas — "dados" nunca vira um payload arbitrário nem
+// substitui os campos principais do evento.
+const CHAVES_DADOS_PERMITIDAS = Object.freeze([
+    "quantidade", "motivo", "canal", "duracaoMs", "origemDispositivo", "detalhe"
+]);
+
+export function validarPayloadDadosEvento(dados) {
+    if (dados === undefined || dados === null) return "";
+    if (typeof dados !== "object" || Array.isArray(dados)) return "O campo dados precisa ser um objeto simples.";
+    const chaves = Object.keys(dados);
+    if (chaves.length > LIMITES_EVENTO_ATENDIMENTO.dadosChavesMax) return "O campo dados tem chaves demais.";
+    if (chaves.some(chave => !CHAVES_DADOS_PERMITIDAS.includes(chave))) return "O campo dados só aceita chaves conhecidas.";
+    if (JSON.stringify(dados).length > LIMITES_EVENTO_ATENDIMENTO.dadosTamanhoMax) return "O campo dados é grande demais.";
+    return "";
+}
+
+// Uma transferência gera só "conversa_transferida" (nunca também
+// "responsavel_atribuido") — ver Fase 3. "Assumir" (autor vira o próprio
+// responsável) é distinto de "atribuir a outra pessoa".
+export function classificarEventoAtribuicao({ anteriorUid = "", novoUid = "", autorUid = "" } = {}) {
+    const anterior = String(anteriorUid || "").trim();
+    const novo = String(novoUid || "").trim();
+    if (anterior === novo) return null;
+    if (!novo) return "responsavel_removido";
+    if (!anterior) return novo === autorUid ? "conversa_assumida" : "responsavel_atribuido";
+    return "conversa_transferida";
+}
+
+// Cada transição de status mapeia pra exatamente um tipo específico —
+// não existe também um "status_alterado" genérico pras mesmas transições
+// (ver Fase 11: escolhido o padrão de eventos específicos; "status_alterado"
+// fica só como fallback pra uma transição que não se encaixe em nenhum caso).
+export function classificarEventoStatus({ statusAnterior = "", statusNovo = "" } = {}) {
+    if (statusAnterior === statusNovo) return null;
+    if (statusNovo === "resolvida") return "conversa_resolvida";
+    if (statusNovo === "arquivada") return "conversa_arquivada";
+    if (statusNovo === "aguardando_cliente") return "aguardando_cliente";
+    if (statusNovo === "aguardando_equipe") return "aguardando_equipe";
+    if (statusNovo === "aberta") {
+        if (statusAnterior === "arquivada") return "conversa_restaurada";
+        if (statusAnterior === "resolvida") return "conversa_reaberta";
+        return "conversa_aberta";
+    }
+    return "status_alterado";
+}
+
 export const CANAIS_CONVERSA = Object.freeze({
     loja_publica: "Loja pública",
     interno: "Interno",

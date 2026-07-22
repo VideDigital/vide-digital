@@ -1424,3 +1424,174 @@ describe("CRM 360: vínculo de clienteId em leads/pedidos e chats respeita o ten
     await assertFails(updateDoc(doc(authed("ownerA"), "pedidos", "pedVinculo2"), { clienteId: "cliDeOutroTenant" }));
   });
 });
+
+// ===== Histórico de eventos do Atendimento (chats/{chatId}/eventos) =====
+
+function eventoStaffFixture(overrides = {}) {
+  return {
+    tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvt1",
+    tipo: "conversa_resolvida", categoria: "atendimento",
+    autorUid: "ownerA", autorTipo: "proprietario", origem: "equipe",
+    criadoEm: serverTimestamp(), versaoSchema: 1,
+    ...overrides
+  };
+}
+
+function eventoClientePublicoFixture(overrides = {}) {
+  return {
+    tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvt1",
+    tipo: "mensagem_cliente_recebida", categoria: "mensagens",
+    autorUid: "", autorTipo: "cliente", origem: "cliente",
+    criadoEm: serverTimestamp(), versaoSchema: 1,
+    ...overrides
+  };
+}
+
+describe("chats/eventos: criação pela equipe (autoria real, enum, categoria)", () => {
+  it("dono cria evento válido do próprio chat", async () => {
+    await semearChat("chatEvt1");
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt1", "eventos")), eventoStaffFixture()));
+  });
+
+  it("funcionário com permissão de atendimento também cria; outro tenant não", async () => {
+    await semearFuncionarioAtendimento("employeeAtendEvt1");
+    await semearChat("chatEvt2");
+    await assertSucceeds(setDoc(doc(collection(authed("employeeAtendEvt1"), "chats", "chatEvt2", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt2", autorUid: "employeeAtendEvt1", autorTipo: "funcionario"
+    })));
+    await semearChat("chatEvt3");
+    await assertFails(setDoc(doc(collection(authed("ownerB"), "chats", "chatEvt3", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt3", autorUid: "ownerB"
+    })));
+  });
+
+  it("funcionário só-leitura não cria evento administrativo", async () => {
+    await semearChat("chatEvt4");
+    await assertFails(setDoc(doc(collection(authed("employeeRead"), "chats", "chatEvt4", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt4", autorUid: "employeeRead", autorTipo: "funcionario"
+    })));
+  });
+
+  it("rejeita autoria falsa (autorUid diferente de quem escreve) e autorTipo falso (cliente/ia/sistema)", async () => {
+    await semearChat("chatEvt5");
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt5", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt5", autorUid: "outraPessoa"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt5", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt5", autorTipo: "cliente"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt5", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt5", autorTipo: "ia"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt5", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt5", autorTipo: "sistema"
+    })));
+  });
+
+  it("rejeita tipo fora do enum, categoria que não bate com o tipo, timestamp manual, tenant/chatId errado e campo extra", async () => {
+    await semearChat("chatEvt6");
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt6", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt6", tipo: "evento_inventado"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt6", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt6", tipo: "conversa_resolvida", categoria: "vinculos"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt6", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt6", criadoEm: new Date("2020-01-01")
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt6", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt6", tenantId: "ownerB"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt6", "eventos")), eventoStaffFixture({
+      chatId: "outroChatQualquer"
+    })));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt6", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt6", campoInvasor: "x"
+    })));
+  });
+
+  it("rejeita payload 'dados' com chave desconhecida", async () => {
+    await semearChat("chatEvt7");
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt7", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt7", dados: { senha: "123" }
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt7", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt7", dados: { motivo: "cliente confirmou" }
+    })));
+  });
+
+  it("aceita os campos opcionais de contexto (statusAnterior/Novo, responsável, template, vínculos)", async () => {
+    await semearChat("chatEvt8");
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8", tipo: "conversa_transferida", categoria: "atendimento",
+      responsavelAnteriorUid: "func1", responsavelNovoUid: "func2",
+      responsavelAnteriorNome: "João", responsavelNovoNome: "Maria",
+      correlationId: "corr-1"
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8", tipo: "template_utilizado", categoria: "vinculos",
+      templateId: "tpl1", templateTitulo: "Prazo de entrega"
+    })));
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatEvt8", "eventos")), eventoStaffFixture({
+      chatId: "chatEvt8", tipo: "pedido_vinculado", categoria: "vinculos", pedidoId: "ped1", clienteId: "cli1"
+    })));
+  });
+});
+
+describe("chats/eventos: criação pelo visitante anônimo (whitelist estreita)", () => {
+  it("visitante cria mensagem_cliente_recebida e aguardando_equipe do próprio chat", async () => {
+    await semearChat("chatEvt9");
+    await assertSucceeds(setDoc(doc(collection(anon(), "chats", "chatEvt9", "eventos")), eventoClientePublicoFixture({ chatId: "chatEvt9" })));
+    await assertSucceeds(setDoc(doc(collection(anon(), "chats", "chatEvt9", "eventos")), eventoClientePublicoFixture({
+      chatId: "chatEvt9", tipo: "aguardando_equipe", categoria: "atendimento"
+    })));
+  });
+
+  it("visitante não cria tipo administrativo nem forja autoria", async () => {
+    await semearChat("chatEvt10");
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatEvt10", "eventos")), eventoClientePublicoFixture({
+      chatId: "chatEvt10", tipo: "conversa_resolvida", categoria: "atendimento"
+    })));
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatEvt10", "eventos")), eventoClientePublicoFixture({
+      chatId: "chatEvt10", autorUid: "algumUid"
+    })));
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatEvt10", "eventos")), eventoClientePublicoFixture({
+      chatId: "chatEvt10", autorTipo: "funcionario"
+    })));
+  });
+
+  it("visitante não cria evento em conversa arquivada", async () => {
+    await semearChat("chatEvt11", { status: "arquivada" });
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatEvt11", "eventos")), eventoClientePublicoFixture({ chatId: "chatEvt11" })));
+  });
+});
+
+describe("chats/eventos: leitura restrita à equipe; sempre append-only", () => {
+  it("visitante anônimo nunca lê a subcoleção de eventos (mesmo sabendo o id do chat)", async () => {
+    await semearChat("chatEvt12");
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatEvt12", "eventos", "evt1"), eventoStaffFixture({ chatId: "chatEvt12" }));
+    });
+    await assertFails(getDocs(collection(anon(), "chats", "chatEvt12", "eventos")));
+    await assertSucceeds(getDocs(collection(authed("ownerA"), "chats", "chatEvt12", "eventos")));
+  });
+
+  it("outro tenant autenticado não lê eventos alheios", async () => {
+    await semearChat("chatEvt13");
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatEvt13", "eventos", "evt1"), eventoStaffFixture({ chatId: "chatEvt13" }));
+    });
+    await assertFails(getDocs(collection(authed("ownerB"), "chats", "chatEvt13", "eventos")));
+  });
+
+  it("update e delete são sempre bloqueados, mesmo pelo dono", async () => {
+    await semearChat("chatEvt14");
+    let evtRef;
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      evtRef = doc(collection(context.firestore(), "chats", "chatEvt14", "eventos"));
+      await setDoc(evtRef, eventoStaffFixture({ chatId: "chatEvt14" }));
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatEvt14", "eventos", evtRef.id), { resumo: "editado" }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "chats", "chatEvt14", "eventos", evtRef.id)));
+  });
+});

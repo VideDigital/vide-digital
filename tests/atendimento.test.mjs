@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+    CATEGORIAS_EVENTO_ATENDIMENTO,
     CATEGORIAS_TEMPLATE,
     STATUS_CONVERSA,
+    TIPOS_EVENTO_ATENDIMENTO,
     VARIAVEIS_TEMPLATE_PERMITIDAS,
     calcularContadoresAtendimento,
+    categoriaEventoAtendimento,
+    classificarEventoAtribuicao,
+    classificarEventoStatus,
     conversaPrecisaResposta,
     filtrarConversas,
     filtrarTemplates,
@@ -14,6 +19,8 @@ import {
     ordenarConversas,
     podeTransicionarStatus,
     substituirVariaveisTemplate,
+    tipoEventoValido,
+    validarPayloadDadosEvento,
     validarTemplateAtendimento
 } from "../atendimento.js";
 
@@ -237,5 +244,94 @@ describe("iniciais do nome do cliente (avatar)", () => {
         assert.equal(iniciaisNome("Maria"), "MA");
         assert.equal(iniciaisNome(""), "?");
         assert.equal(iniciaisNome(null), "?");
+    });
+});
+
+describe("histórico de eventos: enum e categorias", () => {
+    it("todo tipo declarado tem rótulo e categoria conhecida", () => {
+        for (const tipo of Object.keys(TIPOS_EVENTO_ATENDIMENTO)) {
+            assert.equal(typeof TIPOS_EVENTO_ATENDIMENTO[tipo], "string");
+            assert.ok(categoriaEventoAtendimento(tipo) in CATEGORIAS_EVENTO_ATENDIMENTO, tipo);
+        }
+    });
+
+    it("tipoEventoValido rejeita string fora do enum", () => {
+        assert.equal(tipoEventoValido("conversa_criada"), true);
+        assert.equal(tipoEventoValido("evento_inventado"), false);
+        assert.equal(tipoEventoValido(""), false);
+    });
+
+    it("categorias batem com o agrupamento esperado pelo filtro da timeline", () => {
+        assert.equal(categoriaEventoAtendimento("mensagem_equipe_enviada"), "mensagens");
+        assert.equal(categoriaEventoAtendimento("conversa_transferida"), "atendimento");
+        assert.equal(categoriaEventoAtendimento("lead_vinculado"), "vinculos");
+        assert.equal(categoriaEventoAtendimento("tag_adicionada"), "alteracoes");
+    });
+});
+
+describe("histórico de eventos: payload de dados restrito", () => {
+    it("aceita objeto vazio, undefined ou com chaves conhecidas", () => {
+        assert.equal(validarPayloadDadosEvento(undefined), "");
+        assert.equal(validarPayloadDadosEvento(null), "");
+        assert.equal(validarPayloadDadosEvento({ motivo: "cliente pediu" }), "");
+    });
+
+    it("rejeita chave desconhecida, array, tipo errado e payload grande demais", () => {
+        assert.notEqual(validarPayloadDadosEvento({ senha: "123" }), "");
+        assert.notEqual(validarPayloadDadosEvento([1, 2, 3]), "");
+        assert.notEqual(validarPayloadDadosEvento("texto"), "");
+        assert.notEqual(validarPayloadDadosEvento({ detalhe: "x".repeat(600) }), "");
+    });
+
+    it("rejeita objeto com chaves demais mesmo que todas sejam conhecidas", () => {
+        const grande = { quantidade: 1, motivo: "a", canal: "b", duracaoMs: 1, origemDispositivo: "c", detalhe: "d" };
+        assert.equal(validarPayloadDadosEvento(grande), "");
+        assert.notEqual(validarPayloadDadosEvento({ ...grande, extra: "não existe" }), "");
+    });
+});
+
+describe("histórico de eventos: classificação de atribuição (assumir/atribuir/transferir/remover)", () => {
+    it("sem responsável anterior e autor assume para si mesmo: conversa_assumida", () => {
+        assert.equal(classificarEventoAtribuicao({ anteriorUid: "", novoUid: "u1", autorUid: "u1" }), "conversa_assumida");
+    });
+
+    it("sem responsável anterior e autor atribui a outra pessoa: responsavel_atribuido", () => {
+        assert.equal(classificarEventoAtribuicao({ anteriorUid: "", novoUid: "func1", autorUid: "owner" }), "responsavel_atribuido");
+    });
+
+    it("responsável muda de uma pessoa pra outra: conversa_transferida (nunca soma outro evento)", () => {
+        assert.equal(classificarEventoAtribuicao({ anteriorUid: "func1", novoUid: "func2", autorUid: "owner" }), "conversa_transferida");
+    });
+
+    it("novo responsável vazio: responsavel_removido", () => {
+        assert.equal(classificarEventoAtribuicao({ anteriorUid: "func1", novoUid: "", autorUid: "owner" }), "responsavel_removido");
+    });
+
+    it("sem mudança real, não classifica nada (null = não gerar evento)", () => {
+        assert.equal(classificarEventoAtribuicao({ anteriorUid: "func1", novoUid: "func1", autorUid: "owner" }), null);
+        assert.equal(classificarEventoAtribuicao({ anteriorUid: "", novoUid: "", autorUid: "owner" }), null);
+    });
+});
+
+describe("histórico de eventos: classificação de transição de status", () => {
+    it("nova/aguardando_cliente/aguardando_equipe/resolvida/arquivada mapeiam pra eventos específicos", () => {
+        assert.equal(classificarEventoStatus({ statusAnterior: "nova", statusNovo: "aberta" }), "conversa_aberta");
+        assert.equal(classificarEventoStatus({ statusAnterior: "aberta", statusNovo: "aguardando_cliente" }), "aguardando_cliente");
+        assert.equal(classificarEventoStatus({ statusAnterior: "aguardando_cliente", statusNovo: "aguardando_equipe" }), "aguardando_equipe");
+        assert.equal(classificarEventoStatus({ statusAnterior: "aberta", statusNovo: "resolvida" }), "conversa_resolvida");
+        assert.equal(classificarEventoStatus({ statusAnterior: "resolvida", statusNovo: "arquivada" }), "conversa_arquivada");
+    });
+
+    it("reabrir depois de resolvida é conversa_reaberta; restaurar depois de arquivada é conversa_restaurada (nunca os dois iguais)", () => {
+        assert.equal(classificarEventoStatus({ statusAnterior: "resolvida", statusNovo: "aberta" }), "conversa_reaberta");
+        assert.equal(classificarEventoStatus({ statusAnterior: "arquivada", statusNovo: "aberta" }), "conversa_restaurada");
+        assert.notEqual(
+            classificarEventoStatus({ statusAnterior: "resolvida", statusNovo: "aberta" }),
+            classificarEventoStatus({ statusAnterior: "arquivada", statusNovo: "aberta" })
+        );
+    });
+
+    it("sem mudança real não classifica nada", () => {
+        assert.equal(classificarEventoStatus({ statusAnterior: "aberta", statusNovo: "aberta" }), null);
     });
 });
