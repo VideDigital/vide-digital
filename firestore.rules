@@ -492,9 +492,51 @@ service cloud.firestore {
           || employeeCanView(resource.data.donoUID, "funcionarios")
           || isBackendAdmin()
         );
-      // FASE FUTURA: create/update/delete exigem Cloud Functions.
-      // Não publicar enquanto o frontend ainda escreve funcionarios diretamente.
-      allow create, update, delete: if false;
+      // Modelo Spark (sem Cloud Functions): o DONO gerencia os próprios
+      // funcionários por escrita direta. A conta de Auth do funcionário é
+      // criada por um app Firebase secundário no navegador; aqui só se
+      // valida o documento de vínculo/permissões.
+      //
+      // Só o dono (nunca um funcionário, mesmo com edição de
+      // "funcionarios") — o "capping" de permissões que a antiga Cloud
+      // Function fazia (funcionário não conceder mais do que tem) não é
+      // reproduzível em regras com segurança equivalente; a alternativa
+      // segura é restringir a gestão ao dono do tenant.
+      allow create: if isBackendAdmin() || (
+        isOwner(request.resource.data.donoUID)
+        && request.auth.uid != employeeUid
+        && request.resource.data.keys().hasOnly([
+          "donoUID", "nome", "email", "cargo", "status",
+          "senhaTemporaria", "permissoes", "criadoEm", "criadoPorAuthUid"
+        ])
+        && request.resource.data.keys().hasAll(["donoUID", "nome", "email", "status", "permissoes", "criadoEm"])
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() >= 1
+        && request.resource.data.nome.size() <= 120
+        && request.resource.data.email is string
+        && request.resource.data.email.size() <= 160
+        && request.resource.data.status == "ativo"
+        && employeeHasPermissionShape(request.resource.data)
+        && request.resource.data.criadoEm == request.time
+        && (!request.resource.data.keys().hasAny(["criadoPorAuthUid"]) || request.resource.data.criadoPorAuthUid == request.auth.uid)
+        && (!request.resource.data.keys().hasAny(["cargo"]) || (request.resource.data.cargo is string && request.resource.data.cargo.size() <= 120))
+      );
+      allow update: if isBackendAdmin() || (
+        isOwner(resource.data.donoUID)
+        && request.auth.uid != employeeUid
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+          "nome", "cargo", "permissoes", "status",
+          "senhaTemporaria", "atualizadoEm", "atualizadoPorAuthUid"
+        ])
+        && request.resource.data.status in ["ativo", "inativo"]
+        && employeeHasPermissionShape(request.resource.data)
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() >= 1
+        && request.resource.data.nome.size() <= 120
+        && (!request.resource.data.diff(resource.data).affectedKeys().hasAny(["atualizadoPorAuthUid"]) || request.resource.data.atualizadoPorAuthUid == request.auth.uid)
+      );
+      // Sem delete físico: desativação (status "inativo") é a exclusão lógica.
+      allow delete: if false;
     }
 
     match /produtos/{id} {

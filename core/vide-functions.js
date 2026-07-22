@@ -1,3 +1,8 @@
+// LEGADO — nenhuma página de produção importa este módulo. O projeto roda
+// no plano Firebase Spark (sem Cloud Functions): métricas, leads, chat,
+// notificações e funcionários usam escrita direta no Firestore protegida
+// por regras. O arquivo permanece como referência do contrato antigo e
+// para uso eventual com o Emulator. Ver docs/FIREBASE_SPARK_ARCHITECTURE.md.
 import { app, shouldUseVideEmulators } from "../firebase-init.js";
 import {
     connectFunctionsEmulator,

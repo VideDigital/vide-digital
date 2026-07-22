@@ -1519,22 +1519,38 @@
             const email = values.email || "";
             const campaign = new URLSearchParams(window.location.search);
 
-            const result = await state.functions.createPublicLead({
-                publicPageId: `${state.route?.lojaSlug || ""}__${state.route?.paginaSlug || ""}`.toLowerCase(),
-                nome: String(name).trim(),
-                whatsapp: String(phone).replace(/\D/g, ""),
-                email: String(email).trim(),
-                origem: source,
-                produtoInteresse: state.meta?.titulo || state.route?.paginaSlug || "Landing Page",
-                paginaOrigem: state.route?.paginaSlug || "",
-                blocoOrigem: blockId || "",
-                status: String(config.status || "novo"),
-                prioridade: String(config.prioridade || "normal"),
+            // Escrita direta do lead (sem Cloud Function — plano Spark).
+            // criadoPor vem do donoUID da própria LP pública já carregada,
+            // e status nasce "novo": exatamente o contrato que a regra
+            // leadPublicoValido() exige em firestore.rules. Antes este
+            // caminho chamava a Function createPublicLead, que nunca
+            // existiu em produção — todo formulário V4 falhava.
+            const ownerUid = state.meta?.donoUID || "";
+            if (!ownerUid) {
+                throw new Error("Landing page sem tenant público válido.");
+            }
+            const { doc: docRef, collection: collectionRef, setDoc } = state.firestore;
+            const leadRef = docRef(collectionRef(state.db, "leads"));
+            await setDoc(leadRef, {
+                criadoPor: ownerUid,
+                nome: String(name).trim().slice(0, 120),
+                whatsapp: String(phone).replace(/\D/g, "").slice(0, 30),
+                telefone: String(phone).replace(/\D/g, "").slice(0, 30),
+                email: String(email).trim().slice(0, 160),
+                origem: source.slice(0, 120),
+                produtoInteresse: String(state.meta?.titulo || state.route?.paginaSlug || "Landing Page").slice(0, 160),
+                statusLead: "novo",
+                status: "novo",
+                prioridadeLead: String(config.prioridade || "normal").slice(0, 40),
+                paginaOrigem: String(state.route?.paginaSlug || "").slice(0, 160),
+                blocoOrigem: String(blockId || "").slice(0, 160),
+                formularioId: "captura_publica_v4",
+                formularioNome: "Captura pública (LP V4)",
                 followupDias: Math.max(0, numberOr(config.followupDias, 0)),
                 cliques: 0,
-                utmSource: campaign.get("utm_source") || "",
-                utmMedium: campaign.get("utm_medium") || "",
-                utmCampaign: campaign.get("utm_campaign") || "",
+                utmSource: (campaign.get("utm_source") || "").slice(0, 120),
+                utmMedium: (campaign.get("utm_medium") || "").slice(0, 120),
+                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120),
                 data: Date.now()
             });
 
@@ -1765,22 +1781,21 @@
 
     async function importModules() {
         const firebaseInitURL = new URL("firebase-init.js", `${window.location.origin}${state.base}`).href;
-        const videFunctionsURL = new URL("core/vide-functions.js", `${window.location.origin}${state.base}`).href;
         const firestoreURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`;
         const authURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`;
 
-        const [firebaseInit, firestore, authModule, videFunctions] = await Promise.all([
+        // core/vide-functions.js não é mais carregado aqui: a captura de
+        // lead escreve direto no Firestore (plano Spark, sem Functions).
+        const [firebaseInit, firestore, authModule] = await Promise.all([
             import(firebaseInitURL),
             import(firestoreURL),
-            import(authURL),
-            import(videFunctionsURL)
+            import(authURL)
         ]);
 
         state.db = firebaseInit.db;
         state.auth = firebaseInit.auth;
         state.firestore = firestore;
         state.authModule = authModule;
-        state.functions = videFunctions.VideFunctions;
 
         if (!state.db) {
             throw new Error("Firebase não foi inicializado.");

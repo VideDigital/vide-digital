@@ -1,6 +1,5 @@
-import { auth, db } from "./firebase-init.js";
+import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
-import { VideFunctions } from "./core/vide-functions.js";
 import { criarCentralIAController } from "./central-ia.js";
 
 function podeVerModuloNoContexto(moduleKey) {
@@ -996,8 +995,31 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
             );
         };
 
-        // Cria a conta de login do funcionário usando um app Firebase SECUNDÁRIO e temporário,
-        // assim a sua própria sessão (dono da loja) nunca é afetada.
+        // Cria a conta de login do funcionário usando um app Firebase SECUNDÁRIO
+        // e temporário, assim a sessão do dono nunca é afetada. Modelo 100%
+        // Spark: a conta de Auth nasce pelo app secundário e o documento
+        // funcionarios/{uid} é escrito direto, protegido pelas regras
+        // (só o dono cria/edita funcionários do próprio tenant).
+        async function criarContaAuthFuncionario(email, senha) {
+            const [appMod, authMod] = await Promise.all([
+                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"),
+                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js")
+            ]);
+            const secundario = appMod.initializeApp(firebaseConfig, "vide-criar-funcionario");
+            try {
+                const authSecundario = authMod.getAuth(secundario);
+                if (shouldUseVideEmulators()) {
+                    authMod.connectAuthEmulator(authSecundario, "http://127.0.0.1:9099", { disableWarnings: true });
+                }
+                const credencial = await authMod.createUserWithEmailAndPassword(authSecundario, email, senha);
+                const novoUid = credencial.user.uid;
+                await authMod.signOut(authSecundario).catch(() => {});
+                return novoUid;
+            } finally {
+                await appMod.deleteApp(secundario).catch(() => {});
+            }
+        }
+
         window.salvarFuncionario = async function() {
             if (!exigirEdicaoModulo("funcionarios")) return;
 
@@ -1005,6 +1027,15 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
             const contextoAtual = VideHubContext.getSnapshot();
             if (contextoAtual.isEmployee && uidEdicao && uidEdicao === contextoAtual.authUid) {
                 showToast("Você não pode alterar as próprias permissões.", "error");
+                return;
+            }
+            // No plano Spark as escritas em funcionarios são diretas e as
+            // regras só autorizam o DONO do tenant (evita que um funcionário
+            // com edição eleve permissões de colegas além das próprias — o
+            // "capping" que a Cloud Function fazia não é reproduzível em
+            // regras com segurança equivalente).
+            if (contextoAtual.isEmployee) {
+                showToast("Apenas o dono da loja pode gerenciar funcionários.", "error");
                 return;
             }
 
@@ -1021,12 +1052,13 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
 
             try {
                 if (uidEdicao) {
-                    await VideFunctions.updateEmployee({
-                        uid: uidEdicao,
+                    await setDoc(doc(db, "funcionarios", uidEdicao), {
                         nome,
                         cargo,
-                        permissoes: { ver, editar }
-                    });
+                        permissoes: { ver, editar },
+                        atualizadoEm: serverTimestamp(),
+                        atualizadoPorAuthUid: contextoAtual.authUid || usuarioUID
+                    }, { merge: true });
                     showToast("Funcionário atualizado!");
                 } else {
                     const senha = document.getElementById("funcionario-senha").value;
@@ -1034,12 +1066,17 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
                         showToast("A senha precisa ter ao menos 6 caracteres.", "error");
                         return;
                     }
-                    await VideFunctions.createEmployee({
+                    const novoUid = await criarContaAuthFuncionario(email, senha);
+                    await setDoc(doc(db, "funcionarios", novoUid), {
+                        donoUID: usuarioUID,
                         nome,
                         email,
                         cargo,
-                        password: senha,
-                        permissoes: { ver, editar }
+                        status: "ativo",
+                        senhaTemporaria: true,
+                        permissoes: { ver, editar },
+                        criadoEm: serverTimestamp(),
+                        criadoPorAuthUid: contextoAtual.authUid || usuarioUID
                     });
                     showToast("Funcionário cadastrado! Já pode fazer login.");
                 }
@@ -1049,6 +1086,10 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
                 console.error(err);
                 if (err.code === "auth/email-already-in-use") {
                     showToast("Esse e-mail já está em uso por outra conta.", "error");
+                } else if (err.code === "auth/weak-password") {
+                    showToast("Senha muito fraca. Use uma senha mais longa.", "error");
+                } else if (err.code === "permission-denied") {
+                    showToast("Sem permissão para gerenciar funcionários.", "error");
                 } else {
                     showToast("Erro ao salvar funcionário.", "error");
                 }
@@ -1063,14 +1104,22 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
                 showToast("Você não pode alterar o próprio status.", "error");
                 return;
             }
+            if (contextoAtual.isEmployee) {
+                showToast("Apenas o dono da loja pode gerenciar funcionários.", "error");
+                return;
+            }
 
             const novoStatus = statusAtual === "ativo" ? "inativo" : "ativo";
             try {
-                if (novoStatus === "ativo") {
-                    await VideFunctions.enableEmployee({ uid });
-                } else {
-                    await VideFunctions.disableEmployee({ uid });
-                }
+                // Escrita direta (Spark). Desativar não bloqueia o login de
+                // Auth em si, mas todo acesso a dados passa pelas regras, que
+                // exigem funcionarios/{uid}.status == "ativo" — um funcionário
+                // inativo autentica e não consegue ler nem escrever nada.
+                await setDoc(doc(db, "funcionarios", uid), {
+                    status: novoStatus,
+                    atualizadoEm: serverTimestamp(),
+                    atualizadoPorAuthUid: contextoAtual.authUid || usuarioUID
+                }, { merge: true });
                 showToast(novoStatus === "ativo" ? "Funcionário reativado!" : "Funcionário desativado.");
                 carregarFuncionarios();
             } catch (err) {

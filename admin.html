@@ -747,10 +747,34 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
     <script type="module">
         import { auth, db } from "./firebase-init.js";
         import { VIDE_SUPER_ADMIN_EMAIL, getAdminMembership } from "./core/vide-context.js";
-        import { VideFunctions } from "./core/vide-functions.js";
 
 import { onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        // ===== Operações administrativas no plano Spark (sem Cloud Functions) =====
+        // Status e plano são escritas diretas em usuarios/{uid}; as regras do
+        // Firestore só as aceitam de quem possui a claim videAdmin (concedida
+        // uma única vez pelo dono da plataforma via scripts/set-admin-claim.mjs,
+        // rodado localmente com Admin SDK — ver docs/FIREBASE_SPARK_ARCHITECTURE.md).
+        const STATUS_LOJA_VALIDOS = new Set(["pendente", "aprovado", "rejeitado", "inativo"]);
+        async function adminAtualizarStatusLoja(uid, status) {
+            if (!uid || !STATUS_LOJA_VALIDOS.has(status)) throw new Error("Status inválido.");
+            await setDoc(doc(db, "usuarios", uid), {
+                status,
+                statusAtualizadoEm: serverTimestamp(),
+                statusAtualizadoPor: auth.currentUser?.uid || ""
+            }, { merge: true });
+        }
+        async function adminAtualizarPlanoLoja(uid, { plano, featuresManuais, anotacaoAdmin }) {
+            if (!uid || !plano) throw new Error("Plano inválido.");
+            await setDoc(doc(db, "usuarios", uid), {
+                plano,
+                featuresManuais: Array.isArray(featuresManuais) ? featuresManuais : [],
+                anotacaoAdmin: String(anotacaoAdmin || "").slice(0, 1000),
+                planoAtualizadoEm: serverTimestamp(),
+                planoAtualizadoPor: auth.currentUser?.uid || ""
+            }, { merge: true });
+        }
         
         const SUPER_ADMIN_EMAIL = VIDE_SUPER_ADMIN_EMAIL;
 
@@ -1008,39 +1032,10 @@ window.salvarTemaSistema = async function() {
 };
 
 window.adicionarMembroEquipe = async function() {
-
-const email = document.getElementById("equipe-email").value.trim().toLowerCase();
-
-const senha = document.getElementById("equipe-senha").value.trim();
-
-if (!email || !senha) { showToast("Preencha e-mail e senha.", "error"); return; }
-
-const permissoes = Array.from(document.querySelectorAll(".equipe-perm:checked")).map(c => c.value);
-
-if (permissoes.length === 0) { showToast("Selecione ao menos uma permissão.", "error"); return; }
-
-try {
-
-await VideFunctions.createAdminMember({ email, password: senha, permissoes });
-    
-showToast("Membro adicionado! Já pode fazer login com esse e-mail e senha.");
-
-document.getElementById("equipe-email").value = "";
-
-document.getElementById("equipe-senha").value = "";
-
-document.querySelectorAll(".equipe-perm").forEach(c => c.checked = false);
-
-carregarEquipe();
-
-} catch(err) {
-
-console.error(err);
-
-showToast("Erro ao criar conta: " + (err.message || "tente novamente"), "error");
-
-}
-
+// Criar membro admin exige Admin SDK (conta de Auth + claim videAdmin),
+// indisponível no plano Spark direto do navegador. A etapa é externa:
+// o dono da plataforma roda scripts/set-admin-claim.mjs localmente.
+showToast("Criar membro admin exige uma etapa externa (Admin SDK). Veja docs/FIREBASE_SPARK_ARCHITECTURE.md — script scripts/set-admin-claim.mjs.", "error");
 };
 
 window.removerMembroEquipe = async function(id) {
@@ -1051,12 +1046,19 @@ try {
 
 const membro = (await getDoc(doc(db, "equipe_admin", id))).data() || {};
 if (membro.uid && membro.email) {
-    await VideFunctions.syncAdminClaims({ email: membro.email, uid: membro.uid, permissoes: [], enabled: false });
+    // Remover a claim videAdmin da conta exige Admin SDK (etapa externa:
+    // scripts/set-admin-claim.mjs com --remove). Aqui marcamos o registro
+    // como inativo — as permissões internas do painel deixam de valer já.
+    await setDoc(doc(db, "equipe_admin", id), {
+        ativo: false,
+        removidoEm: serverTimestamp(),
+        removidoPor: auth.currentUser?.uid || ""
+    }, { merge: true });
+    showToast("Membro desativado no painel. Para revogar a claim videAdmin da conta, rode scripts/set-admin-claim.mjs --remove (ver documentação).");
 } else {
     await deleteDoc(doc(db, "equipe_admin", id));
+    showToast("Membro removido.");
 }
-
-showToast("Membro removido.");
 
 carregarEquipe();
 
@@ -1308,7 +1310,7 @@ function showToast(msg, tipo = "success") {
 
         window.reativarDireto = async function(uid) {
             try {
-                await VideFunctions.adminUpdateStoreStatus({ uid, status: "aprovado" });
+                await adminAtualizarStatusLoja(uid, "aprovado");
                 showToast("Loja reativada!");
                 await carregarUsuarios();
             } catch (err) {
@@ -1434,7 +1436,7 @@ function showToast(msg, tipo = "success") {
                 return;
             }
             try {
-                await VideFunctions.adminUpdateStoreStatus({ uid, status: "aprovado" });
+                await adminAtualizarStatusLoja(uid, "aprovado");
                 showToast("Cliente aprovado com sucesso!");
                 await carregarUsuarios();
             } catch (err) {
@@ -1447,7 +1449,7 @@ function showToast(msg, tipo = "success") {
         window.rejeitarDireto = async function(uid) {
             abrirConfirmacao("Confirma a rejeição deste cadastro?", async () => {
                 try {
-                    await VideFunctions.adminUpdateStoreStatus({ uid, status: "rejeitado" });
+                    await adminAtualizarStatusLoja(uid, "rejeitado");
                     showToast("Cadastro rejeitado.");
                     await carregarUsuarios();
                 } catch (err) {
@@ -1466,7 +1468,7 @@ function showToast(msg, tipo = "success") {
                 return;
             }
             try {
-                await VideFunctions.adminUpdateStoreStatus({ uid: clienteSelecionadoUID, status: "aprovado" });
+                await adminAtualizarStatusLoja(clienteSelecionadoUID, "aprovado");
                 showToast("Cliente aprovado!");
                 fecharModal();
                 await carregarUsuarios();
@@ -1478,7 +1480,7 @@ function showToast(msg, tipo = "success") {
             const uidAlvo = clienteSelecionadoUID;
             abrirConfirmacao("Confirma a rejeição?", async () => {
                 try {
-                    await VideFunctions.adminUpdateStoreStatus({ uid: uidAlvo, status: "rejeitado" });
+                    await adminAtualizarStatusLoja(uidAlvo, "rejeitado");
                     showToast("Cadastro rejeitado.");
                     fecharModal();
                     await carregarUsuarios();
@@ -1496,7 +1498,7 @@ function showToast(msg, tipo = "success") {
             const uidAlvo = clienteSelecionadoUID;
             abrirConfirmacao("Confirma a suspensão desta loja?", async () => {
                 try {
-                    await VideFunctions.adminUpdateStoreStatus({ uid: uidAlvo, status: "inativo" });
+                    await adminAtualizarStatusLoja(uidAlvo, "inativo");
                     showToast("Loja suspensa.");
                     fecharModal();
                     await carregarUsuarios();
@@ -1508,8 +1510,7 @@ function showToast(msg, tipo = "success") {
             if (!clienteSelecionadoUID) return;
             try {
                 const featuresManuais = Array.from(document.querySelectorAll(".override-feature-checkbox:checked")).map(cb => cb.value);
-                await VideFunctions.adminUpdatePlan({
-                    uid: clienteSelecionadoUID,
+                await adminAtualizarPlanoLoja(clienteSelecionadoUID, {
                     plano: document.getElementById("modal-plano").value,
                     anotacaoAdmin: document.getElementById("modal-anotacao").value.trim(),
                     featuresManuais

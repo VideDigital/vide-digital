@@ -1,4 +1,8 @@
-name: Deploy Firebase Backend
+# Fluxo Spark: publica SOMENTE firestore:rules, firestore:indexes e as
+# regras do Storage. Nunca publica Cloud Functions, Cloud Run ou qualquer
+# recurso que exija o plano Blaze/faturamento — decisão definitiva do
+# projeto (ver docs/FIREBASE_SPARK_ARCHITECTURE.md).
+name: Deploy Firebase Spark
 
 on:
   workflow_dispatch:
@@ -14,6 +18,7 @@ on:
 
 permissions:
   contents: read
+  id-token: write
 
 concurrency:
   group: firebase-production-backend-deploy
@@ -118,7 +123,9 @@ jobs:
       - name: Testar Studio (editor de Landing Pages)
         run: pnpm run test:studio
 
-      - name: Testar Cloud Functions
+      # test:functions roda só lógica pura (validadores em functions/src/shared)
+      # — nenhuma Function é implantada nem exigida em produção (plano Spark).
+      - name: Testar validadores compartilhados
         run: pnpm run test:functions
 
       - name: Testar regras no Emulator Suite
@@ -128,7 +135,7 @@ jobs:
         run: pnpm run test:frontend:emulator
 
   deploy:
-    name: Publicar backend Firebase em produção
+    name: Publicar Rules, Storage e índices (Spark)
     needs: validate-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -154,7 +161,50 @@ jobs:
       - name: Instalar dependências sem alterar o lockfile
         run: pnpm install --frozen-lockfile
 
-      - name: Autenticar com a conta de serviço de produção
+      # Aceita dois métodos, nesta ordem de preferência:
+      # 1. Workload Identity Federation (secrets GCP_WORKLOAD_IDENTITY_PROVIDER
+      #    + GCP_SERVICE_ACCOUNT) — sem chave de longa duração;
+      # 2. Chave JSON no secret FIREBASE_SERVICE_ACCOUNT.
+      # Sem nenhum dos dois, falha AQUI com instrução clara (nunca marca
+      # sucesso sem publicar) e sem exibir nenhum valor de segredo.
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            echo "Configure UM dos métodos abaixo em Settings → Secrets and variables → Actions:"
+            echo "  1. GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT (Workload Identity Federation), ou"
+            echo "  2. FIREBASE_SERVICE_ACCOUNT (conteúdo JSON completo da chave da conta de serviço)."
+            echo "Alternativa manual, com o Firebase CLI logado localmente:"
+            echo "  firebase use vide-digital-saas"
+            echo "  firebase deploy --only firestore:rules,firestore:indexes,storage"
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
         uses: google-github-actions/auth@v3
         with:
           credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
@@ -173,14 +223,14 @@ jobs:
             --project "${PROJECT_ID}" \
             --non-interactive
 
-      - name: Publicar somente as duas Cloud Functions autorizadas
+      - name: Publicar as regras do Storage
         shell: bash
         env:
           PROJECT_ID: ${{ inputs.project_id }}
         run: |
           set -euo pipefail
           pnpm dlx firebase-tools@13.35.1 deploy \
-            --only functions:sendAdminChatMessage,functions:incrementPublicMetric \
+            --only storage \
             --project "${PROJECT_ID}" \
             --non-interactive
 
