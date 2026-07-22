@@ -26,7 +26,13 @@ export const MODULE_ALIASES = Object.freeze({
     atendimento: ["atendimento", "conversas", "atendimento_chat", "templates_atendimento"],
     // "crm" é permissão própria e independente de "leads" — espelha
     // exatamente os aliases que firestore.rules já reconhecia.
-    crm: ["crm", "clientes", "crm-360", "crm_360", "observacoes_clientes", "tags_clientes"]
+    crm: ["crm", "clientes", "crm-360", "crm_360", "observacoes_clientes", "tags_clientes"],
+    // "ia-copilot" é permissão própria, separada de "atendimento" de
+    // propósito: um funcionário com acesso ao Atendimento não ganha o
+    // copiloto de IA automaticamente — precisa de concessão explícita.
+    // O dono sempre tem acesso (bypass de isOwner em canEditTenant/
+    // canViewTenant, tanto aqui quanto em firestore.rules).
+    "ia-copilot": ["ia-copilot", "ia_copilot", "copiloto", "copiloto-ia", "copiloto_ia"]
 });
 
 const MODULE_ALIAS_LOOKUP = Object.freeze(

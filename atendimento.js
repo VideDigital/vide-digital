@@ -81,7 +81,11 @@ export const TIPOS_EVENTO_ATENDIMENTO = Object.freeze({
     pedido_desvinculado: "Pedido desvinculado",
     produto_vinculado: "Produto de interesse vinculado",
     produto_desvinculado: "Produto de interesse desvinculado",
-    template_utilizado: "Template utilizado"
+    template_utilizado: "Template utilizado",
+    // Copiloto de IA (ia-copilot.js): só regista uso ou descarte de uma
+    // sugestão — nunca cada geração (isso roda em memória, sem escrita).
+    ia_sugestao_usada: "Sugestão de IA usada",
+    ia_sugestao_descartada: "Sugestão de IA descartada"
 });
 
 const CATEGORIA_POR_TIPO_EVENTO = Object.freeze({
@@ -118,14 +122,17 @@ const CATEGORIA_POR_TIPO_EVENTO = Object.freeze({
     tag_adicionada: "alteracoes",
     tag_removida: "alteracoes",
     observacao_interna_adicionada: "alteracoes",
-    observacao_interna_atualizada: "alteracoes"
+    observacao_interna_atualizada: "alteracoes",
+    ia_sugestao_usada: "ia",
+    ia_sugestao_descartada: "ia"
 });
 
 export const CATEGORIAS_EVENTO_ATENDIMENTO = Object.freeze({
     mensagens: "Mensagens",
     atendimento: "Atendimento",
     vinculos: "Vínculos",
-    alteracoes: "Alterações internas"
+    alteracoes: "Alterações internas",
+    ia: "Copiloto de IA"
 });
 
 export function categoriaEventoAtendimento(tipo) {
@@ -281,6 +288,8 @@ export function descreverEventoAtendimento(evento) {
         case "produto_vinculado": return `${autor} vinculou um produto de interesse.`;
         case "produto_desvinculado": return `${autor} desvinculou um produto de interesse.`;
         case "template_utilizado": return `Template "${evento.templateTitulo || "sem título"}" utilizado por ${autor}.`;
+        case "ia_sugestao_usada": return `${autor} usou uma sugestão do copiloto de IA${evento.resumo ? ` (${evento.resumo})` : ""}.`;
+        case "ia_sugestao_descartada": return `${autor} descartou uma sugestão do copiloto de IA.`;
         default: return TIPOS_EVENTO_ATENDIMENTO[evento?.tipo] || "Evento registrado.";
     }
 }

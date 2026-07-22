@@ -91,6 +91,15 @@ service cloud.firestore {
           || "crm_360" in permissions
           || "observacoes_clientes" in permissions
           || "tags_clientes" in permissions
+        ))
+        // "ia-copilot" é permissão própria, independente de "atendimento":
+        // funcionário só com atendimento NÃO gera sugestão de IA sem essa
+        // concessão explícita separada.
+        || (moduleKey == "ia-copilot" && (
+          "ia_copilot" in permissions
+          || "copiloto" in permissions
+          || "copiloto-ia" in permissions
+          || "copiloto_ia" in permissions
         ));
     }
 
@@ -501,6 +510,17 @@ service cloud.firestore {
       return (chatData.keys().hasAny(["donoUID"]) && (canViewTenant(chatData.donoUID, "atendimento") || canViewTenant(chatData.donoUID, "leads")))
         || (chatData.keys().hasAny(["emailDono"]) && (canViewTenant(chatData.emailDono, "atendimento") || canViewTenant(chatData.emailDono, "leads")));
     }
+    // Copiloto de IA do Atendimento: exige TANTO poder responder o chat
+    // (mesma base de podeResponderChat) QUANTO a permissão dedicada
+    // "ia-copilot" — um funcionário com só "atendimento" não passa aqui.
+    // O dono sempre passa (bypass de isOwner dentro de canEditTenant).
+    function podeUsarIaCopilot(chatData) {
+      return podeResponderChat(chatData)
+        && (
+          (chatData.keys().hasAny(["donoUID"]) && canEditTenant(chatData.donoUID, "ia-copilot"))
+          || (chatData.keys().hasAny(["emailDono"]) && canEditTenant(chatData.emailDono, "ia-copilot"))
+        );
+    }
     // CRM 360: aberto de dentro da Central de Atendimento, então quem já
     // pode ver/editar atendimento também pode ver/editar o CRM — mais a
     // permissão dedicada "crm" pra quem só deve mexer no CRM.
@@ -525,6 +545,9 @@ service cloud.firestore {
         : tipo in ["conversa_criada", "conversa_aberta", "conversa_resolvida", "conversa_reaberta", "conversa_arquivada", "conversa_restaurada", "conversa_priorizada", "prioridade_removida", "status_alterado", "aguardando_cliente", "aguardando_equipe", "conversa_assumida", "responsavel_atribuido", "conversa_transferida", "responsavel_removido"] ? "atendimento"
         : tipo in ["cliente_vinculado", "cliente_desvinculado", "lead_vinculado", "lead_desvinculado", "pedido_vinculado", "pedido_desvinculado", "produto_vinculado", "produto_desvinculado", "template_utilizado"] ? "vinculos"
         : tipo in ["setor_alterado", "tag_adicionada", "tag_removida", "observacao_interna_adicionada", "observacao_interna_atualizada"] ? "alteracoes"
+        // Copiloto de IA: só regista USO ou DESCARTE de sugestão — nunca
+        // toda geração (o mock roda em memória, sem escrita no Firestore).
+        : tipo in ["ia_sugestao_usada", "ia_sugestao_descartada"] ? "ia"
         : "";
     }
     function tipoEventoAtendimentoValido(tipo) {
@@ -532,7 +555,13 @@ service cloud.firestore {
     }
     function eventoAtendimentoDadosValido(dados) {
       return dados == null
-        || (dados is map && dados.keys().hasOnly(["quantidade", "motivo", "canal", "duracaoMs", "origemDispositivo", "detalhe"]));
+        || (dados is map && dados.keys().hasOnly([
+            "quantidade", "motivo", "canal", "duracaoMs", "origemDispositivo", "detalhe",
+            // Campos controlados do copiloto de IA — nunca prompt/resposta
+            // completa, nunca chave de provedor: só a ação, o provedor
+            // ("mock" nesta fase) e um bucket grosseiro de confiança.
+            "iaAction", "iaProvider", "iaConfidenceBucket"
+          ]));
     }
     // Campos de texto opcionais compartilhados pelos dois caminhos de
     // criação (equipe e cliente público) — mesma checagem, evita repetir.
@@ -552,6 +581,9 @@ service cloud.firestore {
       let data = request.resource.data;
       return exists(chatRef)
         && podeResponderChat(chatData)
+        // Eventos de categoria "ia" exigem, além de podeResponderChat, a
+        // permissão dedicada "ia-copilot" — ver podeUsarIaCopilot().
+        && (categoriaEventoAtendimentoEsperada(data.tipo) != "ia" || podeUsarIaCopilot(chatData))
         && data.keys().hasOnly([
             "tenantId", "lojaId", "chatId", "clienteId", "tipo", "categoria", "autorUid", "autorTipo",
             "autorNome", "origem", "resumo", "criadoEm", "versaoSchema",
