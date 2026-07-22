@@ -516,3 +516,44 @@
 @media (prefers-reduced-motion: reduce) {
     .bc-btn, .bc-prontidao-fill { transition: none; }
 }
+
+/* ===== Jornada da IA (na Central de IA) ===== */
+.bc-jornada {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 10px;
+    margin-top: 16px;
+}
+.bc-jornada-etapa {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 13px 15px;
+    border: 1px solid var(--ia-border);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .03);
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color .18s ease, background .18s ease, transform .18s ease;
+}
+button.bc-jornada-etapa:hover { border-color: color-mix(in srgb, var(--sys-destaque, #00d4ff) 40%, transparent); transform: translateY(-1px); }
+button.bc-jornada-etapa:focus-visible { outline: 2px solid var(--sys-destaque, #00d4ff); outline-offset: 1px; }
+.bc-jornada-etapa.is-atual { border-color: color-mix(in srgb, var(--sys-destaque, #00d4ff) 45%, transparent); background: color-mix(in srgb, var(--sys-destaque, #00d4ff) 8%, transparent); }
+.bc-jornada-etapa.is-bloqueada { opacity: .55; cursor: default; }
+.bc-jornada-numero {
+    display: grid;
+    place-items: center;
+    width: 28px;
+    height: 28px;
+    flex: 0 0 auto;
+    border-radius: 50%;
+    border: 1px solid var(--ia-border);
+    color: var(--sys-destaque, #00d4ff);
+    font-size: 12px;
+    font-weight: 800;
+}
+.bc-jornada-texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.bc-jornada-texto strong { font-size: 12px; font-weight: 800; line-height: 1.25; }
+.bc-jornada-texto small { color: var(--ia-muted); font-size: 10px; line-height: 1.4; }
+@media (prefers-reduced-motion: reduce) { .bc-jornada-etapa { transition: none; } }

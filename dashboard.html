@@ -3448,6 +3448,25 @@ class="aura-metrics-chart-labels"
 </div>
 </header>
 
+<nav class="bc-jornada" aria-label="Jornada da inteligência artificial">
+<button type="button" class="bc-jornada-etapa is-atual" onclick="document.getElementById('ia-content')?.scrollIntoView({ behavior: 'smooth', block: 'start' })">
+<span class="bc-jornada-numero">1</span>
+<span class="bc-jornada-texto"><strong>Configuração</strong><small>Identidade, saudação e canais</small></span>
+</button>
+<button type="button" class="bc-jornada-etapa" onclick="ativarAba('view-base-conhecimento')">
+<span class="bc-jornada-numero">2</span>
+<span class="bc-jornada-texto"><strong>Base de Conhecimento</strong><small id="ia-jornada-bc-resumo">FAQ, políticas e empresa</small></span>
+</button>
+<button type="button" class="bc-jornada-etapa" onclick="ativarAba('view-leads')">
+<span class="bc-jornada-numero">3</span>
+<span class="bc-jornada-texto"><strong>Chat da Loja</strong><small>Conversas chegam em Leads &amp; Chats</small></span>
+</button>
+<span class="bc-jornada-etapa is-bloqueada" aria-disabled="true">
+<span class="bc-jornada-numero">4</span>
+<span class="bc-jornada-texto"><strong>Assistente &amp; WhatsApp</strong><small>Em breve — nenhuma IA conectada ainda</small></span>
+</span>
+</nav>
+
 <div id="ia-unsaved-status" class="central-ia-state-line" aria-live="polite">Configurações atualizadas</div>
 <div id="ia-load-error" class="central-ia-load-error" role="alert">
 <span id="ia-load-error-message"></span>
@@ -3589,9 +3608,9 @@ Você pode consultar esta configuração, mas não possui permissão para editá
 <article class="central-ia-summary-card">
 <h3>Próximas etapas</h3>
 <div class="central-ia-next-list">
+<div class="central-ia-next-item"><span>Alimentar a Base de Conhecimento</span><button type="button" class="central-ia-future-badge" style="cursor:pointer" onclick="ativarAba('view-base-conhecimento')" aria-label="Abrir Base de Conhecimento">Disponível</button></div>
 <div class="central-ia-next-item"><span>Conectar provedor de IA</span><span class="central-ia-future-badge">Próxima etapa</span></div>
-<div class="central-ia-next-item"><span>Criar base de conhecimento</span><span class="central-ia-future-badge">Em breve</span></div>
-<div class="central-ia-next-item"><span>Adicionar chat na loja pública</span><span class="central-ia-future-badge">Em breve</span></div>
+<div class="central-ia-next-item"><span>Respostas automáticas no chat da loja</span><span class="central-ia-future-badge">Em breve</span></div>
 <div class="central-ia-next-item"><span>Adicionar sugestões no atendimento</span><span class="central-ia-future-badge">Em breve</span></div>
 </div>
 </article>

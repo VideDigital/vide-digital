@@ -220,6 +220,12 @@ export function criarBaseConhecimentoController(deps) {
 
         if (el("bc-kpi-total")) el("bc-kpi-total").textContent = String(total);
         if (el("bc-kpi-ativos")) el("bc-kpi-ativos").textContent = String(ativos);
+        // Resumo da etapa 2 na jornada exibida dentro da Central de IA.
+        if (el("ia-jornada-bc-resumo")) {
+            el("ia-jornada-bc-resumo").textContent = total > 0
+                ? `${ativos} ativo(s) de ${total} conteúdo(s) · prontidão ${prontidao.pontos}/100`
+                : "FAQ, políticas e empresa";
+        }
         if (el("bc-kpi-prontidao")) el("bc-kpi-prontidao").textContent = `${prontidao.pontos}`;
         if (el("bc-prontidao-nivel")) el("bc-prontidao-nivel").textContent = classe.rotulo;
 
