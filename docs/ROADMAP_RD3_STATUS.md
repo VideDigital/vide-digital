@@ -54,6 +54,6 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 ## Próximas três prioridades reais
 
-1. Configurar a autenticação do workflow "Deploy Firebase Spark" (ver bloqueio externo #1 acima) — feito neste ciclo (secret `FIREBASE_SERVICE_ACCOUNT` configurado, deploy confirmado com sucesso).
+1. Configuração da IA incluir/excluir produtos por referência (ID) sem duplicar o cadastro na Base de Conhecimento.
 2. Índice composto em `chats/*/eventos` (`collectionGroup`, `tenantId`+`criadoEm`) pra notificações mais precisas por tipo de evento — já registrado em `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`.
-3. Configuração da IA incluir/excluir produtos por referência (ID) sem duplicar o cadastro na Base de Conhecimento.
+3. Ampliar o Onboarding (checklist "primeiros passos") com mais critérios (atendimento, IA, FAQ, funcionário), mantendo conclusão derivada de dados reais, nunca de clique.
