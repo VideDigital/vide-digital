@@ -131,9 +131,10 @@ Whitelist evoluiu de 4 para 8, mantendo as originais:
 - `{{numero_pedido}}` usa o próprio id do documento (`ped_<timestamp>`)
   como identificador — não existe hoje um campo de "número" amigável
   separado em `pedidos` (limitação real, documentada, não inventamos um).
-- `{{prazo_entrega}}` **sempre fica pendente** — não existe campo canônico
-  de prazo de entrega em `pedidos` hoje (auditado, confirmado). Fica pronta
-  pra usar assim que a próxima fase (Pedidos Estruturados) criar esse dado.
+- `{{prazo_entrega}}` **resolve de verdade desde o ciclo "Pedidos
+  Estruturados"** (`pedidos.prazoEntrega`, opcional) — quando o pedido
+  vinculado à conversa não tem essa data preenchida, continua pendente
+  (nunca inventa uma data). Ver `docs/PEDIDOS_ESTRUTURADOS.md`.
 - **Pedido só é resolvido quando explicitamente vinculado à conversa
   atual** — nunca escolhido pelo nome do cliente. O vínculo é derivado do
   histórico de eventos (`pedidoVinculadoIdDaConversa`, olha o último
@@ -341,8 +342,8 @@ navegação por teclado nas sugestões de atalho.
   acima) — se um ciclo futuro precisar de preferência individual, vai
   exigir uma subestrutura nova (`templates/{id}/favoritos/{uid}` ou
   equivalente), não reaproveitar este campo.
-- **`{{prazo_entrega}}` nunca resolve** até `pedidos` ganhar um campo
-  canônico de prazo — depende da próxima fase (Pedidos Estruturados).
+- ~~`{{prazo_entrega}}` nunca resolve~~ — **resolvido no ciclo "Pedidos
+  Estruturados"** (`pedidos.prazoEntrega`, opcional).
 - **`{{numero_pedido}}` usa o id técnico do documento**, não um número
   amigável — não existe hoje um campo separado para isso.
 - Sem teste de UI autenticado (Playwright + login Firebase real) neste
@@ -350,5 +351,5 @@ navegação por teclado nas sugestões de atalho.
 
 ## Próxima fase
 
-**Pedidos Estruturados e Vinculados ao Atendimento** — não implementada
-neste ciclo, por instrução explícita do mandato.
+**Pedidos Estruturados e Vinculados ao Atendimento** — implementada no
+ciclo seguinte. Ver `docs/PEDIDOS_ESTRUTURADOS.md`.

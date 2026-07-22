@@ -324,26 +324,37 @@ o checkbox). Ver `docs/SECURITY_MODEL.md` e
   conversa**: como o widget da loja não pede telefone/e-mail ao cliente, a
   maioria das conversas novas cai em "cliente não identificado" até a equipe
   preencher esses campos manualmente ou vincular/cadastrar na mão.
-- **Vínculo de pedido é sempre manual**: `pedidos.cliente`/`pedidos.produtos`
-  continuam texto livre (achado da Fase 1); não há como cruzar
-  automaticamente por telefone/e-mail.
-- **"Produtos mais comprados"** é uma contagem por texto idêntico do campo
-  `pedidos.produtos` (não por `produtoId`) — só fica preciso se a equipe
-  digitar o pedido de forma consistente.
+- **Vínculo de pedido↔cliente por telefone/e-mail continua sendo manual**:
+  `pedidos.cliente` continua texto livre; não há como cruzar
+  automaticamente por telefone/e-mail (isso não muda com Pedidos
+  Estruturados — ver `docs/PEDIDOS_ESTRUTURADOS.md`).
+- ~~"Produtos mais comprados" é uma contagem por texto idêntico~~ —
+  **resolvido no ciclo "Pedidos Estruturados"**: pedidos criados com
+  itens do catálogo (`produtoId` real) agora contam com precisão;
+  pedidos antigos em texto livre continuam contribuindo pelo
+  best-effort, como sempre foi. "Produto de interesse → pedido real"
+  também passou a existir (selo "Convertido em pedido").
 - Sem testes de UI automatizados (Playwright) cobrindo o fluxo completo de
   login real neste ciclo (mesma limitação já registrada em
   `docs/CENTRAL_ATENDIMENTO.md`) — verificação foi por 38 testes unitários de
   lógica pura (`tests/crm360.test.mjs`), pela suíte de Rules (121 testes) e
   por inspeção de DOM/console num Chromium headless local.
 
+## Fase 12 (ciclo seguinte) — Pedidos Estruturados
+
+Resolvido no ciclo "Pedidos Estruturados e Vinculados ao Atendimento":
+`pedidos.itens` (produtoId real, snapshot de nome/preço) passou a existir
+como campo opcional. `calcularResumoComercial()` agora usa
+`contarProdutosMaisComprados()` (`pedidos-estruturados.js`), que agrupa
+por `produtoId` quando disponível e cai no texto livre (best-effort) só
+para pedidos antigos sem `itens`. Ver `docs/PEDIDOS_ESTRUTURADOS.md`.
+
 ## Próximas fases sugeridas
 
-1. Estruturar `pedidos.itens`/`pedidos.produtoId` (hoje texto livre) para
-   permitir "produtos mais comprados" e "produtos de interesse ↔ pedido real"
-   precisos, sem depender de correspondência de texto.
-2. Entrada de navegação própria para o CRM (hoje só alcançável de dentro de
-   uma conversa), destravando a permissão `crm` isolada de `atendimento`.
-3. Ativar Firebase Anonymous Auth no widget público (já listado como bloqueio
+1. Entrada de navegação própria para o CRM (hoje só alcançável de dentro de
+   uma conversa) — a permissão em si já pode ser concedida pela tela de
+   acessos desde o ciclo "Templates Avançados".
+2. Ativar Firebase Anonymous Auth no widget público (já listado como bloqueio
    externo em `docs/ROADMAP_RD3_STATUS.md`) para permitir correspondência por
    `authUid` desde o primeiro contato, reduzindo o volume de "cliente não
    identificado".
