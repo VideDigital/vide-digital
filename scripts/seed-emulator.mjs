@@ -126,8 +126,11 @@ await setDoc("funcionarios/employee-edit", {
   status: "ativo",
   cargo: "Operação",
   permissoes: {
-    ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia"],
-    editar: ["produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia"]
+    // "ia-copilot" só no editor, nunca no leitor: valida no UI/Rules que a
+    // permissão do copiloto de IA é concedida à parte de "atendimento",
+    // nunca implícita nele.
+    ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot"],
+    editar: ["produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot"]
   }
 });
 
