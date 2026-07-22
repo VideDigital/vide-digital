@@ -253,14 +253,22 @@ ambígua (aviso amarelo com os candidatos), vazio por seção (nunca
 ## Fase 10 — Permissões
 
 Chave canônica **`crm`**; aliases: `clientes`, `crm-360`, `crm_360`,
-`observacoes_clientes`, `tags_clientes`. Como o CRM só é alcançável de dentro
-de uma conversa da Central de Atendimento, `podeVerCRM`/`podeEditarCRM`
-sempre aceitam quem já tem permissão em `atendimento` OU a permissão dedicada
-`crm` — a arquitetura atual não separa "visualizar CRM" de "visualizar
-atendimento" na navegação (limitação assumida, ver abaixo). Dentro do CRM já
-aberto, o modelo continua ver/editar grosso (não há "ver contato" sem "ver
-valores" como permissões distintas — mandato pediu separar "conforme a
-arquitetura atual", que hoje é só ver/editar por módulo).
+`observacoes_clientes`, `tags_clientes`. `podeVer()`/`podeEditar()` (em
+`crm360.js`) aceitam quem tem permissão em `crm` OU em `atendimento` — quem só
+tem `atendimento` continua abrindo o CRM de dentro de uma conversa (drawer),
+e quem só tem `crm` (sem `atendimento`) acessa a entrada de menu própria
+("CRM 360 do Cliente" na navegação lateral e no Hub) com a lista completa de
+clientes do tenant, sem precisar da Central de Atendimento. As duas
+permissões são independentes — corrigido nesta fase um achado de auditoria em
+que `core/vide-context.js` tratava `"crm"` como alias de `"leads"` no
+frontend (`normalizeModuleKey`), embora `firestore.rules`
+(`employeeHasModulePermission`) sempre tratasse `"crm"` como permissão
+própria; a tabela de aliases foi extraída para `core/vide-module-aliases.js`
+(módulo puro, sem import de Firebase) para eliminar a duplicação que causou o
+desalinhamento. Dentro do CRM já aberto, o modelo continua ver/editar grosso
+(não há "ver contato" sem "ver valores" como permissões distintas — mandato
+pediu separar "conforme a arquitetura atual", que hoje é só ver/editar por
+módulo).
 
 ## Fase 12 — Consultas e índices
 
@@ -310,11 +318,6 @@ o checkbox). Ver `docs/SECURITY_MODEL.md` e
 
 ## Limitações conhecidas
 
-- **CRM só é alcançável de dentro do Atendimento**: um funcionário com
-  permissão `crm` mas sem `atendimento` teoricamente passaria nas Rules, mas
-  não tem hoje nenhum botão de UI para chegar lá (o botão "Dados do cliente"
-  vive dentro da Central de Atendimento). Corrigir exigiria uma entrada de
-  navegação própria para o CRM.
 - **`ultimaInteracaoEm` só avança quando a equipe responde pelo painel**;
   mensagens do cliente pela loja pública não atualizam esse campo (o widget
   público não tem noção de `clienteId`/CRM). Isso pode fazer o alerta de
@@ -336,9 +339,10 @@ o checkbox). Ver `docs/SECURITY_MODEL.md` e
   também passou a existir (selo "Convertido em pedido").
 - Sem testes de UI automatizados (Playwright) cobrindo o fluxo completo de
   login real neste ciclo (mesma limitação já registrada em
-  `docs/CENTRAL_ATENDIMENTO.md`) — verificação foi por 38 testes unitários de
-  lógica pura (`tests/crm360.test.mjs`), pela suíte de Rules (121 testes) e
-  por inspeção de DOM/console num Chromium headless local.
+  `docs/CENTRAL_ATENDIMENTO.md`) — verificação foi por 46 testes unitários de
+  lógica pura (`tests/crm360.test.mjs`), pela suíte de Rules (153 testes) e
+  por inspeção de DOM/console num Chromium headless local (confirmado sem
+  erros de JS não relacionados a rede na entrada de navegação do CRM 360).
 
 ## Fase 12 (ciclo seguinte) — Pedidos Estruturados
 
@@ -349,12 +353,29 @@ como campo opcional. `calcularResumoComercial()` agora usa
 por `produtoId` quando disponível e cai no texto livre (best-effort) só
 para pedidos antigos sem `itens`. Ver `docs/PEDIDOS_ESTRUTURADOS.md`.
 
+## Fase 15 (ciclo seguinte) — Navegação própria
+
+Resolvido no ciclo "CRM 360: navegação própria": entrada de menu dedicada
+("CRM 360 do Cliente", `#view-crm360`) e card no Hub, seguindo exatamente o
+mesmo padrão de `view-atendimento` (`data-target`/`data-module-permission`
+no botão de nav e no card, entrada em `PERMISSOES_NAV`, gatilho de carga em
+`ativarAba`). A view lista todos os clientes do tenant
+(`carregarListaClientes`, query única `where("tenantId","==",...)` +
+`limit(500)`) com busca por nome/telefone/e-mail, filtro por status de
+relacionamento e ordenação (recentes/nome) — tudo em memória
+(`filtrarListaClientes`/`ordenarListaClientes`, funções puras testadas em
+`tests/crm360.test.mjs`). Clicar num cliente abre o mesmo drawer já existente
+(`abrirParaClienteId`), sem duplicar nenhuma lógica de carregamento de
+perfil. Corrigido junto o achado de auditoria da permissão `crm` (ver Fase
+10 acima).
+
 ## Próximas fases sugeridas
 
-1. Entrada de navegação própria para o CRM (hoje só alcançável de dentro de
-   uma conversa) — a permissão em si já pode ser concedida pela tela de
-   acessos desde o ciclo "Templates Avançados".
-2. Ativar Firebase Anonymous Auth no widget público (já listado como bloqueio
+1. Ativar Firebase Anonymous Auth no widget público (já listado como bloqueio
    externo em `docs/ROADMAP_RD3_STATUS.md`) para permitir correspondência por
    `authUid` desde o primeiro contato, reduzindo o volume de "cliente não
    identificado".
+2. Paginação real na lista de clientes (`carregarListaClientes` usa
+   `limit(500)` fixo) para tenants com histórico muito grande — hoje
+   suficiente pra qualquer loja em operação normal, mas não escala
+   indefinidamente.
