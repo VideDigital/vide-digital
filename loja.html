@@ -1501,8 +1501,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     emailDono: fornecedorEmail,
                     clienteNome: txt.slice(0, 120),
                     statusAdmin: "pendente",
+                    status: "nova",
+                    canal: "loja_publica",
                     utmSource: (utmSourceCapturada || "").toString().slice(0, 120),
-                    timestamp: Date.now()
+                    timestamp: Date.now(),
+                    naoLidasLoja: 1
                 });
                 salaChatId = chatRef.id;
                 input.value = "";
@@ -1539,7 +1542,9 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 await setDoc(doc(db, "chats", salaChatId), {
                     ultimaMensagem: txtLimitado,
                     statusAdmin: "pendente",
-                    atualizadoEm: Date.now()
+                    status: "aguardando_equipe",
+                    atualizadoEm: Date.now(),
+                    naoLidasLoja: increment(1)
                 }, { merge: true });
                 input.value = "";
                 clearTimeout(timeoutRedirecionamentoWhats);

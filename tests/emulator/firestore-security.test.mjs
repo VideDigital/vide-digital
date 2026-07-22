@@ -14,6 +14,7 @@ import {
   doc,
   getDoc,
   getDocs,
+  increment,
   or,
   query,
   serverTimestamp,
@@ -864,6 +865,17 @@ describe("chats: atualização pública (mensagem do cliente) preserva contrato 
       status: "aguardando_equipe",
       atualizadoEm: Date.now(),
       naoLidasLoja: 2
+    }));
+  });
+
+  it("widget da loja pública usa increment() (mesma chamada de loja.html) e a regra resolve o valor certo", async () => {
+    await semearChat("chatUpd1b", { naoLidasLoja: 1 });
+    await assertSucceeds(updateDoc(doc(anon(), "chats", "chatUpd1b"), {
+      ultimaMensagem: "Nova mensagem via increment",
+      statusAdmin: "pendente",
+      status: "aguardando_equipe",
+      atualizadoEm: Date.now(),
+      naoLidasLoja: increment(1)
     }));
   });
 

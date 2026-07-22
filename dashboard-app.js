@@ -4136,6 +4136,15 @@ btn.classList.add("opacity-40");
         atendimentoController.bindEventos();
         window.atendimentoController = atendimentoController;
 
+        // Navegação a partir de uma notificação de atendimento: nunca abre
+        // uma conversa por um id "solto" — abrirConversaPorId só mostra a
+        // conversa se ela já pertencer à lista carregada do próprio tenant.
+        window.abrirConversaAtendimentoPorNotificacao = async function(id) {
+            if (!ativarAba("view-atendimento")) return;
+            await atendimentoController.load();
+            await atendimentoController.abrirConversaPorId(id);
+        };
+
         document.getElementById("ia-tentar-novamente")?.addEventListener("click", () => {
             centralIAController.load({ force: true });
         });
@@ -16113,7 +16122,8 @@ async function() {
         const PRIORIDADE_NOTIFICACAO = {
             pedido: { nivel: "alta", label: "Prioridade alta" },
             avaliacao: { nivel: "media", label: "Prioridade média" },
-            lead: { nivel: "media", label: "Prioridade média" }
+            lead: { nivel: "media", label: "Prioridade média" },
+            atendimento: { nivel: "alta", label: "Prioridade alta" }
         };
 
         // Destinos de navegação seguros para um aviso do admin. Hoje
@@ -16242,6 +16252,36 @@ async function() {
             } catch (e) { /* pedidos indisponível: ignora esta fonte */ }
 
             try {
+                // Deriva do estado atual da conversa (mesmo padrão de leads/
+                // pedidos/avaliações acima) — não é um log de eventos, então
+                // "atribuída"/"transferência"/"reaberta" não viram avisos
+                // distintos aqui, só o estado "precisa de resposta" (nova ou
+                // aguardando_equipe, que cobre inclusive cliente respondendo
+                // depois de uma conversa encerrada).
+                const [porDono, porEmail] = await Promise.all([
+                    getDocs(query(collection(db, "chats"), where("donoUID", "==", usuarioUID), limit(200))),
+                    getDocs(query(collection(db, "chats"), where("emailDono", "==", usuarioUID), limit(200)))
+                ]);
+                const mapaChats = new Map();
+                porDono.forEach(d => mapaChats.set(d.id, { id: d.id, ...d.data() }));
+                porEmail.forEach(d => mapaChats.set(d.id, { id: d.id, ...d.data() }));
+                const pendentes = Array.from(mapaChats.values()).filter(c => c.status === "nova" || c.status === "aguardando_equipe");
+                pendentes.sort((a, b) => normalizarMs(b.atualizadoEm || b.timestamp) - normalizarMs(a.atualizadoEm || a.timestamp));
+                pendentes.slice(0, 10).forEach(c => {
+                    const trecho = c.ultimaMensagem ? `: “${esc(String(c.ultimaMensagem).slice(0, 80))}”` : "";
+                    eventos.push({
+                        id: `atendimento-${c.id}`,
+                        origem: "negocio",
+                        tipo: "atendimento",
+                        titulo: c.status === "nova" ? "Nova conversa" : "Conversa aguardando resposta",
+                        mensagem: `${esc(c.clienteNome || "Cliente")}${trecho}`,
+                        criadoEm: normalizarMs(c.atualizadoEm || c.timestamp),
+                        acao: `abrirConversaAtendimentoPorNotificacao('${c.id}')`
+                    });
+                });
+            } catch (e) { /* atendimento indisponível: ignora esta fonte */ }
+
+            try {
                 if (typeof temFeature !== "function" || temFeature("avaliacoes")) {
                     const snap = await getDocs(query(collection(db, "avaliacoes"), where("criadoPor", "==", usuarioUID), limit(200)));
                     const pendentes = [];
@@ -16271,7 +16311,8 @@ async function() {
         const ICONES_EVENTO_NOTIFICACAO = {
             lead: '<path d="M12 12.8a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"></path><path d="M5 20a7 7 0 0 1 14 0"></path>',
             pedido: '<path d="m6 2-3 4v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path>',
-            avaliacao: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>'
+            avaliacao: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>',
+            atendimento: '<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>'
         };
 
         // Renderiza um item da lista completa (página "Notificações"). O
@@ -16391,6 +16432,7 @@ async function() {
             { chave: "todas", label: "Todas" },
             { chave: "nao-lidas", label: "Não lidas" },
             { chave: "lidas", label: "Lidas" },
+            { chave: "atendimento", label: "Atendimento" },
             { chave: "lead", label: "Leads" },
             { chave: "pedido", label: "Pedidos" },
             { chave: "avaliacao", label: "Avaliações" },
