@@ -3156,6 +3156,140 @@ textarea:focus{
   box-shadow:0 0 10px rgba(52,211,153,.7);
 }
 
+.aura-notifications-feed-actions{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.aura-notifications-markall-btn,
+.aura-notifications-refresh-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:30px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid var(--aura-border);
+  background:color-mix(in srgb,var(--aura-surface-soft) 55%,transparent);
+  color:var(--aura-text-secondary);
+  font-size:9px;
+  font-weight:800;
+  letter-spacing:.04em;
+  text-transform:uppercase;
+  cursor:pointer;
+  transition:background .18s var(--rd-ease), color .18s var(--rd-ease), opacity .18s var(--rd-ease);
+}
+
+.aura-notifications-refresh-btn{ padding:0; width:30px; min-width:30px; justify-content:center; }
+
+.aura-notifications-markall-btn svg,
+.aura-notifications-refresh-btn svg{
+  width:13px;
+  height:13px;
+  stroke-width:2.2;
+}
+
+.aura-notifications-markall-btn:hover,
+.aura-notifications-refresh-btn:hover{
+  background:color-mix(in srgb,var(--aura-primary) 12%,transparent);
+  color:var(--aura-primary);
+}
+
+.aura-notifications-markall-btn:disabled{
+  opacity:.5;
+  cursor:default;
+  pointer-events:none;
+}
+
+.aura-notifications-filtros{
+  position:relative;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  padding-top:16px;
+}
+
+.aura-notifications-filtro-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  min-height:31px;
+  padding:0 12px;
+  border-radius:999px;
+  border:1px solid var(--aura-border);
+  background:transparent;
+  color:var(--aura-text-muted);
+  font-size:10px;
+  font-weight:750;
+  cursor:pointer;
+  transition:background .18s var(--rd-ease), border-color .18s var(--rd-ease), color .18s var(--rd-ease);
+}
+
+.aura-notifications-filtro-btn:hover{
+  color:var(--aura-text);
+  border-color:color-mix(in srgb,var(--aura-primary) 25%,transparent);
+}
+
+.aura-notifications-filtro-btn.is-active{
+  color:var(--aura-primary);
+  border-color:color-mix(in srgb,var(--aura-primary) 40%,transparent);
+  background:color-mix(in srgb,var(--aura-primary) 10%,transparent);
+}
+
+.aura-notifications-filtro-count{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:17px;
+  height:17px;
+  padding:0 5px;
+  border-radius:999px;
+  background:color-mix(in srgb,var(--aura-text-muted) 18%,transparent);
+  color:inherit;
+  font-size:9px;
+  font-weight:800;
+}
+
+.aura-notifications-filtro-btn.is-active .aura-notifications-filtro-count{
+  background:color-mix(in srgb,var(--aura-primary) 25%,transparent);
+}
+
+/* Prioridade dos eventos de negócio: um ponto discreto na linha do
+   título, com o rótulo acessível via title/aria-label. */
+.aura-notification-priority{
+  display:inline-block;
+  width:7px;
+  height:7px;
+  border-radius:50%;
+  margin-left:2px;
+}
+
+.aura-notification-priority.is-alta{
+  background:#F87171;
+  box-shadow:0 0 8px rgba(248,113,113,.6);
+}
+
+.aura-notification-priority.is-media{
+  background:#F59E0B;
+  box-shadow:0 0 8px rgba(245,158,11,.5);
+}
+
+/* Esqueleto de carregamento da lista de notificações */
+.aura-notification-skel{ pointer-events:none; }
+.aura-notification-skel-icon{
+  width:56px;
+  height:56px;
+  min-width:56px;
+  border-radius:16px;
+}
+
+.aura-notifications-erro strong{ color:var(--aura-text); }
+
 .aura-notifications-list{
   position:relative;
   z-index:2;
@@ -3704,12 +3838,28 @@ span{
     width:100%;
     justify-content:space-between;
   }
+
+  .aura-notifications-feed-actions{
+    width:100%;
+    justify-content:flex-start;
+  }
 }
 
 @media (max-width:520px){
   .aura-notifications-feed-header{
     align-items:flex-start;
     flex-direction:column;
+  }
+
+  .aura-notifications-filtros{
+    flex-wrap:nowrap;
+    overflow-x:auto;
+    padding-bottom:2px;
+    -webkit-overflow-scrolling:touch;
+  }
+
+  .aura-notifications-filtro-btn{
+    flex:0 0 auto;
   }
 
   .aura-notification-item{

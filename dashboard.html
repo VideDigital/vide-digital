@@ -3776,6 +3776,8 @@ stroke="currentColor">
 
 </div>
 
+<div class="aura-notifications-feed-actions">
+
 <span class="aura-notifications-feed-status">
 
 <i></i>
@@ -3784,6 +3786,36 @@ Sincronizada
 
 </span>
 
+<button type="button"
+id="notif-marcar-todas-btn"
+class="aura-notifications-markall-btn"
+aria-label="Marcar todas as notificações como lidas"
+onclick="marcarTodasNotificacoesLidas()">
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 7 17l-5-5"></path><path d="m22 10-7.5 7.5L13 16"></path></svg>
+
+Marcar todas como lidas
+
+</button>
+
+<button type="button"
+class="aura-notifications-refresh-btn"
+aria-label="Atualizar lista de notificações"
+title="Atualizar"
+onclick="recarregarNotificacoes()">
+
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"></path><path d="M21 4v6h-6"></path></svg>
+
+</button>
+
+</div>
+
+</div>
+
+<div id="notif-filtros-container"
+class="aura-notifications-filtros"
+role="tablist"
+aria-label="Filtrar notificações por status ou categoria">
 </div>
 
 <div id="lista-notificacoes-cliente"
