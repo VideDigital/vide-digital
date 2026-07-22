@@ -10,6 +10,7 @@ const MODULES = new Set([
   "metricas",
   "funcionarios",
   "configuracoes",
+  "central-ia",
   "landing-pages"
 ]);
 

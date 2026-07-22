@@ -1,6 +1,7 @@
 import { auth, db } from "./firebase-init.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { VideFunctions } from "./core/vide-functions.js";
+import { criarCentralIAController } from "./central-ia.js";
 
 // Se a página voltar da memória do navegador (botão Avançar/Voltar), força recarregar
 // de verdade, pra sempre revalidar login/inatividade em vez de mostrar a versão congelada.
@@ -698,6 +699,7 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
             { key: "campanhas", label: "Campanhas" },
             { key: "metricas", label: "Métricas" },
             { key: "configuracoes", label: "Configurações da Loja" },
+            { key: "central-ia", label: "Central de IA" },
             { key: "landing-pages", label: "Landing Pages / Studio" },
             { key: "funcionarios", label: "Funcionários" }
         ];
@@ -2256,6 +2258,10 @@ if (targetId === "view-metricas") {
         carregarAutomacaoLeads();
     }
 
+    if (targetId === "view-central-ia") {
+        centralIAController.load();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3765,6 +3771,7 @@ if (document.readyState === "loading") {
             "view-campanhas": "campanhas",
             "view-metricas": "metricas",
             "view-personalizacao": "configuracoes",
+            "view-central-ia": "central-ia",
             "view-funcionarios": "funcionarios",
             "view-landing-pages": "landing-pages"
         };
@@ -4003,6 +4010,17 @@ btn.classList.add("opacity-40");
 
             setTimeout(removerToast, 4000);
         }
+
+        const centralIAController = criarCentralIAController({
+            db,
+            context: VideHubContext,
+            firestore: { doc, getDoc, setDoc, serverTimestamp },
+            notify: showToast
+        });
+
+        window.carregarConfiguracaoIA = function(opcoes) {
+            return centralIAController.load(opcoes);
+        };
 
         // ELEMENTOS EM TEMPO REAL (MUDANÇA INSTANTÂNEA)
         const inputsReflexao = ['perf-nome-loja', 'perf-slug', 'perf-titulo', 'perf-subtitulo'];
@@ -7061,6 +7079,11 @@ await setDoc(doc(db, "landing_pages", novoId), {
                             if (badgeExistente) badgeExistente.remove();
                         }
                     });
+
+                    document.querySelectorAll("[data-module-permission]").forEach(element => {
+                        const moduleKey = element.getAttribute("data-module-permission");
+                        element.classList.toggle("hidden", !VideHubContext.canView(moduleKey));
+                    });
                     window._planoCarregado = true;
 
                     // MOSTRAR BADGE DO PLANO NO SIDEBAR (sem duplicar em recargas)
@@ -7081,9 +7104,18 @@ await setDoc(doc(db, "landing_pages", novoId), {
                     window._planoCarregado = true;
                     window._featureBloqueio = {};
                     document.querySelectorAll("#sidebar-nav button[data-target]").forEach(btn => {
+                        const moduloPermissao = moduloPermissaoPorAba(btn.getAttribute("data-target"));
+                        btn.classList.toggle(
+                            "hidden",
+                            Boolean(moduloPermissao && !VideHubContext.canView(moduloPermissao))
+                        );
                         btn.classList.remove("opacity-40");
                         const badgeExistente = btn.querySelector(".cadeado-badge");
                         if (badgeExistente) badgeExistente.remove();
+                    });
+                    document.querySelectorAll("[data-module-permission]").forEach(element => {
+                        const moduleKey = element.getAttribute("data-module-permission");
+                        element.classList.toggle("hidden", !VideHubContext.canView(moduleKey));
                     });
                 }
 

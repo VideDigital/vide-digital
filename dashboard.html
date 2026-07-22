@@ -12,6 +12,7 @@
 <link rel="stylesheet" href="./foundation.css">
 <link rel="stylesheet" href="./dashboard-modules.css">
 <link rel="stylesheet" href="./business-modules.css">
+<link rel="stylesheet" href="./central-ia.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
 <link rel="stylesheet" href="./late-overrides.css">
 <link rel="stylesheet" href="./studio-pro.css?v=200">
@@ -291,6 +292,10 @@ Leads
 <button data-target="view-automacao-leads" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
 Automação de Leads
+</button>
+<button data-target="view-central-ia" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1" aria-label="Abrir Central de IA">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 5h1M19 5h1M3 10h2M19 10h2"></path></svg>
+Central de IA
 </button>
 <button data-target="view-templates" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"></path></svg>
@@ -861,7 +866,7 @@ Navegação inteligente
 
 <span class="aura-hub-badge">
 
-18 módulos
+19 módulos
 
 </span>
 
@@ -936,6 +941,7 @@ HUB
 <div class="aura-hub-card" data-nome="pixels domínio dominio rastreamento" onclick="ativarAba('view-dominios')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M2 12h20"/><path d="M12 2a15 15 0 0 1 0 20 15 15 0 0 1 0-20Z"/></svg></span><span class="aura-hub-card-text"><strong>Pixels &amp; Domínio</strong><small>Rastreamento, pixels e domínio próprio</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="leads capturas contatos funil" onclick="ativarAba('view-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span class="aura-hub-card-text"><strong>Leads (Capturas)</strong><small>Contatos capturados e funil de vendas</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="automação de leads automacao regras disparos" onclick="ativarAba('view-automacao-leads')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg></span><span class="aura-hub-card-text"><strong>Automação de Leads</strong><small>Regras e disparos automáticos</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
+<div class="aura-hub-card hidden" data-target="view-central-ia" data-module-permission="central-ia" data-nome="central de ia inteligência artificial inteligencia artificial assistente automação automacao chatbot atendimento" onclick="ativarAba('view-central-ia')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"/><path d="M4 5h1M19 5h1M3 10h2M19 10h2"/></svg></span><span class="aura-hub-card-text"><strong>Central de IA</strong><small>Configure a assistente virtual da sua loja</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="templates mensagens prontas" onclick="ativarAba('view-templates')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></span><span class="aura-hub-card-text"><strong>Templates</strong><small>Mensagens prontas de atendimento</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="campanhas marketing disparos" onclick="ativarAba('view-campanhas')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span><span class="aura-hub-card-text"><strong>Campanhas</strong><small>Marketing e disparos em massa</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
 <div class="aura-hub-card" data-nome="landing pages lp páginas conversão" onclick="ativarAba('view-landing-pages')"><span class="aura-hub-card-icon" style="color:var(--sys-primaria,#5B3DF5)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></span><span class="aura-hub-card-text"><strong>Landing Pages</strong><small>Páginas de conversão da sua marca</small></span><svg class="aura-hub-card-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg></div>
@@ -3417,6 +3423,175 @@ class="aura-metrics-chart-labels"
 
 </div>
 
+</section>
+
+<section id="view-central-ia" class="view-section central-ia-view max-w-6xl mx-auto" aria-labelledby="central-ia-title">
+<header class="central-ia-header">
+<div class="central-ia-heading">
+<span class="central-ia-heading-icon" aria-hidden="true">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"></path><path d="M4 5h1M19 5h1M3 10h2M19 10h2"></path></svg>
+</span>
+<div>
+<p class="central-ia-eyebrow">Inteligência artificial</p>
+<h2 id="central-ia-title" class="central-ia-title">Central de IA</h2>
+<p class="central-ia-description">Configure como a assistente virtual da sua loja deverá agir.</p>
+</div>
+</div>
+<div class="central-ia-header-actions">
+<span id="ia-status-badge" class="central-ia-status-badge">IA desativada</span>
+<button id="ia-salvar" type="submit" form="central-ia-form" class="central-ia-save" disabled>Salvar configurações</button>
+</div>
+</header>
+
+<div id="ia-unsaved-status" class="central-ia-state-line" aria-live="polite">Configurações atualizadas</div>
+<div id="ia-load-error" class="central-ia-load-error" role="alert"></div>
+
+<div id="ia-loading" class="central-ia-loading" aria-live="polite">
+<div class="central-ia-skeleton is-title"></div>
+<div class="central-ia-skeleton"></div>
+<div class="central-ia-skeleton is-short"></div>
+<span class="sr-only">Carregando configurações da Central de IA.</span>
+</div>
+
+<div id="ia-content" class="hidden">
+<div id="ia-readonly-notice" class="central-ia-readonly-notice" role="status" hidden>
+Você pode consultar esta configuração, mas não possui permissão para editá-la.
+</div>
+
+<form id="central-ia-form" novalidate>
+<fieldset id="ia-fieldset">
+<legend class="sr-only">Configurações da assistente virtual</legend>
+<div class="central-ia-layout">
+<div class="central-ia-main">
+
+<article class="central-ia-card">
+<div class="central-ia-card-head">
+<div><h3>Status da inteligência artificial</h3><p>Controla o funcionamento geral dos recursos de inteligência artificial desta loja.</p></div>
+<div class="central-ia-switch-control">
+<span class="central-ia-switch-state" data-switch-state-for="ia-ativo">Desativada</span>
+<input id="ia-ativo" class="central-ia-switch" type="checkbox" role="switch" aria-label="Ativar inteligência artificial" aria-checked="false">
+</div>
+</div>
+<p class="central-ia-provider-note">A estrutura está configurada. A conexão com o provedor de IA será adicionada em uma próxima etapa.</p>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Identidade da assistente</h3><p>Defina como a assistente será apresentada aos clientes.</p></div></div>
+<div class="central-ia-field-grid">
+<div class="central-ia-field">
+<label for="ia-nome-assistente">Nome da assistente</label>
+<input id="ia-nome-assistente" class="central-ia-input" type="text" minlength="2" maxlength="40" autocomplete="off" aria-describedby="ia-erro-nome">
+<div class="central-ia-field-meta"><span id="ia-erro-nome" class="central-ia-error" data-ia-error-for="nomeAssistente"></span></div>
+</div>
+<div class="central-ia-field">
+<label for="ia-idioma">Idioma</label>
+<select id="ia-idioma" class="central-ia-select" aria-describedby="ia-erro-idioma">
+<option value="pt-BR">Português do Brasil</option><option value="en">Inglês</option><option value="es">Espanhol</option><option value="automatico">Automático</option>
+</select>
+<div class="central-ia-field-meta"><span id="ia-erro-idioma" class="central-ia-error" data-ia-error-for="idioma"></span></div>
+</div>
+<div class="central-ia-field is-full">
+<label for="ia-mensagem-apresentacao">Mensagem de apresentação</label>
+<textarea id="ia-mensagem-apresentacao" class="central-ia-textarea" maxlength="300" aria-describedby="ia-erro-apresentacao ia-contador-apresentacao"></textarea>
+<div class="central-ia-field-meta"><span id="ia-erro-apresentacao" class="central-ia-error" data-ia-error-for="mensagemApresentacao"></span><span id="ia-contador-apresentacao" class="central-ia-counter">0/300</span></div>
+</div>
+</div>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Personalidade</h3><p>Escolha o estilo principal da comunicação.</p></div></div>
+<input id="ia-personalidade" type="hidden" value="amigavel">
+<div class="central-ia-choice-grid" role="group" aria-label="Personalidade da assistente">
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="amigavel" aria-pressed="true"><strong>Amigável</strong><span>Conversa de forma acolhedora e próxima.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="profissional" aria-pressed="false"><strong>Profissional</strong><span>Mantém uma comunicação formal e objetiva.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="direta" aria-pressed="false"><strong>Direta</strong><span>Responde de forma curta e sem informações desnecessárias.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="consultiva" aria-pressed="false"><strong>Consultiva</strong><span>Faz perguntas para entender melhor a necessidade do cliente.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="vendedora" aria-pressed="false"><strong>Vendedora</strong><span>Ajuda o cliente a escolher produtos e avançar na compra.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="suporte" aria-pressed="false"><strong>Suporte</strong><span>Prioriza dúvidas, problemas e orientações.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="personalidade" data-value="personalizada" aria-pressed="false"><strong>Personalizada</strong><span>Segue principalmente as instruções escritas pelo lojista.</span></button>
+</div>
+<span class="central-ia-error" data-ia-error-for="personalidade"></span>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Tamanho das respostas</h3><p>A temperatura será definida no backend quando um provedor for conectado.</p></div></div>
+<input id="ia-tamanho-resposta" type="hidden" value="media">
+<div class="central-ia-choice-grid is-three" role="group" aria-label="Tamanho das respostas">
+<button type="button" class="central-ia-choice" data-ia-option-group="tamanhoResposta" data-value="curta" aria-pressed="false"><strong>Curta</strong><span>Respostas objetivas, com poucas frases.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="tamanhoResposta" data-value="media" aria-pressed="true"><strong>Média</strong><span>Equilíbrio entre objetividade e explicação.</span></button>
+<button type="button" class="central-ia-choice" data-ia-option-group="tamanhoResposta" data-value="detalhada" aria-pressed="false"><strong>Detalhada</strong><span>Respostas mais completas quando necessário.</span></button>
+</div>
+<span class="central-ia-error" data-ia-error-for="tamanhoResposta"></span>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Instruções personalizadas</h3><p>Essas instruções serão usadas futuramente para controlar o comportamento da assistente.</p></div></div>
+<div class="central-ia-field">
+<label for="ia-instrucoes">Instruções da assistente</label>
+<textarea id="ia-instrucoes" class="central-ia-textarea is-large" maxlength="5000" placeholder="Nunca invente preços, prazos ou políticas.&#10;&#10;Não ofereça descontos sem autorização.&#10;&#10;Quando não souber uma resposta, informe que encaminhará o atendimento para a equipe.&#10;&#10;Sempre use apenas informações cadastradas pela loja." aria-describedby="ia-erro-instrucoes ia-contador-instrucoes"></textarea>
+<div class="central-ia-field-meta"><span id="ia-erro-instrucoes" class="central-ia-error" data-ia-error-for="instrucoes"></span><span id="ia-contador-instrucoes" class="central-ia-counter">0/5.000</span></div>
+</div>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Locais de uso</h3><p>Prepare os canais que poderão usar a assistente nas próximas fases.</p></div><span class="central-ia-future-badge">Em breve</span></div>
+<div class="central-ia-switch-row"><div class="central-ia-switch-copy"><strong>Loja pública <span class="central-ia-future-badge">Em breve</span></strong><p>Permite usar a assistente no futuro chat da loja pública.</p></div><input id="ia-canal-lojaPublica" class="central-ia-switch" type="checkbox" role="switch" aria-label="Preparar IA para loja pública" aria-checked="false"></div>
+<div class="central-ia-switch-row"><div class="central-ia-switch-copy"><strong>Sugestões para funcionários <span class="central-ia-future-badge">Em breve</span></strong><p>Permite gerar sugestões de resposta durante o atendimento.</p></div><input id="ia-canal-sugestoesFuncionarios" class="central-ia-switch" type="checkbox" role="switch" aria-label="Preparar sugestões para funcionários" aria-checked="false"></div>
+<div class="central-ia-switch-row"><div class="central-ia-switch-copy"><strong>Respostas automáticas <span class="central-ia-future-badge">Em breve</span></strong><p>Permite que a IA responda sem aprovação de um funcionário.</p></div><input id="ia-canal-respostasAutomaticas" class="central-ia-switch" type="checkbox" role="switch" aria-label="Preparar respostas automáticas" aria-checked="false"></div>
+<div class="central-ia-switch-row"><div class="central-ia-switch-copy"><strong>Criação de conteúdo <span class="central-ia-future-badge">Em breve</span></strong><p>Permite usar IA em descrições de produtos, campanhas e textos.</p></div><input id="ia-canal-criacaoConteudo" class="central-ia-switch" type="checkbox" role="switch" aria-label="Preparar criação de conteúdo" aria-checked="false"></div>
+<div class="central-ia-switch-row"><div class="central-ia-switch-copy"><strong>WhatsApp <span class="central-ia-future-badge">Em breve</span></strong><p>Prepara a assistente para a futura integração oficial com WhatsApp.</p></div><input id="ia-canal-whatsapp" class="central-ia-switch" type="checkbox" role="switch" aria-label="Preparar integração com WhatsApp" aria-checked="false"></div>
+<span class="central-ia-error" data-ia-error-for="canais"></span>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Comportamento do atendimento</h3><p>Defina quando respostas automáticas poderão ser usadas futuramente.</p></div></div>
+<div class="central-ia-field">
+<label for="ia-modo-resposta">Quando a IA poderá responder</label>
+<select id="ia-modo-resposta" class="central-ia-select" aria-describedby="ia-modo-resposta-dependencia ia-erro-modo">
+<option value="nunca">Nunca responder automaticamente</option><option value="sempre">Sempre</option><option value="fora_horario">Fora do horário de atendimento</option><option value="sem_funcionario">Quando nenhum funcionário estiver disponível</option>
+</select>
+<p id="ia-modo-resposta-dependencia" class="central-ia-dependency">Este seletor depende da ativação de respostas automáticas. A seleção atual será preservada.</p>
+<span id="ia-erro-modo" class="central-ia-error" data-ia-error-for="modoRespostaAutomatica"></span>
+</div>
+</article>
+
+<article class="central-ia-card">
+<div class="central-ia-card-head"><div><h3>Mensagem de fallback</h3><p>Resposta preparada para quando a assistente não encontrar uma informação.</p></div></div>
+<div class="central-ia-field">
+<label for="ia-mensagem-fallback">Mensagem quando a IA não souber responder</label>
+<textarea id="ia-mensagem-fallback" class="central-ia-textarea" maxlength="300" required aria-describedby="ia-erro-fallback ia-contador-fallback"></textarea>
+<div class="central-ia-field-meta"><span id="ia-erro-fallback" class="central-ia-error" data-ia-error-for="mensagemFallback"></span><span id="ia-contador-fallback" class="central-ia-counter">0/300</span></div>
+</div>
+</article>
+
+</div>
+
+<aside class="central-ia-aside" aria-label="Resumo e próximas etapas">
+<article class="central-ia-summary-card">
+<h3>Resumo da configuração</h3>
+<div class="central-ia-summary-list" aria-live="polite">
+<div class="central-ia-summary-item"><span>Nome</span><strong id="ia-resumo-nome">Assistente Virtual</strong></div>
+<div class="central-ia-summary-item"><span>Personalidade</span><strong id="ia-resumo-personalidade">Amigável</strong></div>
+<div class="central-ia-summary-item"><span>Idioma</span><strong id="ia-resumo-idioma">Português do Brasil</strong></div>
+<div class="central-ia-summary-item"><span>Resposta</span><strong id="ia-resumo-resposta">Média</strong></div>
+<div class="central-ia-summary-item"><span>Status</span><strong id="ia-resumo-status">Desativada</strong></div>
+<div class="central-ia-summary-item"><span>Canais ativos</span><strong id="ia-resumo-canais">0</strong></div>
+</div>
+</article>
+<article class="central-ia-summary-card">
+<h3>Próximas etapas</h3>
+<div class="central-ia-next-list">
+<div class="central-ia-next-item"><span>Conectar provedor de IA</span><span class="central-ia-future-badge">Próxima etapa</span></div>
+<div class="central-ia-next-item"><span>Criar base de conhecimento</span><span class="central-ia-future-badge">Em breve</span></div>
+<div class="central-ia-next-item"><span>Adicionar chat na loja pública</span><span class="central-ia-future-badge">Em breve</span></div>
+<div class="central-ia-next-item"><span>Adicionar sugestões no atendimento</span><span class="central-ia-future-badge">Em breve</span></div>
+</div>
+</article>
+</aside>
+</div>
+</fieldset>
+</form>
+</div>
 </section>
 
 <section id="view-notificacoes" class="view-section space-y-6 max-w-6xl mx-auto aura-notifications-view">

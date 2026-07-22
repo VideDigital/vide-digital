@@ -39,6 +39,7 @@
             `,
             alvos: [
                 "view-automacao-leads",
+                "view-central-ia",
                 "view-templates",
                 "view-campanhas",
                 "view-landing-pages",
