@@ -482,6 +482,13 @@ service cloud.firestore {
       return (chatData.keys().hasAny(["donoUID"]) && (canEditTenant(chatData.donoUID, "atendimento") || canEditTenant(chatData.donoUID, "leads")))
         || (chatData.keys().hasAny(["emailDono"]) && (canEditTenant(chatData.emailDono, "atendimento") || canEditTenant(chatData.emailDono, "leads")));
     }
+    // Funcionário só-leitura (ver, sem editar) pode acompanhar a conversa
+    // mas não enviar resposta nem mudar status — checado à parte de
+    // podeResponderChat, que exige permissão de editar.
+    function podeVerChat(chatData) {
+      return (chatData.keys().hasAny(["donoUID"]) && (canViewTenant(chatData.donoUID, "atendimento") || canViewTenant(chatData.donoUID, "leads")))
+        || (chatData.keys().hasAny(["emailDono"]) && (canViewTenant(chatData.emailDono, "atendimento") || canViewTenant(chatData.emailDono, "leads")));
+    }
     // "arquivada" não recebe mensagem sem ser reaberta antes (escrita
     // separada de status, feita por quem atende). Docs antigos sem o
     // campo status ainda não existiam quando essa regra foi criada, então
@@ -967,7 +974,7 @@ service cloud.firestore {
             && exists(/databases/$(database)/documents/chats/$(chatId))
             && (
               isBackendAdmin()
-              || podeResponderChat(get(/databases/$(database)/documents/chats/$(chatId)).data)
+              || podeVerChat(get(/databases/$(database)/documents/chats/$(chatId)).data)
             )
           );
         // Cliente cria mensagem "cliente"; dono/funcionário cria "admin".

@@ -972,6 +972,21 @@ describe("mensagens: autoria e transição arquivada", () => {
     }));
   });
 
+  it("funcionário só-leitura acompanha a conversa mas não responde", async () => {
+    await semearFuncionarioAtendimento("employeeAtendReadOnly", { permissoes: { ver: ["atendimento"], editar: [] } });
+    await semearChat("chatMsg5b");
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatMsg5b", "mensagens", "m0"), {
+        texto: "Olá", sender: "cliente", timestamp: Date.now()
+      });
+    });
+    await assertSucceeds(getDocs(collection(authed("employeeAtendReadOnly"), "chats", "chatMsg5b", "mensagens")));
+    await assertFails(setDoc(doc(collection(authed("employeeAtendReadOnly"), "chats", "chatMsg5b", "mensagens")), {
+      texto: "Não deveria conseguir", sender: "admin", timestamp: Date.now(),
+      autorTipo: "funcionario", autorUid: "employeeAtendReadOnly"
+    }));
+  });
+
   it("cliente não escreve como admin; funcionário não falsifica autorUid nem autorTipo sistema", async () => {
     await semearChat("chatMsg6");
     await assertFails(setDoc(doc(collection(anon(), "chats", "chatMsg6", "mensagens")), {

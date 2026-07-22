@@ -8353,15 +8353,29 @@ window.enviarRespostaChatLead = function(event) {
     input.disabled = true;
     // Resposta gravada direto no banco (sem Cloud Function): mensagem
     // "admin" na subcoleção + atualização do resumo/status do chat. As
-    // regras liberam porque quem escreve é o dono/funcionário do tenant.
+    // regras liberam porque quem escreve é o dono/funcionário do tenant e
+    // exigem autorUid == uid autenticado — autorNome nunca vem de um campo
+    // de formulário, só do contexto de login (dono ou funcionário).
+    const contextoAtual = VideHubContext.getSnapshot();
+    const autorUid = contextoAtual.authUid;
+    const autorTipo = contextoAtual.isEmployee ? "funcionario" : "proprietario";
+    const autorNome = contextoAtual.isEmployee
+        ? (contextoAtual.employee?.nome || "Funcionário")
+        : (contextoAtual.owner?.nomeLoja || contextoAtual.owner?.nome || "Loja");
     setDoc(doc(collection(db, "chats", chatId, "mensagens")), {
         texto,
         sender: "admin",
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        autorUid,
+        autorTipo,
+        autorNome
     })
         .then(() => setDoc(doc(db, "chats", chatId), {
             ultimaMensagem: texto,
             statusAdmin: "respondido",
+            status: "aguardando_cliente",
+            statusAtualizadoPor: autorUid,
+            statusAtualizadoEm: Date.now(),
             atualizadoEm: Date.now()
         }, { merge: true }))
         .then(() => {
