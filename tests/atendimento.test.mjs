@@ -2,11 +2,9 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
     CATEGORIAS_EVENTO_ATENDIMENTO,
-    CATEGORIAS_TEMPLATE,
     LIMITES_TIMELINE_ATENDIMENTO,
     STATUS_CONVERSA,
     TIPOS_EVENTO_ATENDIMENTO,
-    VARIAVEIS_TEMPLATE_PERMITIDAS,
     calcularContadoresAtendimento,
     calcularMetricasAtendimento,
     categoriaEventoAtendimento,
@@ -16,7 +14,6 @@ import {
     descreverEventoAtendimento,
     conversaPrecisaResposta,
     filtrarConversas,
-    filtrarTemplates,
     funcionarioPodeAtender,
     funcionariosElegiveisAtendimento,
     iniciaisNome,
@@ -24,10 +21,8 @@ import {
     mesclarItensTimeline,
     ordenarConversas,
     podeTransicionarStatus,
-    substituirVariaveisTemplate,
     tipoEventoValido,
-    validarPayloadDadosEvento,
-    validarTemplateAtendimento
+    validarPayloadDadosEvento
 } from "../atendimento.js";
 
 describe("transições de status da conversa", () => {
@@ -59,91 +54,8 @@ describe("transições de status da conversa", () => {
     });
 });
 
-describe("variáveis de template (whitelist)", () => {
-    it("substitui só as variáveis permitidas", () => {
-        const resultado = substituirVariaveisTemplate(
-            "Olá {{nome_cliente}}, aqui é {{nome_funcionario}} da {{nome_loja}}. Pedido {{numero_pedido}}.",
-            { nome_cliente: "Maria", nome_funcionario: "João", nome_loja: "Loja X", numero_pedido: "123" }
-        );
-        assert.equal(resultado, "Olá Maria, aqui é João da Loja X. Pedido 123.");
-    });
-
-    it("mantém o placeholder original se a variável não veio preenchida", () => {
-        const resultado = substituirVariaveisTemplate("Olá {{nome_cliente}}!", {});
-        assert.equal(resultado, "Olá {{nome_cliente}}!");
-    });
-
-    it("não substitui variável fora da whitelist (nem executa nada)", () => {
-        const resultado = substituirVariaveisTemplate("{{variavel_invasora}} {{nome_cliente}}", { nome_cliente: "Ana", variavel_invasora: "hackeado" });
-        assert.equal(resultado, "{{variavel_invasora}} Ana");
-    });
-
-    it("não interpreta HTML nem código dentro do valor substituído", () => {
-        const resultado = substituirVariaveisTemplate("Olá {{nome_cliente}}", { nome_cliente: "<script>alert(1)</script>" });
-        assert.equal(resultado, "Olá <script>alert(1)</script>");
-        assert.equal(typeof resultado, "string");
-    });
-
-    it("a whitelist tem exatamente as 4 variáveis definidas pelo escopo", () => {
-        assert.deepEqual([...VARIAVEIS_TEMPLATE_PERMITIDAS].sort(), ["nome_cliente", "nome_funcionario", "nome_loja", "numero_pedido"].sort());
-    });
-});
-
-function templateValido(overrides = {}) {
-    return {
-        titulo: "Saudação inicial",
-        mensagem: "Olá {{nome_cliente}}, tudo bem?",
-        categoria: "saudacao",
-        atalho: "ola",
-        ativo: true,
-        ...overrides
-    };
-}
-
-describe("validação de template de atendimento", () => {
-    it("aceita um template completo e válido", () => {
-        assert.equal(validarTemplateAtendimento(templateValido()), "");
-    });
-
-    it("rejeita título e mensagem vazios", () => {
-        assert.notEqual(validarTemplateAtendimento(templateValido({ titulo: "" })), "");
-        assert.notEqual(validarTemplateAtendimento(templateValido({ mensagem: "   " })), "");
-    });
-
-    it("rejeita categoria fora do vocabulário fechado", () => {
-        assert.notEqual(validarTemplateAtendimento(templateValido({ categoria: "outra" })), "");
-    });
-
-    it("todas as categorias declaradas são aceitas", () => {
-        for (const categoria of Object.keys(CATEGORIAS_TEMPLATE)) {
-            assert.equal(validarTemplateAtendimento(templateValido({ categoria })), "", categoria);
-        }
-    });
-
-    it("rejeita mensagem acima do limite", () => {
-        assert.notEqual(validarTemplateAtendimento(templateValido({ mensagem: "x".repeat(2001) })), "");
-    });
-});
-
-describe("filtro de templates", () => {
-    const templates = [
-        templateValido({ titulo: "Saudação", categoria: "saudacao", ativo: true }),
-        templateValido({ titulo: "Orçamento padrão", categoria: "orcamento", ativo: true }),
-        templateValido({ titulo: "Encerramento antigo", categoria: "encerramento", ativo: false })
-    ];
-
-    it("filtra por categoria", () => {
-        assert.equal(filtrarTemplates(templates, { categoria: "orcamento" }).length, 1);
-    });
-
-    it("filtra por busca no título", () => {
-        assert.equal(filtrarTemplates(templates, { busca: "saudação" }).length, 1);
-    });
-
-    it("filtra apenas ativos quando solicitado", () => {
-        assert.equal(filtrarTemplates(templates, { apenasAtivos: true }).length, 2);
-    });
-});
+// Templates (modelo, variáveis, categorias, gestão) evoluíram pra um
+// módulo próprio — ver tests/templates-atendimento.test.mjs.
 
 function conversaFixture(overrides = {}) {
     return {

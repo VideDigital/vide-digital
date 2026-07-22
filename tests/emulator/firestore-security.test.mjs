@@ -1121,6 +1121,117 @@ describe("templates: validação segura (respostas prontas + fluxo de leads)", (
   });
 });
 
+// ===== Templates Avançados de Atendimento (categoria fechada quando
+// contexto="atendimento", campos novos, caminho estreito de uso) =====
+
+async function semearTemplate(id, overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "templates", id), templateFixture(overrides));
+  });
+}
+
+describe("templates avançados: campos novos e categoria fechada por contexto", () => {
+  it("dono cria template com os campos novos (favorito, ordem, atualizadoPor, versaoSchema)", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAv1"), templateFixture({
+      contexto: "atendimento", favorito: true, ordem: 1, atualizadoPor: "ownerA", versaoSchema: 2,
+      descricaoInterna: "Uso interno", tagsBusca: ["a", "b"], requerPedido: true
+    })));
+  });
+
+  it("contexto:'atendimento' exige categoria dentro do enum fechado; contexto:'leads' ou sem contexto continuam texto livre", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplAv2"), templateFixture({
+      contexto: "atendimento", categoria: "categoria-inventada"
+    })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAv3"), templateFixture({
+      contexto: "atendimento", categoria: "pos_venda"
+    })));
+    // Compatibilidade: o módulo genérico "Templates" continua gravando
+    // categoria livre (geral/vendas/followup/cobranca) sem contexto —
+    // nada quebra pro fluxo legado.
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAv4"), templateFixture({
+      categoria: "followup"
+    })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAv5"), templateFixture({
+      contexto: "leads", categoria: "vendas"
+    })));
+  });
+
+  it("rejeita contexto fora de atendimento/leads", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplAv6"), templateFixture({ contexto: "outro" })));
+  });
+
+  it("atualizadoPor precisa ser sempre o próprio autor (nunca forjável)", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplAv7"), templateFixture({ atualizadoPor: "outraPessoa" })));
+  });
+
+  it("aceita arquivadoEm (number ou null) e valida os tipos dos demais campos novos", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAv8"), templateFixture({ arquivadoEm: Date.now() })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAv9"), templateFixture({ arquivadoEm: null })));
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplAv10"), templateFixture({ favorito: "sim" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplAv11"), templateFixture({ ordem: "1" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplAv12"), templateFixture({ tagsBusca: "nao-e-lista" })));
+  });
+});
+
+describe("templates avançados: caminho estreito de uso (usoTotal/ultimoUsoEm)", () => {
+  it("funcionário de atendimento (sem permissão de editar templates) consegue registrar o uso — só usoTotal/ultimoUsoEm", async () => {
+    await semearFuncionarioAtendimento("employeeAtendUso1");
+    await semearTemplate("tplUso1", { usoTotal: 0 });
+    await assertSucceeds(updateDoc(doc(authed("employeeAtendUso1"), "templates", "tplUso1"), {
+      usoTotal: increment(1), ultimoUsoEm: serverTimestamp()
+    }));
+  });
+
+  it("rejeita incremento diferente de +1 (nunca dupla contagem nem pulo arbitrário)", async () => {
+    await semearFuncionarioAtendimento("employeeAtendUso2");
+    await semearTemplate("tplUso2", { usoTotal: 3 });
+    await assertFails(updateDoc(doc(authed("employeeAtendUso2"), "templates", "tplUso2"), {
+      usoTotal: increment(2), ultimoUsoEm: serverTimestamp()
+    }));
+    await assertSucceeds(updateDoc(doc(authed("employeeAtendUso2"), "templates", "tplUso2"), {
+      usoTotal: increment(1), ultimoUsoEm: serverTimestamp()
+    }));
+  });
+
+  it("rejeita ultimoUsoEm que não seja o horário do servidor", async () => {
+    await semearFuncionarioAtendimento("employeeAtendUso3");
+    await semearTemplate("tplUso3", { usoTotal: 0 });
+    await assertFails(updateDoc(doc(authed("employeeAtendUso3"), "templates", "tplUso3"), {
+      usoTotal: increment(1), ultimoUsoEm: Date.now()
+    }));
+  });
+
+  it("caminho de uso nunca deixa alterar outro campo (título, mensagem, ativo) junto", async () => {
+    await semearFuncionarioAtendimento("employeeAtendUso4");
+    await semearTemplate("tplUso4", { usoTotal: 0 });
+    await assertFails(updateDoc(doc(authed("employeeAtendUso4"), "templates", "tplUso4"), {
+      usoTotal: increment(1), ultimoUsoEm: serverTimestamp(), titulo: "Outro título"
+    }));
+  });
+
+  it("funcionário sem permissão de atendimento nem de leads não registra uso", async () => {
+    await semearFuncionarioAtendimento("employeeSemUso5", { permissoes: { ver: ["produtos"], editar: ["produtos"] } });
+    await semearTemplate("tplUso5", { usoTotal: 0 });
+    await assertFails(updateDoc(doc(authed("employeeSemUso5"), "templates", "tplUso5"), {
+      usoTotal: increment(1), ultimoUsoEm: serverTimestamp()
+    }));
+  });
+
+  it("outro tenant não registra uso no template alheio", async () => {
+    await semearTemplate("tplUso6", { usoTotal: 0 });
+    await assertFails(updateDoc(doc(authed("ownerB"), "templates", "tplUso6"), {
+      usoTotal: increment(1), ultimoUsoEm: serverTimestamp()
+    }));
+  });
+
+  it("dono (que já tem permissão de templates) também pode editar normalmente, incluindo usoTotal junto de outros campos", async () => {
+    await semearTemplate("tplUso7", { usoTotal: 0 });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "templates", "tplUso7"), {
+      usoTotal: 0, favorito: true, atualizadoPor: "ownerA", atualizadoEm: Date.now()
+    }));
+  });
+});
+
 // ===== CRM 360 do Cliente =====
 
 function clienteFixture(overrides = {}) {
