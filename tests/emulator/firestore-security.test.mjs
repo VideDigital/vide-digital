@@ -779,3 +779,317 @@ describe("funcionarios: gestão direta pelo dono (Spark)", () => {
     await assertFails(deleteDoc(doc(authed("ownerA"), "funcionarios", "employeeRead")));
   });
 });
+
+function chatFixture(overrides = {}) {
+  return {
+    donoUID: "ownerA",
+    emailDono: "ownerA",
+    clienteNome: "Cliente Teste",
+    statusAdmin: "pendente",
+    status: "aberta",
+    canal: "loja_publica",
+    timestamp: Date.now(),
+    ultimaMensagem: "Olá",
+    atualizadoEm: Date.now(),
+    naoLidasLoja: 1,
+    ...overrides
+  };
+}
+
+async function semearChat(id, overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "chats", id), chatFixture(overrides));
+  });
+}
+
+async function semearFuncionarioAtendimento(uid, overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "funcionarios", uid), {
+      donoUID: "ownerA",
+      status: "ativo",
+      permissoes: { ver: ["atendimento"], editar: ["atendimento"] },
+      ...overrides
+    });
+  });
+}
+
+describe("chats: criação pública e pelo dono (Central de Atendimento)", () => {
+  it("visitante cria chat público válido, com status nova e naoLidasLoja 1", async () => {
+    await assertSucceeds(setDoc(doc(anon(), "chats", "chatPub1"), {
+      donoUID: "ownerA",
+      emailDono: "ownerA",
+      clienteNome: "Visitante",
+      statusAdmin: "pendente",
+      status: "nova",
+      canal: "loja_publica",
+      timestamp: Date.now(),
+      naoLidasLoja: 1
+    }));
+  });
+
+  it("visitante não cria chat com status diferente de nova nem naoLidasLoja diferente de 1", async () => {
+    await assertFails(setDoc(doc(anon(), "chats", "chatPub2"), {
+      donoUID: "ownerA", clienteNome: "X", statusAdmin: "pendente", status: "resolvida", timestamp: Date.now()
+    }));
+    await assertFails(setDoc(doc(anon(), "chats", "chatPub3"), {
+      donoUID: "ownerA", clienteNome: "X", statusAdmin: "pendente", naoLidasLoja: 5, timestamp: Date.now()
+    }));
+  });
+
+  it("visitante não cria chat apontando para dono inexistente nem com campo extra", async () => {
+    await assertFails(setDoc(doc(anon(), "chats", "chatPub4"), {
+      donoUID: "naoExiste", clienteNome: "X", statusAdmin: "pendente", timestamp: Date.now()
+    }));
+    await assertFails(setDoc(doc(anon(), "chats", "chatPub5"), {
+      donoUID: "ownerA", clienteNome: "X", statusAdmin: "pendente", timestamp: Date.now(), campoInvasor: true
+    }));
+  });
+
+  it("dono cria conversa interna válida; funcionário de outro dono não", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "chats", "chatInterno1"), {
+      donoUID: "ownerA", clienteNome: "Cliente por telefone", canal: "interno", status: "aberta", statusAdmin: "pendente"
+    }));
+    await assertFails(setDoc(doc(authed("ownerB"), "chats", "chatInterno2"), {
+      donoUID: "ownerA", clienteNome: "Invasão", canal: "interno", statusAdmin: "pendente"
+    }));
+  });
+});
+
+describe("chats: atualização pública (mensagem do cliente) preserva contrato legado", () => {
+  it("visitante manda mensagem: só toca nas chaves conhecidas e incrementa naoLidasLoja", async () => {
+    await semearChat("chatUpd1", { naoLidasLoja: 1 });
+    await assertSucceeds(updateDoc(doc(anon(), "chats", "chatUpd1"), {
+      ultimaMensagem: "Nova mensagem",
+      statusAdmin: "pendente",
+      status: "aguardando_equipe",
+      atualizadoEm: Date.now(),
+      naoLidasLoja: 2
+    }));
+  });
+
+  it("visitante não pula o incremento nem altera atribuição/setor pelo caminho público", async () => {
+    await semearChat("chatUpd2", { naoLidasLoja: 1 });
+    await assertFails(updateDoc(doc(anon(), "chats", "chatUpd2"), { naoLidasLoja: 9 }));
+    await assertFails(updateDoc(doc(anon(), "chats", "chatUpd2"), { atribuidoPara: "ownerA" }));
+    await assertFails(updateDoc(doc(anon(), "chats", "chatUpd2"), { status: "arquivada" }));
+    await assertFails(updateDoc(doc(anon(), "chats", "chatUpd2"), { donoUID: "ownerB" }));
+  });
+});
+
+describe("chats: atualização autenticada (status, atribuição, setor)", () => {
+  it("dono muda status para um valor do enum; valor fora do enum é negado", async () => {
+    await semearChat("chatStatus1");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatStatus1"), {
+      status: "resolvida", statusAtualizadoPor: "ownerA", statusAtualizadoEm: serverTimestamp()
+    }));
+    await semearChat("chatStatus2");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatStatus2"), { status: "fechada_de_vez" }));
+  });
+
+  it("dono atribui a si mesmo e a funcionário ativo do próprio tenant", async () => {
+    await semearFuncionarioAtendimento("employeeAtend1");
+    await semearChat("chatAtrib1");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatAtrib1"), {
+      atribuidoPara: "ownerA", atribuidoPor: "ownerA", atribuidoEm: serverTimestamp()
+    }));
+    await semearChat("chatAtrib2");
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatAtrib2"), {
+      atribuidoPara: "employeeAtend1", atribuidoPor: "ownerA", atribuidoEm: serverTimestamp()
+    }));
+  });
+
+  it("não atribui a funcionário inativo, de outro tenant, nem a uid arbitrário", async () => {
+    await semearFuncionarioAtendimento("employeeInativoAtend", { status: "inativo" });
+    await semearChat("chatAtrib3");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatAtrib3"), { atribuidoPara: "employeeInativoAtend" }));
+
+    await semearChat("chatAtrib4");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatAtrib4"), { atribuidoPara: "employeeRead" }));
+
+    await semearChat("chatAtrib5");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatAtrib5"), { atribuidoPara: "uid-que-nao-existe" }));
+  });
+
+  it("funcionário com permissão de atendimento (ou legado leads) atualiza; leitor e inativo não", async () => {
+    await semearFuncionarioAtendimento("employeeAtendEditor");
+    await semearChat("chatFunc1");
+    await assertSucceeds(updateDoc(doc(authed("employeeAtendEditor"), "chats", "chatFunc1"), { status: "aberta" }));
+
+    // employeeEdit (fixture global) só tem "produtos" — sem atendimento/leads, deve falhar.
+    await semearChat("chatFunc2");
+    await assertFails(updateDoc(doc(authed("employeeEdit"), "chats", "chatFunc2"), { status: "aberta" }));
+
+    await semearChat("chatFunc3");
+    await assertFails(updateDoc(doc(authed("employeeInactive"), "chats", "chatFunc3"), { status: "aberta" }));
+  });
+
+  it("outro tenant e visitante anônimo não atualizam status/atribuição", async () => {
+    await semearChat("chatOutro1");
+    await assertFails(updateDoc(doc(authed("ownerB"), "chats", "chatOutro1"), { status: "resolvida" }));
+    await semearChat("chatOutro2");
+    await assertFails(updateDoc(doc(anon(), "chats", "chatOutro2"), { status: "resolvida" }));
+  });
+
+  it("não muda donoUID nem grava campo fora da lista conhecida", async () => {
+    await semearChat("chatCampo1");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatCampo1"), { donoUID: "ownerB" }));
+    await semearChat("chatCampo2");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatCampo2"), { campoNovoInventado: "x" }));
+  });
+});
+
+describe("mensagens: autoria e transição arquivada", () => {
+  it("cliente cria mensagem própria; dono/funcionário responde com autoria real", async () => {
+    await semearChat("chatMsg1");
+    await assertSucceeds(setDoc(doc(collection(anon(), "chats", "chatMsg1", "mensagens")), {
+      texto: "Olá, tudo bem?", sender: "cliente", timestamp: Date.now()
+    }));
+    await semearChat("chatMsg2");
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatMsg2", "mensagens")), {
+      texto: "Oi! Como posso ajudar?", sender: "admin", timestamp: Date.now(),
+      autorTipo: "proprietario", autorUid: "ownerA", autorNome: "Dono da Loja"
+    }));
+  });
+
+  it("funcionário autorizado responde com o próprio uid; leitor e inativo não respondem", async () => {
+    await semearFuncionarioAtendimento("employeeAtendMsg");
+    await semearChat("chatMsg3");
+    await assertSucceeds(setDoc(doc(collection(authed("employeeAtendMsg"), "chats", "chatMsg3", "mensagens")), {
+      texto: "Já te ajudo", sender: "admin", timestamp: Date.now(),
+      autorTipo: "funcionario", autorUid: "employeeAtendMsg", autorNome: "Atendente"
+    }));
+
+    await semearChat("chatMsg4");
+    await assertFails(setDoc(doc(collection(authed("employeeRead"), "chats", "chatMsg4", "mensagens")), {
+      texto: "Não deveria conseguir", sender: "admin", timestamp: Date.now(),
+      autorTipo: "funcionario", autorUid: "employeeRead"
+    }));
+
+    await semearChat("chatMsg5");
+    await assertFails(setDoc(doc(collection(authed("employeeInactive"), "chats", "chatMsg5", "mensagens")), {
+      texto: "Não deveria conseguir", sender: "admin", timestamp: Date.now(),
+      autorTipo: "funcionario", autorUid: "employeeInactive"
+    }));
+  });
+
+  it("cliente não escreve como admin; funcionário não falsifica autorUid nem autorTipo sistema", async () => {
+    await semearChat("chatMsg6");
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatMsg6", "mensagens")), {
+      texto: "Finjo ser admin", sender: "admin", timestamp: Date.now()
+    }));
+    await semearFuncionarioAtendimento("employeeAtendFalso");
+    await semearChat("chatMsg7");
+    await assertFails(setDoc(doc(collection(authed("employeeAtendFalso"), "chats", "chatMsg7", "mensagens")), {
+      texto: "Uid falso", sender: "admin", timestamp: Date.now(),
+      autorTipo: "funcionario", autorUid: "ownerA"
+    }));
+    await semearChat("chatMsg8");
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatMsg8", "mensagens")), {
+      texto: "Sou o sistema", sender: "admin", timestamp: Date.now(),
+      autorTipo: "sistema", autorUid: "ownerA"
+    }));
+  });
+
+  it("cliente não altera status pela subcoleção nem grava campo extra; texto vazio/gigante é negado", async () => {
+    await semearChat("chatMsg9");
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatMsg9", "mensagens")), {
+      texto: "x", sender: "cliente", timestamp: Date.now(), status: "resolvida"
+    }));
+    await semearChat("chatMsg10");
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatMsg10", "mensagens")), {
+      texto: "", sender: "cliente", timestamp: Date.now()
+    }));
+    await semearChat("chatMsg11");
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatMsg11", "mensagens")), {
+      texto: "x".repeat(4001), sender: "cliente", timestamp: Date.now()
+    }));
+  });
+
+  it("mensagem em conversa arquivada é bloqueada para os dois lados; reabrir libera de novo", async () => {
+    await semearChat("chatArq1", { status: "arquivada" });
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatArq1", "mensagens")), {
+      texto: "Ainda dá pra falar?", sender: "cliente", timestamp: Date.now()
+    }));
+    await assertFails(setDoc(doc(collection(authed("ownerA"), "chats", "chatArq1", "mensagens")), {
+      texto: "Resposto mesmo arquivada?", sender: "admin", timestamp: Date.now(),
+      autorTipo: "proprietario", autorUid: "ownerA"
+    }));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatArq1"), { status: "aberta" }));
+  });
+
+  it("outro tenant autenticado não lê mensagem alheia; visitante anônimo com o id lê a própria; edição/exclusão sempre bloqueadas", async () => {
+    await semearChat("chatMsg12");
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatMsg12", "mensagens", "m1"), {
+        texto: "Original", sender: "cliente", timestamp: Date.now()
+      });
+    });
+    // Outro dono AUTENTICADO não pertence ao tenant do chat — negado.
+    await assertFails(getDocs(collection(authed("ownerB"), "chats", "chatMsg12", "mensagens")));
+    // O próprio dono do chat lê normalmente.
+    await assertSucceeds(getDocs(collection(authed("ownerA"), "chats", "chatMsg12", "mensagens")));
+    // Visitante anônimo que conhece o id (capability) ainda lê — é assim
+    // que o próprio widget público lê a conversa que acabou de criar.
+    await assertSucceeds(getDocs(collection(anon(), "chats", "chatMsg12", "mensagens")));
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatMsg12", "mensagens", "m1"), { texto: "Editado" }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "chats", "chatMsg12", "mensagens", "m1")));
+  });
+});
+
+function templateFixture(overrides = {}) {
+  return {
+    titulo: "Saudação inicial",
+    mensagem: "Olá {{nome_cliente}}, aqui é {{nome_funcionario}} da {{nome_loja}}!",
+    categoria: "saudacao",
+    atalho: "ola",
+    ativo: true,
+    criadoPor: "ownerA",
+    criadoEm: Date.now(),
+    atualizadoEm: Date.now(),
+    ...overrides
+  };
+}
+
+function templateFixtureFluxo(overrides = {}) {
+  return {
+    titulo: "Follow-up automático",
+    mensagem: "Olá {{nome_cliente}}, tudo bem?",
+    categoria: "vendas",
+    criadoPor: "ownerA",
+    criadoEm: Date.now(),
+    atualizadoEm: Date.now(),
+    fluxo: { ativo: true, statusLead: "novo", followupDias: 2, prioridade: "alta", anotacao: "Ligar de volta" },
+    ...overrides
+  };
+}
+
+describe("templates: validação segura (respostas prontas + fluxo de leads)", () => {
+  it("dono cria template de atendimento válido (categoria/atalho/ativo)", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplAtend1"), templateFixture()));
+  });
+
+  it("dono continua criando template de automação de leads (campo fluxo)", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplFluxo1"), templateFixtureFluxo()));
+  });
+
+  it("rejeita campo extra, mensagem vazia/gigante e categoria fora do tipo esperado", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplBad1"), templateFixture({ scriptMalicioso: "<script>" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplBad2"), templateFixture({ mensagem: "" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplBad3"), templateFixture({ mensagem: "x".repeat(2001) })));
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplBad4"), templateFixture({ categoria: 123 })));
+  });
+
+  it("rejeita fluxo com campo desconhecido; funcionário sem permissão de templates não cria", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "templates", "tplBad5"), templateFixtureFluxo({
+      fluxo: { ativo: true, campoInvasor: "x" }
+    })));
+    await assertFails(setDoc(doc(authed("employeeRead"), "templates", "tplBad6"), templateFixture({ criadoPor: "ownerA" })));
+  });
+
+  it("outro tenant não lê nem edita template alheio; criadoPor é imutável", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "templates", "tplOwn1"), templateFixture()));
+    await assertFails(getDoc(doc(authed("ownerB"), "templates", "tplOwn1")));
+    await assertFails(updateDoc(doc(authed("ownerA"), "templates", "tplOwn1"), { criadoPor: "ownerB" }));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "templates", "tplOwn1"), { ativo: false, atualizadoEm: Date.now() }));
+  });
+});

@@ -1,12 +1,16 @@
-// Regras do Vide Hub — modelo "plano Spark" (sem Cloud Functions).
+// Regras do Vide Hub.
 //
-// Como o Cloud Functions exige o plano Blaze, os recursos públicos
-// (contagem de visitas, captura de lead, chat) são escritos direto pelo
-// cliente. Estas regras assumem esse modelo: escritas públicas são
-// permitidas, mas sempre amarradas a um conteúdo público real (LP
-// publicada, produto ou dono existente) e limitadas às chaves esperadas.
-// Trade-off consciente: sem App Check nem rate limit de servidor — o
-// preço de rodar no plano gratuito.
+// O projeto está no plano Blaze, mas a maior parte da escrita continua
+// direta do cliente por decisão de arquitetura, não por limitação: é mais
+// simples, mais rápido e igualmente seguro quando a regra consegue validar
+// tudo sozinha (conteúdo público real, campos conhecidos, autoria derivada
+// do contexto autenticado). Cloud Functions ficam reservadas para quando
+// exista segredo, integração externa (IA/WhatsApp), operação administrativa
+// privilegiada, rate limit confiável ou processamento assíncrono real —
+// nada disso está implementado ainda.
+// Trade-off consciente das escritas públicas (visitante anônimo): sem App
+// Check nem rate limit de servidor — o alcance de abuso fica restrito ao
+// próprio documento de métrica/lead/chat que a regra amarra.
 
 rules_version = '2';
 
@@ -75,6 +79,11 @@ service cloud.firestore {
           || "conhecimento_ia" in permissions
           || "knowledge-base" in permissions
           || "base-ia" in permissions
+        ))
+        || (moduleKey == "atendimento" && (
+          "conversas" in permissions
+          || "atendimento_chat" in permissions
+          || "templates_atendimento" in permissions
         ));
     }
 
@@ -432,37 +441,127 @@ service cloud.firestore {
         && (!request.resource.data.keys().hasAny(["moderadoEm"]) || request.resource.data.moderadoEm is timestamp);
     }
 
-    // Chat público (widget da loja). O visitante cria o chat e manda
-    // mensagens "cliente" direto; o dono/funcionário responde com "admin".
-    // O id do chat é um token aleatório do Firestore, então serve de
-    // capability para o visitante ler as mensagens do próprio chat.
+    // ===== Central de Atendimento (evolui a coleção chats/mensagens já
+    // existente — não é uma estrutura paralela) =====
+    //
+    // Visitante da loja pública cria o chat e manda mensagens "cliente"
+    // direto; dono/funcionário responde com "admin". O id do chat é um
+    // token aleatório do Firestore, então serve de capability pro
+    // visitante ler as mensagens do próprio chat.
+    //
+    // status é o campo novo e mais rico (6 estados) usado pela Central de
+    // Atendimento; statusAdmin ("pendente"/"respondido") é o campo legado
+    // que o widget público sempre gravou e continua gravando — mantido
+    // por compatibilidade, sem quebrar o contrato público existente.
+    function statusConversaValido(status) {
+      return status in ["nova", "aberta", "aguardando_cliente", "aguardando_equipe", "resolvida", "arquivada"];
+    }
+
     function chatPublicoValido() {
-      return request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm"])
+      return request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja"])
         && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
         && request.resource.data.donoUID is string
         && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.donoUID))
-        && request.resource.data.statusAdmin == "pendente";
-    }
-    function chatUpdatePublicoValido() {
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "atualizadoEm"])
         && request.resource.data.statusAdmin == "pendente"
+        && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "nova")
+        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro"])
+        && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == 1);
+    }
+    // O visitante só toca no resumo/status ao mandar mensagem — nunca em
+    // atribuição, setor ou nos campos administrativos da Central de
+    // Atendimento (esses só mudam pela escrita autenticada abaixo).
+    function chatUpdatePublicoValido() {
+      let antes = resource.data.keys().hasAny(["naoLidasLoja"]) && resource.data.naoLidasLoja is number ? resource.data.naoLidasLoja : 0;
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "status", "atualizadoEm", "naoLidasLoja"])
+        && request.resource.data.statusAdmin == "pendente"
+        && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "aguardando_equipe")
+        && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == antes + 1)
         && donoUIDUnchanged();
     }
     function podeResponderChat(chatData) {
-      return (chatData.keys().hasAny(["donoUID"]) && canEditTenant(chatData.donoUID, "leads"))
-        || (chatData.keys().hasAny(["emailDono"]) && canEditTenant(chatData.emailDono, "leads"));
+      return (chatData.keys().hasAny(["donoUID"]) && (canEditTenant(chatData.donoUID, "atendimento") || canEditTenant(chatData.donoUID, "leads")))
+        || (chatData.keys().hasAny(["emailDono"]) && (canEditTenant(chatData.emailDono, "atendimento") || canEditTenant(chatData.emailDono, "leads")));
+    }
+    // "arquivada" não recebe mensagem sem ser reaberta antes (escrita
+    // separada de status, feita por quem atende). Docs antigos sem o
+    // campo status ainda não existiam quando essa regra foi criada, então
+    // contam como "não arquivada".
+    function chatNaoArquivado(chatData) {
+      return !chatData.keys().hasAny(["status"]) || chatData.status != "arquivada";
     }
     function mensagemClienteValida(chatId) {
-      return request.resource.data.sender == "cliente"
-        && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm"])
+      let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      return exists(chatRef)
+        && chatNaoArquivado(get(chatRef).data)
+        && request.resource.data.sender == "cliente"
+        && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm", "autorTipo"])
         && request.resource.data.texto is string
         && request.resource.data.texto.size() > 0
-        && exists(/databases/$(database)/documents/chats/$(chatId));
+        && request.resource.data.texto.size() <= 4000
+        && (!request.resource.data.keys().hasAny(["autorTipo"]) || request.resource.data.autorTipo == "cliente");
     }
+    // autorNome não é revalidado contra o cadastro (custaria mais um
+    // get() por escrita) — a confiança vem de nenhuma tela oferecer um
+    // campo de nome livre nesse fluxo; o valor é sempre derivado do
+    // contexto autenticado no cliente (mesmo modelo de confiança usado em
+    // criadoPor por toda a base). autorUid, em contrapartida, É
+    // revalidado aqui contra request.auth.uid — não dá pra falsificar.
     function mensagemAdminValida(chatId) {
-      return request.resource.data.sender == "admin"
-        && exists(/databases/$(database)/documents/chats/$(chatId))
-        && podeResponderChat(get(/databases/$(database)/documents/chats/$(chatId)).data);
+      let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      return exists(chatRef)
+        && chatNaoArquivado(get(chatRef).data)
+        && podeResponderChat(get(chatRef).data)
+        && request.resource.data.sender == "admin"
+        && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm", "autorTipo", "autorUid", "autorNome"])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 4000
+        && request.resource.data.autorUid == request.auth.uid
+        && request.resource.data.autorTipo in ["funcionario", "proprietario"]
+        && (!request.resource.data.keys().hasAny(["autorNome"]) || (request.resource.data.autorNome is string && request.resource.data.autorNome.size() <= 120));
+    }
+
+    // Atribuição só para o próprio dono ou um funcionário ativo do MESMO
+    // tenant — nunca um uid arbitrário, nunca de outra loja.
+    function funcionarioAtivoDoTenant(uid, donoUID) {
+      let dados = get(/databases/$(database)/documents/funcionarios/$(uid)).data;
+      return dados.donoUID == donoUID
+        && dados.status == "ativo"
+        && employeeHasPermissionShape(dados)
+        && (
+          employeeHasModulePermission(dados.permissoes.ver, "atendimento")
+          || employeeHasModulePermission(dados.permissoes.editar, "atendimento")
+          || employeeHasModulePermission(dados.permissoes.ver, "leads")
+          || employeeHasModulePermission(dados.permissoes.editar, "leads")
+        );
+    }
+    function atribuicaoChatValida(donoUID) {
+      let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["atribuidoPara"]);
+      let alvo = request.resource.data.atribuidoPara;
+      return !mudou
+        || alvo == ""
+        || alvo == donoUID
+        || (exists(/databases/$(database)/documents/funcionarios/$(alvo)) && funcionarioAtivoDoTenant(alvo, donoUID));
+    }
+    // Escrita autenticada do dono/funcionário no próprio chat: permissão
+    // (atendimento OU leads, compatibilidade com quem só tinha leads
+    // antes), tenant imutável, status dentro do enum, atribuição
+    // validada, sem campos fora da lista conhecida da Central de
+    // Atendimento.
+    function chatAdminUpdateValido() {
+      let donoUID = hasTenantField("donoUID") ? resource.data.donoUID : resource.data.emailDono;
+      return podeResponderChat(resource.data)
+        && donoUIDUnchanged()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            "status", "statusAdmin", "setor", "atribuidoPara", "atribuidoPor", "atribuidoEm",
+            "statusAtualizadoPor", "statusAtualizadoEm", "ultimaMensagem", "atualizadoEm",
+            "naoLidasLoja", "naoLidasCliente", "observacoesInternas", "tags"
+          ])
+        && (!request.resource.data.keys().hasAny(["status"]) || statusConversaValido(request.resource.data.status))
+        && (!request.resource.data.keys().hasAny(["setor"]) || (request.resource.data.setor is string && request.resource.data.setor.size() <= 80))
+        && (!request.resource.data.keys().hasAny(["observacoesInternas"]) || (request.resource.data.observacoesInternas is string && request.resource.data.observacoesInternas.size() <= 2000))
+        && (!request.resource.data.keys().hasAny(["tags"]) || (request.resource.data.tags is list && request.resource.data.tags.size() <= 10))
+        && atribuicaoChatValida(donoUID);
     }
 
     function publicStoreFields() {
@@ -632,10 +731,32 @@ service cloud.firestore {
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
 
+    // Template de mensagem — usado tanto pelo fluxo de automação de leads
+    // (campo "fluxo", já existente) quanto pelas respostas prontas da
+    // Central de Atendimento (categoria/atalho/ativo, novos). Mesma
+    // coleção, mesmo dono; nunca conteúdo executável (só texto).
+    function validTemplateFluxo(fluxo) {
+      return fluxo.keys().hasOnly(["ativo", "statusLead", "followupDias", "prioridade", "anotacao"])
+        && (!fluxo.keys().hasAny(["ativo"]) || fluxo.ativo is bool)
+        && (!fluxo.keys().hasAny(["followupDias"]) || fluxo.followupDias is number)
+        && (!fluxo.keys().hasAny(["anotacao"]) || (fluxo.anotacao is string && fluxo.anotacao.size() <= 500));
+    }
+    function validTemplateData(data) {
+      return data.keys().hasOnly(["titulo", "mensagem", "categoria", "atalho", "ativo", "fluxo", "criadoPor", "criadoEm", "atualizadoEm"])
+        && data.keys().hasAll(["titulo", "mensagem", "categoria", "criadoPor"])
+        && data.titulo is string && data.titulo.size() >= 1 && data.titulo.size() <= 160
+        && data.mensagem is string && data.mensagem.size() >= 1 && data.mensagem.size() <= 2000
+        && data.categoria is string && data.categoria.size() <= 60
+        && data.criadoPor is string
+        && (!data.keys().hasAny(["atalho"]) || (data.atalho is string && data.atalho.size() <= 40))
+        && (!data.keys().hasAny(["ativo"]) || data.ativo is bool)
+        && (!data.keys().hasAny(["fluxo"]) || (data.fluxo is map && validTemplateFluxo(data.fluxo)));
+    }
+
     match /templates/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "templates");
-      allow create: if canEditTenant(request.resource.data.criadoPor, "templates");
-      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "templates");
+      allow create: if canEditTenant(request.resource.data.criadoPor, "templates") && validTemplateData(request.resource.data);
+      allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "templates") && validTemplateData(request.resource.data);
       allow delete: if canEditTenant(resource.data.criadoPor, "templates");
     }
 
@@ -810,24 +931,45 @@ service cloud.firestore {
       allow read: if signedIn()
         && (
           isBackendAdmin()
-          || (hasTenantField("emailDono") && canViewTenant(resource.data.emailDono, "leads"))
-          || (hasTenantField("donoUID") && canViewTenant(resource.data.donoUID, "leads"))
+          || (hasTenantField("emailDono") && (canViewTenant(resource.data.emailDono, "atendimento") || canViewTenant(resource.data.emailDono, "leads")))
+          || (hasTenantField("donoUID") && (canViewTenant(resource.data.donoUID, "atendimento") || canViewTenant(resource.data.donoUID, "leads")))
         );
-      // Visitante da loja cria o chat direto (validado); dono também pode.
+      // Visitante da loja cria o chat direto (validado); dono/funcionário
+      // também pode (conversa interna, ex.: registrar um atendimento por
+      // outro canal) — mesma validação de chaves/tipos do fluxo público,
+      // só que sem exigir statusAdmin/status fixos.
       allow create: if chatPublicoValido()
-        || canEditTenant(request.resource.data.donoUID, "leads");
+        || (
+          canEditTenant(request.resource.data.donoUID, "atendimento") || canEditTenant(request.resource.data.donoUID, "leads")
+        ) && request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "setor", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja", "naoLidasCliente"])
+          && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
+          && (!request.resource.data.keys().hasAny(["status"]) || statusConversaValido(request.resource.data.status))
+          && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "interno", "whatsapp_futuro"]);
       // Visitante só mexe em resumo/status ao mandar mensagem; dono/funcionário
-      // pode atualizar (ex.: marcar como respondido).
-      allow update: if chatUpdatePublicoValido()
-        || (hasTenantField("donoUID") && canEditTenant(resource.data.donoUID, "leads"))
-        || (hasTenantField("emailDono") && canEditTenant(resource.data.emailDono, "leads"));
-      allow delete: if (hasTenantField("donoUID") && canEditTenant(resource.data.donoUID, "leads"))
-        || (hasTenantField("emailDono") && canEditTenant(resource.data.emailDono, "leads"));
+      // usa o caminho validado da Central de Atendimento (status, atribuição,
+      // setor, observações — nunca doar tenant nem inventar campo novo).
+      allow update: if chatUpdatePublicoValido() || chatAdminUpdateValido();
+      allow delete: if (hasTenantField("donoUID") && (canEditTenant(resource.data.donoUID, "atendimento") || canEditTenant(resource.data.donoUID, "leads")))
+        || (hasTenantField("emailDono") && (canEditTenant(resource.data.emailDono, "atendimento") || canEditTenant(resource.data.emailDono, "leads")));
 
       match /mensagens/{msgId} {
-        // Quem conhece o id do chat (token aleatório) lê as mensagens —
-        // cobre tanto o visitante do próprio chat quanto o painel do dono.
-        allow read: if exists(/databases/$(database)/documents/chats/$(chatId));
+        // Visitante não autenticado: conhecer o id do chat (token aleatório)
+        // já é a capability de leitura — é assim que o próprio widget lê a
+        // conversa que acabou de criar, sem Auth. Usuário autenticado: só
+        // lê se realmente pertencer ao tenant dono do chat (dono, admin
+        // backend ou funcionário com permissão) — sem esse recorte, outro
+        // dono autenticado que soubesse/adivinhasse o id conseguiria ler
+        // mensagens de um tenant alheio.
+        allow read: if
+          (!signedIn() && exists(/databases/$(database)/documents/chats/$(chatId)))
+          || (
+            signedIn()
+            && exists(/databases/$(database)/documents/chats/$(chatId))
+            && (
+              isBackendAdmin()
+              || podeResponderChat(get(/databases/$(database)/documents/chats/$(chatId)).data)
+            )
+          );
         // Cliente cria mensagem "cliente"; dono/funcionário cria "admin".
         allow create: if mensagemClienteValida(chatId) || mensagemAdminValida(chatId);
         allow update, delete: if false;
