@@ -173,3 +173,158 @@ cobre "registrar autor e timestamp" sem duplicar o dado numa terceira coleção.
 
 `slugTag()` normaliza (minúsculo, sem acento, hífen) antes de comparar — evita
 "VIP" e "vip " virarem duas tags diferentes.
+
+## Fase 3 — Perfil 360 (controller)
+
+`criarCrm360Controller()` (mesmo padrão de `atendimento.js`) abre a partir de
+uma conversa (`abrirParaConversa(conversa)`) ou direto por id (usado pelas
+notificações — `abrirParaClienteId(clienteId)`). Sempre que abre:
+
+1. Se a conversa já tem `clienteId`, carrega o hub e os relacionados.
+2. Senão, tenta achar candidatos por telefone/e-mail (se a equipe já os tiver
+   preenchido na conversa) via `encontrarCorrespondencias()` — mostra "cliente
+   não identificado", com ação de cadastrar novo ou vincular a um candidato.
+3. Carrega leads/pedidos/conversas relacionados com `where("clienteId","==",id)`
+   (nunca a coleção inteira do tenant), observações e eventos da subcoleção,
+   catálogo de tags e funcionários elegíveis para responsável.
+
+Seções 3 e 4 (leads/pedidos) também têm um campo de busca "vincular existente"
+com debounce de 300ms, que procura por nome dentro do próprio tenant, limitado
+a 200 registros e sem `clienteId` ainda — resultado sempre em memória, sem
+nova coleção de índice.
+
+## Fase 4 — Status do relacionamento
+
+`STATUS_RELACIONAMENTO`: `novo → lead → qualificado → negociacao → cliente →
+recorrente`, mais `inativo`/`perdido`. Não há grafo de transição obrigatório
+(o enum é validado, mas qualquer transição entre estados é permitida) — a
+mudança em si sempre é uma ação explícita da equipe (select na seção
+Identidade). `sugerirStatusRelacionamento()` só sugere (nunca aplica sozinho):
+1+ pedido pago sugere "cliente", 2+ sugere "recorrente", 60+ dias sem
+interação (para quem já é cliente/recorrente) sugere "inativo". Pedido
+cancelado **não** sugere "perdido" automaticamente. Cada mudança grava
+`statusAtualizadoPor`/`statusAtualizadoEm` no próprio `clientes/{id}` e um
+evento `status_alterado` na timeline com o resumo "Status anterior → Status
+novo".
+
+## Fase 5 — Responsável
+
+Dois responsáveis distintos e independentes, como pedido:
+- `chats.atribuidoPara` — responsável **pela conversa** (Central de
+  Atendimento, já existia).
+- `clientes.responsavelUid` — responsável **comercial pelo cliente** (novo,
+  CRM 360).
+
+Mesma validação dos dois lados (Rules + `funcionarioPodeAtender()` reaproveitado
+de `atendimento.js`, não duplicado): funcionário precisa estar `ativo`, do
+mesmo tenant, com permissão em `atendimento`/`leads`/`crm`. Bloqueia uid
+arbitrário, funcionário inativo e funcionário de outro tenant.
+
+## Fase 6 — Produtos de interesse
+
+Array `produtosInteresse` (até 20 itens) direto no `clientes/{id}` — não é
+subcoleção nem referencia o pedido. Cada item é um snapshot no momento do
+vínculo (`nomeSnapshot`, `precoSnapshot`) — **nunca** usado como preço oficial
+de um pedido futuro (o pedido continua com seu próprio campo `valor`). Busca
+de produto é por nome, dentro do próprio tenant, com o mesmo padrão de busca
+por texto usado em leads/pedidos.
+
+## Fase 7 — Linha do tempo
+
+`clientes/{id}/eventos` é append-only (Rules bloqueiam update/delete). Tipos
+registrados nesta etapa: `primeiro_contato`, `lead_vinculado`,
+`pedido_vinculado`, `tag_adicionada`, `tag_removida`, `status_alterado`,
+`responsavel_alterado`, `observacao_adicionada`, `produto_vinculado`. Cada
+evento tem categoria (`conversas`/`leads`/`pedidos`/`alteracoes`) para o
+filtro da UI. Não guarda o corpo de mensagens (só um resumo curto) — histórico
+de mensagens continua vivendo em `chats/{id}/mensagens`, sem duplicação.
+
+## Fase 9 — Interface
+
+O antigo modal pequeno "Dados do cliente" (nome/canal/setor/notas/tags **da
+conversa**, ciclo anterior) virou o drawer do CRM 360 — mesma linguagem
+visual das outras centrais, agora um painel lateral amplo (560px, tela cheia
+no mobile) com seções: Identidade, Resumo comercial, Leads, Pedidos,
+Conversas, Produtos de interesse, Observações internas, Linha do tempo.
+Estados cobertos: carregando, cliente não identificado, correspondência
+ambígua (aviso amarelo com os candidatos), vazio por seção (nunca
+"undefined"), erro de carregamento com toast.
+
+## Fase 10 — Permissões
+
+Chave canônica **`crm`**; aliases: `clientes`, `crm-360`, `crm_360`,
+`observacoes_clientes`, `tags_clientes`. Como o CRM só é alcançável de dentro
+de uma conversa da Central de Atendimento, `podeVerCRM`/`podeEditarCRM`
+sempre aceitam quem já tem permissão em `atendimento` OU a permissão dedicada
+`crm` — a arquitetura atual não separa "visualizar CRM" de "visualizar
+atendimento" na navegação (limitação assumida, ver abaixo). Dentro do CRM já
+aberto, o modelo continua ver/editar grosso (não há "ver contato" sem "ver
+valores" como permissões distintas — mandato pediu separar "conforme a
+arquitetura atual", que hoje é só ver/editar por módulo).
+
+## Fase 12 — Consultas e índices
+
+Todas as queries novas filtram por **um único campo igualdade** (`tenantId`,
+`clienteId` ou `criadoPor`) com `limit()` — nenhuma combina `where` em mais de
+um campo nem usa `orderBy` num campo diferente do filtro, então **nenhum
+índice composto novo foi necessário** (verificado rodando as queries reais
+no emulador via `pnpm run test:rules`, que teria acusado "index required" se
+precisasse). `firestore.indexes.json` não foi alterado nesta etapa.
+
+## Fase 13 — Notificações
+
+Ver `docs/CENTRAL_ATENDIMENTO.md` (seção Notificações) para o padrão geral.
+O CRM adiciona a fonte "cliente sem retorno" (status cliente/recorrente + 60+
+dias sem interação), com `criadoEm` fixado no momento exato em que o limite
+foi cruzado — não "agora" (senão nunca marcaria como lida) nem a última
+interação (senão nasceria como já lida). `ultimaInteracaoEm` é atualizada
+quando a equipe responde uma conversa vinculada a um cliente; **não** é
+atualizada quando o cliente escreve pela loja pública (o widget não conhece
+o CRM) — limitação registrada abaixo.
+
+## Fase 14 — Métricas
+
+Os KPIs do resumo comercial (`calcularResumoComercial`) e os dados por trás da
+notificação "sem retorno" já são números reais derivados de pedidos/clientes
+do próprio tenant. Não foi criado um dashboard comercial separado nesta etapa
+— os números vivem dentro do próprio drawer do CRM, por cliente.
+
+## Limitações conhecidas
+
+- **CRM só é alcançável de dentro do Atendimento**: um funcionário com
+  permissão `crm` mas sem `atendimento` teoricamente passaria nas Rules, mas
+  não tem hoje nenhum botão de UI para chegar lá (o botão "Dados do cliente"
+  vive dentro da Central de Atendimento). Corrigir exigiria uma entrada de
+  navegação própria para o CRM.
+- **`ultimaInteracaoEm` só avança quando a equipe responde pelo painel**;
+  mensagens do cliente pela loja pública não atualizam esse campo (o widget
+  público não tem noção de `clienteId`/CRM). Isso pode fazer o alerta de
+  "sem retorno" disparar cedo demais num cliente que só está esperando
+  resposta.
+- **Correspondência automática exige telefone/e-mail já digitados na
+  conversa**: como o widget da loja não pede telefone/e-mail ao cliente, a
+  maioria das conversas novas cai em "cliente não identificado" até a equipe
+  preencher esses campos manualmente ou vincular/cadastrar na mão.
+- **Vínculo de pedido é sempre manual**: `pedidos.cliente`/`pedidos.produtos`
+  continuam texto livre (achado da Fase 1); não há como cruzar
+  automaticamente por telefone/e-mail.
+- **"Produtos mais comprados"** é uma contagem por texto idêntico do campo
+  `pedidos.produtos` (não por `produtoId`) — só fica preciso se a equipe
+  digitar o pedido de forma consistente.
+- Sem testes de UI automatizados (Playwright) cobrindo o fluxo completo de
+  login real neste ciclo (mesma limitação já registrada em
+  `docs/CENTRAL_ATENDIMENTO.md`) — verificação foi por 38 testes unitários de
+  lógica pura (`tests/crm360.test.mjs`), pela suíte de Rules (121 testes) e
+  por inspeção de DOM/console num Chromium headless local.
+
+## Próximas fases sugeridas
+
+1. Estruturar `pedidos.itens`/`pedidos.produtoId` (hoje texto livre) para
+   permitir "produtos mais comprados" e "produtos de interesse ↔ pedido real"
+   precisos, sem depender de correspondência de texto.
+2. Entrada de navegação própria para o CRM (hoje só alcançável de dentro de
+   uma conversa), destravando a permissão `crm` isolada de `atendimento`.
+3. Ativar Firebase Anonymous Auth no widget público (já listado como bloqueio
+   externo em `docs/ROADMAP_RD3_STATUS.md`) para permitir correspondência por
+   `authUid` desde o primeiro contato, reduzindo o volume de "cliente não
+   identificado".

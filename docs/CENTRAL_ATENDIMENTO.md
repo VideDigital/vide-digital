@@ -142,9 +142,11 @@ carregadas do tenant atual — nunca aceita um id arbitrário da URL/payload.
   atribuída", "transferência" e "conversa reaberta" não geram avisos distintos
   (ficam cobertos pelo estado geral "precisa de resposta"). Um log de eventos
   exigiria Cloud Function/trigger, fora do escopo deste ciclo.
-- O painel de dados do cliente mostra o que já está na própria conversa (nome,
-  canal, setor, notas, tags); ainda não cruza com `leads`/`pedidos` para mostrar
-  histórico de pedidos ou contagem de conversas anteriores.
+- ~~O painel de dados do cliente mostra o que já está na própria conversa~~ —
+  **resolvido no ciclo do CRM 360**: o botão "Dados do cliente" agora abre o
+  drawer completo (identidade, resumo comercial, leads/pedidos/conversas
+  relacionados, produtos de interesse, observações e timeline). Ver
+  `docs/CRM_360_CLIENTE.md`.
 - `{{numero_pedido}}` existe na whitelist de variáveis mas não é preenchido
   automaticamente ainda (fica como texto do template até haver um pedido
   vinculado à conversa).
