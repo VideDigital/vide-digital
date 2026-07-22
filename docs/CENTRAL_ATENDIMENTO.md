@@ -1,0 +1,157 @@
+# Central de Atendimento (RD3)
+
+Inbox nativa de atendimento ao cliente. Evolui as coleções `chats`/`mensagens` já
+existentes (widget público da loja + painel de leads) — não cria um segundo modelo
+de conversa. Plano Blaze, mas a escrita continua direta do cliente protegida pelas
+Rules: nenhum segredo, integração externa ou operação administrativa privilegiada
+está envolvida aqui.
+
+## Arquivos
+
+- `atendimento.js` — constantes (status, canais, categorias de template), lógica pura
+  testável (transições de status, substituição de variáveis de template, filtros,
+  contadores, elegibilidade de atribuição) e o controller da tela (`db`/`context`/
+  `firestore`/`notify` por injeção, mesmo padrão de `central-ia.js`/`base-conhecimento-ia.js`).
+- `atendimento.css` — layout de 3 colunas no desktop, navegação em etapas no mobile
+  (`data-atend-etapa="filtros|lista|conversa"`), mesma família visual das outras centrais.
+- `dashboard.html` — seção `#view-atendimento`, botão da sidebar e card do Hub
+  (`data-module-permission="atendimento"`), modal de dados do cliente, modal de
+  inserção de template.
+- `dashboard-app.js` — instancia o controller, liga a `ativarAba('view-atendimento')`,
+  corrige a autoria da resposta do painel de leads (`enviarRespostaChatLead`) e adiciona
+  a fonte de notificação "atendimento".
+- `loja.html` — o widget público passa a gravar `status`/`canal`/`naoLidasLoja`.
+- `firestore.rules` — `statusConversaValido`, `chatPublicoValido/UpdatePublicoValido`,
+  `podeResponderChat/podeVerChat`, `mensagemClienteValida/AdminValida`,
+  `funcionarioAtivoDoTenant`, `atribuicaoChatValida`, `chatAdminUpdateValido`,
+  `validTemplateData` + `match /chats/{chatId}` (e subcoleção `mensagens`).
+- `tests/atendimento.test.mjs` — 27 testes unitários de lógica pura.
+- `tests/emulator/firestore-security.test.mjs` — suítes de chats/mensagens/templates
+  para a Central de Atendimento.
+
+## Coleção `chats/{chatId}` (id automático)
+
+```js
+{
+  donoUID: "{storeUid}",         // ou emailDono (contrato legado, ambos aceitos)
+  emailDono: "{storeUid}",
+  clienteNome: "até 120",
+  statusAdmin: "pendente" | "respondido",   // contrato legado, mantido
+  status: "nova" | "aberta" | "aguardando_cliente" | "aguardando_equipe" | "resolvida" | "arquivada",
+  canal: "loja_publica" | "interno" | "whatsapp_futuro",
+  setor: "até 80 (opcional)",
+  atribuidoPara: "{authUid do dono ou funcionário} | \"\"",
+  atribuidoPor: "{authUid}",
+  atribuidoEm: number,
+  statusAtualizadoPor: "{authUid}",
+  statusAtualizadoEm: number,
+  observacoesInternas: "até 2000 (nunca exposta na loja pública)",
+  tags: ["até 10"],
+  naoLidasLoja: number,           // incrementado via increment() a cada mensagem do cliente
+  naoLidasCliente: number,
+  timestamp: number,
+  criadoEm: number,
+  ultimaMensagem: "string",
+  atualizadoEm: number
+}
+```
+
+### Subcoleção `chats/{chatId}/mensagens/{msgId}` (id automático)
+
+```js
+{
+  texto: "1–4000 caracteres",
+  sender: "cliente" | "admin",
+  timestamp: number,
+  criadoEm: number,
+  autorTipo: "cliente" | "funcionario" | "proprietario",
+  autorUid: "{authUid}",          // só em mensagens 'admin'; sempre == request.auth.uid
+  autorNome: "até 120 (opcional)" // derivado do funcionário/dono autenticado, nunca de um campo de formulário
+}
+```
+
+`autorUid`/`autorTipo`/`autorNome` nunca vêm de um `<input>` — o controller e
+`enviarRespostaChatLead` sempre os derivam de `VideHubContext.getSnapshot()`.
+
+## Transições de status
+
+```
+nova → aberta | arquivada
+aberta → aguardando_cliente | aguardando_equipe | resolvida | arquivada
+aguardando_cliente → aguardando_equipe | aberta | resolvida | arquivada
+aguardando_equipe → aguardando_cliente | aberta | resolvida | arquivada
+resolvida → aberta | arquivada
+arquivada → aberta   (reabrir é a única saída)
+```
+
+`arquivada` nunca recebe mensagem nova (nem de cliente nem de admin) sem reabrir
+antes — validado nas Rules (`chatNaoArquivado`) e no controller. `podeTransicionarStatus`
+(`atendimento.js`) espelha exatamente esse grafo do lado do app.
+
+## Templates e variáveis
+
+A Central de Atendimento reaproveita a coleção `templates` já existente (mesma
+usada pelo módulo "Templates" e pelos templates de automação de leads com o
+campo `fluxo`) — sem CRUD duplicado. `substituirVariaveisTemplate()` só troca
+as 4 variáveis da whitelist por texto simples (sem `eval`, sem HTML executado):
+
+- `{{nome_cliente}}`
+- `{{nome_loja}}`
+- `{{nome_funcionario}}`
+- `{{numero_pedido}}` (ainda não preenchido automaticamente — fica como placeholder)
+
+Qualquer outra `{{variavel}}` passa direto, sem virar dado.
+
+## Atribuição
+
+`atribuicaoChatValida()` (Rules) só aceita `atribuidoPara` vazio, o próprio dono,
+ou um `funcionarios/{uid}` que seja `status == "ativo"`, do mesmo `donoUID`, e
+com permissão `atendimento` ou `leads` (ver ou editar). `funcionarioPodeAtender()`
+(`atendimento.js`) faz a mesma checagem no cliente para não oferecer uma opção
+que a regra vai recusar.
+
+## Permissões
+
+Chave canônica **`atendimento`**; aliases aceitos (frontend e Rules): `conversas`,
+`atendimento_chat`, `templates_atendimento` — além disso, qualquer funcionário com
+permissão em `leads` também pode ver/responder chats (o painel de leads e a Central
+de Atendimento compartilham o mesmo dado).
+
+| Papel | Acesso |
+|---|---|
+| Dono | ver + responder + mudar status + atribuir + ver dados do cliente |
+| Backend admin (claim) | ver + responder (independente do tenant) |
+| Funcionário ativo com "ver" atendimento/leads | lê conversas e mensagens, não responde nem muda status |
+| Funcionário ativo com "editar" atendimento/leads | ver + responder + mudar status + atribuir |
+| Funcionário inativo / sem permissão | bloqueado (módulo invisível) |
+| Outro tenant / anônimo autenticado sem vínculo | bloqueado — só o visitante anônimo que criou o chat lê aquela conversa específica (capability pelo id) |
+
+## Notificações
+
+`carregarEventosNegocioNotificacoes()` (`dashboard-app.js`) ganhou uma fonte
+`atendimento`, derivada do estado atual das conversas do tenant (`status == "nova"`
+ou `"aguardando_equipe"`) — mesmo padrão usado para leads/pedidos/avaliações, sem
+coleção de eventos nem Cloud Function. Clicar chama
+`abrirConversaAtendimentoPorNotificacao(id)`, que abre a Central de Atendimento e
+só seleciona a conversa depois de confirmar que ela pertence às conversas já
+carregadas do tenant atual — nunca aceita um id arbitrário da URL/payload.
+
+## Limitações conhecidas
+
+- Notificações são derivadas do estado atual, não de um log de eventos: "conversa
+  atribuída", "transferência" e "conversa reaberta" não geram avisos distintos
+  (ficam cobertos pelo estado geral "precisa de resposta"). Um log de eventos
+  exigiria Cloud Function/trigger, fora do escopo deste ciclo.
+- O painel de dados do cliente mostra o que já está na própria conversa (nome,
+  canal, setor, notas, tags); ainda não cruza com `leads`/`pedidos` para mostrar
+  histórico de pedidos ou contagem de conversas anteriores.
+- `{{numero_pedido}}` existe na whitelist de variáveis mas não é preenchido
+  automaticamente ainda (fica como texto do template até haver um pedido
+  vinculado à conversa).
+- Templates de atendimento continuam sem categorias fechadas nem ações de
+  duplicar/arquivar dedicadas — usam o módulo "Templates" já existente, cuja
+  `categoria` é texto livre na coleção compartilhada.
+- Testes de UI automatizados (Playwright) não cobrem o fluxo de login real
+  neste ciclo (ambiente sem acesso de rede ao Firebase); a verificação de UI
+  foi por inspeção de DOM/ausência de erros de console num Chromium headless
+  local, mais os 27 testes unitários de lógica pura e as suítes de Rules.
