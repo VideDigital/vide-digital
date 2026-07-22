@@ -122,9 +122,15 @@ describe("valores de pedido (schema real: valor number, status enum, data timest
         assert.equal(valores.data_pedido, new Date("2026-01-15").toLocaleDateString("pt-BR"));
     });
 
-    it("nunca inclui prazo_entrega — não existe campo canônico de prazo em pedidos hoje", () => {
+    it("não inclui prazo_entrega quando o pedido não tem prazoEntrega preenchido", () => {
         const valores = valoresDePedido({ id: "ped_1", status: "pago", valor: 10, data: Date.now() });
         assert.equal("prazo_entrega" in valores, false);
+    });
+
+    it("resolve prazo_entrega quando o pedido (Pedidos Estruturados) tem prazoEntrega", () => {
+        const prazo = new Date("2026-02-10").getTime();
+        const valores = valoresDePedido({ id: "ped_1", status: "pago", valor: 10, data: Date.now(), prazoEntrega: prazo });
+        assert.equal(valores.prazo_entrega, new Date(prazo).toLocaleDateString("pt-BR"));
     });
 
     it("pedido ausente retorna objeto vazio (sem inventar dado)", () => {
@@ -155,10 +161,17 @@ describe("resolução de variáveis + pendências (Fase 7)", () => {
         assert.deepEqual(pendentes.map(p => p.chave).sort(), ["numero_pedido", "valor_pedido"].sort());
     });
 
-    it("{{prazo_entrega}} sempre pendente (sem campo canônico) e nunca remove o texto original silenciosamente", () => {
+    it("{{prazo_entrega}} pendente quando o pedido não tem a data preenchida; nunca remove o texto original silenciosamente", () => {
         const { textoResolvido, pendentes } = resolverVariaveisTemplate("Prazo: {{prazo_entrega}}", {});
         assert.equal(textoResolvido, "Prazo: {{prazo_entrega}}");
         assert.ok(pendentes.some(p => p.chave === "prazo_entrega"));
+    });
+
+    it("{{prazo_entrega}} resolve quando o pedido vinculado (Pedidos Estruturados) tem prazoEntrega", () => {
+        const prazo = new Date("2026-03-01").getTime();
+        const { textoResolvido, pendentes } = resolverVariaveisTemplate("Prazo: {{prazo_entrega}}", { pedido: { id: "ped_1", prazoEntrega: prazo } });
+        assert.equal(textoResolvido, `Prazo: ${new Date(prazo).toLocaleDateString("pt-BR")}`);
+        assert.equal(pendentes.some(p => p.chave === "prazo_entrega"), false);
     });
 
     it("{{nome_cliente}} pendente em conversa anônima (sem nome)", () => {

@@ -1536,6 +1536,62 @@ describe("CRM 360: vínculo de clienteId em leads/pedidos e chats respeita o ten
   });
 });
 
+// ===== Pedidos Estruturados (itens/produtoId, prazoEntrega) =====
+
+function pedidoFixture(overrides = {}) {
+  return {
+    criadoPor: "ownerA", cliente: "Fulano", produtos: "Camiseta P x2", valor: 100,
+    status: "aguardando", data: Date.now(),
+    ...overrides
+  };
+}
+
+describe("pedidos: validação de campos (antes desta etapa não havia nenhuma)", () => {
+  it("dono cria pedido válido, com e sem itens estruturados", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedEstr1"), pedidoFixture()));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedEstr2"), pedidoFixture({
+      itens: [{ produtoId: "prod1", nomeSnapshot: "Camiseta P", precoSnapshot: 50, quantidade: 2 }],
+      prazoEntrega: Date.now() + 86400000
+    })));
+  });
+
+  it("rejeita status fora do enum, valor negativo, campo extra e cliente/produtos vazios", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedBad1"), pedidoFixture({ status: "enviado" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedBad2"), pedidoFixture({ valor: -10 })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedBad3"), pedidoFixture({ campoInvasor: "x" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedBad4"), pedidoFixture({ cliente: "" })));
+  });
+
+  it("aceita até 20 itens; rejeita itens não-lista", async () => {
+    const itens20 = Array.from({ length: 20 }, (_, i) => ({ produtoId: `p${i}`, nomeSnapshot: `Produto ${i}`, precoSnapshot: 1, quantidade: 1 }));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedItens20"), pedidoFixture({ itens: itens20 })));
+    const itens21 = Array.from({ length: 21 }, (_, i) => ({ produtoId: `p${i}`, nomeSnapshot: `Produto ${i}`, precoSnapshot: 1, quantidade: 1 }));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedItens21"), pedidoFixture({ itens: itens21 })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedItensBad"), pedidoFixture({ itens: "não é lista" })));
+  });
+
+  it("prazoEntrega aceita number ou null", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedPrazo1"), pedidoFixture({ prazoEntrega: Date.now() })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedPrazo2"), pedidoFixture({ prazoEntrega: null })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedPrazo3"), pedidoFixture({ prazoEntrega: "amanhã" })));
+  });
+
+  it("compatibilidade: pedido legado (sem itens/prazoEntrega) continua tendo o status atualizado normalmente", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedidos", "pedLegado1"), pedidoFixture());
+    });
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedLegado1"), {
+      status: "confirmado", statusAtualizadoEm: Date.now()
+    }, { merge: true }));
+  });
+
+  it("funcionário sem permissão de pedidos não cria; outro tenant não lê", async () => {
+    await assertFails(setDoc(doc(authed("employeeRead"), "pedidos", "pedNegado1"), pedidoFixture({ criadoPor: "ownerA" })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedPriv1"), pedidoFixture()));
+    await assertFails(getDoc(doc(authed("ownerB"), "pedidos", "pedPriv1")));
+  });
+});
+
 // ===== Histórico de eventos do Atendimento (chats/{chatId}/eventos) =====
 
 function eventoStaffFixture(overrides = {}) {
