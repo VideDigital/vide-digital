@@ -655,6 +655,16 @@ export function criarAtendimentoController(deps) {
             conversa.ultimaMensagem = mensagem;
             conversa.status = "aguardando_cliente";
             conversa.atualizadoEm = agora;
+            // CRM 360 (best-effort, não trava o envio se falhar): marca a
+            // interação mais recente do cliente vinculado, usada pelo
+            // alerta de "cliente sem retorno".
+            if (conversa.clienteId) {
+                setDoc(doc(db, "clientes", conversa.clienteId), {
+                    ultimaInteracaoEm: agora,
+                    atualizadoPor: authUid(),
+                    atualizadoEm: serverTimestamp()
+                }, { merge: true }).catch(() => {});
+            }
             await render();
         } catch (error) {
             console.error("[Atendimento] Falha ao enviar resposta:", codigoErroFirebase(error), error?.message);

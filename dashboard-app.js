@@ -3,7 +3,7 @@ import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
-import { criarCrm360Controller } from "./crm360.js";
+import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -4154,6 +4154,14 @@ btn.classList.add("opacity-40");
             if (!ativarAba("view-atendimento")) return;
             await atendimentoController.load();
             await atendimentoController.abrirConversaPorId(id);
+        };
+
+        // Navegação a partir de uma notificação do CRM 360: abre o drawer
+        // direto pelo clienteId — abrirParaClienteId confirma que o
+        // cliente pertence ao tenant atual antes de mostrar qualquer dado.
+        window.abrirClienteCrmPorNotificacao = async function(clienteId) {
+            if (!ativarAba("view-atendimento")) return;
+            await crm360Controller.abrirParaClienteId(clienteId);
         };
 
         document.getElementById("ia-tentar-novamente")?.addEventListener("click", () => {
@@ -16134,7 +16142,8 @@ async function() {
             pedido: { nivel: "alta", label: "Prioridade alta" },
             avaliacao: { nivel: "media", label: "Prioridade média" },
             lead: { nivel: "media", label: "Prioridade média" },
-            atendimento: { nivel: "alta", label: "Prioridade alta" }
+            atendimento: { nivel: "alta", label: "Prioridade alta" },
+            crm: { nivel: "media", label: "Prioridade média" }
         };
 
         // Destinos de navegação seguros para um aviso do admin. Hoje
@@ -16293,6 +16302,44 @@ async function() {
             } catch (e) { /* atendimento indisponível: ignora esta fonte */ }
 
             try {
+                // CRM 360: cliente com status "cliente"/"recorrente" que não
+                // interage há muito tempo (mesmo limite usado na sugestão de
+                // status "inativo" dentro do próprio CRM). Deriva do estado
+                // atual do cliente — não é um log de eventos, então
+                // "atribuído"/"transferido"/"pedido vinculado" não viram
+                // avisos distintos aqui (a ação já dá feedback na hora via
+                // toast dentro do próprio drawer do CRM).
+                const snapClientes = await getDocs(query(collection(db, "clientes"), where("tenantId", "==", usuarioUID), limit(200)));
+                const clientesSemRetorno = [];
+                snapClientes.forEach(d => {
+                    const c = d.data();
+                    if (!["cliente", "recorrente"].includes(c.statusRelacionamento)) return;
+                    const ultimaMs = normalizarMs(c.ultimaInteracaoEm);
+                    const dias = ultimaMs ? Math.floor((Date.now() - ultimaMs) / 86400000) : null;
+                    if (dias !== null && dias >= LIMITES_CRM.diasInativoSugestao) {
+                        // Momento em que o cliente CRUZOU o limite de dias sem
+                        // retorno — não "agora" (senão nunca marcaria como
+                        // lida) nem a última interação em si (senão já
+                        // nasceria "lida" por já ser passado antigo).
+                        const cruzouEm = ultimaMs + (LIMITES_CRM.diasInativoSugestao * 86400000);
+                        clientesSemRetorno.push({ id: d.id, nome: c.nome, dias, cruzouEm });
+                    }
+                });
+                clientesSemRetorno.sort((a, b) => (b.dias || 0) - (a.dias || 0));
+                clientesSemRetorno.slice(0, 10).forEach(c => {
+                    eventos.push({
+                        id: `crm-sem-retorno-${c.id}`,
+                        origem: "negocio",
+                        tipo: "crm",
+                        titulo: "Cliente sem retorno",
+                        mensagem: `${esc(c.nome || "Cliente")} está sem interação há ${c.dias} dias.`,
+                        criadoEm: c.cruzouEm,
+                        acao: `abrirClienteCrmPorNotificacao('${c.id}')`
+                    });
+                });
+            } catch (e) { /* crm indisponível: ignora esta fonte */ }
+
+            try {
                 if (typeof temFeature !== "function" || temFeature("avaliacoes")) {
                     const snap = await getDocs(query(collection(db, "avaliacoes"), where("criadoPor", "==", usuarioUID), limit(200)));
                     const pendentes = [];
@@ -16323,7 +16370,8 @@ async function() {
             lead: '<path d="M12 12.8a3.2 3.2 0 1 0 0-6.4 3.2 3.2 0 0 0 0 6.4Z"></path><path d="M5 20a7 7 0 0 1 14 0"></path>',
             pedido: '<path d="m6 2-3 4v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z"></path><path d="M3 6h18"></path><path d="M16 10a4 4 0 0 1-8 0"></path>',
             avaliacao: '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"></path>',
-            atendimento: '<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>'
+            atendimento: '<path d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.86 9.86 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>',
+            crm: '<path d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"></path>'
         };
 
         // Renderiza um item da lista completa (página "Notificações"). O
@@ -16444,6 +16492,7 @@ async function() {
             { chave: "nao-lidas", label: "Não lidas" },
             { chave: "lidas", label: "Lidas" },
             { chave: "atendimento", label: "Atendimento" },
+            { chave: "crm", label: "CRM" },
             { chave: "lead", label: "Leads" },
             { chave: "pedido", label: "Pedidos" },
             { chave: "avaliacao", label: "Avaliações" },

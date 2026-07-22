@@ -674,6 +674,40 @@ export function criarCrm360Controller(deps) {
         el("crm-cliente-modal")?.classList.add("hidden");
     }
 
+    // Entrada direta (ex.: clicando numa notificação de "cliente sem
+    // retorno") sem partir de uma conversa aberta. Só mostra o perfil se
+    // o cliente realmente pertencer ao tenant atual — getDoc()/Rules já
+    // barram outro tenant, mas a checagem aqui evita renderizar um estado
+    // parcial antes da negação chegar.
+    async function abrirParaClienteId(clienteId) {
+        if (!clienteId || !podeVer()) return false;
+        state.conversa = null;
+        state.filtroTimeline = "todos";
+        el("crm-cliente-modal")?.classList.remove("hidden");
+        renderCarregando(true);
+        try {
+            await carregarClientePorId(clienteId);
+            if (!state.cliente || state.cliente.tenantId !== storeUid()) {
+                state.naoIdentificado = false;
+                state.cliente = null;
+                state.clienteId = "";
+                notify("Cliente não encontrado ou sem acesso.", "error");
+                fechar();
+                return false;
+            }
+            state.erro = false;
+            return true;
+        } catch (error) {
+            console.error("[CRM 360] Falha ao abrir cliente por id:", codigoErroFirebase(error), error?.message);
+            notify("Não foi possível carregar o CRM deste cliente.", "error");
+            fechar();
+            return false;
+        } finally {
+            renderCarregando(false);
+            render();
+        }
+    }
+
     // Vincula a conversa ATUAL a um cliente já existente (candidato
     // sugerido) — grava clienteId no chat e recarrega o perfil.
     async function vincularConversaACliente(clienteId) {
@@ -1085,6 +1119,7 @@ export function criarCrm360Controller(deps) {
 
     return {
         abrirParaConversa,
+        abrirParaClienteId,
         fechar,
         vincularLead,
         vincularPedido,
