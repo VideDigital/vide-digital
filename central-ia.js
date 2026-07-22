@@ -49,6 +49,21 @@ export const MODOS_RESPOSTA_IA = Object.freeze({
 
 const CANAIS_IA = Object.freeze(Object.keys(CONFIG_IA_PADRAO.canais));
 
+function normalizarCodigoErroFirebase(error) {
+    return String(error?.code || "").trim().toLowerCase().replace(/^firestore\//, "");
+}
+
+function mensagemErroCarregamento(error) {
+    const code = normalizarCodigoErroFirebase(error);
+    if (code === "permission-denied") {
+        return "Sua conta não tem permissão para acessar esta configuração.";
+    }
+    if (code === "unavailable" || code === "network-request-failed") {
+        return "Não foi possível conectar ao Firebase. Verifique sua conexão e tente novamente.";
+    }
+    return "Não foi possível carregar as configurações. Tente novamente.";
+}
+
 function texto(value, fallback = "") {
     return typeof value === "string" ? value : fallback;
 }
@@ -308,6 +323,7 @@ export function criarCentralIAController({
         state.loading = loading;
         byId("ia-loading")?.classList.toggle("hidden", !loading);
         byId("ia-content")?.classList.toggle("hidden", loading);
+        if (byId("ia-tentar-novamente")) byId("ia-tentar-novamente").disabled = loading;
         form()?.setAttribute("aria-busy", String(loading));
         updateState();
     }
@@ -329,6 +345,7 @@ export function criarCentralIAController({
 
         const storeUid = snapshot.storeUid;
         if (!storeUid) return;
+        const documentPath = `configuracoes_ia/${storeUid}`;
 
         setLoading(true);
         setText("ia-load-error-message", "");
@@ -345,10 +362,26 @@ export function criarCentralIAController({
             state.initialized = true;
             applyPermission();
         } catch (error) {
-            logger.error("[Central de IA] Erro ao carregar configuração:", error);
+            logger.error("[Central de IA] Erro ao carregar configuração:", {
+                code: error?.code || "unknown",
+                message: error?.message || String(error),
+                storeUid,
+                authUid: snapshot.authUid || null,
+                context: {
+                    initialized: Boolean(snapshot.initialized),
+                    active: Boolean(snapshot.active),
+                    userType: snapshot.userType || "unknown",
+                    isOwner: Boolean(snapshot.isOwner),
+                    isEmployee: Boolean(snapshot.isEmployee),
+                    isAdmin: Boolean(snapshot.isAdmin),
+                    canView: context.canView("central-ia"),
+                    canEdit: context.canEdit("central-ia")
+                },
+                path: documentPath
+            });
             state.loadError = true;
             if (!state.initialized) fill(state.persisted);
-            setText("ia-load-error-message", "Não foi possível carregar as configurações.");
+            setText("ia-load-error-message", mensagemErroCarregamento(error));
             byId("ia-load-error")?.classList.add("is-visible");
             if (byId("ia-fieldset")) byId("ia-fieldset").disabled = true;
         } finally {

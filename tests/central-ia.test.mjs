@@ -18,6 +18,8 @@ const centralIaSource = fs.readFileSync(path.join(rootDir, "central-ia.js"), "ut
 const centralIaCss = fs.readFileSync(path.join(rootDir, "central-ia.css"), "utf8");
 const sidebarNavigation = fs.readFileSync(path.join(rootDir, "sidebar-navigation.js"), "utf8");
 const firestoreRules = fs.readFileSync(path.join(rootDir, "firestore.rules"), "utf8");
+const firebaseInit = fs.readFileSync(path.join(rootDir, "firebase-init.js"), "utf8");
+const firebaseDeployWorkflow = fs.readFileSync(path.join(rootDir, ".github", "workflows", "firebase-deploy.yml"), "utf8");
 
 function criarElementoFake(overrides = {}) {
   const classes = new Set();
@@ -143,6 +145,16 @@ test("aviso de carregamento oferece nova tentativa pelo controlador", () => {
   assert.match(dashboardApp, /getElementById\("ia-tentar-novamente"\)[\s\S]*?centralIAController\.load\(\{ force: true \}\)/);
 });
 
+test("deploy das Rules usa o mesmo projeto do frontend e ocorre antes das Functions", () => {
+  assert.match(firebaseInit, /projectId:\s*"vide-digital-saas"/);
+  assert.match(firebaseDeployWorkflow, /\$\{PROJECT_ID\}" != "vide-digital-saas"/);
+  const rulesDeploy = firebaseDeployWorkflow.indexOf("--only firestore:rules");
+  const functionsDeploy = firebaseDeployWorkflow.indexOf("--only functions:sendAdminChatMessage,functions:incrementPublicMetric");
+  assert.ok(rulesDeploy >= 0);
+  assert.ok(functionsDeploy >= 0);
+  assert.ok(rulesDeploy < functionsDeploy);
+});
+
 test("layout possui breakpoints para desktop, tablet e celulares de 360/390px", () => {
   assert.match(centralIaCss, /@media \(max-width: 1023px\)/);
   assert.match(centralIaCss, /@media \(max-width: 767px\)/);
@@ -251,7 +263,7 @@ test("atualização preserva metadados de criação ao omiti-los do merge", () =
   assert.equal(Object.hasOwn(payload, "criadoPor"), false);
 });
 
-test("controlador carrega defaults e salva no documento da loja autenticada", async () => {
+test("proprietário carrega defaults de documento inexistente e consegue salvar", async () => {
   const { root, elements } = criarDomFakeCentralIA();
   const writes = [];
   const notifications = [];
@@ -261,7 +273,9 @@ test("controlador carrega defaults e salva no documento da loja autenticada", as
       initialized: true,
       active: true,
       storeUid: "ownerA",
-      authUid: "employeeEdit"
+      authUid: "ownerA",
+      userType: "owner",
+      isOwner: true
     }),
     canView: moduleKey => moduleKey === "central-ia",
     canEdit: moduleKey => moduleKey === "central-ia"
@@ -292,13 +306,84 @@ test("controlador carrega defaults e salva no documento da loja autenticada", as
   assert.equal(writes[0][1].nomeAssistente, "Luna");
   assert.equal(writes[0][1].tenantId, "ownerA");
   assert.equal(writes[0][1].lojaId, "ownerA");
-  assert.equal(writes[0][1].criadoPor, "employeeEdit");
-  assert.equal(writes[0][1].atualizadoPor, "employeeEdit");
+  assert.equal(writes[0][1].criadoPor, "ownerA");
+  assert.equal(writes[0][1].atualizadoPor, "ownerA");
   assert.equal(writes[0][1].criadoEm, timestamp);
   assert.equal(writes[0][1].atualizadoEm, timestamp);
   assert.deepEqual(writes[0][2], { merge: true });
   assert.deepEqual(notifications.at(-1), ["Configurações da IA salvas com sucesso.", "success"]);
   assert.equal(controller.getState().exists, true);
+});
+
+test("funcionário somente leitura carrega dados sem poder editar ou salvar", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  const writes = [];
+  const notifications = [];
+  const context = {
+    getSnapshot: () => ({
+      initialized: true, active: true, storeUid: "ownerA", authUid: "employeeRead",
+      userType: "employee", isEmployee: true
+    }),
+    canView: () => true,
+    canEdit: () => false
+  };
+  const controller = criarCentralIAController({
+    db: {}, context, root,
+    firestore: {
+      doc: (_db, collection, id) => ({ collection, id }),
+      getDoc: async () => ({
+        exists: () => true,
+        data: () => ({ ...CONFIG_IA_PADRAO, nomeAssistente: "Luna" })
+      }),
+      setDoc: async (...args) => writes.push(args),
+      serverTimestamp: () => ({})
+    },
+    notify: (...args) => notifications.push(args),
+    logger: { error() {} }
+  });
+
+  await controller.load();
+  assert.equal(elements["ia-nome-assistente"].value, "Luna");
+  assert.equal(elements["ia-fieldset"].disabled, true);
+  assert.equal(elements["ia-readonly-notice"].hidden, false);
+
+  elements["ia-nome-assistente"].value = "Tentativa bloqueada";
+  await controller.save();
+  assert.equal(writes.length, 0);
+  assert.deepEqual(notifications.at(-1), ["Você tem acesso somente leitura neste módulo.", "error"]);
+});
+
+test("funcionário editor carrega e salva na loja vinculada", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  const writes = [];
+  const context = {
+    getSnapshot: () => ({
+      initialized: true, active: true, storeUid: "ownerA", authUid: "employeeEdit",
+      userType: "employee", isEmployee: true
+    }),
+    canView: () => true,
+    canEdit: () => true
+  };
+  const controller = criarCentralIAController({
+    db: {}, context, root,
+    firestore: {
+      doc: (_db, collection, id) => ({ collection, id }),
+      getDoc: async () => ({ exists: () => false, data: () => null }),
+      setDoc: async (...args) => writes.push(args),
+      serverTimestamp: () => ({ sentinel: "server" })
+    },
+    logger: { error() {} }
+  });
+
+  await controller.load();
+  elements["ia-nome-assistente"].value = "Editora";
+  await controller.save();
+
+  assert.equal(elements["ia-fieldset"].disabled, false);
+  assert.equal(writes.length, 1);
+  assert.deepEqual(writes[0][0], { collection: "configuracoes_ia", id: "ownerA" });
+  assert.equal(writes[0][1].criadoPor, "employeeEdit");
+  assert.equal(writes[0][1].tenantId, "ownerA");
 });
 
 test("falha no carregamento mantém defaults coerentes e bloqueia edição", async () => {
@@ -323,13 +408,77 @@ test("falha no carregamento mantém defaults coerentes e bloqueia edição", asy
   assert.equal(elements["ia-nome-assistente"].value, CONFIG_IA_PADRAO.nomeAssistente);
   assert.equal(elements["ia-fieldset"].disabled, true);
   assert.equal(elements["ia-load-error"].classList.contains("is-visible"), true);
-  assert.equal(elements["ia-load-error-message"].textContent, "Não foi possível carregar as configurações.");
+  assert.equal(elements["ia-load-error-message"].textContent, "Não foi possível carregar as configurações. Tente novamente.");
   assert.equal(controller.getState().initialized, false);
   assert.equal(controller.getState().loadError, true);
 
   elements["ia-nome-assistente"].value = "Não pode salvar";
   controller.updateState();
   assert.equal(elements["ia-salvar"].disabled, true);
+});
+
+test("permission-denied mostra mensagem segura e registra contexto sanitizado", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  const logs = [];
+  const context = {
+    getSnapshot: () => ({
+      initialized: true, active: true, storeUid: "ownerA", authUid: "ownerA",
+      userType: "owner", isOwner: true
+    }),
+    canView: () => true,
+    canEdit: () => true
+  };
+  const error = Object.assign(new Error("Missing or insufficient permissions."), { code: "permission-denied" });
+  const controller = criarCentralIAController({
+    db: {}, context, root,
+    firestore: {
+      doc: () => ({}),
+      getDoc: async () => { throw error; },
+      setDoc: async () => {},
+      serverTimestamp: () => ({})
+    },
+    logger: { error: (...args) => logs.push(args) }
+  });
+
+  await controller.load();
+  assert.equal(elements["ia-load-error-message"].textContent, "Sua conta não tem permissão para acessar esta configuração.");
+  assert.equal(elements["ia-fieldset"].disabled, true);
+  assert.equal(logs.length, 1);
+  assert.deepEqual(logs[0][1], {
+    code: "permission-denied",
+    message: "Missing or insufficient permissions.",
+    storeUid: "ownerA",
+    authUid: "ownerA",
+    context: {
+      initialized: true, active: true, userType: "owner", isOwner: true,
+      isEmployee: false, isAdmin: false, canView: true, canEdit: true
+    },
+    path: "configuracoes_ia/ownerA"
+  });
+});
+
+test("falha de rede mostra orientação de conexão sem liberar edição", async () => {
+  const { root, elements } = criarDomFakeCentralIA();
+  const context = {
+    getSnapshot: () => ({ initialized: true, active: true, storeUid: "ownerA", authUid: "ownerA" }),
+    canView: () => true,
+    canEdit: () => true
+  };
+  const error = Object.assign(new Error("Backend unavailable"), { code: "unavailable" });
+  const controller = criarCentralIAController({
+    db: {}, context, root,
+    firestore: {
+      doc: () => ({}),
+      getDoc: async () => { throw error; },
+      setDoc: async () => {},
+      serverTimestamp: () => ({})
+    },
+    logger: { error() {} }
+  });
+
+  await controller.load();
+  assert.equal(elements["ia-load-error-message"].textContent, "Não foi possível conectar ao Firebase. Verifique sua conexão e tente novamente.");
+  assert.equal(elements["ia-fieldset"].disabled, true);
 });
 
 test("nova tentativa mostra loading e desbloqueia somente após leitura bem-sucedida", async () => {
@@ -358,11 +507,13 @@ test("nova tentativa mostra loading e desbloqueia somente após leitura bem-suce
 
   await controller.load();
   const retryPromise = controller.load({ force: true });
+  await controller.load({ force: true });
 
   assert.equal(attempts, 2);
   assert.equal(elements["ia-loading"].classList.contains("hidden"), false);
   assert.equal(elements["ia-content"].classList.contains("hidden"), true);
   assert.equal(elements["ia-fieldset"].disabled, true);
+  assert.equal(elements["ia-tentar-novamente"].disabled, true);
   assert.equal(elements["ia-load-error"].classList.contains("is-visible"), false);
 
   resolveRetry({ exists: () => false, data: () => null });
@@ -371,6 +522,7 @@ test("nova tentativa mostra loading e desbloqueia somente após leitura bem-suce
   assert.equal(elements["ia-loading"].classList.contains("hidden"), true);
   assert.equal(elements["ia-content"].classList.contains("hidden"), false);
   assert.equal(elements["ia-fieldset"].disabled, false);
+  assert.equal(elements["ia-tentar-novamente"].disabled, false);
   assert.equal(elements["ia-load-error"].classList.contains("is-visible"), false);
   assert.equal(controller.getState().initialized, true);
   assert.equal(controller.getState().loadError, false);
