@@ -3542,6 +3542,9 @@ Filtros
 </div>
 
 <form id="atend-form-resposta">
+<button type="button" class="atend-btn" id="atend-btn-templates" aria-label="Inserir template" title="Inserir template">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M4 5h16v12H8l-4 4V5Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
+</button>
 <textarea id="atend-resposta-input" class="atend-input" placeholder="Digite sua resposta..." aria-label="Escrever resposta" maxlength="4000"></textarea>
 <button type="submit" class="atend-btn atend-btn-primario">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
@@ -3550,6 +3553,16 @@ Enviar
 </form>
 </div>
 
+</div>
+
+<div class="atend-cliente-modal hidden" id="atend-templates-modal" role="dialog" aria-modal="true" aria-labelledby="atend-templates-titulo">
+<div class="atend-cliente-painel">
+<h3 id="atend-templates-titulo">Inserir template</h3>
+<div id="atend-templates-lista"></div>
+<div class="atend-cliente-acoes">
+<button type="button" class="atend-btn" id="atend-templates-fechar">Fechar</button>
+</div>
+</div>
 </div>
 
 <div class="atend-cliente-modal hidden" id="atend-cliente-modal" role="dialog" aria-modal="true" aria-labelledby="atend-cliente-titulo">

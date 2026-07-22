@@ -443,6 +443,65 @@ export function criarAtendimentoController(deps) {
         }
     }
 
+    // Reaproveita a coleção "templates" (mesma usada pelo módulo Templates
+    // já existente, inclusive templates de automação de leads com o campo
+    // "fluxo") — aqui só lemos e inserimos, sem CRUD próprio duplicado.
+    async function carregarTemplatesAtendimento() {
+        try {
+            const snap = await getDocs(query(collection(db, "templates"), where("criadoPor", "==", storeUid())));
+            state.templates = [];
+            snap.forEach(d => state.templates.push({ id: d.id, ...d.data() }));
+        } catch (error) {
+            state.templates = [];
+        }
+    }
+
+    function renderSeletorTemplates() {
+        const lista = el("atend-templates-lista");
+        if (!lista) return;
+        const disponiveis = filtrarTemplates(state.templates, { apenasAtivos: true });
+        if (disponiveis.length === 0) {
+            lista.innerHTML = `<div class="atend-vazio"><p>Nenhum template disponível ainda. Cadastre em "Templates".</p></div>`;
+            return;
+        }
+        lista.innerHTML = disponiveis.map(t => `
+            <button type="button" class="atend-btn atend-template-item" data-atend-template-id="${escaparHtml(t.id)}" style="width:100%;justify-content:flex-start;text-align:left;margin-bottom:6px;">
+                <span>
+                    <strong style="display:block;">${escaparHtml(t.titulo)}</strong>
+                    <span style="color:var(--at-muted);font-size:11.5px;">${escaparHtml(String(t.mensagem || "").slice(0, 90))}</span>
+                </span>
+            </button>
+        `).join("");
+    }
+
+    function abrirSeletorTemplates() {
+        renderSeletorTemplates();
+        el("atend-templates-modal")?.classList.remove("hidden");
+    }
+
+    function fecharSeletorTemplates() {
+        el("atend-templates-modal")?.classList.add("hidden");
+    }
+
+    function inserirTemplateNaResposta(templateId) {
+        const template = state.templates.find(t => t.id === templateId);
+        const conversa = conversaSelecionada();
+        if (!template) return;
+        const snapshot = context.getSnapshot();
+        const substituido = substituirVariaveisTemplate(template.mensagem, {
+            nome_cliente: conversa?.clienteNome || "",
+            nome_loja: snapshot.owner?.nomeLoja || snapshot.owner?.nome || "",
+            nome_funcionario: nomeAutorAtual(),
+            numero_pedido: ""
+        });
+        const input = el("atend-resposta-input");
+        if (input) {
+            input.value = input.value ? `${input.value}\n${substituido}` : substituido;
+            input.focus();
+        }
+        fecharSeletorTemplates();
+    }
+
     function renderMensagens() {
         const box = el("atend-mensagens");
         if (!box) return;
@@ -542,6 +601,7 @@ export function criarAtendimentoController(deps) {
             state.erro = false;
             state.carregado = true;
             await carregarFuncionarios();
+            await carregarTemplatesAtendimento();
         } catch (error) {
             console.error("[Atendimento] Falha ao carregar conversas:", codigoErroFirebase(error), error?.message);
             state.erro = true;
@@ -755,6 +815,13 @@ export function criarAtendimentoController(deps) {
         el("atend-btn-dados-cliente")?.addEventListener("click", abrirPainelCliente);
         el("atend-cliente-fechar")?.addEventListener("click", fecharPainelCliente);
         el("atend-cliente-salvar")?.addEventListener("click", salvarNotasCliente);
+
+        el("atend-btn-templates")?.addEventListener("click", abrirSeletorTemplates);
+        el("atend-templates-fechar")?.addEventListener("click", fecharSeletorTemplates);
+        el("atend-templates-lista")?.addEventListener("click", event => {
+            const alvo = event.target.closest("[data-atend-template-id]");
+            if (alvo) inserirTemplateNaResposta(alvo.getAttribute("data-atend-template-id"));
+        });
 
         const formResposta = el("atend-form-resposta");
         formResposta?.addEventListener("submit", event => {
