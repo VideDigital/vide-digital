@@ -366,6 +366,104 @@
 .atend-cliente-painel textarea { width: 100%; min-height: 70px; margin-top: 6px; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--at-border); background: rgba(255, 255, 255, 0.03); color: #f7f8fc; font-size: 13px; resize: vertical; }
 .atend-cliente-acoes { display: flex; justify-content: flex-end; gap: 10px; margin-top: 18px; }
 
+/* ===== Templates avançados de atendimento ===== */
+.atend-gestao-painel { width: min(720px, 100%); }
+
+.atend-template-pendencias {
+    margin: 0 16px 8px;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(251, 191, 36, .1);
+    border: 1px solid rgba(251, 191, 36, .3);
+    color: #fcd34d;
+    font-size: 12px;
+    line-height: 1.5;
+}
+.atend-template-pendencias strong { display: block; margin-bottom: 4px; color: #fde68a; }
+.atend-template-pendencias ul { margin: 0 0 4px; padding-left: 18px; }
+.atend-template-pendencias span { color: #fde68a; opacity: .85; }
+
+.atend-resposta-input-wrap { position: relative; flex: 1; }
+.atend-resposta-input-wrap textarea { width: 100%; }
+
+.atend-atalho-sugestoes {
+    position: absolute;
+    bottom: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    max-height: 220px;
+    overflow-y: auto;
+    z-index: 20;
+    border-radius: 12px;
+    border: 1px solid var(--at-border);
+    background: var(--at-card-bg);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.35);
+    padding: 6px;
+}
+.atend-atalho-sugestao-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #e5e7eb;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+.atend-atalho-sugestao-item strong { color: var(--sys-destaque, #00d4ff); }
+.atend-atalho-sugestao-item:hover,
+.atend-atalho-sugestao-item.is-ativa { background: rgba(255, 255, 255, 0.07); }
+
+.atend-templates-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.atend-templates-toolbar .atend-input { flex: 1; min-width: 160px; }
+
+.atend-templates-abas { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px; }
+.atend-templates-abas .atend-btn.is-ativa,
+[data-atend-template-aba].is-ativa {
+    background: color-mix(in srgb, var(--sys-primaria, #5b3df5) 30%, transparent);
+    border-color: color-mix(in srgb, var(--sys-primaria, #5b3df5) 50%, transparent);
+    color: #fff;
+}
+
+.atend-gestao-tpl-lista { display: flex; flex-direction: column; gap: 8px; max-height: 45vh; overflow-y: auto; margin-bottom: 12px; }
+.atend-gestao-tpl-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--at-border);
+    background: rgba(255, 255, 255, 0.02);
+    flex-wrap: wrap;
+}
+.atend-gestao-tpl-item.is-arquivado { opacity: .55; }
+.atend-gestao-tpl-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.atend-gestao-tpl-info strong { font-size: 13px; }
+.atend-gestao-tpl-info span { font-size: 11px; color: var(--at-muted); }
+.atend-gestao-tpl-acoes { display: flex; flex-wrap: wrap; gap: 6px; }
+
+.atend-template-form-painel {
+    margin-top: 16px;
+    padding-top: 16px;
+    border-top: 1px solid var(--at-border);
+}
+.atend-template-form-painel.hidden { display: none; }
+.atend-template-form-painel h4 { font-size: 14px; font-weight: 800; margin-bottom: 10px; }
+#atend-tpl-form { display: flex; flex-direction: column; gap: 4px; }
+#atend-tpl-form label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--at-muted); margin-top: 8px; }
+#atend-tpl-form textarea#atend-tpl-mensagem { min-height: 100px; resize: vertical; }
+
+@media (max-width: 720px) {
+    .atend-gestao-painel { width: 100%; max-height: 92vh; }
+    .atend-templates-toolbar { flex-direction: column; }
+    .atend-templates-toolbar .atend-input { width: 100%; }
+}
+
 /* ===== Mobile: navegação em etapas (filtros -> lista -> conversa) ===== */
 @media (max-width: 1024px) {
     .atend-kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); }

@@ -31,7 +31,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -700,11 +700,19 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
         // =============================================
         // FUNCIONÁRIOS (Gestão de Acessos — Fase 1: cadastro + permissões)
         // =============================================
+        // "atendimento" e "crm" faltavam aqui — Rules, core/vide-context.js e
+        // atendimento.js/crm360.js já suportavam essas permissões desde os
+        // ciclos anteriores, mas nenhuma tela de gestão de acessos deixava o
+        // dono realmente concedê-las a um funcionário (achado da auditoria
+        // do ciclo "Templates Avançados"; corrigido aqui, sem tocar em Rules
+        // nem em contrato nenhum — só a lista que gera os checkboxes).
         const MODULOS_PERMISSAO = [
             { key: "produtos", label: "Produtos" },
             { key: "pedidos", label: "Pedidos" },
             { key: "leads", label: "Leads" },
+            { key: "atendimento", label: "Central de Atendimento" },
             { key: "templates", label: "Templates" },
+            { key: "crm", label: "CRM 360 do Cliente" },
             { key: "campanhas", label: "Campanhas" },
             { key: "metricas", label: "Métricas" },
             { key: "configuracoes", label: "Configurações da Loja" },
@@ -4140,7 +4148,7 @@ btn.classList.add("opacity-40");
         const atendimentoController = criarAtendimentoController({
             db,
             context: VideHubContext,
-            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, writeBatch },
+            firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, writeBatch, increment },
             notify: showToast,
             onAbrirDadosCliente: conversa => crm360Controller.abrirParaConversa(conversa)
         });

@@ -3558,11 +3558,15 @@ Filtros
 <div id="atend-mensagens" role="log" aria-live="polite" aria-label="Histórico da conversa"></div>
 </div>
 
+<div id="atend-template-pendencias" class="atend-template-pendencias" hidden></div>
 <form id="atend-form-resposta">
 <button type="button" class="atend-btn" id="atend-btn-templates" aria-label="Inserir template" title="Inserir template">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M4 5h16v12H8l-4 4V5Z"/><path d="M8 9h8"/><path d="M8 13h5"/></svg>
 </button>
-<textarea id="atend-resposta-input" class="atend-input" placeholder="Digite sua resposta..." aria-label="Escrever resposta" maxlength="4000"></textarea>
+<div class="atend-resposta-input-wrap">
+<textarea id="atend-resposta-input" class="atend-input" placeholder="Digite sua resposta... (use / para atalhos de template)" aria-label="Escrever resposta" maxlength="4000"></textarea>
+<div id="atend-atalho-sugestoes" class="atend-atalho-sugestoes" hidden role="listbox" aria-label="Sugestões de atalho de template"></div>
+</div>
 <button type="submit" class="atend-btn atend-btn-primario">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4 20-7Z"/></svg>
 Enviar
@@ -3575,9 +3579,99 @@ Enviar
 <div class="atend-cliente-modal hidden" id="atend-templates-modal" role="dialog" aria-modal="true" aria-labelledby="atend-templates-titulo">
 <div class="atend-cliente-painel">
 <h3 id="atend-templates-titulo">Inserir template</h3>
+<div class="atend-templates-toolbar">
+<input type="text" id="atend-templates-busca" class="atend-input" placeholder="Buscar por título, atalho ou conteúdo">
+<select id="atend-templates-categoria" class="atend-select" aria-label="Filtrar por categoria">
+<option value="todas">Todas as categorias</option>
+<option value="saudacao">Saudação</option>
+<option value="orcamento">Orçamento</option>
+<option value="pagamento">Pagamento</option>
+<option value="prazo">Prazo</option>
+<option value="entrega">Entrega</option>
+<option value="pedido">Pedido</option>
+<option value="indisponibilidade">Indisponibilidade</option>
+<option value="suporte">Suporte</option>
+<option value="acompanhamento">Acompanhamento</option>
+<option value="pos_venda">Pós-venda</option>
+<option value="encerramento">Encerramento</option>
+<option value="personalizada">Personalizada</option>
+</select>
+</div>
+<div id="atend-templates-abas" class="atend-templates-abas" role="tablist">
+<button type="button" class="atend-btn" data-atend-template-aba="todos" role="tab">Todos</button>
+<button type="button" class="atend-btn" data-atend-template-aba="favoritos" role="tab">Favoritos</button>
+<button type="button" class="atend-btn" data-atend-template-aba="recentes" role="tab">Recentes</button>
+<button type="button" class="atend-btn" data-atend-template-aba="mais_usados" role="tab">Mais usados</button>
+</div>
 <div id="atend-templates-lista"></div>
 <div class="atend-cliente-acoes">
+<button type="button" class="atend-btn" id="atend-btn-gerenciar-templates">Gerenciar templates</button>
 <button type="button" class="atend-btn" id="atend-templates-fechar">Fechar</button>
+</div>
+</div>
+</div>
+
+<div class="atend-cliente-modal hidden" id="atend-gestao-modal" role="dialog" aria-modal="true" aria-labelledby="atend-gestao-titulo">
+<div class="atend-cliente-painel atend-gestao-painel">
+<h3 id="atend-gestao-titulo">Gerenciar templates de atendimento</h3>
+<div class="atend-templates-toolbar">
+<input type="text" id="atend-gestao-busca" class="atend-input" placeholder="Buscar template">
+<select id="atend-gestao-categoria" class="atend-select" aria-label="Filtrar por categoria">
+<option value="todas">Todas as categorias</option>
+<option value="saudacao">Saudação</option>
+<option value="orcamento">Orçamento</option>
+<option value="pagamento">Pagamento</option>
+<option value="prazo">Prazo</option>
+<option value="entrega">Entrega</option>
+<option value="pedido">Pedido</option>
+<option value="indisponibilidade">Indisponibilidade</option>
+<option value="suporte">Suporte</option>
+<option value="acompanhamento">Acompanhamento</option>
+<option value="pos_venda">Pós-venda</option>
+<option value="encerramento">Encerramento</option>
+<option value="personalizada">Personalizada</option>
+</select>
+<label class="atend-checkbox-linha"><input type="checkbox" id="atend-gestao-mostrar-arquivados"> Mostrar arquivados</label>
+<button type="button" class="atend-btn atend-btn-primario" id="atend-gestao-btn-novo">Novo template</button>
+</div>
+<div id="atend-gestao-tpl-lista" class="atend-gestao-tpl-lista"></div>
+<div class="atend-cliente-acoes">
+<button type="button" class="atend-btn" id="atend-gestao-fechar">Fechar</button>
+</div>
+
+<div id="atend-template-form-painel" class="atend-template-form-painel hidden">
+<h4 id="atend-template-form-titulo">Novo template</h4>
+<div id="atend-tpl-erro" class="atend-template-pendencias" hidden></div>
+<form id="atend-tpl-form">
+<label for="atend-tpl-titulo">Título</label>
+<input type="text" id="atend-tpl-titulo" class="atend-input" maxlength="160" required>
+<label for="atend-tpl-categoria">Categoria</label>
+<select id="atend-tpl-categoria" class="atend-select">
+<option value="saudacao">Saudação</option>
+<option value="orcamento">Orçamento</option>
+<option value="pagamento">Pagamento</option>
+<option value="prazo">Prazo</option>
+<option value="entrega">Entrega</option>
+<option value="pedido">Pedido</option>
+<option value="indisponibilidade">Indisponibilidade</option>
+<option value="suporte">Suporte</option>
+<option value="acompanhamento">Acompanhamento</option>
+<option value="pos_venda">Pós-venda</option>
+<option value="encerramento">Encerramento</option>
+<option value="personalizada" selected>Personalizada</option>
+</select>
+<label for="atend-tpl-atalho">Atalho (opcional, sem espaços — ex.: prazo)</label>
+<input type="text" id="atend-tpl-atalho" class="atend-input" maxlength="40" placeholder="prazo">
+<label for="atend-tpl-mensagem">Conteúdo</label>
+<textarea id="atend-tpl-mensagem" class="atend-input" maxlength="2000" rows="6" required placeholder="Use {{nome_cliente}}, {{nome_loja}}, {{nome_funcionario}}, {{numero_pedido}}, {{status_pedido}}, {{valor_pedido}}, {{data_pedido}} ou {{prazo_entrega}}"></textarea>
+<label for="atend-tpl-descricao">Descrição interna (opcional, só a equipe vê)</label>
+<input type="text" id="atend-tpl-descricao" class="atend-input" maxlength="300">
+<label class="atend-checkbox-linha"><input type="checkbox" id="atend-tpl-favorito"> Marcar como favorito</label>
+<div class="atend-cliente-acoes">
+<button type="button" class="atend-btn" id="atend-tpl-form-cancelar">Cancelar</button>
+<button type="submit" class="atend-btn atend-btn-primario">Salvar template</button>
+</div>
+</form>
 </div>
 </div>
 </div>
