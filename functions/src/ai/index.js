@@ -152,28 +152,39 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
 
     const historico = Array.isArray(request.data?.historico) ? request.data.historico.slice(-LIMITES_IA_NEGOCIO.maxHistoricoMensagens) : [];
 
-    const { periodo, restante } = await assertMonthlyQuota(context.ownerUid);
+    // DEBUG TEMPORÁRIO: onCall do Firebase esconde a mensagem real de
+    // qualquer exceção não tratada (vira "internal"/"INTERNAL" genérico pro
+    // cliente, por segurança). Captura aqui e relança como HttpsError
+    // intencional (que preserva a mensagem) só pra diagnosticar a primeira
+    // chamada real de ponta a ponta. Reverter depois — ver docs/IA_NEGOCIO.md.
+    try {
+        const { periodo, restante } = await assertMonthlyQuota(context.ownerUid);
 
-    const dados = await carregarDadosLoja(context.ownerUid);
-    const contextoNegocio = montarContextoNegocio(dados);
-    const contextoTexto = contextoParaTexto(contextoNegocio);
-    const systemPrompt = montarSystemPrompt(contextoNegocio.nomeLoja);
-    const suspeitaInjecao = detectarTentativaInjecao(pergunta);
+        const dados = await carregarDadosLoja(context.ownerUid);
+        const contextoNegocio = montarContextoNegocio(dados);
+        const contextoTexto = contextoParaTexto(contextoNegocio);
+        const systemPrompt = montarSystemPrompt(contextoNegocio.nomeLoja);
+        const suspeitaInjecao = detectarTentativaInjecao(pergunta);
 
-    const payload = montarMensagensGemini({ systemPrompt, contextoTexto, historico, pergunta });
-    const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value());
-    const texto = extrairTextoRespostaGemini(respostaBruta);
+        const payload = montarMensagensGemini({ systemPrompt, contextoTexto, historico, pergunta });
+        const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value());
+        const texto = extrairTextoRespostaGemini(respostaBruta);
 
-    if (!texto) {
-        throw new HttpsError("internal", "A IA não devolveu uma resposta válida. Tente novamente.");
+        if (!texto) {
+            throw new HttpsError("internal", "A IA não devolveu uma resposta válida. Tente novamente.");
+        }
+
+        return {
+            resposta: texto,
+            periodo,
+            restanteNoMes: restante,
+            avisoInjecao: suspeitaInjecao
+        };
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("[IA de Negócio] Erro inesperado:", error);
+        throw new HttpsError("internal", `Erro inesperado. [debug: ${error?.stack || error?.message || String(error)}]`.slice(0, 800));
     }
-
-    return {
-        resposta: texto,
-        periodo,
-        restanteNoMes: restante,
-        avisoInjecao: suspeitaInjecao
-    };
 });
 
 module.exports = { askBusinessAI };
