@@ -142,36 +142,41 @@ sabidamente vai falhar) — quem decide de verdade é sempre o servidor.
    `vide-digital-saas`. (Caminho alternativo via Firebase CLI, se algum
    dia for necessário recriar: `firebase functions:secrets:set
    GEMINI_API_KEY --project vide-digital-saas`.)
-3. **Publicar a Function** — workflow dedicado já criado:
-   `.github/workflows/firebase-deploy-functions.yml` ("Deploy Firebase
-   Functions (IA de Negócio)"). Roda toda a suíte de testes antes de
-   publicar, exige `project_id: vide-digital-saas` e
-   `confirm_production: DEPLOY_FUNCTIONS` (frase diferente do deploy de
-   Rules, de propósito — é a primeira vez que este projeto chama um
-   provedor externo de verdade). Publica **só** `askBusinessAI`
-   (`--only functions:askBusinessAI`), nunca as outras Functions do
-   repositório. **Ainda não foi executado** — falta confirmação explícita
-   do usuário antes de rodar, mesmo cuidado já usado pro deploy de Rules.
-   Risco conhecido: a conta de serviço usada pro deploy de Rules pode não
-   ter as roles necessárias pra publicar Functions (Cloud Functions
-   Admin, Service Account User, Artifact Registry/Cloud Build) — se
-   faltar, o deploy falha com um erro claro do Google Cloud, nunca finge
-   sucesso; nesse caso é preciso conceder essas roles à conta de serviço
-   no IAM do projeto antes de tentar de novo.
+3. ~~**Publicar a Function**~~ — **feito**. `.github/workflows/
+   firebase-deploy-functions.yml` ("Deploy Firebase Functions (IA de
+   Negócio)") rodou com sucesso e publicou `askBusinessAI` em produção
+   (`vide-digital-saas`). Além das roles já documentadas em
+   `docs/FIREBASE_SPARK_ARCHITECTURE.md`, a conta de serviço de deploy
+   (`firebase-adminsdk-fbsvc@vide-digital-saas.iam.gserviceaccount.com`)
+   precisou de mais duas concessões manuais, feitas uma vez só, direto no
+   Google Cloud Console, que não existiam antes desta fase:
+   - **Secret Manager Secret Accessor** nela mesma, sobre o secret
+     `GEMINI_API_KEY` (pra ler o valor no deploy);
+   - **Secret Manager Secret Accessor** também para
+     `891590456336-compute@developer.gserviceaccount.com` (a conta de
+     execução padrão das Cloud Functions/Cloud Run — é ela que
+     efetivamente lê o secret em runtime, não a conta de deploy).
+   Sem a segunda concessão, o deploy falhava com
+   `secretmanager.secrets.setIamPolicy denied` ao tentar conceder esse
+   acesso automaticamente. Ambas as concessões já estão feitas — deploys
+   futuros de `askBusinessAI` não devem precisar repetir esse passo.
 
 ## Limitações reais desta fase (sem maquiar)
 
-- **`askBusinessAI` (o handler onCall) não foi exercitado de ponta a
-  ponta nem contra o Emulator** — chamar de verdade exigiria a chave real
-  do Gemini (que ainda não existe) ou um servidor mock da API, nenhum
-  dos dois configurado nesta fase. O que FOI testado de verdade: as 12
-  funções puras de `promptBuilder.js` (`node --test`, contexto,
-  sanitização, detecção de injeção, formato do payload/resposta) e as
-  Rules da nova coleção `ia_negocio_uso` contra o Emulator real. A
-  lógica de autenticação/permissão/plano/teto do handler reaproveita
-  funções já testadas em outros contextos (`resolveCallerContext`,
-  `requireEdit`), mas o caminho completo (incluindo a chamada HTTP real
-  ao Gemini) só será validado depois que a chave existir.
+- **`askBusinessAI` está publicada em produção, mas uma conversa real
+  ainda não foi testada de ponta a ponta** — o deploy em si só confirma
+  que o código sobe e a Function fica no ar; ele não valida se o nome do
+  modelo Gemini configurado (`gemini-2.5-flash`) é aceito pela API, nem
+  a qualidade da resposta. Isso só se confirma abrindo a Central de IA
+  com uma conta no plano Pro e perguntando algo de verdade. Se o modelo
+  estiver desatualizado, o erro aparece na hora da pergunta (mensagem
+  amigável de "IA não respondeu agora"), não no deploy — nesse caso, o
+  próximo passo é atualizar `GEMINI_MODEL` em `functions/src/ai/index.js`
+  pro nome de modelo atual e publicar de novo pelo mesmo workflow.
+  O que FOI testado de verdade antes do deploy: as 12 funções puras de
+  `promptBuilder.js` (`node --test`, contexto, sanitização, detecção de
+  injeção, formato do payload/resposta) e as Rules da nova coleção
+  `ia_negocio_uso` contra o Emulator real.
 - **Toggle "ativar na loja pública"** (`canais.lojaPublica`, já existe no
   schema da Central de IA desde um ciclo anterior, com badge "Em breve")
   **não foi ligado a nada nesta fase** — o pedido original incluía os
