@@ -384,84 +384,56 @@
 
         /* --- Toast premium do carrinho --- */
         .cart-toast {
-            position: fixed;
-            right: 24px;
-            bottom: 96px;
-            z-index: 80;
-            width: min(360px, calc(100vw - 32px));
-            border: 1px solid var(--border);
-            background: var(--surface);
-            color: var(--ink);
-            border-radius: 22px;
-            box-shadow: var(--shadow-xl);
-            padding: 14px;
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            transform: translateY(18px);
-            opacity: 0;
-            pointer-events: none;
+            position: fixed; right: 24px; bottom: 96px; z-index: 80;
+            width: min(360px, calc(100vw - 32px)); border: 1px solid var(--border);
+            background: var(--surface); color: var(--ink); border-radius: 22px;
+            box-shadow: var(--shadow-xl); padding: 14px; display: flex; align-items: center; gap: 12px;
+            transform: translateY(18px); opacity: 0; pointer-events: none;
             transition: opacity .25s var(--ease), transform .25s var(--ease);
         }
-        .cart-toast.is-visible {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
+        .cart-toast.is-visible { opacity: 1; transform: translateY(0); pointer-events: auto; }
         .cart-toast-icon {
-            width: 42px;
-            height: 42px;
-            border-radius: 999px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-            background: color-mix(in oklch, var(--accent) 16%, transparent);
-            color: var(--accent);
+            width: 42px; height: 42px; border-radius: 999px; display: inline-flex;
+            align-items: center; justify-content: center; flex-shrink: 0;
+            background: color-mix(in oklch, var(--accent) 16%, transparent); color: var(--accent);
         }
-        .cart-toast-body {
-            min-width: 0;
-            flex: 1;
-        }
-        .cart-toast-title {
-            font-size: 12px;
-            font-weight: 800;
-            letter-spacing: .02em;
-            color: var(--ink);
-        }
-        .cart-toast-text {
-            margin-top: 2px;
-            font-size: 11px;
-            line-height: 1.45;
-            color: var(--ink-3);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
+        .cart-toast-body { min-width: 0; flex: 1; }
+        .cart-toast-title { font-size: 12px; font-weight: 800; letter-spacing: .02em; color: var(--ink); }
+        .cart-toast-text { margin-top: 2px; font-size: 11px; line-height: 1.45; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .cart-toast-action {
-            border: 1px solid var(--border);
-            background: var(--surface-soft);
-            color: var(--ink);
-            border-radius: 999px;
-            padding: 9px 12px;
-            font-size: 10px;
-            font-weight: 800;
-            text-transform: uppercase;
-            letter-spacing: .12em;
-            transition: transform .2s var(--ease), border-color .2s var(--ease);
-            flex-shrink: 0;
+            border: 1px solid var(--border); background: var(--surface-soft); color: var(--ink);
+            border-radius: 999px; padding: 9px 12px; font-size: 10px; font-weight: 800;
+            text-transform: uppercase; letter-spacing: .12em; transition: transform .2s var(--ease), border-color .2s var(--ease); flex-shrink: 0;
         }
-        .cart-toast-action:hover {
-            transform: translateY(-1px);
-            border-color: var(--border-strong);
+        .cart-toast-action:hover { transform: translateY(-1px); border-color: var(--border-strong); }
+
+        /* --- Barra fixa mobile do carrinho --- */
+        .mobile-cart-bar {
+            position: fixed; left: 14px; right: 14px; bottom: 16px; z-index: 75;
+            display: none; align-items: center; justify-content: space-between; gap: 12px;
+            padding: 12px 12px 12px 14px; border: 1px solid var(--border); border-radius: 24px;
+            background: var(--surface); color: var(--ink); box-shadow: var(--shadow-xl);
+            transform: translateY(120%); opacity: 0; transition: transform .28s var(--ease), opacity .28s var(--ease);
         }
+        .mobile-cart-bar.is-visible { transform: translateY(0); opacity: 1; }
+        .mobile-cart-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+        .mobile-cart-icon {
+            width: 42px; height: 42px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
+            background: color-mix(in oklch, var(--accent) 16%, transparent); color: var(--accent);
+        }
+        .mobile-cart-title { font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .14em; color: var(--ink); line-height: 1.1; }
+        .mobile-cart-subtitle { margin-top: 3px; font-size: 11px; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .mobile-cart-button {
+            border: 0; border-radius: 999px; padding: 13px 15px; flex-shrink: 0;
+            background: var(--client-brand, var(--ink)); color: var(--client-texto-botao, var(--bg));
+            font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .13em;
+            display: inline-flex; align-items: center; gap: 7px; box-shadow: var(--shadow-md);
+        }
+        .mobile-cart-button:active { transform: scale(.98); }
         @media (max-width: 640px) {
-            .cart-toast {
-                left: 16px;
-                right: 16px;
-                bottom: 86px;
-                width: auto;
-            }
+            .cart-toast { left: 16px; right: 16px; bottom: 106px; width: auto; }
+            .mobile-cart-bar { display: flex; }
+            body { padding-bottom: 104px; }
         }
     </style>
 </head>
@@ -1096,7 +1068,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                         if (btnCarrinho) {
                             btnCarrinho.style.display = "flex";
                             atualizarContadorCarrinho();
+                            atualizarBarraMobileCarrinho();
                         }
+                    } else {
+                        atualizarBarraMobileCarrinho();
                     }
 
                     document.getElementById("client-tab-title").innerText = dados.nomeLoja || "Loja Online";
@@ -1371,9 +1346,52 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         function salvarCarrinho() {
             localStorage.setItem("carrinhoVide", JSON.stringify(itensCarrinho));
             atualizarContadorCarrinho();
+            atualizarBarraMobileCarrinho();
         }
 
         let toastCarrinhoTimer = null;
+
+        function calcularResumoCarrinho() {
+            return itensCarrinho.reduce(function(resumo, item) {
+                const quantidade = Number(item.quantidade || 0);
+                const preco = Number(item.preco || 0);
+                resumo.itens += quantidade;
+                resumo.total += preco * quantidade;
+                return resumo;
+            }, { itens: 0, total: 0 });
+        }
+
+        function atualizarBarraMobileCarrinho() {
+            let barra = document.getElementById("mobile-cart-bar");
+            if (!barra) {
+                barra = document.createElement("div");
+                barra.id = "mobile-cart-bar";
+                barra.className = "mobile-cart-bar";
+                barra.innerHTML =
+                    '<div class="mobile-cart-info">' +
+                        '<span class="mobile-cart-icon"><i data-lucide="shopping-bag" style="width:18px;height:18px"></i></span>' +
+                        '<div class="min-w-0">' +
+                            '<p class="mobile-cart-title">Carrinho</p>' +
+                            '<p id="mobile-cart-subtitle" class="mobile-cart-subtitle">Nenhum item</p>' +
+                        '</div>' +
+                    '</div>' +
+                    '<button type="button" class="mobile-cart-button" onclick="abrirCarrinho()">' +
+                        '<span>Ver pedido</span>' +
+                        '<i data-lucide="arrow-up-right" style="width:13px;height:13px"></i>' +
+                    '</button>';
+                document.body.appendChild(barra);
+            }
+
+            const resumo = calcularResumoCarrinho();
+            const texto = document.getElementById("mobile-cart-subtitle");
+            const totalFormatado = resumo.total.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+            const labelItens = resumo.itens === 1 ? "1 item" : resumo.itens + " itens";
+
+            if (texto) texto.textContent = labelItens + " · " + totalFormatado;
+            barra.classList.toggle("is-visible", carrinhoAtivo && resumo.itens > 0);
+
+            if (window.lucide) lucide.createIcons();
+        }
 
         function mostrarToastCarrinho(nomeProduto) {
             let toast = document.getElementById("cart-toast");
@@ -1397,9 +1415,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (window.lucide) lucide.createIcons();
 
             clearTimeout(toastCarrinhoTimer);
-            requestAnimationFrame(function() {
-                toast.classList.add("is-visible");
-            });
+            requestAnimationFrame(function() { toast.classList.add("is-visible"); });
 
             toastCarrinhoTimer = setTimeout(function() {
                 toast.classList.remove("is-visible");
@@ -1462,6 +1478,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (itensCarrinho.length === 0) {
                 lista.innerHTML = '<div class="flex flex-col items-center justify-center h-56 gap-4 text-center"><span class="h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--ink-3);"><i data-lucide="shopping-bag" style="width:22px;height:22px"></i></span><p class="text-xs" style="color: var(--ink-3);">Seu carrinho está vazio.<br>Adicione produtos para continuar.</p></div>';
                 if (totalEl) totalEl.innerText = "R$ 0,00";
+                atualizarBarraMobileCarrinho();
                 return;
             }
 
@@ -1532,7 +1549,6 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             mensagem += "\n*Total do pedido: " + totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + "*";
             mensagem += "\n\nPode confirmar disponibilidade, prazo e forma de pagamento, por favor?";
             mensagem += "\n\nEnviado pela loja online " + (nomeLojaAtual || "Vide Hub") + ".";
-            mensagem += "\n\nAguardo a confirmação, por favor.";
 
             window.open("https://wa.me/" + whatsappDono + "?text=" + encodeURIComponent(mensagem), "_blank");
 
