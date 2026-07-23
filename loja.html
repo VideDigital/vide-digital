@@ -381,6 +381,88 @@
             border-color: var(--accent);
             box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 14%, transparent);
         }
+
+        /* --- Toast premium do carrinho --- */
+        .cart-toast {
+            position: fixed;
+            right: 24px;
+            bottom: 96px;
+            z-index: 80;
+            width: min(360px, calc(100vw - 32px));
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--ink);
+            border-radius: 22px;
+            box-shadow: var(--shadow-xl);
+            padding: 14px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            transform: translateY(18px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity .25s var(--ease), transform .25s var(--ease);
+        }
+        .cart-toast.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+        .cart-toast-icon {
+            width: 42px;
+            height: 42px;
+            border-radius: 999px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            background: color-mix(in oklch, var(--accent) 16%, transparent);
+            color: var(--accent);
+        }
+        .cart-toast-body {
+            min-width: 0;
+            flex: 1;
+        }
+        .cart-toast-title {
+            font-size: 12px;
+            font-weight: 800;
+            letter-spacing: .02em;
+            color: var(--ink);
+        }
+        .cart-toast-text {
+            margin-top: 2px;
+            font-size: 11px;
+            line-height: 1.45;
+            color: var(--ink-3);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .cart-toast-action {
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            color: var(--ink);
+            border-radius: 999px;
+            padding: 9px 12px;
+            font-size: 10px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            transition: transform .2s var(--ease), border-color .2s var(--ease);
+            flex-shrink: 0;
+        }
+        .cart-toast-action:hover {
+            transform: translateY(-1px);
+            border-color: var(--border-strong);
+        }
+        @media (max-width: 640px) {
+            .cart-toast {
+                left: 16px;
+                right: 16px;
+                bottom: 86px;
+                width: auto;
+            }
+        }
     </style>
 </head>
 <body id="client-body" class="min-h-full flex flex-col justify-between pb-16 relative">
@@ -1291,6 +1373,39 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             atualizarContadorCarrinho();
         }
 
+        let toastCarrinhoTimer = null;
+
+        function mostrarToastCarrinho(nomeProduto) {
+            let toast = document.getElementById("cart-toast");
+            if (!toast) {
+                toast = document.createElement("div");
+                toast.id = "cart-toast";
+                toast.className = "cart-toast";
+                toast.innerHTML =
+                    '<span class="cart-toast-icon"><i data-lucide="shopping-bag" style="width:18px;height:18px"></i></span>' +
+                    '<div class="cart-toast-body">' +
+                        '<p class="cart-toast-title">Produto adicionado</p>' +
+                        '<p id="cart-toast-text" class="cart-toast-text">Item adicionado ao carrinho.</p>' +
+                    '</div>' +
+                    '<button type="button" class="cart-toast-action" onclick="abrirCarrinho()">Ver</button>';
+                document.body.appendChild(toast);
+            }
+
+            const texto = document.getElementById("cart-toast-text");
+            if (texto) texto.textContent = nomeProduto ? nomeProduto + " foi adicionado ao carrinho." : "Item adicionado ao carrinho.";
+
+            if (window.lucide) lucide.createIcons();
+
+            clearTimeout(toastCarrinhoTimer);
+            requestAnimationFrame(function() {
+                toast.classList.add("is-visible");
+            });
+
+            toastCarrinhoTimer = setTimeout(function() {
+                toast.classList.remove("is-visible");
+            }, 3200);
+        }
+
         function atualizarContadorCarrinho() {
             const total = itensCarrinho.reduce(function(soma, item) { return soma + item.quantidade; }, 0);
             const badge = document.getElementById("carrinho-contador");
@@ -1312,8 +1427,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             } else {
                 itensCarrinho.push({ nome: nomeProd, preco: parseFloat(preco), img: imgSrc, cor: corDestaque, quantidade: 1 });
             }
+
             salvarCarrinho();
             renderizarCarrinho();
+            mostrarToastCarrinho(nomeProd);
 
             const btn = document.getElementById("btn-abrir-carrinho");
             if (btn) {
@@ -1396,17 +1513,25 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 return;
             }
 
-            const abertura = carrinhoMensagemCustom || "Olá! Vim da loja *" + nomeLojaAtual + "* e gostaria de fazer o seguinte pedido:";
+            const abertura = carrinhoMensagemCustom || "Olá! Vim da loja *" + nomeLojaAtual + "* e gostaria de fazer um pedido.";
             let mensagem = abertura + "\n\n";
             let totalGeral = 0;
 
-            itensCarrinho.forEach(function(item) {
+            mensagem += "*Resumo do pedido:*\n";
+
+            itensCarrinho.forEach(function(item, index) {
                 const subtotal = item.preco * item.quantidade;
                 totalGeral += subtotal;
-                mensagem += "• " + item.quantidade + "x " + item.nome + " — R$ " + subtotal.toFixed(2) + "\n";
+
+                mensagem += "\n" + (index + 1) + ". *" + item.nome + "*";
+                mensagem += "\n   Quantidade: " + item.quantidade;
+                mensagem += "\n   Valor unitário: " + item.preco.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+                mensagem += "\n   Subtotal: " + subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + "\n";
             });
 
-            mensagem += "\n*Total: " + totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + "*";
+            mensagem += "\n*Total do pedido: " + totalGeral.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) + "*";
+            mensagem += "\n\nPode confirmar disponibilidade, prazo e forma de pagamento, por favor?";
+            mensagem += "\n\nEnviado pela loja online " + (nomeLojaAtual || "Vide Hub") + ".";
             mensagem += "\n\nAguardo a confirmação, por favor.";
 
             window.open("https://wa.me/" + whatsappDono + "?text=" + encodeURIComponent(mensagem), "_blank");
