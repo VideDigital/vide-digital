@@ -90,14 +90,6 @@ async function testarPerfil(browser, baseUrl, perfil) {
     const falhas = [];
     try {
         await loginReal(page, baseUrl, perfil);
-        // loginReal só espera o DOM do dashboard existir, não que
-        // VideHubContext termine de inicializar (snapshot assíncrono
-        // pós-login) — chamar ativarAba antes disso faz até quem tem
-        // acesso de verdade cair no bloqueio de "carregando permissões".
-        await page.waitForFunction(
-            () => typeof window.__videHubContextInitialized === "function" && window.__videHubContextInitialized(),
-            { timeout: 15000 }
-        );
 
         for (const [viewId, permissao] of Object.entries(VIEWS)) {
             erros.length = 0;

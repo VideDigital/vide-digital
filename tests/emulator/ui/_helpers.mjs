@@ -138,6 +138,19 @@ export async function loginReal(page, baseUrl, { email, senha }) {
     // a URL mudou (a URL pode mudar antes do JS terminar de montar o
     // dashboard).
     await page.waitForSelector("#view-dashboard, #kpi-produtos-valor, .aura-hub-card", { state: "attached", timeout: 20000 });
+    // VideHubContext.initialize() é assíncrono (chamado dentro do callback
+    // de onAuthStateChanged) e termina DEPOIS do DOM do dashboard existir.
+    // Chamar ativarAba() antes disso faz até quem tem acesso de verdade
+    // cair no bloqueio de "carregando permissões" — ativarAba() retorna
+    // false SILENCIOSAMENTE (só um toast, nunca console.error), a section
+    // nunca ganha .active, e tudo dentro dela fica preso em display:none
+    // pelo resto do teste (visto pela primeira vez em profiles.smoke.mjs;
+    // centralizado aqui porque todo outro teste que chama ativarAba() logo
+    // após loginReal() tem a mesma corrida).
+    await page.waitForFunction(
+        () => typeof window.__videHubContextInitialized === "function" && window.__videHubContextInitialized(),
+        { timeout: 15000 }
+    );
 }
 
 export const VIEWPORTS = Object.freeze({
