@@ -70,6 +70,17 @@ export function criarIaNegocioController({
         disponivel: false
     };
 
+    // Ouvinte opcional pra UI re-renderizar no instante em que a pergunta do
+    // dono entra no histórico e "enviando" vira true — sem isso, a tela só
+    // atualiza depois que a resposta (ou erro) já chegou, porque o await da
+    // Cloud Function suspende a função inteira antes de qualquer outro
+    // render acontecer.
+    let aoAtualizar = () => {};
+
+    function definirOuvinte(fn) {
+        aoAtualizar = typeof fn === "function" ? fn : () => {};
+    }
+
     function atualizarDisponibilidade() {
         const snapshot = context.getSnapshot();
         state.disponivel = Boolean(snapshot.active) && context.canEdit("central-ia") && planoTemIaReal(snapshot.plan);
@@ -91,6 +102,7 @@ export function criarIaNegocioController({
         state.mensagens = state.mensagens.slice(-LIMITES_IA_NEGOCIO_UI.maxMensagensExibidas);
         state.enviando = true;
         state.erro = "";
+        aoAtualizar();
 
         try {
             const resultado = await chamarAskBusinessAI({ pergunta, historico });
@@ -120,6 +132,7 @@ export function criarIaNegocioController({
         enviarPergunta,
         limparConversa,
         atualizarDisponibilidade,
+        definirOuvinte,
         state
     };
 }

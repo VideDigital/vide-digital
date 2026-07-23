@@ -4436,6 +4436,15 @@ btn.classList.add("opacity-40");
                         mensagensEl.appendChild(bolha);
                     });
                 }
+
+                if (controller.state.enviando) {
+                    const pensando = document.createElement("div");
+                    pensando.className = "ia-negocio-mensagem is-ia ia-negocio-pensando";
+                    pensando.setAttribute("aria-label", "A IA está pensando");
+                    pensando.innerHTML = '<span class="ia-negocio-pensando-blob"></span>';
+                    mensagensEl.appendChild(pensando);
+                }
+
                 mensagensEl.scrollTop = mensagensEl.scrollHeight;
 
                 restanteEl.textContent = Number.isFinite(controller.state.restanteNoMes)
@@ -4458,6 +4467,12 @@ btn.classList.add("opacity-40");
                 if (input) input.disabled = controller.state.enviando || !disponivel;
                 renderizarMensagens();
             }
+
+            // Sem isso, a bolha "pensando" e o desabilitar dos campos só
+            // apareceriam depois que a resposta (ou erro) já tivesse
+            // chegado — o controller avisa aqui no instante exato em que
+            // "enviando" vira true, antes do await da Cloud Function.
+            controller.definirOuvinte(render);
 
             form.addEventListener("submit", async (event) => {
                 event.preventDefault();

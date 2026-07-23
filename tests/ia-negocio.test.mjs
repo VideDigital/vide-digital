@@ -111,6 +111,28 @@ describe("ia-negocio: criarIaNegocioController", () => {
         assert.equal(notificacoes[0].tipo, "error");
     });
 
+    it("definirOuvinte dispara no instante em que 'enviando' vira true, antes da resposta chegar", async () => {
+        let resolverChamada;
+        const estadosNoOuvinte = [];
+        const controller = criarIaNegocioController({
+            context: criarContextFake(),
+            chamarAskBusinessAI: () => new Promise((resolve) => { resolverChamada = resolve; })
+        });
+        controller.definirOuvinte(() => {
+            estadosNoOuvinte.push({ enviando: controller.state.enviando, mensagens: controller.state.mensagens.length });
+        });
+
+        const promessa = controller.enviarPergunta("oi");
+        // Nesse ponto a Cloud Function ainda não respondeu (a Promise segue pendente),
+        // mas o ouvinte já deve ter disparado com o estado "enviando".
+        assert.equal(estadosNoOuvinte.length, 1);
+        assert.equal(estadosNoOuvinte[0].enviando, true);
+        assert.equal(estadosNoOuvinte[0].mensagens, 1);
+
+        resolverChamada({ resposta: "ok", restanteNoMes: 100 });
+        await promessa;
+    });
+
     it("limparConversa esvazia o histórico", async () => {
         const controller = criarIaNegocioController({
             context: criarContextFake(),
