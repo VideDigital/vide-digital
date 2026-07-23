@@ -1,7 +1,8 @@
 # Deploy dedicado só pra Cloud Functions — SEPARADO de "Deploy Firebase
 # Spark" (esse continua, por nome e por escopo, nunca publicando
 # Functions; ver docs/FIREBASE_SPARK_ARCHITECTURE.md). Publica SÓ
-# askBusinessAI (--only functions:askBusinessAI), nunca "todas as
+# askBusinessAI e askPublicBusinessAI (--only
+# functions:askBusinessAI,functions:askPublicBusinessAI), nunca "todas as
 # functions" — as demais (createEmployee, updateEmployee, etc.)
 # continuam código não usado em produção, sem mudar esse estado aqui.
 #
@@ -114,14 +115,17 @@ jobs:
       - name: Testar funções puras (validadores + IA de Negócio)
         run: pnpm run test:functions
 
-      - name: Testar regras no Emulator Suite (inclui ia_negocio_uso)
+      - name: Testar controllers de IA de Negócio (dono e público)
+        run: pnpm run test:ia-negocio
+
+      - name: Testar regras no Emulator Suite (inclui ia_negocio_uso + toggle público)
         run: pnpm run test:rules
 
       - name: Smoke test do frontend no Emulator Suite
         run: pnpm run test:frontend:emulator
 
   deploy:
-    name: Publicar askBusinessAI
+    name: Publicar askBusinessAI e askPublicBusinessAI
     needs: validate-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -201,13 +205,13 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
-      - name: Publicar SÓ askBusinessAI
+      - name: Publicar askBusinessAI e askPublicBusinessAI
         shell: bash
         env:
           PROJECT_ID: ${{ inputs.project_id }}
         run: |
           set -euo pipefail
           pnpm dlx firebase-tools@13.35.1 deploy \
-            --only functions:askBusinessAI \
+            --only functions:askBusinessAI,functions:askPublicBusinessAI \
             --project "${PROJECT_ID}" \
             --non-interactive

@@ -1,21 +1,33 @@
-# IA de Negócio — assistente real para o dono da loja
+# IA de Negócio — assistente real, pro dono e (opcionalmente) pra loja pública
 
 Primeira integração deste projeto com um provedor de IA externo de
 verdade (Google Gemini). Diferente do Copiloto de Atendimento
 (`docs/IA_COPILOT_ATENDIMENTO.md`, que é 100% mock/local), esta feature
-chama um provedor real — e por isso é também a primeira Cloud Function
-que o projeto realmente publica e usa em produção.
+chama um provedor real — e por isso é também a primeira (e agora
+segunda) Cloud Function que o projeto realmente publica e usa em
+produção.
 
 ## O que é
 
-Um chat, dentro da Central de IA do dashboard, onde o **dono da loja**
-(ou funcionário com permissão) pergunta sobre o próprio negócio —
-produtos, pedidos, o que pode melhorar — e recebe respostas geradas por
-IA real, com base nos dados reais e atuais daquela loja.
+Dois assistentes, dois públicos, duas Cloud Functions — nunca
+misturados:
 
-Exclusivo do plano **Pro** (ou superior: `proplus`, `agencia`,
-`enterprise`, `premium`). Planos abaixo disso recebem um aviso claro
-("exclusivo do plano Pro") em vez de acesso.
+1. **`askBusinessAI`** — um chat dentro da Central de IA do dashboard,
+   onde o **dono da loja** (ou funcionário com permissão) pergunta sobre
+   o próprio negócio — produtos, pedidos, o que pode melhorar — e recebe
+   respostas geradas por IA real, com base em TODOS os dados da loja
+   (produtos, pedidos, leads). Exclusivo do plano **Pro** (ou superior:
+   `proplus`, `agencia`, `enterprise`, `premium`).
+2. **`askPublicBusinessAI`** — um widget de chat na loja pública
+   (`loja.html`), onde um **visitante sem login** pergunta sobre o
+   catálogo. Só existe se o dono ativar explicitamente um toggle na
+   Central de IA (dashboard) — desligado por padrão, mesmo em planos
+   elegíveis. Contexto restrito a produtos ativos: nunca pedidos, leads,
+   receita ou qualquer dado interno. Ver seção "IA de Negócio pública"
+   abaixo pro desenho completo.
+
+Planos abaixo do Pro recebem um aviso claro ("exclusivo do plano Pro")
+em vez de acesso, nos dois casos.
 
 ## Por que isso quebra a regra "zero Cloud Functions vivas"
 
@@ -118,20 +130,113 @@ Decidido nesta fase: só o plano Pro (ou superior) tem acesso.
 um valor provisório (`LIMITES_IA_NEGOCIO.usoMensalPadrao = 200`) só pra
 nunca deixar o uso destravado — mudar esse número é uma linha só em
 `functions/src/ai/promptBuilder.js`. Antes de decidir o valor final,
-vale calcular o custo real: o modelo escolhido (`gemini-2.5-flash` —
-confirme o nome exato do modelo em ai.google.dev antes do primeiro
-deploy, nomes de modelo mudam) tem custo por token muito baixo; a conta
-de "custo máximo por loja por mês" fica simples multiplicando o teto
-pelo custo médio por mensagem.
+vale calcular o custo real: o modelo escolhido (`gemini-flash-latest` —
+alias mantido pelo Google, não precisa mais confirmar nome fixo a cada
+deploy, ver seção "Modelo descontinuado" abaixo) tem custo por token
+muito baixo; a conta de "custo máximo por loja por mês" fica simples
+multiplicando o teto pelo custo médio por mensagem. O teto é
+**compartilhado** entre o uso do dono no dashboard e o uso público (ver
+abaixo) — um único orçamento por loja, não importa quem pergunta.
 
-## UI
+## UI (dono, no dashboard)
 
-Dentro de `#view-central-ia`, um novo painel "Converse com a IA sobre o
-seu negócio": histórico de mensagens (dono à direita, IA à esquerda),
+Dentro de `#view-central-ia`, um painel "Converse com a IA sobre o seu
+negócio": histórico de mensagens (dono à direita, IA à esquerda),
 contador "restam N mensagens este mês", estado bloqueado explicando a
-exigência do plano Pro quando o tenant não tem acesso. `ia-negocio.js`
-(frontend) faz uma checagem de plano só pra UX (evitar uma chamada que
-sabidamente vai falhar) — quem decide de verdade é sempre o servidor.
+exigência do plano Pro quando o tenant não tem acesso — o painel inteiro
+fica visualmente apagado e não interativo nesse caso
+(`.ia-negocio-painel.is-locked`), nunca abre pra digitar e só depois
+recusar no servidor. Animação de "pensando" (blob que pulsa e muda de
+forma) enquanto espera a resposta. `ia-negocio.js` (frontend) faz uma
+checagem de plano só pra UX (evitar uma chamada que sabidamente vai
+falhar) — quem decide de verdade é sempre o servidor.
+
+## IA de Negócio pública (visitante da loja, sem login)
+
+Segunda entrega, depois do assistente do dono já estar publicado e
+testado. Cobre a segunda metade do pedido original ("os dois, mas tem
+que ter um botão no dashboard em que o dono escolhe se quer ativar na
+loja pública também").
+
+### Arquitetura
+
+```
+loja.html (ia-negocio-publica.js) --httpsCallable--> askPublicBusinessAI (Cloud Function, SEM auth)
+                                                              |
+                                                    rate limit por IP (8/min)
+                                                    resolvePublicTenant(storeSlug) via vitrines_publicas
+                                                    relê usuarios/{ownerUid} direto (nunca confia no espelho público)
+                                                    plano Pro+ E iaNegocioPublicaAtiva === true?
+                                                    teto mensal COMPARTILHADO com o uso do dono
+                                                    lê só produtos ativos do tenant (nunca pedidos/leads)
+                                                    monta prompt PÚBLICO (promptBuilder.js)
+                                                              |
+                                                    fetch --> API do Gemini (mesmo secret)
+                                                              |
+                                                    devolve { resposta, avisoInjecao } (sem restanteNoMes)
+```
+
+### Por que é uma Function separada, não um "modo" dentro de `askBusinessAI`
+
+`askBusinessAI` sempre resolve o tenant via `resolveCallerContext`
+(sessão autenticada real) — não existe caminho nele pra um chamador sem
+login. `askPublicBusinessAI` resolve o tenant de um jeito
+estruturalmente diferente (`storeSlug` público, validado contra
+`vitrines_publicas`, mesmo `resolvePublicTenant` já usado por
+`createPublicLead`/`createPublicChat` em `functions/src/public/index.js`
+— reexportado de lá, não duplicado). Compartilha o resto: `chamarGemini`,
+`assertMonthlyQuota`, a mesma secret `GEMINI_API_KEY`.
+
+### Autorização — nunca confia no espelho público
+
+`askPublicBusinessAI` **relê `usuarios/{ownerUid}` direto via Admin SDK**
+pra decidir se responde — plano Pro+ e o campo `iaNegocioPublicaAtiva`
+vêm sempre dessa fonte, nunca do espelho em `vitrines_publicas`. O
+espelho existe só pra `loja.html` decidir, sem outra leitura, se mostra
+o widget — puramente UX, igual ao padrão já usado no resto do projeto
+("quem decide de verdade é sempre o servidor").
+
+### Contexto restrito — nunca pedidos, leads ou receita
+
+`carregarProdutosPublicos` só consulta a coleção `produtos` — as
+consultas a `pedidos`/`leads` nem existem nesse caminho de código
+(defesa em profundidade: mesmo que o prompt público tentasse pedir esse
+dado, ele não está em lugar nenhum pra vazar). `resumirProdutosPublicos`
+(`functions/src/ai/promptBuilder.js`) também nunca expõe o número exato
+de estoque — só um booleano `disponivel`. `montarSystemPromptPublico`
+reforça tudo isso no próprio prompt: nunca finge ser humano, nunca
+processa pedido/pagamento (orienta pro carrinho/WhatsApp), nunca fala de
+pedidos/leads/receita/estoque exato.
+
+### Toggle "ativar na loja pública" (dashboard)
+
+Painel de IA de Negócio, dentro do mesmo `#ia-negocio-conteudo` (só
+aparece pra quem já tem o plano) — switch que grava
+`iaNegocioPublicaAtiva` em dois lugares:
+
+1. `usuarios/{uid}` — a fonte de verdade, lida pela Cloud Function;
+2. `vitrines_publicas/{slug}` — o espelho público, só pra UX do widget.
+
+Gated por `canEditTenant(ownerUid, "central-ia")` nas Rules dos dois
+documentos — **campo isolado** do resto do perfil/loja
+(`ownerProfileFields()`/`publicStoreFields()`, gated por "configuracoes")
+de propósito: é uma configuração de IA, não de perfil. Rules validam que
+só esse campo muda por vez, e que o valor é sempre um booleano estrito
+(`payloadIaNegocioPublica` em `ia-negocio.js` centraliza o formato pros
+dois lugares que escrevem, pra nunca divergir o nome do campo).
+
+### UI (visitante, na loja pública)
+
+Widget flutuante em `loja.html`, empilhado acima do chat humano
+existente (`bottom-24 right-6`, nunca sobrepõe `widget-chat-cliente`) —
+só aparece se `vitrines_publicas/{slug}.iaNegocioPublicaAtiva === true`.
+Mesma animação de "pensando" do painel do dono, adaptada pro tema da
+loja (variáveis CSS `--accent`/`--surface-soft`/etc. já usadas no resto
+de `loja.html`, nunca duplica um novo sistema de cor).
+`ia-negocio-publica.js` — módulo **separado** de `ia-negocio.js` de
+propósito: misturar o controller autenticado do dono com o do visitante
+anônimo no mesmo lugar seria um jeito fácil de vazar dado interno pro
+público por engano.
 
 ## O que falta pra isso funcionar em produção
 
@@ -267,33 +372,37 @@ precisar de mais rodadas de debug-then-revert.
 
 ## Limitações reais desta fase (sem maquiar)
 
-- **`askBusinessAI` está publicada em produção e o pipeline completo já
-  foi validado ponta a ponta** (plano → quota → contexto → prompt →
-  chamada ao Gemini) — os dois bloqueios reais encontrados na primeira
-  chamada de verdade (crédito/faturamento da chave antiga, depois nome
-  de modelo descontinuado pra chave nova) já foram corrigidos, ver
-  seções acima. Ainda não confirmado: uma resposta de texto completa e
-  de qualidade vinda do Gemini — o histórico até aqui só provou que a
-  requisição chega, autentica e é aceita pela API.
-  O que FOI testado de verdade: as 12 funções puras de
-  `promptBuilder.js` (`node --test`, contexto, sanitização, detecção de
-  injeção, formato do payload/resposta), as Rules da nova coleção
-  `ia_negocio_uso` contra o Emulator real, e a chamada HTTP real ao
-  Gemini em produção (chegou até a API, só faltou crédito pra gerar a
-  resposta).
-- **Toggle "ativar na loja pública"** (`canais.lojaPublica`, já existe no
-  schema da Central de IA desde um ciclo anterior, com badge "Em breve")
-  **não foi ligado a nada nesta fase** — o pedido original incluía os
-  dois públicos (dono no dashboard e visitante na loja pública), mas
-  esta entrega cobriu só o primeiro. Ativar o segundo significa: uma
-  segunda Function (ou a mesma com um modo diferente) sem autenticação
-  de funcionário, rate limit por IP (padrão já usado em
-  `functions/src/public/index.js`), contexto restrito a dados
-  seguros pra expor a um visitante (produtos ativos, nunca pedidos/leads/
-  métricas internas), e a UI real do widget em `loja.html`.
-- **Nome do modelo Gemini** (`gemini-2.5-flash`) é o mais recente
-  conhecido no momento desta escrita — Google muda nomes de modelo com
-  frequência; confirme antes do primeiro deploy real.
+- **`askBusinessAI` (dono) está publicada, testada ponta a ponta E
+  confirmada em produção com resposta real e de qualidade do Gemini** —
+  depois de corrigidos os quatro bloqueios reais encontrados nas
+  primeiras tentativas (case do plano, admin sem `context.owner`,
+  crédito/faturamento da chave antiga, nome de modelo descontinuado pra
+  chave nova — ver seções acima), o dono recebeu uma resposta de verdade
+  sobre o próprio catálogo. O que FOI testado: as funções puras de
+  `promptBuilder.js` (`node --test`), as Rules de `ia_negocio_uso`
+  contra o Emulator real, e a conversa real em produção.
+- **`askPublicBusinessAI` (visitante) está com o código completo,
+  testado e revisado, mas AINDA NÃO DEPLOYADA em produção** no momento
+  desta escrita — depende da mesma rodada de deploy que publicou
+  `askBusinessAI`, agora publicando as duas juntas
+  (`--only functions:askBusinessAI,functions:askPublicBusinessAI`, ver
+  `.github/workflows/firebase-deploy-functions.yml`). O que FOI testado
+  antes do deploy: as funções puras públicas de `promptBuilder.js`
+  (contexto restrito, system prompt), o controller
+  `ia-negocio-publica.js` (`node --test`), as Rules do toggle
+  `iaNegocioPublicaAtiva` (dono/funcionário/tenant isolation) contra o
+  Emulator real, e sintaxe do widget inline em `loja.html`. O que NÃO
+  foi testado ainda: uma conversa real de um visitante em produção — só
+  confirma abrindo `loja.html` de uma loja Pro+ com o toggle ativado e
+  perguntando algo de verdade, depois do deploy.
+- **Firestore Rules do toggle público também dependem de deploy
+  separado** — `firestore.rules` só vale depois do workflow "Deploy
+  Firebase Spark" rodar de novo (workflow diferente do de Functions,
+  ver `docs/FIREBASE_SPARK_ARCHITECTURE.md`); sem isso, o switch no
+  dashboard vai falhar ao salvar mesmo com o código do toggle já no ar
+  via GitHub Pages.
 - **Preço exato do provedor** não foi confirmado nesta sessão (a ordem de
   grandeza é estável, o valor exato muda) — confira em
-  ai.google.dev/pricing antes de fechar o teto mensal definitivo.
+  ai.google.dev/pricing antes de fechar o teto mensal definitivo. Vale
+  também acompanhar o uso real do teto compartilhado (dono + público)
+  depois que o widget público estiver no ar por algumas semanas.

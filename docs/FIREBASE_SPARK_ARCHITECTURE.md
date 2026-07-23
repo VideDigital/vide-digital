@@ -30,20 +30,22 @@
 
 ## Quando uma Cloud Function passa a se justificar
 
-> **Atualização**: o primeiro desses cenários deixou de ser hipotético.
-> `askBusinessAI` (`functions/src/ai/`) chama um provedor de IA real
-> (Google Gemini) com a chave guardada como secret do Firebase
-> Functions — código pronto e testado (funções puras + Rules), mas
-> **ainda não publicado em produção**: falta a chave real existir e um
-> workflow de deploy dedicado ser criado e rodado, com confirmação
-> explícita. Ver `docs/IA_NEGOCIO.md`. Nenhum outro cenário abaixo foi
-> implementado.
+> **Atualização**: o primeiro desses cenários deixou de ser hipotético, e
+> agora tem duas Functions reais. `askBusinessAI` (`functions/src/ai/`)
+> — o dono conversa sobre o próprio negócio — está publicada e
+> confirmada em produção com resposta real do Gemini. `askPublicBusinessAI`
+> (mesmo diretório) — um visitante da loja pública conversa sobre o
+> catálogo, sem login, só se o dono ativar um toggle — tem o código
+> completo, testado e revisado, publicada na mesma leva de deploy que
+> `askBusinessAI`. Ambas chamam o mesmo provedor de IA real (Google
+> Gemini) com a chave guardada como secret do Firebase Functions. Ver
+> `docs/IA_NEGOCIO.md`. Nenhum outro cenário abaixo foi implementado.
 
 Cloud Functions ficam reservadas para quando existir uma necessidade real
 que a escrita direta do cliente não consegue cobrir com segurança:
 
 - **IA real** (chamada a um provedor externo com chave secreta) —
-  implementado em código (`askBusinessAI`), ainda não publicado;
+  implementado e publicado (`askBusinessAI`, `askPublicBusinessAI`);
 - **WhatsApp oficial** (integração que exige backend e credenciais próprias);
 - **qualquer segredo** que não pode existir no frontend (chave de API,
   token de terceiro);
@@ -81,10 +83,14 @@ transição neste arquivo quando acontecer.
 
 O diretório `functions/` existe como **legado / testes / contrato futuro** —
 o código antigo continua ali, com validadores puros testados em
-`tests/functions/`, mas **nenhuma página de produção importa
-`core/vide-functions.js` e nenhum workflow publica Functions**. Se algum
-dia uma dessas Functions voltar a ser necessária (ver seção acima), o
-código de referência já existe; até lá, é histórico.
+`tests/functions/`, mas **nenhum workflow publica as Functions abaixo**.
+Se algum dia uma delas voltar a ser necessária (ver seção acima), o
+código de referência já existe; até lá, é histórico. Exceção parcial:
+`resolvePublicTenant` (de `functions/src/public/index.js`, usada por
+`createPublicLead`/`createPublicChat` abaixo) foi **reexportada e reusada
+de verdade** por `askPublicBusinessAI` — o helper em si roda em
+produção, mas nenhuma das Functions listadas na tabela abaixo é
+publicada por isso.
 
 | Function antiga (legado) | Substituição real em produção |
 |---|---|
@@ -129,12 +135,17 @@ Workflow **"Deploy Firebase Spark"** (`.github/workflows/firebase-deploy.yml`, n
 
 O **Quality Gate** (`.github/workflows/quality-gate.yml`) é um workflow **separado**, disparado em push/PR/dispatch, que só roda testes — nunca faz deploy de nada (ver `docs/QUALITY_GATE_RELEASE.md`).
 
-Quando `askBusinessAI` (ver acima) estiver pronta pra publicar de verdade
-(chave real configurada como secret), o deploy dela vai por um **workflow
-novo e separado** — "Deploy Firebase Spark" continua, por nome e por
-escopo, nunca publicando Functions. Nenhum deploy de Function acontece
-sem confirmação explícita, do mesmo jeito que o deploy de Rules já exige
-hoje.
+`askBusinessAI` e `askPublicBusinessAI` (ver acima) são publicadas por
+um **workflow separado**, "Deploy Firebase Functions (IA de Negócio)"
+(`.github/workflows/firebase-deploy-functions.yml`, confirmação literal
+`DEPLOY_FUNCTIONS`) — "Deploy Firebase Spark" continua, por nome e por
+escopo, nunca publicando Functions. As duas mudanças em `usuarios/{uid}`
+e `vitrines_publicas/{slug}` que o toggle público exige (regras novas em
+`firestore.rules`) ainda passam pelo "Deploy Firebase Spark" normal,
+como qualquer outra mudança de Rules — os dois workflows são
+independentes, e o toggle só funciona de verdade depois que AMBOS
+rodarem (Rules pelo Spark, Function pelo dedicado). Nenhum deploy de
+Function ou de Rules acontece sem confirmação explícita.
 
 Deploy manual equivalente:
 
