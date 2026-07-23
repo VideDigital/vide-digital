@@ -231,6 +231,12 @@
 
         /* --- Icon sizing helper --- */
         [data-lucide] { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; stroke-width: 1.6; }
+        /* Ícones lucide são fill:none (só stroke) — por padrão o SVG só
+           registra clique em cima da própria linha desenhada, não na área
+           "vazia" entre os traços. Dentro de botão isso faz o clique falhar
+           bem no meio do ícone (só pega perto da borda/traço). Ícone nunca
+           precisa de clique próprio — sempre delega pro botão pai. */
+        button [data-lucide], button svg { pointer-events: none; }
         .icon-btn { display: inline-flex; align-items: center; justify-content: center; }
 
         /* --- Small util --- */
