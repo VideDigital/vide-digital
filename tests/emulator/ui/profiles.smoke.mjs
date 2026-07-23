@@ -15,8 +15,14 @@ import { captureDiagnostics, coletarErrosConsole, ehErroDeRedeExterno, launchBro
 // view -> permissão de módulo esperada (mesma tabela de PERMISSOES_NAV em
 // dashboard-app.js). "null" = sem gate de permissão de módulo (sempre
 // acessível a qualquer funcionário ativo).
+//
+// "view-produtos" NÃO EXISTE como section em dashboard.html — o catálogo
+// de produtos vive dentro de view-dashboard (cockpit principal), sem view
+// dedicada; PERMISSOES_NAV["view-produtos"] é uma entrada morta (nenhum
+// botão de nav aponta pra ela). "view-avaliacoes" é a view real gateada
+// pela mesma permissão "produtos", por isso substitui no teste.
 const VIEWS = {
-    "view-produtos": "produtos",
+    "view-avaliacoes": "produtos",
     "view-pedidos": "pedidos",
     "view-leads": "leads",
     "view-crm360": "crm",
@@ -39,9 +45,11 @@ const PERFIS = [
         nome: "editor",
         email: "employee.edit@local.test",
         senha: "Local123!edit",
-        // ver seed: produtos, leads, funcionarios, central-ia, atendimento, crm, pedidos, base-conhecimento-ia
+        // ver seed (scripts/seed-emulator.mjs): dashboard, produtos, leads,
+        // funcionarios, central-ia, atendimento, crm, pedidos, templates,
+        // base-conhecimento-ia, ia-copilot.
         esperado: {
-            "view-produtos": true,
+            "view-avaliacoes": true,
             "view-pedidos": true,
             "view-leads": true,
             "view-crm360": true,
@@ -56,19 +64,21 @@ const PERFIS = [
         nome: "reader",
         email: "employee.read@local.test",
         senha: "Local123!read",
-        // mesmo conjunto de "ver" do editor no seed, mas sem "editar" —
-        // aqui validamos só ACESSO à view (ver-só); ações de editar
-        // ficam bloqueadas dentro de cada fluxo específico (pedidos.flow,
-        // flows.smoke), não nesta checagem de navegação.
+        // ver seed (scripts/seed-emulator.mjs): dashboard, produtos, leads,
+        // atendimento, crm, pedidos, templates, base-conhecimento-ia — SEM
+        // "funcionarios" nem "central-ia" (só o editor tem esses dois no
+        // seed). Diferente do editor não é só "sem editar": o conjunto de
+        // "ver" também é menor. Ações de editar ficam bloqueadas dentro de
+        // cada fluxo específico (pedidos.flow, flows.smoke), não aqui.
         esperado: {
-            "view-produtos": true,
+            "view-avaliacoes": true,
             "view-pedidos": true,
             "view-leads": true,
             "view-crm360": true,
             "view-atendimento": true,
-            "view-central-ia": true,
+            "view-central-ia": false,
             "view-base-conhecimento": true,
-            "view-funcionarios": true,
+            "view-funcionarios": false,
             "view-notificacoes": true
         }
     }
@@ -76,10 +86,6 @@ const PERFIS = [
 
 async function testarPerfil(browser, baseUrl, perfil) {
     const page = await browser.newPage();
-    // Debug temporário: liga [debug-podever] em dashboard-app.js pra
-    // investigar por que view-produtos falha mesmo pro owner — remover
-    // depois de confirmada a causa real.
-    await page.addInitScript(() => { window.__VIDE_DEBUG_PODEVER__ = true; });
     const erros = coletarErrosConsole(page);
     const falhas = [];
     try {

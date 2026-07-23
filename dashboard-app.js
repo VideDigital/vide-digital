@@ -15,14 +15,6 @@ import {
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
     const contexto = VideHubContext.getSnapshot();
-    if (window.__VIDE_DEBUG_PODEVER__) {
-        console.error("[debug-podever]", JSON.stringify({
-            moduleKey, modulo,
-            initialized: contexto.initialized, active: contexto.active,
-            isOwner: contexto.isOwner, isEmployee: contexto.isEmployee, isAdmin: contexto.isAdmin,
-            permissions: contexto.permissions
-        }));
-    }
     if (!contexto.initialized || !contexto.active) return false;
     return !modulo || VideHubContext.canView(modulo);
 }

@@ -258,7 +258,7 @@ service cloud.firestore {
     // regra aceita esse formato também por segurança futura.
     function notificacaoVisivelPara(dados) {
       return isBackendAdmin()
-        || dados.destinatarios == "todos"
+        || (dados.keys().hasAny(["destinatarios"]) && dados.destinatarios == "todos")
         || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios)
         || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
     }
