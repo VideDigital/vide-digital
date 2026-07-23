@@ -38,7 +38,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, or, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -17154,33 +17154,38 @@ async function() {
             // Antes fazia getDocs(collection(db,"notificacoes")) sem filtro
             // e filtrava no cliente — o Firestore recusa list() sem filtro
             // pra quem não é admin backend, porque a regra depende de
-            // resource.data. Cada ramo do or() abaixo espelha um ramo da
-            // regra em firestore.rules (match /notificacoes/{id}).
-            const q = query(
-                collection(db, "notificacoes"),
-                or(
-                    where("destinatarios", "==", "todos"),
-                    where("destinatarios", "array-contains", usuarioUID),
-                    where("uid", "==", usuarioUID)
-                )
-            );
-            const [snap, eventosNegocio] = await Promise.all([
-                getDocs(q),
+            // resource.data.
+            //
+            // Antes disto, era uma ÚNICA query com or() combinando os três
+            // where() abaixo — o Firestore não consegue provar, pra uma
+            // query composta assim, que CADA ramo da regra (notificacaoVisivelPara
+            // em firestore.rules) está coberto por um filtro correspondente
+            // pra TODO documento possível, e falha com "evaluation error"
+            // pra quem não é dono/admin (bug real, achado rodando a suíte de
+            // UI de ponta a ponta pela primeira vez — nunca pego antes
+            // porque o teste nunca rodou até aqui). Três queries simples
+            // separadas, cada uma com filtro único, resolvem: cada uma
+            // isolada bate exatamente com um ramo da regra.
+            const colecao = collection(db, "notificacoes");
+            const [snapTodos, snapDestinatarios, snapUid, eventosNegocio] = await Promise.all([
+                getDocs(query(colecao, where("destinatarios", "==", "todos"))),
+                getDocs(query(colecao, where("destinatarios", "array-contains", usuarioUID))),
+                getDocs(query(colecao, where("uid", "==", usuarioUID))),
                 carregarEventosNegocioNotificacoes().catch(() => [])
             ]);
-            let lista = [];
-            snap.forEach(d => {
-                const n = { id: d.id, origem: "admin", ...d.data() };
-                // admin.html grava criadoEm como Date.now() (number), mas
-                // documentos gravados de outra forma (ex.: serverTimestamp())
-                // não podem quebrar a ordenação/tempo relativo.
-                n.criadoEm = normalizarTimestampMs(n.criadoEm);
-                const paraMim = n.destinatarios === "todos"
-                    || (Array.isArray(n.destinatarios) && n.destinatarios.includes(usuarioUID))
-                    || n.uid === usuarioUID;
-                if (paraMim) lista.push(n);
+            const porId = new Map();
+            [snapTodos, snapDestinatarios, snapUid].forEach(snap => {
+                snap.forEach(d => {
+                    if (porId.has(d.id)) return;
+                    const n = { id: d.id, origem: "admin", ...d.data() };
+                    // admin.html grava criadoEm como Date.now() (number), mas
+                    // documentos gravados de outra forma (ex.: serverTimestamp())
+                    // não podem quebrar a ordenação/tempo relativo.
+                    n.criadoEm = normalizarTimestampMs(n.criadoEm);
+                    porId.set(d.id, n);
+                });
             });
-            lista = lista.concat(eventosNegocio);
+            let lista = Array.from(porId.values()).concat(eventosNegocio);
             lista.sort((a, b) => (b.criadoEm || 0) - (a.criadoEm || 0));
             _cacheNotificacoes = lista;
         }
