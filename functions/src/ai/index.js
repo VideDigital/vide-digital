@@ -142,7 +142,7 @@ async function chamarGemini(payload, apiKey) {
             }
             throw new HttpsError(
                 "unavailable",
-                `A IA não conseguiu responder agora (modelo não encontrado). [debug: modelos disponíveis pra essa chave = ${modelosDisponiveis}]`
+                `A IA não conseguiu responder agora. [debug: endpoint=${GEMINI_ENDPOINT}, corpo do erro=${corpoErro.slice(0, 300)}, modelos disponíveis pra essa chave = ${modelosDisponiveis}]`
             );
         }
         throw new HttpsError("unavailable", `A IA não conseguiu responder agora (status ${resposta.status} do provedor). Tente novamente em instantes.`);
