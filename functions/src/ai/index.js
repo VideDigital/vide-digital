@@ -124,9 +124,12 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
 
     const plano = String(context.owner?.plano || "starter").trim().toLowerCase();
     if (!PLANOS_COM_IA_REAL.has(plano)) {
+        // DEBUG TEMPORÁRIO: expõe o valor bruto de owner.plano no próprio erro
+        // pra diagnosticar uma recusa inesperada de plano Pro+. Remover assim
+        // que o diagnóstico terminar — ver docs/IA_NEGOCIO.md.
         throw new HttpsError(
             "permission-denied",
-            "A IA de Negócio é exclusiva do plano Pro (ou superior). Faça upgrade do plano para usar."
+            `A IA de Negócio é exclusiva do plano Pro (ou superior). Faça upgrade do plano para usar. [debug: owner.plano=${JSON.stringify(context.owner?.plano)}, normalizado=${JSON.stringify(plano)}]`
         );
     }
 
