@@ -390,7 +390,7 @@
                 <span class="verified-pill text-[10px] px-3 py-1.5 rounded-full font-semibold uppercase tracking-wider flex items-center gap-1.5">
                     <i data-lucide="badge-check" style="width:12px;height:12px;stroke-width:2"></i> Loja Verificada
                 </span>
-                <button type="button" class="theme-toggle" aria-label="Alternar tema" onclick="(function(){var h=document.documentElement;var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem('lovable-theme',n)}catch(e){}if(window.lucide)lucide.createIcons();})()">
+                <button type="button" class="theme-toggle" aria-label="Alternar tema" onclick="(function(){var h=document.documentElement;var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem('lovable-theme',n)}catch(e){}if(window.lucide)lucide.createIcons();if(window.__aplicarCoresClientePorTema)window.__aplicarCoresClientePorTema();})()">
                     <i data-lucide="moon" style="width:16px;height:16px"></i>
                     <i data-lucide="sun" style="width:16px;height:16px"></i>
                 </button>
@@ -491,9 +491,9 @@
             <i data-lucide="sparkles" style="width:22px;height:22px;stroke-width:1.6"></i>
         </button>
     </div>
-<div id="carrinho-overlay" class="hidden fixed inset-0 z-50" onclick="fecharCarrinho()"></div>
+<div id="carrinho-overlay" class="hidden fixed inset-0 z-[55]" onclick="fecharCarrinho()"></div>
 
-    <div id="carrinho-painel" class="fixed top-0 right-0 z-50 h-full w-full sm:w-[26rem] translate-x-full transition-transform duration-300 flex flex-col" style="border-left: 1px solid var(--border); box-shadow: var(--shadow-xl);">
+    <div id="carrinho-painel" class="fixed top-0 right-0 z-[55] h-full w-full sm:w-[26rem] translate-x-full transition-transform duration-300 flex flex-col" style="border-left: 1px solid var(--border); box-shadow: var(--shadow-xl);">
 
 <div class="h-[3px] w-full shrink-0" style="background: var(--accent);"></div>
         <div class="p-6 border-b flex items-center justify-between" style="border-color: var(--border);">
@@ -639,6 +639,14 @@
 
         let todosProdutos = [];
         let nichoSelecionado = "todos";
+        // corClientFundo/corClientTexto vêm do dashboard com padrão escuro
+        // (picker nasceu antes do toggle claro/escuro existir) — aplicar
+        // sempre como inline style vence var(--bg) e trava o modo claro
+        // num híbrido quebrado (cabeçalho responde ao tema, corpo não).
+        // Por isso só entram em jogo no tema escuro; no claro o sistema
+        // de variáveis (--bg/--ink) sempre governa sozinho.
+        let corFundoPersonalizada = "";
+        let corTextoPersonalizada = "";
         let fornecedorEmail = "";
         let whatsappDono = "";
         let carrinhoAtivo = false;
@@ -658,6 +666,28 @@
         let timeoutRedirecionamentoWhats = null;
         let tempoInicioSessao = Date.now();
         const utmSourceCapturada = urlParams.get("utm_source") || "Direto";
+
+        // Aplica (ou limpa) as cores personalizadas do dono conforme o
+        // tema atual. Chamada na carga inicial e de novo pelo próprio
+        // toggle de tema (window.__aplicarCoresClientePorTema), pra
+        // reagir na hora sem precisar recarregar a página.
+        function aplicarCoresPersonalizadasPorTema() {
+            const escuro = document.documentElement.getAttribute("data-theme") === "dark";
+            const corBody = (escuro && corFundoPersonalizada) ? corFundoPersonalizada : "";
+            const corTextoBody = (escuro && corTextoPersonalizada) ? corTextoPersonalizada : "";
+            const body = document.getElementById("client-body");
+            if (body) {
+                body.style.backgroundColor = corBody;
+                body.style.color = corTextoBody;
+            }
+            ["client-nome-loja", "client-titulo-hero", "client-subtitulo"].forEach(function(id) {
+                const el = document.getElementById(id);
+                if (el) el.style.color = corTextoBody;
+            });
+            if (todosProdutos.length > 0) renderizarCatalogoFiltros();
+        }
+        window.__aplicarCoresClientePorTema = aplicarCoresPersonalizadasPorTema;
+
         function chaveDataHoje() {
             const d = new Date();
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
@@ -999,14 +1029,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     document.documentElement.style.setProperty("--client-secundaria", secundariaColor);
                     document.documentElement.style.setProperty("--client-texto-botao", textoBotaoColor);
                     if (textoColor) document.documentElement.style.setProperty("--client-texto", textoColor);
-                    if (fundoColor) document.getElementById("client-body").style.backgroundColor = fundoColor;
-                    if (textoColor) document.getElementById("client-body").style.color = textoColor;
+                    corFundoPersonalizada = fundoColor;
+                    corTextoPersonalizada = textoColor;
+                    aplicarCoresPersonalizadasPorTema();
                     document.getElementById("client-body").style.fontFamily = "'" + fonteEscolhida + "', sans-serif";
-                    if (textoColor) {
-                        document.getElementById("client-nome-loja").style.color = textoColor;
-                        document.getElementById("client-titulo-hero").style.color = textoColor;
-                        document.getElementById("client-subtitulo").style.color = textoColor;
-                    }
                     document.getElementById("client-subtitulo").style.opacity = "0.85";
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
                     document.getElementById("chat-trigger-btn").style.color = textoBotaoColor;
@@ -1169,7 +1195,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             produtosFiltrados.forEach(function(prod) {
                 const card = document.createElement("div");
                 card.className = "dynamic-card flex flex-col justify-between group";
-                if (prod.corDoCard) card.style.backgroundColor = prod.corDoCard;
+                // Mesma regra de corFundoPersonalizada/corTextoPersonalizada:
+                // só no escuro, senão trava o card no claro também.
+                if (prod.corDoCard && document.documentElement.getAttribute("data-theme") === "dark") {
+                    card.style.backgroundColor = prod.corDoCard;
+                }
 
                 const inputPreco = parseFloat(prod.preco || 0);
 
