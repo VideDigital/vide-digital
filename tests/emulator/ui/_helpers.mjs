@@ -128,6 +128,10 @@ export function coletarErrosConsole(page) {
 // um elemento que só existe depois do dashboard carregar de fato — nunca
 // usa waitForTimeout como mecanismo principal de espera.
 export async function loginReal(page, baseUrl, { email, senha }) {
+    // Debug temporário: liga o log [debug-identity] de core/vide-context.js
+    // (silencioso por padrão) só para investigar por que o timeout de
+    // waitForURL acontece em CI — remover depois de confirmado o motivo real.
+    await page.addInitScript(() => { window.__VIDE_DEBUG_IDENTITY__ = true; });
     await page.goto(`${baseUrl}/login.html?useEmulator=true`, { waitUntil: "load", timeout: 30000 });
     await page.waitForSelector("#login-email", { state: "visible", timeout: 15000 });
     await page.fill("#login-email", email);
