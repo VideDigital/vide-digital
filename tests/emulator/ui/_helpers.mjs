@@ -100,6 +100,9 @@ export async function captureDiagnostics(page, label, erros = []) {
     } catch (e) { info.textoVisivelErro = String(e.message || e); }
     await writeFile(`${base}.json`, JSON.stringify(info, null, 2), "utf8");
     console.error(`[diagnóstico] ${label}: ${base}.{png,html,json}`);
+    // Também imprime no stdout do job (não só no artefato) — investigação
+    // de CI às vezes só tem acesso aos logs do job, sem baixar artefatos.
+    console.error(`[diagnóstico-json] ${JSON.stringify(info)}`);
     return base;
 }
 
