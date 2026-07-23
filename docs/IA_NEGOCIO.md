@@ -230,6 +230,24 @@ limites de uso mais baixos) e atualizar direto a versão do secret
 que a Cloud Function sempre lê a versão mais recente habilitada do
 secret.
 
+## Modelo descontinuado pra chaves novas (`gemini-2.5-flash` → `gemini-flash-latest`)
+
+Com a chave gratuita nova, a próxima tentativa deu `404 NOT_FOUND`:
+*"This model models/gemini-2.5-flash is no longer available to new
+users. Please update your code to use a newer model..."* — mesmo o
+modelo aparecendo na listagem (`ListModels`) da própria chave. Ou seja:
+existir na listagem não significa que toda chave pode usá-lo pra gerar
+conteúdo; contas/chaves novas perdem acesso a alguns nomes fixos que
+contas antigas ainda têm.
+
+Corrigido trocando `GEMINI_MODEL` de `"gemini-2.5-flash"` (nome fixo)
+pra `"gemini-flash-latest"` (alias que o próprio Google mantém sempre
+apontado pro modelo Flash recomendado do momento) em
+`functions/src/ai/index.js` — evita esse tipo de quebra silenciosa se
+o Google aposentar outro nome fixo no futuro. Confirmado que o alias
+está na lista de modelos da chave nova, com suporte a
+`generateContent`.
+
 ### Instrumentação de erro permanente (não é mais debug temporário)
 
 Depois de alternar debug por debug a cada camada nova de erro (plano →
@@ -251,10 +269,12 @@ precisar de mais rodadas de debug-then-revert.
 
 - **`askBusinessAI` está publicada em produção e o pipeline completo já
   foi validado ponta a ponta** (plano → quota → contexto → prompt →
-  chamada ao Gemini) — o único bloqueio restante pra uma resposta real
-  da IA é o crédito/faturamento do Google AI Studio (ver seção acima),
-  não código. Assim que isso for resolvido do lado do Google, a próxima
-  pergunta real já deve funcionar sem precisar de outro deploy.
+  chamada ao Gemini) — os dois bloqueios reais encontrados na primeira
+  chamada de verdade (crédito/faturamento da chave antiga, depois nome
+  de modelo descontinuado pra chave nova) já foram corrigidos, ver
+  seções acima. Ainda não confirmado: uma resposta de texto completa e
+  de qualidade vinda do Gemini — o histórico até aqui só provou que a
+  requisição chega, autentica e é aceita pela API.
   O que FOI testado de verdade: as 12 funções puras de
   `promptBuilder.js` (`node --test`, contexto, sanitização, detecção de
   injeção, formato do payload/resposta), as Rules da nova coleção

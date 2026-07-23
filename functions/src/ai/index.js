@@ -36,10 +36,12 @@ const {
 } = require("./promptBuilder");
 
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
-// Nome do modelo "Flash" mais recente disponível — confira em
-// ai.google.dev/gemini-api/docs/models antes do primeiro deploy real,
-// nomes de modelo mudam com frequência nesse mercado.
-const GEMINI_MODEL = "gemini-2.5-flash";
+// "gemini-2.5-flash" (nome fixo) parou de funcionar pra chaves novas —
+// o Google retorna 404 com "This model ... is no longer available to
+// new users". Usa o alias "-latest", que o próprio Google mantém
+// apontado pro modelo Flash recomendado do momento — evita esse tipo de
+// quebra silenciosa de novo no futuro. Ver docs/IA_NEGOCIO.md.
+const GEMINI_MODEL = "gemini-flash-latest";
 const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
 
 const PLANOS_COM_IA_REAL = new Set(["pro", "proplus", "agencia", "enterprise", "premium"]);
@@ -123,26 +125,12 @@ async function chamarGemini(payload, apiKey) {
             );
         }
         if (resposta.status === 404) {
-            // DEBUG TEMPORÁRIO: 404 costuma ser nome de modelo inválido pra
-            // essa chave/projeto específico — pergunta pro próprio Google
-            // quais modelos essa chave realmente enxerga, em vez de confiar
-            // em documentação que pode estar desatualizada. Reverter depois
-            // — ver docs/IA_NEGOCIO.md.
-            let modelosDisponiveis = "";
-            try {
-                const listaResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
-                const listaJson = await listaResp.json();
-                modelosDisponiveis = (listaJson.models || [])
-                    .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
-                    .map((m) => m.name)
-                    .slice(0, 15)
-                    .join(", ");
-            } catch (listaError) {
-                modelosDisponiveis = `(falha ao listar: ${listaError?.message})`;
-            }
+            // Nome de modelo inválido pra essa chave/projeto — não deveria
+            // acontecer com o alias "-latest", mas se o Google descontinuar
+            // até o alias, é bom saber na hora em vez de "tente novamente".
             throw new HttpsError(
                 "unavailable",
-                `A IA não conseguiu responder agora. [debug: endpoint=${GEMINI_ENDPOINT}, corpo do erro=${corpoErro.slice(0, 300)}, modelos disponíveis pra essa chave = ${modelosDisponiveis}]`
+                `A IA não conseguiu responder agora (modelo "${GEMINI_MODEL}" não encontrado pelo provedor). Avise o administrador da plataforma.`
             );
         }
         throw new HttpsError("unavailable", `A IA não conseguiu responder agora (status ${resposta.status} do provedor). Tente novamente em instantes.`);
