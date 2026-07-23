@@ -52,9 +52,12 @@ function mensagemErroAmigavel(error) {
         return "Sessão expirada. Recarregue a página e faça login novamente.";
     }
     if (codigo === "unavailable") {
-        return "A IA não respondeu a tempo. Tente novamente em instantes.";
+        // DEBUG TEMPORÁRIO: inclui error?.message (status/corpo do Gemini)
+        // pra diagnosticar a primeira chamada real. Reverter pra mensagem
+        // fixa depois — ver docs/IA_NEGOCIO.md.
+        return error?.message || "A IA não respondeu a tempo. Tente novamente em instantes.";
     }
-    return "Não foi possível falar com a IA agora. Tente novamente.";
+    return error?.message || "Não foi possível falar com a IA agora. Tente novamente.";
 }
 
 export function criarIaNegocioController({

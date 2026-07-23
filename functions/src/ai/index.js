@@ -112,7 +112,14 @@ async function chamarGemini(payload, apiKey) {
     if (!resposta.ok) {
         const corpoErro = await resposta.text().catch(() => "");
         logger.error("[IA de Negócio] Erro do Gemini:", { status: resposta.status, corpoErro });
-        throw new HttpsError("unavailable", "A IA não conseguiu responder agora. Tente novamente em instantes.");
+        // DEBUG TEMPORÁRIO: expõe status/corpo do erro do Gemini na mensagem
+        // pra diagnosticar a primeira chamada real (nome de modelo desatualizado,
+        // API key inválida, etc.). Remover assim que o diagnóstico terminar —
+        // ver docs/IA_NEGOCIO.md.
+        throw new HttpsError(
+            "unavailable",
+            `A IA não conseguiu responder agora. [debug: status=${resposta.status}, corpo=${corpoErro.slice(0, 300)}]`
+        );
     }
 
     return resposta.json();
