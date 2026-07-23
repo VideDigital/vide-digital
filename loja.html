@@ -156,6 +156,8 @@
         #vitrine-container .bg-white\/\[0\.03\],
         #vitrine-container .bg-white\/5,
         #vitrine-container .bg-white\/10 { background: var(--surface-soft) !important; }
+        /* hover:bg-white/5 é invisível no claro (branco sobre branco) — feedback de hover some justo no botão "Adicionar ao Carrinho" */
+        #vitrine-container .hover\:bg-white\/5:hover { background: var(--surface-soft) !important; }
         #vitrine-container .animate-pulse { background: var(--surface-soft) !important; border: 1px solid var(--border); }
         #vitrine-container button[style*="background-color"] {
             border-radius: 999px !important;
@@ -249,7 +251,7 @@
 
         /* --- Theme toggle --- */
         .theme-toggle {
-            height: 36px; width: 36px; border-radius: 999px;
+            height: 40px; width: 40px; border-radius: 999px;
             border: 1px solid var(--border);
             background: var(--surface);
             color: var(--ink);
@@ -449,7 +451,7 @@
         <div id="chat-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
             <div class="p-4 border-b text-xs font-semibold flex justify-between items-center" style="border-color: var(--border); background: var(--surface-soft);">
                 <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full animate-pulse" style="background: var(--success);"></span> Atendimento Online</span>
-                <button onclick="toggleChatWindow()" class="icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+                <button type="button" onclick="toggleChatWindow()" class="icon-btn h-10 w-10 transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
             </div>
             <div id="chat-client-messages" class="p-4 flex-1 overflow-y-auto space-y-2 text-[12px] flex flex-col custom-scrollbar">
                 <div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">
@@ -473,7 +475,7 @@
         <div id="ia-negocio-publica-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
             <div class="p-4 border-b text-xs font-semibold flex justify-between items-center" style="border-color: var(--border); background: var(--surface-soft);">
                 <span class="flex items-center gap-2"><i data-lucide="sparkles" style="width:14px;height:14px"></i> Assistente da loja</span>
-                <button type="button" onclick="toggleIaNegocioPublicaWindow()" class="icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+                <button type="button" onclick="toggleIaNegocioPublicaWindow()" class="icon-btn h-10 w-10 transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
             </div>
             <div id="ia-negocio-publica-mensagens" class="p-4 flex-1 overflow-y-auto space-y-2 text-[12px] flex flex-col custom-scrollbar" role="log" aria-live="polite" aria-label="Conversa com a assistente da loja">
                 <div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">
@@ -502,7 +504,7 @@
                     <p class="text-[11px] mt-0.5" style="color: var(--ink-3);">Revise seus itens antes de finalizar</p>
                 </div>
             </div>
-            <button onclick="fecharCarrinho()" class="icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+            <button type="button" onclick="fecharCarrinho()" class="icon-btn h-11 w-11 transition-colors" style="color: var(--ink-3);" aria-label="Fechar carrinho"><i data-lucide="x" style="width:20px;height:20px"></i></button>
         </div>
 
         <div id="carrinho-lista" class="flex-1 overflow-y-auto p-5 space-y-3 custom-scrollbar"></div>
@@ -525,7 +527,7 @@
 <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5 overflow-hidden" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
 
 <div class="absolute top-0 left-0 h-[3px] w-full" style="background: var(--accent);"></div>
-            <button onclick="fecharPopup()" class="absolute top-4 right-4 icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+            <button type="button" onclick="fecharPopup()" class="absolute top-2 right-2 icon-btn h-11 w-11 transition-colors" style="color: var(--ink-3);" aria-label="Fechar"><i data-lucide="x" style="width:18px;height:18px"></i></button>
             <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--accent);"><i data-lucide="gift" style="width:24px;height:24px"></i></div>
             <h2 class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">Um presente para você.</h2>
             <p class="text-sm" style="color: var(--ink-2);">Deixe seu WhatsApp e receba um cupom exclusivo de desconto agora mesmo.</p>
@@ -1452,7 +1454,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 popup.style.backdropFilter = "blur(12px)";
                 popup.innerHTML = `
                     <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5" style="background: var(--surface); border:1px solid var(--border); box-shadow: var(--shadow-xl);">
-                        <button onclick="fecharCampanha()" class="absolute top-4 right-4 icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:18px;height:18px"></i></button>
+                        <button type="button" onclick="fecharCampanha()" class="absolute top-2 right-2 icon-btn h-11 w-11 transition-colors" style="color: var(--ink-3);" aria-label="Fechar"><i data-lucide="x" style="width:18px;height:18px"></i></button>
                         <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--accent);"><i data-lucide="zap" style="width:24px;height:24px"></i></div>
                         <h2 class="text-3xl" style="font-family:'Instrument Serif',serif; color: var(--ink);">${c.titulo}</h2>
                         <p class="text-sm" style="color: var(--ink-2);">${c.texto || ""}</p>
