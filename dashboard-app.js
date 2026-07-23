@@ -233,7 +233,11 @@ dicas: ["Publique avaliações boas rápido — prova social recente aumenta mui
 { chave: "qrcode", titulo: "Compartilhar Loja & QR Code", disponivelSempre: true,
 acessar: "No card \"Status da loja\" (barra lateral), botões \"Copiar link\" e \"QR Code\". Também na Central de módulos.",
 usar: ["\"Copiar link\" copia o endereço da sua loja pra colar em qualquer lugar.", "\"QR Code\" gera um código pronto pra baixar e imprimir."],
-dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cliente aponta a câmera e cai direto na sua loja."] }
+dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cliente aponta a câmera e cai direto na sua loja."] },
+{ chave: "ia_negocio", icone: "🧠", titulo: "IA de Negócio (plano Pro ou superior)",
+acessar: "Aba \"Central de IA\", painel \"Converse com a IA sobre o seu negócio\".",
+usar: ["Pergunte sobre seus produtos, pedidos e o que pode melhorar — a IA responde com base nos dados reais e atuais da sua loja.", "Cada loja tem um limite de perguntas por mês; o painel mostra quantas ainda restam."],
+dicas: ["Pergunte de forma específica (\"quais produtos venderam mais este mês?\") pra receber respostas mais úteis do que perguntas genéricas."] }
 ];
 
         const FEATURES_EM_BREVE_GUIA = [
@@ -420,6 +424,12 @@ dicas: ["Imprima o QR Code e cole na vitrine, no balcão ou no cartão — o cli
                         <path d="M3 12h18"></path>
                         <path d="M12 3a15 15 0 0 1 0 18"></path>
                         <path d="M12 3a15 15 0 0 0 0 18"></path>
+                    </svg>
+                `,
+
+                ia_negocio: `
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M9 3h6M10 3v3.2a6 6 0 1 0 4 0V3M7.5 12h9M9 16h6"></path>
                     </svg>
                 `
 
@@ -4399,6 +4409,7 @@ btn.classList.add("opacity-40");
         // Painel de chat da IA de Negócio dentro da Central de IA — só
         // texto (nunca innerHTML) pro conteúdo das mensagens.
         function bindIaNegocioPainel(controller) {
+            const painel = document.getElementById("ia-negocio-painel");
             const badge = document.getElementById("ia-negocio-badge");
             const bloqueado = document.getElementById("ia-negocio-bloqueado");
             const conteudo = document.getElementById("ia-negocio-conteudo");
@@ -4438,8 +4449,13 @@ btn.classList.add("opacity-40");
                 badge.classList.toggle("is-ativa", disponivel);
                 bloqueado.hidden = disponivel;
                 conteudo.hidden = !disponivel;
-                if (enviarBtn) enviarBtn.disabled = controller.state.enviando;
-                if (input) input.disabled = controller.state.enviando;
+                // Plano sem acesso: o módulo inteiro fica "apagado" e não
+                // interativo (ver .ia-negocio-painel.is-locked em
+                // ia-negocio.css) — nunca abre pra digitar e só depois
+                // recusar no servidor.
+                if (painel) painel.classList.toggle("is-locked", !disponivel);
+                if (enviarBtn) enviarBtn.disabled = controller.state.enviando || !disponivel;
+                if (input) input.disabled = controller.state.enviando || !disponivel;
                 renderizarMensagens();
             }
 
@@ -7470,11 +7486,11 @@ await setDoc(doc(db, "landing_pages", novoId), {
                     negocio:      ["hub", "popup", "carrinho", "chat", "templates", "cupons"],
                     profissional: ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv"],
                     avancado:     ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp1", "qrcode", "temas"],
-                    pro:          ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot"],
-                    proplus:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda"],
-                    agencia:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas"],
-                    enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
-                    premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
+                    pro:          ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia_negocio"],
+                    proplus:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "ia_negocio", "avaliacoes", "agenda"],
+                    agencia:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "ia_negocio", "avaliacoes", "agenda", "mapamental", "subcontas"],
+                    enterprise:   ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "ia_negocio", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios"],
+                    premium:      ["hub", "popup", "carrinho", "chat", "templates", "cupons", "campanhas", "metricas", "csv", "lp", "qrcode", "temas", "chatbot", "ia", "ia_negocio", "avaliacoes", "agenda", "mapamental", "subcontas", "api", "relatorios", "dominio", "suporte_vip", "onboarding"]
                 };
                 const ORDEM_PLANOS = ["starter","basico","essencial","negocio","profissional","avancado","pro","proplus","agencia","enterprise","premium"];
                 const planoNomes = {

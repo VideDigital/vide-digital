@@ -161,6 +161,36 @@ sabidamente vai falhar) — quem decide de verdade é sempre o servidor.
    acesso automaticamente. Ambas as concessões já estão feitas — deploys
    futuros de `askBusinessAI` não devem precisar repetir esse passo.
 
+## Correção pós-deploy: dono do plano Pro+ sendo recusado
+
+Na primeira tentativa real de uso (dono no plano Premium), a Function
+recusou com "exclusiva do plano Pro" mesmo o plano estando na lista
+`PLANOS_COM_IA_REAL`. Causa: `functions/src/ai/index.js` comparava
+`context.owner.plano` (valor bruto do Firestore) contra o `Set` sem
+normalizar; `ia-negocio.js` (frontend) já normalizava com
+`.toLowerCase()` antes de comparar — bastava uma diferença de
+capitalização entre as duas camadas pra o cliente liberar e o servidor
+recusar. Corrigido em `functions/src/ai/index.js`:
+`String(context.owner?.plano || "starter").trim().toLowerCase()` antes
+do `PLANOS_COM_IA_REAL.has(...)`, igual ao que o frontend já fazia —
+depois de corrigir, redeploy de `askBusinessAI` pelo mesmo workflow
+(`DEPLOY_FUNCTIONS`).
+
+Na mesma correção, dois ajustes de UX pedidos pelo dono:
+
+- O painel "Converse com a IA sobre o seu negócio" agora fica
+  **visualmente apagado e não interativo** (`.ia-negocio-painel.is-locked`
+  em `ia-negocio.css`, aplicado por `bindIaNegocioPainel()` em
+  `dashboard-app.js`) em planos sem acesso — antes disso era possível
+  abrir o painel, digitar e só levar a recusa depois de enviar; agora o
+  formulário nem fica clicável, só o aviso com um botão "Ver planos e
+  recursos" que leva direto pro Guia do Plano.
+- O **Guia do Plano** (`view-guia` em `dashboard.html`,
+  `renderizarGuiaDoPlano()` em `dashboard-app.js`) ganhou uma entrada
+  "IA de Negócio (plano Pro ou superior)" na chave `ia_negocio`, incluída
+  em `FEATURES_PLANO` para `pro`/`proplus`/`agencia`/`enterprise`/`premium`
+  — mesma convenção de feature-flag já usada por todo o resto do Guia.
+
 ## Limitações reais desta fase (sem maquiar)
 
 - **`askBusinessAI` está publicada em produção, mas uma conversa real

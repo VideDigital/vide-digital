@@ -45,6 +45,42 @@
     font-size: 13px;
 }
 
+/* Estado "meio apagado": em planos sem acesso, o módulo inteiro fica
+   visualmente desligado e não interativo — nunca abre pra digitar e só
+   depois recusar no servidor. */
+.ia-negocio-painel.is-locked {
+    opacity: .55;
+    filter: grayscale(.4);
+    pointer-events: none;
+    user-select: none;
+}
+
+.ia-negocio-painel.is-locked .ia-negocio-badge {
+    background: rgba(255, 255, 255, 0.03);
+    color: #9aa1b5;
+}
+
+/* O aviso de bloqueio (com o botão pra ver planos) continua clicável
+   mesmo com o resto do painel travado por pointer-events: none acima. */
+.ia-negocio-painel.is-locked .ia-negocio-bloqueado {
+    pointer-events: auto;
+}
+
+.ia-negocio-bloqueado-ver-planos {
+    margin-top: 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 14px;
+    border-radius: 999px;
+    border: 1px solid var(--ia-border);
+    background: linear-gradient(135deg, var(--sys-primaria, #5b3df5), var(--sys-destaque, #00d4ff));
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    cursor: pointer;
+}
+
 .ia-negocio-mensagens {
     margin-top: 16px;
     display: flex;

@@ -122,7 +122,7 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
     const context = await resolveCallerContext(request);
     requireEdit(context, "central-ia");
 
-    const plano = String(context.owner?.plano || "starter");
+    const plano = String(context.owner?.plano || "starter").trim().toLowerCase();
     if (!PLANOS_COM_IA_REAL.has(plano)) {
         throw new HttpsError(
             "permission-denied",
