@@ -4,6 +4,7 @@ import {
     LIMITES_IA_NEGOCIO_UI,
     construirHistoricoParaEnvio,
     criarIaNegocioController,
+    payloadIaNegocioPublica,
     planoTemIaReal,
     sanitizarPerguntaUI
 } from "../ia-negocio.js";
@@ -14,6 +15,13 @@ describe("ia-negocio: funções puras", () => {
         assert.equal(planoTemIaReal("PROPLUS"), true);
         assert.equal(planoTemIaReal("starter"), false);
         assert.equal(planoTemIaReal(""), false);
+    });
+
+    it("payloadIaNegocioPublica normaliza pra um booleano estrito", () => {
+        assert.deepEqual(payloadIaNegocioPublica(true), { iaNegocioPublicaAtiva: true });
+        assert.deepEqual(payloadIaNegocioPublica(false), { iaNegocioPublicaAtiva: false });
+        assert.deepEqual(payloadIaNegocioPublica("true"), { iaNegocioPublicaAtiva: false });
+        assert.deepEqual(payloadIaNegocioPublica(undefined), { iaNegocioPublicaAtiva: false });
     });
 
     it("sanitiza e trunca a pergunta", () => {

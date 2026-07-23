@@ -31,6 +31,15 @@ export function sanitizarPerguntaUI(texto) {
         : limpo;
 }
 
+// Payload do toggle "ativar IA de Negócio na loja pública" (dashboard) —
+// mesmo formato grava em usuarios/{uid} e no espelho vitrines_publicas/
+// {slug}; centralizado aqui pra nunca divergir o nome do campo entre os
+// dois lugares que escrevem (dashboard-app.js) nem entre eles e o que
+// askPublicBusinessAI lê (functions/src/ai/index.js).
+export function payloadIaNegocioPublica(ativa) {
+    return { iaNegocioPublicaAtiva: ativa === true };
+}
+
 // Formato mínimo que a Cloud Function espera — nunca envia o objeto de
 // mensagem inteiro (que tem timestamps/ids só de interesse da UI).
 export function construirHistoricoParaEnvio(mensagens) {

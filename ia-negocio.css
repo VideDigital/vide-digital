@@ -142,6 +142,38 @@
     75% { border-radius: 66% 34% 46% 54% / 46% 54% 46% 54%; transform: scale(1.08) rotate(135deg); }
 }
 
+.ia-negocio-publica {
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--ia-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.ia-negocio-publica-copy strong { font-size: 13px; color: #f7f8fc; }
+.ia-negocio-publica-copy p { margin-top: 4px; color: var(--ia-muted); font-size: 12px; line-height: 1.55; max-width: 520px; }
+
+.ia-negocio-publica-switch-control {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex: 0 0 auto;
+}
+
+.ia-negocio-publica-estado {
+    color: #aeb7c7;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+@media (max-width: 640px) {
+    .ia-negocio-publica { flex-direction: column; align-items: flex-start; }
+    .ia-negocio-publica-switch-control { align-self: flex-end; }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .ia-negocio-pensando-blob {
         animation: none;

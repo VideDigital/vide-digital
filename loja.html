@@ -207,6 +207,25 @@
         #btn-finalizar-carrinho { background: var(--ink) !important; color: var(--bg) !important; border-radius: 999px !important; }
         #btn-finalizar-carrinho:hover { filter: brightness(1.1); }
         #chat-trigger-btn { border-radius: 999px !important; box-shadow: var(--shadow-lg) !important; color: var(--ink) !important; background: var(--surface) !important; border: 1px solid var(--border); }
+        #ia-negocio-publica-input { background: var(--surface-soft) !important; border: 1px solid var(--border) !important; color: var(--ink) !important; border-radius: 12px !important; }
+        #ia-negocio-publica-input::placeholder { color: var(--ink-4); }
+        #ia-negocio-publica-input:focus { border-color: var(--accent) !important; outline: none; }
+        #ia-negocio-publica-enviar { background: var(--ink) !important; color: var(--bg) !important; }
+        #ia-negocio-publica-trigger { border-radius: 999px !important; box-shadow: var(--shadow-lg) !important; color: var(--ink) !important; background: var(--surface) !important; border: 1px solid var(--border); }
+        .ia-negocio-publica-mensagem { max-width: 85%; padding: 8px 12px; border-radius: 14px; line-height: 1.5; white-space: pre-wrap; }
+        .ia-negocio-publica-mensagem.is-visitante { align-self: flex-end; background: var(--accent); color: var(--client-texto-botao, #fff); }
+        .ia-negocio-publica-mensagem.is-ia { align-self: flex-start; background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2); }
+        .ia-negocio-publica-pensando { display: flex; align-items: center; justify-content: center; width: 44px; height: 28px; align-self: flex-start; }
+        .ia-negocio-publica-pensando-blob { width: 14px; height: 14px; background: var(--accent); animation: ia-negocio-publica-morph 1.6s ease-in-out infinite; }
+        @keyframes ia-negocio-publica-morph {
+            0%, 100% { border-radius: 50%; transform: scale(1) rotate(0deg); }
+            25% { border-radius: 62% 38% 34% 66% / 66% 42% 58% 34%; transform: scale(1.12) rotate(45deg); }
+            50% { border-radius: 34% 66% 66% 34% / 38% 62% 38% 62%; transform: scale(0.88) rotate(90deg); }
+            75% { border-radius: 66% 34% 46% 54% / 46% 54% 46% 54%; transform: scale(1.08) rotate(135deg); }
+        }
+        @media (prefers-reduced-motion: reduce) {
+            .ia-negocio-publica-pensando-blob { animation: none; border-radius: 50%; }
+        }
 
         /* --- Icon sizing helper --- */
         [data-lucide] { width: 1em; height: 1em; display: inline-block; vertical-align: -0.125em; stroke-width: 1.6; }
@@ -446,6 +465,30 @@
             <i data-lucide="message-circle" style="width:22px;height:22px;stroke-width:1.6"></i>
         </button>
     </div>
+
+<!-- IA de Negócio pública: assistente de IA real sobre o catálogo, só
+     visível quando o dono ativa em Central de IA no dashboard. Widget
+     separado do chat humano acima (nunca mistura os dois). -->
+<div id="widget-ia-negocio-publica" class="hidden fixed bottom-24 right-6 z-50 flex flex-col items-end">
+        <div id="ia-negocio-publica-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
+            <div class="p-4 border-b text-xs font-semibold flex justify-between items-center" style="border-color: var(--border); background: var(--surface-soft);">
+                <span class="flex items-center gap-2"><i data-lucide="sparkles" style="width:14px;height:14px"></i> Assistente da loja</span>
+                <button type="button" onclick="toggleIaNegocioPublicaWindow()" class="icon-btn transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+            </div>
+            <div id="ia-negocio-publica-mensagens" class="p-4 flex-1 overflow-y-auto space-y-2 text-[12px] flex flex-col custom-scrollbar" role="log" aria-live="polite" aria-label="Conversa com a assistente da loja">
+                <div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">
+                    Olá! Pergunte sobre os produtos desta loja — posso te ajudar a encontrar o que procura.
+                </div>
+            </div>
+            <form id="ia-negocio-publica-form" class="p-2 border-t flex gap-1.5" style="border-color: var(--border);">
+                <input type="text" id="ia-negocio-publica-input" class="flex-1 rounded-xl p-2.5 text-xs outline-none" placeholder="Pergunte sobre os produtos..." maxlength="800">
+                <button type="submit" id="ia-negocio-publica-enviar" class="font-bold px-4 rounded-xl text-xs">OK</button>
+            </form>
+        </div>
+        <button type="button" onclick="toggleIaNegocioPublicaWindow()" id="ia-negocio-publica-trigger" class="h-14 w-14 icon-btn transition-transform hover:scale-105 active:scale-95">
+            <i data-lucide="sparkles" style="width:22px;height:22px;stroke-width:1.6"></i>
+        </button>
+    </div>
 <div id="carrinho-overlay" class="hidden fixed inset-0 z-50" onclick="fecharCarrinho()"></div>
 
     <div id="carrinho-painel" class="fixed top-0 right-0 z-50 h-full w-full sm:w-[26rem] translate-x-full transition-transform duration-300 flex flex-col" style="border-left: 1px solid var(--border); box-shadow: var(--shadow-xl);">
@@ -584,8 +627,10 @@
     </script>
 
     <script type="module">
-        import { db } from "./firebase-init.js";
+        import { app, db, shouldUseVideEmulators } from "./firebase-init.js";
         import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { connectFunctionsEmulator, getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+        import { criarIaNegocioPublicaController } from "./ia-negocio-publica.js";
 
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get("loja");
@@ -963,6 +1008,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     document.getElementById("client-subtitulo").style.opacity = "0.85";
                     document.getElementById("chat-trigger-btn").style.backgroundColor = brandColor;
                     document.getElementById("chat-trigger-btn").style.color = textoBotaoColor;
+                    document.getElementById("ia-negocio-publica-trigger").style.backgroundColor = brandColor;
+                    document.getElementById("ia-negocio-publica-trigger").style.color = textoBotaoColor;
                     document.getElementById("logo-indicator").style.background = "linear-gradient(to top right, " + brandColor + ", " + secundariaColor + ")";
 
                     if (dados.fotoPerfilB64) {
@@ -1056,6 +1103,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     }
                     if (dados.chatAtivo !== false) {
                         document.getElementById("widget-chat-cliente").classList.remove("hidden");
+                    }
+                    if (dados.iaNegocioPublicaAtiva === true) {
+                        document.getElementById("widget-ia-negocio-publica").classList.remove("hidden");
+                        iniciarIaNegocioPublica(lojaSlug.toLowerCase());
                     }
 
                     await registrarMetricaPublica({ event: "store_session" });
@@ -1487,6 +1538,93 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         window.toggleChatWindow = function() {
             document.getElementById("chat-window").classList.toggle("hidden");
         };
+
+        window.toggleIaNegocioPublicaWindow = function() {
+            document.getElementById("ia-negocio-publica-window").classList.toggle("hidden");
+        };
+
+        // Instanciado só quando a loja realmente ativa o toggle (evita
+        // inicializar o SDK de Functions e o controller à toa nas outras
+        // lojas). Chamado uma única vez por carregamento de página —
+        // iaNegocioPublicaJaIniciada evita religar tudo de novo se
+        // carregarConfiguracoesVitrine rodar mais de uma vez.
+        let iaNegocioPublicaJaIniciada = false;
+        function iniciarIaNegocioPublica(storeSlug) {
+            if (iaNegocioPublicaJaIniciada) return;
+            iaNegocioPublicaJaIniciada = true;
+
+            const functionsInstance = getFunctions(app, "southamerica-east1");
+            if (shouldUseVideEmulators() && !window.__videPublicFunctionsEmulatorConnected) {
+                connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+                window.__videPublicFunctionsEmulatorConnected = true;
+            }
+            const askPublicBusinessAICallable = httpsCallable(functionsInstance, "askPublicBusinessAI");
+            async function chamarAskPublicBusinessAI(payload) {
+                const resultado = await askPublicBusinessAICallable(payload);
+                return resultado.data || {};
+            }
+
+            const controller = criarIaNegocioPublicaController({
+                storeSlug,
+                chamarAskPublicBusinessAI,
+                notify: (mensagem) => {
+                    const aviso = document.createElement("div");
+                    aviso.className = "ia-negocio-publica-mensagem is-ia";
+                    aviso.textContent = mensagem;
+                    document.getElementById("ia-negocio-publica-mensagens").appendChild(aviso);
+                }
+            });
+
+            const mensagensEl = document.getElementById("ia-negocio-publica-mensagens");
+            const form = document.getElementById("ia-negocio-publica-form");
+            const input = document.getElementById("ia-negocio-publica-input");
+            const enviarBtn = document.getElementById("ia-negocio-publica-enviar");
+
+            function renderizarMensagens() {
+                // Remove a bolha "pensando" ANTES de checar índices — senão
+                // ela ocupa a posição da próxima mensagem real e o forEach
+                // abaixo acha que já foi renderizada, escondendo a resposta.
+                const pensandoExistente = document.getElementById("ia-negocio-publica-pensando-atual");
+                if (pensandoExistente) pensandoExistente.remove();
+
+                controller.state.mensagens.forEach((mensagem, indice) => {
+                    if (mensagensEl.children[indice + 1]) return; // +1: já pula a saudação fixa no HTML
+                    const bolha = document.createElement("div");
+                    bolha.className = `ia-negocio-publica-mensagem ${mensagem.autor === "visitante" ? "is-visitante" : "is-ia"}`;
+                    bolha.textContent = mensagem.texto;
+                    mensagensEl.appendChild(bolha);
+                });
+
+                if (controller.state.enviando) {
+                    const pensando = document.createElement("div");
+                    pensando.id = "ia-negocio-publica-pensando-atual";
+                    pensando.className = "ia-negocio-publica-pensando";
+                    pensando.setAttribute("aria-label", "A assistente está pensando");
+                    pensando.innerHTML = '<span class="ia-negocio-publica-pensando-blob"></span>';
+                    mensagensEl.appendChild(pensando);
+                }
+
+                mensagensEl.scrollTop = mensagensEl.scrollHeight;
+            }
+
+            function render() {
+                if (enviarBtn) enviarBtn.disabled = controller.state.enviando;
+                if (input) input.disabled = controller.state.enviando;
+                renderizarMensagens();
+            }
+
+            controller.definirOuvinte(render);
+
+            form.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const pergunta = input.value;
+                if (!pergunta.trim() || controller.state.enviando) return;
+                input.value = "";
+                render();
+                await controller.enviarPergunta(pergunta);
+                render();
+            });
+        }
 
         document.getElementById("chat-client-form").addEventListener("submit", async function(e) {
             e.preventDefault();

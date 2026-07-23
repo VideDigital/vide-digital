@@ -5,7 +5,7 @@ import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
 import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
 import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
-import { criarIaNegocioController } from "./ia-negocio.js";
+import { criarIaNegocioController, payloadIaNegocioPublica } from "./ia-negocio.js";
 import { VideFunctions } from "./core/vide-functions.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
@@ -46,6 +46,7 @@ window.addEventListener("pageshow", function(event) {
         let tipoDestino = "checkout";
         let filtroLogistico = "todos";
         let planoAtualGlobal = "starter";
+        let iaNegocioPublicaAtivaGlobal = false;
         let limiteProdutosGlobal = 3;
         let totalProdutosAtual = 0;
         let limiteRascunhosGlobal = 5;
@@ -4419,7 +4420,33 @@ btn.classList.add("opacity-40");
             const input = document.getElementById("ia-negocio-input");
             const enviarBtn = document.getElementById("ia-negocio-enviar");
             const limparBtn = document.getElementById("ia-negocio-limpar");
+            const publicaSwitch = document.getElementById("ia-negocio-publica-switch");
+            const publicaEstado = document.getElementById("ia-negocio-publica-estado");
             if (!form || !mensagensEl) return;
+
+            // Grava em usuarios/{uid} (fonte de verdade, lida pela Cloud
+            // Function askPublicBusinessAI) e no espelho vitrines_publicas/
+            // {slug} (só pra loja.html decidir se mostra o widget sem
+            // precisar de outra leitura) — as duas Rules exigem só esse
+            // campo mudando, gated por "central-ia" editar.
+            async function alternarIaNegocioPublica(ativa) {
+                if (!usuarioUID) return;
+                const payload = payloadIaNegocioPublica(ativa);
+                try {
+                    await setDoc(doc(db, "usuarios", usuarioUID), payload, { merge: true });
+                    if (slugAtualSalvo) {
+                        await setDoc(doc(db, "vitrines_publicas", slugAtualSalvo), payload, { merge: true });
+                    }
+                    iaNegocioPublicaAtivaGlobal = payload.iaNegocioPublicaAtiva;
+                    showToast(payload.iaNegocioPublicaAtiva
+                        ? "IA de Negócio ativada na loja pública."
+                        : "IA de Negócio desativada na loja pública.");
+                } catch (error) {
+                    console.error(error);
+                    showToast("Não foi possível salvar essa configuração agora.", "error");
+                }
+                render();
+            }
 
             function renderizarMensagens() {
                 mensagensEl.innerHTML = "";
@@ -4465,6 +4492,13 @@ btn.classList.add("opacity-40");
                 if (painel) painel.classList.toggle("is-locked", !disponivel);
                 if (enviarBtn) enviarBtn.disabled = controller.state.enviando || !disponivel;
                 if (input) input.disabled = controller.state.enviando || !disponivel;
+                if (publicaSwitch) {
+                    publicaSwitch.checked = iaNegocioPublicaAtivaGlobal;
+                    publicaSwitch.setAttribute("aria-checked", String(iaNegocioPublicaAtivaGlobal));
+                }
+                if (publicaEstado) {
+                    publicaEstado.textContent = iaNegocioPublicaAtivaGlobal ? "Ativada" : "Desativada";
+                }
                 renderizarMensagens();
             }
 
@@ -4487,6 +4521,10 @@ btn.classList.add("opacity-40");
             limparBtn?.addEventListener("click", () => {
                 controller.limparConversa();
                 render();
+            });
+
+            publicaSwitch?.addEventListener("change", () => {
+                alternarIaNegocioPublica(publicaSwitch.checked);
             });
 
             render();
@@ -7484,6 +7522,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
 
                 const planoAtual = dadosPlano.plano || "starter";
                 planoAtualGlobal = planoAtual;
+                iaNegocioPublicaAtivaGlobal = dadosPlano.iaNegocioPublicaAtiva === true;
 
                 const LIMITES_PLANO = {
                     starter: 3, basico: 5, essencial: 10, negocio: 20, profissional: 35,
