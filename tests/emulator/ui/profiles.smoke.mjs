@@ -76,6 +76,10 @@ const PERFIS = [
 
 async function testarPerfil(browser, baseUrl, perfil) {
     const page = await browser.newPage();
+    // Debug temporário: liga [debug-podever] em dashboard-app.js pra
+    // investigar por que view-produtos falha mesmo pro owner — remover
+    // depois de confirmada a causa real.
+    await page.addInitScript(() => { window.__VIDE_DEBUG_PODEVER__ = true; });
     const erros = coletarErrosConsole(page);
     const falhas = [];
     try {
