@@ -59,6 +59,12 @@ async function main() {
         console.log("atendimento.flow: OK — seleção de conversa, resposta, mudança de status e uso de template validados.");
 
         // ===== Templates: gestão (CRUD) — modal próprio #atend-gestao-modal =====
+        // #atend-btn-gerenciar-templates vive DENTRO do seletor de templates
+        // (#atend-templates-modal) — inserirTemplateNaResposta() já fechou
+        // esse modal automaticamente (fecharSeletorTemplates()) ao usar o
+        // template acima, então precisa reabrir antes de conseguir clicar.
+        await page.click("#atend-btn-templates");
+        await page.waitForSelector("#atend-templates-modal:not(.hidden)", { timeout: 10000 });
         await page.click("#atend-btn-gerenciar-templates");
         await page.waitForSelector("#atend-gestao-btn-novo", { state: "visible", timeout: 10000 });
 
