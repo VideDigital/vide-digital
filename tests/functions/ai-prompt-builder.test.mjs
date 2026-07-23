@@ -5,15 +5,19 @@ import promptBuilder from "../../functions/src/ai/promptBuilder.js";
 const {
     LIMITES_IA_NEGOCIO,
     contextoParaTexto,
+    contextoPublicoParaTexto,
     detectarTentativaInjecao,
     extrairTextoRespostaGemini,
     montarContextoNegocio,
+    montarContextoNegocioPublico,
     montarMensagensGemini,
     montarSystemPrompt,
+    montarSystemPromptPublico,
     produtosMaisVendidos,
     resumirLeads,
     resumirPedidos,
     resumirProdutos,
+    resumirProdutosPublicos,
     sanitizarPergunta
 } = promptBuilder;
 
@@ -130,5 +134,52 @@ describe("IA de Negócio: montagem do prompt e parsing da resposta", () => {
     it("devolve string vazia quando a resposta do Gemini não tem candidato", () => {
         assert.equal(extrairTextoRespostaGemini({}), "");
         assert.equal(extrairTextoRespostaGemini(null), "");
+    });
+});
+
+describe("IA de Negócio PÚBLICA: contexto restrito a produtos, nunca pedidos/leads", () => {
+    it("resumirProdutosPublicos nunca inclui rascunho e nunca expõe o número exato de estoque", () => {
+        const resumo = resumirProdutosPublicos([
+            { nome: "Caneca", preco: 29.9, estoque: 10, statusProduto: "ativo" },
+            { nome: "Sem estoque", preco: 19.9, estoque: 0, statusProduto: "ativo" },
+            { nome: "Rascunho", preco: 9.9, estoque: 5, statusProduto: "rascunho" }
+        ]);
+        assert.equal(resumo.length, 2);
+        assert.equal(resumo[0].disponivel, true);
+        assert.equal(resumo[1].disponivel, false);
+        assert.ok(!("estoque" in resumo[0]));
+        assert.ok(!("ativo" in resumo[0]));
+    });
+
+    it("monta o contexto público só com nomeLoja e produtos — nunca pedidos, leads ou plano", () => {
+        const contexto = montarContextoNegocioPublico({
+            loja: { nomeLoja: "Loja Teste", plano: "pro" },
+            produtos: [{ nome: "Caneca", preco: 29.9, estoque: 10, statusProduto: "ativo" }]
+        });
+        assert.deepEqual(Object.keys(contexto).sort(), ["nomeLoja", "produtos"]);
+        assert.equal(contexto.nomeLoja, "Loja Teste");
+    });
+
+    it("serializa o contexto público em texto, sem receita/pedidos/leads", () => {
+        const contexto = montarContextoNegocioPublico({
+            loja: { nomeLoja: "Loja Teste" },
+            produtos: [
+                { nome: "Caneca", preco: 29.9, estoque: 10, statusProduto: "ativo" },
+                { nome: "Esgotado", preco: 15, estoque: 0, statusProduto: "ativo" }
+            ]
+        });
+        const texto = contextoPublicoParaTexto(contexto);
+        assert.ok(texto.includes("Caneca"));
+        assert.ok(texto.includes("indisponível"));
+        assert.ok(!/receita|pedido|lead/i.test(texto));
+    });
+
+    it("o system prompt público nunca finge ser humano e nunca fala de dados internos", () => {
+        const prompt = montarSystemPromptPublico("Loja da Ana");
+        assert.ok(prompt.includes("Loja da Ana"));
+        assert.match(prompt, /nunca invente/i);
+        assert.match(prompt, /assistente de IA/i);
+        assert.match(prompt, /não processa pedidos/i);
+        assert.match(prompt, /nunca revele.*pedidos.*leads.*receita/i);
     });
 });

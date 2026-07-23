@@ -36,3 +36,4 @@ exports.markNotificationRead = notifications.markNotificationRead;
 exports.sendAdminChatMessage = leads.sendAdminChatMessage;
 
 exports.askBusinessAI = ai.askBusinessAI;
+exports.askPublicBusinessAI = ai.askPublicBusinessAI;

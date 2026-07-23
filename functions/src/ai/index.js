@@ -24,14 +24,19 @@ const { defineSecret } = require("firebase-functions/params");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { logger } = require("firebase-functions");
 const { resolveCallerContext, requireEdit } = require("../shared/context");
+const { assertPublicRateLimit } = require("../shared/rateLimit");
+const { resolvePublicTenant, publicOptions } = require("../public");
 const {
     LIMITES_IA_NEGOCIO,
     contextoParaTexto,
+    contextoPublicoParaTexto,
     detectarTentativaInjecao,
     extrairTextoRespostaGemini,
     montarContextoNegocio,
+    montarContextoNegocioPublico,
     montarMensagensGemini,
     montarSystemPrompt,
+    montarSystemPromptPublico,
     sanitizarPergunta
 } = require("./promptBuilder");
 
@@ -96,6 +101,18 @@ async function carregarDadosLoja(ownerUid) {
         pedidos: pedidosSnap.docs.map((d) => d.data()),
         leads: leadsSnap.docs.map((d) => d.data())
     };
+}
+
+// Versão pro visitante público: só produtos, nunca pedidos/leads — a
+// query em si já não busca essas coleções (defesa em profundidade, além
+// do contexto que também as filtra).
+async function carregarProdutosPublicos(ownerUid) {
+    const db = getFirestore();
+    const produtosSnap = await db.collection("produtos")
+        .where("criadoPor", "==", ownerUid)
+        .limit(LIMITES_IA_NEGOCIO.maxProdutosContexto)
+        .get();
+    return { produtos: produtosSnap.docs.map((d) => d.data()) };
 }
 
 async function chamarGemini(payload, apiKey) {
@@ -198,4 +215,66 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
     }
 });
 
-module.exports = { askBusinessAI };
+// Igual ao limite de sendPublicChatMessage (functions/src/public/index.js) —
+// uma pergunta por IA custa mais caro que uma mensagem de chat comum, por
+// isso um teto mais apertado por IP.
+const RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI = 8;
+
+// Assistente PÚBLICA — visitante da loja (sem login) conversa sobre o
+// catálogo. Diferenças estruturais em relação a askBusinessAI:
+// - Sem resolveCallerContext/auth: o tenant vem de storeSlug, resolvido
+//   contra vitrines_publicas (mesmo helper das outras Functions públicas).
+// - NUNCA confia no espelho público pra autorizar — plano e o toggle
+//   "ativar na loja pública" são relidos direto de usuarios/{ownerUid}
+//   via Admin SDK, a mesma fonte de verdade que askBusinessAI usa.
+// - Contexto só com produtos ativos (nunca pedidos/leads/receita) — ver
+//   montarContextoNegocioPublico em promptBuilder.js.
+// - Divide o MESMO teto mensal de ia_negocio_uso/{ownerUid}_{periodo} com
+//   o uso do dono no dashboard: um único orçamento de custo por loja,
+//   não importa quem pergunta — evita que tráfego público estoure o
+//   custo sem limite.
+const askPublicBusinessAI = onCall({ ...publicOptions, secrets: [GEMINI_API_KEY] }, async (request) => {
+    await assertPublicRateLimit(request, "askPublicBusinessAI", RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI);
+
+    const tenant = await resolvePublicTenant(request.data || {});
+    const ownerUid = tenant.ownerUid;
+
+    const ownerSnap = await getFirestore().doc(`usuarios/${ownerUid}`).get();
+    const owner = ownerSnap.exists ? ownerSnap.data() : {};
+    const plano = String(owner.plano || "starter").trim().toLowerCase();
+    if (!PLANOS_COM_IA_REAL.has(plano) || owner.iaNegocioPublicaAtiva !== true) {
+        throw new HttpsError("failed-precondition", "A assistente não está disponível para esta loja no momento.");
+    }
+
+    const pergunta = sanitizarPergunta(request.data?.pergunta);
+    if (!pergunta) {
+        throw new HttpsError("invalid-argument", "Digite uma pergunta.");
+    }
+    const historico = Array.isArray(request.data?.historico) ? request.data.historico.slice(-LIMITES_IA_NEGOCIO.maxHistoricoMensagens) : [];
+
+    try {
+        await assertMonthlyQuota(ownerUid);
+
+        const { produtos } = await carregarProdutosPublicos(ownerUid);
+        const contextoNegocio = montarContextoNegocioPublico({ loja: owner, produtos });
+        const contextoTexto = contextoPublicoParaTexto(contextoNegocio);
+        const systemPrompt = montarSystemPromptPublico(contextoNegocio.nomeLoja);
+        const suspeitaInjecao = detectarTentativaInjecao(pergunta);
+
+        const payload = montarMensagensGemini({ systemPrompt, contextoTexto, historico, pergunta });
+        const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value());
+        const texto = extrairTextoRespostaGemini(respostaBruta);
+
+        if (!texto) {
+            throw new HttpsError("internal", "A assistente não devolveu uma resposta válida. Tente novamente.");
+        }
+
+        return { resposta: texto, avisoInjecao: suspeitaInjecao };
+    } catch (error) {
+        if (error instanceof HttpsError) throw error;
+        logger.error("[IA de Negócio pública] Erro inesperado:", error);
+        throw new HttpsError("internal", "Ocorreu um erro inesperado ao falar com a assistente. Tente novamente em instantes.");
+    }
+});
+
+module.exports = { askBusinessAI, askPublicBusinessAI };

@@ -227,5 +227,12 @@ module.exports = {
   createPublicChat,
   createPublicLead,
   incrementPublicMetric,
-  sendPublicChatMessage
+  sendPublicChatMessage,
+  // Reexportados pra askPublicBusinessAI (functions/src/ai/index.js) reusar
+  // a mesma resolução de tenant público e as mesmas opções de Function
+  // pública, em vez de duplicar — ambos vivem dentro de functions/, sem a
+  // fronteira de empacotamento que existe entre functions/ e a raiz do
+  // repo (ver comentário em promptBuilder.js).
+  resolvePublicTenant,
+  publicOptions
 };
