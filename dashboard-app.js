@@ -1239,9 +1239,15 @@ window.renderizarPrimeirosPassos = async function() {
         const prodSnap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", usuarioUID)));
         temProduto = prodSnap.size > 0;
 
-        const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
-        temLP = lpSnap.size > 0;
-        lpSnap.forEach(d => { if (d.data().publicado) lpPublicada = true; });
+        // .catch(): funcionário sem a permissão "landing-pages" recebe
+        // permission-denied aqui — negação correta e esperada da regra,
+        // não uma falha real. Sem o catch, isso escondia o checklist
+        // INTEIRO de primeiros passos pra esse funcionário (até os passos
+        // de módulos que ele TEM acesso), por causa de só este passo
+        // opcional não se aplicar a ele.
+        const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID))).catch(() => null);
+        temLP = Boolean(lpSnap && lpSnap.size > 0);
+        if (lpSnap) lpSnap.forEach(d => { if (d.data().publicado) lpPublicada = true; });
 
         // Os quatro passos abaixo são opcionais/avançados de propósito (só
         // aparecem se ainda faltarem — ver "concluídos >= total" mais
@@ -1338,10 +1344,15 @@ window.atualizarKpisDashboard = async function() {
         if (elProd) elProd.innerText = produtosAtivos;
 
         // Landing Pages: quantas estão publicadas e o total.
-        const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID)));
+        // .catch(): funcionário sem a permissão "landing-pages" recebe
+        // permission-denied aqui — negação correta da regra, não falha
+        // real. Sem o catch, isso escondia os KPIs INTEIROS (produtos
+        // incluso) pra esse funcionário, por causa de só este KPI
+        // específico não se aplicar a ele.
+        const lpSnap = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID))).catch(() => null);
         let lpsTotal = 0, lpsPublicadas = 0;
         const publicadas = [];
-        lpSnap.forEach(d => {
+        if (lpSnap) lpSnap.forEach(d => {
             lpsTotal++;
             const dados = d.data();
             if (dados.publicado) { lpsPublicadas++; publicadas.push(dados); }
@@ -15078,7 +15089,15 @@ const status = d.ativa
                         "campanha-status-texto"
                     ).innerText = status;
                 }
-            } catch(err) { console.error(err); }
+            } catch(err) {
+                // permission-denied aqui — funcionário sem a permissão
+                // "campanhas" (chamada roda incondicionalmente pra quem tem
+                // a feature do plano, sem checar o módulo específico do
+                // funcionário) — negação correta e esperada, não uma falha
+                // real; não loga pra não sujar o console de quem só não
+                // tem esse módulo.
+                if (err?.code !== "permission-denied") console.error(err);
+            }
         }
 
         window.salvarCampanha = async function() {
@@ -17156,25 +17175,34 @@ async function() {
             // pra quem não é admin backend, porque a regra depende de
             // resource.data.
             //
-            // Antes disto, era uma ÚNICA query com or() combinando os três
-            // where() abaixo — o Firestore não consegue provar, pra uma
-            // query composta assim, que CADA ramo da regra (notificacaoVisivelPara
-            // em firestore.rules) está coberto por um filtro correspondente
+            // Antes disto, era uma ÚNICA query com or() combinando três
+            // where() (incluindo where("uid", "==", usuarioUID)) — o
+            // Firestore não consegue provar, pra uma query composta assim,
+            // que CADA ramo da regra (notificacaoVisivelPara em
+            // firestore.rules) está coberto por um filtro correspondente
             // pra TODO documento possível, e falha com "evaluation error"
             // pra quem não é dono/admin (bug real, achado rodando a suíte de
             // UI de ponta a ponta pela primeira vez — nunca pego antes
-            // porque o teste nunca rodou até aqui). Três queries simples
+            // porque o teste nunca rodou até aqui). Duas queries simples
             // separadas, cada uma com filtro único, resolvem: cada uma
             // isolada bate exatamente com um ramo da regra.
+            //
+            // A query por "uid" foi removida de propósito: nenhum código
+            // deste projeto grava esse campo em notificacoes (admin.html só
+            // usa "destinatarios", seja "todos" ou uma lista de uids) — a
+            // regra aceita esse ramo só como formato futuro hipotético (ver
+            // comentário em firestore.rules), e consultar um campo que
+            // nunca existe é exatamente o que fazia essa query específica
+            // continuar disparando o mesmo evaluation error mesmo depois de
+            // separar as outras duas.
             const colecao = collection(db, "notificacoes");
-            const [snapTodos, snapDestinatarios, snapUid, eventosNegocio] = await Promise.all([
+            const [snapTodos, snapDestinatarios, eventosNegocio] = await Promise.all([
                 getDocs(query(colecao, where("destinatarios", "==", "todos"))),
                 getDocs(query(colecao, where("destinatarios", "array-contains", usuarioUID))),
-                getDocs(query(colecao, where("uid", "==", usuarioUID))),
                 carregarEventosNegocioNotificacoes().catch(() => [])
             ]);
             const porId = new Map();
-            [snapTodos, snapDestinatarios, snapUid].forEach(snap => {
+            [snapTodos, snapDestinatarios].forEach(snap => {
                 snap.forEach(d => {
                     if (porId.has(d.id)) return;
                     const n = { id: d.id, origem: "admin", ...d.data() };
