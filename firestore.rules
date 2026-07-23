@@ -260,6 +260,13 @@ service cloud.firestore {
       return isBackendAdmin()
         || (dados.keys().hasAny(["destinatarios"]) && dados.destinatarios == "todos")
         || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios)
+        // funcionário: destinatarios guarda o uid do DONO da loja (admin.html
+        // manda notificação pro tenant, não pra conta individual do
+        // funcionário) — o app consulta com effectiveUid (donoUID) tanto pra
+        // dono quanto pra funcionário, por isso o ramo acima
+        // (request.auth.uid in destinatarios) só cobre o dono; funcionário
+        // precisa comparar o donoUID do próprio cadastro, não o próprio uid.
+        || (dados.keys().hasAny(["destinatarios"]) && employeeExists() && employeeDoc().data.donoUID in dados.destinatarios)
         || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
     }
 
