@@ -636,15 +636,18 @@ export function criarAtendimentoController(deps) {
         const painel = el("atend-detalhe");
         if (!painel) return;
         painel.classList.add("is-vazio");
-        const corpo = el("atend-detalhe-corpo");
-        if (corpo) {
-            corpo.innerHTML = `
-                <div class="atend-vazio atend-vazio-detalhe">
-                    <strong>Selecione uma conversa</strong>
-                    <p>Escolha uma conversa na lista ao lado para ver o histórico e responder.</p>
-                </div>
-            `;
-        }
+        // Nunca sobrescreve #atend-detalhe-corpo.innerHTML aqui — isso
+        // destruiria #atend-mensagens (filho direto), que nenhum outro
+        // código recria depois. Só alterna visibilidade entre os dois
+        // elementos fixos do HTML (achado real: sem isso, a primeira
+        // renderização — sempre em estado vazio, já que
+        // conversaSelecionadaId começa "" — apaga #atend-mensagens de
+        // vez, e nenhuma conversa selecionada depois consegue mostrar
+        // mensagem alguma pelo resto da sessão).
+        const mensagens = el("atend-mensagens");
+        if (mensagens) mensagens.hidden = true;
+        const vazio = el("atend-detalhe-vazio");
+        if (vazio) vazio.hidden = false;
     }
 
     function renderOpcoesResponsavel() {
@@ -693,6 +696,10 @@ export function criarAtendimentoController(deps) {
     function renderCabecalhoConversa(conversa) {
         const painel = el("atend-detalhe");
         if (painel) painel.classList.remove("is-vazio");
+        const vazio = el("atend-detalhe-vazio");
+        if (vazio) vazio.hidden = true;
+        const mensagens = el("atend-mensagens");
+        if (mensagens) mensagens.hidden = false;
         if (el("atend-detalhe-nome")) el("atend-detalhe-nome").textContent = conversa.clienteNome || "Cliente";
         if (el("atend-detalhe-avatar")) el("atend-detalhe-avatar").textContent = iniciaisNome(conversa.clienteNome);
         if (el("atend-detalhe-status")) el("atend-detalhe-status").textContent = STATUS_CONVERSA[conversa.status] || "Aberta";
