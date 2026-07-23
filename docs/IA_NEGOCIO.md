@@ -204,22 +204,38 @@ Na mesma correção, dois ajustes de UX pedidos pelo dono:
   em `FEATURES_PLANO` para `pro`/`proplus`/`agencia`/`enterprise`/`premium`
   — mesma convenção de feature-flag já usada por todo o resto do Guia.
 
+## Créditos/faturamento da API do Gemini (bloqueio real, fora do código)
+
+Na primeira pergunta real (depois das duas correções acima), a Function
+processou tudo certo — plano, quota, contexto, prompt — e chegou até o
+Gemini, que respondeu `429 RESOURCE_EXHAUSTED`: *"Your prepayment
+credits are depleted. Please go to AI Studio at
+https://ai.studio/projects to manage your project and billing."* Ou
+seja: `gemini-2.5-flash` é um nome de modelo válido e a chave funciona —
+o bloqueio é só o projeto do Google AI Studio associado à
+`GEMINI_API_KEY` estar sem crédito/faturamento configurado. Não tem
+correção de código pra isso: é preciso abrir
+https://ai.studio/projects, achar o projeto da chave usada, e habilitar
+faturamento/créditos (ver também ai.google.dev/gemini-api/docs/billing).
+Diagnosticado com debug temporário (status HTTP + corpo da resposta do
+Gemini exposto na mensagem de erro), já removido — `functions/src/ai/
+index.js` agora trata `429` com uma mensagem própria ("provedor sem
+créditos disponíveis") em vez do genérico "tente novamente".
+
 ## Limitações reais desta fase (sem maquiar)
 
-- **`askBusinessAI` está publicada em produção, mas uma conversa real
-  ainda não foi testada de ponta a ponta** — o deploy em si só confirma
-  que o código sobe e a Function fica no ar; ele não valida se o nome do
-  modelo Gemini configurado (`gemini-2.5-flash`) é aceito pela API, nem
-  a qualidade da resposta. Isso só se confirma abrindo a Central de IA
-  com uma conta no plano Pro e perguntando algo de verdade. Se o modelo
-  estiver desatualizado, o erro aparece na hora da pergunta (mensagem
-  amigável de "IA não respondeu agora"), não no deploy — nesse caso, o
-  próximo passo é atualizar `GEMINI_MODEL` em `functions/src/ai/index.js`
-  pro nome de modelo atual e publicar de novo pelo mesmo workflow.
-  O que FOI testado de verdade antes do deploy: as 12 funções puras de
+- **`askBusinessAI` está publicada em produção e o pipeline completo já
+  foi validado ponta a ponta** (plano → quota → contexto → prompt →
+  chamada ao Gemini) — o único bloqueio restante pra uma resposta real
+  da IA é o crédito/faturamento do Google AI Studio (ver seção acima),
+  não código. Assim que isso for resolvido do lado do Google, a próxima
+  pergunta real já deve funcionar sem precisar de outro deploy.
+  O que FOI testado de verdade: as 12 funções puras de
   `promptBuilder.js` (`node --test`, contexto, sanitização, detecção de
-  injeção, formato do payload/resposta) e as Rules da nova coleção
-  `ia_negocio_uso` contra o Emulator real.
+  injeção, formato do payload/resposta), as Rules da nova coleção
+  `ia_negocio_uso` contra o Emulator real, e a chamada HTTP real ao
+  Gemini em produção (chegou até a API, só faltou crédito pra gerar a
+  resposta).
 - **Toggle "ativar na loja pública"** (`canais.lojaPublica`, já existe no
   schema da Central de IA desde um ciclo anterior, com badge "Em breve")
   **não foi ligado a nada nesta fase** — o pedido original incluía os

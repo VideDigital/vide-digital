@@ -112,14 +112,17 @@ async function chamarGemini(payload, apiKey) {
     if (!resposta.ok) {
         const corpoErro = await resposta.text().catch(() => "");
         logger.error("[IA de Negócio] Erro do Gemini:", { status: resposta.status, corpoErro });
-        // DEBUG TEMPORÁRIO: expõe status/corpo do erro do Gemini na mensagem
-        // pra diagnosticar a primeira chamada real (nome de modelo desatualizado,
-        // API key inválida, etc.). Remover assim que o diagnóstico terminar —
-        // ver docs/IA_NEGOCIO.md.
-        throw new HttpsError(
-            "unavailable",
-            `A IA não conseguiu responder agora. [debug: status=${resposta.status}, corpo=${corpoErro.slice(0, 300)}]`
-        );
+        // 429 do próprio Gemini (créditos/faturamento esgotados no projeto da
+        // API key, ver ai.studio/projects) é um estado operacional real, não
+        // uma falha transitória — merece mensagem própria em vez do genérico
+        // "tente novamente".
+        if (resposta.status === 429) {
+            throw new HttpsError(
+                "resource-exhausted",
+                "O provedor de IA está sem créditos disponíveis no momento. Avise o administrador da plataforma."
+            );
+        }
+        throw new HttpsError("unavailable", "A IA não conseguiu responder agora. Tente novamente em instantes.");
     }
 
     return resposta.json();
