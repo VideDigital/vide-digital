@@ -220,6 +220,17 @@ describe("usuarios", () => {
     await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { status: "inativo" }));
     await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { featuresManuais: ["*"] }));
   });
+
+  it("toggle iaNegocioPublicaAtiva: dono liga/desliga; funcionário só com central-ia editar; nunca junto de outro campo", async () => {
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: true }));
+    await assertSucceeds(updateDoc(doc(authed("employeeIaEdit"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: false }));
+    await assertFails(updateDoc(doc(authed("employeeIaRead"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(authed("employeeRead"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(authed("ownerB"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(anon(), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: true, nomeLoja: "Trocou junto" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "usuarios", "ownerA"), { iaNegocioPublicaAtiva: "sim" }));
+  });
 });
 
 describe("tenant isolation", () => {
@@ -370,6 +381,26 @@ describe("public writes", () => {
     await assertSucceeds(setDoc(doc(anon(), "metricas_produtos", "prodA"), { visualizacoes: 1 }));
     await assertFails(setDoc(doc(anon(), "metricas_produtos", "prodA"), { visualizacoes: 1, criadoPor: "attacker" }));
     await assertFails(setDoc(doc(anon(), "chats", "chatX"), { donoUID: "ownerA" }));
+  });
+});
+
+describe("vitrines_publicas: espelho do toggle iaNegocioPublicaAtiva", () => {
+  it("dono e funcionário com central-ia editar atualizam só esse campo; resto continua negado ao público", async () => {
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true }));
+    await assertSucceeds(updateDoc(doc(authed("employeeIaEdit"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: false }));
+    await assertFails(updateDoc(doc(authed("employeeIaRead"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(authed("ownerB"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(anon(), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true, nomeLoja: "Trocou junto" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: "sim" }));
+  });
+
+  it("o valor do toggle fica visível pra leitura pública, como o resto da vitrine", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true }, { merge: true });
+    });
+    const snap = await getDoc(doc(anon(), "vitrines_publicas", "loja-a"));
+    assert.equal(snap.data().iaNegocioPublicaAtiva, true);
   });
 });
 

@@ -234,6 +234,17 @@ service cloud.firestore {
         && adminOnlyFieldsUnchanged();
     }
 
+    // Toggle "ativar IA de Negócio na loja pública" (dashboard, painel de
+    // IA de Negócio) — campo isolado de ownerProfileFields() de propósito:
+    // é uma configuração de IA, não de perfil/loja, então é gated pela
+    // permissão "central-ia" (a mesma que já controla o resto da IA de
+    // Negócio), não "configuracoes".
+    function iaNegocioPublicaToggleValido(ownerUid) {
+      return canEditTenant(ownerUid, "central-ia")
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["iaNegocioPublicaAtiva"])
+        && request.resource.data.iaNegocioPublicaAtiva is bool;
+    }
+
     function criadoPorUnchanged() {
       return !request.resource.data.diff(resource.data).affectedKeys().hasAny(["criadoPor"]);
     }
@@ -919,7 +930,7 @@ service cloud.firestore {
       // Edição continua exigindo a permissão de editar "configuracoes".
       allow read: if isOwner(ownerUid) || isActiveEmployeeFor(ownerUid) || isBackendAdmin();
       allow create: if validOwnerCreate(ownerUid);
-      allow update: if validOwnerProfileUpdate(ownerUid) || isBackendAdmin();
+      allow update: if validOwnerProfileUpdate(ownerUid) || isBackendAdmin() || iaNegocioPublicaToggleValido(ownerUid);
       allow delete: if false;
     }
 
@@ -1170,9 +1181,18 @@ service cloud.firestore {
       allow create: if request.resource.data.keys().hasOnly(publicStoreFields())
         && request.resource.data.keys().hasAll(["donoUID"])
         && canEditTenant(request.resource.data.donoUID, "configuracoes");
-      allow update: if request.resource.data.keys().hasOnly(publicStoreFields())
-        && donoUIDUnchanged()
-        && canEditTenant(resource.data.donoUID, "configuracoes");
+      // Segundo caminho de update, separado do perfil geral (que exige
+      // "configuracoes"): só o espelho público do toggle "ativar IA de
+      // Negócio na loja pública" (dashboard.html), gated por "central-ia" —
+      // a Cloud Function askPublicBusinessAI nunca confia nesse espelho pra
+      // autorizar de verdade, ele só existe pra loja.html decidir se mostra
+      // o widget sem precisar de outra leitura.
+      allow update: if (request.resource.data.keys().hasOnly(publicStoreFields())
+          && donoUIDUnchanged()
+          && canEditTenant(resource.data.donoUID, "configuracoes"))
+        || (request.resource.data.diff(resource.data).affectedKeys().hasOnly(["iaNegocioPublicaAtiva"])
+          && request.resource.data.iaNegocioPublicaAtiva is bool
+          && canEditTenant(resource.data.donoUID, "central-ia"));
       allow delete: if canEditTenant(resource.data.donoUID, "configuracoes");
     }
 
