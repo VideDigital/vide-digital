@@ -233,7 +233,15 @@ const RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI = 8;
 //   o uso do dono no dashboard: um único orçamento de custo por loja,
 //   não importa quem pergunta — evita que tráfego público estoure o
 //   custo sem limite.
-const askPublicBusinessAI = onCall({ ...publicOptions, secrets: [GEMINI_API_KEY] }, async (request) => {
+//
+// enforceAppCheck: false — publicOptions liga isso em produção, mas
+// nenhuma página do projeto (loja.html incluída) chama
+// initializeAppCheck(); herdar esse valor faz TODA chamada real cair
+// com "unauthenticated" antes mesmo de rodar. Erro real, encontrado
+// testando ao vivo. A mitigação de abuso real aqui é o rate limit por
+// IP (assertPublicRateLimit acima), igual às outras Functions públicas
+// deste arquivo — nenhuma delas exige App Check por engano assim.
+const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, secrets: [GEMINI_API_KEY] }, async (request) => {
     await assertPublicRateLimit(request, "askPublicBusinessAI", RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI);
 
     const tenant = await resolvePublicTenant(request.data || {});
