@@ -2418,9 +2418,16 @@ if (targetId === "view-metricas") {
     if (targetId === "view-landing-pages") {
         carregarLandingPages();
     }
+
+    return true;
 }
 
 window.ativarAba = ativarAba;
+// Só pra automação de teste (Playwright) saber quando é seguro chamar
+// ativarAba() — sem isso, um clique/chamada logo após o login pode cair
+// no "Carregando suas permissões" mesmo pra quem tem acesso de verdade,
+// só por rodar antes do snapshot do contexto terminar de inicializar.
+window.__videHubContextInitialized = () => VideHubContext.getSnapshot().initialized === true;
 
 window.addEventListener("resize", () => {
     atualizarVisibilidadeBarraEditorLayout();
