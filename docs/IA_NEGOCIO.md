@@ -176,6 +176,19 @@ do `PLANOS_COM_IA_REAL.has(...)`, igual ao que o frontend já fazia —
 depois de corrigir, redeploy de `askBusinessAI` pelo mesmo workflow
 (`DEPLOY_FUNCTIONS`).
 
+Depois de publicar essa correção, uma segunda recusa apareceu — dessa vez
+com `owner.plano=undefined` (log de debug temporário adicionado só pra
+esse diagnóstico e já removido). Causa real: a conta usada pra testar é
+a conta **admin master da plataforma** (claim `videAdmin`), não uma
+conta comum de dono. `resolveCallerContext` nunca popula `context.owner`
+pra esse papel — só `role: "admin"`, sem `owner`/`plano` — porque em
+todo o resto do backend (`canEdit`/`canView` em
+`functions/src/shared/context.js`) e do frontend
+(`VideHubContext.hasFeature`) admin sempre tem acesso total, sem checar
+plano; só a `askBusinessAI` não seguia essa regra. Corrigido pulando o
+gate de plano quando `context.isAdmin === true`, igual todo o resto do
+sistema já faz.
+
 Na mesma correção, dois ajustes de UX pedidos pelo dono:
 
 - O painel "Converse com a IA sobre o seu negócio" agora fica
