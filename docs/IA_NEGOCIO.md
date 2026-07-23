@@ -381,26 +381,47 @@ precisar de mais rodadas de debug-then-revert.
   sobre o próprio catálogo. O que FOI testado: as funções puras de
   `promptBuilder.js` (`node --test`), as Rules de `ia_negocio_uso`
   contra o Emulator real, e a conversa real em produção.
-- **`askPublicBusinessAI` (visitante) está com o código completo,
-  testado e revisado, mas AINDA NÃO DEPLOYADA em produção** no momento
-  desta escrita — depende da mesma rodada de deploy que publicou
-  `askBusinessAI`, agora publicando as duas juntas
-  (`--only functions:askBusinessAI,functions:askPublicBusinessAI`, ver
-  `.github/workflows/firebase-deploy-functions.yml`). O que FOI testado
-  antes do deploy: as funções puras públicas de `promptBuilder.js`
-  (contexto restrito, system prompt), o controller
-  `ia-negocio-publica.js` (`node --test`), as Rules do toggle
-  `iaNegocioPublicaAtiva` (dono/funcionário/tenant isolation) contra o
-  Emulator real, e sintaxe do widget inline em `loja.html`. O que NÃO
-  foi testado ainda: uma conversa real de um visitante em produção — só
-  confirma abrindo `loja.html` de uma loja Pro+ com o toggle ativado e
-  perguntando algo de verdade, depois do deploy.
-- **Firestore Rules do toggle público também dependem de deploy
-  separado** — `firestore.rules` só vale depois do workflow "Deploy
-  Firebase Spark" rodar de novo (workflow diferente do de Functions,
-  ver `docs/FIREBASE_SPARK_ARCHITECTURE.md`); sem isso, o switch no
-  dashboard vai falhar ao salvar mesmo com o código do toggle já no ar
-  via GitHub Pages.
+- **`askPublicBusinessAI` (visitante) está publicada em produção e
+  confirmada com resposta real** — deploy feito junto de `askBusinessAI`
+  (`--only functions:askBusinessAI,functions:askPublicBusinessAI`) e
+  Rules do toggle publicadas via "Deploy Firebase Spark". Depois do
+  primeiro deploy, o dono testou ao vivo e reportou quatro problemas
+  reais, todos encontrados e corrigidos nesta fase:
+  1. **"Sessão expirada" em toda pergunta real** — `askPublicBusinessAI`
+     herdava `enforceAppCheck: true` de `publicOptions`
+     (`functions/src/public/index.js`), mas nenhuma página do projeto
+     chama `initializeAppCheck()`. Corrigido com
+     `enforceAppCheck: false` só nesta Function (a mitigação de abuso
+     real continua sendo o rate limit por IP, `assertPublicRateLimit`).
+  2. **Botões de fechar (X) sem área de toque mínima** — vários botões
+     (carrinho, popup de captura, campanha, chat, este widget) usavam só
+     o ícone (16-20px) como alvo clicável, bem abaixo do recomendado
+     (~40-44px) pra toque confiável no celular. Corrigido com `h-10
+     w-10`/`h-11 w-11` explícitos, mesmo padrão já usado corretamente em
+     `fecharModalAvaliacao`.
+  3. **X do carrinho preso atrás do header** — `#carrinho-painel` e
+     `#carrinho-overlay` dividiam z-index com o header sticky (mesma
+     faixa no topo da tela); só fechava clicando fora, no overlay.
+     Corrigido subindo os dois pra `z-[55]`, acima do header.
+  4. **Ícones dentro de botão só clicáveis perto da borda** — ícones
+     lucide são SVG `fill:none` (só stroke); pela regra padrão de
+     hit-testing de SVG, só a linha desenhada registra clique, não a
+     área "vazia" da caixa do ícone — sintoma em todo botão com ícone da
+     loja, não só neste widget. Corrigido com `pointer-events: none` em
+     todo `button [data-lucide]`/`button svg` (ícone sempre delega pro
+     botão pai).
+  5. **Modo claro travado num híbrido escuro** — `corClientFundo`/
+     `corClientTexto`/`corClientCard` (cores que o dono configura no
+     dashboard, com padrão escuro `#030712`/`#0c0c14` desde antes do
+     toggle claro/escuro existir) eram aplicadas como inline style em
+     `#client-body`, o que sempre vence `var(--bg)`/`var(--ink)` e nunca
+     respondia ao toggle — corpo/hero/cards ficavam presos no escuro
+     mesmo com o header já mudado pro claro. Corrigido para essas cores
+     só valerem no tema escuro; no claro o sistema de variáveis sempre
+     governa sozinho, e o toggle reaplica isso na hora
+     (`window.__aplicarCoresClientePorTema`).
+  Depois dessas correções, o dono confirmou: IA respondendo de verdade,
+  botões responsivos, tema claro consistente em toda a loja.
 - **Preço exato do provedor** não foi confirmado nesta sessão (a ordem de
   grandeza é estável, o valor exato muda) — confira em
   ai.google.dev/pricing antes de fechar o teto mensal definitivo. Vale
