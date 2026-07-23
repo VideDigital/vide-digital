@@ -222,6 +222,31 @@ Gemini exposto na mensagem de erro), já removido — `functions/src/ai/
 index.js` agora trata `429` com uma mensagem própria ("provedor sem
 créditos disponíveis") em vez do genérico "tente novamente".
 
+Como o dono não podia pagar o faturamento agora, o caminho escolhido foi
+trocar a chave: criar uma **API key nova em um projeto novo do Google AI
+Studio sem faturamento vinculado** (nível gratuito de verdade, com
+limites de uso mais baixos) e atualizar direto a versão do secret
+`GEMINI_API_KEY` no Secret Manager — sem precisar de outro deploy, já
+que a Cloud Function sempre lê a versão mais recente habilitada do
+secret.
+
+### Instrumentação de erro permanente (não é mais debug temporário)
+
+Depois de alternar debug por debug a cada camada nova de erro (plano →
+admin → créditos → …), a abordagem final foi tornar isso permanente em
+vez de temporário: `mensagemErroAmigavel()` (`ia-negocio.js`) agora
+sempre mostra a mensagem real vinda da Function quando ela existe — a
+Function já escreve todas as mensagens em português, então não tem
+motivo pra esconder atrás de um texto fixo genérico. E o erro de
+`chamarGemini()` pra status HTTP fora do mapeado (não 429) agora inclui
+o número do status na própria mensagem (`"A IA não conseguiu responder
+agora (status NNN do provedor)."`), sem expor corpo de resposta nem
+stack trace. Qualquer exceção realmente não tratada (bug de código) cai
+no catch geral do handler, é logada inteira via `logger.error` (visível
+no Cloud Logging) e vira uma mensagem genérica e amigável pro dono —
+nunca stack trace na tela. Isso deve cobrir diagnósticos futuros sem
+precisar de mais rodadas de debug-then-revert.
+
 ## Limitações reais desta fase (sem maquiar)
 
 - **`askBusinessAI` está publicada em produção e o pipeline completo já

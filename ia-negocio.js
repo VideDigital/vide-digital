@@ -42,21 +42,18 @@ export function construirHistoricoParaEnvio(mensagens) {
 
 function mensagemErroAmigavel(error) {
     const codigo = String(error?.code || "").replace(/^functions\//, "");
-    if (codigo === "resource-exhausted") {
-        return error?.message || "Limite mensal de mensagens da IA de Negócio atingido.";
-    }
-    if (codigo === "permission-denied") {
-        return error?.message || "A IA de Negócio é exclusiva do plano Pro (ou superior).";
-    }
+    // A Function sempre lança HttpsError com mensagem já pronta em
+    // português (ver functions/src/ai/index.js) — preferir sempre essa
+    // mensagem real em vez de um texto fixo aqui, que só existe como
+    // fallback pros casos sem mensagem própria do servidor (ex.: erro de
+    // rede antes mesmo da requisição chegar na Function).
     if (codigo === "unauthenticated") {
         return "Sessão expirada. Recarregue a página e faça login novamente.";
     }
     if (codigo === "unavailable") {
-        return "A IA não respondeu a tempo. Tente novamente em instantes.";
+        return error?.message || "A IA não respondeu a tempo. Tente novamente em instantes.";
     }
-    // DEBUG TEMPORÁRIO: expõe código/mensagem crus pra diagnosticar um erro
-    // fora dos códigos já mapeados acima. Reverter depois — ver docs/IA_NEGOCIO.md.
-    return `Não foi possível falar com a IA agora. [debug: code=${JSON.stringify(error?.code)}, message=${JSON.stringify(error?.message)}]`;
+    return error?.message || "Não foi possível falar com a IA agora. Tente novamente.";
 }
 
 export function criarIaNegocioController({

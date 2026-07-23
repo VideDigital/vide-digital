@@ -122,7 +122,7 @@ async function chamarGemini(payload, apiKey) {
                 "O provedor de IA está sem créditos disponíveis no momento. Avise o administrador da plataforma."
             );
         }
-        throw new HttpsError("unavailable", "A IA não conseguiu responder agora. Tente novamente em instantes.");
+        throw new HttpsError("unavailable", `A IA não conseguiu responder agora (status ${resposta.status} do provedor). Tente novamente em instantes.`);
     }
 
     return resposta.json();
@@ -152,11 +152,11 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
 
     const historico = Array.isArray(request.data?.historico) ? request.data.historico.slice(-LIMITES_IA_NEGOCIO.maxHistoricoMensagens) : [];
 
-    // DEBUG TEMPORÁRIO: onCall do Firebase esconde a mensagem real de
-    // qualquer exceção não tratada (vira "internal"/"INTERNAL" genérico pro
-    // cliente, por segurança). Captura aqui e relança como HttpsError
-    // intencional (que preserva a mensagem) só pra diagnosticar a primeira
-    // chamada real de ponta a ponta. Reverter depois — ver docs/IA_NEGOCIO.md.
+    // onCall do Firebase esconde a mensagem real de qualquer exceção não
+    // tratada (vira "internal"/"INTERNAL" genérico pro cliente, por
+    // segurança) — o stack completo já vai pro Cloud Logging via
+    // logger.error, então o dono só recebe um aviso amigável, nunca detalhe
+    // interno.
     try {
         const { periodo, restante } = await assertMonthlyQuota(context.ownerUid);
 
@@ -183,7 +183,7 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
     } catch (error) {
         if (error instanceof HttpsError) throw error;
         logger.error("[IA de Negócio] Erro inesperado:", error);
-        throw new HttpsError("internal", `Erro inesperado. [debug: ${error?.stack || error?.message || String(error)}]`.slice(0, 800));
+        throw new HttpsError("internal", "Ocorreu um erro inesperado ao falar com a IA. Tente novamente em instantes.");
     }
 });
 
