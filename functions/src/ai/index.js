@@ -122,6 +122,29 @@ async function chamarGemini(payload, apiKey) {
                 "O provedor de IA está sem créditos disponíveis no momento. Avise o administrador da plataforma."
             );
         }
+        if (resposta.status === 404) {
+            // DEBUG TEMPORÁRIO: 404 costuma ser nome de modelo inválido pra
+            // essa chave/projeto específico — pergunta pro próprio Google
+            // quais modelos essa chave realmente enxerga, em vez de confiar
+            // em documentação que pode estar desatualizada. Reverter depois
+            // — ver docs/IA_NEGOCIO.md.
+            let modelosDisponiveis = "";
+            try {
+                const listaResp = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${encodeURIComponent(apiKey)}`);
+                const listaJson = await listaResp.json();
+                modelosDisponiveis = (listaJson.models || [])
+                    .filter((m) => Array.isArray(m.supportedGenerationMethods) && m.supportedGenerationMethods.includes("generateContent"))
+                    .map((m) => m.name)
+                    .slice(0, 15)
+                    .join(", ");
+            } catch (listaError) {
+                modelosDisponiveis = `(falha ao listar: ${listaError?.message})`;
+            }
+            throw new HttpsError(
+                "unavailable",
+                `A IA não conseguiu responder agora (modelo não encontrado). [debug: modelos disponíveis pra essa chave = ${modelosDisponiveis}]`
+            );
+        }
         throw new HttpsError("unavailable", `A IA não conseguiu responder agora (status ${resposta.status} do provedor). Tente novamente em instantes.`);
     }
 
