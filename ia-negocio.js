@@ -54,7 +54,9 @@ function mensagemErroAmigavel(error) {
     if (codigo === "unavailable") {
         return "A IA não respondeu a tempo. Tente novamente em instantes.";
     }
-    return "Não foi possível falar com a IA agora. Tente novamente.";
+    // DEBUG TEMPORÁRIO: expõe código/mensagem crus pra diagnosticar um erro
+    // fora dos códigos já mapeados acima. Reverter depois — ver docs/IA_NEGOCIO.md.
+    return `Não foi possível falar com a IA agora. [debug: code=${JSON.stringify(error?.code)}, message=${JSON.stringify(error?.message)}]`;
 }
 
 export function criarIaNegocioController({
