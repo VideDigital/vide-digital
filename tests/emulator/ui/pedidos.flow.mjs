@@ -82,8 +82,11 @@ async function main() {
         const valorDepois = await page.inputValue("#ped-valor");
         assert.equal(valorDepois, "250.00", "valor editado manualmente foi sobrescrito pelo auto-preenchimento");
 
-        // 12. Selecionar prazo de entrega.
-        await page.fill("#ped-prazo-entrega", "5 dias úteis (QA)");
+        // 12. Selecionar prazo de entrega. input[type="date"] só aceita
+        // fill() com valor no formato ISO (YYYY-MM-DD) — texto livre como
+        // "5 dias úteis" dá "Malformed value" no Playwright.
+        const prazoEntregaISO = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        await page.fill("#ped-prazo-entrega", prazoEntregaISO);
 
         // 13. Criar pedido.
         await page.click("[onclick='salvarPedido()']");
