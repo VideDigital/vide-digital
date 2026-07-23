@@ -281,14 +281,6 @@ export async function resolveVideHubIdentity({
         { toleratePermissionDenied: true }
     );
 
-    if (typeof window !== "undefined" && window.__VIDE_DEBUG_IDENTITY__) {
-        console.error("[debug-identity]", JSON.stringify({
-            authUid,
-            ownerSnapIsNull: ownerSnap === null,
-            ownerSnapExists: ownerSnap ? ownerSnap.exists() : null
-        }));
-    }
-
     if (ownerSnap?.exists()) {
         const owner = { id: authUid, ...(ownerSnap.data() || {}) };
         if (owner.status !== "aprovado") {

@@ -4,21 +4,6 @@ import { connectFirestoreEmulator, getFirestore } from "https://www.gstatic.com/
 import { connectAuthEmulator, getAuth } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { connectStorageEmulator, getStorage } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
 
-// Dados extraídos diretamente do seu console oficial (vide-digital-saas)
-const firebaseConfig = {
-    apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
-    authDomain: "vide-digital-saas.firebaseapp.com",
-    projectId: "vide-digital-saas",
-    storageBucket: "vide-digital-saas.firebasestorage.app",
-    messagingSenderId: "891590456336",
-    appId: "1:891590456336:web:bd51ac50399465b886c695"
-};
-
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const storage = getStorage(app);
-
 function shouldUseVideEmulators() {
     const params = new URLSearchParams(window.location.search);
     const explicit =
@@ -39,7 +24,32 @@ function shouldUseVideEmulators() {
     return useEmulators;
 }
 
-if (shouldUseVideEmulators() && !window.__videCoreEmulatorsConnected) {
+const usingEmulators = shouldUseVideEmulators();
+
+// Dados extraídos diretamente do seu console oficial (vide-digital-saas).
+// Sob Emulator, o projectId TEM que ser o mesmo usado por
+// scripts/seed-emulator.mjs e pelos scripts test:ui:*/test:frontend:emulator
+// (`demo-vide-hub`) — connectFirestoreEmulator só redireciona o HOST, nunca
+// o projectId. Usar "vide-digital-saas" aqui faria o app ler/escrever num
+// namespace vazio dentro do mesmo Emulator, sem nenhum erro (documento
+// simplesmente "não existe"), enquanto o seed escreveu tudo no namespace
+// certo — bug real encontrado rodando a suíte de UI de ponta a ponta pela
+// primeira vez (antes bloqueada por rede no ambiente de desenvolvimento).
+const firebaseConfig = {
+    apiKey: "AIzaSyBON-cfEpnuQf496m9pnZJW24XoR_2nlwc",
+    authDomain: "vide-digital-saas.firebaseapp.com",
+    projectId: usingEmulators ? "demo-vide-hub" : "vide-digital-saas",
+    storageBucket: "vide-digital-saas.firebasestorage.app",
+    messagingSenderId: "891590456336",
+    appId: "1:891590456336:web:bd51ac50399465b886c695"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const storage = getStorage(app);
+
+if (usingEmulators && !window.__videCoreEmulatorsConnected) {
     connectAuthEmulator(auth, "http://127.0.0.1:9099", { disableWarnings: true });
     connectFirestoreEmulator(db, "127.0.0.1", 8080);
     connectStorageEmulator(storage, "127.0.0.1", 9199);

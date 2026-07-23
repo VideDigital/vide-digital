@@ -146,7 +146,10 @@ test("aviso de carregamento oferece nova tentativa pelo controlador", () => {
 });
 
 test("deploy Spark usa o projeto do frontend, publica Rules antes de Storage/índices e nunca publica Functions", () => {
-  assert.match(firebaseInit, /projectId:\s*"vide-digital-saas"/);
+  // projectId agora é condicional (demo-vide-hub sob Emulator, ver
+  // firebase-init.js) — o regex só confirma que o projeto de produção
+  // ainda está referenciado ali perto, sem exigir a string literal exata.
+  assert.match(firebaseInit, /projectId:[\s\S]{0,120}"vide-digital-saas"/);
   assert.match(firebaseDeployWorkflow, /\$\{PROJECT_ID\}" != "vide-digital-saas"/);
   const rulesDeploy = firebaseDeployWorkflow.indexOf("--only firestore:rules");
   const storageDeploy = firebaseDeployWorkflow.indexOf("--only storage");
