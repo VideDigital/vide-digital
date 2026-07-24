@@ -2401,7 +2401,12 @@
         }
 
         function silenciarMetrica(err) {
-            console.warn("Métrica pública não registrada:", err?.message || err);
+            console.warn(
+                "Métrica pública não registrada:",
+                err?.code || "",
+                err?.message || err
+            );
+            return false;
         }
 
 
@@ -2804,18 +2809,31 @@
                 if (sessionStorage.getItem(chaveSessao)) {
                     return Promise.resolve(false);
                 }
-                sessionStorage.setItem(chaveSessao, "1");
             } catch (e) {
-                // Navegadores com armazenamento bloqueado continuam registrando
-                // a métrica; apenas perdem a deduplicação da sessão.
+                // Sem sessionStorage, registra normalmente sem deduplicação.
             }
 
-            return registrarMetricaPublica(Object.assign({}, payload || {}, {
-                event: evento
-            })).then(function() {
+            return registrarMetricaPublica(
+                Object.assign({}, payload || {}, {
+                    event: evento
+                })
+            ).then(function(resultado) {
+                const sucesso = Array.isArray(resultado)
+                    ? resultado.every(function(item) {
+                        return item !== false;
+                    })
+                    : resultado !== false;
+
+                if (!sucesso) return false;
+
+                try {
+                    sessionStorage.setItem(chaveSessao, "1");
+                } catch (e) {}
+
                 return true;
             });
         }
+
 
         // Captura de lead direto no banco (sem Cloud Function). O lead nasce
         // com status "novo" e criadoPor = dono da loja, exatamente o que as
@@ -4239,6 +4257,38 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             }
 
             const resumoMetricaPedido = calcularResumoCarrinho();
+
+            const produtosInteresse = itensCarrinho
+                .map(function(item) {
+                    const quantidade = Math.max(
+                        1,
+                        Number(item.quantidade || 1)
+                    );
+
+                    return quantidade + "x " +
+                        String(item.nome || "Produto");
+                })
+                .join(", ")
+                .slice(0, 160);
+
+            capturarLeadPublico({
+                nome: dados.nome,
+                telefone: dados.telefone,
+                whatsapp: dados.telefone,
+                origem: atribuicaoSessao.origemNome,
+                utmSource: atribuicaoSessao.origemNome,
+                produtoInteresse:
+                    produtosInteresse || "Pedido pelo carrinho",
+                paginaOrigem: "checkout_carrinho",
+                cliques: 1
+            }).catch(function(err) {
+                console.warn(
+                    "Lead do checkout não registrado:",
+                    err?.code || "",
+                    err?.message || err
+                );
+            });
+
             registrarMetricaFunilUnica("order_whatsapp", {
                 value: resumoMetricaPedido.total
             });
