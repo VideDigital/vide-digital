@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V2.0
- * Dock compacto, expansão no hover, descrições por módulo e central de comandos.
+ * Vide Hub — Sidebar V2.1
+ * Dock compacto corrigido, rolagem interna estável, descrições por módulo e central de comandos.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -577,6 +577,7 @@
                         justify-content: flex-start !important;
                         gap: 10px !important;
                         overflow: hidden !important;
+                        overscroll-behavior: contain !important;
                         border: 1px solid rgba(148, 163, 184, .17) !important;
                         border-radius: 27px !important;
                         background:
@@ -593,12 +594,19 @@
                         box-shadow: 0 32px 90px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255,255,255,.06) !important;
                     }
                     #admin-sidebar .vide-dock-top {
-                        min-height: 0;
-                        flex: 1 1 auto;
-                        display: flex;
-                        flex-direction: column;
+                        width: 100% !important;
+                        height: 100% !important;
+                        min-width: 0 !important;
+                        min-height: 0 !important;
+                        flex: 1 1 0 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
                         gap: 12px !important;
                         margin: 0 !important;
+                        overflow: hidden !important;
+                    }
+                    #admin-sidebar .vide-dock-top > :not([hidden]) ~ :not([hidden]) {
+                        margin-top: 0 !important;
                     }
                     #admin-sidebar .vide-dock-brand {
                         min-height: 70px;
@@ -628,15 +636,23 @@
                         transition: opacity .18s ease, transform .22s ease;
                     }
                     #admin-sidebar #sidebar-nav {
+                        position: relative !important;
                         display: block !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        height: 0 !important;
                         min-height: 0 !important;
-                        flex: 1 1 auto !important;
+                        max-height: none !important;
+                        flex: 1 1 0 !important;
                         margin: 0 !important;
-                        padding: 0 2px 4px !important;
+                        padding: 0 2px 10px !important;
                         overflow-x: hidden !important;
                         overflow-y: auto !important;
+                        overscroll-behavior: contain !important;
+                        touch-action: pan-y !important;
+                        scrollbar-gutter: stable;
                         scrollbar-width: thin;
-                        scrollbar-color: rgba(148, 163, 184, .24) transparent;
+                        scrollbar-color: rgba(148, 163, 184, .32) transparent;
                     }
                     #admin-sidebar #sidebar-nav::-webkit-scrollbar { width: 4px; }
                     #admin-sidebar #sidebar-nav::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 999px; }
@@ -675,11 +691,22 @@
                         flex: 0 0 auto;
                     }
                     #admin-sidebar .aura-sidebar-navigation-groups {
-                        display: flex;
-                        flex-direction: column;
-                        gap: 8px;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 8px !important;
+                        overflow: visible !important;
                     }
-                    #admin-sidebar .aura-sidebar-group { margin: 0 !important; }
+                    #admin-sidebar .aura-sidebar-group {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        overflow: visible !important;
+                    }
                     #admin-sidebar .aura-sidebar-group-header {
                         min-height: 42px;
                         margin: 0 0 5px !important;
@@ -687,9 +714,14 @@
                         border-radius: 13px !important;
                     }
                     #admin-sidebar .aura-sidebar-group-content {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
                         display: flex;
                         flex-direction: column;
                         gap: 4px;
+                        overflow: visible !important;
                     }
                     #admin-sidebar .aura-sidebar-group-content > button[data-target] {
                         width: 100% !important;
@@ -704,6 +736,7 @@
                         border: 1px solid transparent;
                         border-radius: 14px !important;
                         white-space: nowrap;
+                        transform: none !important;
                     }
                     #admin-sidebar .aura-sidebar-group-content > button[data-target].hidden {
                         display: none !important;
@@ -713,6 +746,8 @@
                         height: 19px !important;
                         min-width: 19px !important;
                         flex: 0 0 19px !important;
+                        margin: 0 !important;
+                        transform: none !important;
                     }
                     #admin-sidebar .vide-dock-label {
                         min-width: 0;
@@ -847,8 +882,29 @@
                         justify-content: center !important;
                         border-radius: 15px !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-navigation-groups {
+                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) #sidebar-nav {
+                        width: 52px !important;
+                        min-width: 52px !important;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
+                        padding-left: 0 !important;
+                        padding-right: 0 !important;
+                        scrollbar-width: none !important;
+                    }
+                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) #sidebar-nav::-webkit-scrollbar {
+                        display: none !important;
+                    }
+                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-navigation-groups,
+                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group,
+                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group-content {
+                        width: 52px !important;
+                        min-width: 52px !important;
+                        max-width: 52px !important;
+                        margin-left: auto !important;
+                        margin-right: auto !important;
+                        padding: 0 !important;
                         gap: 4px !important;
+                        overflow: visible !important;
                     }
                     #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group-collapsed .aura-sidebar-group-content {
                         display: flex !important;
@@ -916,6 +972,27 @@
                     #admin-sidebar.vide-dock-sidebar:focus-within .vide-dock-workspace,
                     #admin-sidebar.vide-dock-sidebar.vide-dock-open .vide-dock-workspace {
                         animation: videDockReveal .22s ease both;
+                    }
+                    #admin-sidebar.vide-dock-sidebar:hover #sidebar-nav,
+                    #admin-sidebar.vide-dock-sidebar:focus-within #sidebar-nav,
+                    #admin-sidebar.vide-dock-sidebar.vide-dock-open #sidebar-nav {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        overflow-y: auto !important;
+                        pointer-events: auto !important;
+                    }
+                    #admin-sidebar.vide-dock-sidebar:hover .aura-sidebar-navigation-groups,
+                    #admin-sidebar.vide-dock-sidebar:focus-within .aura-sidebar-navigation-groups,
+                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .aura-sidebar-navigation-groups,
+                    #admin-sidebar.vide-dock-sidebar:hover .aura-sidebar-group,
+                    #admin-sidebar.vide-dock-sidebar:focus-within .aura-sidebar-group,
+                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .aura-sidebar-group,
+                    #admin-sidebar.vide-dock-sidebar:hover .aura-sidebar-group-content,
+                    #admin-sidebar.vide-dock-sidebar:focus-within .aura-sidebar-group-content,
+                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .aura-sidebar-group-content {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
                     }
                     @keyframes videDockReveal {
                         from { opacity: 0; transform: translateX(-8px); }
@@ -1301,8 +1378,40 @@
             }
         }
 
+        function ativarRolagemEstavel() {
+            const superficie = sidebar.querySelector(":scope > .vide-dock-surface");
+            if (!superficie || superficie.dataset.videWheelReady === "true") return;
+            superficie.dataset.videWheelReady = "true";
+
+            superficie.addEventListener("wheel", function(evento) {
+                if (window.innerWidth < 768) return;
+                if (central && !central.hidden) return;
+                if (!Number.isFinite(evento.deltaY) || evento.deltaY === 0) return;
+
+                const limite = Math.max(
+                    0,
+                    navegacao.scrollHeight - navegacao.clientHeight
+                );
+
+                if (limite <= 0) return;
+
+                const anterior = navegacao.scrollTop;
+                const proximo = Math.max(
+                    0,
+                    Math.min(limite, anterior + evento.deltaY)
+                );
+
+                if (proximo === anterior) return;
+
+                navegacao.scrollTop = proximo;
+                evento.preventDefault();
+                evento.stopPropagation();
+            }, { passive: false });
+        }
+
         organizarGrupos();
         prepararEstruturaDock();
+        ativarRolagemEstavel();
         criarCentralComandos();
 
         const buscaShell = campoBusca.closest(".aura-sidebar-search");
