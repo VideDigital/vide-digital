@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V3.3
- * Rail inteligente com compatibilidade completa com a busca e os testes de permissão.
+ * Vide Hub — Sidebar V3.4
+ * Rail profissional com painel por toque para celular em modo desktop.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -15,6 +15,19 @@
         if (!sidebar || !navegacao || !areaGrupos || !campoBusca) return;
         if (sidebar.dataset.videDockReady === "true") return;
         sidebar.dataset.videDockReady = "true";
+
+        const mediaPonteiroGrosso = typeof window.matchMedia === "function"
+            ? window.matchMedia("(pointer: coarse)")
+            : null;
+        const ambienteComToque = Boolean(
+            (navigator.maxTouchPoints && navigator.maxTouchPoints > 0) ||
+            (mediaPonteiroGrosso && mediaPonteiroGrosso.matches) ||
+            ("ontouchstart" in window)
+        );
+
+        if (ambienteComToque) {
+            document.documentElement.classList.add("vide-touch-device");
+        }
 
         const configuracaoGrupos = [
             {
@@ -1040,6 +1053,350 @@
                     }
                 }
 
+
+                /* V3.4 — celular com "Site para computador" ativado */
+                #vide-touch-sidebar-backdrop {
+                    position: fixed;
+                    inset: 0;
+                    z-index: 81;
+                    display: block;
+                    border: 0;
+                    opacity: 0;
+                    visibility: hidden;
+                    pointer-events: none;
+                    background: rgba(0, 3, 10, .66);
+                    backdrop-filter: blur(7px);
+                    -webkit-backdrop-filter: blur(7px);
+                    transition: opacity .2s ease, visibility .2s ease;
+                }
+
+                #vide-touch-sidebar-backdrop.is-visible {
+                    opacity: 1;
+                    visibility: visible;
+                    pointer-events: auto;
+                }
+
+                #vide-touch-sidebar-toggle,
+                #admin-sidebar .vide-rail-store-copy {
+                    display: none;
+                }
+
+                @media (min-width: 768px) {
+                    html.vide-touch-device #vide-rail-tooltip {
+                        display: none !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-dock-sidebar .vide-dock-top {
+                        min-height: 0 !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-dock-sidebar #sidebar-nav {
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
+                        height: auto !important;
+                        min-height: 150px !important;
+                        flex: 1 1 auto !important;
+                    }
+
+                    html.vide-touch-device #vide-touch-sidebar-toggle {
+                        width: 48px;
+                        min-width: 48px;
+                        height: 44px;
+                        min-height: 44px;
+                        margin: 0 auto 2px;
+                        padding: 0;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        flex: 0 0 44px;
+                        border: 1px solid rgba(148, 163, 184, .16);
+                        border-radius: 14px;
+                        color: #aab5c8;
+                        background: rgba(255, 255, 255, .04);
+                        box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+                        cursor: pointer;
+                        -webkit-tap-highlight-color: transparent;
+                        touch-action: manipulation;
+                    }
+
+                    html.vide-touch-device #vide-touch-sidebar-toggle:active {
+                        transform: scale(.97);
+                    }
+
+                    html.vide-touch-device #vide-touch-sidebar-toggle svg {
+                        width: 20px;
+                        height: 20px;
+                        stroke-width: 2;
+                    }
+
+                    html.vide-touch-device #vide-touch-sidebar-toggle .vide-touch-close-icon {
+                        display: none;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open
+                    #vide-touch-sidebar-toggle .vide-touch-menu-icon {
+                        display: none;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open
+                    #vide-touch-sidebar-toggle .vide-touch-close-icon {
+                        display: block;
+                    }
+
+                    html.vide-touch-device body.vide-touch-sidebar-lock {
+                        overflow: hidden !important;
+                        touch-action: none;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open > .vide-dock-surface {
+                        width: min(360px, calc(100vw - 22px)) !important;
+                        min-width: min(360px, calc(100vw - 22px)) !important;
+                        max-width: min(360px, calc(100vw - 22px)) !important;
+                        padding: 14px 13px 12px !important;
+                        gap: 11px !important;
+                        overflow: hidden !important;
+                        border-radius: 27px !important;
+                        box-shadow:
+                            0 34px 90px rgba(0, 0, 0, .62),
+                            inset 0 1px 0 rgba(255,255,255,.07) !important;
+                        z-index: 84 !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-top {
+                        width: 100% !important;
+                        gap: 10px !important;
+                        overflow: hidden !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-brand {
+                        position: relative !important;
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        height: auto !important;
+                        min-height: 74px !important;
+                        margin: 0 !important;
+                        padding: 9px 58px 9px 9px !important;
+                        justify-content: flex-start !important;
+                        overflow: visible !important;
+                        border: 1px solid rgba(148,163,184,.15) !important;
+                        background: rgba(255,255,255,.035) !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-brand > .relative,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-brand > div,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-brand .flex {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                        height: auto !important;
+                        min-height: 54px !important;
+                        justify-content: flex-start !important;
+                        gap: 12px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-brand-copy {
+                        min-width: 0 !important;
+                        display: block !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open #vide-touch-sidebar-toggle {
+                        position: absolute;
+                        top: 22px;
+                        right: 20px;
+                        z-index: 3;
+                        width: 42px;
+                        min-width: 42px;
+                        height: 42px;
+                        min-height: 42px;
+                        margin: 0;
+                        color: #fff;
+                        border-color: rgba(255,255,255,.18);
+                        background: rgba(255,255,255,.07);
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-workspace {
+                        display: block !important;
+                        width: 100% !important;
+                        margin: 0 !important;
+                        padding: 14px !important;
+                        border-radius: 18px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open #sidebar-nav {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                        height: auto !important;
+                        min-height: 180px !important;
+                        margin: 0 !important;
+                        padding: 0 3px 10px !important;
+                        flex: 1 1 auto !important;
+                        overflow-x: hidden !important;
+                        overflow-y: auto !important;
+                        scrollbar-width: thin !important;
+                        scrollbar-color: rgba(148,163,184,.28) transparent !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-navigation-header {
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: space-between !important;
+                        gap: 12px !important;
+                        margin: 4px 2px 10px !important;
+                        padding: 0 4px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-search {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                        height: 50px !important;
+                        min-height: 50px !important;
+                        margin: 0 0 11px !important;
+                        padding: 0 13px !important;
+                        justify-content: flex-start !important;
+                        gap: 11px !important;
+                        overflow: hidden !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-search-editor {
+                        min-width: 0 !important;
+                        display: block !important;
+                        flex: 1 1 auto !important;
+                        overflow: hidden !important;
+                        color: #d7deea !important;
+                        font-size: 11px !important;
+                        font-weight: 750 !important;
+                        text-overflow: ellipsis !important;
+                        white-space: nowrap !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-search kbd {
+                        display: none !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-navigation-groups,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-group,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-group-content,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open
+                    .aura-sidebar-group-collapsed .aura-sidebar-group-content {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-navigation-groups {
+                        gap: 12px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-group {
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-group + .aura-sidebar-group {
+                        margin-top: 0 !important;
+                        padding-top: 12px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-group-header {
+                        display: flex !important;
+                        align-items: center !important;
+                        width: 100% !important;
+                        min-height: 40px !important;
+                        padding: 7px 8px !important;
+                        border-radius: 13px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-group-content,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open
+                    .aura-sidebar-group-collapsed .aura-sidebar-group-content {
+                        max-height: none !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 5px !important;
+                        overflow: visible !important;
+                        opacity: 1 !important;
+                        visibility: visible !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open
+                    .aura-sidebar-group-content > button[data-target] {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                        height: auto !important;
+                        min-height: 54px !important;
+                        max-height: none !important;
+                        padding: 8px 11px !important;
+                        justify-content: flex-start !important;
+                        gap: 12px !important;
+                        overflow: visible !important;
+                        border-radius: 15px !important;
+                        text-align: left !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open
+                    .aura-sidebar-group-content > button[data-target] > svg {
+                        width: 20px !important;
+                        min-width: 20px !important;
+                        height: 20px !important;
+                        flex: 0 0 20px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-dock-label {
+                        min-width: 0 !important;
+                        display: flex !important;
+                        flex: 1 1 auto !important;
+                        flex-direction: column !important;
+                        align-items: flex-start !important;
+                        gap: 3px !important;
+                        overflow: hidden !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open #box-logout {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        margin: 0 !important;
+                        padding: 10px 3px 0 !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-account-actions {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        align-items: stretch !important;
+                        gap: 7px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-account-button,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-rail-store-button {
+                        width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                        height: auto !important;
+                        min-height: 50px !important;
+                        padding: 8px 11px !important;
+                        justify-content: flex-start !important;
+                        gap: 11px !important;
+                        overflow: visible !important;
+                        text-align: left !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-account-text,
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .vide-rail-store-copy {
+                        min-width: 0 !important;
+                        display: flex !important;
+                        flex: 1 1 auto !important;
+                        flex-direction: column !important;
+                        gap: 3px !important;
+                    }
+
+                    html.vide-touch-device #admin-sidebar.vide-touch-panel-open .aura-sidebar-account-arrow {
+                        display: inline-flex !important;
+                    }
+                }
+
                 @media (max-width: 767px) {
                     #admin-sidebar.vide-dock-sidebar {
                         position: relative !important;
@@ -1170,6 +1527,131 @@
         }
 
 
+
+        let botaoPainelToque = null;
+        let fundoPainelToque = null;
+        let overflowAntesPainelToque = "";
+
+        function modoToqueDesktopAtivo() {
+            return ambienteComToque && window.innerWidth >= 768;
+        }
+
+        function atualizarEstadoPainelToque(aberto) {
+            if (!botaoPainelToque) return;
+            botaoPainelToque.setAttribute("aria-expanded", String(aberto));
+            botaoPainelToque.setAttribute(
+                "aria-label",
+                aberto ? "Fechar menu de módulos" : "Abrir menu de módulos"
+            );
+        }
+
+        function abrirPainelToque() {
+            if (!modoToqueDesktopAtivo()) return;
+            esconderTooltipRail(true);
+            overflowAntesPainelToque = document.body.style.overflow;
+            sidebar.classList.add("vide-touch-panel-open");
+            document.body.classList.add("vide-touch-sidebar-lock");
+            if (fundoPainelToque) {
+                fundoPainelToque.classList.add("is-visible");
+                fundoPainelToque.setAttribute("aria-hidden", "false");
+            }
+            atualizarEstadoPainelToque(true);
+        }
+
+        function fecharPainelToque(restaurarFoco) {
+            if (!sidebar.classList.contains("vide-touch-panel-open")) return;
+            sidebar.classList.remove("vide-touch-panel-open");
+            document.body.classList.remove("vide-touch-sidebar-lock");
+            document.body.style.overflow = overflowAntesPainelToque;
+            if (fundoPainelToque) {
+                fundoPainelToque.classList.remove("is-visible");
+                fundoPainelToque.setAttribute("aria-hidden", "true");
+            }
+            atualizarEstadoPainelToque(false);
+            if (restaurarFoco !== false) botaoPainelToque?.focus();
+        }
+
+        function alternarPainelToque() {
+            if (sidebar.classList.contains("vide-touch-panel-open")) {
+                fecharPainelToque();
+            } else {
+                abrirPainelToque();
+            }
+        }
+
+        function ativarPainelResponsivoPorToque() {
+            if (!ambienteComToque) return;
+
+            const topo = sidebar.querySelector(".vide-dock-top");
+            if (!topo) return;
+
+            botaoPainelToque = document.getElementById("vide-touch-sidebar-toggle");
+            if (!botaoPainelToque) {
+                botaoPainelToque = document.createElement("button");
+                botaoPainelToque.type = "button";
+                botaoPainelToque.id = "vide-touch-sidebar-toggle";
+                botaoPainelToque.setAttribute("aria-controls", "sidebar-nav");
+                botaoPainelToque.setAttribute("aria-expanded", "false");
+                botaoPainelToque.setAttribute("aria-label", "Abrir menu de módulos");
+                botaoPainelToque.innerHTML = `
+                    <svg class="vide-touch-menu-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path d="M4 7h16M4 12h16M4 17h16"></path>
+                    </svg>
+                    <svg class="vide-touch-close-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true">
+                        <path d="M6 6l12 12M18 6 6 18"></path>
+                    </svg>
+                `;
+                topo.insertBefore(botaoPainelToque, navegacao);
+            }
+
+            fundoPainelToque = document.getElementById("vide-touch-sidebar-backdrop");
+            if (!fundoPainelToque) {
+                fundoPainelToque = document.createElement("button");
+                fundoPainelToque.type = "button";
+                fundoPainelToque.id = "vide-touch-sidebar-backdrop";
+                fundoPainelToque.setAttribute("aria-label", "Fechar menu lateral");
+                fundoPainelToque.setAttribute("aria-hidden", "true");
+                document.body.appendChild(fundoPainelToque);
+            }
+
+            botaoPainelToque.addEventListener("click", function(evento) {
+                evento.preventDefault();
+                evento.stopPropagation();
+                alternarPainelToque();
+            });
+
+            fundoPainelToque.addEventListener("click", function() {
+                fecharPainelToque(false);
+            });
+
+            const logo = document.getElementById("admin-logo-box");
+            if (logo) {
+                logo.setAttribute("role", "button");
+                logo.setAttribute("tabindex", "0");
+                logo.addEventListener("click", function() {
+                    if (modoToqueDesktopAtivo()) alternarPainelToque();
+                });
+                logo.addEventListener("keydown", function(evento) {
+                    if (!modoToqueDesktopAtivo()) return;
+                    if (evento.key === "Enter" || evento.key === " ") {
+                        evento.preventDefault();
+                        alternarPainelToque();
+                    }
+                });
+            }
+
+            document.addEventListener("keydown", function(evento) {
+                if (evento.key === "Escape" && sidebar.classList.contains("vide-touch-panel-open")) {
+                    evento.preventDefault();
+                    fecharPainelToque();
+                }
+            });
+
+            window.addEventListener("resize", function() {
+                if (!modoToqueDesktopAtivo()) fecharPainelToque(false);
+            }, { passive: true });
+        }
+
         let tooltipRail = null;
         let alvoTooltipRail = null;
         let timerTooltipRail = null;
@@ -1199,6 +1681,10 @@
                         <path d="m21 3-9 9"></path>
                         <path d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"></path>
                     </svg>
+                </span>
+                <span class="vide-rail-store-copy">
+                    <strong>Abrir loja</strong>
+                    <small>Visualizar a vitrine pública</small>
                 </span>
                 <span class="vide-rail-store-status" aria-hidden="true"></span>
             `;
@@ -1284,6 +1770,7 @@
         }
 
         function posicionarTooltipRail(alvo) {
+            if (ambienteComToque) return;
             if (!tooltipRail || !alvo || window.innerWidth < 768) return;
 
             const caixa = alvo.getBoundingClientRect();
@@ -1305,6 +1792,7 @@
         }
 
         function mostrarTooltipRail(alvo) {
+            if (ambienteComToque) return;
             if (!alvo || window.innerWidth < 768) return;
             if (!alvo.dataset.moduleName) return;
 
@@ -1657,6 +2145,7 @@
 
         organizarGrupos();
         prepararEstruturaDock();
+        ativarPainelResponsivoPorToque();
         ativarTooltipsRail();
         ativarRolagemEstavel();
         criarCentralComandos();
@@ -1692,6 +2181,7 @@
             const botao = evento.target.closest("button[data-target]");
             if (!botao) return;
             esconderTooltipRail(true);
+            if (modoToqueDesktopAtivo()) fecharPainelToque(false);
             if (window.innerWidth >= 768) sidebar.classList.remove("vide-dock-open");
         });
 
