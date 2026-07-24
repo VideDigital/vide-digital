@@ -424,7 +424,15 @@ service cloud.firestore {
     }
     function metricaVitrineValida(id) {
       return exists(/databases/$(database)/documents/usuarios/$(id))
-        && request.resource.data.keys().hasOnly(["totalSessoes", "totalTempoTela", "totalCliques", "produtosInteresse", "porDia"]);
+        && request.resource.data.keys().hasOnly([
+          "totalSessoes",
+          "totalTempoTela",
+          "totalCliques",
+          "produtosInteresse",
+          "porDia",
+          "porOrigem",
+          "porCampanha"
+        ]);
     }
     function metricaProdutoValida(id) {
       return exists(/databases/$(database)/documents/produtos/$(id))
