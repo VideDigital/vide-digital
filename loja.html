@@ -2,7 +2,7 @@
 <html lang="pt-br" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" accontent="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title id="client-tab-title">Carregando Loja...</title>
     <meta id="client-meta-description" name="description" content="Conheça esta loja online criada com o Vide Hub.">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -1949,11 +1949,13 @@
 
                 if (navigator.share) {
                     await navigator.share({ title: nome, text: descricao, url: url });
+                    registrarMetricaFunilUnica("share_store");
                     mostrarFeedbackCompartilhamento("Loja compartilhada.", true);
                     return;
                 }
 
                 await copiarTextoCompartilhamento(url);
+                registrarMetricaFunilUnica("share_store");
                 mostrarFeedbackCompartilhamento("Link da loja copiado.", true);
             } catch (erro) {
                 if (erro && erro.name === "AbortError") return;
@@ -2237,10 +2239,66 @@
                         }, { merge: true }).catch(silenciarMetrica)
                     ]);
                 }
+                if (evento === "cart_open") {
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        porDia: { [hoje]: { carrinhosAbertos: increment(1) } }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "cart_add") {
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        porDia: { [hoje]: { adicoesCarrinho: increment(1) } }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "checkout_start") {
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        porDia: { [hoje]: { checkoutsIniciados: increment(1) } }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "order_whatsapp") {
+                    const valor = Math.max(0, Math.min(Number(payload.value || 0), 10000000));
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        porDia: {
+                            [hoje]: {
+                                pedidosWhatsapp: increment(1),
+                                valorPedidosWhatsapp: increment(valor)
+                            }
+                        }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "share_store") {
+                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
+                        porDia: { [hoje]: { compartilhamentos: increment(1) } }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
             } catch (err) {
                 silenciarMetrica(err);
             }
             return Promise.resolve();
+        }
+
+        function registrarMetricaFunilUnica(evento, payload, chaveExtra) {
+            const chaveSessao = [
+                "videMetricaFunil",
+                String(lojaSlug || fornecedorEmail || "loja"),
+                String(evento || "evento"),
+                String(chaveExtra || "")
+            ].join(":");
+
+            try {
+                if (sessionStorage.getItem(chaveSessao)) {
+                    return Promise.resolve(false);
+                }
+                sessionStorage.setItem(chaveSessao, "1");
+            } catch (e) {
+                // Navegadores com armazenamento bloqueado continuam registrando
+                // a métrica; apenas perdem a deduplicação da sessão.
+            }
+
+            return registrarMetricaPublica(Object.assign({}, payload || {}, {
+                event: evento
+            })).then(function() {
+                return true;
+            });
         }
 
         // Captura de lead direto no banco (sem Cloud Function). O lead nasce
@@ -2605,7 +2663,7 @@
             carrinho.style.borderColor = cor;
             carrinho.style.color = cor;
             carrinho.onclick = podeCarrinho ? function() {
-                window.adicionarAoCarrinho(produto.nome || "Produto", dados.precoFinal, imagem, cor);
+                window.adicionarAoCarrinho(produto.nome || "Produto", dados.precoFinal, imagem, cor, produto.id);
                 fecharDetalhesProduto();
             } : null;
 
@@ -3073,7 +3131,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                              '<button type="button" onclick="abrirDetalhesProduto(\'' + prod.id + '\')" class="product-details-trigger w-full text-center font-semibold text-xs uppercase tracking-[0.14em] py-3 rounded-full transition-all inline-flex items-center justify-center gap-2"><i data-lucide="expand" style="width:13px;height:13px"></i> Ver detalhes</button>' +
                                  '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + "', '" + prod.id + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-4 rounded-full transition-all" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #fff);">Obter Oferta</button>' +
                              '<button type="button" onclick="abrirModalAvaliacao(\'' + prod.id + '\')" class="review-action w-full text-center font-semibold text-xs uppercase tracking-[0.14em] py-3 rounded-full transition-all inline-flex items-center justify-center gap-2"><i data-lucide="star" style="width:13px;height:13px"></i> Avaliar produto</button>' +
-                             (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-3 rounded-full border transition-all hover:bg-white/5 mt-1 inline-flex items-center justify-center gap-2" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';"><i data-lucide="shopping-bag" style="width:12px;height:12px"></i> Adicionar ao Carrinho</button>' : '') +
+                             (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + "', '" + prod.id + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-3 rounded-full border transition-all hover:bg-white/5 mt-1 inline-flex items-center justify-center gap-2" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';"><i data-lucide="shopping-bag" style="width:12px;height:12px"></i> Adicionar ao Carrinho</button>' : '') +
                              (prod.seloConfianca ? '<p class="text-[10px] text-center text-gray-500 inline-flex items-center justify-center gap-1"><i data-lucide="lock" style="width:11px;height:11px"></i> ' + prod.seloConfianca + "</p>" : "") +
                          "</div>" +
                     "</div>";
@@ -3192,7 +3250,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             }
         }
 
-        window.adicionarAoCarrinho = function(nomeProd, preco, imgSrc, corDestaque) {
+        window.adicionarAoCarrinho = function(nomeProd, preco, imgSrc, corDestaque, produtoId) {
             const existente = itensCarrinho.find(function(i) { return i.nome === nomeProd; });
             if (existente) {
                 existente.quantidade = Math.min(99, (Number.parseInt(existente.quantidade, 10) || 1) + 1);
@@ -3203,6 +3261,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             salvarCarrinho();
             renderizarCarrinho();
             mostrarToastCarrinho(nomeProd);
+            registrarMetricaFunilUnica("cart_add", {}, produtoId || nomeProd);
 
             const btn = document.getElementById("btn-abrir-carrinho");
             if (btn) {
@@ -3328,6 +3387,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
         window.abrirCarrinho = function() {
             registrarFocoAnteriorA11y("carrinho");
+            registrarMetricaFunilUnica("cart_open");
             renderizarCarrinho();
             document.getElementById("carrinho-overlay").classList.remove("hidden");
             const painel = document.getElementById("carrinho-painel");
@@ -3440,6 +3500,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 return;
             }
 
+            registrarMetricaFunilUnica("checkout_start");
             preencherResumoFormularioPedido();
             carregarDadosSalvosPedido();
             mostrarErroFormularioPedido("");
@@ -3603,6 +3664,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 mostrarErroFormularioPedido("O navegador bloqueou a abertura do WhatsApp. Permita pop-ups e tente novamente.");
                 return;
             }
+
+            const resumoMetricaPedido = calcularResumoCarrinho();
+            registrarMetricaFunilUnica("order_whatsapp", {
+                value: resumoMetricaPedido.total
+            });
 
             itensCarrinho = [];
             salvarCarrinho();
