@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V2.1
- * Dock compacto corrigido, rolagem interna estável, descrições por módulo e central de comandos.
+ * Vide Hub — Sidebar V3.0
+ * Rail inteligente: ícones fixos, mini descrição individual, rolagem estável e central de comandos.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -281,7 +281,10 @@
                     const botao = botoesExistentes.find(function(item) {
                         return item.getAttribute("data-target") === alvo;
                     });
-                    if (botao) conteudoGrupo.appendChild(botao);
+                    if (botao) {
+                        botao.dataset.moduleGroup = grupo.nome;
+                        conteudoGrupo.appendChild(botao);
+                    }
                 });
 
                 if (conteudoGrupo.children.length > 0) {
@@ -329,8 +332,10 @@
                 envolverRotuloBotao(botao);
                 const nome = obterNomeBotao(botao);
                 if (nome) {
-                    botao.title = nome;
-                    botao.setAttribute("aria-label", nome);
+                    const descricao = obterDescricaoBotao(botao, nome);
+                    botao.removeAttribute("title");
+                    botao.setAttribute("aria-label", nome + ". " + descricao);
+                    botao.dataset.videTooltip = "true";
                 }
             });
         }
@@ -545,12 +550,12 @@
 
                 @media (min-width: 768px) {
                     #admin-sidebar.vide-dock-sidebar {
-                        --vide-dock-top: 12px;
+                        --vide-rail-top: 12px;
                         position: relative !important;
-                        width: 96px !important;
-                        min-width: 96px !important;
-                        max-width: 96px !important;
-                        flex: 0 0 96px !important;
+                        width: 94px !important;
+                        min-width: 94px !important;
+                        max-width: 94px !important;
+                        flex: 0 0 94px !important;
                         height: 100vh !important;
                         min-height: 100vh !important;
                         padding: 0 !important;
@@ -562,441 +567,473 @@
                         box-shadow: none !important;
                         z-index: 82 !important;
                     }
+
                     #admin-sidebar.vide-dock-sidebar > .vide-dock-surface {
                         position: fixed !important;
-                        top: var(--vide-dock-top) !important;
+                        top: var(--vide-rail-top) !important;
                         bottom: 12px !important;
-                        left: 12px !important;
-                        width: 72px !important;
+                        left: 10px !important;
+                        width: 74px !important;
+                        min-width: 74px !important;
+                        max-width: 74px !important;
                         height: auto !important;
                         min-height: 0 !important;
-                        padding: 10px !important;
+                        padding: 10px 8px !important;
                         box-sizing: border-box !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: flex-start !important;
-                        gap: 10px !important;
+                        gap: 9px !important;
                         overflow: hidden !important;
                         overscroll-behavior: contain !important;
-                        border: 1px solid rgba(148, 163, 184, .17) !important;
-                        border-radius: 27px !important;
+                        border: 1px solid rgba(148, 163, 184, .18) !important;
+                        border-radius: 25px !important;
                         background:
-                            linear-gradient(180deg, rgba(13, 24, 45, .97), rgba(3, 10, 24, .985)) !important;
-                        box-shadow: 0 28px 70px rgba(0, 0, 0, .36), inset 0 1px 0 rgba(255,255,255,.05) !important;
-                        transition: width .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease !important;
+                            radial-gradient(120px 170px at 50% -30px,
+                                color-mix(in srgb, var(--sys-primaria, #ef334f) 22%, transparent),
+                                transparent 72%),
+                            linear-gradient(180deg, rgba(12, 22, 40, .985), rgba(3, 9, 21, .99)) !important;
+                        box-shadow:
+                            0 26px 64px rgba(0, 0, 0, .38),
+                            inset 0 1px 0 rgba(255,255,255,.055) !important;
                         z-index: 82 !important;
                     }
-                    #admin-sidebar.vide-dock-sidebar:hover > .vide-dock-surface,
-                    #admin-sidebar.vide-dock-sidebar:focus-within > .vide-dock-surface,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open > .vide-dock-surface {
-                        width: 300px !important;
-                        border-color: rgba(148, 163, 184, .28) !important;
-                        box-shadow: 0 32px 90px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255,255,255,.06) !important;
-                    }
+
                     #admin-sidebar .vide-dock-top {
                         width: 100% !important;
-                        height: 100% !important;
                         min-width: 0 !important;
                         min-height: 0 !important;
                         flex: 1 1 0 !important;
                         display: flex !important;
                         flex-direction: column !important;
-                        gap: 12px !important;
+                        gap: 8px !important;
                         margin: 0 !important;
                         overflow: hidden !important;
                     }
+
                     #admin-sidebar .vide-dock-top > :not([hidden]) ~ :not([hidden]) {
                         margin-top: 0 !important;
                     }
+
                     #admin-sidebar .vide-dock-brand {
-                        min-height: 70px;
-                        margin: 0 !important;
-                        padding: 10px !important;
-                        flex: 0 0 auto;
-                        border-radius: 20px !important;
+                        width: 56px !important;
+                        min-width: 56px !important;
+                        height: 64px !important;
+                        min-height: 64px !important;
+                        margin: 0 auto !important;
+                        padding: 4px !important;
+                        flex: 0 0 64px !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
                         overflow: hidden !important;
+                        border: 0 !important;
+                        border-radius: 18px !important;
+                        background: transparent !important;
+                        box-shadow: none !important;
                     }
-                    #admin-sidebar .vide-dock-brand > .relative {
-                        min-width: 260px;
+
+                    #admin-sidebar .vide-dock-brand::before,
+                    #admin-sidebar .vide-dock-brand::after {
+                        display: none !important;
                     }
+
+                    #admin-sidebar .vide-dock-brand > .relative,
+                    #admin-sidebar .vide-dock-brand > div,
+                    #admin-sidebar .vide-dock-brand .flex {
+                        width: 48px !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
+                        height: 48px !important;
+                        min-height: 48px !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        gap: 0 !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                    }
+
                     #admin-sidebar #admin-logo-box {
                         width: 48px !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
                         height: 48px !important;
+                        min-height: 48px !important;
                         flex: 0 0 48px !important;
-                        border-radius: 15px !important;
-                    }
-                    #admin-sidebar .vide-dock-brand-copy {
-                        min-width: 150px;
-                        transition: opacity .18s ease, transform .22s ease;
-                    }
-                    #admin-sidebar .vide-dock-workspace {
                         margin: 0 !important;
-                        padding: 14px !important;
-                        flex: 0 0 auto;
-                        transition: opacity .18s ease, transform .22s ease;
+                        border-radius: 15px !important;
+                        border-color: rgba(255,255,255,.18) !important;
+                        box-shadow:
+                            0 12px 28px color-mix(in srgb, var(--sys-primaria, #ef334f) 24%, transparent),
+                            inset 0 1px 0 rgba(255,255,255,.16) !important;
+                        cursor: default;
                     }
+
+                    #admin-sidebar .vide-dock-brand-copy,
+                    #admin-sidebar .vide-dock-workspace,
+                    #admin-sidebar .aura-sidebar-navigation-header,
+                    #admin-sidebar #box-atalho,
+                    #admin-sidebar .aura-sidebar-group-header,
+                    #admin-sidebar .vide-dock-label,
+                    #admin-sidebar .aura-sidebar-account-text,
+                    #admin-sidebar .aura-sidebar-account-arrow {
+                        display: none !important;
+                    }
+
                     #admin-sidebar #sidebar-nav {
                         position: relative !important;
-                        display: block !important;
-                        width: 100% !important;
-                        min-width: 0 !important;
+                        width: 58px !important;
+                        min-width: 58px !important;
+                        max-width: 58px !important;
                         height: 0 !important;
                         min-height: 0 !important;
                         max-height: none !important;
                         flex: 1 1 0 !important;
-                        margin: 0 !important;
-                        padding: 0 2px 10px !important;
+                        margin: 0 auto !important;
+                        padding: 0 5px 8px !important;
+                        box-sizing: border-box !important;
                         overflow-x: hidden !important;
                         overflow-y: auto !important;
                         overscroll-behavior: contain !important;
                         touch-action: pan-y !important;
-                        scrollbar-gutter: stable;
-                        scrollbar-width: thin;
-                        scrollbar-color: rgba(148, 163, 184, .32) transparent;
+                        scrollbar-width: none !important;
                     }
-                    #admin-sidebar #sidebar-nav::-webkit-scrollbar { width: 4px; }
-                    #admin-sidebar #sidebar-nav::-webkit-scrollbar-thumb { background: rgba(148,163,184,.25); border-radius: 999px; }
-                    #admin-sidebar .aura-sidebar-navigation-header {
-                        margin: 2px 2px 10px !important;
-                        transition: opacity .18s ease;
-                    }
-                    #admin-sidebar .aura-sidebar-search {
-                        width: 100%;
-                        min-height: 46px;
-                        margin: 0 0 10px !important;
-                        padding: 0 12px !important;
-                        display: flex !important;
-                        align-items: center !important;
-                        gap: 10px !important;
-                        overflow: hidden;
-                        cursor: pointer;
-                        transition: width .22s ease, background .18s ease, border-color .18s ease;
-                    }
-                    #admin-sidebar .aura-sidebar-search:hover {
-                        border-color: color-mix(in srgb, var(--sys-primaria, #5b8cff) 38%, rgba(255,255,255,.1));
-                        background: rgba(255,255,255,.06);
-                    }
-                    #admin-sidebar .aura-sidebar-search > svg { width: 19px !important; height: 19px !important; flex: 0 0 19px; }
-                    #admin-sidebar .aura-sidebar-search-editor {
-                        min-width: 0;
-                        flex: 1;
-                        overflow: hidden;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                        user-select: none;
-                        cursor: pointer;
-                    }
-                    #admin-sidebar .aura-sidebar-search kbd {
-                        margin-left: auto;
-                        flex: 0 0 auto;
-                    }
-                    #admin-sidebar .aura-sidebar-navigation-groups {
-                        width: 100% !important;
-                        min-width: 0 !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        display: flex !important;
-                        flex-direction: column !important;
-                        gap: 8px !important;
-                        overflow: visible !important;
-                    }
-                    #admin-sidebar .aura-sidebar-group {
-                        width: 100% !important;
-                        min-width: 0 !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        overflow: visible !important;
-                    }
-                    #admin-sidebar .aura-sidebar-group-header {
-                        min-height: 42px;
-                        margin: 0 0 5px !important;
-                        padding: 7px 9px !important;
-                        border-radius: 13px !important;
-                    }
-                    #admin-sidebar .aura-sidebar-group-content {
-                        width: 100% !important;
-                        min-width: 0 !important;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        display: flex;
-                        flex-direction: column;
-                        gap: 4px;
-                        overflow: visible !important;
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target] {
-                        width: 100% !important;
-                        min-height: 54px !important;
-                        margin: 0 !important;
-                        padding: 0 12px !important;
-                        display: flex !important;
-                        align-items: center !important;
-                        justify-content: flex-start !important;
-                        gap: 12px !important;
-                        overflow: hidden !important;
-                        border: 1px solid transparent;
-                        border-radius: 14px !important;
-                        white-space: nowrap;
-                        transform: none !important;
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target].hidden {
+
+                    #admin-sidebar #sidebar-nav::-webkit-scrollbar {
                         display: none !important;
                     }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target] > svg {
+
+                    #admin-sidebar .aura-sidebar-search {
+                        position: relative !important;
+                        width: 48px !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
+                        height: 48px !important;
+                        min-height: 48px !important;
+                        margin: 0 auto 8px !important;
+                        padding: 0 !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        gap: 0 !important;
+                        overflow: hidden !important;
+                        border: 1px solid rgba(148,163,184,.14) !important;
+                        border-radius: 15px !important;
+                        color: #94a3b8 !important;
+                        background: rgba(255,255,255,.035) !important;
+                        cursor: pointer !important;
+                        transition: border-color .16s ease, background .16s ease, color .16s ease, transform .16s ease !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-search:hover,
+                    #admin-sidebar .aura-sidebar-search:focus-visible {
+                        border-color: color-mix(in srgb, var(--sys-primaria, #ef334f) 38%, rgba(255,255,255,.12)) !important;
+                        color: #fff !important;
+                        background: color-mix(in srgb, var(--sys-primaria, #ef334f) 10%, rgba(255,255,255,.035)) !important;
+                        transform: translateY(-1px) !important;
+                        outline: none !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-search > svg {
                         width: 19px !important;
                         height: 19px !important;
                         min-width: 19px !important;
                         flex: 0 0 19px !important;
                         margin: 0 !important;
-                        transform: none !important;
                     }
-                    #admin-sidebar .vide-dock-label {
-                        min-width: 0;
-                        overflow: hidden;
-                        flex: 1;
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-start;
-                        justify-content: center;
-                        opacity: 1;
-                        color: inherit;
-                        white-space: nowrap;
-                        transition: opacity .16s ease, transform .2s ease;
-                    }
-                    #admin-sidebar .vide-dock-label strong {
-                        display: block;
-                        max-width: 100%;
-                        overflow: hidden;
-                        color: inherit;
-                        font-size: 11px;
-                        font-weight: 800;
-                        line-height: 1.2;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                    }
-                    #admin-sidebar .vide-dock-label small {
-                        display: block;
-                        max-width: 100%;
-                        margin-top: 3px;
-                        overflow: hidden;
-                        color: rgba(148, 163, 184, .78);
-                        font-size: 8px;
-                        font-weight: 650;
-                        line-height: 1.25;
-                        text-overflow: ellipsis;
-                        white-space: nowrap;
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target] {
-                        position: relative;
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target]:hover {
-                        border-color: rgba(148, 163, 184, .16) !important;
-                        background: rgba(255,255,255,.055) !important;
-                        color: #fff !important;
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target].active {
-                        border-color:
-                            color-mix(
-                                in srgb,
-                                var(--sys-destaque, #5b8cff) 34%,
-                                transparent
-                            ) !important;
-                        background:
-                            linear-gradient(
-                                135deg,
-                                color-mix(
-                                    in srgb,
-                                    var(--sys-destaque, #5b8cff) 16%,
-                                    transparent
-                                ),
-                                rgba(255,255,255,.035)
-                            ) !important;
-                        color: #fff !important;
-                        box-shadow:
-                            inset 3px 0 0
-                            var(--sys-destaque, #5b8cff);
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target].active
-                    .vide-dock-label small {
-                        color: rgba(226, 232, 240, .8);
-                    }
-                    #admin-sidebar .aura-sidebar-group-content > button[data-target]
-                    .aura-leads-v6-navigation-badge {
-                        flex: 0 0 auto;
-                        margin-left: auto;
-                    }
-                    #admin-sidebar #box-atalho {
-                        flex: 0 0 auto;
-                        margin: 0 !important;
-                        padding: 0 !important;
-                        transition: opacity .18s ease, transform .22s ease;
-                    }
-                    #admin-sidebar #box-logout {
-                        flex: 0 0 auto;
-                        margin: auto 0 0 !important;
-                        padding: 8px 0 0 !important;
-                    }
-                    #admin-sidebar .aura-sidebar-account-actions { gap: 6px !important; }
-                    #admin-sidebar .aura-sidebar-account-button {
-                        min-height: 46px;
-                        padding: 8px 10px !important;
-                        overflow: hidden;
-                    }
-                    #admin-sidebar .aura-sidebar-account-icon {
-                        width: 30px !important;
-                        height: 30px !important;
-                        flex: 0 0 30px !important;
-                    }
-                    #admin-sidebar .aura-sidebar-account-text {
-                        min-width: 150px;
-                        transition: opacity .16s ease, transform .2s ease;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .vide-dock-brand-copy,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .vide-dock-workspace,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-navigation-header,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group-header,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .vide-dock-label,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-search-editor,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-search kbd,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) #box-atalho,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-account-text,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-account-arrow {
+
+                    #admin-sidebar .aura-sidebar-search-editor,
+                    #admin-sidebar .aura-sidebar-search kbd {
                         display: none !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .vide-dock-brand {
-                        width: 52px !important;
-                        min-height: 62px !important;
-                        padding: 6px !important;
-                        align-self: center;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .vide-dock-brand > .relative {
-                        min-width: 48px !important;
-                        justify-content: center !important;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-search {
+
+                    #admin-sidebar .aura-sidebar-navigation-groups {
                         width: 48px !important;
-                        height: 48px !important;
-                        min-height: 48px !important;
-                        margin-left: auto !important;
-                        margin-right: auto !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
+                        margin: 0 auto !important;
                         padding: 0 !important;
-                        justify-content: center !important;
-                        border-radius: 15px !important;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) #sidebar-nav {
-                        width: 52px !important;
-                        min-width: 52px !important;
-                        margin-left: auto !important;
-                        margin-right: auto !important;
-                        padding-left: 0 !important;
-                        padding-right: 0 !important;
-                        scrollbar-width: none !important;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) #sidebar-nav::-webkit-scrollbar {
-                        display: none !important;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-navigation-groups,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group,
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group-content {
-                        width: 52px !important;
-                        min-width: 52px !important;
-                        max-width: 52px !important;
-                        margin-left: auto !important;
-                        margin-right: auto !important;
-                        padding: 0 !important;
-                        gap: 4px !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 0 !important;
                         overflow: visible !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group-collapsed .aura-sidebar-group-content {
-                        display: flex !important;
+
+                    #admin-sidebar .aura-sidebar-group {
+                        width: 48px !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        display: block !important;
+                        overflow: visible !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-group + .aura-sidebar-group {
+                        position: relative;
+                        margin-top: 9px !important;
+                        padding-top: 10px !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-group + .aura-sidebar-group::before {
+                        content: "";
+                        position: absolute;
+                        top: 0;
+                        left: 9px;
+                        right: 9px;
+                        height: 1px;
+                        background: linear-gradient(90deg, transparent, rgba(148,163,184,.2), transparent);
+                    }
+
+                    #admin-sidebar .aura-sidebar-group-content,
+                    #admin-sidebar .aura-sidebar-group-collapsed .aura-sidebar-group-content {
+                        width: 48px !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
                         max-height: none !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        gap: 5px !important;
+                        overflow: visible !important;
                         opacity: 1 !important;
                         visibility: visible !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open)
-                    .aura-sidebar-group-content > button[data-target]::after {
-                        content: attr(data-module-name);
-                        position: fixed;
-                        left: 88px;
-                        z-index: 2147482000;
-                        max-width: 240px;
-                        padding: 8px 10px;
-                        border: 1px solid rgba(148,163,184,.18);
-                        border-radius: 10px;
-                        background: rgba(7, 14, 29, .98);
-                        box-shadow: 0 14px 36px rgba(0,0,0,.38);
-                        color: #f8fafc;
-                        font-size: 10px;
-                        font-weight: 800;
-                        line-height: 1.2;
-                        opacity: 0;
-                        pointer-events: none;
-                        transform: translateX(-5px);
-                        transition: opacity .14s ease, transform .14s ease;
-                        white-space: nowrap;
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open)
-                    .aura-sidebar-group-content > button[data-target]:hover::after {
-                        opacity: 1;
-                        transform: translateX(0);
-                    }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-group-content > button[data-target] {
+
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target] {
+                        position: relative !important;
                         width: 48px !important;
                         min-width: 48px !important;
+                        max-width: 48px !important;
                         height: 48px !important;
                         min-height: 48px !important;
-                        margin-left: auto !important;
-                        margin-right: auto !important;
+                        max-height: 48px !important;
+                        margin: 0 !important;
                         padding: 0 !important;
+                        display: flex !important;
+                        align-items: center !important;
                         justify-content: center !important;
                         gap: 0 !important;
+                        overflow: hidden !important;
+                        border: 1px solid transparent !important;
                         border-radius: 15px !important;
+                        color: #91a0b7 !important;
+                        background: transparent !important;
+                        box-shadow: none !important;
+                        white-space: nowrap !important;
+                        transform: none !important;
+                        transition: color .16s ease, background .16s ease, border-color .16s ease, transform .16s ease, box-shadow .16s ease !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-account-actions {
-                        align-items: center;
+
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target].hidden {
+                        display: none !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) .aura-sidebar-account-button {
+
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target] > svg {
+                        width: 20px !important;
+                        height: 20px !important;
+                        min-width: 20px !important;
+                        max-width: 20px !important;
+                        flex: 0 0 20px !important;
+                        margin: 0 !important;
+                        stroke-width: 1.85 !important;
+                        transform: none !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target]:hover,
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target]:focus-visible {
+                        border-color: rgba(148,163,184,.18) !important;
+                        color: #fff !important;
+                        background: rgba(255,255,255,.06) !important;
+                        transform: translateY(-1px) !important;
+                        outline: none !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target].active {
+                        border-color: color-mix(in srgb, var(--sys-primaria, #ef334f) 42%, rgba(255,255,255,.12)) !important;
+                        color: color-mix(in srgb, var(--sys-primaria, #ef334f) 72%, white 28%) !important;
+                        background:
+                            linear-gradient(145deg,
+                                color-mix(in srgb, var(--sys-primaria, #ef334f) 18%, transparent),
+                                rgba(255,255,255,.035)) !important;
+                        box-shadow:
+                            inset 3px 0 0 var(--sys-primaria, #ef334f),
+                            0 10px 24px color-mix(in srgb, var(--sys-primaria, #ef334f) 12%, transparent) !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-group-content > button[data-target].active::before {
+                        content: "";
+                        position: absolute;
+                        right: 5px;
+                        top: 5px;
+                        width: 5px;
+                        height: 5px;
+                        border-radius: 50%;
+                        background: currentColor;
+                        box-shadow: 0 0 9px currentColor;
+                    }
+
+                    #admin-sidebar #box-logout {
+                        width: 58px !important;
+                        min-width: 58px !important;
+                        margin: 0 auto !important;
+                        padding: 9px 5px 0 !important;
+                        flex: 0 0 auto !important;
+                        border-top: 1px solid rgba(148,163,184,.13) !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-account-actions {
                         width: 48px !important;
                         min-width: 48px !important;
+                        display: flex !important;
+                        flex-direction: column !important;
+                        align-items: center !important;
+                        gap: 6px !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-account-button.hidden {
+                        display: none !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-account-button,
+                    #admin-sidebar .vide-rail-store-button {
+                        position: relative !important;
+                        width: 48px !important;
+                        min-width: 48px !important;
+                        max-width: 48px !important;
                         height: 46px !important;
-                        padding: 7px !important;
+                        min-height: 46px !important;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                        display: flex !important;
+                        align-items: center !important;
+                        justify-content: center !important;
+                        gap: 0 !important;
+                        overflow: hidden !important;
+                        border: 1px solid rgba(148,163,184,.13) !important;
+                        border-radius: 14px !important;
+                        color: #8491a6 !important;
+                        background: rgba(255,255,255,.028) !important;
+                        box-shadow: none !important;
+                        transition: color .16s ease, border-color .16s ease, background .16s ease, transform .16s ease !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-account-button:hover,
+                    #admin-sidebar .aura-sidebar-account-button:focus-visible,
+                    #admin-sidebar .vide-rail-store-button:hover,
+                    #admin-sidebar .vide-rail-store-button:focus-visible {
+                        color: #fff !important;
+                        border-color: rgba(148,163,184,.24) !important;
+                        background: rgba(255,255,255,.065) !important;
+                        transform: translateY(-1px) !important;
+                        outline: none !important;
+                    }
+
+                    #admin-sidebar .aura-sidebar-account-icon,
+                    #admin-sidebar .vide-rail-store-icon {
+                        width: 20px !important;
+                        min-width: 20px !important;
+                        height: 20px !important;
+                        display: flex !important;
+                        align-items: center !important;
                         justify-content: center !important;
                     }
-                    #admin-sidebar:not(:hover):not(:focus-within):not(.vide-dock-open) #box-logout {
-                        width: 52px;
-                        align-self: center;
+
+                    #admin-sidebar .aura-sidebar-account-icon svg,
+                    #admin-sidebar .vide-rail-store-icon svg {
+                        width: 19px !important;
+                        height: 19px !important;
+                        stroke-width: 1.9 !important;
                     }
-                    #admin-sidebar.vide-dock-sidebar:hover .vide-dock-brand-copy,
-                    #admin-sidebar.vide-dock-sidebar:focus-within .vide-dock-brand-copy,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .vide-dock-brand-copy,
-                    #admin-sidebar.vide-dock-sidebar:hover .vide-dock-workspace,
-                    #admin-sidebar.vide-dock-sidebar:focus-within .vide-dock-workspace,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .vide-dock-workspace {
-                        animation: videDockReveal .22s ease both;
+
+                    #admin-sidebar .vide-rail-store-button {
+                        color: #38d9a9 !important;
+                        cursor: pointer !important;
                     }
-                    #admin-sidebar.vide-dock-sidebar:hover #sidebar-nav,
-                    #admin-sidebar.vide-dock-sidebar:focus-within #sidebar-nav,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open #sidebar-nav {
-                        width: 100% !important;
-                        min-width: 0 !important;
-                        overflow-y: auto !important;
-                        pointer-events: auto !important;
+
+                    #admin-sidebar .vide-rail-store-status {
+                        position: absolute;
+                        top: 7px;
+                        right: 7px;
+                        width: 6px;
+                        height: 6px;
+                        border-radius: 50%;
+                        background: #34d399;
+                        box-shadow: 0 0 8px rgba(52,211,153,.75);
                     }
-                    #admin-sidebar.vide-dock-sidebar:hover .aura-sidebar-navigation-groups,
-                    #admin-sidebar.vide-dock-sidebar:focus-within .aura-sidebar-navigation-groups,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .aura-sidebar-navigation-groups,
-                    #admin-sidebar.vide-dock-sidebar:hover .aura-sidebar-group,
-                    #admin-sidebar.vide-dock-sidebar:focus-within .aura-sidebar-group,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .aura-sidebar-group,
-                    #admin-sidebar.vide-dock-sidebar:hover .aura-sidebar-group-content,
-                    #admin-sidebar.vide-dock-sidebar:focus-within .aura-sidebar-group-content,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open .aura-sidebar-group-content {
-                        width: 100% !important;
-                        min-width: 0 !important;
-                        max-width: none !important;
+
+                    #vide-rail-tooltip {
+                        position: fixed;
+                        z-index: 2147483000;
+                        width: max-content;
+                        min-width: 218px;
+                        max-width: 278px;
+                        padding: 12px 14px;
+                        pointer-events: none;
+                        opacity: 0;
+                        visibility: hidden;
+                        transform: translateX(-7px) scale(.985);
+                        transform-origin: left center;
+                        border: 1px solid rgba(148,163,184,.2);
+                        border-radius: 15px;
+                        background:
+                            radial-gradient(180px 90px at 0% 0%,
+                                color-mix(in srgb, var(--sys-primaria, #ef334f) 14%, transparent),
+                                transparent 74%),
+                            rgba(5, 12, 26, .975);
+                        box-shadow: 0 18px 50px rgba(0,0,0,.46), inset 0 1px 0 rgba(255,255,255,.05);
+                        backdrop-filter: blur(14px);
+                        -webkit-backdrop-filter: blur(14px);
+                        transition: opacity .13s ease, transform .13s ease, visibility .13s ease;
                     }
-                    @keyframes videDockReveal {
-                        from { opacity: 0; transform: translateX(-8px); }
-                        to { opacity: 1; transform: translateX(0); }
+
+                    #vide-rail-tooltip.is-visible {
+                        opacity: 1;
+                        visibility: visible;
+                        transform: translateX(0) scale(1);
+                    }
+
+                    #vide-rail-tooltip .vide-rail-tooltip-group {
+                        display: block;
+                        margin-bottom: 5px;
+                        color: color-mix(in srgb, var(--sys-primaria, #ef334f) 68%, white 32%);
+                        font-size: 8px;
+                        font-weight: 900;
+                        letter-spacing: .14em;
+                        text-transform: uppercase;
+                    }
+
+                    #vide-rail-tooltip strong {
+                        display: block;
+                        color: #f8fafc;
+                        font-size: 12px;
+                        font-weight: 900;
+                        line-height: 1.25;
+                        letter-spacing: -.01em;
+                    }
+
+                    #vide-rail-tooltip small {
+                        display: block;
+                        margin-top: 5px;
+                        color: #8e9bb0;
+                        font-size: 9px;
+                        font-weight: 600;
+                        line-height: 1.45;
+                    }
+
+                    #vide-rail-tooltip::before {
+                        content: "";
+                        position: absolute;
+                        left: -5px;
+                        top: calc(50% - 5px);
+                        width: 10px;
+                        height: 10px;
+                        border-left: 1px solid rgba(148,163,184,.2);
+                        border-bottom: 1px solid rgba(148,163,184,.2);
+                        background: rgba(5,12,26,.98);
+                        transform: rotate(45deg);
                     }
                 }
 
@@ -1021,7 +1058,12 @@
                         overflow: visible !important;
                     }
                     #admin-sidebar .vide-dock-top { width: 100%; }
-                    #admin-sidebar .vide-dock-label { display: inline !important; }
+                    #admin-sidebar .vide-dock-label {
+                        display: flex !important;
+                        flex-direction: column;
+                    }
+                    #vide-rail-tooltip { display: none !important; }
+                    #admin-sidebar .vide-rail-store-button { display: none !important; }
                     #admin-sidebar .aura-sidebar-search { cursor: pointer; }
                     #vide-command-center {
                         align-items: flex-end;
@@ -1113,7 +1155,7 @@
             const bannerMaster = document.getElementById("banner-modo-master");
             function atualizarTopoDock() {
                 const masterVisivel = bannerMaster && !bannerMaster.classList.contains("hidden");
-                sidebar.style.setProperty("--vide-dock-top", masterVisivel ? "46px" : "12px");
+                sidebar.style.setProperty("--vide-rail-top", masterVisivel ? "46px" : "12px");
             }
             atualizarTopoDock();
             if (bannerMaster) {
@@ -1122,6 +1164,203 @@
                     attributeFilter: ["class"]
                 });
             }
+        }
+
+
+        let tooltipRail = null;
+        let alvoTooltipRail = null;
+        let timerTooltipRail = null;
+
+        function criarAcaoRapidaLoja() {
+            const acoes = document.querySelector(
+                "#box-logout .aura-sidebar-account-actions"
+            );
+            if (!acoes || document.getElementById("vide-rail-store-button")) return;
+
+            const botao = document.createElement("button");
+            botao.type = "button";
+            botao.id = "vide-rail-store-button";
+            botao.className = "vide-rail-store-button";
+            botao.dataset.videTooltip = "true";
+            botao.dataset.moduleGroup = "Ação rápida";
+            botao.dataset.moduleName = "Abrir loja pública";
+            botao.dataset.moduleDescription = "Visualizar a vitrine como o cliente";
+            botao.setAttribute(
+                "aria-label",
+                "Abrir loja pública. Visualizar a vitrine como o cliente"
+            );
+            botao.innerHTML = `
+                <span class="vide-rail-store-icon" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <path d="M14 3h7v7"></path>
+                        <path d="m21 3-9 9"></path>
+                        <path d="M10 5H5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-5"></path>
+                    </svg>
+                </span>
+                <span class="vide-rail-store-status" aria-hidden="true"></span>
+            `;
+
+            botao.addEventListener("click", function() {
+                const link = document.getElementById("link-minha-loja-cockpit") ||
+                    document.getElementById("link-minha-loja");
+                if (!link || link.getAttribute("aria-disabled") === "true") return;
+                link.click();
+            });
+
+            acoes.insertBefore(botao, acoes.firstChild);
+        }
+
+        function prepararMetadadosTooltips() {
+            const buscaShell = campoBusca.closest(".aura-sidebar-search");
+            if (buscaShell) {
+                buscaShell.dataset.videTooltip = "true";
+                buscaShell.dataset.moduleGroup = "Navegação";
+                buscaShell.dataset.moduleName = "Central de comandos";
+                buscaShell.dataset.moduleDescription = "Pesquisar módulos e ações com Ctrl + K";
+                buscaShell.removeAttribute("title");
+            }
+
+            const logo = document.getElementById("admin-logo-box");
+            if (logo) {
+                logo.dataset.videTooltip = "true";
+                logo.dataset.moduleGroup = "Vide Hub";
+                logo.dataset.moduleName = "Central da empresa";
+                logo.dataset.moduleDescription = "Navegação rápida pelos módulos da operação";
+            }
+
+            areaGrupos.querySelectorAll("button[data-target]").forEach(function(botao) {
+                const nome = botao.dataset.moduleName || obterNomeBotao(botao);
+                const descricao = botao.dataset.moduleDescription || obterDescricaoBotao(botao, nome);
+                const grupo = botao.closest(".aura-sidebar-group")?.dataset.sidebarGroupName || "Módulo";
+
+                botao.dataset.videTooltip = "true";
+                botao.dataset.moduleName = nome;
+                botao.dataset.moduleDescription = descricao;
+                botao.dataset.moduleGroup = grupo;
+                botao.removeAttribute("title");
+            });
+
+            document.querySelectorAll(
+                "#box-logout .aura-sidebar-account-button"
+            ).forEach(function(botao) {
+                const titulo = botao.querySelector("strong")?.textContent?.trim() || "Ação da conta";
+                const descricao = botao.querySelector("small")?.textContent?.trim() || "Gerenciar esta sessão";
+                botao.dataset.videTooltip = "true";
+                botao.dataset.moduleGroup = "Conta";
+                botao.dataset.moduleName = titulo;
+                botao.dataset.moduleDescription = descricao;
+                botao.removeAttribute("title");
+            });
+        }
+
+        function garantirTooltipRail() {
+            if (tooltipRail) return tooltipRail;
+            tooltipRail = document.createElement("div");
+            tooltipRail.id = "vide-rail-tooltip";
+            tooltipRail.setAttribute("role", "tooltip");
+            tooltipRail.setAttribute("aria-hidden", "true");
+            document.body.appendChild(tooltipRail);
+            return tooltipRail;
+        }
+
+        function esconderTooltipRail(imediato) {
+            if (timerTooltipRail) {
+                window.clearTimeout(timerTooltipRail);
+                timerTooltipRail = null;
+            }
+            alvoTooltipRail = null;
+            if (!tooltipRail) return;
+
+            const ocultar = function() {
+                tooltipRail.classList.remove("is-visible");
+                tooltipRail.setAttribute("aria-hidden", "true");
+            };
+
+            if (imediato) ocultar();
+            else window.setTimeout(ocultar, 35);
+        }
+
+        function posicionarTooltipRail(alvo) {
+            if (!tooltipRail || !alvo || window.innerWidth < 768) return;
+
+            const caixa = alvo.getBoundingClientRect();
+            const largura = tooltipRail.offsetWidth || 250;
+            const altura = tooltipRail.offsetHeight || 74;
+            const margem = 12;
+            const esquerda = Math.min(
+                window.innerWidth - largura - margem,
+                Math.max(92, caixa.right + 13)
+            );
+            const topoIdeal = caixa.top + (caixa.height / 2) - (altura / 2);
+            const topo = Math.min(
+                window.innerHeight - altura - margem,
+                Math.max(margem, topoIdeal)
+            );
+
+            tooltipRail.style.left = esquerda + "px";
+            tooltipRail.style.top = topo + "px";
+        }
+
+        function mostrarTooltipRail(alvo) {
+            if (!alvo || window.innerWidth < 768) return;
+            if (!alvo.dataset.moduleName) return;
+
+            if (timerTooltipRail) window.clearTimeout(timerTooltipRail);
+            alvoTooltipRail = alvo;
+            const tooltip = garantirTooltipRail();
+
+            timerTooltipRail = window.setTimeout(function() {
+                if (alvoTooltipRail !== alvo) return;
+
+                tooltip.innerHTML = `
+                    <span class="vide-rail-tooltip-group">${escaparHtml(alvo.dataset.moduleGroup || "Vide Hub")}</span>
+                    <strong>${escaparHtml(alvo.dataset.moduleName || "Módulo")}</strong>
+                    <small>${escaparHtml(alvo.dataset.moduleDescription || "Abrir este recurso")}</small>
+                `;
+                tooltip.classList.add("is-visible");
+                tooltip.setAttribute("aria-hidden", "false");
+                posicionarTooltipRail(alvo);
+            }, 95);
+        }
+
+        function ativarTooltipsRail() {
+            criarAcaoRapidaLoja();
+            prepararMetadadosTooltips();
+            garantirTooltipRail();
+
+            sidebar.addEventListener("pointerover", function(evento) {
+                const alvo = evento.target.closest('[data-vide-tooltip="true"]');
+                if (!alvo || !sidebar.contains(alvo)) return;
+                if (alvo.contains(evento.relatedTarget)) return;
+                mostrarTooltipRail(alvo);
+            });
+
+            sidebar.addEventListener("pointerout", function(evento) {
+                const alvo = evento.target.closest('[data-vide-tooltip="true"]');
+                if (!alvo || !sidebar.contains(alvo)) return;
+                if (alvo.contains(evento.relatedTarget)) return;
+                esconderTooltipRail(false);
+            });
+
+            sidebar.addEventListener("focusin", function(evento) {
+                const alvo = evento.target.closest('[data-vide-tooltip="true"]');
+                if (alvo) mostrarTooltipRail(alvo);
+            });
+
+            sidebar.addEventListener("focusout", function(evento) {
+                const alvo = evento.target.closest('[data-vide-tooltip="true"]');
+                if (!alvo) return;
+                if (alvo.contains(evento.relatedTarget)) return;
+                esconderTooltipRail(false);
+            });
+
+            navegacao.addEventListener("scroll", function() {
+                esconderTooltipRail(true);
+            }, { passive: true });
+
+            window.addEventListener("resize", function() {
+                esconderTooltipRail(true);
+            }, { passive: true });
         }
 
         let central = null;
@@ -1355,6 +1594,7 @@
         }
 
         function abrirCentral() {
+            esconderTooltipRail(true);
             if (!central) criarCentralComandos();
             elementoFocoAnterior = document.activeElement;
             overflowAnterior = document.body.style.overflow;
@@ -1411,6 +1651,7 @@
 
         organizarGrupos();
         prepararEstruturaDock();
+        ativarTooltipsRail();
         ativarRolagemEstavel();
         criarCentralComandos();
 
@@ -1444,6 +1685,7 @@
         areaGrupos.addEventListener("click", function(evento) {
             const botao = evento.target.closest("button[data-target]");
             if (!botao) return;
+            esconderTooltipRail(true);
             if (window.innerWidth >= 768) sidebar.classList.remove("vide-dock-open");
         });
 
