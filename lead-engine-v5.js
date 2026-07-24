@@ -2,7 +2,7 @@
  * Vide Aura — Leads & Formulários V5
  * Central comercial completa: inbox, pipeline, agenda, histórico,
  * responsáveis, WhatsApp, receita, relatórios, duplicidades e automações.
- * Versão 5.8.0
+ * Versão 5.9.0
  */
 import { db, auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -11,13 +11,15 @@ import {
     doc,
     getDoc,
     getDocs,
+    onSnapshot,
     query,
     setDoc,
     where,
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const VERSION = "5.8.0";
+const VERSION = "5.9.0";
+const ASSET_VERSION = "590";
 const STORAGE_PREFIX = "aura_leads_v5_";
 const MAX_HISTORY = 35;
 const MAX_BATCH_SIZE = 400;
@@ -73,7 +75,8 @@ const DEFAULT_AUTOMATIONS = Object.freeze({
     hotPriority: true,
     overduePriority: true,
     stageProbability: true,
-    runOnRefresh: false
+    runOnRefresh: false,
+    newLeadSound: false
 });
 
 const state = {
@@ -83,8 +86,12 @@ const state = {
     canEdit: false,
     accessLoaded: false,
     team: [],
+    allLeads: [],
     leads: [],
+    archivedLeads: [],
+    trashLeads: [],
     filtered: [],
+    selectedIds: new Set(),
     selectedLeadId: "",
     activeTab: "inbox",
     search: "",
@@ -98,6 +105,13 @@ const state = {
     modalOpen: false,
     lifecycleController: null,
     previouslyFocusedElement: null,
+    unsubscribeLeads: null,
+    realtimeReady: false,
+    knownLeadIds: new Set(),
+    lastSeenTimestamp: 0,
+    unreadCount: 0,
+    soundUnlocked: false,
+    bulkRunning: false,
     slaMinutes: 30,
     duplicateGroups: [],
     sourceGroups: [],
@@ -126,7 +140,13 @@ const svg = {
     save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3M8 21v-7h8v7"></path></svg>`,
     merge: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3v5a4 4 0 004 4h6"></path><path d="M7 21v-5a4 4 0 014-4"></path><path d="M14 9l3 3-3 3"></path></svg>`,
     automation: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h10M4 17h16M18 7h2M4 12h4M12 12h8"></path><circle cx="16" cy="7" r="2"></circle><circle cx="10" cy="12" r="2"></circle><circle cx="8" cy="17" r="2"></circle></svg>`,
-    history: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 109-9 9 9 0 00-7.4 3.9L3 9"></path><path d="M3 4v5h5M12 7v5l3 2"></path></svg>`
+    history: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 109-9 9 9 0 00-7.4 3.9L3 9"></path><path d="M3 4v5h5M12 7v5l3 2"></path></svg>`,
+    archive: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16v13H4z"></path><path d="M3 3h18v4H3zM9 11h6"></path></svg>`,
+    trash: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7h16M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6"></path></svg>`,
+    restore: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 8v5h5"></path><path d="M5.5 16a8 8 0 101.2-9.2L4 10"></path></svg>`,
+    check: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 4 4L19 6"></path></svg>`,
+    eye: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"></path><circle cx="12" cy="12" r="2.5"></circle></svg>`,
+    bell: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 9a6 6 0 00-12 0c0 6-3 7-3 9h18c0-2-3-3-3-9"></path><path d="M10 21h4"></path></svg>`
 };
 
 function escapeHTML(value) {
@@ -154,6 +174,169 @@ function normalizePhone(value) {
 
 function normalizeEmail(value) {
     return String(value || "").trim().toLowerCase();
+}
+
+function ensureAssetVersion() {
+    const link = document.querySelector(
+        'link[href*="lead-engine-v5.css"]'
+    );
+
+    if (link) {
+        try {
+            const url = new URL(
+                link.getAttribute("href") || "./lead-engine-v5.css",
+                window.location.href
+            );
+            if (url.searchParams.get("v") !== ASSET_VERSION) {
+                url.searchParams.set("v", ASSET_VERSION);
+                link.href = url.href;
+            }
+        } catch (error) {
+            console.info("[Aura Leads V5] Cache visual será atualizado na próxima abertura.");
+        }
+    }
+
+    document.documentElement.dataset.auraLeadsVersion = VERSION;
+}
+
+function lastSeenStorageKey() {
+    return `${STORAGE_PREFIX}last_seen_${state.ownerUid}`;
+}
+
+function loadLastSeen() {
+    const saved = Number(localStorage.getItem(lastSeenStorageKey()));
+    if (Number.isFinite(saved) && saved > 0) {
+        state.lastSeenTimestamp = saved;
+        return;
+    }
+
+    state.lastSeenTimestamp = Date.now();
+    localStorage.setItem(
+        lastSeenStorageKey(),
+        String(state.lastSeenTimestamp)
+    );
+}
+
+function saveLastSeen(value = Date.now()) {
+    state.lastSeenTimestamp = Math.max(
+        state.lastSeenTimestamp,
+        Number(value) || Date.now()
+    );
+    localStorage.setItem(
+        lastSeenStorageKey(),
+        String(state.lastSeenTimestamp)
+    );
+}
+
+function findLead(leadId) {
+    return state.allLeads.find((item) => item.id === leadId) || null;
+}
+
+function currentTabCollection() {
+    if (state.activeTab === "archived") return state.archivedLeads;
+    if (state.activeTab === "trash") return state.trashLeads;
+    return state.leads;
+}
+
+function currentSelectableCollection() {
+    if (state.activeTab === "priority") {
+        return state.leads.filter((lead) =>
+            lead._overdue ||
+            lead._temperature === "hot" ||
+            lead.prioridadeLead === "alta"
+        );
+    }
+    return currentTabCollection();
+}
+
+function refreshLeadCollections() {
+    state.allLeads.sort((a, b) => b._timestamp - a._timestamp);
+    state.leads = state.allLeads.filter((lead) => !lead.lixeira && !lead.arquivado);
+    state.archivedLeads = state.allLeads.filter((lead) => lead.arquivado && !lead.lixeira);
+    state.trashLeads = state.allLeads.filter((lead) => lead.lixeira);
+    state.unreadCount = state.leads.filter((lead) => lead._unread).length;
+
+    const validIds = new Set(currentSelectableCollection().map((lead) => lead.id));
+    state.selectedIds.forEach((id) => {
+        if (!validIds.has(id)) state.selectedIds.delete(id);
+    });
+
+    deriveGroups();
+    updateUnreadBadges();
+    updateActiveTabUI();
+}
+
+function updateUnreadBadges() {
+    const count = state.unreadCount;
+    const targets = [
+        document.getElementById("aura-leads-v5-entry-badge"),
+        document.getElementById("aura-leads-v5-inbox-badge")
+    ];
+
+    targets.forEach((badge) => {
+        if (!badge) return;
+        badge.textContent = count > 99 ? "99+" : String(count);
+        badge.hidden = count < 1;
+    });
+
+    const notificationButton = document.getElementById("btn-notificacoes");
+    let notificationBadge = document.getElementById(
+        "aura-leads-v5-notification-badge"
+    );
+
+    if (notificationButton && !notificationBadge) {
+        notificationBadge = document.createElement("span");
+        notificationBadge.id = "aura-leads-v5-notification-badge";
+        notificationBadge.className = "aura-leads-v5-notification-badge";
+        notificationButton.appendChild(notificationBadge);
+    }
+
+    if (notificationBadge) {
+        notificationBadge.textContent = count > 99 ? "99+" : String(count);
+        notificationBadge.hidden = count < 1;
+    }
+
+    window.dispatchEvent(new CustomEvent("aura:leads-v5-unread", {
+        detail: {
+            count,
+            ownerUid: state.ownerUid,
+            version: VERSION
+        }
+    }));
+}
+
+function playNewLeadSound() {
+    if (!state.automation.newLeadSound || !state.soundUnlocked) return;
+
+    try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!AudioContext) return;
+        const context = new AudioContext();
+        const oscillator = context.createOscillator();
+        const gain = context.createGain();
+        oscillator.type = "sine";
+        oscillator.frequency.setValueAtTime(740, context.currentTime);
+        gain.gain.setValueAtTime(0.0001, context.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.08, context.currentTime + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.0001, context.currentTime + 0.24);
+        oscillator.connect(gain);
+        gain.connect(context.destination);
+        oscillator.start();
+        oscillator.stop(context.currentTime + 0.25);
+        oscillator.addEventListener("ended", () => context.close());
+    } catch (error) {
+        console.info("[Aura Leads V5] Som de novo lead indisponível.");
+    }
+}
+
+function notifyNewLeads(leads) {
+    if (!leads.length) return;
+    const first = leads[0];
+    const message = leads.length === 1
+        ? `Novo lead: ${first.nome || "Lead sem nome"}`
+        : `${leads.length} novos leads recebidos`;
+    toast(message);
+    playNewLeadSound();
 }
 
 function numericValue(value) {
@@ -300,6 +483,7 @@ function isOverdue(lead) {
 }
 
 function normalizeLead(lead) {
+    const capturedAt = leadTimestamp(lead);
     const score = Number.isFinite(Number(lead.leadScore))
         ? Number(lead.leadScore)
         : computeScore(lead);
@@ -338,8 +522,9 @@ function normalizeLead(lead) {
 
     return {
         ...lead,
-        _timestamp: leadTimestamp(lead),
+        _timestamp: capturedAt,
         _status: status,
+        _unread: !anyTimestamp(lead.visualizadoEm) && capturedAt > state.lastSeenTimestamp,
         _score: Math.max(0, Math.min(100, Math.round(score))),
         _temperature: temperatureFor(score),
         _overdue: isOverdue(lead),
@@ -424,6 +609,10 @@ function restorePreviousFocus() {
 
 function teardownModalLifecycle() {
     closeModal({ restoreFocus: false });
+    if (typeof state.unsubscribeLeads === "function") {
+        state.unsubscribeLeads();
+    }
+    state.unsubscribeLeads = null;
     state.lifecycleController?.abort();
     state.lifecycleController = null;
     state.previouslyFocusedElement = null;
@@ -577,7 +766,7 @@ function injectEntryButton() {
     entry.className = "aura-leads-v5-entry";
     entry.innerHTML = `
         <div class="aura-leads-v5-entry-copy">
-            <span class="aura-leads-v5-kicker">Aura Leads V5.8</span>
+            <span class="aura-leads-v5-kicker">Aura Leads V5.9</span>
             <h2>Pipeline comercial completo em uma única operação</h2>
             <p>Leads, agenda, histórico, responsáveis, mensagens, previsão de receita, relatórios e automações.</p>
         </div>
@@ -585,6 +774,7 @@ function injectEntryButton() {
             <span class="aura-leads-v5-entry-status"><i></i>Motor comercial ativo</span>
             <button type="button" id="aura-leads-v5-open" class="aura-leads-v5-primary">
                 ${svg.spark} Abrir Leads V5
+                <span id="aura-leads-v5-entry-badge" class="aura-leads-v5-unread-badge" hidden>0</span>
             </button>
         </div>
     `;
@@ -596,6 +786,7 @@ function injectEntryButton() {
     entry.querySelector("#aura-leads-v5-open")?.addEventListener(
         "click", openModal, { signal: getLifecycleSignal() }
     );
+    updateUnreadBadges();
 }
 
 function renderEmptyDetail() {
@@ -625,7 +816,7 @@ function injectModal() {
             <header class="aura-leads-v5-header">
                 <div class="aura-leads-v5-brand">
                     <span class="aura-leads-v5-brand-icon">${svg.spark}</span>
-                    <div><span>Aura Operations</span><h2 id="aura-leads-v5-title">Leads & Formulários V5</h2></div>
+                    <div><span>Aura Operations</span><h2 id="aura-leads-v5-title">Leads & Formulários V5.9</h2></div>
                 </div>
                 <div class="aura-leads-v5-header-actions">
                     <span id="aura-leads-v5-access-badge" class="aura-leads-v5-access-badge"></span>
@@ -637,7 +828,7 @@ function injectModal() {
 
             <div class="aura-leads-v5-toolbar">
                 <nav class="aura-leads-v5-tabs" aria-label="Áreas da central">
-                    <button type="button" data-tab="inbox" class="is-active">${svg.user}<span>Inbox</span></button>
+                    <button type="button" data-tab="inbox" class="is-active">${svg.user}<span>Inbox</span><em id="aura-leads-v5-inbox-badge" hidden>0</em></button>
                     <button type="button" data-tab="pipeline">${svg.board}<span>Pipeline</span></button>
                     <button type="button" data-tab="agenda">${svg.calendar}<span>Agenda</span></button>
                     <button type="button" data-tab="priority">${svg.spark}<span>Prioridades</span></button>
@@ -645,6 +836,8 @@ function injectModal() {
                     <button type="button" data-tab="sources">${svg.source}<span>Origens</span></button>
                     <button type="button" data-tab="reports">${svg.chart}<span>Relatórios</span></button>
                     <button type="button" data-tab="duplicates">${svg.duplicate}<span>Duplicidades</span></button>
+                    <button type="button" data-tab="archived">${svg.archive}<span>Arquivados</span><em>${state.archivedLeads.length}</em></button>
+                    <button type="button" data-tab="trash">${svg.trash}<span>Lixeira</span><em>${state.trashLeads.length}</em></button>
                     <button type="button" data-tab="automations">${svg.automation}<span>Automações</span></button>
                 </nav>
                 <div class="aura-leads-v5-sla">
@@ -675,12 +868,17 @@ function injectModal() {
         button.addEventListener("click", closeModal, { signal });
     });
 
-    modal.querySelector("[data-action='refresh']")?.addEventListener("click", loadLeads, { signal });
+    modal.querySelector("[data-action='refresh']")?.addEventListener(
+        "click",
+        () => loadLeads({ force: true }),
+        { signal }
+    );
     modal.querySelector("[data-action='export']")?.addEventListener("click", exportCSV, { signal });
 
     modal.querySelectorAll("[data-tab]").forEach((button) => {
         button.addEventListener("click", () => {
             state.activeTab = button.dataset.tab || "inbox";
+            state.selectedIds.clear();
             updateActiveTabUI();
             closeDetail();
             render();
@@ -717,6 +915,7 @@ function injectModal() {
     }, { signal });
 
     updateAccessBadge();
+    updateUnreadBadges();
     return modal;
 }
 
@@ -728,11 +927,15 @@ function updateAccessBadge() {
 }
 
 function updateActiveTabUI() {
-    document.getElementById("aura-leads-v5-modal")
-        ?.querySelectorAll("[data-tab]")
-        .forEach((button) => {
-            button.classList.toggle("is-active", button.dataset.tab === state.activeTab);
-        });
+    const modal = document.getElementById("aura-leads-v5-modal");
+    modal?.querySelectorAll("[data-tab]").forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.tab === state.activeTab);
+        const count = button.querySelector("em");
+        if (!count || count.id === "aura-leads-v5-inbox-badge") return;
+        if (button.dataset.tab === "archived") count.textContent = String(state.archivedLeads.length);
+        if (button.dataset.tab === "trash") count.textContent = String(state.trashLeads.length);
+    });
+    updateUnreadBadges();
 }
 
 function openModal() {
@@ -749,7 +952,7 @@ function openModal() {
     updateAccessBadge();
     updateActiveTabUI();
 
-    if (!state.leads.length && !state.loading) loadLeads();
+    if (!state.unsubscribeLeads && !state.loading) loadLeads();
     else render();
 
     focusModal(modal);
@@ -771,41 +974,80 @@ function closeDetail() {
     state.selectedLeadId = "";
 }
 
-async function loadLeads() {
-    if (!state.ownerUid || state.loading) return;
-    state.loading = true;
-    renderLoading();
+function handleRealtimeSnapshot(snapshot) {
+    const wasReady = state.realtimeReady;
+    const previousIds = state.knownLeadIds;
+    const incoming = snapshot.docs
+        .map((item) => normalizeLead({ id: item.id, ...item.data() }));
 
-    try {
-        const snapshot = await getDocs(query(
-            collection(db, "leads"),
-            where("criadoPor", "==", state.ownerUid)
-        ));
+    const newIds = new Set(incoming.map((lead) => lead.id));
+    const added = wasReady
+        ? incoming.filter((lead) =>
+            !previousIds.has(lead.id) &&
+            lead._timestamp > state.lastSeenTimestamp
+        )
+        : [];
 
-        state.leads = snapshot.docs
-            .map((item) => normalizeLead({ id: item.id, ...item.data() }))
-            .filter((lead) => !lead.lixeira && !lead.arquivado)
-            .sort((a, b) => b._timestamp - a._timestamp);
+    state.knownLeadIds = newIds;
+    state.realtimeReady = true;
+    state.allLeads = incoming;
+    state.loading = false;
+    refreshLeadCollections();
+    updateActiveTabUI();
 
-        deriveGroups();
-
-        if (state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
-            await runAutomations({ silent: true, skipRender: true });
-        }
-
-        state.loading = false;
+    if (state.modalOpen) {
         render();
-
         if (state.selectedLeadId) {
-            const exists = state.leads.some((lead) => lead.id === state.selectedLeadId);
+            const exists = Boolean(findLead(state.selectedLeadId));
             if (exists) renderDetail(state.selectedLeadId);
             else closeDetail();
         }
-    } catch (error) {
-        state.loading = false;
-        console.error("[Aura Leads V5] Falha ao carregar leads:", error);
-        renderError("Não foi possível carregar os leads. Verifique suas regras do Firestore.");
     }
+
+    if (added.length) notifyNewLeads(added);
+
+    if (!wasReady && state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
+        runAutomations({ silent: true, skipRender: true });
+    }
+}
+
+function loadLeads(options = {}) {
+    if (!state.ownerUid) return;
+    const force = options === true || Boolean(options?.force);
+
+    if (state.unsubscribeLeads && !force) {
+        state.loading = false;
+        if (state.modalOpen) render();
+        return;
+    }
+
+    if (typeof state.unsubscribeLeads === "function") {
+        state.unsubscribeLeads();
+    }
+
+    state.unsubscribeLeads = null;
+    state.realtimeReady = false;
+    state.knownLeadIds = new Set();
+    state.loading = true;
+    if (state.modalOpen) renderLoading();
+
+    const leadsQuery = query(
+        collection(db, "leads"),
+        where("criadoPor", "==", state.ownerUid)
+    );
+
+    state.unsubscribeLeads = onSnapshot(
+        leadsQuery,
+        handleRealtimeSnapshot,
+        (error) => {
+            state.loading = false;
+            state.unsubscribeLeads = null;
+            console.error("[Aura Leads V5] Falha na sincronização em tempo real:", error);
+            if (state.modalOpen) {
+                renderError("Não foi possível sincronizar os leads. Verifique suas regras do Firestore.");
+            }
+        }
+    );
 }
 
 function deriveGroups() {
@@ -915,6 +1157,12 @@ function render() {
         case "duplicates":
             content.innerHTML = renderDuplicates();
             break;
+        case "archived":
+            content.innerHTML = renderStoredLeads("archived");
+            break;
+        case "trash":
+            content.innerHTML = renderStoredLeads("trash");
+            break;
         case "automations":
             content.innerHTML = renderAutomations();
             break;
@@ -931,7 +1179,7 @@ function renderInbox(content) {
         : state.leads;
 
     state.filtered = applyFilters(baseLeads);
-    content.innerHTML = `${renderMetrics()}${renderFilters()}${renderLeadTable(state.filtered)}`;
+    content.innerHTML = `${renderMetrics()}${renderFilters()}${renderBulkBar(state.filtered)}${renderLeadTable(state.filtered)}`;
 }
 
 function renderMetrics() {
@@ -948,7 +1196,7 @@ function renderMetrics() {
         <section class="aura-leads-v5-metrics">
             <article>
                 <span>Base ativa</span><strong>${total.toLocaleString("pt-BR")}</strong>
-                <small>${open.length} oportunidade(s) em aberto</small>
+                <small>${open.length} em aberto · ${state.unreadCount} não lido(s)</small>
             </article>
             <article data-state="${due ? "danger" : "ok"}">
                 <span>Follow-ups vencidos</span><strong>${due}</strong>
@@ -997,7 +1245,7 @@ function renderTeamOptions(selected, includeAll = false) {
     });
 
     if (selected && selected !== "all" && !known.has(selected)) {
-        const lead = state.leads.find((item) =>
+        const lead = state.allLeads.find((item) =>
             item._responsibleUid === selected && item._responsibleName
         );
         options.push(`
@@ -1043,6 +1291,8 @@ function renderFilters() {
             <select id="aura-leads-v5-responsible" aria-label="Filtrar por responsável">
                 ${renderTeamOptions(state.responsible, true)}
             </select>
+            <button type="button" class="aura-leads-v5-secondary" data-action="mark-read"
+                ${state.unreadCount ? "" : "disabled"}>${svg.eye} Marcar lidos</button>
             <button type="button" class="aura-leads-v5-secondary" data-action="recalculate"
                 ${state.canEdit ? "" : "disabled"}>${svg.spark} Recalcular</button>
         </section>
@@ -1055,28 +1305,102 @@ function responsibleLabel(lead) {
         "Sem responsável";
 }
 
+function selectedLeads() {
+    return Array.from(state.selectedIds)
+        .map(findLead)
+        .filter(Boolean);
+}
+
+function renderBulkBar(leads) {
+    if (!state.canEdit || !["inbox", "priority", "archived", "trash"].includes(state.activeTab)) {
+        return "";
+    }
+
+    const count = selectedLeads().length;
+    const disabled = !count || state.bulkRunning ? "disabled" : "";
+    const visibleIds = leads.map((lead) => lead.id);
+    const allVisibleSelected = visibleIds.length > 0 && visibleIds.every((id) => state.selectedIds.has(id));
+    const activeMode = state.activeTab === "inbox" || state.activeTab === "priority";
+
+    let actions = "";
+    if (activeMode) {
+        actions = `
+            <label><span>Etapa</span><select id="aura-leads-v5-bulk-stage">
+                ${PIPELINE_STAGES.map((stage) => `<option value="${stage.id}">${stage.label}</option>`).join("")}
+            </select><button type="button" data-bulk-action="stage" ${disabled}>Aplicar</button></label>
+            <label><span>Responsável</span><select id="aura-leads-v5-bulk-responsible">
+                ${renderTeamOptions("")}
+            </select><button type="button" data-bulk-action="responsible" ${disabled}>Aplicar</button></label>
+            <label><span>Prioridade</span><select id="aura-leads-v5-bulk-priority">
+                <option value="baixa">Baixa</option><option value="normal">Normal</option><option value="alta">Alta</option>
+            </select><button type="button" data-bulk-action="priority" ${disabled}>Aplicar</button></label>
+            <button type="button" class="is-archive" data-bulk-action="archive" ${disabled}>${svg.archive} Arquivar</button>
+            <button type="button" class="is-danger" data-bulk-action="trash" ${disabled}>${svg.trash} Lixeira</button>
+        `;
+    } else if (state.activeTab === "archived") {
+        actions = `
+            <button type="button" class="is-restore" data-bulk-action="restore" ${disabled}>${svg.restore} Restaurar</button>
+            <button type="button" class="is-danger" data-bulk-action="trash" ${disabled}>${svg.trash} Lixeira</button>
+        `;
+    } else {
+        actions = `<button type="button" class="is-restore" data-bulk-action="restore" ${disabled}>${svg.restore} Restaurar</button>`;
+    }
+
+    return `<section class="aura-leads-v5-bulk ${count ? "is-active" : ""}">
+        <div class="aura-leads-v5-bulk-summary">
+            <button type="button" data-bulk-action="toggle-visible">${svg.check} ${allVisibleSelected ? "Desmarcar visíveis" : "Selecionar visíveis"}</button>
+            <strong>${count} selecionado(s)</strong>
+            <button type="button" data-bulk-action="clear" ${count ? "" : "disabled"}>Limpar</button>
+        </div>
+        <div class="aura-leads-v5-bulk-actions">${actions}</div>
+    </section>`;
+}
+
+function renderStoredLeads(kind) {
+    const isTrash = kind === "trash";
+    const collection = isTrash ? state.trashLeads : state.archivedLeads;
+    state.filtered = applyFilters(collection);
+
+    return `<section class="aura-leads-v5-storage-heading" data-kind="${kind}">
+        <div>${isTrash ? svg.trash : svg.archive}<span>
+            <small>${isTrash ? "Recuperação" : "Organização"}</small>
+            <h3>${isTrash ? "Lixeira de leads" : "Leads arquivados"}</h3>
+            <p>${isTrash
+                ? "Restaure registros removidos da operação. Nenhum documento é apagado permanentemente nesta etapa."
+                : "Consulte registros retirados da operação ativa e restaure quando necessário."}</p>
+        </span></div>
+        <strong>${collection.length}</strong>
+    </section>
+    ${renderFilters()}
+    ${renderBulkBar(state.filtered)}
+    ${renderLeadTable(state.filtered)}`;
+}
+
 function renderLeadTable(leads) {
     if (!leads.length) {
-        return `<section class="aura-leads-v5-empty">${svg.user}
-            <h3>Nenhum lead encontrado</h3>
-            <p>Ajuste os filtros ou aguarde novas capturas.</p>
+        const stored = state.activeTab === "archived" || state.activeTab === "trash";
+        return `<section class="aura-leads-v5-empty">${stored ? (state.activeTab === "trash" ? svg.trash : svg.archive) : svg.user}
+            <h3>${stored ? "Nenhum registro nesta área" : "Nenhum lead encontrado"}</h3>
+            <p>${stored ? "Os registros movidos para cá aparecerão nesta lista." : "Ajuste os filtros ou aguarde novas capturas."}</p>
         </section>`;
     }
 
+    const selectable = state.canEdit && ["inbox", "priority", "archived", "trash"].includes(state.activeTab);
     return `
         <section class="aura-leads-v5-table-wrap">
-            <table class="aura-leads-v5-table">
+            <table class="aura-leads-v5-table ${selectable ? "has-selection" : ""}">
                 <thead><tr>
+                    ${selectable ? "<th class=\"aura-leads-v5-select-cell\"></th>" : ""}
                     <th>Lead</th><th>Intenção</th><th>Origem</th><th>Pipeline</th>
                     <th>Valor</th><th>Responsável</th><th>Agenda</th><th>Capturado</th><th></th>
                 </tr></thead>
-                <tbody>${leads.map(renderLeadRow).join("")}</tbody>
+                <tbody>${leads.map((lead) => renderLeadRow(lead, selectable)).join("")}</tbody>
             </table>
         </section>
     `;
 }
 
-function renderLeadRow(lead) {
+function renderLeadRow(lead, selectable = false) {
     const temp = TEMPERATURES[lead._temperature] || TEMPERATURES.cold;
     const contact = lead.whatsapp || lead.telefone || lead.email || "Sem contato";
     const interest = lead.produtoInteresse || lead.paginaOrigem || "Sem interesse informado";
@@ -1084,13 +1408,22 @@ function renderLeadRow(lead) {
         ? `${lead._campaign} · ${interest}`
         : interest;
     const followup = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+    const rowClasses = [
+        state.selectedLeadId === lead.id ? "is-selected" : "",
+        lead._unread ? "is-unread" : "",
+        lead.arquivado ? "is-archived" : "",
+        lead.lixeira ? "is-trash" : ""
+    ].filter(Boolean).join(" ");
 
     return `
-        <tr data-open-lead="${escapeHTML(lead.id)}"
-            class="${state.selectedLeadId === lead.id ? "is-selected" : ""}">
+        <tr data-open-lead="${escapeHTML(lead.id)}" class="${rowClasses}">
+            ${selectable ? `<td class="aura-leads-v5-select-cell"><label class="aura-leads-v5-row-check" title="Selecionar lead">
+                <input type="checkbox" data-select-lead="${escapeHTML(lead.id)}" ${state.selectedIds.has(lead.id) ? "checked" : ""}>
+                <span>${svg.check}</span>
+            </label></td>` : ""}
             <td><div class="aura-leads-v5-person">
                 <span class="aura-leads-v5-avatar">${escapeHTML((lead.nome || "L").charAt(0).toUpperCase())}</span>
-                <div><strong>${escapeHTML(lead.nome || "Lead sem nome")}</strong><small>${escapeHTML(contact)}</small></div>
+                <div><strong>${escapeHTML(lead.nome || "Lead sem nome")}${lead._unread ? '<em class="aura-leads-v5-new-label">Novo</em>' : ""}</strong><small>${escapeHTML(contact)}</small></div>
             </div></td>
             <td><div class="aura-leads-v5-score" data-temperature="${lead._temperature}">
                 <span>${lead._score}</span><div><strong>${temp.label}</strong><i><b style="width:${lead._score}%"></b></i></div>
@@ -1374,11 +1707,12 @@ function renderDuplicates() {
         </section>`;
 }
 
-function automationToggle(key, title, description) {
+function automationToggle(key, title, description, localOnly = false) {
+    const disabled = !localOnly && !state.canEdit ? "disabled" : "";
     return `<label class="aura-leads-v5-automation-rule">
         <span><strong>${escapeHTML(title)}</strong><small>${escapeHTML(description)}</small></span>
         <input type="checkbox" data-automation-key="${escapeHTML(key)}"
-            ${state.automation[key] ? "checked" : ""} ${state.canEdit ? "" : "disabled"}><i></i>
+            ${state.automation[key] ? "checked" : ""} ${disabled}><i></i>
     </label>`;
 }
 
@@ -1394,6 +1728,7 @@ function renderAutomations() {
                 ${automationToggle("overduePriority", "Priorizar follow-ups vencidos", "Eleva a prioridade de oportunidades com contato atrasado.")}
                 ${automationToggle("stageProbability", "Sincronizar probabilidade com a etapa", "Convertidos ficam em 100% e perdidos em 0%.")}
                 ${automationToggle("runOnRefresh", "Executar ao atualizar", "Aplica as regras habilitadas quando a base é recarregada.")}
+                ${automationToggle("newLeadSound", "Som para novo lead", "Emite um aviso curto quando uma nova captura chegar com o painel aberto.", true)}
             </div>
             <aside>${svg.automation}<h4>Execução controlada</h4>
                 <p>As regras não criam contatos, não alteram valores e não disparam WhatsApp.</p>
@@ -1406,14 +1741,181 @@ function renderAutomations() {
 }
 
 function openLead(leadId) {
-    const lead = state.leads.find((item) => item.id === leadId);
+    const lead = findLead(leadId);
     if (!lead) return;
     state.selectedLeadId = leadId;
+    markLeadViewed(lead);
     renderDetail(leadId);
     document.getElementById("aura-leads-v5-modal")?.classList.add("is-detail-open");
     document.querySelectorAll("[data-open-lead]").forEach((item) => {
         item.classList.toggle("is-selected", item.dataset.openLead === leadId);
     });
+}
+
+async function markLeadViewed(lead) {
+    if (!lead?._unread) return;
+    const viewedAt = Date.now();
+    lead.visualizadoEm = viewedAt;
+    Object.assign(lead, normalizeLead(lead));
+    refreshLeadCollections();
+
+    if (state.modalOpen && ["inbox", "priority"].includes(state.activeTab)) {
+        refreshInboxResults();
+    }
+
+    if (!state.canEdit) return;
+    try {
+        await setDoc(doc(db, "leads", lead.id), {
+            visualizadoEm: viewedAt,
+            visualizadoPorUid: state.user?.uid || "",
+            visualizadoPorNome: actorName()
+        }, { merge: true });
+    } catch (error) {
+        console.info("[Aura Leads V5] Visualização mantida apenas neste dispositivo.");
+    }
+}
+
+async function markAllRead() {
+    const unread = state.leads.filter((lead) => lead._unread);
+    if (!unread.length) return;
+    const viewedAt = Date.now();
+    saveLastSeen(viewedAt);
+
+    unread.forEach((lead) => {
+        lead.visualizadoEm = viewedAt;
+        Object.assign(lead, normalizeLead(lead));
+    });
+    refreshLeadCollections();
+    render();
+
+    if (state.canEdit) {
+        try {
+            await commitLeadPatches(unread.map((lead) => ({
+                id: lead.id,
+                data: {
+                    visualizadoEm: viewedAt,
+                    visualizadoPorUid: state.user?.uid || "",
+                    visualizadoPorNome: actorName()
+                }
+            })));
+        } catch (error) {
+            console.info("[Aura Leads V5] Leitura salva apenas neste dispositivo.");
+        }
+    }
+    toast("Leads marcados como lidos.");
+}
+
+async function moveLeadStorage(lead, action) {
+    if (!state.canEdit || !lead) {
+        toast("Seu acesso é somente para consulta.", "error");
+        return;
+    }
+
+    let updates = {};
+    let event = null;
+    if (action === "archive") {
+        updates = { arquivado: true, lixeira: false, arquivadoEm: Date.now() };
+        event = makeHistoryEvent("archive", "Lead arquivado", "Removido da operação ativa.");
+    } else if (action === "trash") {
+        updates = { lixeira: true, arquivado: false, movidoLixeiraEm: Date.now() };
+        event = makeHistoryEvent("trash", "Lead movido para a lixeira", "Registro disponível para restauração.");
+    } else if (action === "restore") {
+        updates = { lixeira: false, arquivado: false, restauradoEm: Date.now() };
+        event = makeHistoryEvent("restore", "Lead restaurado", "Registro devolvido à operação ativa.");
+    } else {
+        return;
+    }
+
+    const success = await persistLeadUpdates(lead, updates, event);
+    if (!success) return;
+    closeDetail();
+    render();
+    toast(action === "archive" ? "Lead arquivado." : action === "trash" ? "Lead movido para a lixeira." : "Lead restaurado.");
+}
+
+async function applyBulkAction(action) {
+    if (!state.canEdit || state.bulkRunning) return;
+    const leads = selectedLeads();
+    if (!leads.length) return toast("Selecione pelo menos um lead.", "error");
+
+    if (action === "trash") {
+        const confirmed = window.confirm(`Mover ${leads.length} lead(s) para a lixeira?`);
+        if (!confirmed) return;
+    }
+
+    const bulkValues = {
+        stage: document.getElementById("aura-leads-v5-bulk-stage")?.value || "novo",
+        responsible: document.getElementById("aura-leads-v5-bulk-responsible")?.value || "",
+        priority: document.getElementById("aura-leads-v5-bulk-priority")?.value || "normal"
+    };
+
+    state.bulkRunning = true;
+    render();
+    const timestamp = Date.now();
+
+    try {
+        const patches = leads.map((lead) => {
+            let updates = {};
+            let detail = "";
+            let title = "Atualização em massa";
+
+            if (action === "stage") {
+                const stage = bulkValues.stage;
+                updates = {
+                    statusLead: stage,
+                    status: stage,
+                    pipelineStage: stage,
+                    probabilidade: stage === "convertido" ? 100 : stage === "perdido" ? 0 : stageProbability(stage)
+                };
+                title = "Etapa alterada em massa";
+                detail = STATUS_LABELS[stage] || stage;
+            } else if (action === "responsible") {
+                const uid = bulkValues.responsible;
+                const person = state.team.find((item) => item.uid === uid);
+                updates = { responsavelUid: uid, responsavelNome: person?.nome || "" };
+                title = "Responsável alterado em massa";
+                detail = person?.nome || "Sem responsável";
+            } else if (action === "priority") {
+                const priority = bulkValues.priority;
+                updates = { prioridadeLead: priority };
+                title = "Prioridade alterada em massa";
+                detail = priority;
+            } else if (action === "archive") {
+                updates = { arquivado: true, lixeira: false, arquivadoEm: timestamp };
+                title = "Lead arquivado";
+                detail = "Ação em massa";
+            } else if (action === "trash") {
+                updates = { lixeira: true, arquivado: false, movidoLixeiraEm: timestamp };
+                title = "Lead movido para a lixeira";
+                detail = "Ação em massa";
+            } else if (action === "restore") {
+                updates = { lixeira: false, arquivado: false, restauradoEm: timestamp };
+                title = "Lead restaurado";
+                detail = "Ação em massa";
+            }
+
+            updates.atualizadoEm = timestamp;
+            updates.historicoLead = historyWithEvent(
+                lead,
+                makeHistoryEvent("bulk", title, detail)
+            );
+            Object.assign(lead, updates);
+            Object.assign(lead, normalizeLead(lead));
+            return { id: lead.id, data: updates };
+        });
+
+        await commitLeadPatches(patches);
+        state.selectedIds.clear();
+        refreshLeadCollections();
+        state.bulkRunning = false;
+        render();
+        toast(`${patches.length} lead(s) atualizados.`);
+    } catch (error) {
+        state.bulkRunning = false;
+        console.error("[Aura Leads V5] Falha na ação em massa:", error);
+        render();
+        toast("Não foi possível concluir a ação em massa.", "error");
+    }
 }
 
 function historyEntries(lead) {
@@ -1456,12 +1958,13 @@ function buildWhatsappMessage(lead, templateKey) {
 
 function renderDetail(leadId) {
     const host = document.getElementById("aura-leads-v5-detail");
-    const lead = state.leads.find((item) => item.id === leadId);
+    const lead = findLead(leadId);
     if (!host || !lead) return;
 
     const temp = TEMPERATURES[lead._temperature] || TEMPERATURES.cold;
     const phone = lead._phone;
-    const readOnly = state.canEdit ? "" : "disabled";
+    const stored = Boolean(lead.arquivado || lead.lixeira);
+    const readOnly = state.canEdit && !stored ? "" : "disabled";
     const defaultTemplate = lead._status === "proposta"
         ? "fechamento"
         : lead._status === "em_contato" ? "followup" : "saudacao";
@@ -1471,7 +1974,7 @@ function renderDetail(leadId) {
         <div class="aura-leads-v5-detail-head">
             <div class="aura-leads-v5-person">
                 <span class="aura-leads-v5-avatar aura-leads-v5-avatar-large">${escapeHTML((lead.nome || "L").charAt(0).toUpperCase())}</span>
-                <div><small>Oportunidade selecionada</small><h3>${escapeHTML(lead.nome || "Lead sem nome")}</h3>
+                <div><small>${lead.lixeira ? "Lead na lixeira" : lead.arquivado ? "Lead arquivado" : lead._unread ? "Novo lead" : "Oportunidade selecionada"}</small><h3>${escapeHTML(lead.nome || "Lead sem nome")}</h3>
                     <p>${escapeHTML(lead.whatsapp || lead.telefone || lead.email || "Sem contato")}</p>
                 </div>
             </div>
@@ -1537,8 +2040,12 @@ function renderDetail(leadId) {
         ${renderHistory(lead)}
 
         <footer class="aura-leads-v5-detail-footer">
-            <span>${state.canEdit ? (lead._overdue ? "Follow-up ou SLA vencido" : `Etapa atual: ${STATUS_LABELS[lead._status]}`) : "Acesso somente para consulta"}</span>
-            <button type="button" class="aura-leads-v5-primary" data-detail-action="save" ${readOnly}>${svg.save} Salvar alterações</button>
+            <span>${state.canEdit ? (lead.lixeira ? "Registro disponível para restauração" : lead.arquivado ? "Registro fora da operação ativa" : lead._overdue ? "Follow-up ou SLA vencido" : `Etapa atual: ${STATUS_LABELS[lead._status]}`) : "Acesso somente para consulta"}</span>
+            <div class="aura-leads-v5-detail-footer-actions">
+                ${state.canEdit && lead.lixeira ? `<button type="button" class="aura-leads-v5-secondary is-restore" data-detail-action="restore">${svg.restore} Restaurar</button>` : ""}
+                ${state.canEdit && lead.arquivado ? `<button type="button" class="aura-leads-v5-secondary is-restore" data-detail-action="restore">${svg.restore} Restaurar</button><button type="button" class="aura-leads-v5-secondary is-danger" data-detail-action="trash">${svg.trash} Lixeira</button>` : ""}
+                ${state.canEdit && !stored ? `<button type="button" class="aura-leads-v5-secondary" data-detail-action="archive">${svg.archive} Arquivar</button><button type="button" class="aura-leads-v5-secondary is-danger" data-detail-action="trash">${svg.trash} Lixeira</button><button type="button" class="aura-leads-v5-primary" data-detail-action="save">${svg.save} Salvar alterações</button>` : ""}
+            </div>
         </footer>
     `;
 }
@@ -1575,7 +2082,7 @@ async function persistLeadUpdates(lead, updates, event) {
         await setDoc(doc(db, "leads", lead.id), payload, { merge: true });
         Object.assign(lead, payload);
         Object.assign(lead, normalizeLead(lead));
-        deriveGroups();
+        refreshLeadCollections();
         return true;
     } catch (error) {
         console.error("[Aura Leads V5] Falha ao atualizar lead:", error);
@@ -1585,7 +2092,7 @@ async function persistLeadUpdates(lead, updates, event) {
 }
 
 async function saveLeadDetail() {
-    const lead = state.leads.find((item) => item.id === state.selectedLeadId);
+    const lead = findLead(state.selectedLeadId);
     if (!lead) return;
 
     const status = document.getElementById("aura-leads-v5-detail-status")?.value || "novo";
@@ -1638,7 +2145,7 @@ async function saveLeadDetail() {
 }
 
 async function registerContact(leadId = state.selectedLeadId) {
-    const lead = state.leads.find((item) => item.id === leadId);
+    const lead = findLead(leadId);
     if (!lead) return;
 
     const nextStatus = lead._status === "novo" ? "em_contato" : lead._status;
@@ -1660,7 +2167,7 @@ async function registerContact(leadId = state.selectedLeadId) {
 }
 
 async function moveLeadToStage(leadId, stage) {
-    const lead = state.leads.find((item) => item.id === leadId);
+    const lead = findLead(leadId);
     if (!lead || !PIPELINE_STAGES.some((item) => item.id === stage) || lead._status === stage) return;
 
     const probability = stage === "convertido"
@@ -1683,7 +2190,7 @@ async function moveLeadToStage(leadId, stage) {
 }
 
 async function updateAgenda(leadId, action) {
-    const lead = state.leads.find((item) => item.id === leadId);
+    const lead = findLead(leadId);
     if (!lead) return;
 
     if (action === "done") {
@@ -1775,8 +2282,8 @@ async function recalculateAllScores() {
         });
 
         await commitLeadPatches(patches);
-        state.leads = state.leads.map(normalizeLead);
-        deriveGroups();
+        state.allLeads = state.allLeads.map(normalizeLead);
+        refreshLeadCollections();
         render();
         toast("Scores recalculados.");
     } catch (error) {
@@ -1840,7 +2347,7 @@ async function runAutomations(options = {}) {
 
         if (patches.length) {
             await commitLeadPatches(patches);
-            deriveGroups();
+            refreshLeadCollections();
         }
 
         state.automationRunning = false;
@@ -1910,7 +2417,7 @@ async function mergeDuplicateGroup(group) {
         });
         await batch.commit();
         state.selectedLeadId = "";
-        await loadLeads();
+        loadLeads({ force: true });
         state.activeTab = "duplicates";
         updateActiveTabUI();
         render();
@@ -1922,21 +2429,17 @@ async function mergeDuplicateGroup(group) {
 }
 
 function exportCSV() {
-    const usesInboxFilters =
-        state.activeTab === "inbox" ||
-        state.activeTab === "priority";
-
-    const leads = usesInboxFilters
-        ? applyFilters(
-            state.activeTab === "priority"
-                ? state.leads.filter((lead) =>
-                    lead._overdue ||
-                    lead._temperature === "hot" ||
-                    lead.prioridadeLead === "alta"
-                )
-                : state.leads
-        )
-        : state.leads;
+    let base = state.leads;
+    if (state.activeTab === "priority") {
+        base = state.leads.filter((lead) =>
+            lead._overdue ||
+            lead._temperature === "hot" ||
+            lead.prioridadeLead === "alta"
+        );
+    }
+    if (state.activeTab === "archived") base = state.archivedLeads;
+    if (state.activeTab === "trash") base = state.trashLeads;
+    const leads = applyFilters(base);
 
     if (!leads.length) {
         toast("Não há leads para exportar.", "error");
@@ -1947,7 +2450,7 @@ function exportCSV() {
         "Nome", "WhatsApp", "E-mail", "Origem", "Campanha", "Interesse",
         "Etapa", "Score", "Temperatura", "Prioridade", "Responsável",
         "Valor", "Probabilidade", "Previsão ponderada", "Próximo contato",
-        "Fechamento previsto", "SLA vencido", "Página", "Formulário", "Capturado em"
+        "Fechamento previsto", "SLA vencido", "Página", "Formulário", "Capturado em", "Arquivado", "Lixeira", "Visualizado em"
     ]];
 
     leads.forEach((lead) => rows.push([
@@ -1970,7 +2473,10 @@ function exportCSV() {
         lead._overdue ? "Sim" : "Não",
         lead.paginaOrigem || lead.urlPagina || "",
         lead.formularioNome || lead.formularioId || lead.blocoOrigem || "",
-        formatDate(lead._timestamp)
+        formatDate(lead._timestamp),
+        lead.arquivado ? "Sim" : "Não",
+        lead.lixeira ? "Sim" : "Não",
+        formatDate(lead.visualizadoEm)
     ]));
 
     const csv = rows
@@ -1980,47 +2486,45 @@ function exportCSV() {
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = `aura_leads_v5_${new Date().toISOString().slice(0, 10)}.csv`;
+    anchor.download = `aura_leads_v59_${state.activeTab}_${new Date().toISOString().slice(0, 10)}.csv`;
     anchor.click();
     URL.revokeObjectURL(url);
     toast("CSV exportado.");
 }
 
 function refreshInboxResults() {
-    const baseLeads = state.activeTab === "priority"
-        ? state.leads.filter((lead) =>
+    let baseLeads = state.leads;
+    if (state.activeTab === "priority") {
+        baseLeads = state.leads.filter((lead) =>
             lead._overdue ||
             lead._temperature === "hot" ||
             lead.prioridadeLead === "alta"
-        )
-        : state.leads;
+        );
+    }
+    if (state.activeTab === "archived") baseLeads = state.archivedLeads;
+    if (state.activeTab === "trash") baseLeads = state.trashLeads;
 
     state.filtered = applyFilters(baseLeads);
-
-    const content = document.getElementById(
-        "aura-leads-v5-content"
+    const content = document.getElementById("aura-leads-v5-content");
+    const currentTable = content?.querySelector(
+        ".aura-leads-v5-table-wrap, .aura-leads-v5-empty"
     );
-
-    const current = content?.querySelector(
-        ".aura-leads-v5-table-wrap, " +
-        ".aura-leads-v5-empty"
-    );
-
-    if (!current) {
+    if (!currentTable) {
         render();
         return;
     }
 
-    const template = document.createElement("template");
-    template.innerHTML = renderLeadTable(
-        state.filtered
-    ).trim();
+    const tableTemplate = document.createElement("template");
+    tableTemplate.innerHTML = renderLeadTable(state.filtered).trim();
+    const replacement = tableTemplate.content.firstElementChild;
+    if (replacement) currentTable.replaceWith(replacement);
 
-    const replacement =
-        template.content.firstElementChild;
-
-    if (replacement) {
-        current.replaceWith(replacement);
+    const currentBulk = content?.querySelector(".aura-leads-v5-bulk");
+    const bulkHTML = renderBulkBar(state.filtered).trim();
+    if (currentBulk && bulkHTML) {
+        const bulkTemplate = document.createElement("template");
+        bulkTemplate.innerHTML = bulkHTML;
+        currentBulk.replaceWith(bulkTemplate.content.firstElementChild);
     }
 }
 
@@ -2040,6 +2544,15 @@ function handleContentInput(event) {
 
 function handleContentChange(event) {
     const target = event.target;
+
+    if (target.matches("[data-select-lead]")) {
+        const id = target.dataset.selectLead;
+        if (target.checked) state.selectedIds.add(id);
+        else state.selectedIds.delete(id);
+        refreshInboxResults();
+        return;
+    }
+
     const filterMap = {
         "aura-leads-v5-status": "status",
         "aura-leads-v5-temperature": "temperature",
@@ -2063,20 +2576,38 @@ function handleContentChange(event) {
         const key = target.dataset.automationKey;
         if (!(key in state.automation)) return;
         state.automation[key] = Boolean(target.checked);
+        state.soundUnlocked = true;
         saveAutomationPreferences();
         toast("Preferência de automação salva.");
     }
 }
 
 function handleContentClick(event) {
-    if (event.target.closest("[data-pipeline-move]")) {
+    if (event.target.closest(".aura-leads-v5-row-check, [data-select-lead], [data-pipeline-move]")) return;
+
+    const bulk = event.target.closest("[data-bulk-action]");
+    if (bulk) {
+        const action = bulk.dataset.bulkAction;
+        if (action === "clear") {
+            state.selectedIds.clear();
+            render();
+            return;
+        }
+        if (action === "toggle-visible") {
+            const visible = state.filtered.length ? state.filtered : applyFilters(currentSelectableCollection());
+            const allSelected = visible.length && visible.every((lead) => state.selectedIds.has(lead.id));
+            visible.forEach((lead) => {
+                if (allSelected) state.selectedIds.delete(lead.id);
+                else state.selectedIds.add(lead.id);
+            });
+            render();
+            return;
+        }
+        applyBulkAction(action);
         return;
     }
 
-    const openTarget = event.target.closest(
-        "[data-open-lead]"
-    );
-
+    const openTarget = event.target.closest("[data-open-lead]");
     if (openTarget) {
         event.preventDefault();
         openLead(openTarget.dataset.openLead);
@@ -2086,6 +2617,7 @@ function handleContentClick(event) {
     const action = event.target.closest("[data-action]");
     if (action?.dataset.action === "recalculate") return recalculateAllScores();
     if (action?.dataset.action === "run-automations") return runAutomations();
+    if (action?.dataset.action === "mark-read") return markAllRead();
 
     const agenda = event.target.closest("[data-agenda-action]");
     if (agenda) {
@@ -2107,6 +2639,7 @@ function handleContentClick(event) {
         state.origin = groupButton.dataset.groupType === "sources" ? group.name : "all";
         state.campaign = "all";
         state.responsible = "all";
+        state.selectedIds.clear();
         updateActiveTabUI();
         render();
         return;
@@ -2121,7 +2654,7 @@ function handleContentClick(event) {
 
 function handleDetailChange(event) {
     if (event.target.id === "aura-leads-v5-message-template") {
-        const lead = state.leads.find((item) => item.id === state.selectedLeadId);
+        const lead = findLead(state.selectedLeadId);
         const textarea = document.getElementById("aura-leads-v5-message-text");
         if (lead && textarea) textarea.value = buildWhatsappMessage(lead, event.target.value);
         return;
@@ -2137,11 +2670,14 @@ function handleDetailClick(event) {
     const button = event.target.closest("[data-detail-action]");
     if (!button) return;
     const action = button.dataset.detailAction;
-    const lead = state.leads.find((item) => item.id === state.selectedLeadId);
+    const lead = findLead(state.selectedLeadId);
 
     if (action === "close") return closeDetail();
     if (!lead) return;
     if (action === "save") return saveLeadDetail();
+    if (action === "archive" || action === "trash" || action === "restore") {
+        return moveLeadStorage(lead, action);
+    }
     if (action === "contacted") return registerContact();
     if (action === "whatsapp") return openWhatsapp(lead);
     if (action === "whatsapp-message") {
@@ -2204,6 +2740,8 @@ async function initialize(user) {
     if (!user || state.initialized) return;
     state.user = user;
     state.ownerUid = ownerUidFromContext(user);
+    ensureAssetVersion();
+    loadLastSeen();
     loadSLA();
     loadAutomationPreferences();
     await loadAccessContext(user);
@@ -2212,6 +2750,11 @@ async function initialize(user) {
     injectModal();
     updateAccessBadge();
     state.initialized = true;
+    loadLeads();
+
+    document.addEventListener("pointerdown", () => {
+        state.soundUnlocked = true;
+    }, { once: true, signal: getLifecycleSignal() });
 
     window.addEventListener("pagehide", (event) => {
         if (!event.persisted) teardownModalLifecycle();
@@ -2224,10 +2767,15 @@ async function initialize(user) {
         reload: loadLeads,
         destroy: teardownModalLifecycle,
         runAutomations,
+        markAllRead,
         getState: () => ({
             ownerUid: state.ownerUid,
             total: state.leads.length,
             duplicates: state.duplicateGroups.length,
+            archived: state.archivedLeads.length,
+            trash: state.trashLeads.length,
+            unread: state.unreadCount,
+            realtime: Boolean(state.unsubscribeLeads),
             slaMinutes: state.slaMinutes,
             modalOpen: state.modalOpen,
             activeTab: state.activeTab,
@@ -2242,4 +2790,3 @@ async function initialize(user) {
 onAuthStateChanged(auth, (user) => {
     if (user) initialize(user);
 });
-
