@@ -908,6 +908,263 @@
                 font-weight: 900;
             }
 
+            #vide-funil-loja-publica .vide-funil-diagnostico {
+                position: relative;
+                z-index: 1;
+                margin-top: 18px;
+                padding: 18px;
+                border: 1px solid rgba(255,255,255,.075);
+                border-radius: 20px;
+                background:
+                    linear-gradient(
+                        135deg,
+                        color-mix(in srgb, var(--sys-primaria, #6d5dfc) 8%, rgba(3,7,18,.48)),
+                        rgba(3,7,18,.45)
+                    );
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 16px;
+                margin-bottom: 15px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-title {
+                display: flex;
+                align-items: flex-start;
+                gap: 11px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-icon {
+                width: 38px;
+                height: 38px;
+                flex: 0 0 38px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid color-mix(in srgb, var(--sys-destaque, #00f2fe) 24%, transparent);
+                border-radius: 12px;
+                color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 80%, white 20%);
+                background: color-mix(in srgb, var(--sys-destaque, #00f2fe) 8%, transparent);
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.9;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-title small {
+                display: block;
+                margin-bottom: 4px;
+                color: #6b7280;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .16em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-title strong {
+                display: block;
+                color: #fff;
+                font-size: 13px;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-funil-diagnostico-title p {
+                margin: 4px 0 0;
+                color: #8b95a7;
+                font-size: 10px;
+                line-height: 1.5;
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude {
+                flex: 0 0 auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                min-height: 31px;
+                padding: 0 11px;
+                border: 1px solid rgba(255,255,255,.09);
+                border-radius: 999px;
+                color: #cbd5e1;
+                background: rgba(255,255,255,.04);
+                font-size: 9px;
+                font-weight: 900;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 999px;
+                background: #94a3b8;
+                box-shadow: 0 0 0 4px rgba(148,163,184,.08);
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude[data-level="positive"] {
+                color: #86efac;
+                border-color: rgba(34,197,94,.2);
+                background: rgba(34,197,94,.065);
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude[data-level="positive"]::before {
+                background: #22c55e;
+                box-shadow: 0 0 0 4px rgba(34,197,94,.1);
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude[data-level="attention"] {
+                color: #fcd34d;
+                border-color: rgba(245,158,11,.2);
+                background: rgba(245,158,11,.065);
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude[data-level="attention"]::before {
+                background: #f59e0b;
+                box-shadow: 0 0 0 4px rgba(245,158,11,.1);
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude[data-level="critical"] {
+                color: #fda4af;
+                border-color: rgba(244,63,94,.2);
+                background: rgba(244,63,94,.065);
+            }
+
+            #vide-funil-loja-publica .vide-funil-saude[data-level="critical"]::before {
+                background: #f43f5e;
+                box-shadow: 0 0 0 4px rgba(244,63,94,.1);
+            }
+
+            #vide-funil-loja-publica .vide-funil-comparativos {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 10px;
+                margin-bottom: 14px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-comparativo {
+                min-width: 0;
+                padding: 12px;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 14px;
+                background: rgba(255,255,255,.026);
+            }
+
+            #vide-funil-loja-publica .vide-funil-comparativo > span {
+                display: block;
+                overflow: hidden;
+                color: #7f8a9d;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-overflow: ellipsis;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-funil-comparativo strong {
+                display: block;
+                margin-top: 7px;
+                color: #fff;
+                font-size: 14px;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-funil-variacao {
+                display: inline-flex;
+                align-items: center;
+                gap: 4px;
+                margin-top: 5px;
+                color: #94a3b8;
+                font-size: 9px;
+                font-weight: 800;
+            }
+
+            #vide-funil-loja-publica .vide-funil-variacao[data-direction="up"] {
+                color: #4ade80;
+            }
+
+            #vide-funil-loja-publica .vide-funil-variacao[data-direction="down"] {
+                color: #fb7185;
+            }
+
+            #vide-funil-loja-publica .vide-funil-variacao[data-direction="neutral"] {
+                color: #94a3b8;
+            }
+
+            #vide-funil-loja-publica .vide-funil-analise-grid {
+                display: grid;
+                grid-template-columns: minmax(0, .82fr) minmax(0, 1.18fr);
+                gap: 12px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-gargalo,
+            #vide-funil-loja-publica .vide-funil-recomendacoes {
+                padding: 14px;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 15px;
+                background: rgba(3,7,18,.3);
+            }
+
+            #vide-funil-loja-publica .vide-funil-analise-label {
+                display: block;
+                margin-bottom: 8px;
+                color: #6b7280;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .14em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica .vide-funil-gargalo strong {
+                display: block;
+                color: #fff;
+                font-size: 12px;
+                line-height: 1.45;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-funil-gargalo p {
+                margin: 7px 0 0;
+                color: #8792a5;
+                font-size: 10px;
+                line-height: 1.55;
+            }
+
+            #vide-funil-loja-publica .vide-funil-recomendacoes-lista {
+                display: grid;
+                gap: 8px;
+                margin: 0;
+                padding: 0;
+                list-style: none;
+            }
+
+            #vide-funil-loja-publica .vide-funil-recomendacoes-lista li {
+                position: relative;
+                padding-left: 18px;
+                color: #a8b1c0;
+                font-size: 10px;
+                line-height: 1.5;
+            }
+
+            #vide-funil-loja-publica .vide-funil-recomendacoes-lista li::before {
+                content: "";
+                position: absolute;
+                top: .55em;
+                left: 1px;
+                width: 7px;
+                height: 7px;
+                border: 2px solid color-mix(in srgb, var(--sys-destaque, #00f2fe) 70%, white 30%);
+                border-radius: 999px;
+            }
+
             #vide-funil-status {
                 position: relative;
                 z-index: 1;
@@ -964,6 +1221,14 @@
                 #vide-funil-loja-publica .vide-funil-flow {
                     display: grid;
                 }
+
+                #vide-funil-loja-publica .vide-funil-comparativos {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+
+                #vide-funil-loja-publica .vide-funil-analise-grid {
+                    grid-template-columns: 1fr;
+                }
             }
 
             @media (max-width: 620px) {
@@ -977,6 +1242,22 @@
 
                 #vide-funil-loja-publica .vide-funil-stage {
                     grid-template-columns: 100px minmax(0, 1fr) 48px;
+                }
+
+                #vide-funil-loja-publica .vide-funil-diagnostico {
+                    padding: 15px;
+                }
+
+                #vide-funil-loja-publica .vide-funil-diagnostico-header {
+                    flex-direction: column;
+                }
+
+                #vide-funil-loja-publica .vide-funil-saude {
+                    align-self: flex-start;
+                }
+
+                #vide-funil-loja-publica .vide-funil-comparativos {
+                    grid-template-columns: 1fr;
                 }
             }
         `;
@@ -1099,6 +1380,118 @@
                 </div>
             </div>
 
+            <section
+                class="vide-funil-diagnostico"
+                id="vide-funil-diagnostico"
+                aria-labelledby="vide-funil-diagnostico-titulo"
+            >
+                <div class="vide-funil-diagnostico-header">
+                    <div class="vide-funil-diagnostico-title">
+                        <span class="vide-funil-diagnostico-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M4 19V9"></path>
+                                <path d="M10 19V5"></path>
+                                <path d="M16 19v-7"></path>
+                                <path d="M22 19V3"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <small>Análise automática</small>
+                            <strong id="vide-funil-diagnostico-titulo">
+                                Diagnóstico comercial
+                            </strong>
+                            <p id="vide-funil-diagnostico-subtitulo">
+                                Comparando o período selecionado com o período anterior.
+                            </p>
+                        </div>
+                    </div>
+
+                    <span
+                        class="vide-funil-saude"
+                        id="vide-funil-saude"
+                        data-level="neutral"
+                    >
+                        Aguardando dados
+                    </span>
+                </div>
+
+                <div class="vide-funil-comparativos">
+                    <article class="vide-funil-comparativo">
+                        <span>Visitas</span>
+                        <strong id="vide-funil-comp-visitas">0</strong>
+                        <small
+                            class="vide-funil-variacao"
+                            id="vide-funil-var-visitas"
+                            data-direction="neutral"
+                        >
+                            Sem comparação
+                        </small>
+                    </article>
+
+                    <article class="vide-funil-comparativo">
+                        <span>WhatsApp</span>
+                        <strong id="vide-funil-comp-pedidos">0</strong>
+                        <small
+                            class="vide-funil-variacao"
+                            id="vide-funil-var-pedidos"
+                            data-direction="neutral"
+                        >
+                            Sem comparação
+                        </small>
+                    </article>
+
+                    <article class="vide-funil-comparativo">
+                        <span>Conversão</span>
+                        <strong id="vide-funil-comp-conversao">0%</strong>
+                        <small
+                            class="vide-funil-variacao"
+                            id="vide-funil-var-conversao"
+                            data-direction="neutral"
+                        >
+                            Sem comparação
+                        </small>
+                    </article>
+
+                    <article class="vide-funil-comparativo">
+                        <span>Valor potencial</span>
+                        <strong id="vide-funil-comp-valor">R$ 0,00</strong>
+                        <small
+                            class="vide-funil-variacao"
+                            id="vide-funil-var-valor"
+                            data-direction="neutral"
+                        >
+                            Sem comparação
+                        </small>
+                    </article>
+                </div>
+
+                <div class="vide-funil-analise-grid">
+                    <article class="vide-funil-gargalo">
+                        <span class="vide-funil-analise-label">
+                            Principal ponto de atenção
+                        </span>
+                        <strong id="vide-funil-gargalo-titulo">
+                            Aguardando volume suficiente
+                        </strong>
+                        <p id="vide-funil-gargalo-texto">
+                            O diagnóstico ficará mais preciso conforme novas visitas forem registradas.
+                        </p>
+                    </article>
+
+                    <article class="vide-funil-recomendacoes">
+                        <span class="vide-funil-analise-label">
+                            Próximas ações recomendadas
+                        </span>
+                        <ul
+                            class="vide-funil-recomendacoes-lista"
+                            id="vide-funil-recomendacoes-lista"
+                        >
+                            <li>Divulgue a vitrine para começar a formar uma base de comparação.</li>
+                        </ul>
+                    </article>
+                </div>
+            </section>
+
             <p id="vide-funil-status" data-state="loading" aria-live="polite">
                 Carregando métricas da loja pública...
             </p>
@@ -1164,6 +1557,493 @@
         return resultado;
     }
 
+    function dadosIntervaloMetricas(porDia, inicio, fim) {
+        var resultado = {
+            sessoes: 0,
+            carrinhosAbertos: 0,
+            adicoesCarrinho: 0,
+            checkoutsIniciados: 0,
+            pedidosWhatsapp: 0,
+            valorPedidosWhatsapp: 0,
+            compartilhamentos: 0
+        };
+
+        if (!(inicio instanceof Date) || !(fim instanceof Date)) {
+            return resultado;
+        }
+
+        var cursor = new Date(inicio);
+        cursor.setHours(0, 0, 0, 0);
+
+        var limite = new Date(fim);
+        limite.setHours(0, 0, 0, 0);
+
+        while (cursor <= limite) {
+            var dadosDia = porDia?.[chaveDataLocal(cursor)] || {};
+
+            resultado.sessoes += numeroMetrica(dadosDia.sessoes);
+            resultado.carrinhosAbertos += numeroMetrica(dadosDia.carrinhosAbertos);
+            resultado.adicoesCarrinho += numeroMetrica(dadosDia.adicoesCarrinho);
+            resultado.checkoutsIniciados += numeroMetrica(dadosDia.checkoutsIniciados);
+            resultado.pedidosWhatsapp += numeroMetrica(dadosDia.pedidosWhatsapp);
+            resultado.valorPedidosWhatsapp += numeroMetrica(dadosDia.valorPedidosWhatsapp);
+            resultado.compartilhamentos += numeroMetrica(dadosDia.compartilhamentos);
+
+            cursor.setDate(cursor.getDate() + 1);
+        }
+
+        return resultado;
+    }
+
+    function obterPeriodoAnteriorMetricas(porDia, dias) {
+        if (!dias || dias <= 0) return null;
+
+        var fimAtual = new Date();
+        fimAtual.setHours(0, 0, 0, 0);
+
+        var inicioAtual = new Date(fimAtual);
+        inicioAtual.setDate(inicioAtual.getDate() - (dias - 1));
+
+        var fimAnterior = new Date(inicioAtual);
+        fimAnterior.setDate(fimAnterior.getDate() - 1);
+
+        var inicioAnterior = new Date(fimAnterior);
+        inicioAnterior.setDate(inicioAnterior.getDate() - (dias - 1));
+
+        return dadosIntervaloMetricas(
+            porDia || {},
+            inicioAnterior,
+            fimAnterior
+        );
+    }
+
+    function percentualNumero(parte, total) {
+        if (!total || !parte) return 0;
+        return Math.max(0, (Number(parte) / Number(total)) * 100);
+    }
+
+    function formatarPercentualLivre(valor) {
+        var numero = Number(valor || 0);
+        return numero.toLocaleString("pt-BR", {
+            minimumFractionDigits: Math.abs(numero) < 10 ? 1 : 0,
+            maximumFractionDigits: 1
+        }) + "%";
+    }
+
+    function calcularVariacaoPercentual(atual, anterior) {
+        atual = Number(atual || 0);
+        anterior = Number(anterior || 0);
+
+        if (anterior === 0) {
+            if (atual === 0) {
+                return {
+                    texto: "Sem alteração",
+                    direcao: "neutral",
+                    valor: 0
+                };
+            }
+
+            return {
+                texto: "Novo no período",
+                direcao: "up",
+                valor: null
+            };
+        }
+
+        var variacao = ((atual - anterior) / Math.abs(anterior)) * 100;
+        var arredondada = Math.round(variacao * 10) / 10;
+
+        if (Math.abs(arredondada) < 0.1) {
+            return {
+                texto: "Sem alteração",
+                direcao: "neutral",
+                valor: 0
+            };
+        }
+
+        return {
+            texto:
+                (arredondada > 0 ? "↑ " : "↓ ") +
+                formatarPercentualLivre(Math.abs(arredondada)) +
+                " vs. período anterior",
+            direcao: arredondada > 0 ? "up" : "down",
+            valor: arredondada
+        };
+    }
+
+    function calcularVariacaoPontosPercentuais(atual, anterior) {
+        var diferenca = Number(atual || 0) - Number(anterior || 0);
+        var arredondada = Math.round(diferenca * 10) / 10;
+
+        if (Math.abs(arredondada) < 0.1) {
+            return {
+                texto: "Sem alteração",
+                direcao: "neutral",
+                valor: 0
+            };
+        }
+
+        return {
+            texto:
+                (arredondada > 0 ? "↑ " : "↓ ") +
+                Math.abs(arredondada).toLocaleString("pt-BR", {
+                    minimumFractionDigits: 1,
+                    maximumFractionDigits: 1
+                }) +
+                " p.p.",
+            direcao: arredondada > 0 ? "up" : "down",
+            valor: arredondada
+        };
+    }
+
+    function definirVariacaoMetrica(id, variacao, semComparacao) {
+        var elemento = document.getElementById(id);
+        if (!elemento) return;
+
+        if (semComparacao) {
+            elemento.textContent = "Todo o período";
+            elemento.dataset.direction = "neutral";
+            return;
+        }
+
+        elemento.textContent = variacao?.texto || "Sem comparação";
+        elemento.dataset.direction = variacao?.direcao || "neutral";
+    }
+
+    function encontrarGargaloFunil(dados) {
+        var etapas = [
+            {
+                origem: "Visitas",
+                destino: "abertura do carrinho",
+                anterior: dados.sessoes,
+                atual: dados.carrinhosAbertos,
+                acao:
+                    "Revise fotos, preços, títulos e chamadas dos produtos. O visitante precisa entender rapidamente o valor da oferta."
+            },
+            {
+                origem: "Carrinho",
+                destino: "início do pedido",
+                anterior: dados.carrinhosAbertos,
+                atual: dados.checkoutsIniciados,
+                acao:
+                    "Simplifique o caminho até o pedido e deixe frete, prazo e condições comerciais visíveis antes da confirmação."
+            },
+            {
+                origem: "Pedido iniciado",
+                destino: "abertura do WhatsApp",
+                anterior: dados.checkoutsIniciados,
+                atual: dados.pedidosWhatsapp,
+                acao:
+                    "Reduza campos desnecessários, confira o número do WhatsApp e deixe claro que o envio não cobra automaticamente."
+            }
+        ];
+
+        var candidatas = etapas
+            .filter(function(etapa) {
+                return etapa.anterior > 0;
+            })
+            .map(function(etapa) {
+                var avancaram = Math.min(etapa.anterior, etapa.atual);
+                var perdas = Math.max(0, etapa.anterior - avancaram);
+                var perdaPercentual = etapa.anterior
+                    ? (perdas / etapa.anterior) * 100
+                    : 0;
+
+                return {
+                    ...etapa,
+                    perdas: perdas,
+                    perdaPercentual: perdaPercentual
+                };
+            })
+            .sort(function(a, b) {
+                return b.perdaPercentual - a.perdaPercentual;
+            });
+
+        return candidatas[0] || null;
+    }
+
+    function gerarDiagnosticoFunil(dados, anterior, dias) {
+        var conversao = percentualNumero(
+            dados.pedidosWhatsapp,
+            dados.sessoes
+        );
+
+        var conversaoCarrinho = percentualNumero(
+            dados.carrinhosAbertos,
+            dados.sessoes
+        );
+
+        var conversaoCheckout = percentualNumero(
+            dados.checkoutsIniciados,
+            dados.carrinhosAbertos
+        );
+
+        var conversaoWhatsapp = percentualNumero(
+            dados.pedidosWhatsapp,
+            dados.checkoutsIniciados
+        );
+
+        var recomendacoes = [];
+        var gargalo = encontrarGargaloFunil(dados);
+        var nivel = "neutral";
+        var status = "Dados iniciais";
+
+        if (dados.sessoes === 0) {
+            return {
+                nivel: "neutral",
+                status: "Sem visitas no período",
+                gargaloTitulo: "Ainda não há tráfego para analisar",
+                gargaloTexto:
+                    "O período selecionado não possui sessões registradas. Assim que a vitrine receber acessos, o diagnóstico será atualizado automaticamente.",
+                recomendacoes: [
+                    "Divulgue o link da loja nos seus canais de atendimento e redes sociais.",
+                    "Confirme em uma aba anônima se a vitrine abre normalmente.",
+                    "Volte após acumular algumas visitas para comparar o avanço do funil."
+                ]
+            };
+        }
+
+        if (dados.sessoes < 10) {
+            nivel = "neutral";
+            status = "Amostra pequena";
+            recomendacoes.push(
+                "Acumule pelo menos 10 a 20 visitas antes de tomar decisões maiores com base na conversão."
+            );
+        } else if (conversao >= 5) {
+            nivel = "positive";
+            status = "Funil saudável";
+        } else if (conversao >= 1.5) {
+            nivel = "attention";
+            status = "Pode melhorar";
+        } else {
+            nivel = "critical";
+            status = "Atenção necessária";
+        }
+
+        if (conversaoCarrinho < 10 && dados.sessoes >= 10) {
+            recomendacoes.push(
+                "Destaque melhor os produtos: use fotos claras, preço visível e uma chamada objetiva para adicionar ao carrinho."
+            );
+        }
+
+        if (
+            dados.carrinhosAbertos >= 4 &&
+            conversaoCheckout < 35
+        ) {
+            recomendacoes.push(
+                "Muitos visitantes abrem o carrinho, mas não iniciam o pedido. Revise informações de prazo, entrega e o botão de continuar."
+            );
+        }
+
+        if (
+            dados.checkoutsIniciados >= 3 &&
+            conversaoWhatsapp < 50
+        ) {
+            recomendacoes.push(
+                "Há abandono no formulário final. Mantenha somente os campos essenciais e confira o WhatsApp comercial configurado."
+            );
+        }
+
+        if (
+            conversao >= 5 &&
+            dados.sessoes >= 10
+        ) {
+            recomendacoes.push(
+                "A conversão está positiva. O maior potencial agora é aumentar o tráfego qualificado para a vitrine."
+            );
+        }
+
+        if (
+            dados.compartilhamentos === 0 &&
+            dados.sessoes >= 20
+        ) {
+            recomendacoes.push(
+                "Incentive o compartilhamento da loja ou de produtos para ampliar o alcance orgânico."
+            );
+        }
+
+        if (
+            anterior &&
+            anterior.sessoes > 0 &&
+            dados.sessoes < anterior.sessoes * 0.7
+        ) {
+            recomendacoes.push(
+                "As visitas caíram em relação ao período anterior. Reforce divulgação, campanhas e links nos canais que já geravam acesso."
+            );
+        }
+
+        recomendacoes = Array.from(new Set(recomendacoes)).slice(0, 3);
+
+        if (recomendacoes.length === 0) {
+            recomendacoes.push(
+                "Continue acompanhando o período e teste uma melhoria por vez para identificar o que realmente aumenta a conversão."
+            );
+        }
+
+        var gargaloTitulo;
+        var gargaloTexto;
+
+        if (!gargalo || dados.sessoes < 3) {
+            gargaloTitulo = "Volume ainda insuficiente para localizar um gargalo";
+            gargaloTexto =
+                "O funil já está sendo acompanhado, mas ainda há poucos eventos para apontar uma etapa com segurança.";
+        } else {
+            gargaloTitulo =
+                gargalo.origem +
+                " → " +
+                gargalo.destino +
+                ": " +
+                formatarPercentualLivre(gargalo.perdaPercentual) +
+                " não avançaram";
+
+            gargaloTexto =
+                gargalo.perdas.toLocaleString("pt-BR") +
+                (gargalo.perdas === 1
+                    ? " sessão deixou"
+                    : " sessões deixaram") +
+                " de avançar nessa etapa. " +
+                gargalo.acao;
+        }
+
+        return {
+            nivel: nivel,
+            status: status,
+            gargaloTitulo: gargaloTitulo,
+            gargaloTexto: gargaloTexto,
+            recomendacoes: recomendacoes
+        };
+    }
+
+    function renderizarDiagnosticoFunil(
+        dadosDocumento,
+        dias,
+        dadosAtuais,
+        inteiro,
+        moeda
+    ) {
+        var porDia = dadosDocumento?.porDia || {};
+        var dadosAnteriores = obterPeriodoAnteriorMetricas(
+            porDia,
+            dias
+        );
+
+        var conversaoAtual = percentualNumero(
+            dadosAtuais.pedidosWhatsapp,
+            dadosAtuais.sessoes
+        );
+
+        var conversaoAnterior = dadosAnteriores
+            ? percentualNumero(
+                dadosAnteriores.pedidosWhatsapp,
+                dadosAnteriores.sessoes
+            )
+            : 0;
+
+        definirTextoMetrica(
+            "vide-funil-comp-visitas",
+            inteiro.format(dadosAtuais.sessoes)
+        );
+
+        definirTextoMetrica(
+            "vide-funil-comp-pedidos",
+            inteiro.format(dadosAtuais.pedidosWhatsapp)
+        );
+
+        definirTextoMetrica(
+            "vide-funil-comp-conversao",
+            formatarPercentualLivre(conversaoAtual)
+        );
+
+        definirTextoMetrica(
+            "vide-funil-comp-valor",
+            moeda.format(dadosAtuais.valorPedidosWhatsapp)
+        );
+
+        definirVariacaoMetrica(
+            "vide-funil-var-visitas",
+            calcularVariacaoPercentual(
+                dadosAtuais.sessoes,
+                dadosAnteriores?.sessoes
+            ),
+            dias === 0
+        );
+
+        definirVariacaoMetrica(
+            "vide-funil-var-pedidos",
+            calcularVariacaoPercentual(
+                dadosAtuais.pedidosWhatsapp,
+                dadosAnteriores?.pedidosWhatsapp
+            ),
+            dias === 0
+        );
+
+        definirVariacaoMetrica(
+            "vide-funil-var-conversao",
+            calcularVariacaoPontosPercentuais(
+                conversaoAtual,
+                conversaoAnterior
+            ),
+            dias === 0
+        );
+
+        definirVariacaoMetrica(
+            "vide-funil-var-valor",
+            calcularVariacaoPercentual(
+                dadosAtuais.valorPedidosWhatsapp,
+                dadosAnteriores?.valorPedidosWhatsapp
+            ),
+            dias === 0
+        );
+
+        var diagnostico = gerarDiagnosticoFunil(
+            dadosAtuais,
+            dadosAnteriores,
+            dias
+        );
+
+        var saude = document.getElementById(
+            "vide-funil-saude"
+        );
+
+        if (saude) {
+            saude.dataset.level = diagnostico.nivel;
+            saude.textContent = diagnostico.status;
+        }
+
+        definirTextoMetrica(
+            "vide-funil-gargalo-titulo",
+            diagnostico.gargaloTitulo
+        );
+
+        definirTextoMetrica(
+            "vide-funil-gargalo-texto",
+            diagnostico.gargaloTexto
+        );
+
+        var lista = document.getElementById(
+            "vide-funil-recomendacoes-lista"
+        );
+
+        if (lista) {
+            lista.replaceChildren();
+
+            diagnostico.recomendacoes.forEach(function(texto) {
+                var item = document.createElement("li");
+                item.textContent = texto;
+                lista.appendChild(item);
+            });
+        }
+
+        definirTextoMetrica(
+            "vide-funil-diagnostico-subtitulo",
+            dias === 0
+                ? "Análise consolidada de todo o histórico disponível."
+                : "Comparação com os " +
+                  dias +
+                  " dias imediatamente anteriores."
+        );
+    }
+
     function formatarPercentual(parte, total) {
         if (!total || !parte) return "0%";
         var percentual = Math.min(100, Math.max(0, (parte / total) * 100));
@@ -1225,6 +2105,14 @@
         definirBarraMetrica("vide-funil-bar-carrinhos", dados.carrinhosAbertos, dados.sessoes);
         definirBarraMetrica("vide-funil-bar-checkouts", dados.checkoutsIniciados, dados.sessoes);
         definirBarraMetrica("vide-funil-bar-pedidos", dados.pedidosWhatsapp, dados.sessoes);
+
+        renderizarDiagnosticoFunil(
+            dadosDocumento,
+            dias,
+            dados,
+            inteiro,
+            moeda
+        );
 
         var status = document.getElementById("vide-funil-status");
         if (status) {
