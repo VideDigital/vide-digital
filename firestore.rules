@@ -428,7 +428,16 @@ service cloud.firestore {
     }
     function metricaProdutoValida(id) {
       return exists(/databases/$(database)/documents/produtos/$(id))
-        && request.resource.data.keys().hasOnly(["visualizacoes", "cliques"]);
+        && request.resource.data.keys().hasOnly([
+          "visualizacoes",
+          "detalhesAbertos",
+          "cliques",
+          "adicoesCarrinho",
+          "checkoutsIniciados",
+          "pedidosWhatsapp",
+          "valorPedidosWhatsapp",
+          "porDia"
+        ]);
     }
     // Lead público: criadoPor precisa apontar para um dono real e o lead
     // nasce sempre com status "novo" (o visitante não escolhe status).
