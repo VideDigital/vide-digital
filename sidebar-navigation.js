@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V3.0
- * Rail inteligente: ícones fixos, mini descrição individual, rolagem estável e central de comandos.
+ * Vide Hub — Sidebar V3.1
+ * Rail inteligente corrigido: módulos sempre visíveis, ícones fixos, mini descrição individual e rolagem estável.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -683,6 +683,9 @@
 
                     #admin-sidebar #sidebar-nav {
                         position: relative !important;
+                        display: block !important;
+                        visibility: visible !important;
+                        opacity: 1 !important;
                         width: 58px !important;
                         min-width: 58px !important;
                         max-width: 58px !important;
