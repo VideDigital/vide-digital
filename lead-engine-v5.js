@@ -38,6 +38,7 @@ const state = {
     filtered: [],
     selectedLeadId: "",
     activeTab: "inbox",
+    search: "",
     status: "all",
     temperature: "all",
     origin: "all",
@@ -358,15 +359,48 @@ function normalizeLead(lead) {
         ? Number(lead.leadScore)
         : computeScore(lead);
     const temperature = lead.temperaturaLead || temperatureFor(score);
+
+    let sourceFromUrl = "";
+    let campaignFromUrl = "";
+
+    try {
+        const rawUrl = String(
+            lead.urlPagina ||
+            lead.paginaOrigem ||
+            ""
+        ).trim();
+
+        if (rawUrl) {
+            const capturedUrl = new URL(
+                rawUrl,
+                window.location.origin
+            );
+
+            sourceFromUrl =
+                capturedUrl.searchParams.get("utm_source") ||
+                "";
+
+            campaignFromUrl =
+                capturedUrl.searchParams.get("utm_campaign") ||
+                "";
+        }
+    } catch (error) {
+        sourceFromUrl = "";
+        campaignFromUrl = "";
+    }
+
     const origin = String(
         lead.origem ||
         lead.utmSource ||
         lead.utm_source ||
+        sourceFromUrl ||
         "Direto"
     ).trim() || "Direto";
+
     const campaign = String(
         lead.utmCampaign ||
         lead.utm_campaign ||
+        campaignFromUrl ||
         "Sem campanha"
     ).trim() || "Sem campanha";
 
@@ -391,6 +425,8 @@ function normalizeLead(lead) {
             lead.utm_source,
             lead.utmCampaign,
             lead.utm_campaign,
+            sourceFromUrl,
+            campaignFromUrl,
             lead.produtoInteresse,
             lead.paginaOrigem,
             lead.formularioId,
@@ -683,16 +719,25 @@ async function loadLeads() {
             .sort((a, b) => b._timestamp - a._timestamp);
 
         deriveGroups();
+
+        state.loading = false;
         render();
 
         if (state.selectedLeadId) {
             renderDetail(state.selectedLeadId);
         }
     } catch (error) {
-        console.error("[Aura Leads V5] Falha ao carregar leads:", error);
-        renderError("Não foi possível carregar os leads. Verifique suas regras do Firestore.");
-    } finally {
         state.loading = false;
+
+        console.error(
+            "[Aura Leads V5] Falha ao carregar leads:",
+            error
+        );
+
+        renderError(
+            "Não foi possível carregar os leads. " +
+            "Verifique suas regras do Firestore."
+        );
     }
 }
 
