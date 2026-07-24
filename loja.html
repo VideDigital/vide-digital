@@ -2919,6 +2919,138 @@
             } catch (e) {}
         }
 
+        function normalizarItensPedidoPublico(itens) {
+            return (Array.isArray(itens) ? itens : [])
+                .slice(0, 20)
+                .map(function(item, index) {
+                    const quantidade = Math.max(
+                        1,
+                        Math.min(
+                            999,
+                            Math.round(Number(item?.quantidade || 1))
+                        )
+                    );
+                    const preco = Math.max(
+                        0,
+                        Number(item?.precoSnapshot ?? item?.preco ?? 0) || 0
+                    );
+                    return {
+                        produtoId: textoLeadPublico(
+                            item?.produtoId || item?.id || "item_" + (index + 1),
+                            180
+                        ),
+                        nomeSnapshot: textoLeadPublico(
+                            item?.nomeSnapshot || item?.nome || "Produto",
+                            160
+                        ) || "Produto",
+                        precoSnapshot: preco,
+                        quantidade: quantidade,
+                        subtotal: preco * quantidade
+                    };
+                });
+        }
+
+        function normalizarSnapshotPedidoPublico(payload, timestamp) {
+            const bruto = payload?.pedidoSnapshot;
+            if (!bruto || typeof bruto !== "object") return null;
+
+            const itens = normalizarItensPedidoPublico(bruto.itens);
+            const subtotal = itens.reduce(function(total, item) {
+                return total + item.subtotal;
+            }, 0);
+            const desconto = Math.max(0, Number(bruto.desconto || 0) || 0);
+            const frete = Math.max(0, Number(bruto.frete || 0) || 0);
+            const total = Math.max(
+                0,
+                Number(bruto.total || 0) || subtotal - desconto + frete
+            );
+
+            return {
+                numeroPedido: textoLeadPublico(
+                    bruto.numeroPedido || payload.numeroPedido,
+                    80
+                ),
+                clienteNome: textoLeadPublico(
+                    bruto.clienteNome || payload.nome,
+                    120
+                ),
+                clienteWhatsapp: textoLeadPublico(
+                    bruto.clienteWhatsapp || payload.whatsapp || payload.telefone,
+                    40
+                ),
+                tipoRecebimento:
+                    bruto.tipoRecebimento === "entrega"
+                        ? "entrega"
+                        : "retirada",
+                cep: textoLeadPublico(bruto.cep, 20),
+                endereco: textoLeadPublico(bruto.endereco, 220),
+                observacoes: textoLeadPublico(bruto.observacoes, 500),
+                itens: itens,
+                produtosTexto: textoLeadPublico(
+                    bruto.produtosTexto || itens.map(function(item) {
+                        return item.quantidade + "x " + item.nomeSnapshot;
+                    }).join(", "),
+                    2000
+                ),
+                subtotal: subtotal,
+                desconto: desconto,
+                frete: frete,
+                total: total,
+                moeda: "BRL",
+                statusPedido: "novo",
+                statusPagamento: "pendente",
+                criadoEm: timestamp
+            };
+        }
+
+        function obterNumeroPedidoPublico(dados, resumo) {
+            const assinatura = hashLeadPublico([
+                fornecedorEmail,
+                String(dados.telefone || "").replace(/\D/g, ""),
+                itensCarrinho.map(function(item) {
+                    return [
+                        item.produtoId || item.nome,
+                        item.quantidade,
+                        item.preco
+                    ].join(":");
+                }).join("|"),
+                Number(resumo.total || 0).toFixed(2)
+            ].join("|"));
+            const storageKey = "videPedidoNumero:" + assinatura;
+
+            try {
+                const salvo = JSON.parse(
+                    sessionStorage.getItem(storageKey) || "null"
+                );
+                if (
+                    salvo?.numero &&
+                    Date.now() - Number(salvo.timestamp || 0) <
+                        LEAD_DEDUPE_WINDOW_MS
+                ) {
+                    return salvo.numero;
+                }
+            } catch (error) {}
+
+            const agora = new Date();
+            const data = [
+                String(agora.getFullYear()).slice(-2),
+                String(agora.getMonth() + 1).padStart(2, "0"),
+                String(agora.getDate()).padStart(2, "0")
+            ].join("");
+            const numero = (
+                "PED-" + data + "-" + assinatura.slice(-5)
+            ).toUpperCase();
+
+            try {
+                sessionStorage.setItem(
+                    storageKey,
+                    JSON.stringify({ numero: numero, timestamp: Date.now() })
+                );
+            } catch (error) {}
+
+            return numero;
+        }
+
         async function capturarLeadPublico(payload) {
             const ownerUid = textoLeadPublico(fornecedorEmail, 160);
             if (!ownerUid) throw new Error("Loja sem dono válido.");
@@ -2993,6 +3125,41 @@
                 atualizadoEm: serverTimestamp(),
                 data: timestamp
             };
+
+            const pedidoSnapshot = normalizarSnapshotPedidoPublico(
+                payload,
+                timestamp
+            );
+
+            if (pedidoSnapshot) {
+                Object.assign(lead, {
+                    tipoRegistro: "pedido",
+                    pedidoId: textoLeadPublico(
+                        payload.pedidoId || pedidoSnapshot.numeroPedido,
+                        100
+                    ),
+                    numeroPedido: pedidoSnapshot.numeroPedido,
+                    pedidoStatus: "novo",
+                    pagamentoStatus: "pendente",
+                    pedidoCriadoEm: timestamp,
+                    pedidoAtualizadoEm: timestamp,
+                    pedidoSnapshot: pedidoSnapshot,
+                    pedidoHistorico: [{
+                        titulo: "Pedido registrado na loja",
+                        detalhe:
+                            pedidoSnapshot.produtosTexto +
+                            " · " +
+                            pedidoSnapshot.total.toLocaleString(
+                                "pt-BR",
+                                { style: "currency", currency: "BRL" }
+                            ),
+                        timestamp: timestamp,
+                        autorNome: "Loja online"
+                    }],
+                    valorOportunidade: pedidoSnapshot.total,
+                    probabilidade: 70
+                });
+            }
 
             try {
                 await setDoc(doc(db, "leads", leadId), lead);
@@ -4301,11 +4468,12 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             };
         }
 
-        function montarMensagemPedidoWhatsapp(dados) {
+        function montarMensagemPedidoWhatsapp(dados, numeroPedido) {
             const abertura = carrinhoMensagemCustom || "Olá! Vim da loja *" + nomeLojaAtual + "* e gostaria de fazer um pedido.";
             let mensagem = abertura + "\n\n";
             let totalGeral = 0;
 
+            mensagem += "*Pedido:* " + numeroPedido + "\n\n";
             mensagem += "*Dados do cliente:*\n";
             mensagem += "*Nome:* " + dados.nome + "\n";
             mensagem += "*WhatsApp:* " + dados.telefone + "\n";
@@ -4364,7 +4532,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             event.target.value = numeros.length > 5 ? numeros.slice(0, 5) + "-" + numeros.slice(5) : numeros;
         });
 
-        document.getElementById("formulario-pedido-form").addEventListener("submit", function(event) {
+        document.getElementById("formulario-pedido-form").addEventListener("submit", async function(event) {
             event.preventDefault();
 
             if (itensCarrinho.length === 0) {
@@ -4381,58 +4549,132 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
             mostrarErroFormularioPedido("");
 
+            const botaoEnviar = document.getElementById(
+                "btn-enviar-pedido-whatsapp"
+            );
+            const htmlOriginalBotao = botaoEnviar?.innerHTML || "";
+
+            if (botaoEnviar) {
+                botaoEnviar.disabled = true;
+                botaoEnviar.setAttribute("aria-busy", "true");
+                botaoEnviar.innerHTML =
+                    '<span class="inline-block h-4 w-4 rounded-full border-2 border-current border-t-transparent animate-spin"></span>' +
+                    " Salvando pedido...";
+            }
+
+            const janelaWhatsapp = window.open(
+                "about:blank",
+                "_blank"
+            );
+
+            if (!janelaWhatsapp) {
+                if (botaoEnviar) {
+                    botaoEnviar.disabled = false;
+                    botaoEnviar.removeAttribute("aria-busy");
+                    botaoEnviar.innerHTML = htmlOriginalBotao;
+                }
+                mostrarErroFormularioPedido(
+                    "O navegador bloqueou a abertura do WhatsApp. " +
+                    "Permita pop-ups e tente novamente."
+                );
+                return;
+            }
+
             localStorage.setItem("dadosClientePedidoVide", JSON.stringify({
                 nome: dados.nome,
                 telefone: dados.telefone,
                 tipoRecebimento: dados.tipoRecebimento
             }));
 
-            const mensagem = montarMensagemPedidoWhatsapp(dados);
-            const janelaWhatsapp = window.open(
-                "https://wa.me/" + whatsappDono + "?text=" + encodeURIComponent(mensagem),
-                "_blank"
-            );
-
-            if (!janelaWhatsapp) {
-                mostrarErroFormularioPedido("O navegador bloqueou a abertura do WhatsApp. Permita pop-ups e tente novamente.");
-                return;
-            }
-
             const resumoMetricaPedido = calcularResumoCarrinho();
-
-            const produtosInteresse = itensCarrinho
-                .map(function(item) {
-                    const quantidade = Math.max(
+            const numeroPedido = obterNumeroPedidoPublico(
+                dados,
+                resumoMetricaPedido
+            );
+            const itensSnapshot = itensCarrinho.map(function(item, index) {
+                return {
+                    produtoId:
+                        String(item.produtoId || "").trim() ||
+                        "item_" + (index + 1),
+                    nomeSnapshot: item.nome || "Produto",
+                    precoSnapshot: Math.max(
+                        0,
+                        Number(item.preco || 0)
+                    ),
+                    quantidade: Math.max(
                         1,
                         Number(item.quantidade || 1)
-                    );
-
-                    return quantidade + "x " +
-                        String(item.nome || "Produto");
+                    )
+                };
+            });
+            const produtosInteresse = itensSnapshot
+                .map(function(item) {
+                    return item.quantidade + "x " + item.nomeSnapshot;
                 })
                 .join(", ")
                 .slice(0, 160);
 
-            capturarLeadPublico({
-                nome: dados.nome,
-                telefone: dados.telefone,
-                whatsapp: dados.telefone,
-                origem: atribuicaoSessao.origemNome,
-                utmSource: atribuicaoSessao.origemNome,
-                produtoInteresse:
-                    produtosInteresse || "Pedido pelo carrinho",
-                paginaOrigem: "checkout_carrinho",
-                formularioId: "checkout_carrinho",
-                formularioNome: "Checkout do carrinho",
-                tipoCaptura: "checkout_whatsapp",
-                cliques: 1
-            }).catch(function(err) {
+            try {
+                await capturarLeadPublico({
+                    nome: dados.nome,
+                    telefone: dados.telefone,
+                    whatsapp: dados.telefone,
+                    origem: atribuicaoSessao.origemNome,
+                    utmSource: atribuicaoSessao.origemNome,
+                    produtoInteresse:
+                        produtosInteresse || "Pedido pelo carrinho",
+                    paginaOrigem: "checkout_carrinho",
+                    formularioId: "checkout_carrinho",
+                    formularioNome: "Checkout do carrinho",
+                    tipoCaptura: "checkout_whatsapp",
+                    tipoRegistro: "pedido",
+                    pedidoId: numeroPedido,
+                    numeroPedido: numeroPedido,
+                    pedidoSnapshot: {
+                        numeroPedido: numeroPedido,
+                        clienteNome: dados.nome,
+                        clienteWhatsapp: dados.telefone,
+                        tipoRecebimento: dados.tipoRecebimento,
+                        cep: dados.cep,
+                        endereco: dados.endereco,
+                        observacoes: dados.observacoes,
+                        itens: itensSnapshot,
+                        produtosTexto: produtosInteresse,
+                        subtotal: resumoMetricaPedido.total,
+                        desconto: 0,
+                        frete: 0,
+                        total: resumoMetricaPedido.total
+                    },
+                    cliques: 1
+                });
+            } catch (err) {
+                try { janelaWhatsapp.close(); } catch (error) {}
+                if (botaoEnviar) {
+                    botaoEnviar.disabled = false;
+                    botaoEnviar.removeAttribute("aria-busy");
+                    botaoEnviar.innerHTML = htmlOriginalBotao;
+                }
                 console.warn(
-                    "Lead do checkout não registrado:",
+                    "Pedido do checkout não registrado:",
                     err?.code || "",
                     err?.message || err
                 );
-            });
+                mostrarErroFormularioPedido(
+                    "Não foi possível registrar o pedido agora. " +
+                    "Confira sua conexão e tente novamente."
+                );
+                return;
+            }
+
+            const mensagem = montarMensagemPedidoWhatsapp(
+                dados,
+                numeroPedido
+            );
+            janelaWhatsapp.location.href =
+                "https://wa.me/" +
+                whatsappDono +
+                "?text=" +
+                encodeURIComponent(mensagem);
 
             registrarMetricaFunilUnica("order_whatsapp", {
                 value: resumoMetricaPedido.total
@@ -4462,6 +4704,12 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             renderizarCarrinho();
             fecharFormularioPedido();
             fecharCarrinho();
+
+            if (botaoEnviar) {
+                botaoEnviar.disabled = false;
+                botaoEnviar.removeAttribute("aria-busy");
+                botaoEnviar.innerHTML = htmlOriginalBotao;
+            }
         });
 
         document.addEventListener("keydown", function(event) {
