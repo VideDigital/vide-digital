@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V3.2
- * Rail inteligente corrigido, módulos visíveis e compatibilidade restaurada com os testes de permissão.
+ * Vide Hub — Sidebar V3.3
+ * Rail inteligente com compatibilidade completa com a busca e os testes de permissão.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -1695,11 +1695,13 @@
             if (window.innerWidth >= 768) sidebar.classList.remove("vide-dock-open");
         });
 
+        function aplicarBusca() {
+            if (central && !central.hidden) renderizarResultados();
+        }
+
         window.abrirCentralComandosVide = abrirCentral;
         window.fecharCentralComandosVide = fecharCentral;
-        window.atualizarBuscaSidebarModulos = function() {
-            if (central && !central.hidden) renderizarResultados();
-        };
+        window.atualizarBuscaSidebarModulos = aplicarBusca;
 
         if (estadoVazio) estadoVazio.classList.add("hidden");
     }
@@ -1710,3 +1712,4 @@
         iniciar();
     }
 })();
+
