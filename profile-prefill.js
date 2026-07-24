@@ -5658,12 +5658,57 @@
                     tenantUid
                 ),
                 function(snapshot) {
-                    renderizarAquisicao(
-                        snapshot.exists()
-                            ? snapshot.data() || {}
-                            : {}
+                function(snapshot) {
+                    var dadosAquisicao = snapshot.exists()
+                        ? snapshot.data() || {}
+                        : {};
+
+                    window.__VIDE_METRICAS_VITRINE_DADOS__ =
+                        dadosAquisicao;
+
+                    var assinaturaAquisicao = JSON.stringify([
+                        dadosAquisicao.porOrigem || {},
+                        dadosAquisicao.porCampanha || {}
+                    ]);
+
+                    if (
+                        window.__VIDE_AQUISICAO_ASSINATURA__ ===
+                        assinaturaAquisicao
+                    ) {
+                        return;
+                    }
+
+                    window.__VIDE_AQUISICAO_ASSINATURA__ =
+                        assinaturaAquisicao;
+
+                    window.dispatchEvent(
+                        new CustomEvent(
+                            "vide:metricas-vitrine",
+                            {
+                                detail: dadosAquisicao
+                            }
+                        )
                     );
+
+                    if (
+                        window.__VIDE_AQUISICAO_FRAME__
+                    ) {
+                        cancelAnimationFrame(
+                            window.__VIDE_AQUISICAO_FRAME__
+                        );
+                    }
+
+                    window.__VIDE_AQUISICAO_FRAME__ =
+                        requestAnimationFrame(function() {
+                            renderizarAquisicao(
+                                dadosAquisicao
+                            );
+
+                            window.__VIDE_AQUISICAO_FRAME__ =
+                                null;
+                        });
                 },
+
                 function(erro) {
                     console.error(
                         "[Vide Hub] Erro ao carregar aquisição:",
@@ -8194,7 +8239,7 @@
         return usuario.uid;
     }
 
-    async function conectarDiagnosticoAquisicao() {
+    function conectarDiagnosticoAquisicao() {
         if (diagnosticoAquisicaoIniciado) return;
 
         if (!criarPainelDiagnosticoAquisicao()) {
@@ -8203,78 +8248,63 @@
 
         diagnosticoAquisicaoIniciado = true;
 
-        try {
-            var modulos = await Promise.all([
-                import("./firebase-init.js"),
-                import(
-                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
-                ),
-                import(
-                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"
-                )
+        var assinaturaAnterior = "";
+        var frameDiagnostico = null;
+
+        function aplicarDadosCompartilhados(dados) {
+            dados = dados || {};
+
+            var assinaturaAtual = JSON.stringify([
+                dados.porOrigem || {},
+                dados.porCampanha || {}
             ]);
 
-            var firebase = modulos[0];
-            var firestore = modulos[1];
-            var authModulo = modulos[2];
-
-            var tenantUid =
-                await resolverTenantDiagnosticoAquisicao(
-                    firebase,
-                    firestore,
-                    authModulo
-                );
-
-            if (!tenantUid) {
-                throw new Error(
-                    "Não foi possível identificar a loja ativa."
-                );
-            }
-
             if (
-                typeof diagnosticoAquisicaoDesinscrever ===
-                "function"
+                assinaturaAtual ===
+                assinaturaAnterior
             ) {
-                diagnosticoAquisicaoDesinscrever();
+                return;
             }
 
-            diagnosticoAquisicaoDesinscrever =
-                firestore.onSnapshot(
-                    firestore.doc(
-                        firebase.db,
-                        "metricas_vitrines",
-                        tenantUid
-                    ),
-                    function(snapshot) {
-                        renderizarDiagnosticoAquisicao(
-                            snapshot.exists()
-                                ? snapshot.data() || {}
-                                : {}
-                        );
-                    },
-                    function(erro) {
-                        console.error(
-                            "[Vide Hub] Erro ao carregar diagnóstico de aquisição:",
-                            erro
-                        );
+            assinaturaAnterior =
+                assinaturaAtual;
 
-                        var status =
-                            document.getElementById(
-                                "vide-diag-aquisicao-status"
-                            );
-
-                        if (status) {
-                            status.textContent =
-                                erro?.code ===
-                                "permission-denied"
-                                    ? "Sem permissão"
-                                    : "Falha ao analisar";
-
-                            status.dataset.level =
-                                "critical";
-                        }
-                    }
+            if (frameDiagnostico) {
+                cancelAnimationFrame(
+                    frameDiagnostico
                 );
+            }
+
+            frameDiagnostico =
+                requestAnimationFrame(function() {
+                    renderizarDiagnosticoAquisicao(
+                        dados
+                    );
+
+                    frameDiagnostico = null;
+                });
+        }
+
+        window.addEventListener(
+            "vide:metricas-vitrine",
+            function(evento) {
+                aplicarDadosCompartilhados(
+                    evento.detail || {}
+                );
+            }
+        );
+
+        if (
+            window.__VIDE_METRICAS_VITRINE_DADOS__
+        ) {
+            aplicarDadosCompartilhados(
+                window.__VIDE_METRICAS_VITRINE_DADOS__
+            );
+        } else {
+            aplicarDadosCompartilhados({});
+        }
+    }
+
         } catch (erro) {
             diagnosticoAquisicaoIniciado = false;
 
@@ -8330,5 +8360,102 @@
     } else {
         inicializarDiagnosticoAquisicao();
     }
+})();
+
+/* =========================================================
+   VIDE HUB — OTIMIZAÇÃO VISUAL DA ABA MÉTRICAS
+   Evita pintura e layout de blocos que estão fora da tela.
+   ========================================================= */
+(function() {
+    "use strict";
+
+    if (
+        document.getElementById(
+            "vide-metricas-performance-style"
+        )
+    ) {
+        return;
+    }
+
+    var style = document.createElement("style");
+    style.id = "vide-metricas-performance-style";
+
+    style.textContent = `
+        @supports (content-visibility: auto) {
+            #vide-aquisicao-real {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 1450px;
+            }
+
+            #vide-gerador-campanhas {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 560px;
+            }
+
+            #vide-aquisicao-real > .vide-aquisicao-resumo {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 150px;
+            }
+
+            #vide-aquisicao-real > .vide-aquisicao-layout {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 440px;
+            }
+
+            #vide-diagnostico-aquisicao {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 520px;
+            }
+
+            #vide-funil-loja-publica
+                .vide-produtos-performance {
+                content-visibility: auto;
+                contain-intrinsic-size: auto 850px;
+            }
+        }
+
+        #view-metricas .glass-card,
+        #vide-funil-loja-publica,
+        #vide-aquisicao-real,
+        #vide-gerador-campanhas,
+        #vide-diagnostico-aquisicao {
+            -webkit-backdrop-filter: none !important;
+            backdrop-filter: none !important;
+        }
+
+        #vide-aquisicao-real {
+            background-color: rgba(6, 12, 25, .96) !important;
+            background-image: none !important;
+            box-shadow: none !important;
+        }
+
+        #vide-gerador-campanhas,
+        #vide-diagnostico-aquisicao {
+            background-color: rgba(5, 10, 22, .94) !important;
+            background-image: none !important;
+            box-shadow: none !important;
+        }
+
+        #vide-aquisicao-real .vide-aquisicao-kpi,
+        #vide-aquisicao-real .vide-aquisicao-bloco,
+        #vide-gerador-campanhas
+            .vide-gerador-historico-item,
+        #vide-diagnostico-aquisicao
+            .vide-diag-aquisicao-kpi,
+        #vide-diagnostico-aquisicao
+            .vide-diag-aquisicao-item {
+            box-shadow: none !important;
+        }
+
+        @media (max-width: 900px) {
+            #vide-aquisicao-real,
+            #vide-gerador-campanhas,
+            #vide-diagnostico-aquisicao {
+                border-radius: 15px;
+            }
+        }
+    `;
+
+    document.head.appendChild(style);
 })();
 
