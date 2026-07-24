@@ -2835,96 +2835,172 @@
         }
 
 
-        // Captura de lead direto no banco (sem Cloud Function). O lead nasce
-        // com status "novo" e criadoPor = dono da loja, exatamente o que as
-        // regras exigem para uma escrita pública.
-        function capturarLeadPublico(payload) {
-            const ownerUid = fornecedorEmail;
+        // Schema canônico da captura pública de leads.
+        // Mantém compatibilidade com os campos antigos, inclui tenant explícito
+        // e evita registros repetidos por cliques duplos na mesma sessão.
+        const LEAD_PUBLIC_SCHEMA_VERSION = 2;
+        const LEAD_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
-            if (!ownerUid) {
-                return Promise.reject(
-                    new Error("Loja sem dono válido.")
-                );
+        function textoLeadPublico(valor, limite) {
+            return String(valor || "")
+                .replace(/[\u0000-\u001F\u007F]/g, "")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, limite || 160);
+        }
+
+        function slugLeadPublico(valor, fallback) {
+            let texto = textoLeadPublico(valor, 180).toLowerCase();
+            try {
+                texto = texto.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            } catch (e) {}
+            texto = texto
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "")
+                .slice(0, 90);
+            return texto || fallback || "captura";
+        }
+
+        function hashLeadPublico(valor) {
+            let hash = 2166136261;
+            const texto = String(valor || "");
+            for (let i = 0; i < texto.length; i += 1) {
+                hash ^= texto.charCodeAt(i);
+                hash = Math.imul(hash, 16777619);
             }
+            return (hash >>> 0).toString(36);
+        }
+
+        function obterSessaoLeadPublico() {
+            const storageKey = "videLeadSession:" + String(lojaSlug || "loja");
+            try {
+                let sessionId = sessionStorage.getItem(storageKey);
+                if (!sessionId) {
+                    sessionId = "sess_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 9);
+                    sessionStorage.setItem(storageKey, sessionId);
+                }
+                return sessionId;
+            } catch (e) {
+                return "sess_" + Date.now().toString(36);
+            }
+        }
+
+        function chaveDedupeLeadPublico(payload, ownerUid) {
+            const contact = textoLeadPublico(
+                payload.whatsapp || payload.telefone || payload.phone || payload.email,
+                160
+            ).replace(/\D/g, "") || textoLeadPublico(payload.email, 160).toLowerCase();
+            const raw = [
+                ownerUid,
+                payload.tipoCaptura || "captura",
+                payload.formularioId || payload.paginaOrigem || "loja",
+                payload.produtoId || payload.produtoInteresse || "geral",
+                contact || obterSessaoLeadPublico(),
+                atribuicaoSessao?.campanhaNome || "sem_campanha"
+            ].join("|");
+            return "lead_" + hashLeadPublico(raw);
+        }
+
+        function leadPublicoDuplicado(dedupeKey) {
+            const storageKey = "videLeadDedupe:" + dedupeKey;
+            try {
+                const anterior = Number(sessionStorage.getItem(storageKey) || 0);
+                if (anterior && Date.now() - anterior < LEAD_DEDUPE_WINDOW_MS) return true;
+                sessionStorage.setItem(storageKey, String(Date.now()));
+                return false;
+            } catch (e) {
+                return false;
+            }
+        }
+
+        function liberarDedupeLeadPublico(dedupeKey) {
+            try {
+                sessionStorage.removeItem("videLeadDedupe:" + dedupeKey);
+            } catch (e) {}
+        }
+
+        async function capturarLeadPublico(payload) {
+            const ownerUid = textoLeadPublico(fornecedorEmail, 160);
+            if (!ownerUid) throw new Error("Loja sem dono válido.");
 
             payload = payload || {};
-
-            const campaignName = (
+            const campaignName = textoLeadPublico(
                 payload.utmCampaign ||
-                (
-                    atribuicaoSessao?.temCampanha
-                        ? atribuicaoSessao.campanhaNome
-                        : ""
-                ) ||
-                ""
-            ).toString().slice(0, 120);
+                (atribuicaoSessao?.temCampanha ? atribuicaoSessao.campanhaNome : ""),
+                120
+            );
+            const origem = textoLeadPublico(
+                payload.origem || atribuicaoSessao?.origemNome || utmSourceCapturada || "Loja",
+                120
+            ) || "Loja";
+            const paginaOrigem = textoLeadPublico(
+                payload.paginaOrigem || window.location.pathname || "loja_publica",
+                160
+            ) || "loja_publica";
+            const formularioId = slugLeadPublico(
+                payload.formularioId || paginaOrigem,
+                "captura_loja"
+            );
+            const tipoCaptura = slugLeadPublico(
+                payload.tipoCaptura || "interesse",
+                "interesse"
+            );
+            const dedupeKey = chaveDedupeLeadPublico({
+                ...payload,
+                paginaOrigem,
+                formularioId,
+                tipoCaptura
+            }, ownerUid);
 
+            if (leadPublicoDuplicado(dedupeKey)) {
+                return { duplicado: true, dedupeKey };
+            }
+
+            const timestamp = Date.now();
+            const sessionId = obterSessaoLeadPublico();
+            const leadId = "lead_loja_" + timestamp.toString(36) + "_" + Math.random().toString(36).slice(2, 9);
             const lead = {
                 criadoPor: ownerUid,
-                nome: (
-                    payload.nome ||
-                    payload.name ||
-                    ""
-                ).toString().slice(0, 120),
-                whatsapp: (
-                    payload.whatsapp ||
-                    payload.telefone ||
-                    payload.phone ||
-                    ""
-                ).toString().slice(0, 40),
-                email: (
-                    payload.email ||
-                    ""
-                ).toString().slice(0, 160),
-                origem: (
-                    payload.origem ||
-                    atribuicaoSessao?.origemNome ||
-                    utmSourceCapturada ||
-                    "Loja"
-                ).toString().slice(0, 120),
-                produtoInteresse: (
-                    payload.produtoInteresse ||
-                    "Interesse geral"
-                ).toString().slice(0, 160),
-                lojaOrigem: (
-                    lojaSlug ||
-                    ""
-                ).toString().slice(0, 160),
-                paginaOrigem: (
-                    payload.paginaOrigem ||
-                    ""
-                ).toString().slice(0, 160),
-                utmSource: (
-                    payload.utmSource ||
-                    atribuicaoSessao?.origemNome ||
-                    utmSourceCapturada ||
-                    ""
-                ).toString().slice(0, 120),
-                utmMedium: (
-                    payload.utmMedium ||
-                    atribuicaoSessao?.meioNome ||
-                    ""
-                ).toString().slice(0, 120),
+                tenantId: ownerUid,
+                lojaId: ownerUid,
+                versaoSchema: LEAD_PUBLIC_SCHEMA_VERSION,
+                canal: "loja_publica",
+                tipoCaptura,
+                sessaoId: sessionId,
+                dedupeKey,
+                nome: textoLeadPublico(payload.nome || payload.name, 120),
+                whatsapp: textoLeadPublico(payload.whatsapp || payload.telefone || payload.phone, 40),
+                email: textoLeadPublico(payload.email, 160).toLowerCase(),
+                origem,
+                produtoInteresse: textoLeadPublico(payload.produtoInteresse || "Interesse geral", 160),
+                produtoId: textoLeadPublico(payload.produtoId, 180),
+                lojaOrigem: textoLeadPublico(lojaSlug, 160),
+                paginaOrigem,
+                formularioId,
+                formularioNome: textoLeadPublico(payload.formularioNome || formularioId.replace(/_/g, " "), 160),
+                utmSource: textoLeadPublico(payload.utmSource || atribuicaoSessao?.origemNome || utmSourceCapturada, 120),
+                utmMedium: textoLeadPublico(payload.utmMedium || atribuicaoSessao?.meioNome || "", 120),
                 utmCampaign: campaignName,
+                utmContent: textoLeadPublico(payload.utmContent || urlParams.get("utm_content"), 120),
                 urlPagina: window.location.href.slice(0, 500),
-                referrer: (
-                    document.referrer ||
-                    ""
-                ).slice(0, 500),
-                cliques: Number(payload.cliques || 0),
+                referrer: textoLeadPublico(document.referrer, 500),
+                cliques: Math.max(0, Number(payload.cliques || 0)),
+                tempoRetencao: Math.max(0, Number(payload.tempoRetencao || 0)),
                 statusLead: "novo",
                 status: "novo",
-                data: Date.now()
+                pipelineStage: "novo",
+                criadoEm: serverTimestamp(),
+                atualizadoEm: serverTimestamp(),
+                data: timestamp
             };
 
-            return setDoc(
-                doc(
-                    db,
-                    "leads",
-                    "lead_loja_" + Date.now()
-                ),
-                lead
-            );
+            try {
+                await setDoc(doc(db, "leads", leadId), lead);
+                return { duplicado: false, id: leadId, dedupeKey };
+            } catch (error) {
+                liberarDedupeLeadPublico(dedupeKey);
+                throw error;
+            }
         }
 
 
@@ -4346,6 +4422,9 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 produtoInteresse:
                     produtosInteresse || "Pedido pelo carrinho",
                 paginaOrigem: "checkout_carrinho",
+                formularioId: "checkout_carrinho",
+                formularioNome: "Checkout do carrinho",
+                tipoCaptura: "checkout_whatsapp",
                 cliques: 1
             }).catch(function(err) {
                 console.warn(
@@ -4404,6 +4483,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             await capturarLeadPublico({
                 origem: utmSourceCapturada,
                 produtoInteresse: nomeProd,
+                produtoId: produtoId,
+                paginaOrigem: "produto_cta",
+                formularioId: "produto_cta",
+                formularioNome: "CTA do produto",
+                tipoCaptura: "clique_produto",
                 cliques: 1
             });
 
@@ -4548,6 +4632,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     whatsapp,
                     origem: utmSourceCapturada,
                     produtoInteresse: "Popup de Captura",
+                    paginaOrigem: "popup_captura",
+                    formularioId: "popup_captura",
+                    formularioNome: "Popup de captura",
+                    tipoCaptura: "formulario_popup",
                     cliques: 0,
                     tempoRetencao: Math.round((Date.now() - tempoInicioSessao) / 1000)
                 });
