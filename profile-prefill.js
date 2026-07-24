@@ -760,6 +760,154 @@
                 box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-destaque, #00f2fe) 20%, transparent);
             }
 
+            #vide-funil-loja-publica .vide-relatorio-toolbar {
+                position: relative;
+                display: flex;
+                align-items: flex-start;
+                justify-content: flex-end;
+                flex-wrap: wrap;
+                gap: 10px;
+                flex: 0 0 auto;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao {
+                position: relative;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao summary {
+                min-height: 42px;
+                padding: 0 14px;
+                border: 1px solid color-mix(in srgb, var(--sys-destaque, #00f2fe) 24%, rgba(255,255,255,.1));
+                border-radius: 13px;
+                background:
+                    linear-gradient(
+                        135deg,
+                        color-mix(in srgb, var(--sys-destaque, #00f2fe) 11%, rgba(3,7,18,.78)),
+                        rgba(3,7,18,.76)
+                    );
+                color: #fff;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                font-size: 10px;
+                font-weight: 900;
+                letter-spacing: .04em;
+                list-style: none;
+                cursor: pointer;
+                user-select: none;
+                white-space: nowrap;
+                transition: border-color .2s ease, background .2s ease, transform .2s ease;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao summary::-webkit-details-marker {
+                display: none;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao summary:hover {
+                border-color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 45%, rgba(255,255,255,.1));
+                background:
+                    linear-gradient(
+                        135deg,
+                        color-mix(in srgb, var(--sys-destaque, #00f2fe) 17%, rgba(3,7,18,.8)),
+                        rgba(3,7,18,.78)
+                    );
+                transform: translateY(-1px);
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao summary:focus-visible {
+                outline: none;
+                border-color: var(--sys-destaque, #00f2fe);
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-destaque, #00f2fe) 20%, transparent);
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao summary svg {
+                width: 15px;
+                height: 15px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.9;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-menu {
+                position: absolute;
+                top: calc(100% + 8px);
+                right: 0;
+                z-index: 30;
+                width: min(290px, calc(100vw - 32px));
+                padding: 8px;
+                border: 1px solid rgba(255,255,255,.1);
+                border-radius: 16px;
+                background: rgba(5,9,20,.98);
+                box-shadow: 0 20px 50px rgba(0,0,0,.45);
+                backdrop-filter: blur(18px);
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao {
+                width: 100%;
+                padding: 12px;
+                border: 0;
+                border-radius: 11px;
+                background: transparent;
+                color: #fff;
+                display: grid;
+                grid-template-columns: 34px minmax(0, 1fr);
+                align-items: center;
+                gap: 10px;
+                text-align: left;
+                cursor: pointer;
+                transition: background .2s ease;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao:hover,
+            #vide-funil-loja-publica .vide-relatorio-opcao:focus-visible {
+                outline: none;
+                background: rgba(255,255,255,.065);
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao + .vide-relatorio-opcao {
+                margin-top: 3px;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao-icon {
+                width: 34px;
+                height: 34px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(255,255,255,.08);
+                border-radius: 10px;
+                color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 76%, white 24%);
+                background: color-mix(in srgb, var(--sys-destaque, #00f2fe) 8%, transparent);
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao-icon svg {
+                width: 16px;
+                height: 16px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.8;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao strong {
+                display: block;
+                color: #fff;
+                font-size: 10px;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-opcao small {
+                display: block;
+                margin-top: 3px;
+                color: #7f8a9d;
+                font-size: 8px;
+                line-height: 1.45;
+            }
+
             #vide-funil-loja-publica .vide-funil-grid {
                 position: relative;
                 z-index: 1;
@@ -1642,8 +1790,26 @@
                     flex-direction: column;
                 }
 
-                #vide-funil-periodo {
+                #vide-funil-loja-publica .vide-relatorio-toolbar {
                     width: 100%;
+                    justify-content: stretch;
+                }
+
+                #vide-funil-loja-publica .vide-relatorio-toolbar > label,
+                #vide-funil-loja-publica .vide-relatorio-exportacao {
+                    flex: 1 1 220px;
+                }
+
+                #vide-funil-periodo,
+                #vide-funil-loja-publica .vide-relatorio-exportacao summary {
+                    width: 100%;
+                }
+
+                #vide-funil-loja-publica .vide-relatorio-menu {
+                    left: 0;
+                    right: auto;
+                    width: 100%;
+                    min-width: 260px;
                 }
 
                 #vide-funil-loja-publica .vide-funil-flow {
@@ -1731,15 +1897,58 @@
                         Cada etapa é contabilizada uma vez por sessão para evitar números inflados por cliques repetidos.
                     </p>
                 </div>
-                <label>
-                    <span class="sr-only">Período das métricas do funil</span>
-                    <select id="vide-funil-periodo" aria-label="Período das métricas do funil">
-                        <option value="7">Últimos 7 dias</option>
-                        <option value="30" selected>Últimos 30 dias</option>
-                        <option value="90">Últimos 90 dias</option>
-                        <option value="0">Todo o período</option>
-                    </select>
-                </label>
+                <div class="vide-relatorio-toolbar">
+                    <label>
+                        <span class="sr-only">Período das métricas do funil</span>
+                        <select id="vide-funil-periodo" aria-label="Período das métricas do funil">
+                            <option value="7">Últimos 7 dias</option>
+                            <option value="30" selected>Últimos 30 dias</option>
+                            <option value="90">Últimos 90 dias</option>
+                            <option value="0">Todo o período</option>
+                        </select>
+                    </label>
+
+                    <details class="vide-relatorio-exportacao" id="vide-relatorio-exportacao">
+                        <summary>
+                            <svg viewBox="0 0 24 24" aria-hidden="true">
+                                <path d="M12 3v12"></path>
+                                <path d="m7 10 5 5 5-5"></path>
+                                <path d="M5 21h14"></path>
+                            </svg>
+                            Exportar relatório
+                        </summary>
+                        <div class="vide-relatorio-menu">
+                            <button type="button" class="vide-relatorio-opcao" id="vide-relatorio-csv">
+                                <span class="vide-relatorio-opcao-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                        <path d="M14 2v6h6"></path>
+                                        <path d="M8 13h8"></path>
+                                        <path d="M8 17h8"></path>
+                                    </svg>
+                                </span>
+                                <span>
+                                    <strong>Baixar CSV</strong>
+                                    <small>Abre no Excel e no Google Planilhas.</small>
+                                </span>
+                            </button>
+
+                            <button type="button" class="vide-relatorio-opcao" id="vide-relatorio-pdf">
+                                <span class="vide-relatorio-opcao-icon" aria-hidden="true">
+                                    <svg viewBox="0 0 24 24">
+                                        <path d="M6 9V2h12v7"></path>
+                                        <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path>
+                                        <rect x="6" y="14" width="12" height="8"></rect>
+                                    </svg>
+                                </span>
+                                <span>
+                                    <strong>Imprimir ou salvar em PDF</strong>
+                                    <small>Gera um relatório executivo pronto para compartilhar.</small>
+                                </span>
+                            </button>
+                        </div>
+                    </details>
+                </div>
             </div>
 
             <div class="vide-funil-grid">
@@ -2095,6 +2304,16 @@
 
         document.getElementById("vide-produtos-atualizar")?.addEventListener("click", function() {
             carregarMetricasProdutos(true);
+        });
+
+        document.getElementById("vide-relatorio-csv")?.addEventListener("click", async function() {
+            fecharMenuExportacaoMetricas();
+            await exportarRelatorioMetricasCsv();
+        });
+
+        document.getElementById("vide-relatorio-pdf")?.addEventListener("click", async function() {
+            fecharMenuExportacaoMetricas();
+            await abrirRelatorioMetricasImpressao();
         });
 
         return true;
@@ -3262,6 +3481,938 @@
         metricasProdutosAtualizacaoTimer = setTimeout(function() {
             carregarMetricasProdutos(true);
         }, 1200);
+    }
+
+    function fecharMenuExportacaoMetricas() {
+        var menu = document.getElementById("vide-relatorio-exportacao");
+        if (menu) menu.removeAttribute("open");
+    }
+
+    async function garantirDadosProdutosRelatorio() {
+        if (
+            metricasProdutosConexao &&
+            !metricasProdutosCarregando &&
+            metricasProdutosDados.length === 0
+        ) {
+            await carregarMetricasProdutos(true);
+        }
+
+        if (!metricasProdutosCarregando) return;
+
+        await new Promise(function(resolve) {
+            var tentativas = 0;
+            var intervalo = setInterval(function() {
+                tentativas += 1;
+                if (!metricasProdutosCarregando || tentativas >= 40) {
+                    clearInterval(intervalo);
+                    resolve();
+                }
+            }, 100);
+        });
+    }
+
+    function obterNomeLojaRelatorio() {
+        var candidatos = [
+            document.getElementById("txt-preview-nome-loja")?.textContent,
+            document.querySelector("[data-store-name]")?.textContent,
+            document.title
+        ];
+
+        var nome = candidatos.find(function(valor) {
+            return String(valor || "").trim();
+        });
+
+        nome = String(nome || "Loja Vide Hub")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        return nome.slice(0, 120) || "Loja Vide Hub";
+    }
+
+    function obterPeriodoRelatorio() {
+        var select = document.getElementById("vide-funil-periodo");
+        var dias = Number(select?.value || 30);
+        var rotulo = select?.selectedOptions?.[0]?.textContent?.trim();
+
+        return {
+            dias: Number.isFinite(dias) ? dias : 30,
+            rotulo: rotulo || (dias === 0
+                ? "Todo o período"
+                : "Últimos " + dias + " dias")
+        };
+    }
+
+    function obterDadosFunilRelatorio(dias) {
+        var dados = dadosPeriodoMetricas(
+            metricasFunilDados?.porDia || {},
+            dias
+        );
+
+        if (dias === 0 && dados.sessoes === 0) {
+            dados.sessoes = numeroMetrica(
+                metricasFunilDados?.totalSessoes
+            );
+        }
+
+        return dados;
+    }
+
+    function montarListaProdutosRelatorio(dias) {
+        return metricasProdutosDados.map(function(item) {
+            var dadosPeriodo = dadosPeriodoMetricaProduto(
+                item.metricas,
+                dias
+            );
+
+            var produto = {
+                id: item.id,
+                nome: nomeProdutoMetrica(item.produto),
+                categoria: categoriaProdutoMetrica(item.produto),
+                produto: item.produto,
+                metricas: item.metricas,
+                dadosPeriodo: dadosPeriodo
+            };
+
+            produto.conversao = percentualNumero(
+                dadosPeriodo.pedidosWhatsapp,
+                dadosPeriodo.visualizacoes
+            );
+            produto.diagnostico = diagnosticarProdutoMetrica(
+                produto
+            );
+
+            return produto;
+        });
+    }
+
+    function montarDadosRelatorioMetricas() {
+        var periodo = obterPeriodoRelatorio();
+        var funil = obterDadosFunilRelatorio(periodo.dias);
+        var anterior = obterPeriodoAnteriorMetricas(
+            metricasFunilDados?.porDia || {},
+            periodo.dias
+        );
+        var diagnosticoFunil = gerarDiagnosticoFunil(
+            funil,
+            anterior,
+            periodo.dias
+        );
+        var produtos = ordenarMetricasProdutos(
+            montarListaProdutosRelatorio(periodo.dias),
+            "pedidos"
+        );
+
+        var oportunidades = produtos
+            .filter(function(item) {
+                return item.diagnostico.prioridade >= 4;
+            })
+            .sort(function(a, b) {
+                return b.diagnostico.prioridade -
+                    a.diagnostico.prioridade ||
+                    b.dadosPeriodo.visualizacoes -
+                    a.dadosPeriodo.visualizacoes;
+            })
+            .slice(0, 5);
+
+        if (oportunidades.length === 0) {
+            oportunidades = produtos
+                .filter(function(item) {
+                    return item.diagnostico.level === "positive";
+                })
+                .slice(0, 5);
+        }
+
+        return {
+            nomeLoja: obterNomeLojaRelatorio(),
+            periodo: periodo,
+            geradoEm: new Date(),
+            funil: funil,
+            diagnosticoFunil: diagnosticoFunil,
+            produtos: produtos,
+            oportunidades: oportunidades
+        };
+    }
+
+    function normalizarNomeArquivoRelatorio(valor) {
+        return String(valor || "loja")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+            .slice(0, 60) || "loja";
+    }
+
+    function escaparCampoCsv(valor) {
+        var texto = String(valor ?? "");
+        if (
+            texto.includes(";") ||
+            texto.includes('"') ||
+            texto.includes("\n") ||
+            texto.includes("\r")
+        ) {
+            return '"' + texto.replace(/"/g, '""') + '"';
+        }
+        return texto;
+    }
+
+    function linhaCsv(campos) {
+        return campos.map(escaparCampoCsv).join(";");
+    }
+
+    function baixarArquivoRelatorio(conteudo, nomeArquivo, tipo) {
+        var blob = new Blob([conteudo], {
+            type: tipo || "text/plain;charset=utf-8"
+        });
+        var url = URL.createObjectURL(blob);
+        var link = document.createElement("a");
+        link.href = url;
+        link.download = nomeArquivo;
+        link.style.display = "none";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+
+        setTimeout(function() {
+            URL.revokeObjectURL(url);
+        }, 1500);
+    }
+
+    async function exportarRelatorioMetricasCsv() {
+        await garantirDadosProdutosRelatorio();
+
+        var relatorio = montarDadosRelatorioMetricas();
+        var inteiro = new Intl.NumberFormat("pt-BR", {
+            maximumFractionDigits: 0
+        });
+        var numeroDecimal = new Intl.NumberFormat("pt-BR", {
+            minimumFractionDigits: 2,
+            maximumFractionDigits: 2
+        });
+        var linhas = [];
+        var funil = relatorio.funil;
+        var diagnostico = relatorio.diagnosticoFunil;
+
+        linhas.push(linhaCsv([
+            "RELATÓRIO DE MÉTRICAS",
+            relatorio.nomeLoja
+        ]));
+        linhas.push(linhaCsv([
+            "Período",
+            relatorio.periodo.rotulo
+        ]));
+        linhas.push(linhaCsv([
+            "Gerado em",
+            relatorio.geradoEm.toLocaleString("pt-BR")
+        ]));
+        linhas.push("");
+
+        linhas.push(linhaCsv(["RESUMO DO FUNIL"]));
+        linhas.push(linhaCsv([
+            "Indicador",
+            "Quantidade / valor",
+            "Taxa sobre visitas"
+        ]));
+        linhas.push(linhaCsv([
+            "Visitas",
+            inteiro.format(funil.sessoes),
+            funil.sessoes ? "100%" : "0%"
+        ]));
+        linhas.push(linhaCsv([
+            "Carrinhos abertos",
+            inteiro.format(funil.carrinhosAbertos),
+            formatarPercentualLivre(
+                percentualNumero(
+                    funil.carrinhosAbertos,
+                    funil.sessoes
+                )
+            )
+        ]));
+        linhas.push(linhaCsv([
+            "Itens adicionados",
+            inteiro.format(funil.adicoesCarrinho),
+            formatarPercentualLivre(
+                percentualNumero(
+                    funil.adicoesCarrinho,
+                    funil.sessoes
+                )
+            )
+        ]));
+        linhas.push(linhaCsv([
+            "Pedidos iniciados",
+            inteiro.format(funil.checkoutsIniciados),
+            formatarPercentualLivre(
+                percentualNumero(
+                    funil.checkoutsIniciados,
+                    funil.sessoes
+                )
+            )
+        ]));
+        linhas.push(linhaCsv([
+            "WhatsApp aberto",
+            inteiro.format(funil.pedidosWhatsapp),
+            formatarPercentualLivre(
+                percentualNumero(
+                    funil.pedidosWhatsapp,
+                    funil.sessoes
+                )
+            )
+        ]));
+        linhas.push(linhaCsv([
+            "Compartilhamentos",
+            inteiro.format(funil.compartilhamentos),
+            ""
+        ]));
+        linhas.push(linhaCsv([
+            "Valor potencial",
+            "R$ " + numeroDecimal.format(
+                funil.valorPedidosWhatsapp
+            ),
+            ""
+        ]));
+        linhas.push("");
+
+        linhas.push(linhaCsv(["DIAGNÓSTICO EXECUTIVO"]));
+        linhas.push(linhaCsv([
+            "Status",
+            diagnostico.status
+        ]));
+        linhas.push(linhaCsv([
+            "Principal ponto de atenção",
+            diagnostico.gargaloTitulo
+        ]));
+        linhas.push(linhaCsv([
+            "Análise",
+            diagnostico.gargaloTexto
+        ]));
+        (diagnostico.recomendacoes || []).forEach(function(item, indice) {
+            linhas.push(linhaCsv([
+                "Recomendação " + (indice + 1),
+                item
+            ]));
+        });
+        linhas.push("");
+
+        linhas.push(linhaCsv(["RANKING POR PRODUTO"]));
+        linhas.push(linhaCsv([
+            "Posição",
+            "Produto",
+            "Categoria",
+            "Visualizações",
+            "Detalhes",
+            "Carrinho",
+            "Checkout",
+            "WhatsApp",
+            "Conversão visita → WhatsApp",
+            "Valor potencial",
+            "Diagnóstico",
+            "Recomendação"
+        ]));
+
+        if (relatorio.produtos.length === 0) {
+            linhas.push(linhaCsv([
+                "",
+                "Nenhum produto cadastrado encontrado no período."
+            ]));
+        } else {
+            relatorio.produtos.forEach(function(item, indice) {
+                var dados = item.dadosPeriodo;
+                linhas.push(linhaCsv([
+                    indice + 1,
+                    item.nome,
+                    item.categoria,
+                    inteiro.format(dados.visualizacoes),
+                    inteiro.format(dados.detalhesAbertos),
+                    inteiro.format(dados.adicoesCarrinho),
+                    inteiro.format(dados.checkoutsIniciados),
+                    inteiro.format(dados.pedidosWhatsapp),
+                    formatarPercentualLivre(item.conversao),
+                    "R$ " + numeroDecimal.format(
+                        dados.valorPedidosWhatsapp
+                    ),
+                    item.diagnostico.label,
+                    item.diagnostico.recomendacao
+                ]));
+            });
+        }
+
+        var dataArquivo = [
+            relatorio.geradoEm.getFullYear(),
+            String(relatorio.geradoEm.getMonth() + 1).padStart(2, "0"),
+            String(relatorio.geradoEm.getDate()).padStart(2, "0")
+        ].join("-");
+
+        baixarArquivoRelatorio(
+            "\uFEFF" + linhas.join("\r\n"),
+            "relatorio-metricas-" +
+                normalizarNomeArquivoRelatorio(relatorio.nomeLoja) +
+                "-" +
+                dataArquivo +
+                ".csv",
+            "text/csv;charset=utf-8"
+        );
+    }
+
+    function escaparHtmlRelatorio(valor) {
+        return String(valor ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function classeDiagnosticoRelatorio(level) {
+        if (level === "positive") return "positive";
+        if (level === "critical") return "critical";
+        if (level === "attention") return "attention";
+        return "neutral";
+    }
+
+    function montarHtmlRelatorioImpressao(relatorio) {
+        var inteiro = new Intl.NumberFormat("pt-BR");
+        var moeda = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        });
+        var funil = relatorio.funil;
+        var diagnostico = relatorio.diagnosticoFunil;
+        var conversaoGeral = percentualNumero(
+            funil.pedidosWhatsapp,
+            funil.sessoes
+        );
+        var linhasProdutos = relatorio.produtos.map(function(item, indice) {
+            var dados = item.dadosPeriodo;
+            return `
+                <tr>
+                    <td>${indice + 1}</td>
+                    <td>
+                        <strong>${escaparHtmlRelatorio(item.nome)}</strong>
+                        <small>${escaparHtmlRelatorio(item.categoria)}</small>
+                    </td>
+                    <td>${inteiro.format(dados.visualizacoes)}</td>
+                    <td>${inteiro.format(dados.adicoesCarrinho)}</td>
+                    <td>${inteiro.format(dados.checkoutsIniciados)}</td>
+                    <td>${inteiro.format(dados.pedidosWhatsapp)}</td>
+                    <td>${formatarPercentualLivre(item.conversao)}</td>
+                    <td>${escaparHtmlRelatorio(moeda.format(dados.valorPedidosWhatsapp))}</td>
+                    <td>
+                        <span class="badge ${classeDiagnosticoRelatorio(item.diagnostico.level)}">
+                            ${escaparHtmlRelatorio(item.diagnostico.label)}
+                        </span>
+                    </td>
+                </tr>
+            `;
+        }).join("");
+
+        if (!linhasProdutos) {
+            linhasProdutos = `
+                <tr>
+                    <td colspan="9" class="empty">
+                        Nenhum produto cadastrado foi encontrado.
+                    </td>
+                </tr>
+            `;
+        }
+
+        var recomendacoes = (diagnostico.recomendacoes || [])
+            .map(function(item) {
+                return `<li>${escaparHtmlRelatorio(item)}</li>`;
+            })
+            .join("");
+
+        var oportunidades = relatorio.oportunidades
+            .map(function(item) {
+                return `
+                    <article class="opportunity">
+                        <span class="badge ${classeDiagnosticoRelatorio(item.diagnostico.level)}">
+                            ${escaparHtmlRelatorio(item.diagnostico.label)}
+                        </span>
+                        <strong>${escaparHtmlRelatorio(item.nome)}</strong>
+                        <p>${escaparHtmlRelatorio(item.diagnostico.recomendacao)}</p>
+                    </article>
+                `;
+            })
+            .join("");
+
+        if (!oportunidades) {
+            oportunidades = `
+                <article class="opportunity empty-card">
+                    <strong>Aguardando mais interações</strong>
+                    <p>As oportunidades por produto aparecerão quando houver volume suficiente.</p>
+                </article>
+            `;
+        }
+
+        return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de métricas — ${escaparHtmlRelatorio(relatorio.nomeLoja)}</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            color: #172033;
+            background: #eef2f7;
+        }
+        * { box-sizing: border-box; }
+        body {
+            margin: 0;
+            background: #eef2f7;
+            color: #172033;
+        }
+        .print-actions {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            padding: 12px max(18px, calc((100vw - 1180px) / 2));
+            background: rgba(238,242,247,.94);
+            border-bottom: 1px solid #dbe2ec;
+            backdrop-filter: blur(12px);
+        }
+        .print-actions button {
+            min-height: 40px;
+            padding: 0 16px;
+            border: 1px solid #cad4e2;
+            border-radius: 10px;
+            background: #fff;
+            color: #172033;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 800;
+            cursor: pointer;
+        }
+        .print-actions .primary {
+            border-color: #172033;
+            background: #172033;
+            color: #fff;
+        }
+        .report {
+            width: min(1180px, calc(100% - 36px));
+            margin: 28px auto;
+            padding: 42px;
+            border: 1px solid #dbe2ec;
+            border-radius: 24px;
+            background: #fff;
+            box-shadow: 0 24px 60px rgba(23,32,51,.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            padding-bottom: 26px;
+            border-bottom: 2px solid #172033;
+        }
+        .eyebrow {
+            display: block;
+            margin-bottom: 8px;
+            color: #667085;
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: .18em;
+            text-transform: uppercase;
+        }
+        h1 {
+            margin: 0;
+            font-size: 30px;
+            line-height: 1.1;
+            letter-spacing: -.04em;
+        }
+        .header p {
+            margin: 8px 0 0;
+            color: #667085;
+            font-size: 12px;
+        }
+        .meta {
+            min-width: 230px;
+            text-align: right;
+        }
+        .meta strong,
+        .meta span {
+            display: block;
+        }
+        .meta strong {
+            font-size: 13px;
+        }
+        .meta span {
+            margin-top: 5px;
+            color: #667085;
+            font-size: 11px;
+        }
+        .section {
+            margin-top: 30px;
+        }
+        .section-title {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            gap: 18px;
+            margin-bottom: 14px;
+        }
+        .section-title h2 {
+            margin: 0;
+            font-size: 17px;
+            letter-spacing: -.02em;
+        }
+        .section-title span {
+            color: #667085;
+            font-size: 10px;
+        }
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .card {
+            min-height: 105px;
+            padding: 16px;
+            border: 1px solid #dbe2ec;
+            border-radius: 14px;
+            background: #f8fafc;
+        }
+        .card span {
+            display: block;
+            color: #667085;
+            font-size: 9px;
+            font-weight: 900;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+        }
+        .card strong {
+            display: block;
+            margin-top: 14px;
+            font-size: 24px;
+            letter-spacing: -.04em;
+        }
+        .analysis {
+            display: grid;
+            grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr);
+            gap: 14px;
+        }
+        .analysis article {
+            padding: 18px;
+            border: 1px solid #dbe2ec;
+            border-radius: 14px;
+        }
+        .analysis h3 {
+            margin: 9px 0 6px;
+            font-size: 15px;
+        }
+        .analysis p,
+        .analysis li {
+            color: #536176;
+            font-size: 11px;
+            line-height: 1.6;
+        }
+        .analysis ul {
+            margin: 10px 0 0;
+            padding-left: 18px;
+        }
+        .opportunities {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+        .opportunity {
+            padding: 15px;
+            border: 1px solid #dbe2ec;
+            border-radius: 13px;
+        }
+        .opportunity strong {
+            display: block;
+            margin-top: 10px;
+            font-size: 12px;
+        }
+        .opportunity p {
+            margin: 6px 0 0;
+            color: #536176;
+            font-size: 10px;
+            line-height: 1.55;
+        }
+        .badge {
+            display: inline-flex;
+            align-items: center;
+            min-height: 23px;
+            padding: 0 8px;
+            border: 1px solid #dbe2ec;
+            border-radius: 999px;
+            background: #f8fafc;
+            color: #536176;
+            font-size: 8px;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+        .badge.positive {
+            border-color: #bbf7d0;
+            background: #f0fdf4;
+            color: #15803d;
+        }
+        .badge.attention {
+            border-color: #fde68a;
+            background: #fffbeb;
+            color: #b45309;
+        }
+        .badge.critical {
+            border-color: #fecdd3;
+            background: #fff1f2;
+            color: #be123c;
+        }
+        .table-wrap {
+            overflow: hidden;
+            border: 1px solid #dbe2ec;
+            border-radius: 14px;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9px;
+        }
+        th {
+            padding: 11px 9px;
+            background: #f1f5f9;
+            color: #536176;
+            text-align: left;
+            font-size: 8px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 11px 9px;
+            border-top: 1px solid #e6ebf2;
+            vertical-align: middle;
+        }
+        td strong,
+        td small {
+            display: block;
+        }
+        td small {
+            margin-top: 3px;
+            color: #7b8799;
+        }
+        .empty {
+            padding: 26px;
+            color: #667085;
+            text-align: center;
+        }
+        .footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+            margin-top: 30px;
+            padding-top: 18px;
+            border-top: 1px solid #dbe2ec;
+            color: #7b8799;
+            font-size: 9px;
+        }
+        @media (max-width: 820px) {
+            .report { padding: 24px; }
+            .header { flex-direction: column; }
+            .meta { text-align: left; }
+            .cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .analysis { grid-template-columns: 1fr; }
+            .opportunities { grid-template-columns: 1fr; }
+            .table-wrap { overflow-x: auto; }
+            table { min-width: 850px; }
+        }
+        @media print {
+            @page {
+                size: A4 landscape;
+                margin: 10mm;
+            }
+            body { background: #fff; }
+            .print-actions { display: none !important; }
+            .report {
+                width: 100%;
+                margin: 0;
+                padding: 0;
+                border: 0;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .section,
+            .card,
+            .analysis article,
+            .opportunity {
+                break-inside: avoid;
+            }
+            .table-wrap {
+                overflow: visible;
+            }
+            table {
+                font-size: 8px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="print-actions">
+        <button type="button" onclick="window.close()">Fechar</button>
+        <button type="button" class="primary" onclick="window.print()">Imprimir / salvar PDF</button>
+    </div>
+
+    <main class="report">
+        <header class="header">
+            <div>
+                <span class="eyebrow">Vide Hub · Relatório executivo</span>
+                <h1>${escaparHtmlRelatorio(relatorio.nomeLoja)}</h1>
+                <p>Desempenho da loja pública e dos produtos.</p>
+            </div>
+            <div class="meta">
+                <strong>${escaparHtmlRelatorio(relatorio.periodo.rotulo)}</strong>
+                <span>Gerado em ${escaparHtmlRelatorio(relatorio.geradoEm.toLocaleString("pt-BR"))}</span>
+            </div>
+        </header>
+
+        <section class="section">
+            <div class="section-title">
+                <h2>Resumo comercial</h2>
+                <span>Indicadores do período selecionado</span>
+            </div>
+            <div class="cards">
+                <article class="card">
+                    <span>Visitas</span>
+                    <strong>${inteiro.format(funil.sessoes)}</strong>
+                </article>
+                <article class="card">
+                    <span>Pedidos no WhatsApp</span>
+                    <strong>${inteiro.format(funil.pedidosWhatsapp)}</strong>
+                </article>
+                <article class="card">
+                    <span>Conversão geral</span>
+                    <strong>${formatarPercentualLivre(conversaoGeral)}</strong>
+                </article>
+                <article class="card">
+                    <span>Valor potencial</span>
+                    <strong>${escaparHtmlRelatorio(moeda.format(funil.valorPedidosWhatsapp))}</strong>
+                </article>
+                <article class="card">
+                    <span>Carrinhos abertos</span>
+                    <strong>${inteiro.format(funil.carrinhosAbertos)}</strong>
+                </article>
+                <article class="card">
+                    <span>Itens adicionados</span>
+                    <strong>${inteiro.format(funil.adicoesCarrinho)}</strong>
+                </article>
+                <article class="card">
+                    <span>Pedidos iniciados</span>
+                    <strong>${inteiro.format(funil.checkoutsIniciados)}</strong>
+                </article>
+                <article class="card">
+                    <span>Compartilhamentos</span>
+                    <strong>${inteiro.format(funil.compartilhamentos)}</strong>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">
+                <h2>Diagnóstico executivo</h2>
+                <span>Análise automática do funil</span>
+            </div>
+            <div class="analysis">
+                <article>
+                    <span class="badge ${classeDiagnosticoRelatorio(diagnostico.nivel)}">
+                        ${escaparHtmlRelatorio(diagnostico.status)}
+                    </span>
+                    <h3>${escaparHtmlRelatorio(diagnostico.gargaloTitulo)}</h3>
+                    <p>${escaparHtmlRelatorio(diagnostico.gargaloTexto)}</p>
+                </article>
+                <article>
+                    <span class="eyebrow">Ações recomendadas</span>
+                    <ul>${recomendacoes || "<li>Continue acompanhando os indicadores e teste uma melhoria por vez.</li>"}</ul>
+                </article>
+            </div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">
+                <h2>Oportunidades por produto</h2>
+                <span>Prioridades identificadas automaticamente</span>
+            </div>
+            <div class="opportunities">${oportunidades}</div>
+        </section>
+
+        <section class="section">
+            <div class="section-title">
+                <h2>Ranking por produto</h2>
+                <span>${inteiro.format(relatorio.produtos.length)} produtos analisados</span>
+            </div>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Produto</th>
+                            <th>Visitas</th>
+                            <th>Carrinho</th>
+                            <th>Checkout</th>
+                            <th>WhatsApp</th>
+                            <th>Conversão</th>
+                            <th>Valor</th>
+                            <th>Diagnóstico</th>
+                        </tr>
+                    </thead>
+                    <tbody>${linhasProdutos}</tbody>
+                </table>
+            </div>
+        </section>
+
+        <footer class="footer">
+            <span>Relatório gerado pelo Vide Hub.</span>
+            <span>Os valores representam potencial enviado ao WhatsApp, não pagamentos confirmados.</span>
+        </footer>
+    </main>
+</body>
+</html>`;
+    }
+
+    async function abrirRelatorioMetricasImpressao() {
+        var janela = window.open("", "_blank");
+
+        if (!janela) {
+            alert(
+                "O navegador bloqueou a abertura do relatório. Permita pop-ups e tente novamente."
+            );
+            return;
+        }
+
+        try {
+            janela.document.open();
+            janela.document.write(
+                "<!DOCTYPE html><html><head><title>Preparando relatório...</title></head>" +
+                "<body style='font-family:Arial,sans-serif;padding:32px;color:#172033'>" +
+                "Preparando relatório executivo..." +
+                "</body></html>"
+            );
+            janela.document.close();
+
+            await garantirDadosProdutosRelatorio();
+            var relatorio = montarDadosRelatorioMetricas();
+            var html = montarHtmlRelatorioImpressao(relatorio);
+
+            janela.document.open();
+            janela.document.write(html);
+            janela.document.close();
+            janela.focus();
+        } catch (erro) {
+            console.error(
+                "[Vide Hub] Não foi possível gerar o relatório:",
+                erro
+            );
+            janela.document.open();
+            janela.document.write(
+                "<!DOCTYPE html><html><body style='font-family:Arial,sans-serif;padding:32px'>" +
+                "<h1>Não foi possível gerar o relatório</h1>" +
+                "<p>Feche esta aba e tente novamente.</p>" +
+                "</body></html>"
+            );
+            janela.document.close();
+        }
     }
 
     function formatarPercentual(parte, total) {
