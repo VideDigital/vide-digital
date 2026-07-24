@@ -2,7 +2,7 @@
  * Vide Aura — Central Comercial de Leads V6
  * Workspace em página inteira: inbox, pipeline, agenda, histórico,
  * responsáveis, WhatsApp, receita, relatórios, duplicidades e automações.
- * Versão 6.0.0
+ * Versão 6.1.0
  */
 import { db, auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -18,8 +18,9 @@ import {
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const VERSION = "6.0.0";
-const ASSET_VERSION = "600";
+const VERSION = "6.1.0";
+const ASSET_VERSION = "610";
+const LEAD_SCHEMA_VERSION = 2;
 const STORAGE_PREFIX = "aura_leads_v5_";
 const MAX_HISTORY = 35;
 const MAX_BATCH_SIZE = 400;
@@ -83,7 +84,10 @@ const state = {
     user: null,
     ownerUid: "",
     actorName: "",
+    canView: false,
     canEdit: false,
+    isBackendAdmin: false,
+    employeeProfile: null,
     accessLoaded: false,
     team: [],
     allLeads: [],
@@ -119,6 +123,8 @@ const state = {
     automation: { ...DEFAULT_AUTOMATIONS },
     searchTimer: null,
     automationRunning: false,
+    schemaMigrationRunning: false,
+    invalidTenantCount: 0,
     legacyObserver: null,
     navigationBound: false
 };
@@ -532,6 +538,69 @@ function isOverdue(lead) {
     return Boolean(timestamp && Date.now() - timestamp > state.slaMinutes * 60000);
 }
 
+function leadSchemaVersion(lead) {
+    const value = Number(lead?.versaoSchema || lead?.schemaVersion || 1);
+    return Number.isFinite(value) && value > 0 ? Math.round(value) : 1;
+}
+
+function leadMissingFields(lead) {
+    const missing = [];
+    const tenant = String(lead?.tenantId || lead?.lojaId || "").trim();
+    const owner = String(lead?.criadoPor || "").trim();
+
+    if (!tenant || tenant !== owner) missing.push("tenant");
+    if (leadSchemaVersion(lead) < LEAD_SCHEMA_VERSION) missing.push("schema");
+    if (!String(lead?.origem || lead?.utmSource || "").trim()) missing.push("origem");
+    if (!String(lead?.produtoInteresse || "").trim()) missing.push("interesse");
+    if (!String(lead?.paginaOrigem || lead?.urlPagina || "").trim()) missing.push("pagina");
+    if (!String(lead?.formularioId || lead?.blocoOrigem || "").trim()) missing.push("formulario");
+    if (!String(lead?.tipoCaptura || lead?.canal || "").trim()) missing.push("captura");
+    return missing;
+}
+
+function standardLeadPatch(lead) {
+    if (!lead || String(lead.criadoPor || "") !== state.ownerUid) return {};
+
+    const patch = {};
+    const origin = String(lead._origin || lead.origem || "Direto").trim() || "Direto";
+    const campaign = String(lead._campaign || lead.utmCampaign || "").trim();
+    const page = String(
+        lead.paginaOrigem ||
+        lead.blocoOrigem ||
+        (lead.urlPagina ? "loja_publica" : "captura_legada")
+    ).trim() || "captura_legada";
+    const formId = String(
+        lead.formularioId ||
+        lead.blocoOrigem ||
+        page ||
+        "captura_legada"
+    ).trim().slice(0, 160);
+
+    if (lead.tenantId !== state.ownerUid) patch.tenantId = state.ownerUid;
+    if (lead.lojaId !== state.ownerUid) patch.lojaId = state.ownerUid;
+    if (leadSchemaVersion(lead) < LEAD_SCHEMA_VERSION) patch.versaoSchema = LEAD_SCHEMA_VERSION;
+    if (!String(lead.origem || "").trim()) patch.origem = origin.slice(0, 120);
+    if (!String(lead.utmSource || "").trim()) patch.utmSource = origin.slice(0, 120);
+    if (!String(lead.utmMedium || "").trim()) {
+        patch.utmMedium = origin === "Direto" ? "Direto" : "Referência";
+    }
+    if (!String(lead.utmCampaign || "").trim() && campaign !== "Sem campanha") {
+        patch.utmCampaign = campaign.slice(0, 120);
+    }
+    if (!String(lead.produtoInteresse || "").trim()) patch.produtoInteresse = "Interesse geral";
+    if (!String(lead.paginaOrigem || "").trim()) patch.paginaOrigem = page.slice(0, 160);
+    if (!String(lead.formularioId || "").trim()) patch.formularioId = formId;
+    if (!String(lead.formularioNome || "").trim()) {
+        patch.formularioNome = formId === "captura_legada" ? "Captura legada" : formId.replace(/[_-]+/g, " ").slice(0, 160);
+    }
+    if (!String(lead.tipoCaptura || "").trim()) patch.tipoCaptura = "legado";
+    if (!String(lead.canal || "").trim()) patch.canal = "loja_publica";
+    if (!String(lead.statusLead || "").trim()) patch.statusLead = normalizeStatus(lead);
+    if (!String(lead.status || "").trim()) patch.status = normalizeStatus(lead);
+    if (!String(lead.pipelineStage || "").trim()) patch.pipelineStage = normalizeStatus(lead);
+    return patch;
+}
+
 function normalizeLead(lead) {
     const capturedAt = leadTimestamp(lead);
     const score = Number.isFinite(Number(lead.leadScore))
@@ -574,6 +643,13 @@ function normalizeLead(lead) {
         ...lead,
         _timestamp: capturedAt,
         _status: status,
+        _schemaVersion: leadSchemaVersion(lead),
+        _tenantValid: String(lead.criadoPor || "") === state.ownerUid,
+        _missingFields: leadMissingFields(lead),
+        _qualityComplete: leadMissingFields(lead).length === 0,
+        _captureType: String(lead.tipoCaptura || lead.canal || "legado"),
+        _formId: String(lead.formularioId || lead.blocoOrigem || "captura_legada"),
+        _page: String(lead.paginaOrigem || lead.urlPagina || "Não informada"),
         _unread: !anyTimestamp(lead.visualizadoEm) && capturedAt > state.lastSeenTimestamp,
         _score: Math.max(0, Math.min(100, Math.round(score))),
         _temperature: temperatureFor(score),
@@ -594,25 +670,59 @@ function normalizeLead(lead) {
             lead.origem, lead.utmSource, lead.utm_source,
             lead.utmCampaign, lead.utm_campaign,
             sourceFromUrl, campaignFromUrl,
-            lead.produtoInteresse, lead.paginaOrigem,
+            lead.produtoInteresse, lead.produtoId, lead.paginaOrigem,
             lead.formularioNome, lead.formularioId,
-            lead.blocoOrigem, lead.anotacao,
-            lead.etiqueta, lead.responsavelNome
+            lead.blocoOrigem, lead.tipoCaptura, lead.canal,
+            lead.sessaoId, lead.dedupeKey,
+            lead.anotacao, lead.etiqueta, lead.responsavelNome
         ].filter(Boolean).join(" "))
     };
 }
 
 function ownerUidFromContext(user) {
     const params = new URLSearchParams(window.location.search);
-    return params.get("masterUID") || user?.uid || "";
+    let contextUid = "";
+
+    try {
+        const snapshot = window.VideHubContext?.getSnapshot?.();
+        contextUid = String(
+            snapshot?.effectiveUid ||
+            snapshot?.ownerUid ||
+            snapshot?.tenantId ||
+            ""
+        ).trim();
+    } catch (error) {}
+
+    return String(
+        params.get("masterUID") ||
+        contextUid ||
+        user?.uid ||
+        ""
+    ).trim();
+}
+
+async function resolveOwnerUid(user) {
+    const contextual = ownerUidFromContext(user);
+    if (contextual && contextual !== user?.uid) return contextual;
+
+    try {
+        const employeeSnap = await getDoc(doc(db, "funcionarios", user.uid));
+        if (employeeSnap.exists()) {
+            const employee = employeeSnap.data();
+            state.employeeProfile = employee;
+            if (employee.status === "ativo" && employee.donoUID) {
+                return String(employee.donoUID).trim();
+            }
+        }
+    } catch (error) {
+        console.info("[Aura Leads V6.1] Contexto de funcionário não identificado.");
+    }
+
+    return contextual || user?.uid || "";
 }
 
 function permissionListIncludes(list, moduleName) {
-    return Array.isArray(list) && (
-        list.includes(moduleName) ||
-        list.includes("crm") ||
-        list.includes("atendimento")
-    );
+    return Array.isArray(list) && list.includes(moduleName);
 }
 
 function getLifecycleSignal() {
@@ -735,29 +845,59 @@ function actorName() {
 }
 
 async function loadAccessContext(user) {
-    state.canEdit = user.uid === state.ownerUid;
     state.actorName = user.displayName || user.email || "Equipe";
+    state.canView = user.uid === state.ownerUid;
+    state.canEdit = user.uid === state.ownerUid;
 
-    if (!state.canEdit) {
+    try {
+        const tokenResult = await user.getIdTokenResult?.();
+        state.isBackendAdmin = tokenResult?.claims?.videAdmin === true;
+        if (state.isBackendAdmin) {
+            state.canView = true;
+            state.canEdit = true;
+        }
+    } catch (error) {
+        state.isBackendAdmin = false;
+    }
+
+    if (!state.canView || !state.canEdit) {
         try {
-            const employeeSnap = await getDoc(doc(db, "funcionarios", user.uid));
-            if (employeeSnap.exists()) {
-                const employee = employeeSnap.data();
+            let employee = state.employeeProfile;
+            if (!employee) {
+                const employeeSnap = await getDoc(doc(db, "funcionarios", user.uid));
+                employee = employeeSnap.exists() ? employeeSnap.data() : null;
+                state.employeeProfile = employee;
+            }
+
+            if (employee) {
                 const permissions = employee.permissoes || {};
-                state.actorName = employee.nome || user.displayName || user.email || "Funcionário";
-                state.canEdit = (
+                const activeForTenant = (
                     employee.status === "ativo" &&
-                    employee.donoUID === state.ownerUid &&
+                    employee.donoUID === state.ownerUid
+                );
+
+                state.actorName = employee.nome || user.displayName || user.email || "Funcionário";
+                state.canView = state.canView || (
+                    activeForTenant && (
+                        permissionListIncludes(permissions.ver, "leads") ||
+                        permissionListIncludes(permissions.editar, "leads")
+                    )
+                );
+                state.canEdit = state.canEdit || (
+                    activeForTenant &&
                     permissionListIncludes(permissions.editar, "leads")
                 );
-                state.team.push({
-                    uid: user.uid,
-                    nome: state.actorName,
-                    cargo: employee.cargo || "Equipe"
-                });
+
+                if (state.canView) {
+                    state.team.push({
+                        uid: user.uid,
+                        nome: state.actorName,
+                        cargo: employee.cargo || "Equipe"
+                    });
+                }
             }
         } catch (error) {
-            console.warn("[Aura Leads V6] Permissão não carregada:", error?.message || error);
+            console.warn("[Aura Leads V6.1] Permissão não carregada:", error?.message || error);
         }
     }
 
@@ -1040,6 +1180,13 @@ function injectModal() {
 function updateAccessBadge() {
     const badge = document.getElementById("aura-leads-v5-access-badge");
     if (!badge) return;
+
+    if (!state.canView) {
+        badge.textContent = "Sem acesso";
+        badge.dataset.mode = "denied";
+        return;
+    }
+
     badge.textContent = state.canEdit ? "Edição liberada" : "Somente leitura";
     badge.dataset.mode = state.canEdit ? "edit" : "read";
 }
@@ -1098,8 +1245,16 @@ function closeDetail() {
 function handleRealtimeSnapshot(snapshot) {
     const wasReady = state.realtimeReady;
     const previousIds = state.knownLeadIds;
-    const incoming = snapshot.docs
+    const normalized = snapshot.docs
         .map((item) => normalizeLead({ id: item.id, ...item.data() }));
+    const incoming = normalized.filter((lead) => lead._tenantValid);
+
+    state.invalidTenantCount = normalized.length - incoming.length;
+    if (state.invalidTenantCount > 0) {
+        console.error(
+            `[Aura Leads V6.1] ${state.invalidTenantCount} registro(s) fora do tenant foram ignorados.`
+        );
+    }
 
     const newIds = new Set(incoming.map((lead) => lead.id));
     const added = wasReady
@@ -1134,6 +1289,11 @@ function handleRealtimeSnapshot(snapshot) {
 
 function loadLeads(options = {}) {
     if (!state.ownerUid) return;
+    if (!state.canView) {
+        state.loading = false;
+        renderAccessDenied();
+        return;
+    }
     const force = options === true || Boolean(options?.force);
 
     if (state.unsubscribeLeads && !force) {
@@ -1210,6 +1370,7 @@ function buildDuplicateGroups() {
         const keys = [];
         if (lead._phone.length >= 10) keys.push(`phone:${lead._phone}`);
         if (lead._email.includes("@")) keys.push(`email:${lead._email}`);
+        if (String(lead.dedupeKey || "").trim()) keys.push(`capture:${lead.dedupeKey}`);
 
         for (const key of keys) {
             if (!buckets.has(key)) buckets.set(key, new Map());
@@ -1253,9 +1414,21 @@ function activeLeads() {
     return state.leads.filter((lead) => !["convertido", "perdido"].includes(lead._status));
 }
 
+function renderAccessDenied() {
+    const content = document.getElementById("aura-leads-v5-content");
+    if (!content) return;
+    content.innerHTML = `<section class="aura-leads-v6-access-denied">
+        ${svg.user}
+        <span>Acesso protegido</span>
+        <h3>Você não possui permissão para visualizar Leads</h3>
+        <p>O proprietário da loja precisa liberar a permissão <strong>Leads — visualizar</strong> para esta conta.</p>
+    </section>`;
+}
+
 function render() {
     const content = document.getElementById("aura-leads-v5-content");
     if (!content) return;
+    if (state.accessLoaded && !state.canView) return renderAccessDenied();
     if (state.loading) return renderLoading();
 
     switch (state.activeTab) {
@@ -1312,12 +1485,14 @@ function renderMetrics() {
     const converted = state.leads.filter((lead) => lead._status === "convertido");
     const convertedValue = converted.reduce((sum, lead) => sum + lead._value, 0);
     const conversion = total ? Math.round((converted.length / total) * 1000) / 10 : 0;
+    const standardized = state.leads.filter((lead) => lead._qualityComplete).length;
+    const quality = total ? Math.round((standardized / total) * 100) : 100;
 
     return `
         <section class="aura-leads-v5-metrics">
             <article>
                 <span>Base ativa</span><strong>${total.toLocaleString("pt-BR")}</strong>
-                <small>${open.length} em aberto · ${state.unreadCount} não lido(s)</small>
+                <small>${open.length} em aberto · ${state.unreadCount} não lido(s) · ${quality}% padronizada</small>
             </article>
             <article data-state="${due ? "danger" : "ok"}">
                 <span>Follow-ups vencidos</span><strong>${due}</strong>
@@ -1765,6 +1940,9 @@ function renderReports() {
         (lead) => lead._campaign
     );
     const responsibles = aggregateBy(state.leads, (lead) => responsibleLabel(lead));
+    const standardized = state.leads.filter((lead) => lead._qualityComplete).length;
+    const legacy = total - standardized;
+    const quality = total ? Math.round((standardized / total) * 100) : 100;
     const maxStage = Math.max(1, ...PIPELINE_STAGES.map((stage) =>
         state.leads.filter((lead) => lead._status === stage.id).length
     ));
@@ -1779,6 +1957,15 @@ function renderReports() {
             <article><span>Ticket médio</span><strong>${formatMoney(averageTicket)}</strong></article>
             <article><span>Previsão aberta</span><strong>${formatMoney(forecast)}</strong></article>
             <article><span>Perdidos</span><strong>${lost.length}</strong></article>
+        </section>
+        <section class="aura-leads-v6-quality-card">
+            <div>
+                <span>Qualidade da captura</span>
+                <h4>${quality}% da base padronizada</h4>
+                <p>${standardized} lead(s) no schema V${LEAD_SCHEMA_VERSION} · ${legacy} registro(s) legado(s) ou incompleto(s).</p>
+            </div>
+            <div class="aura-leads-v6-quality-progress"><span style="width:${quality}%"></span></div>
+            ${state.canEdit && legacy ? `<button type="button" class="aura-leads-v5-secondary" data-action="normalize-base">Padronizar base antiga</button>` : ""}
         </section>
         <section class="aura-leads-v5-funnel">
             <header><h4>Funil por etapa</h4><span>${total} lead(s)</span></header>
@@ -1838,6 +2025,7 @@ function automationToggle(key, title, description, localOnly = false) {
 }
 
 function renderAutomations() {
+    const incomplete = state.allLeads.filter((lead) => !lead._qualityComplete).length;
     return `${renderMetrics()}
         <section class="aura-leads-v5-section-heading"><div>
             <span>Regras seguras</span><h3>Automações comerciais</h3>
@@ -1857,6 +2045,14 @@ function renderAutomations() {
                     ${state.canEdit && !state.automationRunning ? "" : "disabled"}>
                     ${state.automationRunning ? "Executando..." : "Executar agora"}
                 </button>
+                <div class="aura-leads-v6-schema-action">
+                    <strong>Schema V${LEAD_SCHEMA_VERSION}</strong>
+                    <span>${incomplete} registro(s) ainda precisam de padronização.</span>
+                    <button type="button" class="aura-leads-v5-secondary" data-action="normalize-base"
+                        ${state.canEdit && incomplete && !state.schemaMigrationRunning ? "" : "disabled"}>
+                        ${state.schemaMigrationRunning ? "Padronizando..." : "Padronizar base antiga"}
+                    </button>
+                </div>
             </aside>
         </section>`;
 }
@@ -2203,7 +2399,13 @@ function renderDetail(leadId) {
                     <div><dt>Formulário</dt><dd>${escapeHTML(lead.formularioNome || lead.formularioId || lead.blocoOrigem || "Captura geral")}</dd></div>
                     <div><dt>Capturado</dt><dd>${formatDate(lead._timestamp)}</dd></div>
                     <div><dt>Previsão</dt><dd>${formatMoney(lead._forecast)}</dd></div>
-                </dl></section>
+                    <div><dt>Schema</dt><dd>V${lead._schemaVersion}</dd></div>
+                    <div><dt>Qualidade</dt><dd>${lead._qualityComplete ? "Completa" : `${lead._missingFields.length} campo(s) pendente(s)`}</dd></div>
+                    <div><dt>Tipo de captura</dt><dd>${escapeHTML(lead._captureType)}</dd></div>
+                    <div><dt>ID do formulário</dt><dd>${escapeHTML(lead._formId)}</dd></div>
+                </dl>
+                ${!lead._qualityComplete ? `<div class="aura-leads-v6-quality-warning"><strong>Captura legada</strong><span>Alguns campos serão completados sem alterar nome, contato, status ou histórico.</span>${state.canEdit ? `<button type="button" data-detail-action="normalize">Padronizar este lead</button>` : ""}</div>` : ""}
+                </section>
 
                 ${renderHistory(lead)}
             </aside>
@@ -2242,6 +2444,11 @@ function historyWithEvent(lead, event) {
 async function persistLeadUpdates(lead, updates, event) {
     if (!state.canEdit) {
         toast("Seu acesso é somente para consulta.", "error");
+        return false;
+    }
+    if (!lead || String(lead.criadoPor || "") !== state.ownerUid) {
+        console.error("[Aura Leads V6.1] Atualização bloqueada por divergência de tenant.");
+        toast("Este registro não pertence à loja atual.", "error");
         return false;
     }
 
@@ -2397,6 +2604,82 @@ async function updateAgenda(leadId, action) {
     }
 }
 
+async function normalizeSingleLead(lead) {
+    if (!state.canEdit || !lead) return false;
+    const patch = standardLeadPatch(lead);
+    if (!Object.keys(patch).length) {
+        toast("Este lead já está padronizado.");
+        return true;
+    }
+
+    patch.padronizadoEm = Date.now();
+    patch.padronizadoPorUid = state.user?.uid || "";
+    const success = await persistLeadUpdates(
+        lead,
+        patch,
+        makeHistoryEvent("schema", `Lead padronizado no schema V${LEAD_SCHEMA_VERSION}`, "Campos de captura legados foram completados.")
+    );
+
+    if (success) {
+        render();
+        if (state.selectedLeadId === lead.id) renderDetail(lead.id);
+        toast("Lead padronizado.");
+    }
+    return success;
+}
+
+async function normalizeStoredLeads() {
+    if (!state.canEdit || state.schemaMigrationRunning) return;
+    const candidates = state.allLeads.filter((lead) => (
+        lead._tenantValid && Object.keys(standardLeadPatch(lead)).length
+    ));
+
+    if (!candidates.length) {
+        toast("Toda a base já está padronizada.");
+        return;
+    }
+
+    const confirmed = window.confirm(
+        `Padronizar ${candidates.length} lead(s) antigos? Os dados comerciais existentes serão preservados.`
+    );
+    if (!confirmed) return;
+
+    state.schemaMigrationRunning = true;
+    render();
+    const timestamp = Date.now();
+
+    try {
+        const patches = candidates.map((lead) => {
+            const patch = {
+                ...standardLeadPatch(lead),
+                padronizadoEm: timestamp,
+                padronizadoPorUid: state.user?.uid || ""
+            };
+            patch.historicoLead = historyWithEvent(
+                lead,
+                makeHistoryEvent("schema", `Lead padronizado no schema V${LEAD_SCHEMA_VERSION}`, "Campos de captura legados foram completados em lote.")
+            );
+            return { id: lead.id, data: patch };
+        });
+
+        await commitLeadPatches(patches);
+        candidates.forEach((lead) => {
+            const patch = patches.find((item) => item.id === lead.id)?.data || {};
+            Object.assign(lead, patch);
+            Object.assign(lead, normalizeLead(lead));
+        });
+        refreshLeadCollections();
+        state.schemaMigrationRunning = false;
+        render();
+        toast(`${candidates.length} lead(s) padronizados.`);
+    } catch (error) {
+        state.schemaMigrationRunning = false;
+        console.error("[Aura Leads V6.1] Falha ao padronizar base:", error);
+        render();
+        toast("Não foi possível padronizar toda a base.", "error");
+    }
+}
+
 function openWhatsapp(lead, message = "") {
     if (!lead?._phone) {
         toast("Este lead não possui WhatsApp válido.", "error");
@@ -2418,8 +2701,13 @@ function openWhatsapp(lead, message = "") {
 }
 
 async function commitLeadPatches(patches) {
-    for (let index = 0; index < patches.length; index += MAX_BATCH_SIZE) {
-        const chunk = patches.slice(index, index + MAX_BATCH_SIZE);
+    const safePatches = patches.filter((patch) => {
+        const lead = findLead(patch.id);
+        return lead && String(lead.criadoPor || "") === state.ownerUid;
+    });
+
+    for (let index = 0; index < safePatches.length; index += MAX_BATCH_SIZE) {
+        const chunk = safePatches.slice(index, index + MAX_BATCH_SIZE);
         const batch = writeBatch(db);
         chunk.forEach((patch) => {
             batch.set(doc(db, "leads", patch.id), patch.data, { merge: true });
@@ -2787,6 +3075,7 @@ function handleContentClick(event) {
     const action = event.target.closest("[data-action]");
     if (action?.dataset.action === "recalculate") return recalculateAllScores();
     if (action?.dataset.action === "run-automations") return runAutomations();
+    if (action?.dataset.action === "normalize-base") return normalizeStoredLeads();
     if (action?.dataset.action === "mark-read") return markAllRead();
 
     const agenda = event.target.closest("[data-agenda-action]");
@@ -2849,6 +3138,7 @@ function handleDetailClick(event) {
         return moveLeadStorage(lead, action);
     }
     if (action === "contacted") return registerContact();
+    if (action === "normalize") return normalizeSingleLead(lead);
     if (action === "whatsapp") return openWhatsapp(lead);
     if (action === "whatsapp-message") {
         const message = document.getElementById("aura-leads-v5-message-text")?.value.trim() || "";
@@ -2909,19 +3199,20 @@ function renderError(message) {
 async function initialize(user) {
     if (!user || state.initialized) return;
     state.user = user;
-    state.ownerUid = ownerUidFromContext(user);
+    state.ownerUid = await resolveOwnerUid(user);
     ensureAssetVersion();
     disableLegacyMobileController();
     loadLastSeen();
     loadSLA();
     loadAutomationPreferences();
     await loadAccessContext(user);
-    await loadTeam();
+    if (state.canView) await loadTeam();
     injectModal();
     updateAccessBadge();
     state.initialized = true;
     state.modalOpen = true;
-    loadLeads();
+    if (state.canView) loadLeads();
+    else renderAccessDenied();
 
     document.addEventListener("pointerdown", () => {
         state.soundUnlocked = true;
@@ -2940,6 +3231,7 @@ async function initialize(user) {
         reload: loadLeads,
         destroy: teardownModalLifecycle,
         runAutomations,
+        normalizeStoredLeads,
         markAllRead,
         getState: () => ({
             ownerUid: state.ownerUid,
@@ -2954,13 +3246,17 @@ async function initialize(user) {
             inline: true,
             activeTab: state.activeTab,
             selectedLeadId: state.selectedLeadId,
+            canView: state.canView,
             canEdit: state.canEdit,
+            schemaVersion: LEAD_SCHEMA_VERSION,
+            incomplete: state.allLeads.filter((lead) => !lead._qualityComplete).length,
+            invalidTenantCount: state.invalidTenantCount,
             version: VERSION
         })
     };
     window.AuraLeadsV6 = window.AuraLeadsV5;
 
-    console.info(`[Vide Aura Leads V6] Inicializado — ${state.ownerUid} — v${VERSION}`);
+    console.info(`[Vide Aura Leads V6.1] Inicializado — ${state.ownerUid} — v${VERSION}`);
 }
 
 onAuthStateChanged(auth, (user) => {
