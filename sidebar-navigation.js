@@ -223,8 +223,6 @@
             const style = document.createElement("style");
             style.id = "vide-sidebar-dock-style";
             style.textContent = `
-                #vide-dock-spacer { display: none; }
-
                 #vide-command-center[hidden] { display: none !important; }
                 #vide-command-center {
                     position: fixed;
@@ -428,15 +426,25 @@
                 }
 
                 @media (min-width: 768px) {
-                    #vide-dock-spacer {
-                        display: block;
-                        width: 96px;
-                        flex: 0 0 96px;
-                        min-height: 100vh;
-                        pointer-events: none;
-                    }
                     #admin-sidebar.vide-dock-sidebar {
                         --vide-dock-top: 12px;
+                        position: relative !important;
+                        width: 96px !important;
+                        min-width: 96px !important;
+                        max-width: 96px !important;
+                        flex: 0 0 96px !important;
+                        height: 100vh !important;
+                        min-height: 100vh !important;
+                        padding: 0 !important;
+                        display: block !important;
+                        overflow: visible !important;
+                        border: 0 !important;
+                        border-radius: 0 !important;
+                        background: transparent !important;
+                        box-shadow: none !important;
+                        z-index: 82 !important;
+                    }
+                    #admin-sidebar.vide-dock-sidebar > .vide-dock-surface {
                         position: fixed !important;
                         top: var(--vide-dock-top) !important;
                         bottom: 12px !important;
@@ -445,6 +453,7 @@
                         height: auto !important;
                         min-height: 0 !important;
                         padding: 10px !important;
+                        box-sizing: border-box !important;
                         display: flex !important;
                         flex-direction: column !important;
                         justify-content: flex-start !important;
@@ -458,9 +467,9 @@
                         transition: width .28s cubic-bezier(.2,.8,.2,1), box-shadow .28s ease, border-color .28s ease !important;
                         z-index: 82 !important;
                     }
-                    #admin-sidebar.vide-dock-sidebar:hover,
-                    #admin-sidebar.vide-dock-sidebar:focus-within,
-                    #admin-sidebar.vide-dock-sidebar.vide-dock-open {
+                    #admin-sidebar.vide-dock-sidebar:hover > .vide-dock-surface,
+                    #admin-sidebar.vide-dock-sidebar:focus-within > .vide-dock-surface,
+                    #admin-sidebar.vide-dock-sidebar.vide-dock-open > .vide-dock-surface {
                         width: 300px !important;
                         border-color: rgba(148, 163, 184, .28) !important;
                         box-shadow: 0 32px 90px rgba(0, 0, 0, .5), inset 0 1px 0 rgba(255,255,255,.06) !important;
@@ -709,7 +718,19 @@
                         position: relative !important;
                         inset: auto !important;
                         width: 100% !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
                         height: auto !important;
+                        min-height: 0 !important;
+                        flex: 0 0 auto !important;
+                        overflow: visible !important;
+                    }
+                    #admin-sidebar.vide-dock-sidebar > .vide-dock-surface {
+                        position: relative !important;
+                        inset: auto !important;
+                        width: 100% !important;
+                        height: auto !important;
+                        padding: 20px !important;
                         overflow: visible !important;
                     }
                     #admin-sidebar .vide-dock-top { width: 100%; }
@@ -730,6 +751,7 @@
 
                 @media (prefers-reduced-motion: reduce) {
                     #admin-sidebar.vide-dock-sidebar,
+                    #admin-sidebar.vide-dock-sidebar > .vide-dock-surface,
                     .vide-command-item,
                     .vide-dock-brand-copy,
                     .vide-dock-workspace,
@@ -747,14 +769,21 @@
             inserirEstilosDock();
             sidebar.classList.add("vide-dock-sidebar");
 
-            if (!document.getElementById("vide-dock-spacer")) {
-                const spacer = document.createElement("div");
-                spacer.id = "vide-dock-spacer";
-                spacer.setAttribute("aria-hidden", "true");
-                sidebar.insertAdjacentElement("beforebegin", spacer);
+            document.getElementById("vide-dock-spacer")?.remove();
+
+            let superficie = sidebar.querySelector(":scope > .vide-dock-surface");
+            if (!superficie) {
+                superficie = document.createElement("div");
+                superficie.className = "vide-dock-surface";
+
+                while (sidebar.firstChild) {
+                    superficie.appendChild(sidebar.firstChild);
+                }
+
+                sidebar.appendChild(superficie);
             }
 
-            const topo = Array.from(sidebar.children).find(function(filho) {
+            const topo = Array.from(superficie.children).find(function(filho) {
                 return filho.tagName === "DIV" && filho.classList.contains("space-y-8");
             });
 
