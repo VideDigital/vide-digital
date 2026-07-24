@@ -1,7 +1,7 @@
 /**
  * Vide Aura — Leads & Formulários V5
  * Interface completa para Inbox, Pipeline, Agenda, Relatórios e Automações.
- * Versão 5.8.0
+ * Versão 5.9.0
  */
 
 :root {
@@ -2418,6 +2418,407 @@
 
     .aura-leads-v5-loading span {
         animation-duration: 1.4s;
+    }
+}
+
+/* =========================================================
+   Vide Aura Leads V5.9 — tempo real, não lidos e ações em massa
+   ========================================================= */
+
+.aura-leads-v5-primary {
+    position: relative;
+}
+
+.aura-leads-v5-unread-badge,
+.aura-leads-v5-tabs button > em,
+.aura-leads-v5-notification-badge {
+    display: inline-grid;
+    min-width: 20px;
+    height: 20px;
+    place-items: center;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: var(--aura-leads-v5-danger);
+    color: #ffffff;
+    font-size: 9px;
+    font-style: normal;
+    font-weight: 900;
+    line-height: 1;
+    box-shadow: 0 0 0 3px rgba(251, 113, 133, .12);
+}
+
+.aura-leads-v5-unread-badge[hidden],
+.aura-leads-v5-tabs button > em[hidden],
+.aura-leads-v5-notification-badge[hidden] {
+    display: none !important;
+}
+
+.aura-leads-v5-tabs button > em {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: rgba(255, 255, 255, .08);
+    box-shadow: none;
+    color: #aeb9c8;
+}
+
+.aura-leads-v5-tabs button.is-active > em {
+    background: var(--aura-leads-v5-accent);
+    color: #ffffff;
+}
+
+#aura-leads-v5-inbox-badge {
+    background: var(--aura-leads-v5-danger);
+    color: #ffffff;
+}
+
+.aura-leads-v5-notification-badge {
+    position: absolute;
+    top: -7px;
+    left: -7px;
+    z-index: 5;
+    pointer-events: none;
+}
+
+.aura-leads-v5-table.has-selection {
+    min-width: 1450px;
+}
+
+.aura-leads-v5-select-cell {
+    width: 48px;
+    min-width: 48px;
+    padding-right: 6px !important;
+    text-align: center;
+}
+
+.aura-leads-v5-row-check {
+    display: inline-grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    cursor: pointer;
+}
+
+.aura-leads-v5-row-check input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.aura-leads-v5-row-check span {
+    display: grid;
+    width: 22px;
+    height: 22px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, .13);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .03);
+    color: transparent;
+    transition: .18s ease;
+}
+
+.aura-leads-v5-row-check svg {
+    width: 14px;
+    height: 14px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+}
+
+.aura-leads-v5-row-check input:checked + span {
+    border-color: var(--aura-leads-v5-accent);
+    background: var(--aura-leads-v5-accent);
+    color: #ffffff;
+}
+
+.aura-leads-v5-table tbody tr.is-unread {
+    background: color-mix(in srgb, var(--aura-leads-v5-accent) 5%, transparent);
+    box-shadow: inset 3px 0 0 var(--aura-leads-v5-accent);
+}
+
+.aura-leads-v5-table tbody tr.is-archived,
+.aura-leads-v5-table tbody tr.is-trash {
+    opacity: .84;
+}
+
+.aura-leads-v5-table tbody tr.is-trash {
+    background: rgba(251, 113, 133, .025);
+}
+
+.aura-leads-v5-new-label {
+    display: inline-flex;
+    align-items: center;
+    min-height: 19px;
+    margin-left: 7px;
+    padding: 3px 6px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--aura-leads-v5-accent) 14%, transparent);
+    color: var(--aura-leads-v5-accent);
+    font-size: 7px;
+    font-style: normal;
+    font-weight: 900;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+.aura-leads-v5-bulk {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+    padding: 12px;
+    border: 1px solid var(--aura-leads-v5-line);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, .018);
+}
+
+.aura-leads-v5-bulk.is-active {
+    border-color: color-mix(in srgb, var(--aura-leads-v5-accent) 32%, transparent);
+    background: color-mix(in srgb, var(--aura-leads-v5-accent) 6%, #0b1019);
+}
+
+.aura-leads-v5-bulk-summary,
+.aura-leads-v5-bulk-actions,
+.aura-leads-v5-bulk-actions label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.aura-leads-v5-bulk-summary {
+    flex: 0 0 auto;
+}
+
+.aura-leads-v5-bulk-summary strong {
+    min-width: 96px;
+    color: #e5edf7;
+    font-size: 10px;
+    text-align: center;
+}
+
+.aura-leads-v5-bulk button,
+.aura-leads-v5-bulk select {
+    min-height: 36px;
+    border: 1px solid var(--aura-leads-v5-line);
+    border-radius: 10px;
+    background: #0b1019;
+    color: #dce4ef;
+    font: inherit;
+    font-size: 9px;
+    font-weight: 800;
+}
+
+.aura-leads-v5-bulk button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 10px;
+    cursor: pointer;
+}
+
+.aura-leads-v5-bulk button svg {
+    width: 15px;
+    height: 15px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.9;
+}
+
+.aura-leads-v5-bulk select {
+    min-width: 126px;
+    padding: 7px 26px 7px 9px;
+}
+
+.aura-leads-v5-bulk-actions {
+    min-width: 0;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
+
+.aura-leads-v5-bulk-actions label {
+    gap: 5px;
+    padding-left: 8px;
+    border-left: 1px solid rgba(255, 255, 255, .07);
+}
+
+.aura-leads-v5-bulk-actions label > span {
+    color: #718096;
+    font-size: 8px;
+    font-weight: 850;
+    text-transform: uppercase;
+}
+
+.aura-leads-v5-bulk button:hover:not(:disabled) {
+    border-color: rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .07);
+    color: #ffffff;
+}
+
+.aura-leads-v5-bulk button:disabled,
+.aura-leads-v5-bulk select:disabled {
+    cursor: not-allowed;
+    opacity: .4;
+}
+
+.aura-leads-v5-bulk button.is-danger,
+.aura-leads-v5-secondary.is-danger {
+    border-color: rgba(251, 113, 133, .2);
+    background: rgba(251, 113, 133, .07);
+    color: #fda4af;
+}
+
+.aura-leads-v5-bulk button.is-restore,
+.aura-leads-v5-secondary.is-restore {
+    border-color: rgba(54, 211, 153, .2);
+    background: rgba(54, 211, 153, .07);
+    color: #7ce4bd;
+}
+
+.aura-leads-v5-storage-heading {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 16px;
+    padding: 18px;
+    border: 1px solid var(--aura-leads-v5-line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, .02);
+}
+
+.aura-leads-v5-storage-heading > div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 14px;
+}
+
+.aura-leads-v5-storage-heading > div > svg {
+    flex: 0 0 38px;
+    width: 38px;
+    height: 38px;
+    padding: 9px;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--aura-leads-v5-accent) 10%, transparent);
+    color: var(--aura-leads-v5-accent);
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.7;
+}
+
+.aura-leads-v5-storage-heading small {
+    color: var(--aura-leads-v5-accent);
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+}
+
+.aura-leads-v5-storage-heading h3 {
+    margin: 4px 0 0;
+    font-size: 18px;
+    font-weight: 880;
+    letter-spacing: -.03em;
+}
+
+.aura-leads-v5-storage-heading p {
+    max-width: 720px;
+    margin: 6px 0 0;
+    color: #748095;
+    font-size: 10px;
+    line-height: 1.55;
+}
+
+.aura-leads-v5-storage-heading > strong {
+    display: grid;
+    flex: 0 0 48px;
+    width: 48px;
+    height: 48px;
+    place-items: center;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, .05);
+    font-size: 16px;
+}
+
+.aura-leads-v5-detail-footer-actions {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.aura-leads-v5-detail-footer-actions .aura-leads-v5-secondary,
+.aura-leads-v5-detail-footer-actions .aura-leads-v5-primary {
+    min-height: 38px;
+    padding: 9px 11px;
+    font-size: 9px;
+}
+
+@media (max-width: 1180px) {
+    .aura-leads-v5-bulk {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .aura-leads-v5-bulk-summary,
+    .aura-leads-v5-bulk-actions {
+        justify-content: flex-start;
+    }
+}
+
+@media (max-width: 980px) {
+    .aura-leads-v5-bulk {
+        position: sticky;
+        top: 0;
+        z-index: 9;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .aura-leads-v5-bulk-summary,
+    .aura-leads-v5-bulk-actions {
+        flex: 0 0 auto;
+        width: max-content;
+        flex-wrap: nowrap;
+    }
+
+    .aura-leads-v5-bulk-actions label {
+        flex: 0 0 auto;
+    }
+
+    .aura-leads-v5-table.has-selection {
+        min-width: 1280px;
+    }
+
+    .aura-leads-v5-notification-badge {
+        top: -5px;
+        left: -5px;
+    }
+}
+
+@media (max-width: 640px) {
+    .aura-leads-v5-storage-heading {
+        align-items: flex-start;
+    }
+
+    .aura-leads-v5-storage-heading p {
+        display: none;
+    }
+
+    .aura-leads-v5-detail-footer-actions {
+        width: 100%;
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .aura-leads-v5-detail-footer-actions .aura-leads-v5-secondary,
+    .aura-leads-v5-detail-footer-actions .aura-leads-v5-primary {
+        width: 100%;
     }
 }
 
