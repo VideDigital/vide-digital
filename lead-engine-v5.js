@@ -38,9 +38,10 @@ const state = {
     filtered: [],
     selectedLeadId: "",
     activeTab: "inbox",
-    search: "",
     status: "all",
     temperature: "all",
+    origin: "all",
+    campaign: "all",
     loading: false,
     initialized: false,
     modalOpen: false,
@@ -357,6 +358,17 @@ function normalizeLead(lead) {
         ? Number(lead.leadScore)
         : computeScore(lead);
     const temperature = lead.temperaturaLead || temperatureFor(score);
+    const origin = String(
+        lead.origem ||
+        lead.utmSource ||
+        lead.utm_source ||
+        "Direto"
+    ).trim() || "Direto";
+    const campaign = String(
+        lead.utmCampaign ||
+        lead.utm_campaign ||
+        "Sem campanha"
+    ).trim() || "Sem campanha";
 
     return {
         ...lead,
@@ -367,12 +379,18 @@ function normalizeLead(lead) {
         _overdue: isOverdue(lead),
         _phone: normalizePhone(lead.whatsapp || lead.telefone),
         _email: normalizeEmail(lead.email),
+        _origin: origin,
+        _campaign: campaign,
         _search: normalizeText([
             lead.nome,
             lead.email,
             lead.whatsapp,
             lead.telefone,
             lead.origem,
+            lead.utmSource,
+            lead.utm_source,
+            lead.utmCampaign,
+            lead.utm_campaign,
             lead.produtoInteresse,
             lead.paginaOrigem,
             lead.formularioId,
@@ -783,9 +801,18 @@ function applyFilters(leads) {
             return false;
         }
 
+        if (state.origin !== "all" && lead._origin !== state.origin) {
+            return false;
+        }
+
+        if (state.campaign !== "all" && lead._campaign !== state.campaign) {
+            return false;
+        }
+
         return true;
     });
 }
+
 
 function render() {
     const content = document.getElementById("aura-leads-v5-content");
@@ -863,6 +890,33 @@ function renderMetrics() {
 }
 
 function renderFilters() {
+    const origins = Array.from(
+        new Set(
+            state.leads
+                .map((lead) => lead._origin)
+                .filter(Boolean)
+        )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    const campaigns = Array.from(
+        new Set(
+            state.leads
+                .map((lead) => lead._campaign)
+                .filter((value) => value && value !== "Sem campanha")
+        )
+    ).sort((a, b) => a.localeCompare(b, "pt-BR"));
+
+    const renderOptions = (values, selected) => values
+        .map((value) => `
+            <option
+                value="${escapeHTML(value)}"
+                ${selected === value ? "selected" : ""}
+            >
+                ${escapeHTML(value)}
+            </option>
+        `)
+        .join("");
+
     return `
         <section class="aura-leads-v5-filters">
             <label class="aura-leads-v5-search">
@@ -870,10 +924,11 @@ function renderFilters() {
                 <input
                     id="aura-leads-v5-search"
                     type="search"
-                    placeholder="Buscar nome, WhatsApp, origem ou interesse"
+                    placeholder="Buscar nome, WhatsApp, origem, campanha ou interesse"
                     value="${escapeHTML(state.search)}"
                 >
             </label>
+
             <select id="aura-leads-v5-status" aria-label="Filtrar por status">
                 <option value="all">Todos os status</option>
                 <option value="novo" ${state.status === "novo" ? "selected" : ""}>Novos</option>
@@ -881,12 +936,24 @@ function renderFilters() {
                 <option value="convertido" ${state.status === "convertido" ? "selected" : ""}>Convertidos</option>
                 <option value="perdido" ${state.status === "perdido" ? "selected" : ""}>Perdidos</option>
             </select>
+
             <select id="aura-leads-v5-temperature" aria-label="Filtrar por temperatura">
                 <option value="all">Todas as temperaturas</option>
                 <option value="hot" ${state.temperature === "hot" ? "selected" : ""}>Quentes</option>
                 <option value="warm" ${state.temperature === "warm" ? "selected" : ""}>Mornos</option>
                 <option value="cold" ${state.temperature === "cold" ? "selected" : ""}>Frios</option>
             </select>
+
+            <select id="aura-leads-v5-origin" aria-label="Filtrar por origem">
+                <option value="all">Todas as origens</option>
+                ${renderOptions(origins, state.origin)}
+            </select>
+
+            <select id="aura-leads-v5-campaign" aria-label="Filtrar por campanha">
+                <option value="all">Todas as campanhas</option>
+                ${renderOptions(campaigns, state.campaign)}
+            </select>
+
             <button type="button" class="aura-leads-v5-secondary" data-action="recalculate">
                 ${svg.spark}
                 Recalcular scores
@@ -894,6 +961,7 @@ function renderFilters() {
         </section>
     `;
 }
+
 
 function renderLeadTable(leads) {
     if (!leads.length) {
@@ -932,7 +1000,12 @@ function renderLeadRow(lead) {
     const statusLabel = STATUS_LABELS[lead._status] || "Novo";
     const temp = TEMPERATURES[lead._temperature] || TEMPERATURES.cold;
     const contact = lead.whatsapp || lead.telefone || lead.email || "Sem contato";
-    const origin = lead.origem || lead.utmSource || lead.utm_source || "Direto";
+    const origin = lead._origin || "Direto";
+    const campaign = lead._campaign || "Sem campanha";
+    const interest = lead.produtoInteresse || lead.paginaOrigem || "Sem interesse informado";
+    const context = campaign !== "Sem campanha"
+        ? `${campaign} · ${interest}`
+        : interest;
 
     return `
         <tr data-lead-id="${escapeHTML(lead.id)}" class="${state.selectedLeadId === lead.id ? "is-selected" : ""}">
@@ -956,7 +1029,7 @@ function renderLeadRow(lead) {
             </td>
             <td>
                 <strong class="aura-leads-v5-origin">${escapeHTML(origin)}</strong>
-                <small>${escapeHTML(lead.produtoInteresse || lead.paginaOrigem || "Sem interesse informado")}</small>
+                <small>${escapeHTML(context)}</small>
             </td>
             <td>
                 <span class="aura-leads-v5-status" data-status="${lead._status}">${statusLabel}</span>
@@ -1103,6 +1176,8 @@ function bindInboxEvents() {
     const search = document.getElementById("aura-leads-v5-search");
     const status = document.getElementById("aura-leads-v5-status");
     const temperature = document.getElementById("aura-leads-v5-temperature");
+    const origin = document.getElementById("aura-leads-v5-origin");
+    const campaign = document.getElementById("aura-leads-v5-campaign");
 
     search?.addEventListener("input", () => {
         state.search = search.value;
@@ -1111,9 +1186,15 @@ function bindInboxEvents() {
                 ? state.leads.filter((lead) => lead._overdue || lead._temperature === "hot")
                 : state.leads
         );
-        document.querySelector(".aura-leads-v5-table-wrap")?.replaceWith(
+
+        const currentTable = document.querySelector(
+            ".aura-leads-v5-table-wrap, .aura-leads-v5-empty"
+        );
+
+        currentTable?.replaceWith(
             htmlToElement(renderLeadTable(state.filtered))
         );
+
         bindTableRows();
     });
 
@@ -1127,9 +1208,24 @@ function bindInboxEvents() {
         render();
     });
 
-    document.querySelector("[data-action='recalculate']")?.addEventListener("click", recalculateAllScores);
+    origin?.addEventListener("change", () => {
+        state.origin = origin.value;
+        render();
+    });
+
+    campaign?.addEventListener("change", () => {
+        state.campaign = campaign.value;
+        render();
+    });
+
+    document.querySelector("[data-action='recalculate']")?.addEventListener(
+        "click",
+        recalculateAllScores
+    );
+
     bindTableRows();
 }
+
 
 function bindTableRows() {
     document.querySelectorAll(".aura-leads-v5-table tbody tr[data-lead-id]").forEach((row) => {
@@ -1159,6 +1255,8 @@ function bindGroupEvents() {
             state.search = "";
             state.status = "all";
             state.temperature = "all";
+            state.origin = "all";
+            state.campaign = "all";
             state.filtered = group.leads;
 
             const content = document.getElementById("aura-leads-v5-content");
