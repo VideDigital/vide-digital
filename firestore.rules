@@ -422,31 +422,57 @@ service cloud.firestore {
       return exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
         && request.resource.data.keys().hasOnly(["totalVisualizacoes", "porDia"]);
     }
-    function metricaVitrineValida(id) {
+    function camposMetricaVitrine() {
+      return [
+        "totalSessoes",
+        "totalTempoTela",
+        "totalCliques",
+        "produtosInteresse",
+        "porDia",
+        "porOrigem",
+        "porCampanha"
+      ];
+    }
+
+    function metricaVitrineCreateValida(id) {
       return exists(/databases/$(database)/documents/usuarios/$(id))
-        && request.resource.data.keys().hasOnly([
-          "totalSessoes",
-          "totalTempoTela",
-          "totalCliques",
-          "produtosInteresse",
-          "porDia",
-          "porOrigem",
-          "porCampanha"
-        ]);
+        && request.resource.data.keys().hasOnly(camposMetricaVitrine());
     }
-    function metricaProdutoValida(id) {
+
+    function metricaVitrineUpdateValida(id) {
+      return exists(/databases/$(database)/documents/usuarios/$(id))
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly(camposMetricaVitrine());
+    }
+
+    function camposMetricaProduto() {
+      return [
+        "visualizacoes",
+        "detalhesAbertos",
+        "cliques",
+        "adicoesCarrinho",
+        "checkoutsIniciados",
+        "pedidosWhatsapp",
+        "valorPedidosWhatsapp",
+        "porDia"
+      ];
+    }
+
+    function metricaProdutoCreateValida(id) {
       return exists(/databases/$(database)/documents/produtos/$(id))
-        && request.resource.data.keys().hasOnly([
-          "visualizacoes",
-          "detalhesAbertos",
-          "cliques",
-          "adicoesCarrinho",
-          "checkoutsIniciados",
-          "pedidosWhatsapp",
-          "valorPedidosWhatsapp",
-          "porDia"
-        ]);
+        && request.resource.data.keys().hasOnly(camposMetricaProduto());
     }
+
+    function metricaProdutoUpdateValida(id) {
+      return exists(/databases/$(database)/documents/produtos/$(id))
+        && request.resource.data
+          .diff(resource.data)
+          .affectedKeys()
+          .hasOnly(camposMetricaProduto());
+    }
+
     // Lead público: criadoPor precisa apontar para um dono real e o lead
     // nasce sempre com status "novo" (o visitante não escolhe status).
     function leadPublicoValido() {
@@ -1347,18 +1373,21 @@ allow update: if (
 
     match /metricas_vitrines/{id} {
       allow read: if canViewTenant(id, "metricas");
-      // Incremento público (sessões/tempo/cliques da loja) — só chaves de métrica.
-      allow create, update: if metricaVitrineValida(id);
+      // Criação valida o documento completo; atualização valida apenas
+      // os campos realmente alterados, preservando campos legados.
+      allow create: if metricaVitrineCreateValida(id);
+      allow update: if metricaVitrineUpdateValida(id);
       allow delete: if false;
     }
 
     match /metricas_produtos/{id} {
       allow read: if exists(/databases/$(database)/documents/produtos/$(id))
         && canViewTenant(get(/databases/$(database)/documents/produtos/$(id)).data.criadoPor, "metricas");
-      // Incremento público (visualizações/cliques do produto) — só chaves de métrica.
-      allow create, update: if metricaProdutoValida(id);
+      allow create: if metricaProdutoCreateValida(id);
+      allow update: if metricaProdutoUpdateValida(id);
       allow delete: if false;
     }
+
 
     match /metricas_landing_pages/{id} {
       allow read: if exists(/databases/$(database)/documents/landing_pages_publicas/$(id))
