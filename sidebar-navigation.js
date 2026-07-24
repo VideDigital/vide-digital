@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V3.4
- * Rail profissional com painel por toque para celular em modo desktop.
+ * Vide Hub — Sidebar V3.5
+ * Rail profissional com largura refinada e painel por toque.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -565,10 +565,10 @@
                     #admin-sidebar.vide-dock-sidebar {
                         --vide-rail-top: 12px;
                         position: relative !important;
-                        width: 94px !important;
-                        min-width: 94px !important;
-                        max-width: 94px !important;
-                        flex: 0 0 94px !important;
+                        width: 102px !important;
+                        min-width: 102px !important;
+                        max-width: 102px !important;
+                        flex: 0 0 102px !important;
                         height: 100vh !important;
                         min-height: 100vh !important;
                         padding: 0 !important;
@@ -586,12 +586,12 @@
                         top: var(--vide-rail-top) !important;
                         bottom: 12px !important;
                         left: 10px !important;
-                        width: 74px !important;
-                        min-width: 74px !important;
-                        max-width: 74px !important;
+                        width: 82px !important;
+                        min-width: 82px !important;
+                        max-width: 82px !important;
                         height: auto !important;
                         min-height: 0 !important;
-                        padding: 10px 8px !important;
+                        padding: 10px 9px !important;
                         box-sizing: border-box !important;
                         display: flex !important;
                         flex-direction: column !important;
@@ -629,8 +629,8 @@
                     }
 
                     #admin-sidebar .vide-dock-brand {
-                        width: 56px !important;
-                        min-width: 56px !important;
+                        width: 62px !important;
+                        min-width: 62px !important;
                         height: 64px !important;
                         min-height: 64px !important;
                         margin: 0 auto !important;
@@ -699,9 +699,9 @@
                         display: block !important;
                         visibility: visible !important;
                         opacity: 1 !important;
-                        width: 58px !important;
-                        min-width: 58px !important;
-                        max-width: 58px !important;
+                        width: 64px !important;
+                        min-width: 64px !important;
+                        max-width: 64px !important;
                         height: 0 !important;
                         min-height: 0 !important;
                         max-height: none !important;
