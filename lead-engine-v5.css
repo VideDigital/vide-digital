@@ -1,7 +1,7 @@
 /**
  * Vide Aura — Central Comercial de Leads V6
  * Workspace em página inteira para Inbox, Pipeline, Agenda, Relatórios e Automações.
- * Versão 6.1.0
+ * Versão 6.1.1
  */
 
 :root {
@@ -3443,6 +3443,195 @@
 
     .aura-leads-v6-quality-card .aura-leads-v5-secondary {
         width: 100%;
+    }
+}
+
+/* =========================================================
+   VIDE AURA LEADS V6.1.1 — largura, corte e scroll leve
+   ========================================================= */
+
+/* Evita que width: 100% + padding ultrapasse o workspace. */
+#aura-leads-v5-modal.aura-leads-v6-inline,
+#aura-leads-v5-modal.aura-leads-v6-inline *,
+#aura-leads-v5-modal.aura-leads-v6-inline *::before,
+#aura-leads-v5-modal.aura-leads-v6-inline *::after {
+    box-sizing: border-box;
+}
+
+#view-leads.aura-leads-v6-host,
+#aura-leads-v5-modal.aura-leads-v6-inline,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-shell,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-shell,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-body,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-body,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-main,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-detail,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-detail {
+    min-width: 0 !important;
+    max-width: 100% !important;
+}
+
+#view-leads.aura-leads-v6-host,
+#aura-leads-v5-modal.aura-leads-v6-inline,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-shell,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-shell,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-body,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-body,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-detail,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-detail {
+    overflow-x: clip !important;
+}
+
+/* Fundo e sombra mais baratos para uma área longa de dashboard. */
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-shell,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-shell {
+    background: var(--aura-leads-v5-bg) !important;
+    box-shadow: 0 18px 54px rgba(0, 0, 0, .28) !important;
+}
+
+#aura-leads-v5-modal.aura-leads-v6-inline.is-detail-open .aura-leads-v5-detail,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v6-detail:not([hidden]) {
+    width: auto !important;
+    max-width: 100% !important;
+    background: #070b12 !important;
+}
+
+.aura-leads-v6-detail-topbar,
+.aura-leads-v6-detail-hero,
+.aura-leads-v6-detail-workspace,
+.aura-leads-v6-detail-primary,
+.aura-leads-v6-detail-secondary,
+.aura-leads-v6-panel,
+.aura-leads-v5-detail-actions,
+.aura-leads-v5-detail-grid,
+.aura-leads-v5-message-builder,
+.aura-leads-v5-context,
+.aura-leads-v5-history {
+    min-width: 0;
+    max-width: 100%;
+}
+
+.aura-leads-v6-detail-hero {
+    background: rgba(255, 255, 255, .022);
+}
+
+/* A coluna lateral deixa de forçar largura maior que o painel. */
+.aura-leads-v6-detail-workspace {
+    width: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(270px, 320px);
+    gap: 12px;
+}
+
+.aura-leads-v6-detail-primary,
+.aura-leads-v6-detail-secondary,
+.aura-leads-v6-panel {
+    width: 100%;
+}
+
+.aura-leads-v6-detail-secondary {
+    align-self: start;
+}
+
+/* O rodapé fixo com blur repintava a tela inteira durante a rolagem. */
+.aura-leads-v6-detail-footer {
+    position: static !important;
+    inset: auto !important;
+    margin: 14px 0 0 !important;
+    padding: 14px 0 0 !important;
+    border-top: 1px solid var(--aura-leads-v5-line);
+    background: transparent !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+}
+
+/* Menos efeitos que exigem composição a cada movimento da página. */
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-primary,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-secondary,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-ghost,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-icon-button,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-row-open,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-whatsapp,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-table tbody tr,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-pipeline-card {
+    transition: none !important;
+}
+
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-primary:hover,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-secondary:hover,
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-whatsapp:hover {
+    transform: none !important;
+    filter: none !important;
+}
+
+/* Tabs permanecem acessíveis sem estourar a largura do módulo. */
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-toolbar {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+#aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-tabs {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    overscroll-behavior-inline: contain;
+}
+
+/* No tamanho comum de notebook, contexto e histórico descem para não cortar. */
+@media (max-width: 1500px) {
+    .aura-leads-v6-detail-workspace {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .aura-leads-v6-detail-secondary {
+        display: grid;
+        grid-template-columns: minmax(0, 1.25fr) minmax(280px, .75fr);
+        align-items: start;
+        gap: 12px;
+    }
+
+    .aura-leads-v6-inline .aura-leads-v5-context dl {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .aura-leads-v6-inline .aura-leads-v5-history > div {
+        max-height: 360px;
+    }
+
+    #aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-toolbar {
+        align-items: flex-start;
+    }
+
+    #aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-tabs {
+        flex-wrap: wrap;
+        overflow: visible;
+    }
+}
+
+@media (max-width: 980px) {
+    .aura-leads-v6-detail-secondary {
+        display: flex;
+    }
+
+    .aura-leads-v6-inline .aura-leads-v5-context dl {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    #aura-leads-v5-modal.aura-leads-v6-inline .aura-leads-v5-tabs {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+    }
+}
+
+@media (max-width: 640px) {
+    .aura-leads-v6-inline .aura-leads-v5-context dl {
+        grid-template-columns: 1fr;
+    }
+
+    .aura-leads-v6-detail-topbar,
+    .aura-leads-v6-detail-hero,
+    .aura-leads-v6-panel {
+        border-radius: 14px;
     }
 }
 
