@@ -757,6 +757,40 @@
             console.warn("Métrica pública não registrada:", err?.message || err);
         }
 
+        // Padroniza números brasileiros para o formato exigido pelo wa.me:
+        // 55 + DDD + número. Também remove espaços, parênteses, hífens e "+".
+        function normalizarWhatsappBrasil(valor) {
+            let numero = String(valor || "").replace(/\D/g, "");
+
+            if (!numero) return "";
+
+            // Aceita números copiados no formato internacional 0055...
+            if (numero.startsWith("00")) {
+                numero = numero.slice(2);
+            }
+
+            // Já está no formato internacional brasileiro:
+            // 55 + 10 dígitos (fixo) ou 55 + 11 dígitos (celular).
+            if (
+                numero.startsWith("55") &&
+                (numero.length === 12 || numero.length === 13)
+            ) {
+                return numero;
+            }
+
+            // Número brasileiro salvo apenas como DDD + telefone.
+            if (numero.length === 10 || numero.length === 11) {
+                return "55" + numero;
+            }
+
+            // Mantém número internacional de outro país quando o formato é plausível.
+            if (numero.length >= 12 && numero.length <= 15) {
+                return numero;
+            }
+
+            return "";
+        }
+
         // Escrita direta das métricas (sem Cloud Function, roda no plano Spark).
         // Amarrada ao dono real da loja (fornecedorEmail) e liberada pelas
         // regras só nas chaves de métrica conhecidas.
@@ -1047,7 +1081,7 @@
                 if (publicSnap.exists()) {
                     const dados = publicSnap.data();
                     fornecedorEmail = dados.emailDono;
-                    whatsappDono = dados.whatsappCentral || "";
+                    whatsappDono = normalizarWhatsappBrasil(dados.whatsappCentral || dados.whatsappChat || "");
                     carrinhoAtivo = dados.carrinhoAtivo === true;
                     carrinhoMensagemCustom = dados.carrinhoMensagem || "";
                     nomeLojaAtual = dados.nomeLoja || "Loja";
@@ -1572,8 +1606,13 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             });
 
             if (tipoDestino === "whatsapp") {
+                const numeroDestino = normalizarWhatsappBrasil(destinoValue);
+                if (!numeroDestino) {
+                    alert("O WhatsApp deste produto está inválido. Avise o responsável pela loja.");
+                    return;
+                }
                 const msg = encodeURIComponent("Ola! Tenho interesse no produto: " + nomeProd);
-                window.open("https://wa.me/" + destinoValue + "?text=" + msg, "_blank");
+                window.open("https://wa.me/" + numeroDestino + "?text=" + msg, "_blank");
             } else {
                 window.open(destinoValue, "_blank");
             }
