@@ -1675,7 +1675,8 @@
         let avaliacoesPublicadasPorProduto = new Map();
         let timeoutRedirecionamentoWhats = null;
         let tempoInicioSessao = Date.now();
-        const utmSourceCapturada = urlParams.get("utm_source") || "Direto";
+        const atribuicaoSessao = obterAtribuicaoSessao();
+        const utmSourceCapturada = atribuicaoSessao.origemNome;
 
         let manifestLojaObjectUrl = "";
         let versaoIdentidadeNavegador = 0;
@@ -2161,9 +2162,248 @@
             return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
         }
 
+        function normalizarTextoAtribuicao(valor, fallback) {
+            return String(valor || fallback || "")
+                .replace(/[\u0000-\u001F\u007F]/g, "")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 120);
+        }
+
+        function criarChaveAtribuicao(valor, fallback) {
+            let texto = normalizarTextoAtribuicao(valor, fallback).toLowerCase();
+
+            try {
+                texto = texto
+                    .normalize("NFD")
+                    .replace(/[\u0300-\u036f]/g, "");
+            } catch (e) {}
+
+            texto = texto
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "")
+                .slice(0, 64);
+
+            return texto || fallback || "direto";
+        }
+
+        function padronizarNomeOrigem(valor) {
+            const chave = criarChaveAtribuicao(valor, "direto");
+            const nomesConhecidos = {
+                direto: "Direto",
+                direct: "Direto",
+                instagram: "Instagram",
+                ig: "Instagram",
+                facebook: "Facebook",
+                fb: "Facebook",
+                meta: "Facebook",
+                google: "Google",
+                google_ads: "Google Ads",
+                googleads: "Google Ads",
+                tiktok: "TikTok",
+                whatsapp: "WhatsApp",
+                whats: "WhatsApp",
+                youtube: "YouTube",
+                linkedin: "LinkedIn",
+                twitter: "X / Twitter",
+                x: "X / Twitter",
+                bing: "Bing",
+                email: "E-mail",
+                newsletter: "Newsletter"
+            };
+
+            return nomesConhecidos[chave] ||
+                normalizarTextoAtribuicao(valor, "Direto");
+        }
+
+        function detectarOrigemReferencia() {
+            try {
+                if (!document.referrer) return "Direto";
+
+                const referencia = new URL(document.referrer);
+                const host = referencia.hostname
+                    .replace(/^www\./, "")
+                    .toLowerCase();
+
+                const hostAtual = window.location.hostname
+                    .replace(/^www\./, "")
+                    .toLowerCase();
+
+                if (!host || host === hostAtual) return "Direto";
+                if (host.includes("instagram.com")) return "Instagram";
+                if (
+                    host.includes("facebook.com") ||
+                    host === "fb.com" ||
+                    host === "m.me"
+                ) return "Facebook";
+                if (host.includes("google.")) return "Google";
+                if (host.includes("tiktok.com")) return "TikTok";
+                if (
+                    host.includes("whatsapp.com") ||
+                    host === "wa.me"
+                ) return "WhatsApp";
+                if (
+                    host.includes("youtube.com") ||
+                    host === "youtu.be"
+                ) return "YouTube";
+                if (host.includes("linkedin.com")) return "LinkedIn";
+                if (
+                    host.includes("twitter.com") ||
+                    host === "x.com" ||
+                    host === "t.co"
+                ) return "X / Twitter";
+                if (host.includes("bing.com")) return "Bing";
+
+                return normalizarTextoAtribuicao(host, "Referência");
+            } catch (e) {
+                return "Direto";
+            }
+        }
+
+        function obterAtribuicaoSessao() {
+            const chaveStorage =
+                "videAtribuicaoCampanha:" +
+                String(lojaSlug || "loja");
+
+            const utmSourceRaw = normalizarTextoAtribuicao(
+                urlParams.get("utm_source"),
+                ""
+            );
+
+            const utmMediumRaw = normalizarTextoAtribuicao(
+                urlParams.get("utm_medium"),
+                ""
+            );
+
+            const utmCampaignRaw = normalizarTextoAtribuicao(
+                urlParams.get("utm_campaign"),
+                ""
+            );
+
+            const possuiUtm = Boolean(
+                utmSourceRaw ||
+                utmMediumRaw ||
+                utmCampaignRaw
+            );
+
+            if (!possuiUtm) {
+                try {
+                    const salva = JSON.parse(
+                        sessionStorage.getItem(chaveStorage) || "null"
+                    );
+
+                    if (
+                        salva &&
+                        salva.origemNome &&
+                        salva.origemChave
+                    ) {
+                        return salva;
+                    }
+                } catch (e) {}
+            }
+
+            const origemNome = padronizarNomeOrigem(
+                utmSourceRaw || detectarOrigemReferencia()
+            );
+
+            const meioNome = normalizarTextoAtribuicao(
+                utmMediumRaw ||
+                (
+                    utmSourceRaw
+                        ? "Campanha"
+                        : origemNome === "Direto"
+                            ? "Direto"
+                            : "Referência"
+                ),
+                "Direto"
+            );
+
+            const campanhaNome = normalizarTextoAtribuicao(
+                utmCampaignRaw,
+                "Sem campanha"
+            );
+
+            const atribuicao = {
+                origemNome: origemNome,
+                origemChave: criarChaveAtribuicao(
+                    origemNome,
+                    "direto"
+                ),
+                meioNome: meioNome,
+                campanhaNome: campanhaNome,
+                campanhaChave: criarChaveAtribuicao(
+                    origemNome +
+                    "_" +
+                    meioNome +
+                    "_" +
+                    campanhaNome,
+                    "sem_campanha"
+                ),
+                temCampanha: possuiUtm
+            };
+
+            try {
+                sessionStorage.setItem(
+                    chaveStorage,
+                    JSON.stringify(atribuicao)
+                );
+            } catch (e) {}
+
+            return atribuicao;
+        }
+
+        function criarDadosAtribuicao(contadores) {
+            const gerarIncrementos = function() {
+                const resultado = {};
+
+                Object.entries(contadores || {}).forEach(function(par) {
+                    const campo = par[0];
+                    const numero = Number(par[1] || 0);
+
+                    if (
+                        !campo ||
+                        !Number.isFinite(numero) ||
+                        numero === 0
+                    ) return;
+
+                    resultado[campo] = increment(numero);
+                });
+
+                return resultado;
+            };
+
+            const dados = {
+                porOrigem: {
+                    [atribuicaoSessao.origemChave]: Object.assign(
+                        {
+                            nome: atribuicaoSessao.origemNome,
+                            meio: atribuicaoSessao.meioNome
+                        },
+                        gerarIncrementos()
+                    )
+                }
+            };
+
+            if (atribuicaoSessao.temCampanha) {
+                dados.porCampanha = {
+                    [atribuicaoSessao.campanhaChave]: Object.assign(
+                        {
+                            nome: atribuicaoSessao.campanhaNome,
+                            origem: atribuicaoSessao.origemNome,
+                            meio: atribuicaoSessao.meioNome
+                        },
+                        gerarIncrementos()
+                    )
+                };
+            }
+
+            return dados;
+        }
+
         function silenciarMetrica(err) {
             console.warn("Métrica pública não registrada:", err?.message || err);
         }
+
 
         // Padroniza números brasileiros para o formato exigido pelo wa.me:
         // 55 + DDD + número. Também remove espaços, parênteses, hífens e "+".
@@ -2207,132 +2447,350 @@
             if (!ownerUid || !payload) return Promise.resolve();
             const hoje = chaveDataHoje();
             const evento = payload.event;
+
             try {
                 if (evento === "store_session") {
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        totalSessoes: increment(1),
-                        porDia: { [hoje]: { sessoes: increment(1) } }
-                    }, { merge: true }).catch(silenciarMetrica);
-                }
-                if (evento === "store_time") {
-                    const seg = Math.max(0, Math.min(Number(payload.seconds || 0), 3600));
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        totalTempoTela: increment(seg),
-                        porDia: { [hoje]: { tempo: increment(seg) } }
-                    }, { merge: true }).catch(silenciarMetrica);
-                }
-                if (evento === "product_view" && payload.productId) {
-                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
-                        visualizacoes: increment(1),
-                        porDia: {
-                            [hoje]: {
-                                visualizacoes: increment(1)
-                            }
-                        }
-                    }, { merge: true }).catch(silenciarMetrica);
-                }
-                if (evento === "product_detail" && payload.productId) {
-                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
-                        detalhesAbertos: increment(1),
-                        porDia: {
-                            [hoje]: {
-                                detalhesAbertos: increment(1)
-                            }
-                        }
-                    }, { merge: true }).catch(silenciarMetrica);
-                }
-                if (evento === "product_click" && payload.productId) {
-                    const nomeProd = (payload.productName || payload.productId).toString().slice(0, 160);
-                    return Promise.all([
-                        setDoc(doc(db, "metricas_produtos", payload.productId), {
-                            cliques: increment(1),
-                            porDia: {
-                                [hoje]: {
-                                    cliques: increment(1)
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                totalSessoes: increment(1),
+                                porDia: {
+                                    [hoje]: {
+                                        sessoes: increment(1)
+                                    }
                                 }
-                            }
-                        }, { merge: true }).catch(silenciarMetrica),
-                        setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                            totalCliques: increment(1),
-                            produtosInteresse: { [nomeProd]: increment(1) },
-                            porDia: { [hoje]: { cliques: increment(1) } }
-                        }, { merge: true }).catch(silenciarMetrica)
-                    ]);
+                            },
+                            criarDadosAtribuicao({
+                                visitas: 1
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
-                if (evento === "product_cart_add" && payload.productId) {
-                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
-                        adicoesCarrinho: increment(1),
-                        porDia: {
-                            [hoje]: {
-                                adicoesCarrinho: increment(1)
-                            }
-                        }
-                    }, { merge: true }).catch(silenciarMetrica);
-                }
-                if (evento === "product_checkout" && payload.productId) {
-                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
-                        checkoutsIniciados: increment(1),
-                        porDia: {
-                            [hoje]: {
-                                checkoutsIniciados: increment(1)
-                            }
-                        }
-                    }, { merge: true }).catch(silenciarMetrica);
-                }
-                if (evento === "product_order_whatsapp" && payload.productId) {
-                    const valorProduto = Math.max(
+
+                if (evento === "store_time") {
+                    const seg = Math.max(
                         0,
-                        Math.min(Number(payload.value || 0), 10000000)
+                        Math.min(
+                            Number(payload.seconds || 0),
+                            3600
+                        )
                     );
 
-                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
-                        pedidosWhatsapp: increment(1),
-                        valorPedidosWhatsapp: increment(valorProduto),
-                        porDia: {
-                            [hoje]: {
-                                pedidosWhatsapp: increment(1),
-                                valorPedidosWhatsapp: increment(valorProduto)
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                totalTempoTela: increment(seg),
+                                porDia: {
+                                    [hoje]: {
+                                        tempo: increment(seg)
+                                    }
+                                }
+                            },
+                            criarDadosAtribuicao({
+                                tempoSegundos: seg
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
+                }
+
+                if (
+                    evento === "product_view" &&
+                    payload.productId
+                ) {
+                    return setDoc(
+                        doc(
+                            db,
+                            "metricas_produtos",
+                            payload.productId
+                        ),
+                        {
+                            visualizacoes: increment(1),
+                            porDia: {
+                                [hoje]: {
+                                    visualizacoes: increment(1)
+                                }
                             }
-                        }
-                    }, { merge: true }).catch(silenciarMetrica);
+                        },
+                        { merge: true }
+                    ).catch(silenciarMetrica);
+                }
+
+                if (
+                    evento === "product_detail" &&
+                    payload.productId
+                ) {
+                    return setDoc(
+                        doc(
+                            db,
+                            "metricas_produtos",
+                            payload.productId
+                        ),
+                        {
+                            detalhesAbertos: increment(1),
+                            porDia: {
+                                [hoje]: {
+                                    detalhesAbertos: increment(1)
+                                }
+                            }
+                        },
+                        { merge: true }
+                    ).catch(silenciarMetrica);
+                }
+
+                if (
+                    evento === "product_click" &&
+                    payload.productId
+                ) {
+                    const nomeProd = (
+                        payload.productName ||
+                        payload.productId
+                    ).toString().slice(0, 160);
+
+                    return Promise.all([
+                        setDoc(
+                            doc(
+                                db,
+                                "metricas_produtos",
+                                payload.productId
+                            ),
+                            {
+                                cliques: increment(1),
+                                porDia: {
+                                    [hoje]: {
+                                        cliques: increment(1)
+                                    }
+                                }
+                            },
+                            { merge: true }
+                        ).catch(silenciarMetrica),
+
+                        setDoc(
+                            doc(
+                                db,
+                                "metricas_vitrines",
+                                ownerUid
+                            ),
+                            Object.assign(
+                                {
+                                    totalCliques: increment(1),
+                                    produtosInteresse: {
+                                        [nomeProd]: increment(1)
+                                    },
+                                    porDia: {
+                                        [hoje]: {
+                                            cliques: increment(1)
+                                        }
+                                    }
+                                },
+                                criarDadosAtribuicao({
+                                    cliquesProdutos: 1
+                                })
+                            ),
+                            { merge: true }
+                        ).catch(silenciarMetrica)
+                    ]);
+                }
+
+                if (
+                    evento === "product_cart_add" &&
+                    payload.productId
+                ) {
+                    return setDoc(
+                        doc(
+                            db,
+                            "metricas_produtos",
+                            payload.productId
+                        ),
+                        {
+                            adicoesCarrinho: increment(1),
+                            porDia: {
+                                [hoje]: {
+                                    adicoesCarrinho: increment(1)
+                                }
+                            }
+                        },
+                        { merge: true }
+                    ).catch(silenciarMetrica);
+                }
+
+                if (
+                    evento === "product_checkout" &&
+                    payload.productId
+                ) {
+                    return setDoc(
+                        doc(
+                            db,
+                            "metricas_produtos",
+                            payload.productId
+                        ),
+                        {
+                            checkoutsIniciados: increment(1),
+                            porDia: {
+                                [hoje]: {
+                                    checkoutsIniciados: increment(1)
+                                }
+                            }
+                        },
+                        { merge: true }
+                    ).catch(silenciarMetrica);
+                }
+
+                if (
+                    evento === "product_order_whatsapp" &&
+                    payload.productId
+                ) {
+                    const valorProduto = Math.max(
+                        0,
+                        Math.min(
+                            Number(payload.value || 0),
+                            10000000
+                        )
+                    );
+
+                    return setDoc(
+                        doc(
+                            db,
+                            "metricas_produtos",
+                            payload.productId
+                        ),
+                        {
+                            pedidosWhatsapp: increment(1),
+                            valorPedidosWhatsapp:
+                                increment(valorProduto),
+                            porDia: {
+                                [hoje]: {
+                                    pedidosWhatsapp:
+                                        increment(1),
+                                    valorPedidosWhatsapp:
+                                        increment(valorProduto)
+                                }
+                            }
+                        },
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
 
                 if (evento === "cart_open") {
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        porDia: { [hoje]: { carrinhosAbertos: increment(1) } }
-                    }, { merge: true }).catch(silenciarMetrica);
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                porDia: {
+                                    [hoje]: {
+                                        carrinhosAbertos:
+                                            increment(1)
+                                    }
+                                }
+                            },
+                            criarDadosAtribuicao({
+                                carrinhosAbertos: 1
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
+
                 if (evento === "cart_add") {
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        porDia: { [hoje]: { adicoesCarrinho: increment(1) } }
-                    }, { merge: true }).catch(silenciarMetrica);
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                porDia: {
+                                    [hoje]: {
+                                        adicoesCarrinho:
+                                            increment(1)
+                                    }
+                                }
+                            },
+                            criarDadosAtribuicao({
+                                adicoesCarrinho: 1
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
+
                 if (evento === "checkout_start") {
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        porDia: { [hoje]: { checkoutsIniciados: increment(1) } }
-                    }, { merge: true }).catch(silenciarMetrica);
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                porDia: {
+                                    [hoje]: {
+                                        checkoutsIniciados:
+                                            increment(1)
+                                    }
+                                }
+                            },
+                            criarDadosAtribuicao({
+                                checkoutsIniciados: 1
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
+
                 if (evento === "order_whatsapp") {
-                    const valor = Math.max(0, Math.min(Number(payload.value || 0), 10000000));
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        porDia: {
-                            [hoje]: {
-                                pedidosWhatsapp: increment(1),
-                                valorPedidosWhatsapp: increment(valor)
-                            }
-                        }
-                    }, { merge: true }).catch(silenciarMetrica);
+                    const valor = Math.max(
+                        0,
+                        Math.min(
+                            Number(payload.value || 0),
+                            10000000
+                        )
+                    );
+
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                porDia: {
+                                    [hoje]: {
+                                        pedidosWhatsapp:
+                                            increment(1),
+                                        valorPedidosWhatsapp:
+                                            increment(valor)
+                                    }
+                                }
+                            },
+                            criarDadosAtribuicao({
+                                pedidosWhatsapp: 1,
+                                valorPedidosWhatsapp: valor
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
+
                 if (evento === "share_store") {
-                    return setDoc(doc(db, "metricas_vitrines", ownerUid), {
-                        porDia: { [hoje]: { compartilhamentos: increment(1) } }
-                    }, { merge: true }).catch(silenciarMetrica);
+                    return setDoc(
+                        doc(db, "metricas_vitrines", ownerUid),
+                        Object.assign(
+                            {
+                                porDia: {
+                                    [hoje]: {
+                                        compartilhamentos:
+                                            increment(1)
+                                    }
+                                }
+                            },
+                            criarDadosAtribuicao({
+                                compartilhamentos: 1
+                            })
+                        ),
+                        { merge: true }
+                    ).catch(silenciarMetrica);
                 }
             } catch (err) {
                 silenciarMetrica(err);
             }
+
             return Promise.resolve();
         }
+
 
         function registrarMetricaFunilUnica(evento, payload, chaveExtra) {
             const chaveSessao = [
