@@ -2013,6 +2013,50 @@
                 }
             }
 
+            /* V4 — alinhamento real do conteúdo com o dock.
+               O dashboard possui várias sections com mx-auto/max-w-6xl;
+               isso centralizava o painel no viewport e criava o grande vazio
+               visto ao lado do menu. Aqui o conteúdo passa a começar logo
+               depois do dock e usa toda a área útil, sem alterar IDs ou eventos. */
+            @media (min-width: 768px) {
+                body.vide-navigation-v2 > main {
+                    position: relative !important;
+                    inset: auto !important;
+                    left: auto !important;
+                    right: auto !important;
+                    transform: none !important;
+                    box-sizing: border-box !important;
+                    width: calc(100vw - var(--vide-dock-width)) !important;
+                    max-width: calc(100vw - var(--vide-dock-width)) !important;
+                    min-width: 0 !important;
+                    margin: 0 0 0 var(--vide-dock-width) !important;
+                    padding-left: clamp(20px, 2.15vw, 34px) !important;
+                    padding-right: clamp(20px, 2.15vw, 34px) !important;
+                    overflow-x: hidden !important;
+                }
+
+                body.vide-navigation-v2 > main > .view-section,
+                body.vide-navigation-v2 > main > section.view-section {
+                    box-sizing: border-box !important;
+                    width: 100% !important;
+                    max-width: 1480px !important;
+                    min-width: 0 !important;
+                    margin-left: 0 !important;
+                    margin-right: auto !important;
+                }
+
+                body.vide-navigation-v2 > main .view-section > * {
+                    max-width: 100%;
+                }
+            }
+
+            @media (min-width: 1900px) {
+                body.vide-navigation-v2 > main > .view-section,
+                body.vide-navigation-v2 > main > section.view-section {
+                    max-width: 1560px !important;
+                }
+            }
+
             #vide-command-center-v2 {
                 position: fixed;
                 inset: 0;
