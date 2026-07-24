@@ -597,5 +597,681 @@
         }, 150);
     }
 
+
+    // =========================================================
+    // FUNIL DE MÉTRICAS DA LOJA PÚBLICA
+    // Usa o mesmo documento metricas_vitrines/{tenantUid}.
+    // As etapas novas ficam dentro de porDia para manter
+    // compatibilidade com o contrato atual das Firestore Rules.
+    // =========================================================
+    var metricasFunilIniciadas = false;
+    var metricasFunilDados = {};
+    var metricasFunilDesinscrever = null;
+
+    function inserirEstilosMetricasFunil() {
+        if (document.getElementById("vide-funil-metricas-style")) return;
+
+        var style = document.createElement("style");
+        style.id = "vide-funil-metricas-style";
+        style.textContent = `
+            #vide-funil-loja-publica {
+                position: relative;
+                overflow: hidden;
+                margin-bottom: 24px;
+                padding: 24px;
+                border-radius: 24px;
+                border: 1px solid rgba(255,255,255,.08);
+                background:
+                    radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--sys-primaria, #6d5dfc) 24%, transparent), transparent 34%),
+                    radial-gradient(circle at 100% 20%, color-mix(in srgb, var(--sys-destaque, #00f2fe) 18%, transparent), transparent 32%),
+                    linear-gradient(145deg, rgba(255,255,255,.055), rgba(255,255,255,.018));
+                box-shadow: 0 24px 60px rgba(0,0,0,.22);
+            }
+
+            #vide-funil-loja-publica .vide-funil-header {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 18px;
+                margin-bottom: 20px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-kicker {
+                display: block;
+                margin-bottom: 6px;
+                color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 78%, white 22%);
+                font-size: 9px;
+                font-weight: 900;
+                letter-spacing: .22em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica h2 {
+                margin: 0;
+                color: #fff;
+                font-size: clamp(18px, 2vw, 25px);
+                font-weight: 900;
+                letter-spacing: -.035em;
+            }
+
+            #vide-funil-loja-publica .vide-funil-description {
+                max-width: 650px;
+                margin: 7px 0 0;
+                color: #9ca3af;
+                font-size: 12px;
+                line-height: 1.65;
+            }
+
+            #vide-funil-periodo {
+                min-width: 155px;
+                min-height: 42px;
+                padding: 0 38px 0 14px;
+                border: 1px solid rgba(255,255,255,.1);
+                border-radius: 13px;
+                background: rgba(3,7,18,.72);
+                color: #fff;
+                font-size: 11px;
+                font-weight: 800;
+                outline: none;
+                cursor: pointer;
+            }
+
+            #vide-funil-periodo:focus-visible {
+                border-color: var(--sys-destaque, #00f2fe);
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-destaque, #00f2fe) 20%, transparent);
+            }
+
+            #vide-funil-loja-publica .vide-funil-grid {
+                position: relative;
+                z-index: 1;
+                display: grid;
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+                gap: 12px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-card {
+                min-height: 132px;
+                padding: 16px;
+                border: 1px solid rgba(255,255,255,.075);
+                border-radius: 18px;
+                background: rgba(3,7,18,.48);
+                display: flex;
+                flex-direction: column;
+                justify-content: space-between;
+            }
+
+            #vide-funil-loja-publica .vide-funil-card span {
+                color: #9ca3af;
+                font-size: 9px;
+                font-weight: 900;
+                letter-spacing: .14em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica .vide-funil-card strong {
+                display: block;
+                margin-top: 12px;
+                color: #fff;
+                font-size: clamp(22px, 2.3vw, 32px);
+                line-height: 1;
+                font-weight: 900;
+                letter-spacing: -.05em;
+            }
+
+            #vide-funil-loja-publica .vide-funil-card small {
+                display: block;
+                margin-top: 9px;
+                color: #6b7280;
+                font-size: 10px;
+                line-height: 1.45;
+            }
+
+            #vide-funil-loja-publica .vide-funil-card.is-highlight {
+                border-color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 30%, transparent);
+                background: color-mix(in srgb, var(--sys-destaque, #00f2fe) 8%, rgba(3,7,18,.6));
+            }
+
+            #vide-funil-loja-publica .vide-funil-flow {
+                position: relative;
+                z-index: 1;
+                display: grid;
+                grid-template-columns: minmax(0, 1.35fr) minmax(280px, .65fr);
+                gap: 18px;
+                margin-top: 18px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-bars,
+            #vide-funil-loja-publica .vide-funil-summary {
+                padding: 18px;
+                border: 1px solid rgba(255,255,255,.07);
+                border-radius: 18px;
+                background: rgba(3,7,18,.38);
+            }
+
+            #vide-funil-loja-publica .vide-funil-section-title {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 14px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-section-title strong {
+                color: #fff;
+                font-size: 12px;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-funil-section-title span {
+                color: #6b7280;
+                font-size: 9px;
+                font-weight: 800;
+                text-transform: uppercase;
+                letter-spacing: .12em;
+            }
+
+            #vide-funil-loja-publica .vide-funil-stage {
+                display: grid;
+                grid-template-columns: 128px minmax(0, 1fr) 58px;
+                align-items: center;
+                gap: 10px;
+                margin-top: 11px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-stage-label {
+                color: #d1d5db;
+                font-size: 10px;
+                font-weight: 800;
+            }
+
+            #vide-funil-loja-publica .vide-funil-stage-track {
+                height: 9px;
+                overflow: hidden;
+                border-radius: 999px;
+                background: rgba(255,255,255,.055);
+            }
+
+            #vide-funil-loja-publica .vide-funil-stage-fill {
+                width: 0;
+                height: 100%;
+                border-radius: inherit;
+                background: linear-gradient(90deg, var(--sys-primaria, #6d5dfc), var(--sys-destaque, #00f2fe));
+                transition: width .45s ease;
+            }
+
+            #vide-funil-loja-publica .vide-funil-stage-value {
+                color: #fff;
+                font-size: 10px;
+                font-weight: 900;
+                text-align: right;
+            }
+
+            #vide-funil-loja-publica .vide-funil-summary-list {
+                display: grid;
+                gap: 10px;
+            }
+
+            #vide-funil-loja-publica .vide-funil-summary-item {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                padding: 11px 12px;
+                border-radius: 13px;
+                background: rgba(255,255,255,.035);
+            }
+
+            #vide-funil-loja-publica .vide-funil-summary-item span {
+                color: #9ca3af;
+                font-size: 10px;
+                font-weight: 700;
+            }
+
+            #vide-funil-loja-publica .vide-funil-summary-item strong {
+                color: #fff;
+                font-size: 12px;
+                font-weight: 900;
+            }
+
+            #vide-funil-status {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                align-items: center;
+                gap: 7px;
+                margin: 15px 0 0;
+                color: #6b7280;
+                font-size: 9px;
+                font-weight: 700;
+            }
+
+            #vide-funil-status::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 999px;
+                background: #34d399;
+                box-shadow: 0 0 0 4px rgba(52,211,153,.08);
+            }
+
+            #vide-funil-status[data-state="loading"]::before {
+                background: #fbbf24;
+                box-shadow: 0 0 0 4px rgba(251,191,36,.08);
+            }
+
+            #vide-funil-status[data-state="error"]::before {
+                background: #f87171;
+                box-shadow: 0 0 0 4px rgba(248,113,113,.08);
+            }
+
+            @media (max-width: 1180px) {
+                #vide-funil-loja-publica .vide-funil-grid {
+                    grid-template-columns: repeat(3, minmax(0, 1fr));
+                }
+            }
+
+            @media (max-width: 820px) {
+                #vide-funil-loja-publica {
+                    padding: 20px;
+                    border-radius: 20px;
+                }
+
+                #vide-funil-loja-publica .vide-funil-header,
+                #vide-funil-loja-publica .vide-funil-flow {
+                    grid-template-columns: 1fr;
+                    flex-direction: column;
+                }
+
+                #vide-funil-periodo {
+                    width: 100%;
+                }
+
+                #vide-funil-loja-publica .vide-funil-flow {
+                    display: grid;
+                }
+            }
+
+            @media (max-width: 620px) {
+                #vide-funil-loja-publica .vide-funil-grid {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+
+                #vide-funil-loja-publica .vide-funil-card {
+                    min-height: 120px;
+                }
+
+                #vide-funil-loja-publica .vide-funil-stage {
+                    grid-template-columns: 100px minmax(0, 1fr) 48px;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function criarPainelMetricasFunil() {
+        if (document.getElementById("vide-funil-loja-publica")) return true;
+
+        var view = document.getElementById("view-metricas");
+        if (!view) return false;
+
+        inserirEstilosMetricasFunil();
+
+        var painel = document.createElement("section");
+        painel.id = "vide-funil-loja-publica";
+        painel.setAttribute("aria-labelledby", "vide-funil-titulo");
+        painel.innerHTML = `
+            <div class="vide-funil-header">
+                <div>
+                    <span class="vide-funil-kicker">Comportamento da vitrine</span>
+                    <h2 id="vide-funil-titulo">Funil da loja pública</h2>
+                    <p class="vide-funil-description">
+                        Acompanhe quantas visitas avançam para o carrinho, iniciam o pedido e abrem o WhatsApp.
+                        Cada etapa é contabilizada uma vez por sessão para evitar números inflados por cliques repetidos.
+                    </p>
+                </div>
+                <label>
+                    <span class="sr-only">Período das métricas do funil</span>
+                    <select id="vide-funil-periodo" aria-label="Período das métricas do funil">
+                        <option value="7">Últimos 7 dias</option>
+                        <option value="30" selected>Últimos 30 dias</option>
+                        <option value="90">Últimos 90 dias</option>
+                        <option value="0">Todo o período</option>
+                    </select>
+                </label>
+            </div>
+
+            <div class="vide-funil-grid">
+                <article class="vide-funil-card">
+                    <span>Visitas</span>
+                    <strong id="vide-funil-sessoes">0</strong>
+                    <small>Sessões registradas na loja</small>
+                </article>
+                <article class="vide-funil-card">
+                    <span>Carrinhos abertos</span>
+                    <strong id="vide-funil-carrinhos">0</strong>
+                    <small>Visitantes que abriram o carrinho</small>
+                </article>
+                <article class="vide-funil-card">
+                    <span>Itens adicionados</span>
+                    <strong id="vide-funil-adicoes">0</strong>
+                    <small>Produtos diferentes adicionados por sessão</small>
+                </article>
+                <article class="vide-funil-card">
+                    <span>Pedidos iniciados</span>
+                    <strong id="vide-funil-checkouts">0</strong>
+                    <small>Formulários pré-WhatsApp abertos</small>
+                </article>
+                <article class="vide-funil-card is-highlight">
+                    <span>WhatsApp aberto</span>
+                    <strong id="vide-funil-pedidos">0</strong>
+                    <small>Pedidos enviados para o WhatsApp</small>
+                </article>
+                <article class="vide-funil-card">
+                    <span>Compartilhamentos</span>
+                    <strong id="vide-funil-compartilhamentos">0</strong>
+                    <small>Compartilhamentos ou links copiados</small>
+                </article>
+            </div>
+
+            <div class="vide-funil-flow">
+                <div class="vide-funil-bars">
+                    <div class="vide-funil-section-title">
+                        <strong>Avanço no funil</strong>
+                        <span>Percentual sobre visitas</span>
+                    </div>
+
+                    <div class="vide-funil-stage">
+                        <span class="vide-funil-stage-label">Visitaram a loja</span>
+                        <span class="vide-funil-stage-track"><i id="vide-funil-bar-sessoes" class="vide-funil-stage-fill"></i></span>
+                        <strong id="vide-funil-pct-sessoes" class="vide-funil-stage-value">0%</strong>
+                    </div>
+                    <div class="vide-funil-stage">
+                        <span class="vide-funil-stage-label">Abriram carrinho</span>
+                        <span class="vide-funil-stage-track"><i id="vide-funil-bar-carrinhos" class="vide-funil-stage-fill"></i></span>
+                        <strong id="vide-funil-pct-carrinhos" class="vide-funil-stage-value">0%</strong>
+                    </div>
+                    <div class="vide-funil-stage">
+                        <span class="vide-funil-stage-label">Iniciaram pedido</span>
+                        <span class="vide-funil-stage-track"><i id="vide-funil-bar-checkouts" class="vide-funil-stage-fill"></i></span>
+                        <strong id="vide-funil-pct-checkouts" class="vide-funil-stage-value">0%</strong>
+                    </div>
+                    <div class="vide-funil-stage">
+                        <span class="vide-funil-stage-label">Foram ao WhatsApp</span>
+                        <span class="vide-funil-stage-track"><i id="vide-funil-bar-pedidos" class="vide-funil-stage-fill"></i></span>
+                        <strong id="vide-funil-pct-pedidos" class="vide-funil-stage-value">0%</strong>
+                    </div>
+                </div>
+
+                <div class="vide-funil-summary">
+                    <div class="vide-funil-section-title">
+                        <strong>Resumo comercial</strong>
+                        <span>Intenção de compra</span>
+                    </div>
+                    <div class="vide-funil-summary-list">
+                        <div class="vide-funil-summary-item">
+                            <span>Conversão visita → WhatsApp</span>
+                            <strong id="vide-funil-conversao">0%</strong>
+                        </div>
+                        <div class="vide-funil-summary-item">
+                            <span>Checkout → WhatsApp</span>
+                            <strong id="vide-funil-conversao-checkout">0%</strong>
+                        </div>
+                        <div class="vide-funil-summary-item">
+                            <span>Valor potencial enviado</span>
+                            <strong id="vide-funil-valor">R$ 0,00</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p id="vide-funil-status" data-state="loading" aria-live="polite">
+                Carregando métricas da loja pública...
+            </p>
+        `;
+
+        view.insertAdjacentElement("afterbegin", painel);
+
+        document.getElementById("vide-funil-periodo")?.addEventListener("change", function() {
+            renderizarMetricasFunil(metricasFunilDados);
+        });
+
+        return true;
+    }
+
+    function numeroMetrica(valor) {
+        var numero = Number(valor || 0);
+        return Number.isFinite(numero) && numero > 0 ? numero : 0;
+    }
+
+    function chaveDataLocal(data) {
+        return [
+            data.getFullYear(),
+            String(data.getMonth() + 1).padStart(2, "0"),
+            String(data.getDate()).padStart(2, "0")
+        ].join("-");
+    }
+
+    function dadosPeriodoMetricas(porDia, dias) {
+        var resultado = {
+            sessoes: 0,
+            carrinhosAbertos: 0,
+            adicoesCarrinho: 0,
+            checkoutsIniciados: 0,
+            pedidosWhatsapp: 0,
+            valorPedidosWhatsapp: 0,
+            compartilhamentos: 0
+        };
+
+        var limite = null;
+        if (dias > 0) {
+            limite = new Date();
+            limite.setHours(0, 0, 0, 0);
+            limite.setDate(limite.getDate() - (dias - 1));
+        }
+
+        Object.entries(porDia || {}).forEach(function(entrada) {
+            var dataChave = entrada[0];
+            var dadosDia = entrada[1] || {};
+            if (limite) {
+                var data = new Date(dataChave + "T00:00:00");
+                if (Number.isNaN(data.getTime()) || data < limite) return;
+            }
+
+            resultado.sessoes += numeroMetrica(dadosDia.sessoes);
+            resultado.carrinhosAbertos += numeroMetrica(dadosDia.carrinhosAbertos);
+            resultado.adicoesCarrinho += numeroMetrica(dadosDia.adicoesCarrinho);
+            resultado.checkoutsIniciados += numeroMetrica(dadosDia.checkoutsIniciados);
+            resultado.pedidosWhatsapp += numeroMetrica(dadosDia.pedidosWhatsapp);
+            resultado.valorPedidosWhatsapp += numeroMetrica(dadosDia.valorPedidosWhatsapp);
+            resultado.compartilhamentos += numeroMetrica(dadosDia.compartilhamentos);
+        });
+
+        return resultado;
+    }
+
+    function formatarPercentual(parte, total) {
+        if (!total || !parte) return "0%";
+        var percentual = Math.min(100, Math.max(0, (parte / total) * 100));
+        return percentual.toLocaleString("pt-BR", {
+            minimumFractionDigits: percentual < 10 ? 1 : 0,
+            maximumFractionDigits: 1
+        }) + "%";
+    }
+
+    function larguraPercentual(parte, total) {
+        if (!total || !parte) return 0;
+        return Math.max(3, Math.min(100, (parte / total) * 100));
+    }
+
+    function definirTextoMetrica(id, valor) {
+        var elemento = document.getElementById(id);
+        if (elemento) elemento.textContent = valor;
+    }
+
+    function definirBarraMetrica(id, parte, total) {
+        var barra = document.getElementById(id);
+        if (barra) barra.style.width = larguraPercentual(parte, total) + "%";
+    }
+
+    function renderizarMetricasFunil(dadosDocumento) {
+        if (!document.getElementById("vide-funil-loja-publica")) return;
+
+        var dias = Number(document.getElementById("vide-funil-periodo")?.value || 30);
+        var dados = dadosPeriodoMetricas(dadosDocumento?.porDia || {}, dias);
+
+        // Documentos antigos podem ter totalSessoes sem histórico porDia.
+        // O fallback só é usado em "Todo o período" para não misturar datas.
+        if (dias === 0 && dados.sessoes === 0) {
+            dados.sessoes = numeroMetrica(dadosDocumento?.totalSessoes);
+        }
+
+        var inteiro = new Intl.NumberFormat("pt-BR");
+        var moeda = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        });
+
+        definirTextoMetrica("vide-funil-sessoes", inteiro.format(dados.sessoes));
+        definirTextoMetrica("vide-funil-carrinhos", inteiro.format(dados.carrinhosAbertos));
+        definirTextoMetrica("vide-funil-adicoes", inteiro.format(dados.adicoesCarrinho));
+        definirTextoMetrica("vide-funil-checkouts", inteiro.format(dados.checkoutsIniciados));
+        definirTextoMetrica("vide-funil-pedidos", inteiro.format(dados.pedidosWhatsapp));
+        definirTextoMetrica("vide-funil-compartilhamentos", inteiro.format(dados.compartilhamentos));
+        definirTextoMetrica("vide-funil-valor", moeda.format(dados.valorPedidosWhatsapp));
+
+        definirTextoMetrica("vide-funil-pct-sessoes", dados.sessoes ? "100%" : "0%");
+        definirTextoMetrica("vide-funil-pct-carrinhos", formatarPercentual(dados.carrinhosAbertos, dados.sessoes));
+        definirTextoMetrica("vide-funil-pct-checkouts", formatarPercentual(dados.checkoutsIniciados, dados.sessoes));
+        definirTextoMetrica("vide-funil-pct-pedidos", formatarPercentual(dados.pedidosWhatsapp, dados.sessoes));
+        definirTextoMetrica("vide-funil-conversao", formatarPercentual(dados.pedidosWhatsapp, dados.sessoes));
+        definirTextoMetrica("vide-funil-conversao-checkout", formatarPercentual(dados.pedidosWhatsapp, dados.checkoutsIniciados));
+
+        definirBarraMetrica("vide-funil-bar-sessoes", dados.sessoes, dados.sessoes);
+        definirBarraMetrica("vide-funil-bar-carrinhos", dados.carrinhosAbertos, dados.sessoes);
+        definirBarraMetrica("vide-funil-bar-checkouts", dados.checkoutsIniciados, dados.sessoes);
+        definirBarraMetrica("vide-funil-bar-pedidos", dados.pedidosWhatsapp, dados.sessoes);
+
+        var status = document.getElementById("vide-funil-status");
+        if (status) {
+            status.dataset.state = "ready";
+            status.textContent = "Métricas atualizadas em tempo real. Os novos indicadores começam a contar após a publicação desta versão.";
+        }
+    }
+
+    async function obterTenantMetricasFunil() {
+        var contexto = window.VideHubContext;
+        var uidContexto = contexto?.getStoreUid?.() || contexto?.getEffectiveUid?.();
+        if (uidContexto) return uidContexto;
+
+        await new Promise(function(resolve) {
+            var finalizado = false;
+            var concluir = function() {
+                if (finalizado) return;
+                finalizado = true;
+                window.removeEventListener("videhub:context-ready", concluir);
+                resolve();
+            };
+            window.addEventListener("videhub:context-ready", concluir, { once: true });
+            setTimeout(concluir, 5000);
+        });
+
+        contexto = window.VideHubContext;
+        uidContexto = contexto?.getStoreUid?.() || contexto?.getEffectiveUid?.();
+        if (uidContexto) return uidContexto;
+
+        var masterUID = new URLSearchParams(window.location.search).get("masterUID");
+        if (masterUID) return masterUID;
+
+        try {
+            var firebase = await import("./firebase-init.js");
+            if (firebase.auth?.currentUser?.uid) return firebase.auth.currentUser.uid;
+
+            var authSdk = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+            return await new Promise(function(resolve) {
+                var timeout = setTimeout(function() { resolve(""); }, 4000);
+                var unsubscribe = authSdk.onAuthStateChanged(firebase.auth, function(usuario) {
+                    clearTimeout(timeout);
+                    unsubscribe();
+                    resolve(usuario?.uid || "");
+                });
+            });
+        } catch (erro) {
+            console.warn("[Vide Hub] Não foi possível resolver o tenant das métricas.", erro);
+            return "";
+        }
+    }
+
+    async function conectarMetricasFunil() {
+        if (metricasFunilIniciadas) return;
+        metricasFunilIniciadas = true;
+
+        var status = document.getElementById("vide-funil-status");
+
+        try {
+            if (window.VideHubContext?.initialized && !window.VideHubContext.canView?.("metricas")) {
+                document.getElementById("vide-funil-loja-publica")?.remove();
+                return;
+            }
+
+            var tenantUid = await obterTenantMetricasFunil();
+            if (!tenantUid) {
+                throw new Error("Loja não identificada.");
+            }
+
+            var modulos = await Promise.all([
+                import("./firebase-init.js"),
+                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js")
+            ]);
+            var firebase = modulos[0];
+            var firestore = modulos[1];
+
+            if (typeof metricasFunilDesinscrever === "function") {
+                metricasFunilDesinscrever();
+            }
+
+            metricasFunilDesinscrever = firestore.onSnapshot(
+                firestore.doc(firebase.db, "metricas_vitrines", tenantUid),
+                function(snapshot) {
+                    metricasFunilDados = snapshot.exists() ? (snapshot.data() || {}) : {};
+                    renderizarMetricasFunil(metricasFunilDados);
+                },
+                function(erro) {
+                    console.error("[Vide Hub] Erro ao carregar funil público:", erro);
+                    if (status) {
+                        status.dataset.state = "error";
+                        status.textContent = "Não foi possível carregar o funil agora.";
+                    }
+                }
+            );
+        } catch (erro) {
+            console.error("[Vide Hub] Erro ao iniciar métricas do funil:", erro);
+            if (status) {
+                status.dataset.state = "error";
+                status.textContent = "Não foi possível carregar o funil agora.";
+            }
+        }
+    }
+
+    function inicializarMetricasFunilDashboard() {
+        var tentativas = 0;
+        var intervalo = setInterval(function() {
+            tentativas += 1;
+
+            if (criarPainelMetricasFunil()) {
+                clearInterval(intervalo);
+                conectarMetricasFunil();
+                return;
+            }
+
+            if (tentativas >= 60) {
+                clearInterval(intervalo);
+                console.warn("[Vide Hub] Área de métricas não encontrada para inserir o funil.");
+            }
+        }, 180);
+    }
+
     aguardarDOMContentLoaded(inicializarFaviconDashboard);
+    aguardarDOMContentLoaded(inicializarMetricasFunilDashboard);
 })();
