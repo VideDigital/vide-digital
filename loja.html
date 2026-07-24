@@ -2840,27 +2840,93 @@
         // regras exigem para uma escrita pública.
         function capturarLeadPublico(payload) {
             const ownerUid = fornecedorEmail;
-            if (!ownerUid) return Promise.reject(new Error("Loja sem dono válido."));
+
+            if (!ownerUid) {
+                return Promise.reject(
+                    new Error("Loja sem dono válido.")
+                );
+            }
+
             payload = payload || {};
+
+            const campaignName = (
+                payload.utmCampaign ||
+                (
+                    atribuicaoSessao?.temCampanha
+                        ? atribuicaoSessao.campanhaNome
+                        : ""
+                ) ||
+                ""
+            ).toString().slice(0, 120);
+
             const lead = {
                 criadoPor: ownerUid,
-                nome: (payload.nome || payload.name || "").toString().slice(0, 120),
-                whatsapp: (payload.whatsapp || payload.telefone || payload.phone || "").toString().slice(0, 40),
-                email: (payload.email || "").toString().slice(0, 160),
-                origem: (payload.origem || utmSourceCapturada || "Loja").toString().slice(0, 120),
-                produtoInteresse: (payload.produtoInteresse || "Interesse geral").toString().slice(0, 160),
-                lojaOrigem: (lojaSlug || "").toString().slice(0, 160),
-                paginaOrigem: (payload.paginaOrigem || "").toString().slice(0, 160),
-                utmSource: (payload.utmSource || utmSourceCapturada || "").toString().slice(0, 120),
+                nome: (
+                    payload.nome ||
+                    payload.name ||
+                    ""
+                ).toString().slice(0, 120),
+                whatsapp: (
+                    payload.whatsapp ||
+                    payload.telefone ||
+                    payload.phone ||
+                    ""
+                ).toString().slice(0, 40),
+                email: (
+                    payload.email ||
+                    ""
+                ).toString().slice(0, 160),
+                origem: (
+                    payload.origem ||
+                    atribuicaoSessao?.origemNome ||
+                    utmSourceCapturada ||
+                    "Loja"
+                ).toString().slice(0, 120),
+                produtoInteresse: (
+                    payload.produtoInteresse ||
+                    "Interesse geral"
+                ).toString().slice(0, 160),
+                lojaOrigem: (
+                    lojaSlug ||
+                    ""
+                ).toString().slice(0, 160),
+                paginaOrigem: (
+                    payload.paginaOrigem ||
+                    ""
+                ).toString().slice(0, 160),
+                utmSource: (
+                    payload.utmSource ||
+                    atribuicaoSessao?.origemNome ||
+                    utmSourceCapturada ||
+                    ""
+                ).toString().slice(0, 120),
+                utmMedium: (
+                    payload.utmMedium ||
+                    atribuicaoSessao?.meioNome ||
+                    ""
+                ).toString().slice(0, 120),
+                utmCampaign: campaignName,
                 urlPagina: window.location.href.slice(0, 500),
-                referrer: (document.referrer || "").slice(0, 500),
+                referrer: (
+                    document.referrer ||
+                    ""
+                ).slice(0, 500),
                 cliques: Number(payload.cliques || 0),
                 statusLead: "novo",
                 status: "novo",
                 data: Date.now()
             };
-            return setDoc(doc(db, "leads", "lead_loja_" + Date.now()), lead);
+
+            return setDoc(
+                doc(
+                    db,
+                    "leads",
+                    "lead_loja_" + Date.now()
+                ),
+                lead
+            );
         }
+
 
         function formatarDataAvaliacao(valor) {
             try {
