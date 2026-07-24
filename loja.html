@@ -2,7 +2,7 @@
 <html lang="pt-br" class="h-full" data-theme="light">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" accontent="width=device-width, initial-scale=1.0">
     <title id="client-tab-title">Carregando Loja...</title>
     <meta id="client-meta-description" name="description" content="Conheça esta loja online criada com o Vide Hub.">
     <meta name="robots" content="index, follow, max-image-preview:large">
@@ -978,30 +978,264 @@
                 border-bottom: 0;
             }
         }
+
+
+        /* =========================================================
+           REVISÃO MOBILE + ACESSIBILIDADE — Loja pública
+           ========================================================= */
+        :root {
+            --safe-top: env(safe-area-inset-top, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+            --safe-left: env(safe-area-inset-left, 0px);
+        }
+        html { scroll-padding-top: 104px; }
+        body.a11y-scroll-locked { overflow: hidden !important; overscroll-behavior: none; }
+        button, a, input, textarea, select, [role="button"] { -webkit-tap-highlight-color: transparent; }
+        button, a { touch-action: manipulation; }
+        button:disabled { cursor: not-allowed; }
+
+        .skip-link {
+            position: fixed;
+            top: calc(10px + var(--safe-top));
+            left: calc(10px + var(--safe-left));
+            z-index: 999;
+            transform: translateY(-180%);
+            padding: 12px 16px;
+            border-radius: 999px;
+            background: var(--ink);
+            color: var(--bg);
+            font-size: 13px;
+            font-weight: 800;
+            box-shadow: var(--shadow-xl);
+            transition: transform .2s var(--ease);
+        }
+        .skip-link:focus { transform: translateY(0); }
+
+        .sr-only-accessible {
+            position: absolute !important;
+            width: 1px !important;
+            height: 1px !important;
+            padding: 0 !important;
+            margin: -1px !important;
+            overflow: hidden !important;
+            clip: rect(0, 0, 0, 0) !important;
+            white-space: nowrap !important;
+            border: 0 !important;
+        }
+
+        :where(button, a, input, textarea, select, [role="button"], [tabindex]):focus-visible {
+            outline: 3px solid color-mix(in srgb, var(--client-brand, var(--accent)) 44%, transparent) !important;
+            outline-offset: 3px !important;
+        }
+        :where(input, textarea, select):focus-visible {
+            outline-offset: 1px !important;
+        }
+        .icon-btn, .theme-toggle, #btn-abrir-carrinho { min-width: 44px; min-height: 44px; }
+        #btn-abrir-carrinho {
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            background: var(--surface);
+            color: var(--ink);
+        }
+        #search-input { min-height: 50px; }
+        .filter-badge { min-height: 44px; }
+        .filter-badge[aria-pressed="true"] { border-color: var(--client-brand, var(--accent)) !important; }
+        #catalogo-status { min-height: 1px; }
+
+        [data-focus-scope] { isolation: isolate; }
+        #carrinho-painel[aria-hidden="true"] { visibility: hidden; }
+        #carrinho-painel[aria-hidden="false"] { visibility: visible; }
+
+        .store-header-identity { min-width: 0; }
+        #client-nome-loja { min-width: 0; overflow-wrap: anywhere; }
+        .store-header-actions { flex-shrink: 0; }
+
+        @media (max-width: 767px) {
+            html { scroll-padding-top: 88px; }
+            body { padding-bottom: calc(104px + var(--safe-bottom)) !important; }
+            .site-header { padding-top: var(--safe-top); }
+            .store-header-inner {
+                min-height: 72px;
+                padding: 10px max(14px, var(--safe-right)) 10px max(14px, var(--safe-left)) !important;
+                flex-direction: row !important;
+                align-items: center !important;
+                gap: 10px !important;
+            }
+            .store-header-identity { gap: 10px !important; flex: 1 1 auto; }
+            #logo-foto-cliente { width: 42px !important; height: 42px !important; flex: 0 0 42px; }
+            #logo-indicator { width: 36px !important; height: 36px !important; flex: 0 0 36px; }
+            #client-nome-loja {
+                max-width: min(40vw, 220px);
+                font-size: 14px !important;
+                line-height: 1.25;
+                letter-spacing: .055em !important;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+            .store-header-actions { gap: 6px !important; }
+            .verified-pill {
+                width: 36px;
+                height: 36px;
+                padding: 0 !important;
+                justify-content: center;
+                font-size: 0 !important;
+            }
+            .verified-pill [data-lucide] { width: 16px !important; height: 16px !important; }
+            .share-store-btn, .theme-toggle, #btn-abrir-carrinho { width: 44px !important; height: 44px !important; }
+            .share-store-btn { min-height: 44px; }
+
+            #banners-carrossel { padding-left: 14px !important; padding-right: 14px !important; padding-top: 18px !important; }
+            #banners-carrossel > div { height: clamp(175px, 48vw, 240px) !important; border-radius: 20px !important; }
+            #banner-seta-anterior { left: 8px !important; }
+            #banner-seta-proximo { right: 8px !important; }
+            #banner-seta-anterior, #banner-seta-proximo { width: 44px !important; height: 44px !important; }
+
+            section[data-block-id="hero"] {
+                padding: 34px 16px 10px !important;
+                gap: 24px !important;
+                text-align: left !important;
+            }
+            #client-titulo-hero {
+                font-size: clamp(2.35rem, 12vw, 3.5rem) !important;
+                line-height: .98 !important;
+                overflow-wrap: anywhere;
+            }
+            #client-subtitulo { font-size: 15px !important; line-height: 1.65; }
+            #links-extras-container { display: grid !important; grid-template-columns: 1fr; width: 100%; }
+            #links-extras-container > * { min-height: 46px; justify-content: center; }
+            .catalog-search-wrap { max-width: none !important; width: 100%; }
+            #search-input { font-size: 16px !important; padding-top: 14px !important; padding-bottom: 14px !important; }
+            #container-filtros {
+                display: flex !important;
+                flex-wrap: nowrap !important;
+                gap: 8px !important;
+                margin-left: -16px;
+                margin-right: -16px;
+                padding: 2px 16px 8px !important;
+                overflow-x: auto;
+                overscroll-behavior-inline: contain;
+                scroll-snap-type: x proximity;
+                scrollbar-width: none;
+            }
+            #container-filtros::-webkit-scrollbar { display: none; }
+            #container-filtros .filter-badge { flex: 0 0 auto; scroll-snap-align: start; padding-left: 16px !important; padding-right: 16px !important; }
+
+            main[data-block-id="produtos"] { padding: 24px 16px 32px !important; }
+            #vitrine-container { gap: 18px !important; }
+            .dynamic-card { border-radius: 20px !important; }
+            .product-card-media { height: clamp(215px, 70vw, 290px) !important; }
+
+            #produto-detalhes-modal { padding-top: var(--safe-top) !important; }
+            .product-modal-panel { max-height: calc(96dvh - var(--safe-top)); border-radius: 24px 24px 0 0 !important; }
+            .product-modal-scroll { max-height: calc(96dvh - var(--safe-top)); padding-bottom: var(--safe-bottom); }
+            .product-modal-close { top: 12px !important; right: 12px !important; width: 46px !important; height: 46px !important; }
+            .product-modal-media, .product-modal-media img { min-height: 220px !important; max-height: 300px !important; }
+            .product-modal-scroll .p-6 { padding: 22px 18px 24px !important; }
+            #produto-detalhes-nome { font-size: clamp(2rem, 10vw, 3rem) !important; line-height: 1.02; }
+            #produto-detalhes-preco { font-size: 2.3rem !important; }
+            #produto-detalhes-oferta, #produto-detalhes-carrinho, #produto-detalhes-avaliar, #produto-detalhes-video { min-height: 50px; }
+
+            #avaliacao-modal, #formulario-pedido-modal, #popup-captura { align-items: flex-end !important; padding: 0 !important; }
+            .review-modal-panel, .checkout-modal-panel, #popup-captura > div {
+                width: 100% !important;
+                max-width: none !important;
+                max-height: calc(96dvh - var(--safe-top)) !important;
+                overflow-y: auto;
+                border-radius: 24px 24px 0 0 !important;
+                padding-bottom: calc(22px + var(--safe-bottom)) !important;
+            }
+            .review-modal-panel { padding: 22px 18px calc(22px + var(--safe-bottom)) !important; }
+            #popup-captura > div { padding: 30px 18px calc(26px + var(--safe-bottom)) !important; }
+            .checkout-modal-panel > div:last-child { padding-bottom: calc(20px + var(--safe-bottom)) !important; }
+            .checkout-field, .review-form-field, #popup-captura input { min-height: 48px; font-size: 16px !important; }
+            .checkout-choice span { min-height: 52px; }
+            .review-rating-button { width: 48px !important; height: 48px !important; }
+
+            #carrinho-painel { width: 100% !important; max-width: none !important; padding-top: var(--safe-top); }
+            #carrinho-painel > div:last-child { padding-bottom: calc(20px + var(--safe-bottom)) !important; }
+            .cart-item-row { grid-template-columns: 72px minmax(0, 1fr); padding: 12px; }
+            .cart-item-image { width: 72px; height: 72px; }
+            .cart-quantity-button { width: 42px; height: 42px; }
+            .cart-quantity-input { min-height: 42px; }
+            .mobile-cart-bar {
+                left: max(10px, var(--safe-left));
+                right: max(10px, var(--safe-right));
+                bottom: calc(10px + var(--safe-bottom));
+            }
+
+            #widget-chat-cliente, #widget-ia-negocio-publica {
+                right: max(12px, var(--safe-right)) !important;
+            }
+            #widget-chat-cliente { bottom: calc(14px + var(--safe-bottom)) !important; }
+            #widget-ia-negocio-publica { bottom: calc(82px + var(--safe-bottom)) !important; }
+            #chat-window, #ia-negocio-publica-window {
+                position: fixed;
+                left: max(12px, var(--safe-left));
+                right: max(12px, var(--safe-right));
+                bottom: calc(82px + var(--safe-bottom));
+                width: auto !important;
+                height: min(68dvh, 540px) !important;
+                margin: 0 !important;
+                border-radius: 22px !important;
+            }
+            #chat-client-input, #ia-negocio-publica-input { font-size: 16px !important; min-width: 0; }
+            #chat-send-btn, #ia-negocio-publica-enviar { min-width: 54px; min-height: 44px; }
+
+            footer.site-footer { margin-top: 34px !important; padding-top: 30px !important; padding-bottom: calc(30px + var(--safe-bottom)) !important; }
+            footer.site-footer > div { padding-left: 16px !important; padding-right: 16px !important; text-align: center; }
+        }
+
+        @media (max-width: 390px) {
+            #client-nome-loja { max-width: 30vw; }
+            .verified-pill { display: none !important; }
+            .store-header-actions { gap: 4px !important; }
+            .share-store-btn, .theme-toggle, #btn-abrir-carrinho { width: 42px !important; height: 42px !important; min-width: 42px !important; min-height: 42px !important; }
+            .mobile-cart-info { max-width: 58%; }
+            .mobile-cart-button { padding-left: 12px; padding-right: 12px; }
+        }
+
+        @media (max-height: 560px) and (orientation: landscape) {
+            #chat-window, #ia-negocio-publica-window { height: calc(100dvh - 24px) !important; bottom: 12px !important; }
+            .product-modal-panel, .product-modal-scroll, .review-modal-panel, .checkout-modal-panel { max-height: 100dvh !important; }
+        }
+
+        @media (hover: none) {
+            .dynamic-card:hover, .filter-badge:hover, .theme-toggle:hover, .share-store-btn:hover { transform: none !important; }
+        }
+
+        @media (forced-colors: active) {
+            :where(button, a, input, textarea, select, [role="button"]):focus-visible { outline: 3px solid Highlight !important; }
+            .verified-pill, .filter-badge, .dynamic-card, .checkout-modal-panel, .review-modal-panel { border: 1px solid CanvasText !important; }
+        }
     </style>
 </head>
 <body id="client-body" class="min-h-full flex flex-col justify-between pb-16 relative">
+    <a class="skip-link" href="#conteudo-principal">Pular para os produtos</a>
 
     <header class="site-header sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
-            <div class="flex items-center gap-4">
+        <div class="store-header-inner max-w-6xl mx-auto px-6 py-5 flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="store-header-identity flex items-center gap-4">
                 <div class="h-8 w-8 rounded-lg bg-gradient-to-tr from-[#00f2fe] to-[#4facfe] shadow-[0_0_15px_rgba(0,242,254,0.3)]" id="logo-indicator"></div>
                 <img id="logo-foto-cliente" class="hidden h-12 w-12 rounded-full object-cover" src="" alt="Logo" style="border:1px solid var(--border);">
                 <h1 id="client-nome-loja" class="text-lg sm:text-xl font-semibold tracking-tight uppercase" style="letter-spacing:0.08em;">Carregando Loja...</h1>
             </div>
-            <div class="flex items-center gap-2.5">
-                <span class="verified-pill text-[10px] px-3 py-1.5 rounded-full font-semibold uppercase tracking-wider flex items-center gap-1.5">
+            <div class="store-header-actions flex items-center gap-2.5">
+                <span class="verified-pill text-[10px] px-3 py-1.5 rounded-full font-semibold uppercase tracking-wider flex items-center gap-1.5" aria-label="Loja verificada" title="Loja verificada">
                     <i data-lucide="badge-check" style="width:12px;height:12px;stroke-width:2"></i> Loja Verificada
                 </span>
                 <button id="btn-compartilhar-loja" type="button" class="share-store-btn" aria-label="Compartilhar esta loja" title="Compartilhar loja" onclick="compartilharLoja()">
                     <i data-lucide="share-2" style="width:15px;height:15px"></i>
                     <span>Compartilhar</span>
                 </button>
-                <button type="button" class="theme-toggle" aria-label="Alternar tema" onclick="(function(){var h=document.documentElement;var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem('lovable-theme',n)}catch(e){}if(window.lucide)lucide.createIcons();if(window.__aplicarCoresClientePorTema)window.__aplicarCoresClientePorTema();})()">
+                <button type="button" class="theme-toggle" aria-label="Alternar entre tema claro e escuro" title="Alternar tema" onclick="(function(){var h=document.documentElement;var n=h.getAttribute('data-theme')==='dark'?'light':'dark';h.setAttribute('data-theme',n);try{localStorage.setItem('lovable-theme',n)}catch(e){}if(window.lucide)lucide.createIcons();if(window.__aplicarCoresClientePorTema)window.__aplicarCoresClientePorTema();})()">
                     <i data-lucide="moon" style="width:16px;height:16px"></i>
                     <i data-lucide="sun" style="width:16px;height:16px"></i>
                 </button>
-                <button id="btn-abrir-carrinho" style="display:none;" class="icon-btn relative transition-all" onclick="abrirCarrinho()">
+                <button id="btn-abrir-carrinho" type="button" style="display:none;" class="icon-btn relative transition-all" onclick="abrirCarrinho()" aria-label="Abrir carrinho" aria-controls="carrinho-painel" aria-expanded="false">
                     <i data-lucide="shopping-bag" style="width:16px;height:16px"></i>
                     <span id="carrinho-contador" class="hidden absolute -top-1 -right-1 h-4 w-4 rounded-full text-[9px] font-black flex items-center justify-center">0</span>
                 </button>
@@ -1019,8 +1253,8 @@
 <div id="banners-carrossel" class="hidden relative w-full max-w-6xl mx-auto px-6 pt-8 layout-block-lp" data-block-id="banners">
     <div class="relative w-full h-48 sm:h-64 lg:h-80 overflow-hidden group rounded-3xl" style="border:1px solid var(--border); box-shadow: var(--shadow-md);">
         <div id="banners-track" class="flex h-full transition-transform duration-700 ease-in-out"></div>
-        <button id="banner-seta-anterior" class="hidden absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all z-10 icon-btn" style="background:rgba(255,255,255,0.85);color:#0F0F12;border:1px solid rgba(15,15,18,0.08);"><i data-lucide="chevron-left" style="width:18px;height:18px"></i></button>
-        <button id="banner-seta-proximo" class="hidden absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all z-10 icon-btn" style="background:rgba(255,255,255,0.85);color:#0F0F12;border:1px solid rgba(15,15,18,0.08);"><i data-lucide="chevron-right" style="width:18px;height:18px"></i></button>
+        <button id="banner-seta-anterior" type="button" aria-label="Banner anterior" class="hidden absolute left-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all z-10 icon-btn" style="background:rgba(255,255,255,0.85);color:#0F0F12;border:1px solid rgba(15,15,18,0.08);"><i data-lucide="chevron-left" style="width:18px;height:18px"></i></button>
+        <button id="banner-seta-proximo" type="button" aria-label="Próximo banner" class="hidden absolute right-4 top-1/2 -translate-y-1/2 h-10 w-10 rounded-full backdrop-blur-md flex items-center justify-center transition-all z-10 icon-btn" style="background:rgba(255,255,255,0.85);color:#0F0F12;border:1px solid rgba(15,15,18,0.08);"><i data-lucide="chevron-right" style="width:18px;height:18px"></i></button>
         <div id="banner-indicadores" class="hidden absolute bottom-4 left-1/2 -translate-x-1/2 gap-1.5 z-10"></div>
     </div>
 </div>
@@ -1034,22 +1268,24 @@
 
         <div id="links-extras-container" class="flex flex-wrap gap-3 pt-2"></div>
 
-        <div class="max-w-2xl pt-2 relative">
-            <input type="text" id="search-input" class="w-full search-glow outline-none" placeholder="Buscar um produto...">
+        <div class="catalog-search-wrap max-w-2xl pt-2 relative" role="search" aria-label="Buscar produtos">
+            <label for="search-input" class="sr-only-accessible">Buscar um produto</label>
+            <input type="search" id="search-input" class="w-full search-glow outline-none" placeholder="Buscar um produto..." autocomplete="off" enterkeyhint="search" aria-controls="vitrine-container" aria-describedby="catalogo-status">
             <span class="absolute left-4 top-1/2 -translate-y-1/2 icon-btn" style="color: var(--ink-4);"><i data-lucide="search" style="width:18px;height:18px"></i></span>
         </div>
 
-        <div id="container-filtros" class="flex flex-wrap gap-2 pt-2">
-            <button data-nicho="todos" class="filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm">Todos</button>
-            <button data-nicho="Automotivo" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Automotivo</button>
-            <button data-nicho="Utilidades" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Utilidades</button>
-            <button data-nicho="Confeitaria" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Confeitaria</button>
-            <button data-nicho="Barbearia" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Barbearia</button>
-            <button data-nicho="Estetica" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Estetica e Beleza</button>
+        <div id="container-filtros" class="flex flex-wrap gap-2 pt-2" role="group" aria-label="Filtrar produtos por categoria">
+            <button type="button" aria-pressed="true" data-nicho="todos" class="filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm">Todos</button>
+            <button type="button" aria-pressed="false" data-nicho="Automotivo" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Automotivo</button>
+            <button type="button" aria-pressed="false" data-nicho="Utilidades" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Utilidades</button>
+            <button type="button" aria-pressed="false" data-nicho="Confeitaria" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Confeitaria</button>
+            <button type="button" aria-pressed="false" data-nicho="Barbearia" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Barbearia</button>
+            <button type="button" aria-pressed="false" data-nicho="Estetica" class="filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white">Estetica e Beleza</button>
         </div>
     </section>
 
-    <main class="flex-1 max-w-6xl w-full mx-auto px-6 py-10 layout-block-lp" data-block-id="produtos">
+    <main id="conteudo-principal" tabindex="-1" class="flex-1 max-w-6xl w-full mx-auto px-6 py-10 layout-block-lp" data-block-id="produtos" aria-labelledby="client-titulo-hero">
+        <p id="catalogo-status" class="sr-only-accessible" role="status" aria-live="polite" aria-atomic="true">Carregando produtos.</p>
         <div id="vitrine-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             <div class="animate-pulse h-80 rounded-2xl"></div>
             <div class="animate-pulse h-80 rounded-2xl"></div>
@@ -1060,10 +1296,10 @@
 </div>
 
 <div id="widget-chat-cliente" class="hidden fixed bottom-6 right-6 z-50 flex flex-col items-end">
-        <div id="chat-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
+        <div id="chat-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" role="dialog" aria-modal="false" aria-label="Atendimento online" aria-hidden="true" data-focus-scope style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
             <div class="p-4 border-b text-xs font-semibold flex justify-between items-center" style="border-color: var(--border); background: var(--surface-soft);">
                 <span class="flex items-center gap-2"><span class="h-2 w-2 rounded-full animate-pulse" style="background: var(--success);"></span> Atendimento Online</span>
-                <button type="button" onclick="toggleChatWindow()" class="icon-btn h-10 w-10 transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+                <button type="button" onclick="toggleChatWindow()" class="icon-btn h-10 w-10 transition-colors" aria-label="Fechar atendimento" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
             </div>
             <div id="chat-client-messages" class="p-4 flex-1 overflow-y-auto space-y-2 text-[12px] flex flex-col custom-scrollbar">
                 <div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">
@@ -1071,11 +1307,12 @@
                 </div>
             </div>
             <form id="chat-client-form" class="p-2 border-t flex gap-1.5" style="border-color: var(--border);">
-                <input type="text" id="chat-client-input" class="flex-1 rounded-xl p-2.5 text-xs outline-none" placeholder="Seu nome...">
+                <label for="chat-client-input" class="sr-only-accessible">Mensagem para o atendimento</label>
+                <input type="text" id="chat-client-input" autocomplete="name" class="flex-1 rounded-xl p-2.5 text-xs outline-none" placeholder="Seu nome...">
                 <button type="submit" id="chat-send-btn" class="font-bold px-4 rounded-xl text-xs">OK</button>
             </form>
         </div>
-        <button onclick="toggleChatWindow()" id="chat-trigger-btn" class="h-14 w-14 icon-btn transition-transform hover:scale-105 active:scale-95">
+        <button type="button" onclick="toggleChatWindow()" id="chat-trigger-btn" aria-label="Abrir atendimento online" aria-controls="chat-window" aria-expanded="false" class="h-14 w-14 icon-btn transition-transform hover:scale-105 active:scale-95">
             <i data-lucide="message-circle" style="width:22px;height:22px;stroke-width:1.6"></i>
         </button>
     </div>
@@ -1084,10 +1321,10 @@
      visível quando o dono ativa em Central de IA no dashboard. Widget
      separado do chat humano acima (nunca mistura os dois). -->
 <div id="widget-ia-negocio-publica" class="hidden fixed bottom-24 right-6 z-50 flex flex-col items-end">
-        <div id="ia-negocio-publica-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
+        <div id="ia-negocio-publica-window" class="hidden w-80 h-96 rounded-2xl flex flex-col justify-between overflow-hidden mb-3" role="dialog" aria-modal="false" aria-label="Assistente da loja" aria-hidden="true" data-focus-scope style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
             <div class="p-4 border-b text-xs font-semibold flex justify-between items-center" style="border-color: var(--border); background: var(--surface-soft);">
                 <span class="flex items-center gap-2"><i data-lucide="sparkles" style="width:14px;height:14px"></i> Assistente da loja</span>
-                <button type="button" onclick="toggleIaNegocioPublicaWindow()" class="icon-btn h-10 w-10 transition-colors" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
+                <button type="button" onclick="toggleIaNegocioPublicaWindow()" class="icon-btn h-10 w-10 transition-colors" aria-label="Fechar assistente da loja" style="color: var(--ink-3);"><i data-lucide="x" style="width:16px;height:16px"></i></button>
             </div>
             <div id="ia-negocio-publica-mensagens" class="p-4 flex-1 overflow-y-auto space-y-2 text-[12px] flex flex-col custom-scrollbar" role="log" aria-live="polite" aria-label="Conversa com a assistente da loja">
                 <div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">
@@ -1095,24 +1332,25 @@
                 </div>
             </div>
             <form id="ia-negocio-publica-form" class="p-2 border-t flex gap-1.5" style="border-color: var(--border);">
+                <label for="ia-negocio-publica-input" class="sr-only-accessible">Pergunta para a assistente da loja</label>
                 <input type="text" id="ia-negocio-publica-input" class="flex-1 rounded-xl p-2.5 text-xs outline-none" placeholder="Pergunte sobre os produtos..." maxlength="800">
                 <button type="submit" id="ia-negocio-publica-enviar" class="font-bold px-4 rounded-xl text-xs">OK</button>
             </form>
         </div>
-        <button type="button" onclick="toggleIaNegocioPublicaWindow()" id="ia-negocio-publica-trigger" class="h-14 w-14 icon-btn transition-transform hover:scale-105 active:scale-95">
+        <button type="button" onclick="toggleIaNegocioPublicaWindow()" id="ia-negocio-publica-trigger" aria-label="Abrir assistente da loja" aria-controls="ia-negocio-publica-window" aria-expanded="false" class="h-14 w-14 icon-btn transition-transform hover:scale-105 active:scale-95">
             <i data-lucide="sparkles" style="width:22px;height:22px;stroke-width:1.6"></i>
         </button>
     </div>
 <div id="carrinho-overlay" class="hidden fixed inset-0 z-[55]" onclick="fecharCarrinho()"></div>
 
-    <div id="carrinho-painel" class="fixed top-0 right-0 z-[55] h-full w-full sm:w-[26rem] translate-x-full transition-transform duration-300 flex flex-col" style="border-left: 1px solid var(--border); box-shadow: var(--shadow-xl);">
+    <div id="carrinho-painel" role="dialog" aria-modal="true" aria-labelledby="carrinho-titulo" aria-hidden="true" data-focus-scope class="fixed top-0 right-0 z-[55] h-full w-full sm:w-[26rem] translate-x-full transition-transform duration-300 flex flex-col" style="border-left: 1px solid var(--border); box-shadow: var(--shadow-xl);">
 
 <div class="h-[3px] w-full shrink-0" style="background: var(--accent);"></div>
         <div class="p-6 border-b flex items-center justify-between" style="border-color: var(--border);">
             <div class="flex items-center gap-3">
                 <span class="icon-btn h-9 w-9 rounded-full" style="background: var(--surface-soft); color: var(--ink);"><i data-lucide="shopping-bag" style="width:16px;height:16px"></i></span>
                 <div>
-                    <h3 class="text-[11px] font-bold uppercase tracking-[0.18em]" style="color: var(--ink);">Seu Carrinho</h3>
+                    <h3 id="carrinho-titulo" class="text-[11px] font-bold uppercase tracking-[0.18em]" style="color: var(--ink);">Seu Carrinho</h3>
                     <p class="text-[11px] mt-0.5" style="color: var(--ink-3);">Revise seus itens antes de finalizar</p>
                 </div>
             </div>
@@ -1137,7 +1375,7 @@
     <div id="formulario-pedido-modal" class="hidden fixed inset-0 z-[90] flex items-center justify-center p-4" aria-hidden="true">
         <button type="button" class="absolute inset-0" aria-label="Fechar formulário do pedido" onclick="fecharFormularioPedido()"></button>
 
-        <form id="formulario-pedido-form" class="checkout-modal-panel relative w-full max-w-xl rounded-[28px] overflow-y-auto custom-scrollbar" novalidate>
+        <form id="formulario-pedido-form" role="dialog" aria-modal="true" aria-labelledby="pedido-modal-titulo" data-focus-scope class="checkout-modal-panel relative w-full max-w-xl rounded-[28px] overflow-y-auto custom-scrollbar" novalidate>
             <div class="sticky top-0 z-10 p-5 sm:p-6 border-b flex items-start justify-between gap-4" style="background: var(--surface); border-color: var(--border);">
                 <div class="flex items-start gap-3">
                     <span class="icon-btn h-10 w-10 rounded-full shrink-0" style="background: color-mix(in oklch, var(--accent) 14%, transparent); color: var(--accent);">
@@ -1145,7 +1383,7 @@
                     </span>
                     <div>
                         <p class="text-[10px] font-bold uppercase tracking-[0.18em]" style="color: var(--ink-4);">Última etapa</p>
-                        <h3 class="text-2xl font-display mt-1" style="font-family:'Instrument Serif',serif; color: var(--ink);">Confirme seu pedido</h3>
+                        <h3 id="pedido-modal-titulo" class="text-2xl font-display mt-1" style="font-family:'Instrument Serif',serif; color: var(--ink);">Confirme seu pedido</h3>
                         <p class="text-xs mt-1" style="color: var(--ink-3);">Preencha os dados para enviarmos tudo organizado pelo WhatsApp.</p>
                     </div>
                 </div>
@@ -1223,18 +1461,20 @@
     </div>
 
     <!-- POP-UP CAPTURA DE LEAD -->
-    <div id="popup-captura" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4">
+    <div id="popup-captura" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="popup-captura-titulo" aria-hidden="true">
 
 <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5 overflow-hidden" style="border:1px solid var(--border); box-shadow: var(--shadow-xl);">
 
 <div class="absolute top-0 left-0 h-[3px] w-full" style="background: var(--accent);"></div>
             <button type="button" onclick="fecharPopup()" class="absolute top-2 right-2 icon-btn h-11 w-11 transition-colors" style="color: var(--ink-3);" aria-label="Fechar"><i data-lucide="x" style="width:18px;height:18px"></i></button>
             <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--accent);"><i data-lucide="gift" style="width:24px;height:24px"></i></div>
-            <h2 class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">Um presente para você.</h2>
+            <h2 id="popup-captura-titulo" class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">Um presente para você.</h2>
             <p class="text-sm" style="color: var(--ink-2);">Deixe seu WhatsApp e receba um cupom exclusivo de desconto agora mesmo.</p>
             <div class="space-y-3 pt-2">
-                <input type="text" id="popup-nome" placeholder="Seu nome completo" class="w-full p-3.5 text-sm outline-none transition-all">
-                <input type="text" id="popup-whatsapp" placeholder="Seu WhatsApp (com DDD)" class="w-full p-3.5 text-sm outline-none transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
+                <label for="popup-nome" class="sr-only-accessible">Seu nome completo</label>
+                <input type="text" id="popup-nome" autocomplete="name" placeholder="Seu nome completo" class="w-full p-3.5 text-sm outline-none transition-all">
+                <label for="popup-whatsapp" class="sr-only-accessible">Seu WhatsApp com DDD</label>
+                <input type="text" id="popup-whatsapp" inputmode="numeric" autocomplete="tel" placeholder="Seu WhatsApp (com DDD)" class="w-full p-3.5 text-sm outline-none transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
             </div>
             <button onclick="enviarLeadPopup()" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all hover:brightness-110" style="background-color: var(--client-brand, var(--ink)); color: var(--client-texto-botao, var(--bg));">
                 Quero meu desconto agora
@@ -1247,7 +1487,7 @@
     <div id="produto-detalhes-modal" class="hidden fixed inset-0 z-[72] flex items-center justify-center p-4" aria-hidden="true">
         <button type="button" class="absolute inset-0" aria-label="Fechar detalhes do produto" onclick="fecharDetalhesProduto()"></button>
 
-        <article class="product-modal-panel relative" role="dialog" aria-modal="true" aria-labelledby="produto-detalhes-nome">
+        <article class="product-modal-panel relative" role="dialog" aria-modal="true" aria-labelledby="produto-detalhes-nome" data-focus-scope>
             <button id="produto-detalhes-fechar" type="button" class="product-modal-close icon-btn" onclick="fecharDetalhesProduto()" aria-label="Fechar detalhes do produto">
                 <i data-lucide="x" style="width:19px;height:19px"></i>
             </button>
@@ -1312,11 +1552,11 @@
 
     <div id="avaliacao-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4" aria-hidden="true">
         <button type="button" class="absolute inset-0 bg-black/55 backdrop-blur-sm" aria-label="Fechar avaliação" onclick="fecharModalAvaliacao()"></button>
-        <form id="avaliacao-form" class="review-modal-panel relative w-full max-w-lg rounded-3xl p-6 sm:p-7 space-y-5">
+        <form id="avaliacao-form" role="dialog" aria-modal="true" aria-labelledby="avaliacao-modal-titulo" data-focus-scope class="review-modal-panel relative w-full max-w-lg rounded-3xl p-6 sm:p-7 space-y-5">
             <div class="flex items-start justify-between gap-4">
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-[0.22em]" style="color: var(--ink-4);">Avaliação do cliente</p>
-                    <h3 class="text-2xl font-display mt-1" style="font-family:'Instrument Serif',serif;">Avaliar produto</h3>
+                    <h3 id="avaliacao-modal-titulo" class="text-2xl font-display mt-1" style="font-family:'Instrument Serif',serif;">Avaliar produto</h3>
                     <p id="avaliacao-produto-nome" class="text-sm mt-1" style="color: var(--ink-3);"></p>
                 </div>
                 <button type="button" class="icon-btn h-10 w-10" onclick="fecharModalAvaliacao()" aria-label="Fechar modal">
@@ -1443,6 +1683,142 @@
         let imagemCompartilhamentoAtual = "";
         let shareFeedbackTimer = null;
         const faviconPadraoVide = document.getElementById("client-favicon")?.getAttribute("href") || "";
+
+
+        const focosAnterioresA11y = new Map();
+
+        function elementoVisivelA11y(elemento) {
+            if (!elemento) return false;
+            if (elemento.classList.contains("hidden")) return false;
+            if (elemento.getAttribute("aria-hidden") === "true") return false;
+            return Boolean(elemento.offsetWidth || elemento.offsetHeight || elemento.getClientRects().length);
+        }
+
+        function registrarFocoAnteriorA11y(chave) {
+            const atual = document.activeElement;
+            if (atual && atual !== document.body && typeof atual.focus === "function") {
+                focosAnterioresA11y.set(chave, atual);
+            }
+        }
+
+        function restaurarFocoA11y(chave, fallbackId) {
+            const anterior = focosAnterioresA11y.get(chave);
+            focosAnterioresA11y.delete(chave);
+            const fallback = fallbackId ? document.getElementById(fallbackId) : null;
+            const destino = anterior && document.contains(anterior) ? anterior : fallback;
+            if (destino && typeof destino.focus === "function") {
+                requestAnimationFrame(function() { destino.focus({ preventScroll: true }); });
+            }
+        }
+
+        function sincronizarBloqueioRolagemA11y() {
+            const modalIds = [
+                "formulario-pedido-modal",
+                "avaliacao-modal",
+                "produto-detalhes-modal",
+                "popup-captura"
+            ];
+            const algumModalAberto = modalIds.some(function(id) {
+                return elementoVisivelA11y(document.getElementById(id));
+            });
+            const carrinho = document.getElementById("carrinho-painel");
+            const carrinhoAberto = carrinho && !carrinho.classList.contains("translate-x-full");
+            document.body.classList.toggle("a11y-scroll-locked", Boolean(algumModalAberto || carrinhoAberto));
+        }
+
+        function obterEscopoAtivoA11y() {
+            const seletores = [
+                "#formulario-pedido-modal [data-focus-scope]",
+                "#avaliacao-modal [data-focus-scope]",
+                "#produto-detalhes-modal [data-focus-scope]",
+                "#carrinho-painel[data-focus-scope]",
+                "#popup-captura > div",
+                "#chat-window[data-focus-scope]",
+                "#ia-negocio-publica-window[data-focus-scope]"
+            ];
+            for (const seletor of seletores) {
+                const elemento = document.querySelector(seletor);
+                if (elementoVisivelA11y(elemento)) return elemento;
+            }
+            return null;
+        }
+
+        function focaveisDoEscopoA11y(escopo) {
+            if (!escopo) return [];
+            return Array.from(escopo.querySelectorAll(
+                'a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), textarea:not([disabled]), select:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            )).filter(function(elemento) {
+                return elementoVisivelA11y(elemento) && elemento.getAttribute("aria-hidden") !== "true";
+            });
+        }
+
+        function atualizarEstadoJanelaA11y(janelaId, gatilhoId, aberta) {
+            const janela = document.getElementById(janelaId);
+            const gatilho = document.getElementById(gatilhoId);
+            if (janela) janela.setAttribute("aria-hidden", aberta ? "false" : "true");
+            if (gatilho) {
+                gatilho.setAttribute("aria-expanded", aberta ? "true" : "false");
+                gatilho.setAttribute("aria-label", aberta
+                    ? (janelaId === "chat-window" ? "Fechar atendimento online" : "Fechar assistente da loja")
+                    : (janelaId === "chat-window" ? "Abrir atendimento online" : "Abrir assistente da loja"));
+            }
+        }
+
+        document.addEventListener("keydown", function(event) {
+            const escopo = obterEscopoAtivoA11y();
+
+            if (event.key === "Tab" && escopo) {
+                const focaveis = focaveisDoEscopoA11y(escopo);
+                if (!focaveis.length) {
+                    event.preventDefault();
+                    return;
+                }
+                const primeiro = focaveis[0];
+                const ultimo = focaveis[focaveis.length - 1];
+                if (event.shiftKey && document.activeElement === primeiro) {
+                    event.preventDefault();
+                    ultimo.focus();
+                } else if (!event.shiftKey && document.activeElement === ultimo) {
+                    event.preventDefault();
+                    primeiro.focus();
+                } else if (!escopo.contains(document.activeElement)) {
+                    event.preventDefault();
+                    primeiro.focus();
+                }
+                return;
+            }
+
+            if (event.key !== "Escape") return;
+
+            const checkout = document.getElementById("formulario-pedido-modal");
+            if (elementoVisivelA11y(checkout)) {
+                event.preventDefault(); event.stopImmediatePropagation(); fecharFormularioPedido(); return;
+            }
+            const avaliacao = document.getElementById("avaliacao-modal");
+            if (elementoVisivelA11y(avaliacao)) {
+                event.preventDefault(); event.stopImmediatePropagation(); fecharModalAvaliacao(); return;
+            }
+            const produto = document.getElementById("produto-detalhes-modal");
+            if (elementoVisivelA11y(produto)) {
+                event.preventDefault(); event.stopImmediatePropagation(); fecharDetalhesProduto(); return;
+            }
+            const carrinho = document.getElementById("carrinho-painel");
+            if (carrinho && !carrinho.classList.contains("translate-x-full")) {
+                event.preventDefault(); event.stopImmediatePropagation(); fecharCarrinho(); return;
+            }
+            const popup = document.getElementById("popup-captura");
+            if (elementoVisivelA11y(popup)) {
+                event.preventDefault(); event.stopImmediatePropagation(); fecharPopup(); return;
+            }
+            const chat = document.getElementById("chat-window");
+            if (elementoVisivelA11y(chat)) {
+                event.preventDefault(); event.stopImmediatePropagation(); toggleChatWindow(false); return;
+            }
+            const ia = document.getElementById("ia-negocio-publica-window");
+            if (elementoVisivelA11y(ia)) {
+                event.preventDefault(); event.stopImmediatePropagation(); toggleIaNegocioPublicaWindow(false);
+            }
+        }, true);
 
         function obterUrlCanonicaLoja() {
             const url = new URL(window.location.href);
@@ -2245,6 +2621,7 @@
             const modal = document.getElementById("produto-detalhes-modal");
             modal.classList.remove("hidden");
             modal.setAttribute("aria-hidden", "false");
+            sincronizarBloqueioRolagemA11y();
             requestAnimationFrame(function() {
                 document.getElementById("produto-detalhes-fechar")?.focus();
             });
@@ -2256,6 +2633,7 @@
             if (!modal || modal.classList.contains("hidden")) return;
             modal.classList.add("hidden");
             modal.setAttribute("aria-hidden", "true");
+            sincronizarBloqueioRolagemA11y();
             produtoDetalhesAtualId = "";
             if (produtoDetalhesFocoAnterior && typeof produtoDetalhesFocoAnterior.focus === "function") {
                 produtoDetalhesFocoAnterior.focus();
@@ -2268,6 +2646,7 @@
                 const nota = Number(btn.dataset.nota || 0);
                 btn.classList.toggle("is-active", nota <= notaAvaliacaoSelecionada);
                 btn.setAttribute("aria-checked", nota === notaAvaliacaoSelecionada ? "true" : "false");
+                btn.tabIndex = (nota === notaAvaliacaoSelecionada || (notaAvaliacaoSelecionada === 0 && nota === 1)) ? 0 : -1;
             });
         }
 
@@ -2292,8 +2671,10 @@
             document.getElementById("avaliacao-enviar").querySelector("span").textContent = "Enviar avaliação";
             mostrarFeedbackAvaliacao("", "");
             atualizarEstrelasModal();
+            registrarFocoAnteriorA11y("avaliacao");
             document.getElementById("avaliacao-modal").classList.remove("hidden");
             document.getElementById("avaliacao-modal").setAttribute("aria-hidden", "false");
+            sincronizarBloqueioRolagemA11y();
             document.getElementById("avaliacao-nome").focus();
             if (window.lucide) lucide.createIcons();
         };
@@ -2302,6 +2683,8 @@
             if (enviandoAvaliacao) return;
             document.getElementById("avaliacao-modal").classList.add("hidden");
             document.getElementById("avaliacao-modal").setAttribute("aria-hidden", "true");
+            sincronizarBloqueioRolagemA11y();
+            restaurarFocoA11y("avaliacao", "produto-detalhes-avaliar");
         };
 
         document.addEventListener("keydown", function(event) {
@@ -2320,9 +2703,19 @@
         });
 
         document.querySelectorAll("#avaliacao-nota .review-rating-button").forEach(function(btn) {
+            btn.setAttribute("role", "radio");
+            btn.setAttribute("aria-checked", "false");
             btn.addEventListener("click", function() {
                 notaAvaliacaoSelecionada = Number(btn.dataset.nota || 0);
                 atualizarEstrelasModal();
+            });
+            btn.addEventListener("keydown", function(event) {
+                if (!["ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown"].includes(event.key)) return;
+                event.preventDefault();
+                const delta = (event.key === "ArrowRight" || event.key === "ArrowUp") ? 1 : -1;
+                notaAvaliacaoSelecionada = Math.min(5, Math.max(1, Number(btn.dataset.nota || 1) + delta));
+                atualizarEstrelasModal();
+                document.querySelector('#avaliacao-nota [data-nota="' + notaAvaliacaoSelecionada + '"]')?.focus();
             });
         });
 
@@ -2602,6 +2995,13 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 return matchNicho && matchTexto;
             });
 
+            const catalogoStatus = document.getElementById("catalogo-status");
+            if (catalogoStatus) {
+                catalogoStatus.textContent = produtosFiltrados.length === 0
+                    ? "Nenhum produto encontrado."
+                    : produtosFiltrados.length + (produtosFiltrados.length === 1 ? " produto encontrado." : " produtos encontrados.");
+            }
+
             if (produtosFiltrados.length === 0) {
                 container.innerHTML = '<div class="col-span-full text-center p-16 rounded-2xl" style="border:1px dashed var(--border);"><p class="text-sm" style="color: var(--ink-3);">Nenhum produto encontrado.</p></div>';
                 return;
@@ -2610,6 +3010,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             produtosFiltrados.forEach(function(prod) {
                 const card = document.createElement("div");
                 card.className = "dynamic-card flex flex-col justify-between group";
+                card.setAttribute("role", "article");
+                card.setAttribute("aria-label", prod.nome || "Produto");
                 // Mesma regra de corFundoPersonalizada/corTextoPersonalizada:
                 // só no escuro, senão trava o card no claro também.
                 if (prod.corDoCard && document.documentElement.getAttribute("data-theme") === "dark") {
@@ -2925,15 +3327,26 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         }
 
         window.abrirCarrinho = function() {
+            registrarFocoAnteriorA11y("carrinho");
             renderizarCarrinho();
             document.getElementById("carrinho-overlay").classList.remove("hidden");
             const painel = document.getElementById("carrinho-painel");
             painel.classList.remove("translate-x-full");
+            painel.setAttribute("aria-hidden", "false");
+            document.getElementById("btn-abrir-carrinho")?.setAttribute("aria-expanded", "true");
+            sincronizarBloqueioRolagemA11y();
+            requestAnimationFrame(function() {
+                painel.querySelector('button[aria-label="Fechar carrinho"]')?.focus();
+            });
         };
 
         window.fecharCarrinho = function() {
             const painel = document.getElementById("carrinho-painel");
             painel.classList.add("translate-x-full");
+            painel.setAttribute("aria-hidden", "true");
+            document.getElementById("btn-abrir-carrinho")?.setAttribute("aria-expanded", "false");
+            sincronizarBloqueioRolagemA11y();
+            restaurarFocoA11y("carrinho", "btn-abrir-carrinho");
             setTimeout(function() {
                 document.getElementById("carrinho-overlay").classList.add("hidden");
             }, 300);
@@ -3034,9 +3447,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             const modal = document.getElementById("formulario-pedido-modal");
             if (!modal) return;
 
+            registrarFocoAnteriorA11y("checkout");
             modal.classList.remove("hidden");
             modal.setAttribute("aria-hidden", "false");
             document.body.classList.add("overflow-hidden");
+            sincronizarBloqueioRolagemA11y();
 
             setTimeout(function() {
                 document.getElementById("pedido-cliente-nome")?.focus();
@@ -3050,6 +3465,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             modal.classList.add("hidden");
             modal.setAttribute("aria-hidden", "true");
             document.body.classList.remove("overflow-hidden");
+            sincronizarBloqueioRolagemA11y();
+            restaurarFocoA11y("checkout", "btn-finalizar-carrinho");
             mostrarErroFormularioPedido("");
         };
 
@@ -3235,9 +3652,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             badge.addEventListener("click", function(e) {
                 document.querySelectorAll(".filter-badge").forEach(function(b) {
                     b.className = "filter-badge bg-white/5 text-gray-400 text-xs font-bold px-4 py-2 rounded-xl transition-all hover:text-white";
+                    b.setAttribute("aria-pressed", "false");
                 });
-                e.target.className = "filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm";
-                nichoSelecionado = e.target.getAttribute("data-nicho");
+                e.currentTarget.className = "filter-badge bg-white/10 text-white text-xs font-bold px-4 py-2 rounded-xl transition-all shadow-sm";
+                e.currentTarget.setAttribute("aria-pressed", "true");
+                nichoSelecionado = e.currentTarget.getAttribute("data-nicho");
                 renderizarCatalogoFiltros();
             });
         });
@@ -3248,7 +3667,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (popupExibido) return;
             if (sessionStorage.getItem("popupFechado")) return;
             popupExibido = true;
-            document.getElementById("popup-captura").classList.remove("hidden");
+            registrarFocoAnteriorA11y("popup");
+                            document.getElementById("popup-captura").classList.remove("hidden");
+                            document.getElementById("popup-captura").setAttribute("aria-hidden", "false");
+                            sincronizarBloqueioRolagemA11y();
+                            requestAnimationFrame(function(){ document.getElementById("popup-nome")?.focus(); });
         }
 
         // Dispara após 15 segundos
@@ -3329,7 +3752,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (el) el.remove();
         };
         window.fecharPopup = function() {
-            document.getElementById("popup-captura").classList.add("hidden");
+            const popup = document.getElementById("popup-captura");
+            popup.classList.add("hidden");
+            popup.setAttribute("aria-hidden", "true");
+            sincronizarBloqueioRolagemA11y();
+            restaurarFocoA11y("popup");
             sessionStorage.setItem("popupFechado", "1");
         };
 
@@ -3364,12 +3791,30 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 console.error(err);
             }
         };
-        window.toggleChatWindow = function() {
-            document.getElementById("chat-window").classList.toggle("hidden");
+        window.toggleChatWindow = function(forcarAberto) {
+            const janela = document.getElementById("chat-window");
+            const deveAbrir = typeof forcarAberto === "boolean" ? forcarAberto : janela.classList.contains("hidden");
+            janela.classList.toggle("hidden", !deveAbrir);
+            atualizarEstadoJanelaA11y("chat-window", "chat-trigger-btn", deveAbrir);
+            if (deveAbrir) {
+                registrarFocoAnteriorA11y("chat");
+                requestAnimationFrame(function() { document.getElementById("chat-client-input")?.focus(); });
+            } else {
+                restaurarFocoA11y("chat", "chat-trigger-btn");
+            }
         };
 
-        window.toggleIaNegocioPublicaWindow = function() {
-            document.getElementById("ia-negocio-publica-window").classList.toggle("hidden");
+        window.toggleIaNegocioPublicaWindow = function(forcarAberto) {
+            const janela = document.getElementById("ia-negocio-publica-window");
+            const deveAbrir = typeof forcarAberto === "boolean" ? forcarAberto : janela.classList.contains("hidden");
+            janela.classList.toggle("hidden", !deveAbrir);
+            atualizarEstadoJanelaA11y("ia-negocio-publica-window", "ia-negocio-publica-trigger", deveAbrir);
+            if (deveAbrir) {
+                registrarFocoAnteriorA11y("ia");
+                requestAnimationFrame(function() { document.getElementById("ia-negocio-publica-input")?.focus(); });
+            } else {
+                restaurarFocoA11y("ia", "ia-negocio-publica-trigger");
+            }
         };
 
         // Instanciado só quando a loja realmente ativa o toggle (evita
@@ -3589,6 +4034,12 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 }, 30000);
             }
         });
+
+
+        atualizarEstadoJanelaA11y("chat-window", "chat-trigger-btn", false);
+        atualizarEstadoJanelaA11y("ia-negocio-publica-window", "ia-negocio-publica-trigger", false);
+        document.getElementById("carrinho-painel")?.setAttribute("aria-hidden", "true");
+        sincronizarBloqueioRolagemA11y();
     </script>
 </body>
 </html>
