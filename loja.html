@@ -2223,14 +2223,34 @@
                 }
                 if (evento === "product_view" && payload.productId) {
                     return setDoc(doc(db, "metricas_produtos", payload.productId), {
-                        visualizacoes: increment(1)
+                        visualizacoes: increment(1),
+                        porDia: {
+                            [hoje]: {
+                                visualizacoes: increment(1)
+                            }
+                        }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "product_detail" && payload.productId) {
+                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
+                        detalhesAbertos: increment(1),
+                        porDia: {
+                            [hoje]: {
+                                detalhesAbertos: increment(1)
+                            }
+                        }
                     }, { merge: true }).catch(silenciarMetrica);
                 }
                 if (evento === "product_click" && payload.productId) {
                     const nomeProd = (payload.productName || payload.productId).toString().slice(0, 160);
                     return Promise.all([
                         setDoc(doc(db, "metricas_produtos", payload.productId), {
-                            cliques: increment(1)
+                            cliques: increment(1),
+                            porDia: {
+                                [hoje]: {
+                                    cliques: increment(1)
+                                }
+                            }
                         }, { merge: true }).catch(silenciarMetrica),
                         setDoc(doc(db, "metricas_vitrines", ownerUid), {
                             totalCliques: increment(1),
@@ -2239,6 +2259,44 @@
                         }, { merge: true }).catch(silenciarMetrica)
                     ]);
                 }
+                if (evento === "product_cart_add" && payload.productId) {
+                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
+                        adicoesCarrinho: increment(1),
+                        porDia: {
+                            [hoje]: {
+                                adicoesCarrinho: increment(1)
+                            }
+                        }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "product_checkout" && payload.productId) {
+                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
+                        checkoutsIniciados: increment(1),
+                        porDia: {
+                            [hoje]: {
+                                checkoutsIniciados: increment(1)
+                            }
+                        }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+                if (evento === "product_order_whatsapp" && payload.productId) {
+                    const valorProduto = Math.max(
+                        0,
+                        Math.min(Number(payload.value || 0), 10000000)
+                    );
+
+                    return setDoc(doc(db, "metricas_produtos", payload.productId), {
+                        pedidosWhatsapp: increment(1),
+                        valorPedidosWhatsapp: increment(valorProduto),
+                        porDia: {
+                            [hoje]: {
+                                pedidosWhatsapp: increment(1),
+                                valorPedidosWhatsapp: increment(valorProduto)
+                            }
+                        }
+                    }, { merge: true }).catch(silenciarMetrica);
+                }
+
                 if (evento === "cart_open") {
                     return setDoc(doc(db, "metricas_vitrines", ownerUid), {
                         porDia: { [hoje]: { carrinhosAbertos: increment(1) } }
@@ -2589,6 +2647,15 @@
         window.abrirDetalhesProduto = function(produtoId) {
             const produto = todosProdutos.find(function(item) { return item.id === produtoId; });
             if (!produto) return;
+
+            registrarMetricaFunilUnica(
+                "product_detail",
+                {
+                    productId: produto.id,
+                    productName: produto.nome || "Produto"
+                },
+                produto.id
+            );
 
             produtoDetalhesAtualId = produtoId;
             produtoDetalhesFocoAnterior = document.activeElement;
@@ -3251,17 +3318,50 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         }
 
         window.adicionarAoCarrinho = function(nomeProd, preco, imgSrc, corDestaque, produtoId) {
-            const existente = itensCarrinho.find(function(i) { return i.nome === nomeProd; });
+            const idProduto = String(produtoId || "").trim();
+            const existente = itensCarrinho.find(function(item) {
+                if (idProduto && item.produtoId) {
+                    return item.produtoId === idProduto;
+                }
+                return item.nome === nomeProd;
+            });
+
             if (existente) {
-                existente.quantidade = Math.min(99, (Number.parseInt(existente.quantidade, 10) || 1) + 1);
+                existente.quantidade = Math.min(
+                    99,
+                    (Number.parseInt(existente.quantidade, 10) || 1) + 1
+                );
+
+                if (idProduto && !existente.produtoId) {
+                    existente.produtoId = idProduto;
+                }
             } else {
-                itensCarrinho.push({ nome: nomeProd, preco: parseFloat(preco), img: imgSrc, cor: corDestaque, quantidade: 1 });
+                itensCarrinho.push({
+                    produtoId: idProduto,
+                    nome: nomeProd,
+                    preco: parseFloat(preco),
+                    img: imgSrc,
+                    cor: corDestaque,
+                    quantidade: 1
+                });
             }
 
             salvarCarrinho();
             renderizarCarrinho();
             mostrarToastCarrinho(nomeProd);
-            registrarMetricaFunilUnica("cart_add", {}, produtoId || nomeProd);
+            registrarMetricaFunilUnica("cart_add", {}, idProduto || nomeProd);
+
+            if (idProduto) {
+                registrarMetricaFunilUnica(
+                    "product_cart_add",
+                    {
+                        productId: idProduto,
+                        productName: nomeProd
+                    },
+                    idProduto
+                );
+            }
+
 
             const btn = document.getElementById("btn-abrir-carrinho");
             if (btn) {
@@ -3501,6 +3601,21 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             }
 
             registrarMetricaFunilUnica("checkout_start");
+
+            itensCarrinho.forEach(function(item) {
+                const produtoId = String(item.produtoId || "").trim();
+                if (!produtoId) return;
+
+                registrarMetricaFunilUnica(
+                    "product_checkout",
+                    {
+                        productId: produtoId,
+                        productName: item.nome || "Produto"
+                    },
+                    produtoId
+                );
+            });
+
             preencherResumoFormularioPedido();
             carregarDadosSalvosPedido();
             mostrarErroFormularioPedido("");
@@ -3668,6 +3783,25 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             const resumoMetricaPedido = calcularResumoCarrinho();
             registrarMetricaFunilUnica("order_whatsapp", {
                 value: resumoMetricaPedido.total
+            });
+
+            itensCarrinho.forEach(function(item) {
+                const produtoId = String(item.produtoId || "").trim();
+                if (!produtoId) return;
+
+                const subtotalProduto =
+                    Math.max(0, Number(item.preco || 0)) *
+                    Math.max(1, Number(item.quantidade || 1));
+
+                registrarMetricaFunilUnica(
+                    "product_order_whatsapp",
+                    {
+                        productId: produtoId,
+                        productName: item.nome || "Produto",
+                        value: subtotalProduto
+                    },
+                    produtoId
+                );
             });
 
             itensCarrinho = [];
