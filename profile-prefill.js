@@ -680,6 +680,10 @@
     var metricasFunilIniciadas = false;
     var metricasFunilDados = {};
     var metricasFunilDesinscrever = null;
+    var metricasProdutosDados = [];
+    var metricasProdutosConexao = null;
+    var metricasProdutosCarregando = false;
+    var metricasProdutosAtualizacaoTimer = null;
 
     function inserirEstilosMetricasFunil() {
         if (document.getElementById("vide-funil-metricas-style")) return;
@@ -1165,6 +1169,430 @@
                 border-radius: 999px;
             }
 
+            #vide-funil-loja-publica .vide-produtos-performance {
+                position: relative;
+                z-index: 1;
+                margin-top: 18px;
+                padding: 18px;
+                border: 1px solid rgba(255,255,255,.075);
+                border-radius: 20px;
+                background:
+                    radial-gradient(
+                        620px 220px at 100% 0%,
+                        color-mix(in srgb, var(--sys-primaria, #6d5dfc) 10%, transparent),
+                        transparent 72%
+                    ),
+                    rgba(3,7,18,.34);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 16px;
+                margin-bottom: 15px;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header-copy {
+                display: flex;
+                align-items: flex-start;
+                gap: 11px;
+                min-width: 0;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header-icon {
+                width: 38px;
+                height: 38px;
+                flex: 0 0 38px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid color-mix(in srgb, var(--sys-primaria, #6d5dfc) 26%, transparent);
+                border-radius: 12px;
+                color: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 72%, white 28%);
+                background: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 9%, transparent);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.9;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header small {
+                display: block;
+                margin-bottom: 4px;
+                color: #6b7280;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .16em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header h3 {
+                margin: 0;
+                color: #fff;
+                font-size: 15px;
+                line-height: 1.25;
+                font-weight: 900;
+                letter-spacing: -.015em;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-header p {
+                max-width: 660px;
+                margin: 5px 0 0;
+                color: #8490a3;
+                font-size: 10px;
+                line-height: 1.55;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-refresh {
+                min-height: 35px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                gap: 7px;
+                flex: 0 0 auto;
+                padding: 0 12px;
+                border: 1px solid rgba(255,255,255,.1);
+                border-radius: 11px;
+                color: #cbd5e1;
+                background: rgba(255,255,255,.045);
+                font-size: 9px;
+                font-weight: 900;
+                cursor: pointer;
+                transition: border-color .16s ease, background .16s ease, color .16s ease;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-refresh:hover,
+            #vide-funil-loja-publica .vide-produtos-refresh:focus-visible {
+                border-color: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 45%, transparent);
+                color: #fff;
+                background: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 10%, rgba(255,255,255,.04));
+                outline: none;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-refresh[disabled] {
+                opacity: .55;
+                cursor: wait;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-refresh svg {
+                width: 14px;
+                height: 14px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 2;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-refresh.is-loading svg {
+                animation: videProdutosSpin .8s linear infinite;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-destaques {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 10px;
+                margin-bottom: 14px;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-destaque {
+                min-width: 0;
+                padding: 13px;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 15px;
+                background: rgba(255,255,255,.027);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-destaque > span {
+                display: block;
+                color: #707d91;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-destaque strong {
+                display: block;
+                overflow: hidden;
+                margin-top: 7px;
+                color: #fff;
+                font-size: 12px;
+                line-height: 1.35;
+                font-weight: 900;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-destaque small {
+                display: block;
+                margin-top: 4px;
+                color: #8792a5;
+                font-size: 9px;
+                line-height: 1.4;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidades {
+                margin-bottom: 14px;
+                padding: 14px;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 15px;
+                background: rgba(3,7,18,.3);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidades-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 12px;
+                margin-bottom: 10px;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidades-header strong {
+                color: #dbe4f1;
+                font-size: 10px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidades-header span {
+                color: #66748a;
+                font-size: 9px;
+                font-weight: 800;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidades-lista {
+                display: grid;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 8px;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidade {
+                min-width: 0;
+                padding: 11px 12px;
+                border: 1px solid rgba(255,255,255,.06);
+                border-radius: 13px;
+                background: rgba(255,255,255,.024);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidade strong {
+                display: block;
+                overflow: hidden;
+                color: #e5edf8;
+                font-size: 10px;
+                line-height: 1.35;
+                font-weight: 900;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-oportunidade p {
+                margin: 5px 0 0;
+                color: #8792a5;
+                font-size: 9px;
+                line-height: 1.5;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-toolbar {
+                display: grid;
+                grid-template-columns: minmax(180px, 1fr) minmax(170px, 220px);
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-search,
+            #vide-funil-loja-publica .vide-produtos-sort {
+                width: 100%;
+                min-height: 39px;
+                border: 1px solid rgba(255,255,255,.08);
+                border-radius: 12px;
+                outline: none;
+                color: #dbe4f1;
+                background: rgba(3,7,18,.52);
+                font-size: 10px;
+                font-weight: 750;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-search {
+                padding: 0 13px;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-sort {
+                padding: 0 34px 0 12px;
+                cursor: pointer;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-search:focus,
+            #vide-funil-loja-publica .vide-produtos-sort:focus {
+                border-color: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 58%, transparent);
+                box-shadow: 0 0 0 3px color-mix(in srgb, var(--sys-primaria, #6d5dfc) 10%, transparent);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela-shell {
+                overflow-x: auto;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 15px;
+                background: rgba(3,7,18,.24);
+                scrollbar-width: thin;
+                scrollbar-color: rgba(148,163,184,.28) transparent;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela {
+                width: 100%;
+                min-width: 920px;
+                border-collapse: collapse;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela th {
+                padding: 11px 10px;
+                border-bottom: 1px solid rgba(255,255,255,.065);
+                color: #647186;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .09em;
+                text-align: right;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela th:first-child {
+                padding-left: 14px;
+                text-align: left;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela td {
+                padding: 11px 10px;
+                border-bottom: 1px solid rgba(255,255,255,.045);
+                color: #b6c1d2;
+                font-size: 10px;
+                font-weight: 750;
+                text-align: right;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela td:first-child {
+                padding-left: 14px;
+                text-align: left;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-tabela tr:last-child td {
+                border-bottom: 0;
+            }
+
+            #vide-funil-loja-publica .vide-produto-identidade {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 210px;
+            }
+
+            #vide-funil-loja-publica .vide-produto-posicao {
+                width: 28px;
+                height: 28px;
+                flex: 0 0 28px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid rgba(255,255,255,.075);
+                border-radius: 9px;
+                color: #8290a6;
+                background: rgba(255,255,255,.03);
+                font-size: 9px;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-produto-identidade strong {
+                display: block;
+                overflow: hidden;
+                max-width: 190px;
+                color: #eef3fb;
+                font-size: 10px;
+                line-height: 1.35;
+                font-weight: 900;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produto-identidade small {
+                display: block;
+                overflow: hidden;
+                max-width: 190px;
+                margin-top: 3px;
+                color: #66748a;
+                font-size: 8px;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produto-conversao {
+                color: #e5edf8;
+                font-weight: 900;
+            }
+
+            #vide-funil-loja-publica .vide-produto-diagnostico {
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                max-width: 150px;
+                overflow: hidden;
+                padding: 5px 8px;
+                border: 1px solid rgba(148,163,184,.14);
+                border-radius: 999px;
+                color: #aeb9ca;
+                background: rgba(148,163,184,.055);
+                font-size: 8px;
+                font-weight: 900;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-funil-loja-publica .vide-produto-diagnostico[data-level="positive"] {
+                color: #86efac;
+                border-color: rgba(34,197,94,.2);
+                background: rgba(34,197,94,.065);
+            }
+
+            #vide-funil-loja-publica .vide-produto-diagnostico[data-level="attention"] {
+                color: #fcd34d;
+                border-color: rgba(245,158,11,.2);
+                background: rgba(245,158,11,.065);
+            }
+
+            #vide-funil-loja-publica .vide-produto-diagnostico[data-level="critical"] {
+                color: #fda4af;
+                border-color: rgba(244,63,94,.2);
+                background: rgba(244,63,94,.065);
+            }
+
+            #vide-funil-loja-publica .vide-produtos-empty {
+                padding: 34px 18px;
+                color: #78859a;
+                text-align: center;
+                font-size: 10px;
+                line-height: 1.55;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-status {
+                margin: 10px 2px 0;
+                color: #65738a;
+                font-size: 9px;
+                line-height: 1.5;
+            }
+
+            #vide-funil-loja-publica .vide-produtos-status[data-state="error"] {
+                color: #fda4af;
+            }
+
+            @keyframes videProdutosSpin {
+                to { transform: rotate(360deg); }
+            }
+
             #vide-funil-status {
                 position: relative;
                 z-index: 1;
@@ -1257,6 +1685,24 @@
                 }
 
                 #vide-funil-loja-publica .vide-funil-comparativos {
+                    grid-template-columns: 1fr;
+                }
+
+                #vide-funil-loja-publica .vide-produtos-performance {
+                    padding: 15px;
+                }
+
+                #vide-funil-loja-publica .vide-produtos-header {
+                    flex-direction: column;
+                }
+
+                #vide-funil-loja-publica .vide-produtos-refresh {
+                    align-self: flex-start;
+                }
+
+                #vide-funil-loja-publica .vide-produtos-destaques,
+                #vide-funil-loja-publica .vide-produtos-oportunidades-lista,
+                #vide-funil-loja-publica .vide-produtos-toolbar {
                     grid-template-columns: 1fr;
                 }
             }
@@ -1492,6 +1938,141 @@
                 </div>
             </section>
 
+            <section
+                class="vide-produtos-performance"
+                id="vide-produtos-performance"
+                aria-labelledby="vide-produtos-titulo"
+            >
+                <div class="vide-produtos-header">
+                    <div class="vide-produtos-header-copy">
+                        <span class="vide-produtos-header-icon" aria-hidden="true">
+                            <svg viewBox="0 0 24 24">
+                                <path d="M4 7h16"></path>
+                                <path d="M7 4v16"></path>
+                                <path d="M4 12h16"></path>
+                                <path d="M4 17h16"></path>
+                            </svg>
+                        </span>
+                        <div>
+                            <small>Desempenho individual</small>
+                            <h3 id="vide-produtos-titulo">Ranking por produto</h3>
+                            <p>
+                                Veja quais produtos atraem atenção, avançam no carrinho e geram pedidos pelo WhatsApp no mesmo período selecionado acima.
+                            </p>
+                        </div>
+                    </div>
+
+                    <button
+                        type="button"
+                        class="vide-produtos-refresh"
+                        id="vide-produtos-atualizar"
+                        aria-label="Atualizar métricas dos produtos"
+                    >
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M20 11a8.1 8.1 0 0 0-15.5-2M4 5v4h4"></path>
+                            <path d="M4 13a8.1 8.1 0 0 0 15.5 2M20 19v-4h-4"></path>
+                        </svg>
+                        Atualizar
+                    </button>
+                </div>
+
+                <div class="vide-produtos-destaques">
+                    <article class="vide-produtos-destaque">
+                        <span>Mais visualizado</span>
+                        <strong id="vide-produto-top-visualizado">Sem dados</strong>
+                        <small id="vide-produto-top-visualizado-valor">0 visualizações</small>
+                    </article>
+                    <article class="vide-produtos-destaque">
+                        <span>Mais adicionado</span>
+                        <strong id="vide-produto-top-carrinho">Sem dados</strong>
+                        <small id="vide-produto-top-carrinho-valor">0 adições</small>
+                    </article>
+                    <article class="vide-produtos-destaque">
+                        <span>Mais pedidos</span>
+                        <strong id="vide-produto-top-pedidos">Sem dados</strong>
+                        <small id="vide-produto-top-pedidos-valor">0 pedidos</small>
+                    </article>
+                    <article class="vide-produtos-destaque">
+                        <span>Melhor conversão</span>
+                        <strong id="vide-produto-top-conversao">Sem dados</strong>
+                        <small id="vide-produto-top-conversao-valor">0%</small>
+                    </article>
+                </div>
+
+                <div class="vide-produtos-oportunidades">
+                    <div class="vide-produtos-oportunidades-header">
+                        <strong>Oportunidades automáticas</strong>
+                        <span id="vide-produtos-oportunidades-contagem">Aguardando dados</span>
+                    </div>
+                    <div
+                        class="vide-produtos-oportunidades-lista"
+                        id="vide-produtos-oportunidades-lista"
+                    >
+                        <article class="vide-produtos-oportunidade">
+                            <strong>Coletando desempenho</strong>
+                            <p>As recomendações aparecerão conforme os produtos receberem interações.</p>
+                        </article>
+                    </div>
+                </div>
+
+                <div class="vide-produtos-toolbar">
+                    <input
+                        type="search"
+                        class="vide-produtos-search"
+                        id="vide-produtos-busca"
+                        placeholder="Buscar produto no ranking..."
+                        autocomplete="off"
+                        aria-label="Buscar produto no ranking"
+                    >
+                    <select
+                        class="vide-produtos-sort"
+                        id="vide-produtos-ordenacao"
+                        aria-label="Ordenar ranking de produtos"
+                    >
+                        <option value="pedidos">Mais pedidos</option>
+                        <option value="valor">Maior valor potencial</option>
+                        <option value="carrinho">Mais adicionados</option>
+                        <option value="visualizacoes">Mais visualizados</option>
+                        <option value="conversao">Melhor conversão</option>
+                        <option value="nome">Nome do produto</option>
+                    </select>
+                </div>
+
+                <div class="vide-produtos-tabela-shell">
+                    <table class="vide-produtos-tabela">
+                        <thead>
+                            <tr>
+                                <th>Produto</th>
+                                <th>Visitas</th>
+                                <th>Detalhes</th>
+                                <th>Carrinho</th>
+                                <th>Checkout</th>
+                                <th>WhatsApp</th>
+                                <th>Conversão</th>
+                                <th>Valor</th>
+                                <th>Diagnóstico</th>
+                            </tr>
+                        </thead>
+                        <tbody id="vide-produtos-tabela-corpo">
+                            <tr>
+                                <td colspan="9" class="vide-produtos-empty">
+                                    Carregando produtos e métricas...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <p
+                    class="vide-produtos-status"
+                    id="vide-produtos-status"
+                    data-state="loading"
+                    aria-live="polite"
+                >
+                    Carregando ranking por produto...
+                </p>
+            </section>
+
             <p id="vide-funil-status" data-state="loading" aria-live="polite">
                 Carregando métricas da loja pública...
             </p>
@@ -1501,6 +2082,19 @@
 
         document.getElementById("vide-funil-periodo")?.addEventListener("change", function() {
             renderizarMetricasFunil(metricasFunilDados);
+            renderizarMetricasProdutos();
+        });
+
+        document.getElementById("vide-produtos-busca")?.addEventListener("input", function() {
+            renderizarMetricasProdutos();
+        });
+
+        document.getElementById("vide-produtos-ordenacao")?.addEventListener("change", function() {
+            renderizarMetricasProdutos();
+        });
+
+        document.getElementById("vide-produtos-atualizar")?.addEventListener("click", function() {
+            carregarMetricasProdutos(true);
         });
 
         return true;
@@ -2044,6 +2638,632 @@
         );
     }
 
+    function estruturaMetricaProduto() {
+        return {
+            visualizacoes: 0,
+            detalhesAbertos: 0,
+            cliques: 0,
+            adicoesCarrinho: 0,
+            checkoutsIniciados: 0,
+            pedidosWhatsapp: 0,
+            valorPedidosWhatsapp: 0
+        };
+    }
+
+    function somarMetricaProduto(destino, origem) {
+        Object.keys(destino).forEach(function(chave) {
+            destino[chave] += numeroMetrica(origem?.[chave]);
+        });
+        return destino;
+    }
+
+    function dadosPeriodoMetricaProduto(documento, dias) {
+        documento = documento || {};
+        var resultado = estruturaMetricaProduto();
+
+        if (dias === 0) {
+            Object.keys(resultado).forEach(function(chave) {
+                resultado[chave] = numeroMetrica(documento[chave]);
+            });
+
+            var possuiTotais = Object.values(resultado).some(function(valor) {
+                return valor > 0;
+            });
+
+            if (possuiTotais) return resultado;
+        }
+
+        var limite = null;
+        if (dias > 0) {
+            limite = new Date();
+            limite.setHours(0, 0, 0, 0);
+            limite.setDate(limite.getDate() - (dias - 1));
+        }
+
+        Object.entries(documento.porDia || {}).forEach(function(entrada) {
+            var dataChave = entrada[0];
+            var dadosDia = entrada[1] || {};
+
+            if (limite) {
+                var data = new Date(dataChave + "T00:00:00");
+                if (Number.isNaN(data.getTime()) || data < limite) return;
+            }
+
+            somarMetricaProduto(resultado, dadosDia);
+        });
+
+        return resultado;
+    }
+
+    function nomeProdutoMetrica(produto) {
+        return String(
+            produto?.nome ||
+            produto?.titulo ||
+            produto?.nomeProduto ||
+            "Produto sem nome"
+        ).trim() || "Produto sem nome";
+    }
+
+    function categoriaProdutoMetrica(produto) {
+        return String(
+            produto?.nicho ||
+            produto?.categoria ||
+            produto?.tipo ||
+            "Produto"
+        ).trim() || "Produto";
+    }
+
+    function diagnosticarProdutoMetrica(item) {
+        var dados = item.dadosPeriodo;
+        var conversaoCarrinho = percentualNumero(
+            dados.adicoesCarrinho,
+            dados.visualizacoes
+        );
+        var conversaoCheckout = percentualNumero(
+            dados.checkoutsIniciados,
+            dados.adicoesCarrinho
+        );
+        var conversaoPedido = percentualNumero(
+            dados.pedidosWhatsapp,
+            dados.visualizacoes
+        );
+        var conversaoFinal = percentualNumero(
+            dados.pedidosWhatsapp,
+            dados.checkoutsIniciados
+        );
+
+        if (
+            dados.visualizacoes === 0 &&
+            dados.detalhesAbertos === 0 &&
+            dados.adicoesCarrinho === 0 &&
+            dados.pedidosWhatsapp === 0
+        ) {
+            return {
+                level: "neutral",
+                label: "Sem atividade",
+                prioridade: 1,
+                recomendacao:
+                    "Divulgue este produto ou confirme se ele está visível e publicado na vitrine."
+            };
+        }
+
+        if (
+            dados.visualizacoes >= 10 &&
+            conversaoCarrinho < 10
+        ) {
+            return {
+                level: "critical",
+                label: "Interesse sem carrinho",
+                prioridade: 6,
+                recomendacao:
+                    "Há visualizações, mas poucas adições ao carrinho. Revise foto principal, preço, título e clareza da oferta."
+            };
+        }
+
+        if (
+            dados.adicoesCarrinho >= 3 &&
+            conversaoCheckout < 40
+        ) {
+            return {
+                level: "attention",
+                label: "Abandono no carrinho",
+                prioridade: 5,
+                recomendacao:
+                    "O produto entra no carrinho, mas não avança. Deixe prazo, entrega e condições comerciais mais claros."
+            };
+        }
+
+        if (
+            dados.checkoutsIniciados >= 2 &&
+            conversaoFinal < 50
+        ) {
+            return {
+                level: "attention",
+                label: "Abandono final",
+                prioridade: 5,
+                recomendacao:
+                    "O pedido é iniciado, mas não chega ao WhatsApp. Revise o formulário final e o número comercial configurado."
+            };
+        }
+
+        if (
+            dados.pedidosWhatsapp >= 1 &&
+            conversaoPedido >= 5
+        ) {
+            return {
+                level: "positive",
+                label: "Boa conversão",
+                prioridade: 2,
+                recomendacao:
+                    "Este produto converte bem. Dê mais destaque a ele e aumente o tráfego qualificado."
+            };
+        }
+
+        if (dados.pedidosWhatsapp >= 1) {
+            return {
+                level: "positive",
+                label: "Gerando pedidos",
+                prioridade: 2,
+                recomendacao:
+                    "O produto já gera pedidos. Teste novos destaques, prova social ou uma oferta para elevar a conversão."
+            };
+        }
+
+        if (dados.visualizacoes < 10) {
+            return {
+                level: "neutral",
+                label: "Dados iniciais",
+                prioridade: 1,
+                recomendacao:
+                    "Ainda há poucas interações para um diagnóstico confiável. Continue divulgando e acompanhe o período."
+            };
+        }
+
+        return {
+            level: "attention",
+            label: "Baixa progressão",
+            prioridade: 4,
+            recomendacao:
+                "O produto recebe atividade, mas ainda não gera pedidos. Reforce benefícios, confiança e chamada para ação."
+        };
+    }
+
+    function ordenarMetricasProdutos(lista, criterio) {
+        return lista.slice().sort(function(a, b) {
+            var dadosA = a.dadosPeriodo;
+            var dadosB = b.dadosPeriodo;
+
+            if (criterio === "nome") {
+                return a.nome.localeCompare(b.nome, "pt-BR", {
+                    sensitivity: "base"
+                });
+            }
+
+            if (criterio === "visualizacoes") {
+                return dadosB.visualizacoes - dadosA.visualizacoes ||
+                    dadosB.pedidosWhatsapp - dadosA.pedidosWhatsapp;
+            }
+
+            if (criterio === "carrinho") {
+                return dadosB.adicoesCarrinho - dadosA.adicoesCarrinho ||
+                    dadosB.visualizacoes - dadosA.visualizacoes;
+            }
+
+            if (criterio === "valor") {
+                return dadosB.valorPedidosWhatsapp - dadosA.valorPedidosWhatsapp ||
+                    dadosB.pedidosWhatsapp - dadosA.pedidosWhatsapp;
+            }
+
+            if (criterio === "conversao") {
+                return b.conversao - a.conversao ||
+                    dadosB.pedidosWhatsapp - dadosA.pedidosWhatsapp ||
+                    dadosB.visualizacoes - dadosA.visualizacoes;
+            }
+
+            return dadosB.pedidosWhatsapp - dadosA.pedidosWhatsapp ||
+                dadosB.valorPedidosWhatsapp - dadosA.valorPedidosWhatsapp ||
+                dadosB.adicoesCarrinho - dadosA.adicoesCarrinho ||
+                dadosB.visualizacoes - dadosA.visualizacoes;
+        });
+    }
+
+    function encontrarDestaqueProduto(lista, campo, minimoVisualizacoes) {
+        return lista
+            .filter(function(item) {
+                return !minimoVisualizacoes ||
+                    item.dadosPeriodo.visualizacoes >= minimoVisualizacoes;
+            })
+            .slice()
+            .sort(function(a, b) {
+                if (campo === "conversao") {
+                    return b.conversao - a.conversao ||
+                        b.dadosPeriodo.pedidosWhatsapp - a.dadosPeriodo.pedidosWhatsapp;
+                }
+                return b.dadosPeriodo[campo] - a.dadosPeriodo[campo];
+            })[0] || null;
+    }
+
+    function preencherDestaqueProduto(idNome, idValor, item, textoVazio, valor) {
+        definirTextoMetrica(idNome, item ? item.nome : "Sem dados");
+        definirTextoMetrica(idValor, item ? valor(item) : textoVazio);
+    }
+
+    function renderizarOportunidadesProdutos(lista) {
+        var container = document.getElementById(
+            "vide-produtos-oportunidades-lista"
+        );
+        var contagem = document.getElementById(
+            "vide-produtos-oportunidades-contagem"
+        );
+        if (!container) return;
+
+        var oportunidades = lista
+            .filter(function(item) {
+                return item.diagnostico.prioridade >= 4;
+            })
+            .sort(function(a, b) {
+                return b.diagnostico.prioridade - a.diagnostico.prioridade ||
+                    b.dadosPeriodo.visualizacoes - a.dadosPeriodo.visualizacoes;
+            })
+            .slice(0, 3);
+
+        if (oportunidades.length === 0) {
+            var positivos = lista
+                .filter(function(item) {
+                    return item.diagnostico.level === "positive";
+                })
+                .slice(0, 3);
+
+            oportunidades = positivos;
+        }
+
+        container.replaceChildren();
+
+        if (oportunidades.length === 0) {
+            var vazio = document.createElement("article");
+            vazio.className = "vide-produtos-oportunidade";
+            vazio.innerHTML =
+                "<strong>Aguardando mais interações</strong>" +
+                "<p>As oportunidades aparecerão quando houver volume suficiente por produto.</p>";
+            container.appendChild(vazio);
+            if (contagem) contagem.textContent = "Sem alertas no período";
+            return;
+        }
+
+        oportunidades.forEach(function(item) {
+            var card = document.createElement("article");
+            card.className = "vide-produtos-oportunidade";
+
+            var nome = document.createElement("strong");
+            nome.textContent = item.nome;
+
+            var texto = document.createElement("p");
+            texto.textContent = item.diagnostico.recomendacao;
+
+            card.append(nome, texto);
+            container.appendChild(card);
+        });
+
+        if (contagem) {
+            contagem.textContent = oportunidades.length +
+                (oportunidades.length === 1
+                    ? " recomendação"
+                    : " recomendações");
+        }
+    }
+
+    function renderizarMetricasProdutos() {
+        var corpo = document.getElementById("vide-produtos-tabela-corpo");
+        if (!corpo) return;
+
+        var dias = Number(
+            document.getElementById("vide-funil-periodo")?.value || 30
+        );
+        var busca = String(
+            document.getElementById("vide-produtos-busca")?.value || ""
+        ).trim().toLocaleLowerCase("pt-BR");
+        var criterio = String(
+            document.getElementById("vide-produtos-ordenacao")?.value ||
+            "pedidos"
+        );
+
+        var listaCompleta = metricasProdutosDados.map(function(item) {
+            var dadosPeriodo = dadosPeriodoMetricaProduto(
+                item.metricas,
+                dias
+            );
+            var produto = {
+                id: item.id,
+                nome: nomeProdutoMetrica(item.produto),
+                categoria: categoriaProdutoMetrica(item.produto),
+                produto: item.produto,
+                metricas: item.metricas,
+                dadosPeriodo: dadosPeriodo
+            };
+
+            produto.conversao = percentualNumero(
+                dadosPeriodo.pedidosWhatsapp,
+                dadosPeriodo.visualizacoes
+            );
+            produto.diagnostico = diagnosticarProdutoMetrica(produto);
+            return produto;
+        });
+
+        var listaFiltrada = listaCompleta.filter(function(item) {
+            if (!busca) return true;
+            return (
+                item.nome + " " + item.categoria
+            ).toLocaleLowerCase("pt-BR").includes(busca);
+        });
+
+        var lista = ordenarMetricasProdutos(listaFiltrada, criterio);
+        var inteiro = new Intl.NumberFormat("pt-BR");
+        var moeda = new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        });
+
+        var topVisualizado = encontrarDestaqueProduto(
+            listaCompleta,
+            "visualizacoes"
+        );
+        var topCarrinho = encontrarDestaqueProduto(
+            listaCompleta,
+            "adicoesCarrinho"
+        );
+        var topPedidos = encontrarDestaqueProduto(
+            listaCompleta,
+            "pedidosWhatsapp"
+        );
+        var topConversao = encontrarDestaqueProduto(
+            listaCompleta,
+            "conversao",
+            3
+        );
+
+        preencherDestaqueProduto(
+            "vide-produto-top-visualizado",
+            "vide-produto-top-visualizado-valor",
+            topVisualizado && topVisualizado.dadosPeriodo.visualizacoes > 0
+                ? topVisualizado
+                : null,
+            "0 visualizações",
+            function(item) {
+                return inteiro.format(item.dadosPeriodo.visualizacoes) +
+                    (item.dadosPeriodo.visualizacoes === 1
+                        ? " visualização"
+                        : " visualizações");
+            }
+        );
+
+        preencherDestaqueProduto(
+            "vide-produto-top-carrinho",
+            "vide-produto-top-carrinho-valor",
+            topCarrinho && topCarrinho.dadosPeriodo.adicoesCarrinho > 0
+                ? topCarrinho
+                : null,
+            "0 adições",
+            function(item) {
+                return inteiro.format(item.dadosPeriodo.adicoesCarrinho) +
+                    (item.dadosPeriodo.adicoesCarrinho === 1
+                        ? " adição"
+                        : " adições");
+            }
+        );
+
+        preencherDestaqueProduto(
+            "vide-produto-top-pedidos",
+            "vide-produto-top-pedidos-valor",
+            topPedidos && topPedidos.dadosPeriodo.pedidosWhatsapp > 0
+                ? topPedidos
+                : null,
+            "0 pedidos",
+            function(item) {
+                return inteiro.format(item.dadosPeriodo.pedidosWhatsapp) +
+                    (item.dadosPeriodo.pedidosWhatsapp === 1
+                        ? " pedido"
+                        : " pedidos");
+            }
+        );
+
+        preencherDestaqueProduto(
+            "vide-produto-top-conversao",
+            "vide-produto-top-conversao-valor",
+            topConversao && topConversao.conversao > 0
+                ? topConversao
+                : null,
+            "0%",
+            function(item) {
+                return formatarPercentualLivre(item.conversao) +
+                    " visita → WhatsApp";
+            }
+        );
+
+        renderizarOportunidadesProdutos(listaCompleta);
+        corpo.replaceChildren();
+
+        if (lista.length === 0) {
+            var linhaVazia = document.createElement("tr");
+            var celulaVazia = document.createElement("td");
+            celulaVazia.colSpan = 9;
+            celulaVazia.className = "vide-produtos-empty";
+            celulaVazia.textContent = metricasProdutosDados.length === 0
+                ? "Nenhum produto cadastrado foi encontrado para esta loja."
+                : "Nenhum produto corresponde à busca atual.";
+            linhaVazia.appendChild(celulaVazia);
+            corpo.appendChild(linhaVazia);
+        } else {
+            lista.forEach(function(item, indice) {
+                var dados = item.dadosPeriodo;
+                var linha = document.createElement("tr");
+
+                var produtoCelula = document.createElement("td");
+                var identidade = document.createElement("div");
+                identidade.className = "vide-produto-identidade";
+
+                var posicao = document.createElement("span");
+                posicao.className = "vide-produto-posicao";
+                posicao.textContent = String(indice + 1);
+
+                var copia = document.createElement("div");
+                var nome = document.createElement("strong");
+                nome.textContent = item.nome;
+                nome.title = item.nome;
+
+                var categoria = document.createElement("small");
+                categoria.textContent = item.categoria;
+
+                copia.append(nome, categoria);
+                identidade.append(posicao, copia);
+                produtoCelula.appendChild(identidade);
+
+                function celulaNumero(valor, classe) {
+                    var celula = document.createElement("td");
+                    if (classe) celula.className = classe;
+                    celula.textContent = valor;
+                    return celula;
+                }
+
+                var diagnosticoCelula = document.createElement("td");
+                var diagnosticoBadge = document.createElement("span");
+                diagnosticoBadge.className = "vide-produto-diagnostico";
+                diagnosticoBadge.dataset.level = item.diagnostico.level;
+                diagnosticoBadge.textContent = item.diagnostico.label;
+                diagnosticoBadge.title = item.diagnostico.recomendacao;
+                diagnosticoCelula.appendChild(diagnosticoBadge);
+
+                linha.append(
+                    produtoCelula,
+                    celulaNumero(inteiro.format(dados.visualizacoes)),
+                    celulaNumero(inteiro.format(dados.detalhesAbertos)),
+                    celulaNumero(inteiro.format(dados.adicoesCarrinho)),
+                    celulaNumero(inteiro.format(dados.checkoutsIniciados)),
+                    celulaNumero(inteiro.format(dados.pedidosWhatsapp)),
+                    celulaNumero(
+                        formatarPercentualLivre(item.conversao),
+                        "vide-produto-conversao"
+                    ),
+                    celulaNumero(moeda.format(dados.valorPedidosWhatsapp)),
+                    diagnosticoCelula
+                );
+
+                corpo.appendChild(linha);
+            });
+        }
+
+        var status = document.getElementById("vide-produtos-status");
+        if (status && !metricasProdutosCarregando) {
+            status.dataset.state = "ready";
+            status.textContent =
+                inteiro.format(lista.length) +
+                (lista.length === 1 ? " produto exibido" : " produtos exibidos") +
+                (dias === 0
+                    ? " em todo o histórico disponível."
+                    : " nos últimos " + dias + " dias.") +
+                " Métricas anteriores à implantação podem não possuir todos os contadores.";
+        }
+    }
+
+    async function carregarMetricasProdutos(forcar) {
+        if (!metricasProdutosConexao || metricasProdutosCarregando) return;
+        if (!forcar && metricasProdutosDados.length > 0) {
+            renderizarMetricasProdutos();
+            return;
+        }
+
+        var botao = document.getElementById("vide-produtos-atualizar");
+        var status = document.getElementById("vide-produtos-status");
+        metricasProdutosCarregando = true;
+
+        if (botao) {
+            botao.disabled = true;
+            botao.classList.add("is-loading");
+        }
+        if (status) {
+            status.dataset.state = "loading";
+            status.textContent = "Atualizando produtos e indicadores...";
+        }
+
+        try {
+            var conexao = metricasProdutosConexao;
+            var firestore = conexao.firestore;
+            var firebase = conexao.firebase;
+            var tenantUid = conexao.tenantUid;
+
+            var produtosSnapshot = await firestore.getDocs(
+                firestore.query(
+                    firestore.collection(firebase.db, "produtos"),
+                    firestore.where("criadoPor", "==", tenantUid)
+                )
+            );
+
+            var produtos = produtosSnapshot.docs.map(function(documento) {
+                return {
+                    id: documento.id,
+                    produto: documento.data() || {}
+                };
+            });
+
+            var metricas = await Promise.all(
+                produtos.map(async function(item) {
+                    try {
+                        var snapshot = await firestore.getDoc(
+                            firestore.doc(
+                                firebase.db,
+                                "metricas_produtos",
+                                item.id
+                            )
+                        );
+                        return snapshot.exists()
+                            ? (snapshot.data() || {})
+                            : {};
+                    } catch (erro) {
+                        console.warn(
+                            "[Vide Hub] Métrica do produto não carregada:",
+                            item.id,
+                            erro?.message || erro
+                        );
+                        return {};
+                    }
+                })
+            );
+
+            metricasProdutosDados = produtos.map(function(item, indice) {
+                return {
+                    id: item.id,
+                    produto: item.produto,
+                    metricas: metricas[indice] || {}
+                };
+            });
+
+            metricasProdutosCarregando = false;
+            renderizarMetricasProdutos();
+        } catch (erro) {
+            console.error(
+                "[Vide Hub] Erro ao carregar métricas por produto:",
+                erro
+            );
+            if (status) {
+                status.dataset.state = "error";
+                status.textContent =
+                    "Não foi possível carregar o ranking por produto agora.";
+            }
+        } finally {
+            metricasProdutosCarregando = false;
+            if (botao) {
+                botao.disabled = false;
+                botao.classList.remove("is-loading");
+            }
+        }
+    }
+
+    function agendarAtualizacaoMetricasProdutos() {
+        clearTimeout(metricasProdutosAtualizacaoTimer);
+        metricasProdutosAtualizacaoTimer = setTimeout(function() {
+            carregarMetricasProdutos(true);
+        }, 1200);
+    }
+
     function formatarPercentual(parte, total) {
         if (!total || !parte) return "0%";
         var percentual = Math.min(100, Math.max(0, (parte / total) * 100));
@@ -2188,6 +3408,12 @@
             var firebase = modulos[0];
             var firestore = modulos[1];
 
+            metricasProdutosConexao = {
+                tenantUid: tenantUid,
+                firebase: firebase,
+                firestore: firestore
+            };
+
             if (typeof metricasFunilDesinscrever === "function") {
                 metricasFunilDesinscrever();
             }
@@ -2197,6 +3423,7 @@
                 function(snapshot) {
                     metricasFunilDados = snapshot.exists() ? (snapshot.data() || {}) : {};
                     renderizarMetricasFunil(metricasFunilDados);
+                    agendarAtualizacaoMetricasProdutos();
                 },
                 function(erro) {
                     console.error("[Vide Hub] Erro ao carregar funil público:", erro);
