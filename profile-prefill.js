@@ -707,7 +707,7 @@
 
             #vide-funil-loja-publica .vide-funil-header {
                 position: relative;
-                z-index: 1;
+                z-index: 100;
                 display: flex;
                 align-items: flex-start;
                 justify-content: space-between;
@@ -762,6 +762,7 @@
 
             #vide-funil-loja-publica .vide-relatorio-toolbar {
                 position: relative;
+                z-index: 110;
                 display: flex;
                 align-items: flex-start;
                 justify-content: flex-end;
@@ -772,6 +773,11 @@
 
             #vide-funil-loja-publica .vide-relatorio-exportacao {
                 position: relative;
+                z-index: 1;
+            }
+
+            #vide-funil-loja-publica .vide-relatorio-exportacao[open] {
+                z-index: 120;
             }
 
             #vide-funil-loja-publica .vide-relatorio-exportacao summary {
@@ -835,7 +841,7 @@
                 position: absolute;
                 top: calc(100% + 8px);
                 right: 0;
-                z-index: 30;
+                z-index: 1000;
                 width: min(290px, calc(100vw - 32px));
                 padding: 8px;
                 border: 1px solid rgba(255,255,255,.1);
