@@ -4620,3 +4620,1108 @@
     aguardarDOMContentLoaded(inicializarFaviconDashboard);
     aguardarDOMContentLoaded(inicializarMetricasFunilDashboard);
 })();
+
+/* =========================================================
+   VIDE HUB — AQUISIÇÃO REAL POR ORIGEM E CAMPANHA
+   Adicionado como segundo IIFE para não alterar o funil atual.
+   ========================================================= */
+(function() {
+    "use strict";
+
+    var desinscreverAquisicao = null;
+    var conexaoIniciada = false;
+
+    function numeroAquisicao(valor) {
+        var numero = Number(valor || 0);
+        return Number.isFinite(numero) ? Math.max(0, numero) : 0;
+    }
+
+    function percentualAquisicao(parte, total) {
+        parte = numeroAquisicao(parte);
+        total = numeroAquisicao(total);
+        if (!total) return 0;
+        return Math.max(0, (parte / total) * 100);
+    }
+
+    function formatarPercentualAquisicao(valor) {
+        return Number(valor || 0).toLocaleString("pt-BR", {
+            minimumFractionDigits: Math.abs(Number(valor || 0)) < 10 ? 1 : 0,
+            maximumFractionDigits: 1
+        }) + "%";
+    }
+
+    function formatarInteiroAquisicao(valor) {
+        return new Intl.NumberFormat("pt-BR").format(
+            Math.round(numeroAquisicao(valor))
+        );
+    }
+
+    function formatarMoedaAquisicao(valor) {
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        }).format(numeroAquisicao(valor));
+    }
+
+    function textoSeguroAquisicao(valor, fallback) {
+        var texto = String(valor || "").replace(/\s+/g, " ").trim();
+        return texto || fallback || "";
+    }
+
+    function siglaAquisicao(nome) {
+        var partes = textoSeguroAquisicao(nome, "Origem")
+            .split(" ")
+            .filter(Boolean);
+
+        if (partes.length === 1) {
+            return partes[0].slice(0, 2).toUpperCase();
+        }
+
+        return (
+            partes[0].slice(0, 1) +
+            partes[1].slice(0, 1)
+        ).toUpperCase();
+    }
+
+    function dadosItemAquisicao(item) {
+        item = item || {};
+
+        return {
+            nome: textoSeguroAquisicao(item.nome, "Origem não identificada"),
+            meio: textoSeguroAquisicao(item.meio, "Não informado"),
+            origem: textoSeguroAquisicao(item.origem, "Não informada"),
+            visitas: numeroAquisicao(item.visitas || item.sessoes),
+            cliques: numeroAquisicao(item.cliques),
+            carrinhos: numeroAquisicao(item.carrinhosAbertos),
+            adicoes: numeroAquisicao(item.adicoesCarrinho),
+            checkouts: numeroAquisicao(item.checkoutsIniciados),
+            whatsapp: numeroAquisicao(item.pedidosWhatsapp),
+            valor: numeroAquisicao(item.valorPedidosWhatsapp),
+            compartilhamentos: numeroAquisicao(item.compartilhamentos)
+        };
+    }
+
+    function criarEstilosAquisicao() {
+        if (document.getElementById("vide-aquisicao-real-style")) return;
+
+        var style = document.createElement("style");
+        style.id = "vide-aquisicao-real-style";
+        style.textContent = `
+            #vide-aquisicao-real {
+                position: relative;
+                z-index: 1;
+                margin-top: 18px;
+                padding: 18px;
+                overflow: hidden;
+                border: 1px solid rgba(255,255,255,.075);
+                border-radius: 20px;
+                background:
+                    radial-gradient(circle at 100% 0%, color-mix(in srgb, var(--sys-destaque, #00f2fe) 10%, transparent), transparent 34%),
+                    linear-gradient(145deg, rgba(8,14,28,.92), rgba(3,7,18,.78));
+            }
+
+            #vide-aquisicao-real * {
+                box-sizing: border-box;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 16px;
+                margin-bottom: 15px;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-title {
+                display: flex;
+                align-items: flex-start;
+                gap: 11px;
+                min-width: 0;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-icon {
+                width: 40px;
+                height: 40px;
+                flex: 0 0 40px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid color-mix(in srgb, var(--sys-destaque, #00f2fe) 24%, transparent);
+                border-radius: 13px;
+                color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 82%, white 18%);
+                background: color-mix(in srgb, var(--sys-destaque, #00f2fe) 8%, transparent);
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-icon svg {
+                width: 19px;
+                height: 19px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.8;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-title small {
+                display: block;
+                margin-bottom: 4px;
+                color: #6b7280;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .16em;
+                text-transform: uppercase;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-title h3 {
+                margin: 0;
+                color: #fff;
+                font-size: 14px;
+                font-weight: 900;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-title p {
+                margin: 5px 0 0;
+                color: #8b95a7;
+                font-size: 10px;
+                line-height: 1.55;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-status {
+                flex: 0 0 auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                min-height: 31px;
+                padding: 0 11px;
+                border: 1px solid rgba(255,255,255,.09);
+                border-radius: 999px;
+                color: #cbd5e1;
+                background: rgba(255,255,255,.04);
+                font-size: 9px;
+                font-weight: 900;
+                white-space: nowrap;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-status::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 999px;
+                background: #22c55e;
+                box-shadow: 0 0 0 4px rgba(34,197,94,.1);
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-resumo {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 10px;
+                margin-bottom: 15px;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-kpi {
+                min-width: 0;
+                padding: 13px;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 14px;
+                background: rgba(255,255,255,.027);
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-kpi span {
+                display: block;
+                overflow: hidden;
+                color: #7f8a9d;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-overflow: ellipsis;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-kpi strong {
+                display: block;
+                overflow: hidden;
+                margin-top: 8px;
+                color: #fff;
+                font-size: 15px;
+                font-weight: 900;
+                letter-spacing: -.025em;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-kpi small {
+                display: block;
+                margin-top: 5px;
+                color: #697386;
+                font-size: 8px;
+                line-height: 1.45;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-layout {
+                display: grid;
+                grid-template-columns: minmax(0, 1.05fr) minmax(340px, .95fr);
+                gap: 14px;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-bloco {
+                min-width: 0;
+                padding: 15px;
+                border: 1px solid rgba(255,255,255,.065);
+                border-radius: 16px;
+                background: rgba(3,7,18,.4);
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-bloco-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 12px;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-bloco-header strong {
+                color: #fff;
+                font-size: 11px;
+                font-weight: 900;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-bloco-header span {
+                color: #6b7280;
+                font-size: 8px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+            }
+
+            #vide-aquisicao-real .vide-origens-lista {
+                display: grid;
+                gap: 8px;
+            }
+
+            #vide-aquisicao-real .vide-origem-card {
+                display: grid;
+                grid-template-columns: 38px minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
+                padding: 10px;
+                border: 1px solid rgba(255,255,255,.055);
+                border-radius: 13px;
+                background: rgba(255,255,255,.024);
+            }
+
+            #vide-aquisicao-real .vide-origem-avatar {
+                width: 38px;
+                height: 38px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid color-mix(in srgb, var(--sys-primaria, #6d5dfc) 32%, transparent);
+                border-radius: 12px;
+                color: #dbeafe;
+                background: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 13%, rgba(255,255,255,.02));
+                font-size: 9px;
+                font-weight: 900;
+                letter-spacing: .04em;
+            }
+
+            #vide-aquisicao-real .vide-origem-info {
+                min-width: 0;
+            }
+
+            #vide-aquisicao-real .vide-origem-info strong,
+            #vide-aquisicao-real .vide-origem-info small {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-aquisicao-real .vide-origem-info strong {
+                color: #f8fafc;
+                font-size: 10px;
+                font-weight: 900;
+            }
+
+            #vide-aquisicao-real .vide-origem-info small {
+                margin-top: 4px;
+                color: #6f7a8c;
+                font-size: 8px;
+            }
+
+            #vide-aquisicao-real .vide-origem-resultados {
+                display: grid;
+                grid-template-columns: repeat(3, auto);
+                align-items: center;
+                gap: 12px;
+                text-align: right;
+            }
+
+            #vide-aquisicao-real .vide-origem-metrica span,
+            #vide-aquisicao-real .vide-origem-metrica strong {
+                display: block;
+            }
+
+            #vide-aquisicao-real .vide-origem-metrica span {
+                color: #687386;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .08em;
+                text-transform: uppercase;
+            }
+
+            #vide-aquisicao-real .vide-origem-metrica strong {
+                margin-top: 3px;
+                color: #e5e7eb;
+                font-size: 9px;
+                font-weight: 900;
+            }
+
+            #vide-aquisicao-real .vide-campanhas-scroll {
+                overflow-x: auto;
+            }
+
+            #vide-aquisicao-real .vide-campanhas-tabela {
+                width: 100%;
+                min-width: 590px;
+                border-collapse: collapse;
+            }
+
+            #vide-aquisicao-real .vide-campanhas-tabela th {
+                padding: 8px 7px;
+                border-bottom: 1px solid rgba(255,255,255,.07);
+                color: #657084;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-align: left;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            #vide-aquisicao-real .vide-campanhas-tabela td {
+                padding: 10px 7px;
+                border-bottom: 1px solid rgba(255,255,255,.045);
+                color: #cbd5e1;
+                font-size: 8px;
+                font-weight: 700;
+                white-space: nowrap;
+            }
+
+            #vide-aquisicao-real .vide-campanhas-tabela tr:last-child td {
+                border-bottom: 0;
+            }
+
+            #vide-aquisicao-real .vide-campanha-nome {
+                max-width: 170px;
+                overflow: hidden;
+                color: #fff;
+                font-weight: 900;
+                text-overflow: ellipsis;
+            }
+
+            #vide-aquisicao-real .vide-aquisicao-empty {
+                padding: 22px 15px;
+                border: 1px dashed rgba(255,255,255,.08);
+                border-radius: 13px;
+                color: #667085;
+                background: rgba(255,255,255,.015);
+                font-size: 9px;
+                line-height: 1.55;
+                text-align: center;
+            }
+
+            #view-metricas .vide-origem-legada-oculta {
+                display: none !important;
+            }
+
+            @media (max-width: 900px) {
+                #vide-aquisicao-real .vide-aquisicao-resumo {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+
+                #vide-aquisicao-real .vide-aquisicao-layout {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (max-width: 620px) {
+                #vide-aquisicao-real {
+                    padding: 15px;
+                }
+
+                #vide-aquisicao-real .vide-aquisicao-header {
+                    flex-direction: column;
+                }
+
+                #vide-aquisicao-real .vide-aquisicao-status {
+                    align-self: flex-start;
+                }
+
+                #vide-aquisicao-real .vide-aquisicao-resumo {
+                    grid-template-columns: 1fr 1fr;
+                }
+
+                #vide-aquisicao-real .vide-origem-card {
+                    grid-template-columns: 38px minmax(0, 1fr);
+                }
+
+                #vide-aquisicao-real .vide-origem-resultados {
+                    grid-column: 1 / -1;
+                    grid-template-columns: repeat(3, 1fr);
+                    width: 100%;
+                    padding-top: 9px;
+                    border-top: 1px solid rgba(255,255,255,.05);
+                    text-align: left;
+                }
+            }
+        `;
+
+        document.head.appendChild(style);
+    }
+
+    function ocultarOrigemLegada() {
+        var view = document.getElementById("view-metricas");
+        if (!view) return;
+
+        var titulos = Array.from(
+            view.querySelectorAll("h1, h2, h3, h4, strong")
+        );
+
+        var titulo = titulos.find(function(elemento) {
+            if (elemento.closest("#vide-aquisicao-real")) return false;
+
+            return textoSeguroAquisicao(elemento.textContent)
+                .toLocaleLowerCase("pt-BR") === "origem de tráfego";
+        });
+
+        if (!titulo) return;
+
+        var container = titulo.closest(
+            ".glass-card, .layout-block, section, article"
+        );
+
+        if (
+            container &&
+            !container.closest("#vide-aquisicao-real") &&
+            /Meta Ads/i.test(container.textContent || "") &&
+            /Google/i.test(container.textContent || "") &&
+            /TikTok/i.test(container.textContent || "") &&
+            /Instagram/i.test(container.textContent || "")
+        ) {
+            container.classList.add("vide-origem-legada-oculta");
+        }
+    }
+
+    function criarPainelAquisicao() {
+        if (document.getElementById("vide-aquisicao-real")) return true;
+
+        var funil = document.getElementById("vide-funil-loja-publica");
+        if (!funil) return false;
+
+        criarEstilosAquisicao();
+
+        var painel = document.createElement("section");
+        painel.id = "vide-aquisicao-real";
+        painel.setAttribute(
+            "aria-labelledby",
+            "vide-aquisicao-real-titulo"
+        );
+
+        painel.innerHTML = `
+            <div class="vide-aquisicao-header">
+                <div class="vide-aquisicao-title">
+                    <span class="vide-aquisicao-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M3 12h18"></path>
+                            <path d="M12 3c2.5 2.7 3.8 5.7 3.8 9S14.5 18.3 12 21"></path>
+                            <path d="M12 3C9.5 5.7 8.2 8.7 8.2 12S9.5 18.3 12 21"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Aquisição de clientes</small>
+                        <h3 id="vide-aquisicao-real-titulo">
+                            Origem de tráfego e campanhas
+                        </h3>
+                        <p>
+                            Identifique quais canais trazem visitas, pedidos e maior intenção de compra.
+                        </p>
+                    </div>
+                </div>
+
+                <span
+                    class="vide-aquisicao-status"
+                    id="vide-aquisicao-status"
+                >
+                    Carregando dados
+                </span>
+            </div>
+
+            <div class="vide-aquisicao-resumo">
+                <article class="vide-aquisicao-kpi">
+                    <span>Principal origem</span>
+                    <strong id="vide-aquisicao-principal">Sem dados</strong>
+                    <small id="vide-aquisicao-principal-detalhe">
+                        Aguardando visitas identificadas
+                    </small>
+                </article>
+
+                <article class="vide-aquisicao-kpi">
+                    <span>Visitas atribuídas</span>
+                    <strong id="vide-aquisicao-visitas">0</strong>
+                    <small>Todo o histórico identificado</small>
+                </article>
+
+                <article class="vide-aquisicao-kpi">
+                    <span>WhatsApp por origem</span>
+                    <strong id="vide-aquisicao-whatsapp">0</strong>
+                    <small>Pedidos associados a um canal</small>
+                </article>
+
+                <article class="vide-aquisicao-kpi">
+                    <span>Conversão atribuída</span>
+                    <strong id="vide-aquisicao-conversao">0%</strong>
+                    <small>Visita identificada → WhatsApp</small>
+                </article>
+            </div>
+
+            <div class="vide-aquisicao-layout">
+                <div class="vide-aquisicao-bloco">
+                    <div class="vide-aquisicao-bloco-header">
+                        <strong>Desempenho por origem</strong>
+                        <span>Todo o período</span>
+                    </div>
+
+                    <div
+                        class="vide-origens-lista"
+                        id="vide-origens-lista"
+                    >
+                        <div class="vide-aquisicao-empty">
+                            Carregando origens de tráfego...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="vide-aquisicao-bloco">
+                    <div class="vide-aquisicao-bloco-header">
+                        <strong>Campanhas identificadas</strong>
+                        <span id="vide-campanhas-total">0 campanhas</span>
+                    </div>
+
+                    <div
+                        class="vide-campanhas-scroll"
+                        id="vide-campanhas-container"
+                    >
+                        <div class="vide-aquisicao-empty">
+                            Carregando campanhas...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        var produtos = funil.querySelector(
+            ".vide-produtos-performance"
+        );
+
+        if (produtos) {
+            funil.insertBefore(painel, produtos);
+        } else {
+            funil.appendChild(painel);
+        }
+
+        ocultarOrigemLegada();
+        return true;
+    }
+
+    function atualizarTextoAquisicao(id, texto) {
+        var elemento = document.getElementById(id);
+        if (elemento) elemento.textContent = texto;
+    }
+
+    function criarMetricaOrigem(rotulo, valor) {
+        var bloco = document.createElement("div");
+        bloco.className = "vide-origem-metrica";
+
+        var span = document.createElement("span");
+        span.textContent = rotulo;
+
+        var strong = document.createElement("strong");
+        strong.textContent = valor;
+
+        bloco.append(span, strong);
+        return bloco;
+    }
+
+    function renderizarOrigensAquisicao(origens) {
+        var lista = document.getElementById("vide-origens-lista");
+        if (!lista) return;
+
+        lista.replaceChildren();
+
+        if (!origens.length) {
+            var vazio = document.createElement("div");
+            vazio.className = "vide-aquisicao-empty";
+            vazio.textContent =
+                "Ainda não existem visitas com origem identificada. " +
+                "Use links com UTM ou divulgue a loja nas redes para começar a separar os canais.";
+            lista.appendChild(vazio);
+            return;
+        }
+
+        origens.slice(0, 8).forEach(function(item) {
+            var card = document.createElement("article");
+            card.className = "vide-origem-card";
+
+            var avatar = document.createElement("span");
+            avatar.className = "vide-origem-avatar";
+            avatar.textContent = siglaAquisicao(item.nome);
+
+            var info = document.createElement("div");
+            info.className = "vide-origem-info";
+
+            var nome = document.createElement("strong");
+            nome.textContent = item.nome;
+
+            var meio = document.createElement("small");
+            meio.textContent =
+                item.meio +
+                " · " +
+                formatarInteiroAquisicao(item.cliques) +
+                " cliques";
+
+            info.append(nome, meio);
+
+            var resultados = document.createElement("div");
+            resultados.className = "vide-origem-resultados";
+
+            resultados.append(
+                criarMetricaOrigem(
+                    "Visitas",
+                    formatarInteiroAquisicao(item.visitas)
+                ),
+                criarMetricaOrigem(
+                    "WhatsApp",
+                    formatarInteiroAquisicao(item.whatsapp)
+                ),
+                criarMetricaOrigem(
+                    "Conversão",
+                    formatarPercentualAquisicao(
+                        percentualAquisicao(
+                            item.whatsapp,
+                            item.visitas
+                        )
+                    )
+                )
+            );
+
+            card.append(avatar, info, resultados);
+            lista.appendChild(card);
+        });
+    }
+
+    function criarCelulaCampanha(texto, classe) {
+        var td = document.createElement("td");
+        td.textContent = texto;
+        if (classe) td.className = classe;
+        return td;
+    }
+
+    function renderizarCampanhasAquisicao(campanhas) {
+        var container = document.getElementById(
+            "vide-campanhas-container"
+        );
+
+        if (!container) return;
+
+        atualizarTextoAquisicao(
+            "vide-campanhas-total",
+            campanhas.length +
+                (campanhas.length === 1
+                    ? " campanha"
+                    : " campanhas")
+        );
+
+        container.replaceChildren();
+
+        if (!campanhas.length) {
+            var vazio = document.createElement("div");
+            vazio.className = "vide-aquisicao-empty";
+            vazio.textContent =
+                "Nenhuma campanha UTM foi identificada ainda. " +
+                "Acesse a loja usando utm_source, utm_medium e utm_campaign para acompanhar campanhas separadamente.";
+            container.appendChild(vazio);
+            return;
+        }
+
+        var tabela = document.createElement("table");
+        tabela.className = "vide-campanhas-tabela";
+
+        var thead = document.createElement("thead");
+        var cabecalho = document.createElement("tr");
+
+        [
+            "Campanha",
+            "Origem",
+            "Visitas",
+            "WhatsApp",
+            "Conversão",
+            "Valor potencial"
+        ].forEach(function(rotulo) {
+            var th = document.createElement("th");
+            th.textContent = rotulo;
+            cabecalho.appendChild(th);
+        });
+
+        thead.appendChild(cabecalho);
+
+        var tbody = document.createElement("tbody");
+
+        campanhas.slice(0, 10).forEach(function(item) {
+            var linha = document.createElement("tr");
+
+            linha.append(
+                criarCelulaCampanha(
+                    item.nome,
+                    "vide-campanha-nome"
+                ),
+                criarCelulaCampanha(
+                    item.origem + " · " + item.meio
+                ),
+                criarCelulaCampanha(
+                    formatarInteiroAquisicao(item.visitas)
+                ),
+                criarCelulaCampanha(
+                    formatarInteiroAquisicao(item.whatsapp)
+                ),
+                criarCelulaCampanha(
+                    formatarPercentualAquisicao(
+                        percentualAquisicao(
+                            item.whatsapp,
+                            item.visitas
+                        )
+                    )
+                ),
+                criarCelulaCampanha(
+                    formatarMoedaAquisicao(item.valor)
+                )
+            );
+
+            tbody.appendChild(linha);
+        });
+
+        tabela.append(thead, tbody);
+        container.appendChild(tabela);
+    }
+
+    function renderizarAquisicao(dados) {
+        dados = dados || {};
+
+        var origens = Object.entries(dados.porOrigem || {})
+            .map(function(par) {
+                var item = dadosItemAquisicao(par[1]);
+                item.chave = par[0];
+                return item;
+            })
+            .filter(function(item) {
+                return (
+                    item.visitas > 0 ||
+                    item.cliques > 0 ||
+                    item.carrinhos > 0 ||
+                    item.adicoes > 0 ||
+                    item.checkouts > 0 ||
+                    item.whatsapp > 0 ||
+                    item.valor > 0
+                );
+            })
+            .sort(function(a, b) {
+                return (
+                    b.visitas - a.visitas ||
+                    b.whatsapp - a.whatsapp ||
+                    b.valor - a.valor
+                );
+            });
+
+        var campanhas = Object.entries(dados.porCampanha || {})
+            .map(function(par) {
+                var item = dadosItemAquisicao(par[1]);
+                item.chave = par[0];
+                item.nome = textoSeguroAquisicao(
+                    par[1]?.nome,
+                    "Campanha sem nome"
+                );
+                item.origem = textoSeguroAquisicao(
+                    par[1]?.origem,
+                    "Origem não informada"
+                );
+                return item;
+            })
+            .filter(function(item) {
+                return (
+                    item.visitas > 0 ||
+                    item.cliques > 0 ||
+                    item.checkouts > 0 ||
+                    item.whatsapp > 0 ||
+                    item.valor > 0
+                );
+            })
+            .sort(function(a, b) {
+                return (
+                    b.whatsapp - a.whatsapp ||
+                    b.visitas - a.visitas ||
+                    b.valor - a.valor
+                );
+            });
+
+        var totais = origens.reduce(
+            function(total, item) {
+                total.visitas += item.visitas;
+                total.whatsapp += item.whatsapp;
+                total.valor += item.valor;
+                return total;
+            },
+            {
+                visitas: 0,
+                whatsapp: 0,
+                valor: 0
+            }
+        );
+
+        var principal = origens[0] || null;
+
+        atualizarTextoAquisicao(
+            "vide-aquisicao-principal",
+            principal ? principal.nome : "Sem dados"
+        );
+
+        atualizarTextoAquisicao(
+            "vide-aquisicao-principal-detalhe",
+            principal
+                ? formatarInteiroAquisicao(principal.visitas) +
+                    (principal.visitas === 1
+                        ? " visita identificada"
+                        : " visitas identificadas")
+                : "Aguardando visitas identificadas"
+        );
+
+        atualizarTextoAquisicao(
+            "vide-aquisicao-visitas",
+            formatarInteiroAquisicao(totais.visitas)
+        );
+
+        atualizarTextoAquisicao(
+            "vide-aquisicao-whatsapp",
+            formatarInteiroAquisicao(totais.whatsapp)
+        );
+
+        atualizarTextoAquisicao(
+            "vide-aquisicao-conversao",
+            formatarPercentualAquisicao(
+                percentualAquisicao(
+                    totais.whatsapp,
+                    totais.visitas
+                )
+            )
+        );
+
+        atualizarTextoAquisicao(
+            "vide-aquisicao-status",
+            origens.length || campanhas.length
+                ? "Dados sincronizados"
+                : "Aguardando atribuição"
+        );
+
+        renderizarOrigensAquisicao(origens);
+        renderizarCampanhasAquisicao(campanhas);
+        ocultarOrigemLegada();
+    }
+
+    async function obterUsuarioAutenticado(authModulo, auth) {
+        if (auth.currentUser) return auth.currentUser;
+
+        return new Promise(function(resolve, reject) {
+            var cancelar = authModulo.onAuthStateChanged(
+                auth,
+                function(usuario) {
+                    cancelar();
+                    if (usuario) {
+                        resolve(usuario);
+                    } else {
+                        reject(
+                            new Error(
+                                "Sessão não autenticada."
+                            )
+                        );
+                    }
+                },
+                function(erro) {
+                    cancelar();
+                    reject(erro);
+                }
+            );
+        });
+    }
+
+    async function resolverTenantAquisicao(
+        firebase,
+        firestore,
+        authModulo
+    ) {
+        var masterUid = new URLSearchParams(
+            window.location.search
+        ).get("masterUID");
+
+        if (masterUid) {
+            return String(masterUid).trim();
+        }
+
+        var usuario = await obterUsuarioAutenticado(
+            authModulo,
+            firebase.auth
+        );
+
+        try {
+            var funcionarioSnap = await firestore.getDoc(
+                firestore.doc(
+                    firebase.db,
+                    "funcionarios",
+                    usuario.uid
+                )
+            );
+
+            if (
+                funcionarioSnap.exists() &&
+                funcionarioSnap.data()?.donoUID
+            ) {
+                return String(
+                    funcionarioSnap.data().donoUID
+                ).trim();
+            }
+        } catch (erro) {
+            console.warn(
+                "[Vide Hub] Vínculo de funcionário não consultado:",
+                erro?.message || erro
+            );
+        }
+
+        return usuario.uid;
+    }
+
+    async function conectarAquisicao() {
+        if (conexaoIniciada) return;
+        if (!criarPainelAquisicao()) return;
+
+        conexaoIniciada = true;
+
+        var status = document.getElementById(
+            "vide-aquisicao-status"
+        );
+
+        try {
+            var modulos = await Promise.all([
+                import("./firebase-init.js"),
+                import(
+                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+                ),
+                import(
+                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"
+                )
+            ]);
+
+            var firebase = modulos[0];
+            var firestore = modulos[1];
+            var authModulo = modulos[2];
+
+            var tenantUid = await resolverTenantAquisicao(
+                firebase,
+                firestore,
+                authModulo
+            );
+
+            if (!tenantUid) {
+                throw new Error(
+                    "Não foi possível identificar a loja ativa."
+                );
+            }
+
+            if (typeof desinscreverAquisicao === "function") {
+                desinscreverAquisicao();
+            }
+
+            desinscreverAquisicao = firestore.onSnapshot(
+                firestore.doc(
+                    firebase.db,
+                    "metricas_vitrines",
+                    tenantUid
+                ),
+                function(snapshot) {
+                    renderizarAquisicao(
+                        snapshot.exists()
+                            ? snapshot.data() || {}
+                            : {}
+                    );
+                },
+                function(erro) {
+                    console.error(
+                        "[Vide Hub] Erro ao carregar aquisição:",
+                        erro
+                    );
+
+                    if (status) {
+                        status.textContent =
+                            erro?.code === "permission-denied"
+                                ? "Sem permissão"
+                                : "Falha ao sincronizar";
+                    }
+                }
+            );
+        } catch (erro) {
+            conexaoIniciada = false;
+
+            console.error(
+                "[Vide Hub] Erro ao iniciar aquisição:",
+                erro
+            );
+
+            if (status) {
+                status.textContent =
+                    "Não foi possível carregar";
+            }
+        }
+    }
+
+    function inicializarAquisicaoDashboard() {
+        var tentativas = 0;
+
+        var intervalo = setInterval(function() {
+            tentativas += 1;
+
+            if (criarPainelAquisicao()) {
+                clearInterval(intervalo);
+                conectarAquisicao();
+                return;
+            }
+
+            if (tentativas >= 60) {
+                clearInterval(intervalo);
+                console.warn(
+                    "[Vide Hub] Área de métricas não encontrada para inserir aquisição."
+                );
+            }
+        }, 180);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            inicializarAquisicaoDashboard,
+            { once: true }
+        );
+    } else {
+        inicializarAquisicaoDashboard();
+    }
+})();
+
