@@ -2,7 +2,7 @@
  * Vide Aura — Central Comercial de Leads V6
  * Workspace em página inteira: inbox, pipeline, agenda, histórico,
  * responsáveis, WhatsApp, receita, relatórios, duplicidades e automações.
- * Versão 6.1.0
+ * Versão 6.1.1
  */
 import { db, auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -18,8 +18,8 @@ import {
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const VERSION = "6.1.0";
-const ASSET_VERSION = "610";
+const VERSION = "6.1.1";
+const ASSET_VERSION = "611";
 const LEAD_SCHEMA_VERSION = 2;
 const STORAGE_PREFIX = "aura_leads_v5_";
 const MAX_HISTORY = 35;
