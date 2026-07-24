@@ -2,7 +2,7 @@
  * Vide Aura — Central Comercial de Leads V6
  * Workspace em página inteira: inbox, pipeline, agenda, histórico,
  * responsáveis, WhatsApp, receita, relatórios, duplicidades e automações.
- * Versão 6.1.1
+ * Versão 6.2.0
  */
 import { db, auth } from "./firebase-init.js";
 import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
@@ -18,8 +18,8 @@ import {
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
-const VERSION = "6.1.1";
-const ASSET_VERSION = "611";
+const VERSION = "6.2.0";
+const ASSET_VERSION = "620";
 const LEAD_SCHEMA_VERSION = 2;
 const STORAGE_PREFIX = "aura_leads_v5_";
 const MAX_HISTORY = 35;
@@ -715,7 +715,7 @@ async function resolveOwnerUid(user) {
             }
         }
     } catch (error) {
-        console.info("[Aura Leads V6.1] Contexto de funcionário não identificado.");
+        console.info("[Aura Leads V6.2] Contexto de funcionário não identificado.");
     }
 
     return contextual || user?.uid || "";
@@ -897,7 +897,7 @@ async function loadAccessContext(user) {
                 }
             }
         } catch (error) {
-            console.warn("[Aura Leads V6.1] Permissão não carregada:", error?.message || error);
+            console.warn("[Aura Leads V6.2] Permissão não carregada:", error?.message || error);
         }
     }
 
@@ -1252,7 +1252,7 @@ function handleRealtimeSnapshot(snapshot) {
     state.invalidTenantCount = normalized.length - incoming.length;
     if (state.invalidTenantCount > 0) {
         console.error(
-            `[Aura Leads V6.1] ${state.invalidTenantCount} registro(s) fora do tenant foram ignorados.`
+            `[Aura Leads V6.2] ${state.invalidTenantCount} registro(s) fora do tenant foram ignorados.`
         );
     }
 
@@ -1270,6 +1270,7 @@ function handleRealtimeSnapshot(snapshot) {
     state.loading = false;
     refreshLeadCollections();
     updateActiveTabUI();
+    dispatchLeadsBridge();
 
     if (state.modalOpen) {
         render();
@@ -1285,6 +1286,17 @@ function handleRealtimeSnapshot(snapshot) {
     if (!wasReady && state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
         runAutomations({ silent: true, skipRender: true });
     }
+}
+
+function dispatchLeadsBridge() {
+    window.dispatchEvent(new CustomEvent("aura:leads-v6-data", {
+        detail: {
+            ownerUid: state.ownerUid,
+            canView: state.canView,
+            canEdit: state.canEdit,
+            leads: state.allLeads.slice()
+        }
+    }));
 }
 
 function loadLeads(options = {}) {
@@ -2447,7 +2459,7 @@ async function persistLeadUpdates(lead, updates, event) {
         return false;
     }
     if (!lead || String(lead.criadoPor || "") !== state.ownerUid) {
-        console.error("[Aura Leads V6.1] Atualização bloqueada por divergência de tenant.");
+        console.error("[Aura Leads V6.2] Atualização bloqueada por divergência de tenant.");
         toast("Este registro não pertence à loja atual.", "error");
         return false;
     }
@@ -2674,7 +2686,7 @@ async function normalizeStoredLeads() {
         toast(`${candidates.length} lead(s) padronizados.`);
     } catch (error) {
         state.schemaMigrationRunning = false;
-        console.error("[Aura Leads V6.1] Falha ao padronizar base:", error);
+        console.error("[Aura Leads V6.2] Falha ao padronizar base:", error);
         render();
         toast("Não foi possível padronizar toda a base.", "error");
     }
@@ -3233,6 +3245,7 @@ async function initialize(user) {
         runAutomations,
         normalizeStoredLeads,
         markAllRead,
+        getLeads: () => state.allLeads.slice(),
         getState: () => ({
             ownerUid: state.ownerUid,
             total: state.leads.length,
@@ -3256,8 +3269,25 @@ async function initialize(user) {
     };
     window.AuraLeadsV6 = window.AuraLeadsV5;
 
-    console.info(`[Vide Aura Leads V6.1] Inicializado — ${state.ownerUid} — v${VERSION}`);
+    console.info(`[Vide Aura Leads V6.2] Inicializado — ${state.ownerUid} — v${VERSION}`);
 }
+
+function loadOrdersEngineV1() {
+    const styleId = "aura-orders-engine-v1-style";
+    if (!document.getElementById(styleId)) {
+        const link = document.createElement("link");
+        link.id = styleId;
+        link.rel = "stylesheet";
+        link.href = new URL("./orders-engine-v1.css?v=100", import.meta.url).href;
+        document.head.appendChild(link);
+    }
+
+    import("./orders-engine-v1.js?v=100").catch((error) => {
+        console.error("[Aura Pedidos] Não foi possível carregar o módulo:", error);
+    });
+}
+
+loadOrdersEngineV1();
 
 onAuthStateChanged(auth, (user) => {
     if (user) initialize(user);
