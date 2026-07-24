@@ -5658,7 +5658,6 @@
                     tenantUid
                 ),
                 function(snapshot) {
-                function(snapshot) {
                     var dadosAquisicao = snapshot.exists()
                         ? snapshot.data() || {}
                         : {};
@@ -8302,28 +8301,6 @@
             );
         } else {
             aplicarDadosCompartilhados({});
-        }
-    }
-
-        } catch (erro) {
-            diagnosticoAquisicaoIniciado = false;
-
-            console.error(
-                "[Vide Hub] Erro ao iniciar diagnóstico de aquisição:",
-                erro
-            );
-
-            var status = document.getElementById(
-                "vide-diag-aquisicao-status"
-            );
-
-            if (status) {
-                status.textContent =
-                    "Não foi possível analisar";
-
-                status.dataset.level =
-                    "critical";
-            }
         }
     }
 
