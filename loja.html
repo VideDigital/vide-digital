@@ -382,6 +382,167 @@
             box-shadow: 0 0 0 4px color-mix(in oklch, var(--accent) 14%, transparent);
         }
 
+        /* --- Modal comercial de detalhes do produto --- */
+        #produto-detalhes-modal {
+            background: rgba(15,15,18,0.68);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .product-modal-panel {
+            width: min(1040px, 100%);
+            max-height: min(88vh, 860px);
+            overflow: hidden;
+            background: var(--surface);
+            color: var(--ink);
+            border: 1px solid var(--border);
+            border-radius: 30px;
+            box-shadow: var(--shadow-xl);
+        }
+        .product-modal-scroll {
+            max-height: min(88vh, 860px);
+            overflow-y: auto;
+        }
+        .product-modal-media {
+            min-height: 360px;
+            background: var(--surface-soft);
+            border-right: 1px solid var(--border);
+        }
+        .product-modal-media img {
+            width: 100%;
+            height: 100%;
+            min-height: 360px;
+            object-fit: cover;
+        }
+        .product-modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            z-index: 4;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            background: color-mix(in oklch, var(--surface) 88%, transparent);
+            color: var(--ink);
+            border: 1px solid var(--border);
+            box-shadow: var(--shadow-md);
+            backdrop-filter: blur(10px);
+        }
+        .product-detail-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 7px;
+        }
+        .product-detail-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            color: var(--ink-2);
+            font-size: 9px;
+            font-weight: 800;
+            letter-spacing: .12em;
+            text-transform: uppercase;
+        }
+        .product-detail-description {
+            color: var(--ink-2);
+            font-size: 13px;
+            line-height: 1.75;
+            white-space: pre-line;
+        }
+        .product-detail-meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+        .product-detail-meta-item {
+            min-height: 66px;
+            padding: 12px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: var(--surface-soft);
+            display: flex;
+            align-items: flex-start;
+            gap: 9px;
+        }
+        .product-detail-meta-item svg { flex-shrink: 0; margin-top: 1px; color: var(--accent); }
+        .product-detail-meta-item strong { display: block; color: var(--ink); font-size: 11px; }
+        .product-detail-meta-item span { display: block; margin-top: 3px; color: var(--ink-3); font-size: 10px; line-height: 1.35; }
+        .product-detail-review-box {
+            border: 1px solid var(--border);
+            background: var(--surface-soft);
+            border-radius: 20px;
+            padding: 16px;
+        }
+        .product-detail-review-score {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            padding-bottom: 13px;
+            border-bottom: 1px solid var(--border);
+        }
+        .product-detail-review-list {
+            display: grid;
+            gap: 12px;
+            margin-top: 13px;
+        }
+        .product-detail-review-card {
+            padding: 13px;
+            border-radius: 16px;
+            background: var(--surface);
+            border: 1px solid var(--border);
+        }
+        .product-detail-review-card p {
+            margin-top: 7px;
+            color: var(--ink-3);
+            font-size: 11px;
+            line-height: 1.55;
+        }
+        .product-details-trigger {
+            border: 1px solid var(--border);
+            color: var(--ink-2);
+            background: var(--surface);
+        }
+        .product-details-trigger:hover {
+            color: var(--ink);
+            border-color: var(--border-strong);
+            transform: translateY(-1px);
+        }
+        .product-card-media {
+            cursor: zoom-in;
+            text-align: left;
+        }
+        .review-show-all {
+            width: 100%;
+            margin-top: 2px;
+            padding: 8px 10px;
+            border: 0;
+            border-top: 1px solid var(--border);
+            color: var(--ink-3);
+            font-size: 9px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .12em;
+            text-align: left;
+        }
+        .review-show-all:hover { color: var(--ink); }
+        @media (max-width: 767px) {
+            #produto-detalhes-modal { align-items: flex-end; padding: 0; }
+            .product-modal-panel {
+                width: 100%;
+                max-height: 94vh;
+                border-radius: 26px 26px 0 0;
+                border-bottom: 0;
+            }
+            .product-modal-scroll { max-height: 94vh; }
+            .product-modal-media { min-height: 260px; border-right: 0; border-bottom: 1px solid var(--border); }
+            .product-modal-media img { min-height: 260px; max-height: 340px; }
+            .product-detail-meta { grid-template-columns: 1fr; }
+        }
+
         /* --- Toast premium do carrinho --- */
         .cart-toast {
             position: fixed; right: 24px; bottom: 96px; z-index: 80;
@@ -985,7 +1146,74 @@
         </div>
     </div>
 
-    <div id="avaliacao-modal" class="hidden fixed inset-0 z-[70] flex items-center justify-center p-4" aria-hidden="true">
+    <!-- MODAL DE DETALHES DO PRODUTO -->
+    <div id="produto-detalhes-modal" class="hidden fixed inset-0 z-[72] flex items-center justify-center p-4" aria-hidden="true">
+        <button type="button" class="absolute inset-0" aria-label="Fechar detalhes do produto" onclick="fecharDetalhesProduto()"></button>
+
+        <article class="product-modal-panel relative" role="dialog" aria-modal="true" aria-labelledby="produto-detalhes-nome">
+            <button id="produto-detalhes-fechar" type="button" class="product-modal-close icon-btn" onclick="fecharDetalhesProduto()" aria-label="Fechar detalhes do produto">
+                <i data-lucide="x" style="width:19px;height:19px"></i>
+            </button>
+
+            <div class="product-modal-scroll custom-scrollbar">
+                <div class="grid md:grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)]">
+                    <div class="product-modal-media relative">
+                        <img id="produto-detalhes-imagem" src="" alt="">
+                    </div>
+
+                    <div class="p-6 sm:p-8 lg:p-10 space-y-6">
+                        <div id="produto-detalhes-badges" class="product-detail-badges"></div>
+
+                        <div>
+                            <p id="produto-detalhes-categoria" class="kicker">Produto</p>
+                            <h2 id="produto-detalhes-nome" class="text-4xl sm:text-5xl font-display mt-2" style="font-family:'Instrument Serif',serif; color:var(--ink);"></h2>
+                            <div id="produto-detalhes-estrelas" class="review-stars mt-3"></div>
+                        </div>
+
+                        <p id="produto-detalhes-descricao" class="product-detail-description"></p>
+
+                        <div>
+                            <div class="flex items-end gap-3 flex-wrap">
+                                <strong id="produto-detalhes-preco" class="text-4xl font-display" style="font-family:'Instrument Serif',serif; color:var(--ink);"></strong>
+                                <span id="produto-detalhes-preco-original" class="hidden text-xs line-through pb-1" style="color:var(--ink-4);"></span>
+                            </div>
+                            <p id="produto-detalhes-cupom" class="hidden text-[10px] font-bold uppercase tracking-[0.14em] mt-2" style="color:var(--accent);"></p>
+                        </div>
+
+                        <div id="produto-detalhes-meta" class="product-detail-meta"></div>
+
+                        <a id="produto-detalhes-video" href="#" target="_blank" rel="noopener noreferrer" class="hidden items-center justify-center gap-2 rounded-full border py-3 px-4 text-xs font-bold uppercase tracking-[0.13em]" style="border-color:var(--border); color:var(--ink-2);">
+                            <i data-lucide="play-circle" style="width:15px;height:15px"></i>
+                            Assistir apresentação
+                        </a>
+
+                        <div id="produto-detalhes-avaliacoes" class="product-detail-review-box"></div>
+
+                        <div class="grid gap-3">
+                            <button id="produto-detalhes-oferta" type="button" class="w-full rounded-full py-4 px-5 text-xs font-bold uppercase tracking-[0.16em] transition-all hover:brightness-110">
+                                Obter oferta
+                            </button>
+                            <button id="produto-detalhes-carrinho" type="button" class="hidden w-full rounded-full py-3.5 px-5 text-xs font-bold uppercase tracking-[0.14em] border items-center justify-center gap-2 transition-all" style="border-color:var(--border); color:var(--ink);">
+                                <i data-lucide="shopping-bag" style="width:14px;height:14px"></i>
+                                Adicionar ao carrinho
+                            </button>
+                            <button id="produto-detalhes-avaliar" type="button" class="review-action w-full rounded-full py-3.5 px-5 text-xs font-bold uppercase tracking-[0.14em] inline-flex items-center justify-center gap-2">
+                                <i data-lucide="star" style="width:14px;height:14px"></i>
+                                Avaliar este produto
+                            </button>
+                        </div>
+
+                        <p id="produto-detalhes-confianca" class="hidden text-[10px] text-center items-center justify-center gap-1.5" style="color:var(--ink-4);">
+                            <i data-lucide="lock" style="width:12px;height:12px"></i>
+                            <span></span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </article>
+    </div>
+
+    <div id="avaliacao-modal" class="hidden fixed inset-0 z-[80] flex items-center justify-center p-4" aria-hidden="true">
         <button type="button" class="absolute inset-0 bg-black/55 backdrop-blur-sm" aria-label="Fechar avaliação" onclick="fecharModalAvaliacao()"></button>
         <form id="avaliacao-form" class="review-modal-panel relative w-full max-w-lg rounded-3xl p-6 sm:p-7 space-y-5">
             <div class="flex items-start justify-between gap-4">
@@ -1103,6 +1331,8 @@
         // só pra decidir, no envio de mensagem, se o evento é o normal
         // "aguardando_equipe" ou o distinto "cliente_respondeu_apos_resolucao".
         let chatStatusAtual = "nova";
+        let produtoDetalhesAtualId = "";
+        let produtoDetalhesFocoAnterior = null;
         let notaAvaliacaoSelecionada = 0;
         let enviandoAvaliacao = false;
         let avaliacoesPublicadasPorProduto = new Map();
@@ -1299,14 +1529,19 @@
                 return dataB - dataA;
             });
 
-            const media = avaliacoes.reduce(function(total, item) { return total + Number(item.nota || 0); }, 0) / avaliacoes.length;
+            const media = avaliacoes.reduce(function(total, item) {
+                return total + Number(item.nota || 0);
+            }, 0) / avaliacoes.length;
+
             const resumo = document.createElement("div");
             resumo.className = "review-summary";
 
             const header = document.createElement("div");
             header.className = "review-summary-header";
+
             const mediaSpan = document.createElement("span");
             mediaSpan.textContent = media.toFixed(1).replace(".", ",") + " de 5";
+
             const qtdSpan = document.createElement("span");
             qtdSpan.style.color = "var(--ink-4)";
             qtdSpan.textContent = avaliacoes.length === 1 ? "1 avaliação" : avaliacoes.length + " avaliações";
@@ -1316,30 +1551,300 @@
             estrelas.className = "review-stars";
             estrelas.innerHTML = desenharEstrelas(media);
 
-            const lista = document.createElement("div");
-            lista.className = "review-list";
-            avaliacoes.slice(0, 2).forEach(function(item) {
-                const linha = document.createElement("article");
-                linha.className = "review-item";
-                const nome = document.createElement("strong");
-                nome.textContent = item.nome || "Cliente";
-                const comentario = document.createElement("p");
-                comentario.textContent = item.comentario || "Cliente avaliou este produto.";
-                linha.append(nome, comentario);
-                const data = formatarDataAvaliacao(item.data);
-                if (data) {
-                    const dataEl = document.createElement("span");
-                    dataEl.className = "review-date";
-                    dataEl.textContent = data;
-                    linha.appendChild(dataEl);
-                }
-                lista.appendChild(linha);
+            const destaque = avaliacoes[0];
+            const item = document.createElement("article");
+            item.className = "review-item";
+
+            const nome = document.createElement("strong");
+            nome.textContent = destaque.nome || "Cliente";
+
+            const comentario = document.createElement("p");
+            comentario.textContent = destaque.comentario || "Cliente avaliou este produto.";
+            item.append(nome, comentario);
+
+            const data = formatarDataAvaliacao(destaque.data);
+            if (data) {
+                const dataEl = document.createElement("span");
+                dataEl.className = "review-date";
+                dataEl.textContent = data;
+                item.appendChild(dataEl);
+            }
+
+            const verTodas = document.createElement("button");
+            verTodas.type = "button";
+            verTodas.className = "review-show-all";
+            verTodas.textContent = avaliacoes.length > 1 ? "Ver todas no detalhe do produto" : "Ver avaliação no detalhe do produto";
+            verTodas.addEventListener("click", function() {
+                window.abrirDetalhesProduto(produtoId);
             });
 
-            resumo.append(header, estrelas, lista);
+            resumo.append(header, estrelas, item, verTodas);
             box.appendChild(resumo);
             if (window.lucide) lucide.createIcons();
         }
+
+        function obterDadosComerciaisProduto(produto) {
+            const precoBase = Number(produto?.preco || 0);
+            let cupomValido = false;
+
+            if (produto?.cupomAtivo && produto?.cupomDesconto) {
+                if (!produto.cupomValidade || new Date(produto.cupomValidade + "T23:59:59") >= new Date()) {
+                    cupomValido = true;
+                }
+            }
+
+            return {
+                precoBase: precoBase,
+                cupomValido: cupomValido,
+                precoFinal: cupomValido ? precoBase * (1 - Number(produto.cupomDesconto || 0) / 100) : precoBase
+            };
+        }
+
+        function adicionarBadgeDetalhe(container, texto, icone) {
+            if (!container || !texto) return;
+            const badge = document.createElement("span");
+            badge.className = "product-detail-badge";
+            if (icone) {
+                const icon = document.createElement("i");
+                icon.setAttribute("data-lucide", icone);
+                icon.style.width = "12px";
+                icon.style.height = "12px";
+                badge.appendChild(icon);
+            }
+            const label = document.createElement("span");
+            label.textContent = texto;
+            badge.appendChild(label);
+            container.appendChild(badge);
+        }
+
+        function adicionarMetaDetalhe(container, icone, titulo, texto) {
+            if (!container || !texto) return;
+            const item = document.createElement("div");
+            item.className = "product-detail-meta-item";
+
+            const icon = document.createElement("i");
+            icon.setAttribute("data-lucide", icone);
+            icon.style.width = "16px";
+            icon.style.height = "16px";
+
+            const corpo = document.createElement("div");
+            const strong = document.createElement("strong");
+            strong.textContent = titulo;
+            const span = document.createElement("span");
+            span.textContent = texto;
+            corpo.append(strong, span);
+            item.append(icon, corpo);
+            container.appendChild(item);
+        }
+
+        function urlExternaSegura(valor) {
+            try {
+                const url = new URL(String(valor || ""), window.location.href);
+                return url.protocol === "http:" || url.protocol === "https:" ? url.href : "";
+            } catch (e) {
+                return "";
+            }
+        }
+
+        function renderizarAvaliacoesDetalhesProduto(produtoId) {
+            const box = document.getElementById("produto-detalhes-avaliacoes");
+            if (!box) return;
+            box.textContent = "";
+
+            const avaliacoes = (avaliacoesPublicadasPorProduto.get(produtoId) || []).slice();
+            avaliacoes.sort(function(a, b) {
+                const dataA = a.data && typeof a.data.toMillis === "function" ? a.data.toMillis() : 0;
+                const dataB = b.data && typeof b.data.toMillis === "function" ? b.data.toMillis() : 0;
+                return dataB - dataA;
+            });
+
+            if (!avaliacoes.length) {
+                const vazio = document.createElement("div");
+                vazio.className = "text-center py-4";
+                vazio.innerHTML = '<span class="mx-auto h-11 w-11 rounded-full icon-btn" style="background:var(--surface); color:var(--ink-4); border:1px solid var(--border);"><i data-lucide="star" style="width:18px;height:18px"></i></span>' +
+                    '<p class="text-xs font-bold mt-3" style="color:var(--ink);">Ainda não há avaliações publicadas</p>' +
+                    '<p class="text-[10px] mt-1" style="color:var(--ink-4);">Seja a primeira pessoa a contar sua experiência.</p>';
+                box.appendChild(vazio);
+                return;
+            }
+
+            const media = avaliacoes.reduce(function(total, item) {
+                return total + Number(item.nota || 0);
+            }, 0) / avaliacoes.length;
+
+            const topo = document.createElement("div");
+            topo.className = "product-detail-review-score";
+
+            const texto = document.createElement("div");
+            const titulo = document.createElement("strong");
+            titulo.className = "text-sm";
+            titulo.style.color = "var(--ink)";
+            titulo.textContent = "Avaliações dos clientes";
+            const quantidade = document.createElement("p");
+            quantidade.className = "text-[10px] mt-1";
+            quantidade.style.color = "var(--ink-4)";
+            quantidade.textContent = avaliacoes.length === 1 ? "1 avaliação publicada" : avaliacoes.length + " avaliações publicadas";
+            texto.append(titulo, quantidade);
+
+            const nota = document.createElement("div");
+            nota.className = "text-right";
+            const numero = document.createElement("strong");
+            numero.className = "text-2xl font-display";
+            numero.style.fontFamily = "'Instrument Serif',serif";
+            numero.textContent = media.toFixed(1).replace(".", ",");
+            const estrelas = document.createElement("div");
+            estrelas.className = "review-stars justify-end mt-1";
+            estrelas.innerHTML = desenharEstrelas(media);
+            nota.append(numero, estrelas);
+            topo.append(texto, nota);
+
+            const lista = document.createElement("div");
+            lista.className = "product-detail-review-list";
+
+            avaliacoes.slice(0, 6).forEach(function(item) {
+                const card = document.createElement("article");
+                card.className = "product-detail-review-card";
+
+                const cabecalho = document.createElement("div");
+                cabecalho.className = "flex items-start justify-between gap-3";
+
+                const nome = document.createElement("strong");
+                nome.className = "text-[11px]";
+                nome.style.color = "var(--ink)";
+                nome.textContent = item.nome || "Cliente";
+
+                const estrelasItem = document.createElement("div");
+                estrelasItem.className = "review-stars";
+                estrelasItem.innerHTML = desenharEstrelas(item.nota);
+                cabecalho.append(nome, estrelasItem);
+
+                const comentario = document.createElement("p");
+                comentario.textContent = item.comentario || "Cliente avaliou este produto.";
+                card.append(cabecalho, comentario);
+
+                const data = formatarDataAvaliacao(item.data);
+                if (data) {
+                    const dataEl = document.createElement("span");
+                    dataEl.className = "review-date block mt-2";
+                    dataEl.textContent = data;
+                    card.appendChild(dataEl);
+                }
+                lista.appendChild(card);
+            });
+
+            box.append(topo, lista);
+        }
+
+        window.abrirDetalhesProduto = function(produtoId) {
+            const produto = todosProdutos.find(function(item) { return item.id === produtoId; });
+            if (!produto) return;
+
+            produtoDetalhesAtualId = produtoId;
+            produtoDetalhesFocoAnterior = document.activeElement;
+            const dados = obterDadosComerciaisProduto(produto);
+            const imagem = produto.imagemB64 || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100%25' height='100%25'><rect width='100%25' height='100%25' fill='%23f5f3ee'/></svg>";
+            const cor = produto.corDestaque || "var(--accent)";
+
+            const imagemEl = document.getElementById("produto-detalhes-imagem");
+            imagemEl.src = imagem;
+            imagemEl.alt = produto.nome || "Produto";
+            document.getElementById("produto-detalhes-categoria").textContent = produto.subnicho || "Produto";
+            document.getElementById("produto-detalhes-nome").textContent = produto.nome || "Produto";
+            document.getElementById("produto-detalhes-descricao").textContent = produto.descricao || "Consulte os detalhes e a disponibilidade diretamente com a loja.";
+            document.getElementById("produto-detalhes-preco").textContent = dados.precoFinal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+            const precoOriginal = document.getElementById("produto-detalhes-preco-original");
+            const possuiPrecoAnterior = dados.cupomValido || produto.precoDe;
+            precoOriginal.classList.toggle("hidden", !possuiPrecoAnterior);
+            precoOriginal.textContent = dados.cupomValido
+                ? "De " + dados.precoBase.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                : (produto.precoDe ? "De " + Number(produto.precoDe).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "");
+
+            const cupom = document.getElementById("produto-detalhes-cupom");
+            cupom.classList.toggle("hidden", !dados.cupomValido);
+            cupom.textContent = dados.cupomValido ? (produto.cupomCodigo || "CUPOM") + " · " + produto.cupomDesconto + "% de desconto aplicado" : "";
+
+            const badges = document.getElementById("produto-detalhes-badges");
+            badges.textContent = "";
+            adicionarBadgeDetalhe(badges, produto.badgeCustom, "badge-check");
+            if (produto.freteGratis) adicionarBadgeDetalhe(badges, "Frete grátis", "truck");
+            adicionarBadgeDetalhe(badges, produto.vagasTag, "clock-3");
+
+            const metas = document.getElementById("produto-detalhes-meta");
+            metas.textContent = "";
+            if (produto.garantiaDias) adicionarMetaDetalhe(metas, "shield-check", "Garantia", produto.garantiaDias + " dias de garantia");
+            if (produto.estoque !== "" && produto.estoque !== undefined) adicionarMetaDetalhe(metas, "package", "Disponibilidade", produto.estoque + " unidades disponíveis");
+            if (produto.freteGratis) adicionarMetaDetalhe(metas, "truck", "Entrega", "Frete grátis informado pela loja");
+            if (dados.cupomValido) adicionarMetaDetalhe(metas, "ticket", "Oferta ativa", produto.cupomDesconto + "% de desconto no valor exibido");
+            if (!metas.children.length) adicionarMetaDetalhe(metas, "message-circle", "Atendimento", "Confirme condições, prazo e disponibilidade com a loja");
+
+            const avaliacoes = avaliacoesPublicadasPorProduto.get(produtoId) || [];
+            const estrelasTopo = document.getElementById("produto-detalhes-estrelas");
+            if (avaliacoes.length) {
+                const media = avaliacoes.reduce(function(total, item) { return total + Number(item.nota || 0); }, 0) / avaliacoes.length;
+                estrelasTopo.innerHTML = desenharEstrelas(media) + '<span class="ml-2 text-[10px]" style="color:var(--ink-4);">' + media.toFixed(1).replace(".", ",") + " · " + avaliacoes.length + (avaliacoes.length === 1 ? " avaliação" : " avaliações") + "</span>";
+            } else if (produto.avaliacao) {
+                estrelasTopo.innerHTML = desenharEstrelas(produto.avaliacao) + '<span class="ml-2 text-[10px]" style="color:var(--ink-4);">' + produto.avaliacao + "</span>";
+            } else {
+                estrelasTopo.innerHTML = '<span class="text-[10px]" style="color:var(--ink-4);">Produto ainda sem avaliações publicadas</span>';
+            }
+
+            const video = document.getElementById("produto-detalhes-video");
+            const videoUrl = urlExternaSegura(produto.videoUrl);
+            video.classList.toggle("hidden", !videoUrl);
+            video.classList.toggle("inline-flex", !!videoUrl);
+            if (videoUrl) video.href = videoUrl;
+
+            renderizarAvaliacoesDetalhesProduto(produtoId);
+
+            const oferta = document.getElementById("produto-detalhes-oferta");
+            oferta.style.backgroundColor = cor;
+            oferta.style.color = "var(--client-texto-botao, #fff)";
+            oferta.onclick = function() {
+                fecharDetalhesProduto();
+                window.irParaOferta(produto.destinoValue || "", produto.tipoDestino || "checkout", produto.nome || "Produto", produto.id);
+            };
+
+            const carrinho = document.getElementById("produto-detalhes-carrinho");
+            const podeCarrinho = carrinhoAtivo && produto.carrinhoPermitido;
+            carrinho.classList.toggle("hidden", !podeCarrinho);
+            carrinho.classList.toggle("inline-flex", podeCarrinho);
+            carrinho.style.borderColor = cor;
+            carrinho.style.color = cor;
+            carrinho.onclick = podeCarrinho ? function() {
+                window.adicionarAoCarrinho(produto.nome || "Produto", dados.precoFinal, imagem, cor);
+                fecharDetalhesProduto();
+            } : null;
+
+            document.getElementById("produto-detalhes-avaliar").onclick = function() {
+                window.abrirModalAvaliacao(produtoId);
+            };
+
+            const confianca = document.getElementById("produto-detalhes-confianca");
+            confianca.classList.toggle("hidden", !produto.seloConfianca);
+            confianca.classList.toggle("flex", !!produto.seloConfianca);
+            confianca.querySelector("span").textContent = produto.seloConfianca || "";
+
+            const modal = document.getElementById("produto-detalhes-modal");
+            modal.classList.remove("hidden");
+            modal.setAttribute("aria-hidden", "false");
+            requestAnimationFrame(function() {
+                document.getElementById("produto-detalhes-fechar")?.focus();
+            });
+            if (window.lucide) lucide.createIcons();
+        };
+
+        window.fecharDetalhesProduto = function() {
+            const modal = document.getElementById("produto-detalhes-modal");
+            if (!modal || modal.classList.contains("hidden")) return;
+            modal.classList.add("hidden");
+            modal.setAttribute("aria-hidden", "true");
+            produtoDetalhesAtualId = "";
+            if (produtoDetalhesFocoAnterior && typeof produtoDetalhesFocoAnterior.focus === "function") {
+                produtoDetalhesFocoAnterior.focus();
+            }
+            produtoDetalhesFocoAnterior = null;
+        };
 
         function atualizarEstrelasModal() {
             document.querySelectorAll("#avaliacao-nota .review-rating-button").forEach(function(btn) {
@@ -1383,9 +1888,17 @@
         };
 
         document.addEventListener("keydown", function(event) {
-            if (event.key === "Escape") {
-                const modal = document.getElementById("avaliacao-modal");
-                if (modal && !modal.classList.contains("hidden")) fecharModalAvaliacao();
+            if (event.key !== "Escape") return;
+
+            const avaliacaoModal = document.getElementById("avaliacao-modal");
+            if (avaliacaoModal && !avaliacaoModal.classList.contains("hidden")) {
+                fecharModalAvaliacao();
+                return;
+            }
+
+            const produtoModal = document.getElementById("produto-detalhes-modal");
+            if (produtoModal && !produtoModal.classList.contains("hidden")) {
+                fecharDetalhesProduto();
             }
         });
 
@@ -1704,7 +2217,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 }
 
                 card.innerHTML =
-                    '<div class="relative h-64 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5">' +
+                    '<div role="button" tabindex="0" onclick="abrirDetalhesProduto(\'' + prod.id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();abrirDetalhesProduto(\'' + prod.id + '\')}" class="product-card-media relative h-64 w-full bg-black/30 flex items-center justify-center overflow-hidden border-b border-white/5" aria-label="Ver detalhes de ' + nomeSafe + '">' +
                         '<img src="' + imgFinal + '" alt="' + nomeSafe + '" class="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-700">' +
                         '<div class="absolute top-4 left-4 flex flex-wrap gap-1.5">' +
                             '<span class="text-[9px] font-bold text-white keep-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full uppercase tracking-[0.14em]">' + (prod.subnicho || "Geral") + "</span>" +
@@ -1712,6 +2225,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                             (prod.freteGratis ? '<span class="text-[9px] font-black text-white keep-white bg-emerald-600 px-2.5 py-1 rounded-full uppercase tracking-[0.14em] shadow-md">Frete Gratis</span>' : "") +
                         "</div>" +
                         (prod.vagasTag ? '<span class="absolute bottom-4 right-4 text-[9px] font-bold text-red-400 bg-red-950/80 border border-red-500/20 backdrop-blur-md px-2.5 py-1 rounded-full uppercase tracking-[0.14em] animate-pulse">' + prod.vagasTag + "</span>" : "") +
+                        '<span class="absolute bottom-4 left-4 text-[9px] font-bold text-white keep-white bg-black/60 backdrop-blur-md px-2.5 py-1 rounded-full uppercase tracking-[0.14em] inline-flex items-center gap-1"><i data-lucide="expand" style="width:11px;height:11px"></i> Ver detalhes</span>' +
                     "</div>" +
                     '<div class="p-7 flex-1 flex flex-col justify-between space-y-5">' +
                         '<div class="space-y-2">' +
@@ -1732,6 +2246,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                                  '<span class="text-[10px] font-semibold text-gray-500 inline-flex items-center gap-1" id="views-' + prod.id + '"><i data-lucide="eye" style="width:11px;height:11px"></i> carregando...</span>' +
                              "</div>" +
                              '<div id="reviews-' + prod.id + '"></div>' +
+                             '<button type="button" onclick="abrirDetalhesProduto(\'' + prod.id + '\')" class="product-details-trigger w-full text-center font-semibold text-xs uppercase tracking-[0.14em] py-3 rounded-full transition-all inline-flex items-center justify-center gap-2"><i data-lucide="expand" style="width:13px;height:13px"></i> Ver detalhes</button>' +
                                  '<button onclick="irParaOferta(\'' + destSafe + "', '" + (prod.tipoDestino || "checkout") + "', '" + nomeSafe + "', '" + prod.id + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-4 rounded-full transition-all" style="background-color: ' + prod.corDestaque + '; color: var(--client-texto-botao, #fff);">Obter Oferta</button>' +
                              '<button type="button" onclick="abrirModalAvaliacao(\'' + prod.id + '\')" class="review-action w-full text-center font-semibold text-xs uppercase tracking-[0.14em] py-3 rounded-full transition-all inline-flex items-center justify-center gap-2"><i data-lucide="star" style="width:13px;height:13px"></i> Avaliar produto</button>' +
                              (carrinhoAtivo && prod.carrinhoPermitido ? '<button onclick="adicionarAoCarrinho(\'' + nomeSafe + "', " + precoFinal + ", '" + imgFinal + "', '" + prod.corDestaque + '\')" class="w-full text-center font-semibold text-xs uppercase tracking-[0.16em] py-3 rounded-full border transition-all hover:bg-white/5 mt-1 inline-flex items-center justify-center gap-2" style="border-color: ' + prod.corDestaque + '; color: ' + prod.corDestaque + ';"><i data-lucide="shopping-bag" style="width:12px;height:12px"></i> Adicionar ao Carrinho</button>' : '') +
