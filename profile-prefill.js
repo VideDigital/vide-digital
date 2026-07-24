@@ -259,7 +259,7 @@
         }
 
         var imagem = await arquivoParaImagem(file);
-        var tamanho = 512;
+        var tamanho = 192;
         var canvas = document.createElement("canvas");
         canvas.width = tamanho;
         canvas.height = tamanho;
@@ -273,9 +273,11 @@
         contexto.imageSmoothingEnabled = true;
         contexto.imageSmoothingQuality = "high";
 
-        var lado = Math.min(imagem.naturalWidth || imagem.width, imagem.naturalHeight || imagem.height);
-        var origemX = ((imagem.naturalWidth || imagem.width) - lado) / 2;
-        var origemY = ((imagem.naturalHeight || imagem.height) - lado) / 2;
+        var larguraImagem = imagem.naturalWidth || imagem.width;
+        var alturaImagem = imagem.naturalHeight || imagem.height;
+        var lado = Math.min(larguraImagem, alturaImagem);
+        var origemX = (larguraImagem - lado) / 2;
+        var origemY = (alturaImagem - lado) / 2;
 
         contexto.drawImage(
             imagem,
@@ -289,17 +291,64 @@
             tamanho
         );
 
-        var resultado = canvas.toDataURL("image/webp", 0.9);
-        if (!resultado || resultado === "data:,") {
+        // Favicons não precisam da resolução de uma foto de perfil.
+        // O alvo de 120 KB mantém o documento da vitrine muito abaixo
+        // do limite do Firestore, mesmo quando já há logo e layout salvos.
+        var limiteSeguro = 120000;
+        var qualidades = [0.82, 0.72, 0.62, 0.52, 0.42];
+        var resultado = "";
+
+        for (var indice = 0; indice < qualidades.length; indice += 1) {
+            resultado = canvas.toDataURL("image/webp", qualidades[indice]);
+
+            if (
+                resultado &&
+                resultado !== "data:," &&
+                resultado.length <= limiteSeguro
+            ) {
+                break;
+            }
+        }
+
+        // Navegadores sem exportação WebP retornam outro tipo ou "data:,".
+        // Nesse caso, usa PNG; em 192 × 192 normalmente continua pequeno.
+        if (
+            !resultado ||
+            resultado === "data:," ||
+            !resultado.startsWith("data:image/webp")
+        ) {
             resultado = canvas.toDataURL("image/png");
         }
 
-        if (resultado.length > 700000) {
-            resultado = canvas.toDataURL("image/webp", 0.78);
+        if (!resultado || resultado === "data:,") {
+            throw new Error("Não foi possível gerar o ícone da loja.");
         }
 
-        if (resultado.length > 850000) {
-            throw new Error("O ícone ficou muito pesado. Escolha uma imagem mais simples.");
+        if (resultado.length > limiteSeguro) {
+            // Última redução automática para imagens fotográficas complexas.
+            var canvasCompacto = document.createElement("canvas");
+            canvasCompacto.width = 128;
+            canvasCompacto.height = 128;
+
+            var contextoCompacto = canvasCompacto.getContext("2d", {
+                alpha: true
+            });
+
+            if (!contextoCompacto) {
+                throw new Error("Seu navegador não conseguiu compactar o ícone.");
+            }
+
+            contextoCompacto.imageSmoothingEnabled = true;
+            contextoCompacto.imageSmoothingQuality = "high";
+            contextoCompacto.drawImage(canvas, 0, 0, 128, 128);
+
+            resultado = canvasCompacto.toDataURL("image/webp", 0.52);
+        }
+
+        if (!resultado || resultado === "data:," || resultado.length > limiteSeguro) {
+            throw new Error(
+                "O ícone ainda ficou pesado após a compactação. Escolha uma imagem mais simples."
+            );
         }
 
         return resultado;
@@ -368,6 +417,7 @@
             doc: modulos[1].doc,
             getDoc: modulos[1].getDoc,
             setDoc: modulos[1].setDoc,
+            deleteField: modulos[1].deleteField,
             serverTimestamp: modulos[1].serverTimestamp
         };
     }
@@ -457,17 +507,15 @@
 
         try {
             var firebase = await obterServicosFirebase();
-            var payload = {
+            // A imagem fica somente na vitrine pública. Guardar a mesma
+            // base64 também em usuarios/{uid} duplicava peso e podia fazer
+            // ambos os documentos ultrapassarem o limite do Firestore.
+            var payloadVitrine = {
+                donoUID: contexto.storeUid,
                 faviconB64: favicon,
                 faviconUrl: "",
                 faviconAtualizadoEm: firebase.serverTimestamp()
             };
-
-            await firebase.setDoc(
-                firebase.doc(firebase.db, "usuarios", contexto.storeUid),
-                payload,
-                { merge: true }
-            );
 
             // Só grava no documento público quando o slug já pertence à loja.
             // Isso impede que um slug duplicado receba o ícone da loja errada.
@@ -487,10 +535,18 @@
 
                 await firebase.setDoc(
                     vitrineRef,
+                    payloadVitrine,
+                    { merge: true }
+                );
+
+                // Remove uma eventual cópia pesada deixada por tentativas
+                // anteriores. O carregamento do painel já busca a vitrine
+                // pública quando o usuário não possui faviconB64 local.
+                await firebase.setDoc(
+                    firebase.doc(firebase.db, "usuarios", contexto.storeUid),
                     {
-                        donoUID: contexto.storeUid,
-                        faviconB64: favicon,
-                        faviconUrl: "",
+                        faviconB64: firebase.deleteField(),
+                        faviconUrl: firebase.deleteField(),
                         faviconAtualizadoEm: firebase.serverTimestamp()
                     },
                     { merge: true }
@@ -516,8 +572,25 @@
             );
         } catch (erro) {
             console.error("[Vide Hub] Erro ao salvar favicon separado:", erro);
-            atualizarStatus("Erro ao salvar o ícone. Tente novamente.", "error");
-            criarToastFavicon("Erro ao salvar o ícone da loja.", "error");
+
+            var codigoErro = String(erro?.code || "")
+                .replace(/^firestore\//, "")
+                .trim();
+
+            var mensagemErro = String(erro?.message || "")
+                .replace(/^FirebaseError:\s*/i, "")
+                .trim();
+
+            var resumoErro = codigoErro
+                ? "Erro ao salvar o ícone (" + codigoErro + ")."
+                : "Erro ao salvar o ícone.";
+
+            atualizarStatus(
+                resumoErro + (mensagemErro ? " Consulte o console para detalhes." : ""),
+                "error"
+            );
+
+            criarToastFavicon(resumoErro, "error");
         } finally {
             salvamentoEmAndamento = false;
         }
