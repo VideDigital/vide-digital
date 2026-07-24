@@ -1272,6 +1272,1573 @@
         }, 180);
     }
 
+
+    // =========================================================
+    // NAVEGAÇÃO V2 — DOCK COMPACTO + CENTRAL DE COMANDOS
+    // Implementado como camada progressiva para preservar o
+    // dashboard, permissões, modo master e ações existentes.
+    // =========================================================
+    var comandoV2Aberto = false;
+    var comandoV2IndiceAtivo = 0;
+    var comandoV2Resultados = [];
+    var comandoV2FocoAnterior = null;
+
+    var COMANDO_V2_META = {
+        "view-dashboard": {
+            titulo: "Visão Geral",
+            descricao: "Dashboard operacional, atalhos e resumo da loja",
+            categoria: "Principal",
+            palavras: "inicio home painel operação resultados"
+        },
+        "view-perfil": {
+            titulo: "Configurações da Loja",
+            descricao: "Identidade, aparência, redes sociais e dados públicos",
+            categoria: "Loja",
+            palavras: "perfil identidade cores vitrine favicon configurações"
+        },
+        "view-dominios": {
+            titulo: "Pixels & Domínio",
+            descricao: "Domínio próprio, integrações e rastreamento",
+            categoria: "Loja",
+            palavras: "pixel meta google domínio rastreamento analytics"
+        },
+        "view-leads": {
+            titulo: "Leads",
+            descricao: "Contatos capturados e oportunidades comerciais",
+            categoria: "Vendas",
+            palavras: "capturas contatos clientes oportunidades funil"
+        },
+        "view-automacao-leads": {
+            titulo: "Automação de Leads",
+            descricao: "Regras, fluxos e ações automáticas",
+            categoria: "Vendas",
+            palavras: "automação fluxo regra disparo follow-up"
+        },
+        "view-atendimento": {
+            titulo: "Central de Atendimento",
+            descricao: "Conversas, suporte e respostas aos clientes",
+            categoria: "Relacionamento",
+            palavras: "chat mensagens inbox suporte conversa whatsapp"
+        },
+        "view-crm360": {
+            titulo: "CRM 360 do Cliente",
+            descricao: "Cadastro, relacionamento e histórico completo",
+            categoria: "Relacionamento",
+            palavras: "crm clientes cadastro histórico relacionamento"
+        },
+        "view-central-ia": {
+            titulo: "Central de IA",
+            descricao: "Configuração da inteligência artificial da loja",
+            categoria: "Inteligência",
+            palavras: "ia inteligência artificial assistente automação"
+        },
+        "view-base-conhecimento": {
+            titulo: "Base de Conhecimento",
+            descricao: "FAQ, políticas e informações usadas pela IA",
+            categoria: "Inteligência",
+            palavras: "faq políticas manuais documentos conhecimento ia"
+        },
+        "view-templates": {
+            titulo: "Templates",
+            descricao: "Mensagens prontas para vendas e atendimento",
+            categoria: "Relacionamento",
+            palavras: "mensagens respostas prontas atalhos comunicação"
+        },
+        "view-campanhas": {
+            titulo: "Campanhas",
+            descricao: "Ofertas, comunicações e ações promocionais",
+            categoria: "Marketing",
+            palavras: "ofertas promoções campanhas contador marketing"
+        },
+        "view-landing-pages": {
+            titulo: "Landing Pages",
+            descricao: "Páginas personalizadas para campanhas e conversão",
+            categoria: "Marketing",
+            palavras: "landing page páginas editor conversão campanha"
+        },
+        "view-pedidos": {
+            titulo: "Pedidos",
+            descricao: "Acompanhamento comercial e status das vendas",
+            categoria: "Vendas",
+            palavras: "vendas checkout pagamento carrinho pedidos"
+        },
+        "view-avaliacoes": {
+            titulo: "Avaliações",
+            descricao: "Moderação dos depoimentos enviados por clientes",
+            categoria: "Loja",
+            palavras: "reviews estrelas comentários depoimentos confiança"
+        },
+        "view-metricas": {
+            titulo: "Métricas",
+            descricao: "Visitas, funil, conversões e desempenho da loja",
+            categoria: "Análise",
+            palavras: "analytics dados visitas conversão funil desempenho"
+        },
+        "view-notificacoes": {
+            titulo: "Notificações",
+            descricao: "Avisos e atualizações importantes da plataforma",
+            categoria: "Sistema",
+            palavras: "avisos alertas novidades atualizações"
+        },
+        "view-personalizacao": {
+            titulo: "Personalização Premium",
+            descricao: "Serviço especializado da equipe Vide Hub",
+            categoria: "Loja",
+            palavras: "design customização equipe serviço premium"
+        },
+        "view-guia": {
+            titulo: "Guia do Plano",
+            descricao: "Recursos disponíveis e instruções de uso",
+            categoria: "Sistema",
+            palavras: "ajuda tutorial plano recursos suporte"
+        },
+        "view-funcionarios": {
+            titulo: "Funcionários",
+            descricao: "Equipe, acessos e permissões da operação",
+            categoria: "Gestão",
+            palavras: "equipe usuários permissões colaboradores acessos"
+        }
+    };
+
+    var COMANDO_V2_ORDEM_CATEGORIAS = [
+        "Principal",
+        "Loja",
+        "Vendas",
+        "Relacionamento",
+        "Marketing",
+        "Inteligência",
+        "Análise",
+        "Gestão",
+        "Sistema",
+        "Outros"
+    ];
+
+    function normalizarBuscaComandoV2(valor) {
+        return String(valor || "")
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function rotuloOriginalNavV2(botao) {
+        var alvo = String(botao?.dataset?.target || "");
+        if (COMANDO_V2_META[alvo]?.titulo) return COMANDO_V2_META[alvo].titulo;
+
+        var aria = String(botao?.getAttribute("aria-label") || "")
+            .replace(/^abrir\s+/i, "")
+            .trim();
+        if (aria) return aria;
+
+        var clone = botao?.cloneNode(true);
+        clone?.querySelectorAll("svg, .vide-dock-label, [aria-hidden='true']").forEach(function(el) {
+            el.remove();
+        });
+        return String(clone?.textContent || alvo || "Módulo")
+            .replace(/\s+/g, " ")
+            .trim();
+    }
+
+    function inserirEstilosNavegacaoV2() {
+        if (document.getElementById("vide-navigation-v2-style")) return;
+
+        var style = document.createElement("style");
+        style.id = "vide-navigation-v2-style";
+        style.textContent = `
+            :root {
+                --vide-dock-width: 88px;
+                --vide-dock-expanded: 292px;
+                --vide-command-border: rgba(148,163,184,.16);
+                --vide-command-surface: rgba(10,16,30,.97);
+                --vide-command-card: rgba(255,255,255,.038);
+            }
+
+            @media (min-width: 768px) {
+                body.vide-navigation-v2 {
+                    --vide-sidebar-reserved: var(--vide-dock-width);
+                }
+
+                body.vide-navigation-v2 #admin-sidebar {
+                    position: sticky !important;
+                    top: 0;
+                    width: var(--vide-dock-width) !important;
+                    min-width: var(--vide-dock-width) !important;
+                    max-width: var(--vide-dock-width) !important;
+                    flex: 0 0 var(--vide-dock-width) !important;
+                    height: 100vh !important;
+                    padding: 12px !important;
+                    overflow: visible !important;
+                    isolation: isolate;
+                    background: transparent !important;
+                    border: 0 !important;
+                    box-shadow: none !important;
+                    z-index: 70 !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar::before {
+                    content: "";
+                    position: absolute;
+                    inset: 10px auto 10px 10px;
+                    width: calc(var(--vide-dock-width) - 20px);
+                    border-radius: 24px;
+                    border: 1px solid rgba(148,163,184,.15);
+                    background:
+                        radial-gradient(circle at 18% 0%, color-mix(in srgb, var(--sys-primaria,#6d5dfc) 18%, transparent), transparent 30%),
+                        linear-gradient(180deg, rgba(17,24,39,.985), rgba(3,7,18,.985));
+                    box-shadow: 0 24px 70px rgba(0,0,0,.36);
+                    transition: width .28s cubic-bezier(.2,.75,.2,1), box-shadow .28s ease;
+                    pointer-events: none;
+                    z-index: -1;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover::before,
+                body.vide-navigation-v2 #admin-sidebar:focus-within::before {
+                    width: calc(var(--vide-dock-expanded) - 20px);
+                    box-shadow: 18px 28px 80px rgba(0,0,0,.48);
+                }
+
+                body.vide-navigation-v2 #admin-sidebar > * {
+                    width: calc(var(--vide-dock-width) - 24px);
+                    max-width: calc(var(--vide-dock-width) - 24px);
+                    transition: width .28s cubic-bezier(.2,.75,.2,1), max-width .28s cubic-bezier(.2,.75,.2,1);
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover > *,
+                body.vide-navigation-v2 #admin-sidebar:focus-within > * {
+                    width: calc(var(--vide-dock-expanded) - 24px);
+                    max-width: calc(var(--vide-dock-expanded) - 24px);
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-main {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 12px !important;
+                    min-height: 0;
+                    height: 100%;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand {
+                    min-height: 58px;
+                    padding: 7px !important;
+                    margin: 0 !important;
+                    border-radius: 18px !important;
+                    overflow: hidden !important;
+                    background: rgba(255,255,255,.035) !important;
+                    border-color: rgba(255,255,255,.07) !important;
+                    flex: 0 0 auto;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand #admin-logo-box {
+                    width: 44px !important;
+                    height: 44px !important;
+                    min-width: 44px !important;
+                    border-radius: 14px !important;
+                    font-size: 16px !important;
+                    box-shadow: 0 12px 28px color-mix(in srgb, var(--sys-primaria,#6d5dfc) 28%, transparent) !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand-copy {
+                    opacity: 0;
+                    visibility: hidden;
+                    transform: translateX(-8px);
+                    max-width: 0;
+                    overflow: hidden;
+                    white-space: nowrap;
+                    transition: opacity .18s ease, transform .24s ease, max-width .28s ease, visibility .18s ease;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover .vide-dock-brand-copy,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .vide-dock-brand-copy {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: translateX(0);
+                    max-width: 180px;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-workspace {
+                    max-height: 0;
+                    min-height: 0;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    opacity: 0;
+                    overflow: hidden;
+                    border-width: 0 !important;
+                    transform: translateY(-6px);
+                    transition: max-height .26s ease, opacity .18s ease, padding .26s ease, transform .26s ease, border-width .2s ease;
+                    flex: 0 0 auto;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover .vide-dock-workspace,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .vide-dock-workspace {
+                    max-height: 150px;
+                    padding: 14px !important;
+                    opacity: 1;
+                    border-width: 1px !important;
+                    transform: translateY(0);
+                }
+
+                body.vide-navigation-v2 #sidebar-nav {
+                    display: block !important;
+                    flex: 1 1 auto !important;
+                    min-height: 0 !important;
+                    overflow-x: hidden !important;
+                    overflow-y: auto !important;
+                    padding: 0 2px 8px !important;
+                    scrollbar-width: thin;
+                    scrollbar-color: rgba(148,163,184,.26) transparent;
+                }
+
+                body.vide-navigation-v2 #sidebar-nav::-webkit-scrollbar {
+                    width: 4px;
+                }
+
+                body.vide-navigation-v2 #sidebar-nav::-webkit-scrollbar-thumb {
+                    background: rgba(148,163,184,.24);
+                    border-radius: 999px;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-navigation-header {
+                    min-height: 24px;
+                    margin: 0 2px 8px !important;
+                    padding: 0 8px !important;
+                    overflow: hidden;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-navigation-header > div,
+                body.vide-navigation-v2 .aura-sidebar-navigation-badge {
+                    opacity: 0;
+                    visibility: hidden;
+                    transform: translateX(-8px);
+                    transition: opacity .18s ease, transform .24s ease, visibility .18s ease;
+                    white-space: nowrap;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover .aura-sidebar-navigation-header > div,
+                body.vide-navigation-v2 #admin-sidebar:hover .aura-sidebar-navigation-badge,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .aura-sidebar-navigation-header > div,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .aura-sidebar-navigation-badge {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: translateX(0);
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-navigation-header h3 {
+                    font-size: 14px !important;
+                    line-height: 1.2 !important;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-search {
+                    position: relative;
+                    min-height: 48px;
+                    margin: 0 2px 10px !important;
+                    padding: 0 14px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    gap: 12px !important;
+                    border-radius: 15px !important;
+                    border: 1px solid rgba(148,163,184,.13) !important;
+                    background: rgba(255,255,255,.035) !important;
+                    cursor: pointer;
+                    overflow: hidden;
+                    transition: background .18s ease, border-color .18s ease, transform .18s ease;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-search:hover {
+                    background: rgba(255,255,255,.065) !important;
+                    border-color: color-mix(in srgb, var(--sys-destaque,#60a5fa) 38%, transparent) !important;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-search > svg {
+                    width: 20px !important;
+                    height: 20px !important;
+                    min-width: 20px !important;
+                    color: #94a3b8 !important;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-search-editor {
+                    min-width: 165px;
+                    width: 165px;
+                    opacity: 0;
+                    visibility: hidden;
+                    pointer-events: none;
+                    white-space: nowrap;
+                    color: #e5e7eb !important;
+                    font-size: 12px !important;
+                    font-weight: 700 !important;
+                    transform: translateX(-7px);
+                    transition: opacity .18s ease, transform .24s ease, visibility .18s ease;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-search kbd {
+                    opacity: 0;
+                    visibility: hidden;
+                    margin-left: auto;
+                    transition: opacity .18s ease, visibility .18s ease;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover .aura-sidebar-search-editor,
+                body.vide-navigation-v2 #admin-sidebar:hover .aura-sidebar-search kbd,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .aura-sidebar-search-editor,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .aura-sidebar-search kbd {
+                    opacity: 1;
+                    visibility: visible;
+                    transform: translateX(0);
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 5px !important;
+                    padding: 0 !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item {
+                    position: relative;
+                    width: 100% !important;
+                    min-height: 46px !important;
+                    margin: 0 !important;
+                    padding: 11px 13px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: flex-start !important;
+                    gap: 0 !important;
+                    border-radius: 14px !important;
+                    overflow: hidden !important;
+                    white-space: nowrap;
+                    border: 1px solid transparent !important;
+                    background: transparent !important;
+                    transition: background .18s ease, border-color .18s ease, color .18s ease, transform .18s ease !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item.hidden {
+                    display: none !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item:hover {
+                    background: rgba(255,255,255,.055) !important;
+                    color: #fff !important;
+                    border-color: rgba(148,163,184,.12) !important;
+                    transform: translateX(1px);
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item.active {
+                    color: #fff !important;
+                    background:
+                        linear-gradient(90deg,
+                            color-mix(in srgb, var(--sys-primaria,#6d5dfc) 24%, transparent),
+                            color-mix(in srgb, var(--sys-destaque,#60a5fa) 10%, transparent)
+                        ) !important;
+                    border-color: color-mix(in srgb, var(--sys-destaque,#60a5fa) 25%, transparent) !important;
+                    box-shadow: inset 3px 0 0 var(--sys-destaque,#60a5fa);
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item > svg,
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item > .vide-dock-icon {
+                    width: 20px !important;
+                    height: 20px !important;
+                    min-width: 20px !important;
+                    flex: 0 0 20px !important;
+                    margin: 0 !important;
+                    color: currentColor;
+                }
+
+                body.vide-navigation-v2 .vide-dock-label {
+                    display: block !important;
+                    max-width: 0;
+                    margin-left: 0;
+                    opacity: 0;
+                    visibility: hidden;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    color: inherit;
+                    font-size: 12px;
+                    line-height: 1.2;
+                    font-weight: 700;
+                    transform: translateX(-7px);
+                    transition: max-width .28s ease, margin-left .28s ease, opacity .18s ease, transform .24s ease, visibility .18s ease;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover .vide-dock-label,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .vide-dock-label {
+                    max-width: 205px;
+                    margin-left: 12px;
+                    opacity: 1;
+                    visibility: visible;
+                    transform: translateX(0);
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-empty {
+                    display: none !important;
+                }
+
+                body.vide-navigation-v2 #box-atalho,
+                body.vide-navigation-v2 #box-logout {
+                    overflow: hidden !important;
+                    flex: 0 0 auto;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:not(:hover):not(:focus-within) #box-atalho,
+                body.vide-navigation-v2 #admin-sidebar:not(:hover):not(:focus-within) #box-logout {
+                    max-height: 52px;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:not(:hover):not(:focus-within) #box-atalho *:not(svg):not(path),
+                body.vide-navigation-v2 #admin-sidebar:not(:hover):not(:focus-within) #box-logout *:not(svg):not(path) {
+                    text-overflow: clip;
+                }
+            }
+
+            #vide-command-center-v2 {
+                position: fixed;
+                inset: 0;
+                z-index: 10000;
+                display: flex;
+                align-items: flex-start;
+                justify-content: center;
+                padding: clamp(18px, 5vh, 58px) 18px 18px;
+                opacity: 0;
+                visibility: hidden;
+                pointer-events: none;
+                transition: opacity .18s ease, visibility .18s ease;
+            }
+
+            #vide-command-center-v2.is-open {
+                opacity: 1;
+                visibility: visible;
+                pointer-events: auto;
+            }
+
+            #vide-command-center-v2 .vide-command-backdrop {
+                position: absolute;
+                inset: 0;
+                background: rgba(2,6,23,.82);
+                backdrop-filter: blur(16px);
+                -webkit-backdrop-filter: blur(16px);
+            }
+
+            #vide-command-center-v2 .vide-command-panel {
+                position: relative;
+                width: min(960px, 100%);
+                max-height: min(820px, calc(100vh - 76px));
+                display: flex;
+                flex-direction: column;
+                overflow: hidden;
+                border-radius: 26px;
+                border: 1px solid var(--vide-command-border);
+                background:
+                    radial-gradient(circle at 10% 0%, color-mix(in srgb, var(--sys-primaria,#6d5dfc) 16%, transparent), transparent 30%),
+                    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--sys-destaque,#60a5fa) 12%, transparent), transparent 28%),
+                    var(--vide-command-surface);
+                box-shadow: 0 34px 100px rgba(0,0,0,.58);
+                transform: translateY(-12px) scale(.985);
+                transition: transform .22s cubic-bezier(.2,.75,.2,1);
+            }
+
+            #vide-command-center-v2.is-open .vide-command-panel {
+                transform: translateY(0) scale(1);
+            }
+
+            .vide-command-header {
+                display: flex;
+                align-items: center;
+                gap: 14px;
+                padding: 20px 22px 16px;
+                border-bottom: 1px solid rgba(148,163,184,.11);
+            }
+
+            .vide-command-search-shell {
+                min-width: 0;
+                flex: 1;
+                height: 54px;
+                display: flex;
+                align-items: center;
+                gap: 13px;
+                padding: 0 17px;
+                border-radius: 17px;
+                border: 1px solid rgba(148,163,184,.15);
+                background: rgba(255,255,255,.045);
+                box-shadow: inset 0 1px 0 rgba(255,255,255,.035);
+            }
+
+            .vide-command-search-shell > svg {
+                width: 22px;
+                height: 22px;
+                min-width: 22px;
+                color: var(--sys-destaque,#60a5fa);
+            }
+
+            #vide-command-search-v2 {
+                width: 100%;
+                height: 100%;
+                border: 0;
+                outline: 0;
+                background: transparent;
+                color: #f8fafc;
+                font-size: 15px;
+                font-weight: 700;
+            }
+
+            #vide-command-search-v2::placeholder {
+                color: #64748b;
+                font-weight: 600;
+            }
+
+            .vide-command-close {
+                width: 46px;
+                height: 46px;
+                min-width: 46px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 14px;
+                border: 1px solid rgba(148,163,184,.14);
+                background: rgba(255,255,255,.04);
+                color: #94a3b8;
+                cursor: pointer;
+                transition: background .18s ease, color .18s ease, border-color .18s ease;
+            }
+
+            .vide-command-close:hover {
+                color: #fff;
+                background: rgba(255,255,255,.08);
+                border-color: rgba(148,163,184,.25);
+            }
+
+            .vide-command-close svg {
+                width: 20px;
+                height: 20px;
+            }
+
+            .vide-command-intro {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 18px;
+                padding: 0 22px 17px;
+                border-bottom: 1px solid rgba(148,163,184,.09);
+            }
+
+            .vide-command-intro-copy small {
+                display: block;
+                color: var(--sys-destaque,#60a5fa);
+                font-size: 9px;
+                font-weight: 900;
+                letter-spacing: .18em;
+                text-transform: uppercase;
+            }
+
+            .vide-command-intro-copy strong {
+                display: block;
+                margin-top: 5px;
+                color: #fff;
+                font-size: 17px;
+                line-height: 1.2;
+                font-weight: 900;
+            }
+
+            .vide-command-intro-copy span {
+                display: block;
+                margin-top: 4px;
+                color: #94a3b8;
+                font-size: 12px;
+                line-height: 1.5;
+            }
+
+            #vide-command-count-v2 {
+                flex: 0 0 auto;
+                padding: 8px 11px;
+                border-radius: 999px;
+                border: 1px solid rgba(148,163,184,.13);
+                background: rgba(255,255,255,.04);
+                color: #cbd5e1;
+                font-size: 10px;
+                font-weight: 800;
+            }
+
+            #vide-command-results-v2 {
+                flex: 1 1 auto;
+                min-height: 240px;
+                overflow-y: auto;
+                padding: 18px 22px 24px;
+                scrollbar-width: thin;
+                scrollbar-color: rgba(148,163,184,.25) transparent;
+            }
+
+            #vide-command-results-v2::-webkit-scrollbar {
+                width: 6px;
+            }
+
+            #vide-command-results-v2::-webkit-scrollbar-thumb {
+                border-radius: 999px;
+                background: rgba(148,163,184,.24);
+            }
+
+            .vide-command-group + .vide-command-group {
+                margin-top: 22px;
+            }
+
+            .vide-command-group-title {
+                display: flex;
+                align-items: center;
+                gap: 9px;
+                margin: 0 2px 10px;
+                color: #94a3b8;
+                font-size: 10px;
+                line-height: 1;
+                font-weight: 900;
+                letter-spacing: .16em;
+                text-transform: uppercase;
+            }
+
+            .vide-command-group-title::before {
+                content: "";
+                width: 6px;
+                height: 6px;
+                border-radius: 999px;
+                background: var(--sys-destaque,#60a5fa);
+                box-shadow: 0 0 16px color-mix(in srgb, var(--sys-destaque,#60a5fa) 70%, transparent);
+            }
+
+            .vide-command-grid {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 9px;
+            }
+
+            .vide-command-item {
+                position: relative;
+                min-height: 76px;
+                display: grid;
+                grid-template-columns: 46px minmax(0,1fr) auto;
+                align-items: center;
+                gap: 13px;
+                padding: 12px 13px;
+                text-align: left;
+                border-radius: 17px;
+                border: 1px solid rgba(148,163,184,.10);
+                background: var(--vide-command-card);
+                color: #cbd5e1;
+                cursor: pointer;
+                overflow: hidden;
+                transition: transform .16s ease, background .16s ease, border-color .16s ease, box-shadow .16s ease;
+            }
+
+            .vide-command-item:hover,
+            .vide-command-item.is-active {
+                transform: translateY(-1px);
+                color: #fff;
+                border-color: color-mix(in srgb, var(--sys-destaque,#60a5fa) 38%, transparent);
+                background:
+                    linear-gradient(135deg,
+                        color-mix(in srgb, var(--sys-primaria,#6d5dfc) 14%, rgba(255,255,255,.05)),
+                        color-mix(in srgb, var(--sys-destaque,#60a5fa) 7%, rgba(255,255,255,.035))
+                    );
+                box-shadow: 0 12px 30px rgba(0,0,0,.2);
+            }
+
+            .vide-command-item-icon {
+                width: 46px;
+                height: 46px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 14px;
+                border: 1px solid rgba(148,163,184,.13);
+                background: rgba(255,255,255,.045);
+                color: var(--sys-destaque,#60a5fa);
+            }
+
+            .vide-command-item-icon svg {
+                width: 21px !important;
+                height: 21px !important;
+            }
+
+            .vide-command-item-copy {
+                min-width: 0;
+            }
+
+            .vide-command-item-copy strong {
+                display: block;
+                color: inherit;
+                font-size: 13px;
+                line-height: 1.25;
+                font-weight: 850;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .vide-command-item-copy span {
+                display: block;
+                margin-top: 4px;
+                color: #7f8da3;
+                font-size: 10.5px;
+                line-height: 1.35;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .vide-command-item-arrow {
+                width: 30px;
+                height: 30px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 10px;
+                border: 1px solid rgba(148,163,184,.11);
+                color: #64748b;
+                transition: color .16s ease, transform .16s ease, background .16s ease;
+            }
+
+            .vide-command-item:hover .vide-command-item-arrow,
+            .vide-command-item.is-active .vide-command-item-arrow {
+                color: #fff;
+                transform: translateX(2px);
+                background: rgba(255,255,255,.06);
+            }
+
+            .vide-command-item-arrow svg {
+                width: 15px;
+                height: 15px;
+            }
+
+            .vide-command-empty {
+                min-height: 260px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                text-align: center;
+                color: #64748b;
+            }
+
+            .vide-command-empty span {
+                width: 56px;
+                height: 56px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                margin-bottom: 14px;
+                border-radius: 18px;
+                border: 1px solid rgba(148,163,184,.12);
+                background: rgba(255,255,255,.035);
+            }
+
+            .vide-command-empty svg {
+                width: 24px;
+                height: 24px;
+            }
+
+            .vide-command-empty strong {
+                color: #cbd5e1;
+                font-size: 14px;
+            }
+
+            .vide-command-empty p {
+                margin-top: 5px;
+                max-width: 360px;
+                font-size: 11px;
+                line-height: 1.5;
+            }
+
+            .vide-command-footer {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 16px;
+                padding: 12px 22px;
+                border-top: 1px solid rgba(148,163,184,.10);
+                background: rgba(2,6,23,.42);
+                color: #64748b;
+                font-size: 10px;
+            }
+
+            .vide-command-footer-shortcuts {
+                display: flex;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .vide-command-footer-shortcuts span {
+                display: inline-flex;
+                align-items: center;
+                gap: 6px;
+            }
+
+            .vide-command-footer kbd {
+                min-width: 24px;
+                height: 24px;
+                padding: 0 7px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border-radius: 7px;
+                border: 1px solid rgba(148,163,184,.14);
+                background: rgba(255,255,255,.045);
+                color: #cbd5e1;
+                font-family: inherit;
+                font-size: 9px;
+                font-weight: 800;
+                box-shadow: inset 0 -1px 0 rgba(255,255,255,.04);
+            }
+
+            #vide-command-mobile-trigger {
+                display: none;
+            }
+
+            @media (max-width: 767px) {
+                #vide-command-mobile-trigger {
+                    width: 44px;
+                    height: 44px;
+                    display: inline-flex;
+                    align-items: center;
+                    justify-content: center;
+                    border-radius: 14px;
+                    border: 1px solid rgba(255,255,255,.10);
+                    background: rgba(255,255,255,.05);
+                    color: #fff;
+                }
+
+                #vide-command-mobile-trigger svg {
+                    width: 19px;
+                    height: 19px;
+                }
+
+                #vide-command-center-v2 {
+                    align-items: stretch;
+                    padding: 10px;
+                }
+
+                #vide-command-center-v2 .vide-command-panel {
+                    width: 100%;
+                    max-height: calc(100dvh - 20px);
+                    border-radius: 22px;
+                }
+
+                .vide-command-header {
+                    padding: 14px 14px 12px;
+                    gap: 9px;
+                }
+
+                .vide-command-search-shell {
+                    height: 50px;
+                    padding: 0 13px;
+                }
+
+                #vide-command-search-v2 {
+                    font-size: 16px;
+                }
+
+                .vide-command-close {
+                    width: 44px;
+                    height: 44px;
+                    min-width: 44px;
+                }
+
+                .vide-command-intro {
+                    align-items: flex-start;
+                    padding: 0 14px 14px;
+                }
+
+                .vide-command-intro-copy span {
+                    display: none;
+                }
+
+                #vide-command-results-v2 {
+                    padding: 14px;
+                }
+
+                .vide-command-grid {
+                    grid-template-columns: 1fr;
+                }
+
+                .vide-command-item {
+                    min-height: 70px;
+                    grid-template-columns: 42px minmax(0,1fr) auto;
+                }
+
+                .vide-command-item-icon {
+                    width: 42px;
+                    height: 42px;
+                }
+
+                .vide-command-footer {
+                    padding: 10px 14px;
+                }
+
+                .vide-command-footer-shortcuts span:nth-child(2) {
+                    display: none;
+                }
+            }
+
+            @media (prefers-reduced-motion: reduce) {
+                body.vide-navigation-v2 #admin-sidebar::before,
+                body.vide-navigation-v2 #admin-sidebar > *,
+                body.vide-navigation-v2 .vide-dock-label,
+                #vide-command-center-v2,
+                #vide-command-center-v2 .vide-command-panel,
+                .vide-command-item {
+                    transition-duration: .01ms !important;
+                }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+
+    function prepararMarcaDockV2(sidebar) {
+        var logo = sidebar.querySelector("#admin-logo-box");
+        if (!logo) return;
+
+        var marca = logo.closest(".relative");
+        if (marca) {
+            marca.classList.add("vide-dock-brand");
+            var linha = logo.parentElement;
+            var copia = linha?.querySelector(":scope > div:not(#admin-logo-box)");
+            if (copia) copia.classList.add("vide-dock-brand-copy");
+        }
+
+        var cards = Array.from(sidebar.querySelectorAll(".glass-card"));
+        var workspace = cards.find(function(card) {
+            return normalizarBuscaComandoV2(card.textContent).includes("minha empresa");
+        });
+        workspace?.classList.add("vide-dock-workspace");
+    }
+
+    function prepararRotulosDockV2(sidebar) {
+        sidebar.querySelectorAll("#sidebar-navigation-groups .nav-item[data-target]").forEach(function(botao) {
+            var alvo = botao.dataset.target;
+            var titulo = rotuloOriginalNavV2(botao);
+            botao.dataset.videLabel = titulo;
+            botao.setAttribute("title", titulo);
+            if (!botao.getAttribute("aria-label")) {
+                botao.setAttribute("aria-label", "Abrir " + titulo);
+            }
+
+            var labelExistente = botao.querySelector(":scope > .vide-dock-label");
+            if (!labelExistente) {
+                var spansDiretos = Array.from(botao.children).filter(function(el) {
+                    return el.tagName === "SPAN" && !el.querySelector("svg");
+                });
+                var spanComTexto = spansDiretos.find(function(el) {
+                    return normalizarBuscaComandoV2(el.textContent) === normalizarBuscaComandoV2(titulo);
+                });
+
+                if (spanComTexto) {
+                    labelExistente = spanComTexto;
+                    labelExistente.classList.add("vide-dock-label");
+                } else {
+                    Array.from(botao.childNodes).forEach(function(no) {
+                        if (no.nodeType === Node.TEXT_NODE && String(no.textContent || "").trim()) {
+                            no.remove();
+                        }
+                    });
+                    labelExistente = document.createElement("span");
+                    labelExistente.className = "vide-dock-label";
+                    labelExistente.textContent = titulo;
+                    botao.appendChild(labelExistente);
+                }
+            }
+
+            var icone = botao.querySelector(":scope > svg");
+            if (icone) icone.classList.add("vide-dock-icon");
+
+            var meta = COMANDO_V2_META[alvo];
+            if (meta) {
+                botao.dataset.videCategoria = meta.categoria;
+                botao.dataset.videDescricao = meta.descricao;
+            }
+        });
+    }
+
+    function criarCommandCenterV2() {
+        if (document.getElementById("vide-command-center-v2")) return;
+
+        var overlay = document.createElement("div");
+        overlay.id = "vide-command-center-v2";
+        overlay.setAttribute("aria-hidden", "true");
+        overlay.innerHTML = `
+            <div class="vide-command-backdrop" data-vide-command-close></div>
+            <section class="vide-command-panel"
+                     role="dialog"
+                     aria-modal="true"
+                     aria-labelledby="vide-command-title-v2"
+                     aria-describedby="vide-command-description-v2">
+                <header class="vide-command-header">
+                    <label class="vide-command-search-shell" for="vide-command-search-v2">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="m20 20-3.8-3.8"></path>
+                        </svg>
+                        <input id="vide-command-search-v2"
+                               type="search"
+                               autocomplete="off"
+                               spellcheck="false"
+                               placeholder="Pesquisar módulo, ação ou recurso...">
+                    </label>
+                    <button type="button"
+                            class="vide-command-close"
+                            id="vide-command-close-v2"
+                            aria-label="Fechar Central de Comandos"
+                            title="Fechar">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path d="M6 6l12 12M18 6 6 18"></path>
+                        </svg>
+                    </button>
+                </header>
+
+                <div class="vide-command-intro">
+                    <div class="vide-command-intro-copy">
+                        <small>Navegação inteligente</small>
+                        <strong id="vide-command-title-v2">Central de Comandos</strong>
+                        <span id="vide-command-description-v2">Encontre qualquer área do Vide Hub sem percorrer o menu lateral.</span>
+                    </div>
+                    <span id="vide-command-count-v2">0 módulos</span>
+                </div>
+
+                <div id="vide-command-results-v2" role="listbox" aria-label="Módulos disponíveis"></div>
+
+                <footer class="vide-command-footer">
+                    <div class="vide-command-footer-shortcuts">
+                        <span><kbd>↑</kbd><kbd>↓</kbd> navegar</span>
+                        <span><kbd>Enter</kbd> abrir</span>
+                        <span><kbd>Esc</kbd> fechar</span>
+                    </div>
+                    <span>Ctrl/⌘ + K</span>
+                </footer>
+            </section>
+        `;
+        document.body.appendChild(overlay);
+
+        overlay.querySelector("[data-vide-command-close]")?.addEventListener("click", fecharCommandCenterV2);
+        document.getElementById("vide-command-close-v2")?.addEventListener("click", fecharCommandCenterV2);
+        document.getElementById("vide-command-search-v2")?.addEventListener("input", function(evento) {
+            renderizarCommandCenterV2(evento.target.value);
+        });
+        document.getElementById("vide-command-search-v2")?.addEventListener("keydown", function(evento) {
+            if (evento.key === "ArrowDown") {
+                evento.preventDefault();
+                moverSelecaoCommandCenterV2(1);
+            } else if (evento.key === "ArrowUp") {
+                evento.preventDefault();
+                moverSelecaoCommandCenterV2(-1);
+            } else if (evento.key === "Enter") {
+                evento.preventDefault();
+                ativarSelecionadoCommandCenterV2();
+            }
+        });
+    }
+
+    function moduloDisponivelCommandV2(botao) {
+        if (!botao || botao.disabled) return false;
+        if (botao.classList.contains("hidden")) return false;
+        if (botao.getAttribute("aria-hidden") === "true") return false;
+        return true;
+    }
+
+    function coletarModulosCommandCenterV2() {
+        var botoes = Array.from(document.querySelectorAll("#sidebar-navigation-groups .nav-item[data-target]"));
+        return botoes.filter(moduloDisponivelCommandV2).map(function(botao, indice) {
+            var alvo = String(botao.dataset.target || "");
+            var meta = COMANDO_V2_META[alvo] || {};
+            var titulo = meta.titulo || botao.dataset.videLabel || rotuloOriginalNavV2(botao);
+            var descricao = meta.descricao || botao.dataset.videDescricao || "Abrir módulo do dashboard";
+            var categoria = meta.categoria || botao.dataset.videCategoria || "Outros";
+            var icone = botao.querySelector(":scope > svg")?.outerHTML || `
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <rect x="4" y="4" width="16" height="16" rx="4"></rect>
+                    <path d="M9 12h6M12 9v6"></path>
+                </svg>
+            `;
+
+            return {
+                id: alvo || ("modulo-" + indice),
+                alvo: alvo,
+                titulo: titulo,
+                descricao: descricao,
+                categoria: categoria,
+                palavras: meta.palavras || "",
+                icone: icone,
+                botaoOriginal: botao
+            };
+        });
+    }
+
+    function escaparHtmlCommandV2(valor) {
+        return String(valor || "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
+    }
+
+    function renderizarCommandCenterV2(termo) {
+        var container = document.getElementById("vide-command-results-v2");
+        var contador = document.getElementById("vide-command-count-v2");
+        if (!container || !contador) return;
+
+        var busca = normalizarBuscaComandoV2(termo);
+        var modulos = coletarModulosCommandCenterV2();
+        var filtrados = modulos.filter(function(item) {
+            if (!busca) return true;
+            var base = normalizarBuscaComandoV2([
+                item.titulo,
+                item.descricao,
+                item.categoria,
+                item.palavras,
+                item.alvo
+            ].join(" "));
+            return busca.split(" ").every(function(parte) {
+                return base.includes(parte);
+            });
+        });
+
+        filtrados.sort(function(a, b) {
+            var categoriaA = COMANDO_V2_ORDEM_CATEGORIAS.indexOf(a.categoria);
+            var categoriaB = COMANDO_V2_ORDEM_CATEGORIAS.indexOf(b.categoria);
+            if (categoriaA === -1) categoriaA = 999;
+            if (categoriaB === -1) categoriaB = 999;
+            if (categoriaA !== categoriaB) return categoriaA - categoriaB;
+            return a.titulo.localeCompare(b.titulo, "pt-BR");
+        });
+
+        comandoV2Resultados = filtrados;
+        comandoV2IndiceAtivo = filtrados.length ? Math.min(comandoV2IndiceAtivo, filtrados.length - 1) : 0;
+        contador.textContent = filtrados.length + (filtrados.length === 1 ? " módulo" : " módulos");
+
+        if (!filtrados.length) {
+            container.innerHTML = `
+                <div class="vide-command-empty">
+                    <span>
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7"></circle>
+                            <path d="m20 20-3.8-3.8"></path>
+                        </svg>
+                    </span>
+                    <strong>Nenhum módulo encontrado</strong>
+                    <p>Tente buscar por outro nome, ação ou recurso da plataforma.</p>
+                </div>
+            `;
+            return;
+        }
+
+        var grupos = {};
+        filtrados.forEach(function(item, indice) {
+            if (!grupos[item.categoria]) grupos[item.categoria] = [];
+            grupos[item.categoria].push({ item: item, indice: indice });
+        });
+
+        container.innerHTML = COMANDO_V2_ORDEM_CATEGORIAS
+            .filter(function(categoria) { return grupos[categoria]?.length; })
+            .concat(Object.keys(grupos).filter(function(categoria) {
+                return !COMANDO_V2_ORDEM_CATEGORIAS.includes(categoria);
+            }))
+            .map(function(categoria) {
+                var itens = grupos[categoria] || [];
+                return `
+                    <section class="vide-command-group" aria-label="${escaparHtmlCommandV2(categoria)}">
+                        <h3 class="vide-command-group-title">${escaparHtmlCommandV2(categoria)}</h3>
+                        <div class="vide-command-grid">
+                            ${itens.map(function(registro) {
+                                var item = registro.item;
+                                var ativo = registro.indice === comandoV2IndiceAtivo;
+                                return `
+                                    <button type="button"
+                                            class="vide-command-item${ativo ? " is-active" : ""}"
+                                            data-vide-command-index="${registro.indice}"
+                                            role="option"
+                                            aria-selected="${ativo ? "true" : "false"}">
+                                        <span class="vide-command-item-icon">${item.icone}</span>
+                                        <span class="vide-command-item-copy">
+                                            <strong>${escaparHtmlCommandV2(item.titulo)}</strong>
+                                            <span>${escaparHtmlCommandV2(item.descricao)}</span>
+                                        </span>
+                                        <span class="vide-command-item-arrow" aria-hidden="true">
+                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <path d="m9 18 6-6-6-6"></path>
+                                            </svg>
+                                        </span>
+                                    </button>
+                                `;
+                            }).join("")}
+                        </div>
+                    </section>
+                `;
+            }).join("");
+
+        container.querySelectorAll("[data-vide-command-index]").forEach(function(botao) {
+            botao.addEventListener("mouseenter", function() {
+                selecionarIndiceCommandCenterV2(Number(botao.dataset.videCommandIndex), false);
+            });
+            botao.addEventListener("focus", function() {
+                selecionarIndiceCommandCenterV2(Number(botao.dataset.videCommandIndex), false);
+            });
+            botao.addEventListener("click", function() {
+                selecionarIndiceCommandCenterV2(Number(botao.dataset.videCommandIndex), false);
+                ativarSelecionadoCommandCenterV2();
+            });
+        });
+
+        atualizarSelecaoVisualCommandV2(false);
+    }
+
+    function atualizarSelecaoVisualCommandV2(rolar) {
+        var botoes = Array.from(document.querySelectorAll("#vide-command-results-v2 [data-vide-command-index]"));
+        botoes.forEach(function(botao) {
+            var ativo = Number(botao.dataset.videCommandIndex) === comandoV2IndiceAtivo;
+            botao.classList.toggle("is-active", ativo);
+            botao.setAttribute("aria-selected", ativo ? "true" : "false");
+            if (ativo && rolar) {
+                botao.scrollIntoView({ block: "nearest", behavior: "smooth" });
+            }
+        });
+    }
+
+    function selecionarIndiceCommandCenterV2(indice, rolar) {
+        if (!comandoV2Resultados.length) return;
+        comandoV2IndiceAtivo = Math.max(0, Math.min(indice, comandoV2Resultados.length - 1));
+        atualizarSelecaoVisualCommandV2(Boolean(rolar));
+    }
+
+    function moverSelecaoCommandCenterV2(direcao) {
+        if (!comandoV2Resultados.length) return;
+        var total = comandoV2Resultados.length;
+        comandoV2IndiceAtivo = (comandoV2IndiceAtivo + direcao + total) % total;
+        atualizarSelecaoVisualCommandV2(true);
+    }
+
+    function ativarSelecionadoCommandCenterV2() {
+        var item = comandoV2Resultados[comandoV2IndiceAtivo];
+        if (!item) return;
+
+        fecharCommandCenterV2(false);
+
+        requestAnimationFrame(function() {
+            if (item.botaoOriginal && document.contains(item.botaoOriginal)) {
+                item.botaoOriginal.click();
+                item.botaoOriginal.focus?.({ preventScroll: true });
+                return;
+            }
+
+            if (item.alvo && typeof window.ativarAba === "function") {
+                window.ativarAba(item.alvo);
+            }
+        });
+    }
+
+    function abrirCommandCenterV2(origem) {
+        criarCommandCenterV2();
+
+        var overlay = document.getElementById("vide-command-center-v2");
+        var input = document.getElementById("vide-command-search-v2");
+        if (!overlay || !input) return;
+
+        comandoV2FocoAnterior = origem || document.activeElement;
+        comandoV2Aberto = true;
+        comandoV2IndiceAtivo = 0;
+        input.value = "";
+        renderizarCommandCenterV2("");
+
+        overlay.classList.add("is-open");
+        overlay.setAttribute("aria-hidden", "false");
+        document.body.style.overflow = "hidden";
+
+        requestAnimationFrame(function() {
+            input.focus();
+        });
+    }
+
+    function fecharCommandCenterV2(restaurarFoco) {
+        var overlay = document.getElementById("vide-command-center-v2");
+        if (!overlay || !comandoV2Aberto) return;
+
+        comandoV2Aberto = false;
+        overlay.classList.remove("is-open");
+        overlay.setAttribute("aria-hidden", "true");
+        document.body.style.overflow = "";
+
+        if (restaurarFoco !== false && comandoV2FocoAnterior && document.contains(comandoV2FocoAnterior)) {
+            requestAnimationFrame(function() {
+                comandoV2FocoAnterior.focus?.({ preventScroll: true });
+            });
+        }
+    }
+
+    function tratarTecladoGlobalCommandV2(evento) {
+        var atalho = (evento.ctrlKey || evento.metaKey) && String(evento.key).toLowerCase() === "k";
+        if (atalho) {
+            evento.preventDefault();
+            evento.stopPropagation();
+            evento.stopImmediatePropagation();
+            if (comandoV2Aberto) {
+                fecharCommandCenterV2();
+            } else {
+                abrirCommandCenterV2(document.activeElement);
+            }
+            return;
+        }
+
+        if (!comandoV2Aberto) return;
+
+        if (evento.key === "Escape") {
+            evento.preventDefault();
+            evento.stopPropagation();
+            evento.stopImmediatePropagation();
+            fecharCommandCenterV2();
+            return;
+        }
+
+        if (evento.key === "ArrowDown" && document.activeElement?.id !== "vide-command-search-v2") {
+            evento.preventDefault();
+            moverSelecaoCommandCenterV2(1);
+            return;
+        }
+
+        if (evento.key === "ArrowUp" && document.activeElement?.id !== "vide-command-search-v2") {
+            evento.preventDefault();
+            moverSelecaoCommandCenterV2(-1);
+            return;
+        }
+
+        if (evento.key === "Enter" && document.activeElement?.id !== "vide-command-search-v2") {
+            var itemFocado = document.activeElement?.closest?.("[data-vide-command-index]");
+            if (!itemFocado) {
+                evento.preventDefault();
+                ativarSelecionadoCommandCenterV2();
+            }
+            return;
+        }
+
+        if (evento.key === "Tab") {
+            var painel = document.querySelector("#vide-command-center-v2 .vide-command-panel");
+            var focaveis = Array.from(painel?.querySelectorAll(
+                'input, button:not([disabled]), [tabindex]:not([tabindex="-1"])'
+            ) || []).filter(function(el) {
+                return el.offsetParent !== null;
+            });
+
+            if (!focaveis.length) return;
+            var primeiro = focaveis[0];
+            var ultimo = focaveis[focaveis.length - 1];
+
+            if (evento.shiftKey && document.activeElement === primeiro) {
+                evento.preventDefault();
+                ultimo.focus();
+            } else if (!evento.shiftKey && document.activeElement === ultimo) {
+                evento.preventDefault();
+                primeiro.focus();
+            }
+        }
+    }
+
+    function prepararBuscaDockV2(sidebar) {
+        var busca = sidebar.querySelector(".aura-sidebar-search");
+        var editor = sidebar.querySelector("#busca-sidebar-modulos");
+        if (!busca) return;
+
+        busca.setAttribute("role", "button");
+        busca.setAttribute("tabindex", "0");
+        busca.setAttribute("aria-label", "Abrir Central de Comandos");
+        busca.setAttribute("title", "Central de Comandos — Ctrl ou Command + K");
+
+        if (editor) {
+            editor.setAttribute("contenteditable", "false");
+            editor.removeAttribute("role");
+            editor.removeAttribute("aria-label");
+            editor.textContent = "Pesquisar módulos e ações";
+            editor.setAttribute("aria-hidden", "true");
+        }
+
+        var kbd = busca.querySelector("kbd");
+        if (kbd) kbd.textContent = "Ctrl K";
+
+        busca.addEventListener("click", function(evento) {
+            evento.preventDefault();
+            abrirCommandCenterV2(busca);
+        });
+        busca.addEventListener("keydown", function(evento) {
+            if (evento.key === "Enter" || evento.key === " ") {
+                evento.preventDefault();
+                abrirCommandCenterV2(busca);
+            }
+        });
+    }
+
+    function criarBotaoMobileCommandV2() {
+        if (document.getElementById("vide-command-mobile-trigger")) return;
+
+        var menu = document.getElementById("mobile-menu-toggle");
+        if (!menu?.parentElement) return;
+
+        var botao = document.createElement("button");
+        botao.type = "button";
+        botao.id = "vide-command-mobile-trigger";
+        botao.setAttribute("aria-label", "Abrir Central de Comandos");
+        botao.setAttribute("title", "Pesquisar módulos");
+        botao.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <circle cx="11" cy="11" r="7"></circle>
+                <path d="m20 20-3.8-3.8"></path>
+            </svg>
+        `;
+        botao.addEventListener("click", function() {
+            abrirCommandCenterV2(botao);
+        });
+        menu.insertAdjacentElement("beforebegin", botao);
+    }
+
+    function inicializarNavegacaoV2() {
+        var tentativas = 0;
+        var intervalo = setInterval(function() {
+            tentativas += 1;
+            var sidebar = document.getElementById("admin-sidebar");
+            var nav = document.getElementById("sidebar-navigation-groups");
+
+            if (sidebar && nav) {
+                clearInterval(intervalo);
+                inserirEstilosNavegacaoV2();
+                document.body.classList.add("vide-navigation-v2");
+
+                var main = sidebar.firstElementChild;
+                main?.classList.add("vide-dock-main");
+
+                prepararMarcaDockV2(sidebar);
+                prepararRotulosDockV2(sidebar);
+                prepararBuscaDockV2(sidebar);
+                criarCommandCenterV2();
+                criarBotaoMobileCommandV2();
+
+                window.addEventListener("keydown", tratarTecladoGlobalCommandV2, true);
+
+                var observador = new MutationObserver(function(mutacoes) {
+                    var precisaAtualizar = mutacoes.some(function(mutacao) {
+                        return mutacao.type === "attributes"
+                            && (mutacao.attributeName === "class" || mutacao.attributeName === "aria-hidden");
+                    });
+                    if (precisaAtualizar && comandoV2Aberto) {
+                        renderizarCommandCenterV2(document.getElementById("vide-command-search-v2")?.value || "");
+                    }
+                });
+                observador.observe(nav, {
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ["class", "aria-hidden"]
+                });
+                return;
+            }
+
+            if (tentativas >= 60) {
+                clearInterval(intervalo);
+                console.warn("[Vide Hub] Navegação V2 não foi iniciada: sidebar não encontrada.");
+            }
+        }, 150);
+    }
+
+
     aguardarDOMContentLoaded(inicializarFaviconDashboard);
     aguardarDOMContentLoaded(inicializarMetricasFunilDashboard);
+    aguardarDOMContentLoaded(inicializarNavegacaoV2);
 })();
