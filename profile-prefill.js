@@ -5725,3 +5725,1289 @@
     }
 })();
 
+/* =========================================================
+   VIDE HUB — GERADOR DE LINKS RASTREÁVEIS
+   Complementa o painel de origem e campanhas.
+   ========================================================= */
+(function() {
+    "use strict";
+
+    var GERADOR_STORAGE_PREFIX = "videLinksCampanha_";
+    var geradorInicializado = false;
+
+    function textoGerador(valor) {
+        return String(valor || "").replace(/\s+/g, " ").trim();
+    }
+
+    function normalizarUtm(valor) {
+        return textoGerador(valor)
+            .normalize("NFD")
+            .replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "_")
+            .replace(/^_+|_+$/g, "")
+            .slice(0, 80);
+    }
+
+    function obterPerfilLocalGerador() {
+        try {
+            var chave =
+                new URLSearchParams(window.location.search)
+                    .get("masterUID") || "own";
+
+            return JSON.parse(
+                localStorage.getItem(
+                    "ultimoPerfilLoja_" + chave
+                ) || "null"
+            );
+        } catch (erro) {
+            return null;
+        }
+    }
+
+    function obterSlugGerador() {
+        var candidatos = [
+            document.getElementById("perf-slug")?.value,
+            obterPerfilLocalGerador()?.urlLoja
+        ];
+
+        var links = [
+            document.getElementById("link-minha-loja"),
+            document.getElementById("link-minha-loja-cockpit")
+        ];
+
+        links.forEach(function(link) {
+            if (!link) return;
+
+            try {
+                var url = new URL(
+                    link.getAttribute("href") || link.href,
+                    window.location.href
+                );
+
+                candidatos.push(
+                    url.searchParams.get("loja")
+                );
+            } catch (erro) {
+                return;
+            }
+        });
+
+        return candidatos
+            .map(normalizarUtm)
+            .find(Boolean) || "";
+    }
+
+    function obterUrlBaseGerador() {
+        var links = [
+            document.getElementById("link-minha-loja"),
+            document.getElementById("link-minha-loja-cockpit")
+        ];
+
+        for (var indice = 0; indice < links.length; indice++) {
+            var link = links[indice];
+            if (!link) continue;
+
+            try {
+                var href =
+                    link.getAttribute("href") ||
+                    link.href;
+
+                if (
+                    !href ||
+                    href === "#" ||
+                    href.startsWith("javascript:")
+                ) {
+                    continue;
+                }
+
+                var url = new URL(
+                    href,
+                    window.location.href
+                );
+
+                if (
+                    url.pathname.includes("loja.html") &&
+                    url.searchParams.get("loja")
+                ) {
+                    url.hash = "";
+                    [
+                        "utm_source",
+                        "utm_medium",
+                        "utm_campaign",
+                        "utm_content",
+                        "utm_term"
+                    ].forEach(function(chave) {
+                        url.searchParams.delete(chave);
+                    });
+
+                    return url;
+                }
+            } catch (erro) {
+                continue;
+            }
+        }
+
+        var slug = obterSlugGerador();
+        if (!slug) return null;
+
+        var fallback = new URL(
+            "loja.html",
+            window.location.href
+        );
+
+        fallback.searchParams.set("loja", slug);
+        return fallback;
+    }
+
+    function chaveHistoricoGerador() {
+        return (
+            GERADOR_STORAGE_PREFIX +
+            (obterSlugGerador() || "loja")
+        );
+    }
+
+    function lerHistoricoGerador() {
+        try {
+            var dados = JSON.parse(
+                localStorage.getItem(
+                    chaveHistoricoGerador()
+                ) || "[]"
+            );
+
+            return Array.isArray(dados)
+                ? dados.slice(0, 8)
+                : [];
+        } catch (erro) {
+            return [];
+        }
+    }
+
+    function salvarHistoricoGerador(lista) {
+        try {
+            localStorage.setItem(
+                chaveHistoricoGerador(),
+                JSON.stringify(
+                    lista.slice(0, 8)
+                )
+            );
+        } catch (erro) {
+            console.warn(
+                "[Vide Hub] Não foi possível salvar o histórico de campanhas.",
+                erro
+            );
+        }
+    }
+
+    function mensagemGerador(texto, estado) {
+        var elemento = document.getElementById(
+            "vide-gerador-status"
+        );
+
+        if (!elemento) return;
+
+        elemento.textContent = texto;
+        elemento.dataset.state = estado || "neutral";
+    }
+
+    async function copiarTextoGerador(texto) {
+        if (
+            navigator.clipboard &&
+            window.isSecureContext
+        ) {
+            await navigator.clipboard.writeText(texto);
+            return;
+        }
+
+        var area = document.createElement("textarea");
+        area.value = texto;
+        area.setAttribute("readonly", "");
+        area.style.position = "fixed";
+        area.style.opacity = "0";
+        document.body.appendChild(area);
+        area.select();
+
+        var copiado = document.execCommand("copy");
+        area.remove();
+
+        if (!copiado) {
+            throw new Error(
+                "O navegador bloqueou a cópia automática."
+            );
+        }
+    }
+
+    function configurarMeioPorOrigem() {
+        var origem = document.getElementById(
+            "vide-gerador-origem"
+        );
+
+        var meio = document.getElementById(
+            "vide-gerador-meio"
+        );
+
+        if (!origem || !meio) return;
+
+        var sugestoes = {
+            instagram: "social",
+            facebook: "social",
+            tiktok: "social",
+            youtube: "social",
+            linkedin: "social",
+            google: "cpc",
+            whatsapp: "messaging",
+            email: "email",
+            qr_code: "qr_code",
+            outro: "referral"
+        };
+
+        meio.value =
+            sugestoes[origem.value] ||
+            meio.value ||
+            "social";
+
+        var custom = document.getElementById(
+            "vide-gerador-origem-custom"
+        );
+
+        if (custom) {
+            custom.hidden = origem.value !== "outro";
+            if (!custom.hidden) {
+                custom.focus();
+            }
+        }
+    }
+
+    function obterDadosFormularioGerador() {
+        var origemSelecionada =
+            document.getElementById(
+                "vide-gerador-origem"
+            )?.value || "";
+
+        var origem =
+            origemSelecionada === "outro"
+                ? document.getElementById(
+                    "vide-gerador-origem-custom-input"
+                )?.value
+                : origemSelecionada;
+
+        return {
+            origem: normalizarUtm(origem),
+            meio: normalizarUtm(
+                document.getElementById(
+                    "vide-gerador-meio"
+                )?.value
+            ),
+            campanha: normalizarUtm(
+                document.getElementById(
+                    "vide-gerador-campanha"
+                )?.value
+            ),
+            conteudo: normalizarUtm(
+                document.getElementById(
+                    "vide-gerador-conteudo"
+                )?.value
+            )
+        };
+    }
+
+    function montarLinkGerador(silencioso) {
+        var base = obterUrlBaseGerador();
+        var dados = obterDadosFormularioGerador();
+        var campo = document.getElementById(
+            "vide-gerador-link"
+        );
+
+        if (!base) {
+            if (!silencioso) {
+                mensagemGerador(
+                    "Salve o slug da loja antes de gerar o link.",
+                    "error"
+                );
+            }
+            if (campo) campo.value = "";
+            return "";
+        }
+
+        if (
+            !dados.origem ||
+            !dados.meio ||
+            !dados.campanha
+        ) {
+            if (!silencioso) {
+                mensagemGerador(
+                    "Preencha origem, meio e nome da campanha.",
+                    "error"
+                );
+            }
+            if (campo) campo.value = "";
+            return "";
+        }
+
+        base.searchParams.set(
+            "utm_source",
+            dados.origem
+        );
+
+        base.searchParams.set(
+            "utm_medium",
+            dados.meio
+        );
+
+        base.searchParams.set(
+            "utm_campaign",
+            dados.campanha
+        );
+
+        if (dados.conteudo) {
+            base.searchParams.set(
+                "utm_content",
+                dados.conteudo
+            );
+        } else {
+            base.searchParams.delete(
+                "utm_content"
+            );
+        }
+
+        var link = base.toString();
+
+        if (campo) {
+            campo.value = link;
+        }
+
+        if (!silencioso) {
+            mensagemGerador(
+                "Link rastreável gerado.",
+                "success"
+            );
+        }
+
+        return link;
+    }
+
+    function registrarLinkGerador() {
+        var link = montarLinkGerador(false);
+        if (!link) return "";
+
+        var dados = obterDadosFormularioGerador();
+        var historico = lerHistoricoGerador();
+
+        historico = historico.filter(
+            function(item) {
+                return item.link !== link;
+            }
+        );
+
+        historico.unshift({
+            link: link,
+            origem: dados.origem,
+            meio: dados.meio,
+            campanha: dados.campanha,
+            conteudo: dados.conteudo,
+            criadoEm: Date.now()
+        });
+
+        salvarHistoricoGerador(historico);
+        renderizarHistoricoGerador();
+
+        return link;
+    }
+
+    function criarBotaoHistoricoGerador(
+        rotulo,
+        titulo,
+        callback
+    ) {
+        var botao = document.createElement("button");
+        botao.type = "button";
+        botao.className =
+            "vide-gerador-historico-acao";
+        botao.textContent = rotulo;
+        botao.title = titulo;
+        botao.addEventListener("click", callback);
+        return botao;
+    }
+
+    function renderizarHistoricoGerador() {
+        var lista = document.getElementById(
+            "vide-gerador-historico-lista"
+        );
+
+        var contador = document.getElementById(
+            "vide-gerador-historico-total"
+        );
+
+        if (!lista) return;
+
+        var historico = lerHistoricoGerador();
+        lista.replaceChildren();
+
+        if (contador) {
+            contador.textContent =
+                historico.length +
+                (historico.length === 1
+                    ? " link"
+                    : " links");
+        }
+
+        if (!historico.length) {
+            var vazio = document.createElement("div");
+            vazio.className =
+                "vide-gerador-historico-vazio";
+            vazio.textContent =
+                "Os últimos links gerados aparecerão aqui.";
+            lista.appendChild(vazio);
+            return;
+        }
+
+        historico.forEach(function(item, indice) {
+            var card = document.createElement("article");
+            card.className =
+                "vide-gerador-historico-item";
+
+            var copia = document.createElement("div");
+            copia.className =
+                "vide-gerador-historico-copia";
+
+            var titulo = document.createElement("strong");
+            titulo.textContent =
+                item.campanha ||
+                "Campanha sem nome";
+
+            var meta = document.createElement("small");
+            meta.textContent =
+                (item.origem || "origem") +
+                " · " +
+                (item.meio || "meio");
+
+            var url = document.createElement("span");
+            url.textContent = item.link;
+            url.title = item.link;
+
+            copia.append(titulo, meta, url);
+
+            var acoes = document.createElement("div");
+            acoes.className =
+                "vide-gerador-historico-acoes";
+
+            acoes.append(
+                criarBotaoHistoricoGerador(
+                    "Copiar",
+                    "Copiar link",
+                    async function() {
+                        try {
+                            await copiarTextoGerador(
+                                item.link
+                            );
+
+                            mensagemGerador(
+                                "Link copiado.",
+                                "success"
+                            );
+                        } catch (erro) {
+                            mensagemGerador(
+                                erro.message ||
+                                    "Não foi possível copiar.",
+                                "error"
+                            );
+                        }
+                    }
+                ),
+                criarBotaoHistoricoGerador(
+                    "Abrir",
+                    "Abrir link em nova aba",
+                    function() {
+                        window.open(
+                            item.link,
+                            "_blank",
+                            "noopener,noreferrer"
+                        );
+                    }
+                ),
+                criarBotaoHistoricoGerador(
+                    "Excluir",
+                    "Remover do histórico",
+                    function() {
+                        var atual =
+                            lerHistoricoGerador();
+
+                        atual.splice(indice, 1);
+                        salvarHistoricoGerador(atual);
+                        renderizarHistoricoGerador();
+
+                        mensagemGerador(
+                            "Link removido do histórico.",
+                            "neutral"
+                        );
+                    }
+                )
+            );
+
+            card.append(copia, acoes);
+            lista.appendChild(card);
+        });
+    }
+
+    function inserirEstilosGerador() {
+        if (
+            document.getElementById(
+                "vide-gerador-campanhas-style"
+            )
+        ) {
+            return;
+        }
+
+        var style = document.createElement("style");
+        style.id = "vide-gerador-campanhas-style";
+
+        style.textContent = `
+            #vide-gerador-campanhas {
+                margin-bottom: 15px;
+                padding: 16px;
+                border: 1px solid rgba(255,255,255,.07);
+                border-radius: 17px;
+                background:
+                    linear-gradient(
+                        135deg,
+                        color-mix(in srgb, var(--sys-primaria, #6d5dfc) 8%, rgba(3,7,18,.52)),
+                        rgba(3,7,18,.48)
+                    );
+            }
+
+            #vide-gerador-campanhas * {
+                box-sizing: border-box;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 14px;
+                margin-bottom: 14px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-titulo {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                min-width: 0;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-icone {
+                width: 36px;
+                height: 36px;
+                flex: 0 0 36px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid color-mix(in srgb, var(--sys-primaria, #6d5dfc) 28%, transparent);
+                border-radius: 11px;
+                color: #ddd6fe;
+                background: color-mix(in srgb, var(--sys-primaria, #6d5dfc) 11%, transparent);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-icone svg {
+                width: 17px;
+                height: 17px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.9;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-titulo small {
+                display: block;
+                margin-bottom: 3px;
+                color: #6b7280;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .15em;
+                text-transform: uppercase;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-titulo strong {
+                display: block;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 900;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-titulo p {
+                margin: 4px 0 0;
+                color: #7d8798;
+                font-size: 9px;
+                line-height: 1.5;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-status {
+                flex: 0 0 auto;
+                display: inline-flex;
+                align-items: center;
+                min-height: 28px;
+                max-width: 240px;
+                padding: 0 10px;
+                overflow: hidden;
+                border: 1px solid rgba(255,255,255,.08);
+                border-radius: 999px;
+                color: #94a3b8;
+                background: rgba(255,255,255,.035);
+                font-size: 8px;
+                font-weight: 900;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-status[data-state="success"] {
+                color: #86efac;
+                border-color: rgba(34,197,94,.2);
+                background: rgba(34,197,94,.06);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-status[data-state="error"] {
+                color: #fda4af;
+                border-color: rgba(244,63,94,.2);
+                background: rgba(244,63,94,.06);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-form {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 10px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-campo {
+                display: grid;
+                gap: 6px;
+                min-width: 0;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-campo > span {
+                color: #737e91;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-input {
+                width: 100%;
+                min-height: 39px;
+                padding: 0 11px;
+                border: 1px solid rgba(255,255,255,.075);
+                border-radius: 11px;
+                outline: 0;
+                color: #f8fafc;
+                background: rgba(0,0,0,.22);
+                font: inherit;
+                font-size: 9px;
+                transition:
+                    border-color .18s ease,
+                    background .18s ease;
+            }
+
+            #vide-gerador-campanhas textarea.vide-gerador-input {
+                min-height: 66px;
+                padding-top: 10px;
+                padding-bottom: 10px;
+                resize: vertical;
+                line-height: 1.45;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-input:focus {
+                border-color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 42%, transparent);
+                background: rgba(0,0,0,.34);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-origem-custom {
+                grid-column: span 1;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-saida {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: end;
+                gap: 10px;
+                margin-top: 10px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-acoes {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 7px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-botao {
+                min-height: 38px;
+                padding: 0 12px;
+                border: 1px solid rgba(255,255,255,.08);
+                border-radius: 11px;
+                color: #d7deea;
+                background: rgba(255,255,255,.045);
+                font-size: 8px;
+                font-weight: 900;
+                cursor: pointer;
+                transition:
+                    transform .18s ease,
+                    border-color .18s ease,
+                    background .18s ease;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-botao:hover {
+                transform: translateY(-1px);
+                border-color: rgba(255,255,255,.15);
+                background: rgba(255,255,255,.075);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-botao.is-primary {
+                border-color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 28%, transparent);
+                color: #fff;
+                background:
+                    linear-gradient(
+                        135deg,
+                        var(--sys-primaria, #6d5dfc),
+                        var(--sys-destaque, #00f2fe)
+                    );
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico {
+                margin-top: 13px;
+                padding-top: 13px;
+                border-top: 1px solid rgba(255,255,255,.06);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-header {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 10px;
+                margin-bottom: 9px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-header strong {
+                color: #fff;
+                font-size: 9px;
+                font-weight: 900;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-header span {
+                color: #697386;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .1em;
+                text-transform: uppercase;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-lista {
+                display: grid;
+                gap: 7px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-item {
+                display: grid;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 10px;
+                padding: 9px 10px;
+                border: 1px solid rgba(255,255,255,.05);
+                border-radius: 11px;
+                background: rgba(255,255,255,.022);
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-copia {
+                min-width: 0;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-copia strong,
+            #vide-gerador-campanhas .vide-gerador-historico-copia small,
+            #vide-gerador-campanhas .vide-gerador-historico-copia span {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-copia strong {
+                color: #f8fafc;
+                font-size: 9px;
+                font-weight: 900;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-copia small {
+                margin-top: 3px;
+                color: #7d8798;
+                font-size: 7px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-copia span {
+                margin-top: 4px;
+                color: #5f6a7c;
+                font-size: 7px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-acoes {
+                display: flex;
+                flex-wrap: wrap;
+                justify-content: flex-end;
+                gap: 5px;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-acao {
+                min-height: 27px;
+                padding: 0 8px;
+                border: 1px solid rgba(255,255,255,.07);
+                border-radius: 8px;
+                color: #aeb8c7;
+                background: rgba(255,255,255,.035);
+                font-size: 7px;
+                font-weight: 900;
+                cursor: pointer;
+            }
+
+            #vide-gerador-campanhas .vide-gerador-historico-vazio {
+                padding: 14px;
+                border: 1px dashed rgba(255,255,255,.07);
+                border-radius: 11px;
+                color: #657084;
+                font-size: 8px;
+                text-align: center;
+            }
+
+            @media (max-width: 900px) {
+                #vide-gerador-campanhas .vide-gerador-form {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+
+                #vide-gerador-campanhas .vide-gerador-saida {
+                    grid-template-columns: 1fr;
+                }
+            }
+
+            @media (max-width: 620px) {
+                #vide-gerador-campanhas .vide-gerador-header {
+                    flex-direction: column;
+                }
+
+                #vide-gerador-campanhas .vide-gerador-status {
+                    align-self: flex-start;
+                    max-width: 100%;
+                }
+
+                #vide-gerador-campanhas .vide-gerador-form {
+                    grid-template-columns: 1fr;
+                }
+
+                #vide-gerador-campanhas .vide-gerador-historico-item {
+                    grid-template-columns: 1fr;
+                }
+
+                #vide-gerador-campanhas .vide-gerador-historico-acoes {
+                    justify-content: flex-start;
+                }
+            }
+        `;
+
+        document.head.appendChild(style);
+    }
+
+    function criarGeradorCampanhas() {
+        if (
+            document.getElementById(
+                "vide-gerador-campanhas"
+            )
+        ) {
+            return true;
+        }
+
+        var painel = document.getElementById(
+            "vide-aquisicao-real"
+        );
+
+        var resumo = painel?.querySelector(
+            ".vide-aquisicao-resumo"
+        );
+
+        if (!painel || !resumo) return false;
+
+        inserirEstilosGerador();
+
+        var gerador = document.createElement("section");
+        gerador.id = "vide-gerador-campanhas";
+        gerador.setAttribute(
+            "aria-labelledby",
+            "vide-gerador-titulo"
+        );
+
+        gerador.innerHTML = `
+            <div class="vide-gerador-header">
+                <div class="vide-gerador-titulo">
+                    <span class="vide-gerador-icone" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M10 13a5 5 0 0 0 7.1.1l2-2a5 5 0 0 0-7.1-7.1l-1.1 1.1"></path>
+                            <path d="M14 11a5 5 0 0 0-7.1-.1l-2 2A5 5 0 0 0 12 20l1.1-1.1"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Ferramenta de divulgação</small>
+                        <strong id="vide-gerador-titulo">
+                            Gerador de links rastreáveis
+                        </strong>
+                        <p>
+                            Crie links com identificação de canal e campanha para descobrir de onde chegam as vendas.
+                        </p>
+                    </div>
+                </div>
+
+                <span
+                    class="vide-gerador-status"
+                    id="vide-gerador-status"
+                    data-state="neutral"
+                >
+                    Preencha os campos
+                </span>
+            </div>
+
+            <div class="vide-gerador-form">
+                <label class="vide-gerador-campo">
+                    <span>Origem</span>
+                    <select
+                        id="vide-gerador-origem"
+                        class="vide-gerador-input"
+                    >
+                        <option value="instagram">Instagram</option>
+                        <option value="facebook">Facebook</option>
+                        <option value="tiktok">TikTok</option>
+                        <option value="google">Google</option>
+                        <option value="youtube">YouTube</option>
+                        <option value="whatsapp">WhatsApp</option>
+                        <option value="email">E-mail</option>
+                        <option value="linkedin">LinkedIn</option>
+                        <option value="qr_code">QR Code</option>
+                        <option value="outro">Outra origem</option>
+                    </select>
+                </label>
+
+                <label
+                    class="vide-gerador-campo vide-gerador-origem-custom"
+                    id="vide-gerador-origem-custom"
+                    hidden
+                >
+                    <span>Nome da origem</span>
+                    <input
+                        type="text"
+                        class="vide-gerador-input"
+                        id="vide-gerador-origem-custom-input"
+                        maxlength="80"
+                        placeholder="Ex.: parceiro_local"
+                    >
+                </label>
+
+                <label class="vide-gerador-campo">
+                    <span>Meio</span>
+                    <select
+                        id="vide-gerador-meio"
+                        class="vide-gerador-input"
+                    >
+                        <option value="social">Rede social</option>
+                        <option value="paid_social">Anúncio em rede social</option>
+                        <option value="cpc">Anúncio de busca / CPC</option>
+                        <option value="organic">Busca orgânica</option>
+                        <option value="messaging">Mensagem / WhatsApp</option>
+                        <option value="email">E-mail</option>
+                        <option value="qr_code">QR Code</option>
+                        <option value="referral">Indicação / parceiro</option>
+                    </select>
+                </label>
+
+                <label class="vide-gerador-campo">
+                    <span>Nome da campanha</span>
+                    <input
+                        type="text"
+                        class="vide-gerador-input"
+                        id="vide-gerador-campanha"
+                        maxlength="80"
+                        placeholder="Ex.: lancamento_julho"
+                    >
+                </label>
+
+                <label class="vide-gerador-campo">
+                    <span>Conteúdo opcional</span>
+                    <input
+                        type="text"
+                        class="vide-gerador-input"
+                        id="vide-gerador-conteudo"
+                        maxlength="80"
+                        placeholder="Ex.: story_01"
+                    >
+                </label>
+            </div>
+
+            <div class="vide-gerador-saida">
+                <label class="vide-gerador-campo">
+                    <span>Link gerado</span>
+                    <textarea
+                        id="vide-gerador-link"
+                        class="vide-gerador-input"
+                        readonly
+                        placeholder="O link rastreável aparecerá aqui."
+                    ></textarea>
+                </label>
+
+                <div class="vide-gerador-acoes">
+                    <button
+                        type="button"
+                        class="vide-gerador-botao is-primary"
+                        id="vide-gerador-criar"
+                    >
+                        Gerar link
+                    </button>
+
+                    <button
+                        type="button"
+                        class="vide-gerador-botao"
+                        id="vide-gerador-copiar"
+                    >
+                        Copiar
+                    </button>
+
+                    <button
+                        type="button"
+                        class="vide-gerador-botao"
+                        id="vide-gerador-abrir"
+                    >
+                        Abrir
+                    </button>
+
+                    <button
+                        type="button"
+                        class="vide-gerador-botao"
+                        id="vide-gerador-compartilhar"
+                    >
+                        Compartilhar
+                    </button>
+                </div>
+            </div>
+
+            <div class="vide-gerador-historico">
+                <div class="vide-gerador-historico-header">
+                    <strong>Links recentes</strong>
+                    <span id="vide-gerador-historico-total">
+                        0 links
+                    </span>
+                </div>
+
+                <div
+                    class="vide-gerador-historico-lista"
+                    id="vide-gerador-historico-lista"
+                ></div>
+            </div>
+        `;
+
+        painel.insertBefore(gerador, resumo);
+        return true;
+    }
+
+    function conectarEventosGerador() {
+        if (geradorInicializado) return;
+        if (!criarGeradorCampanhas()) return;
+
+        geradorInicializado = true;
+
+        var origem = document.getElementById(
+            "vide-gerador-origem"
+        );
+
+        var custom = document.getElementById(
+            "vide-gerador-origem-custom-input"
+        );
+
+        var meio = document.getElementById(
+            "vide-gerador-meio"
+        );
+
+        var campanha = document.getElementById(
+            "vide-gerador-campanha"
+        );
+
+        var conteudo = document.getElementById(
+            "vide-gerador-conteudo"
+        );
+
+        origem?.addEventListener(
+            "change",
+            function() {
+                configurarMeioPorOrigem();
+                montarLinkGerador(true);
+            }
+        );
+
+        [custom, meio, campanha, conteudo]
+            .filter(Boolean)
+            .forEach(function(campo) {
+                campo.addEventListener(
+                    "input",
+                    function() {
+                        montarLinkGerador(true);
+                    }
+                );
+
+                campo.addEventListener(
+                    "change",
+                    function() {
+                        montarLinkGerador(true);
+                    }
+                );
+            });
+
+        document.getElementById(
+            "vide-gerador-criar"
+        )?.addEventListener(
+            "click",
+            registrarLinkGerador
+        );
+
+        document.getElementById(
+            "vide-gerador-copiar"
+        )?.addEventListener(
+            "click",
+            async function() {
+                var link =
+                    document.getElementById(
+                        "vide-gerador-link"
+                    )?.value ||
+                    registrarLinkGerador();
+
+                if (!link) return;
+
+                try {
+                    await copiarTextoGerador(link);
+
+                    mensagemGerador(
+                        "Link copiado para a área de transferência.",
+                        "success"
+                    );
+                } catch (erro) {
+                    mensagemGerador(
+                        erro.message ||
+                            "Não foi possível copiar.",
+                        "error"
+                    );
+                }
+            }
+        );
+
+        document.getElementById(
+            "vide-gerador-abrir"
+        )?.addEventListener(
+            "click",
+            function() {
+                var link =
+                    document.getElementById(
+                        "vide-gerador-link"
+                    )?.value ||
+                    registrarLinkGerador();
+
+                if (!link) return;
+
+                window.open(
+                    link,
+                    "_blank",
+                    "noopener,noreferrer"
+                );
+
+                mensagemGerador(
+                    "Link aberto em uma nova aba.",
+                    "success"
+                );
+            }
+        );
+
+        document.getElementById(
+            "vide-gerador-compartilhar"
+        )?.addEventListener(
+            "click",
+            async function() {
+                var link =
+                    document.getElementById(
+                        "vide-gerador-link"
+                    )?.value ||
+                    registrarLinkGerador();
+
+                if (!link) return;
+
+                try {
+                    if (navigator.share) {
+                        await navigator.share({
+                            title: "Conheça nossa loja",
+                            text: "Acesse nossa loja pelo link:",
+                            url: link
+                        });
+
+                        mensagemGerador(
+                            "Link compartilhado.",
+                            "success"
+                        );
+                    } else {
+                        await copiarTextoGerador(link);
+
+                        mensagemGerador(
+                            "Compartilhamento não disponível. Link copiado.",
+                            "success"
+                        );
+                    }
+                } catch (erro) {
+                    if (erro?.name === "AbortError") {
+                        mensagemGerador(
+                            "Compartilhamento cancelado.",
+                            "neutral"
+                        );
+                        return;
+                    }
+
+                    mensagemGerador(
+                        "Não foi possível compartilhar o link.",
+                        "error"
+                    );
+                }
+            }
+        );
+
+        configurarMeioPorOrigem();
+        renderizarHistoricoGerador();
+    }
+
+    function inicializarGeradorCampanhas() {
+        var tentativas = 0;
+
+        var intervalo = setInterval(function() {
+            tentativas += 1;
+
+            if (criarGeradorCampanhas()) {
+                clearInterval(intervalo);
+                conectarEventosGerador();
+                return;
+            }
+
+            if (tentativas >= 80) {
+                clearInterval(intervalo);
+
+                console.warn(
+                    "[Vide Hub] O painel de aquisição não foi encontrado para inserir o gerador de links."
+                );
+            }
+        }, 180);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            inicializarGeradorCampanhas,
+            { once: true }
+        );
+    } else {
+        inicializarGeradorCampanhas();
+    }
+})();
+
