@@ -469,7 +469,10 @@
 
 .aura-leads-v5-filters {
     display: grid;
-    grid-template-columns: minmax(260px, 1fr) auto auto auto;
+    grid-template-columns:
+        minmax(260px, 1fr)
+        repeat(4, minmax(145px, auto))
+        auto;
     gap: 10px;
     margin-bottom: 16px;
 }
@@ -1295,8 +1298,11 @@
     }
 
     .aura-leads-v5-filters {
-        grid-template-columns: minmax(240px, 1fr) auto auto;
+        grid-template-columns:
+            minmax(240px, 1fr)
+            repeat(2, minmax(150px, 1fr));
     }
+
 
     .aura-leads-v5-filters .aura-leads-v5-secondary {
         grid-column: 1 / -1;
