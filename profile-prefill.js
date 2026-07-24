@@ -7011,3 +7011,1324 @@
     }
 })();
 
+/* =========================================================
+   VIDE HUB — DIAGNÓSTICO INTELIGENTE DE AQUISIÇÃO
+   Analisa origens e campanhas já registradas.
+   ========================================================= */
+(function() {
+    "use strict";
+
+    var diagnosticoAquisicaoIniciado = false;
+    var diagnosticoAquisicaoDesinscrever = null;
+
+    function numeroDiagnosticoAquisicao(valor) {
+        var numero = Number(valor || 0);
+        return Number.isFinite(numero)
+            ? Math.max(0, numero)
+            : 0;
+    }
+
+    function percentualDiagnosticoAquisicao(parte, total) {
+        parte = numeroDiagnosticoAquisicao(parte);
+        total = numeroDiagnosticoAquisicao(total);
+
+        if (!total) return 0;
+        return Math.max(0, (parte / total) * 100);
+    }
+
+    function textoDiagnosticoAquisicao(valor, fallback) {
+        var texto = String(valor || "")
+            .replace(/\s+/g, " ")
+            .trim();
+
+        return texto || fallback || "";
+    }
+
+    function formatarInteiroDiagnosticoAquisicao(valor) {
+        return new Intl.NumberFormat("pt-BR").format(
+            Math.round(
+                numeroDiagnosticoAquisicao(valor)
+            )
+        );
+    }
+
+    function formatarPercentualDiagnosticoAquisicao(valor) {
+        var numero = numeroDiagnosticoAquisicao(valor);
+
+        return numero.toLocaleString("pt-BR", {
+            minimumFractionDigits:
+                numero > 0 && numero < 10 ? 1 : 0,
+            maximumFractionDigits: 1
+        }) + "%";
+    }
+
+    function formatarMoedaDiagnosticoAquisicao(valor) {
+        return new Intl.NumberFormat("pt-BR", {
+            style: "currency",
+            currency: "BRL"
+        }).format(
+            numeroDiagnosticoAquisicao(valor)
+        );
+    }
+
+    function prepararItemDiagnosticoAquisicao(
+        chave,
+        dados,
+        tipo
+    ) {
+        dados = dados || {};
+
+        var visitas = numeroDiagnosticoAquisicao(
+            dados.visitas || dados.sessoes
+        );
+
+        var whatsapp = numeroDiagnosticoAquisicao(
+            dados.pedidosWhatsapp
+        );
+
+        var checkouts = numeroDiagnosticoAquisicao(
+            dados.checkoutsIniciados
+        );
+
+        var valor = numeroDiagnosticoAquisicao(
+            dados.valorPedidosWhatsapp
+        );
+
+        return {
+            chave: chave,
+            tipo: tipo,
+            nome: textoDiagnosticoAquisicao(
+                dados.nome,
+                tipo === "campanha"
+                    ? "Campanha sem nome"
+                    : "Origem não identificada"
+            ),
+            origem: textoDiagnosticoAquisicao(
+                dados.origem,
+                ""
+            ),
+            meio: textoDiagnosticoAquisicao(
+                dados.meio,
+                "Não informado"
+            ),
+            visitas: visitas,
+            cliques: numeroDiagnosticoAquisicao(
+                dados.cliques ||
+                dados.cliquesProdutos
+            ),
+            carrinhos: numeroDiagnosticoAquisicao(
+                dados.carrinhosAbertos
+            ),
+            adicoes: numeroDiagnosticoAquisicao(
+                dados.adicoesCarrinho
+            ),
+            checkouts: checkouts,
+            whatsapp: whatsapp,
+            valor: valor,
+            conversao: percentualDiagnosticoAquisicao(
+                whatsapp,
+                visitas
+            ),
+            conversaoCheckout:
+                percentualDiagnosticoAquisicao(
+                    whatsapp,
+                    checkouts
+                )
+        };
+    }
+
+    function ordenarMaior(lista, campo) {
+        return lista
+            .slice()
+            .sort(function(a, b) {
+                return (
+                    numeroDiagnosticoAquisicao(
+                        b[campo]
+                    ) -
+                    numeroDiagnosticoAquisicao(
+                        a[campo]
+                    )
+                );
+            });
+    }
+
+    function obterMelhorConversao(lista) {
+        var comAmostra = lista.filter(
+            function(item) {
+                return item.visitas >= 3;
+            }
+        );
+
+        var base = comAmostra.length
+            ? comAmostra
+            : lista.filter(function(item) {
+                return item.visitas > 0;
+            });
+
+        return base
+            .slice()
+            .sort(function(a, b) {
+                return (
+                    b.conversao - a.conversao ||
+                    b.whatsapp - a.whatsapp ||
+                    b.visitas - a.visitas
+                );
+            })[0] || null;
+    }
+
+    function criarRecomendacaoDiagnosticoAquisicao(
+        nivel,
+        titulo,
+        texto,
+        referencia
+    ) {
+        return {
+            nivel: nivel,
+            titulo: titulo,
+            texto: texto,
+            referencia: referencia || ""
+        };
+    }
+
+    function analisarDadosDiagnosticoAquisicao(dados) {
+        dados = dados || {};
+
+        var origens = Object.entries(
+            dados.porOrigem || {}
+        )
+            .map(function(par) {
+                return prepararItemDiagnosticoAquisicao(
+                    par[0],
+                    par[1],
+                    "origem"
+                );
+            })
+            .filter(function(item) {
+                return (
+                    item.visitas > 0 ||
+                    item.whatsapp > 0 ||
+                    item.valor > 0 ||
+                    item.checkouts > 0
+                );
+            });
+
+        var campanhas = Object.entries(
+            dados.porCampanha || {}
+        )
+            .map(function(par) {
+                return prepararItemDiagnosticoAquisicao(
+                    par[0],
+                    par[1],
+                    "campanha"
+                );
+            })
+            .filter(function(item) {
+                return (
+                    item.visitas > 0 ||
+                    item.whatsapp > 0 ||
+                    item.valor > 0 ||
+                    item.checkouts > 0
+                );
+            });
+
+        var totais = origens.reduce(
+            function(total, item) {
+                total.visitas += item.visitas;
+                total.whatsapp += item.whatsapp;
+                total.checkouts += item.checkouts;
+                total.valor += item.valor;
+                return total;
+            },
+            {
+                visitas: 0,
+                whatsapp: 0,
+                checkouts: 0,
+                valor: 0
+            }
+        );
+
+        totais.conversao =
+            percentualDiagnosticoAquisicao(
+                totais.whatsapp,
+                totais.visitas
+            );
+
+        var melhorVolume =
+            ordenarMaior(origens, "visitas")[0] ||
+            null;
+
+        var melhorConversao =
+            obterMelhorConversao(origens);
+
+        var maiorValor =
+            ordenarMaior(origens, "valor")[0] ||
+            null;
+
+        var campanhaDestaque = campanhas
+            .slice()
+            .sort(function(a, b) {
+                var scoreA =
+                    a.whatsapp * 10000 +
+                    a.valor * 10 +
+                    a.conversao * 100 +
+                    a.visitas;
+
+                var scoreB =
+                    b.whatsapp * 10000 +
+                    b.valor * 10 +
+                    b.conversao * 100 +
+                    b.visitas;
+
+                return scoreB - scoreA;
+            })[0] || null;
+
+        var recomendacoes = [];
+
+        if (!origens.length) {
+            recomendacoes.push(
+                criarRecomendacaoDiagnosticoAquisicao(
+                    "neutral",
+                    "Gere os primeiros dados rastreáveis",
+                    "Crie um link no Gerador de Links de Campanha, divulgue-o e faça um novo teste completo até o WhatsApp.",
+                    "Sem dados de aquisição"
+                )
+            );
+        }
+
+        origens
+            .filter(function(item) {
+                return (
+                    item.visitas >= 3 &&
+                    item.whatsapp === 0
+                );
+            })
+            .sort(function(a, b) {
+                return b.visitas - a.visitas;
+            })
+            .slice(0, 2)
+            .forEach(function(item) {
+                recomendacoes.push(
+                    criarRecomendacaoDiagnosticoAquisicao(
+                        item.visitas >= 10
+                            ? "critical"
+                            : "attention",
+                        "Tráfego sem conversão em " +
+                            item.nome,
+                        formatarInteiroDiagnosticoAquisicao(
+                            item.visitas
+                        ) +
+                            " visitas chegaram por esse canal, mas nenhuma abriu o WhatsApp. Revise a oferta, o preço, as imagens e o botão principal da loja.",
+                        item.nome
+                    )
+                );
+            });
+
+        origens
+            .filter(function(item) {
+                return (
+                    item.checkouts >= 2 &&
+                    item.conversaoCheckout < 50
+                );
+            })
+            .sort(function(a, b) {
+                return (
+                    a.conversaoCheckout -
+                    b.conversaoCheckout
+                );
+            })
+            .slice(0, 2)
+            .forEach(function(item) {
+                recomendacoes.push(
+                    criarRecomendacaoDiagnosticoAquisicao(
+                        "attention",
+                        "Abandono no final por " +
+                            item.nome,
+                        formatarInteiroDiagnosticoAquisicao(
+                            item.checkouts
+                        ) +
+                            " pedidos foram iniciados, mas poucos chegaram ao WhatsApp. Simplifique os campos e deixe prazo, preço e entrega mais claros antes do formulário.",
+                        item.nome
+                    )
+                );
+            });
+
+        campanhas
+            .filter(function(item) {
+                return (
+                    item.visitas >= 3 &&
+                    item.whatsapp === 0
+                );
+            })
+            .sort(function(a, b) {
+                return b.visitas - a.visitas;
+            })
+            .slice(0, 2)
+            .forEach(function(item) {
+                recomendacoes.push(
+                    criarRecomendacaoDiagnosticoAquisicao(
+                        item.visitas >= 10
+                            ? "critical"
+                            : "attention",
+                        "Campanha sem resultado: " +
+                            item.nome,
+                        "A campanha recebeu " +
+                            formatarInteiroDiagnosticoAquisicao(
+                                item.visitas
+                            ) +
+                            " visitas e não gerou abertura do WhatsApp. Teste outro criativo, chamada ou público antes de aumentar o investimento.",
+                        item.origem || item.meio
+                    )
+                );
+            });
+
+        if (
+            melhorConversao &&
+            melhorConversao.visitas >= 3 &&
+            melhorConversao.conversao >= 5
+        ) {
+            recomendacoes.push(
+                criarRecomendacaoDiagnosticoAquisicao(
+                    "positive",
+                    "Canal promissor: " +
+                        melhorConversao.nome,
+                    "Esse canal converte " +
+                        formatarPercentualDiagnosticoAquisicao(
+                            melhorConversao.conversao
+                        ) +
+                        " das visitas em abertura do WhatsApp. Replique o formato da campanha e acompanhe se a taxa permanece estável com mais tráfego.",
+                    melhorConversao.meio
+                )
+            );
+        }
+
+        if (
+            melhorVolume &&
+            totais.visitas >= 10 &&
+            melhorVolume.visitas /
+                Math.max(totais.visitas, 1) >=
+                0.7
+        ) {
+            recomendacoes.push(
+                criarRecomendacaoDiagnosticoAquisicao(
+                    "attention",
+                    "Dependência elevada de um canal",
+                    melhorVolume.nome +
+                        " concentra " +
+                        formatarPercentualDiagnosticoAquisicao(
+                            percentualDiagnosticoAquisicao(
+                                melhorVolume.visitas,
+                                totais.visitas
+                            )
+                        ) +
+                        " das visitas atribuídas. Teste ao menos uma segunda origem para reduzir o risco de queda repentina.",
+                    melhorVolume.nome
+                )
+            );
+        }
+
+        if (
+            campanhas.length === 0 &&
+            origens.length > 0
+        ) {
+            recomendacoes.push(
+                criarRecomendacaoDiagnosticoAquisicao(
+                    "neutral",
+                    "Separe as divulgações por campanha",
+                    "As origens já estão sendo identificadas, mas ainda faltam campanhas específicas. Use nomes diferentes para stories, anúncios, parceiros e datas de promoção.",
+                    "Gerador de links"
+                )
+            );
+        }
+
+        recomendacoes.sort(function(a, b) {
+            var peso = {
+                critical: 4,
+                attention: 3,
+                positive: 2,
+                neutral: 1
+            };
+
+            return (
+                (peso[b.nivel] || 0) -
+                (peso[a.nivel] || 0)
+            );
+        });
+
+        recomendacoes = recomendacoes.slice(0, 6);
+
+        var nivelGeral = "neutral";
+        var statusGeral = "Coletando dados";
+
+        if (
+            recomendacoes.some(function(item) {
+                return item.nivel === "critical";
+            })
+        ) {
+            nivelGeral = "critical";
+            statusGeral = "Ação prioritária";
+        } else if (
+            recomendacoes.some(function(item) {
+                return item.nivel === "attention";
+            })
+        ) {
+            nivelGeral = "attention";
+            statusGeral = "Pontos de atenção";
+        } else if (
+            origens.length > 0 &&
+            totais.whatsapp > 0
+        ) {
+            nivelGeral = "positive";
+            statusGeral = "Aquisição saudável";
+        }
+
+        return {
+            origens: origens,
+            campanhas: campanhas,
+            totais: totais,
+            melhorVolume: melhorVolume,
+            melhorConversao: melhorConversao,
+            maiorValor: maiorValor,
+            campanhaDestaque: campanhaDestaque,
+            recomendacoes: recomendacoes,
+            nivelGeral: nivelGeral,
+            statusGeral: statusGeral
+        };
+    }
+
+    function inserirEstilosDiagnosticoAquisicao() {
+        if (
+            document.getElementById(
+                "vide-diagnostico-aquisicao-style"
+            )
+        ) {
+            return;
+        }
+
+        var style = document.createElement("style");
+        style.id =
+            "vide-diagnostico-aquisicao-style";
+
+        style.textContent = `
+            #vide-diagnostico-aquisicao {
+                margin-top: 15px;
+                padding: 16px;
+                border: 1px solid rgba(255,255,255,.07);
+                border-radius: 17px;
+                background:
+                    radial-gradient(
+                        circle at 0 0,
+                        color-mix(in srgb, var(--sys-primaria, #6d5dfc) 9%, transparent),
+                        transparent 34%
+                    ),
+                    rgba(3,7,18,.45);
+            }
+
+            #vide-diagnostico-aquisicao * {
+                box-sizing: border-box;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-header {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 14px;
+                margin-bottom: 14px;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-title {
+                display: flex;
+                align-items: flex-start;
+                gap: 10px;
+                min-width: 0;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-icon {
+                width: 38px;
+                height: 38px;
+                flex: 0 0 38px;
+                display: inline-flex;
+                align-items: center;
+                justify-content: center;
+                border: 1px solid color-mix(in srgb, var(--sys-destaque, #00f2fe) 25%, transparent);
+                border-radius: 12px;
+                color: color-mix(in srgb, var(--sys-destaque, #00f2fe) 82%, white 18%);
+                background: color-mix(in srgb, var(--sys-destaque, #00f2fe) 8%, transparent);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-icon svg {
+                width: 18px;
+                height: 18px;
+                fill: none;
+                stroke: currentColor;
+                stroke-width: 1.8;
+                stroke-linecap: round;
+                stroke-linejoin: round;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-title small {
+                display: block;
+                margin-bottom: 3px;
+                color: #697386;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .14em;
+                text-transform: uppercase;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-title strong {
+                display: block;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 900;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-title p {
+                margin: 4px 0 0;
+                color: #7c8798;
+                font-size: 9px;
+                line-height: 1.5;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status {
+                flex: 0 0 auto;
+                display: inline-flex;
+                align-items: center;
+                gap: 7px;
+                min-height: 29px;
+                padding: 0 10px;
+                border: 1px solid rgba(255,255,255,.08);
+                border-radius: 999px;
+                color: #aeb8c7;
+                background: rgba(255,255,255,.035);
+                font-size: 8px;
+                font-weight: 900;
+                white-space: nowrap;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status::before {
+                content: "";
+                width: 7px;
+                height: 7px;
+                border-radius: 999px;
+                background: #64748b;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status[data-level="positive"] {
+                color: #86efac;
+                border-color: rgba(34,197,94,.2);
+                background: rgba(34,197,94,.06);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status[data-level="positive"]::before {
+                background: #22c55e;
+                box-shadow: 0 0 0 4px rgba(34,197,94,.09);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status[data-level="attention"] {
+                color: #fde68a;
+                border-color: rgba(245,158,11,.2);
+                background: rgba(245,158,11,.06);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status[data-level="attention"]::before {
+                background: #f59e0b;
+                box-shadow: 0 0 0 4px rgba(245,158,11,.09);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status[data-level="critical"] {
+                color: #fda4af;
+                border-color: rgba(244,63,94,.2);
+                background: rgba(244,63,94,.06);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-status[data-level="critical"]::before {
+                background: #f43f5e;
+                box-shadow: 0 0 0 4px rgba(244,63,94,.09);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpis {
+                display: grid;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+                gap: 9px;
+                margin-bottom: 13px;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi {
+                min-width: 0;
+                padding: 12px;
+                border: 1px solid rgba(255,255,255,.055);
+                border-radius: 13px;
+                background: rgba(255,255,255,.022);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi span,
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi strong,
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi small {
+                display: block;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi span {
+                color: #697386;
+                font-size: 7px;
+                font-weight: 900;
+                letter-spacing: .09em;
+                text-transform: uppercase;
+                white-space: nowrap;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi strong {
+                margin-top: 7px;
+                color: #fff;
+                font-size: 12px;
+                font-weight: 900;
+                white-space: nowrap;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpi small {
+                margin-top: 4px;
+                min-height: 24px;
+                color: #707b8e;
+                font-size: 7px;
+                line-height: 1.45;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-lista {
+                display: grid;
+                gap: 8px;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-item {
+                display: grid;
+                grid-template-columns: auto minmax(0, 1fr) auto;
+                align-items: start;
+                gap: 10px;
+                padding: 11px;
+                border: 1px solid rgba(255,255,255,.052);
+                border-radius: 13px;
+                background: rgba(255,255,255,.02);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-marcador {
+                width: 9px;
+                height: 9px;
+                margin-top: 3px;
+                border-radius: 999px;
+                background: #64748b;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-item[data-level="positive"] .vide-diag-aquisicao-marcador {
+                background: #22c55e;
+                box-shadow: 0 0 0 4px rgba(34,197,94,.08);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-item[data-level="attention"] .vide-diag-aquisicao-marcador {
+                background: #f59e0b;
+                box-shadow: 0 0 0 4px rgba(245,158,11,.08);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-item[data-level="critical"] .vide-diag-aquisicao-marcador {
+                background: #f43f5e;
+                box-shadow: 0 0 0 4px rgba(244,63,94,.08);
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-copia {
+                min-width: 0;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-copia strong {
+                display: block;
+                color: #f8fafc;
+                font-size: 9px;
+                font-weight: 900;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-copia p {
+                margin: 4px 0 0;
+                color: #7b8698;
+                font-size: 8px;
+                line-height: 1.55;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-referencia {
+                max-width: 130px;
+                overflow: hidden;
+                color: #697386;
+                font-size: 7px;
+                font-weight: 900;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            #vide-diagnostico-aquisicao .vide-diag-aquisicao-vazio {
+                padding: 16px;
+                border: 1px dashed rgba(255,255,255,.07);
+                border-radius: 12px;
+                color: #697386;
+                font-size: 8px;
+                line-height: 1.5;
+                text-align: center;
+            }
+
+            @media (max-width: 900px) {
+                #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpis {
+                    grid-template-columns: repeat(2, minmax(0, 1fr));
+                }
+            }
+
+            @media (max-width: 620px) {
+                #vide-diagnostico-aquisicao .vide-diag-aquisicao-header {
+                    flex-direction: column;
+                }
+
+                #vide-diagnostico-aquisicao .vide-diag-aquisicao-status {
+                    align-self: flex-start;
+                }
+
+                #vide-diagnostico-aquisicao .vide-diag-aquisicao-kpis {
+                    grid-template-columns: 1fr 1fr;
+                }
+
+                #vide-diagnostico-aquisicao .vide-diag-aquisicao-item {
+                    grid-template-columns: auto minmax(0, 1fr);
+                }
+
+                #vide-diagnostico-aquisicao .vide-diag-aquisicao-referencia {
+                    grid-column: 2;
+                    max-width: 100%;
+                }
+            }
+        `;
+
+        document.head.appendChild(style);
+    }
+
+    function criarPainelDiagnosticoAquisicao() {
+        if (
+            document.getElementById(
+                "vide-diagnostico-aquisicao"
+            )
+        ) {
+            return true;
+        }
+
+        var painel = document.getElementById(
+            "vide-aquisicao-real"
+        );
+
+        var layout = painel?.querySelector(
+            ".vide-aquisicao-layout"
+        );
+
+        if (!painel || !layout) return false;
+
+        inserirEstilosDiagnosticoAquisicao();
+
+        var diagnostico = document.createElement(
+            "section"
+        );
+
+        diagnostico.id =
+            "vide-diagnostico-aquisicao";
+
+        diagnostico.setAttribute(
+            "aria-labelledby",
+            "vide-diag-aquisicao-titulo"
+        );
+
+        diagnostico.innerHTML = `
+            <div class="vide-diag-aquisicao-header">
+                <div class="vide-diag-aquisicao-title">
+                    <span class="vide-diag-aquisicao-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M4 19V9"></path>
+                            <path d="M10 19V5"></path>
+                            <path d="M16 19v-7"></path>
+                            <path d="M22 19V3"></path>
+                        </svg>
+                    </span>
+
+                    <div>
+                        <small>Análise automática</small>
+                        <strong id="vide-diag-aquisicao-titulo">
+                            Diagnóstico de aquisição
+                        </strong>
+                        <p>
+                            Descubra onde concentrar divulgação e quais campanhas precisam de ajuste.
+                        </p>
+                    </div>
+                </div>
+
+                <span
+                    class="vide-diag-aquisicao-status"
+                    id="vide-diag-aquisicao-status"
+                    data-level="neutral"
+                >
+                    Coletando dados
+                </span>
+            </div>
+
+            <div class="vide-diag-aquisicao-kpis">
+                <article class="vide-diag-aquisicao-kpi">
+                    <span>Maior volume</span>
+                    <strong id="vide-diag-aquisicao-volume">
+                        Sem dados
+                    </strong>
+                    <small id="vide-diag-aquisicao-volume-detalhe">
+                        Aguardando visitas
+                    </small>
+                </article>
+
+                <article class="vide-diag-aquisicao-kpi">
+                    <span>Melhor conversão</span>
+                    <strong id="vide-diag-aquisicao-conversao">
+                        Sem dados
+                    </strong>
+                    <small id="vide-diag-aquisicao-conversao-detalhe">
+                        Aguardando conversões
+                    </small>
+                </article>
+
+                <article class="vide-diag-aquisicao-kpi">
+                    <span>Maior valor potencial</span>
+                    <strong id="vide-diag-aquisicao-valor">
+                        Sem dados
+                    </strong>
+                    <small id="vide-diag-aquisicao-valor-detalhe">
+                        Aguardando pedidos
+                    </small>
+                </article>
+
+                <article class="vide-diag-aquisicao-kpi">
+                    <span>Campanha destaque</span>
+                    <strong id="vide-diag-aquisicao-campanha">
+                        Sem dados
+                    </strong>
+                    <small id="vide-diag-aquisicao-campanha-detalhe">
+                        Aguardando campanhas
+                    </small>
+                </article>
+            </div>
+
+            <div
+                class="vide-diag-aquisicao-lista"
+                id="vide-diag-aquisicao-lista"
+            >
+                <div class="vide-diag-aquisicao-vazio">
+                    Analisando os canais e campanhas registrados...
+                </div>
+            </div>
+        `;
+
+        layout.insertAdjacentElement(
+            "afterend",
+            diagnostico
+        );
+
+        return true;
+    }
+
+    function atualizarTextoDiagnosticoAquisicao(
+        id,
+        texto
+    ) {
+        var elemento = document.getElementById(id);
+        if (elemento) elemento.textContent = texto;
+    }
+
+    function renderizarRecomendacoesDiagnosticoAquisicao(
+        recomendacoes
+    ) {
+        var lista = document.getElementById(
+            "vide-diag-aquisicao-lista"
+        );
+
+        if (!lista) return;
+        lista.replaceChildren();
+
+        if (!recomendacoes.length) {
+            var vazio = document.createElement("div");
+            vazio.className =
+                "vide-diag-aquisicao-vazio";
+            vazio.textContent =
+                "Nenhum ponto crítico foi identificado. Continue gerando tráfego rastreável para ampliar a análise.";
+            lista.appendChild(vazio);
+            return;
+        }
+
+        recomendacoes.forEach(function(item) {
+            var card = document.createElement(
+                "article"
+            );
+
+            card.className =
+                "vide-diag-aquisicao-item";
+
+            card.dataset.level =
+                item.nivel || "neutral";
+
+            var marcador = document.createElement(
+                "span"
+            );
+
+            marcador.className =
+                "vide-diag-aquisicao-marcador";
+
+            marcador.setAttribute(
+                "aria-hidden",
+                "true"
+            );
+
+            var copia = document.createElement("div");
+            copia.className =
+                "vide-diag-aquisicao-copia";
+
+            var titulo = document.createElement(
+                "strong"
+            );
+
+            titulo.textContent = item.titulo;
+
+            var texto = document.createElement("p");
+            texto.textContent = item.texto;
+
+            copia.append(titulo, texto);
+
+            var referencia =
+                document.createElement("span");
+
+            referencia.className =
+                "vide-diag-aquisicao-referencia";
+
+            referencia.textContent =
+                item.referencia || "";
+
+            card.append(
+                marcador,
+                copia,
+                referencia
+            );
+
+            lista.appendChild(card);
+        });
+    }
+
+    function renderizarDiagnosticoAquisicao(dados) {
+        var analise =
+            analisarDadosDiagnosticoAquisicao(
+                dados
+            );
+
+        var volume = analise.melhorVolume;
+        var conversao =
+            analise.melhorConversao;
+        var valor = analise.maiorValor;
+        var campanha =
+            analise.campanhaDestaque;
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-volume",
+            volume ? volume.nome : "Sem dados"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-volume-detalhe",
+            volume
+                ? formatarInteiroDiagnosticoAquisicao(
+                    volume.visitas
+                ) +
+                    (volume.visitas === 1
+                        ? " visita atribuída"
+                        : " visitas atribuídas")
+                : "Aguardando visitas"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-conversao",
+            conversao
+                ? conversao.nome
+                : "Sem dados"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-conversao-detalhe",
+            conversao
+                ? formatarPercentualDiagnosticoAquisicao(
+                    conversao.conversao
+                ) +
+                    " visita → WhatsApp"
+                : "Aguardando conversões"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-valor",
+            valor ? valor.nome : "Sem dados"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-valor-detalhe",
+            valor
+                ? formatarMoedaDiagnosticoAquisicao(
+                    valor.valor
+                ) +
+                    " em intenção de compra"
+                : "Aguardando pedidos"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-campanha",
+            campanha
+                ? campanha.nome
+                : "Sem dados"
+        );
+
+        atualizarTextoDiagnosticoAquisicao(
+            "vide-diag-aquisicao-campanha-detalhe",
+            campanha
+                ? formatarInteiroDiagnosticoAquisicao(
+                    campanha.whatsapp
+                ) +
+                    " WhatsApp · " +
+                    formatarPercentualDiagnosticoAquisicao(
+                        campanha.conversao
+                    )
+                : "Aguardando campanhas"
+        );
+
+        var status = document.getElementById(
+            "vide-diag-aquisicao-status"
+        );
+
+        if (status) {
+            status.textContent =
+                analise.statusGeral;
+
+            status.dataset.level =
+                analise.nivelGeral;
+        }
+
+        renderizarRecomendacoesDiagnosticoAquisicao(
+            analise.recomendacoes
+        );
+    }
+
+    async function obterUsuarioDiagnosticoAquisicao(
+        authModulo,
+        auth
+    ) {
+        if (auth.currentUser) {
+            return auth.currentUser;
+        }
+
+        return new Promise(function(resolve, reject) {
+            var cancelar =
+                authModulo.onAuthStateChanged(
+                    auth,
+                    function(usuario) {
+                        cancelar();
+
+                        if (usuario) {
+                            resolve(usuario);
+                        } else {
+                            reject(
+                                new Error(
+                                    "Sessão não autenticada."
+                                )
+                            );
+                        }
+                    },
+                    function(erro) {
+                        cancelar();
+                        reject(erro);
+                    }
+                );
+        });
+    }
+
+    async function resolverTenantDiagnosticoAquisicao(
+        firebase,
+        firestore,
+        authModulo
+    ) {
+        var masterUid =
+            new URLSearchParams(
+                window.location.search
+            ).get("masterUID");
+
+        if (masterUid) {
+            return String(masterUid).trim();
+        }
+
+        var usuario =
+            await obterUsuarioDiagnosticoAquisicao(
+                authModulo,
+                firebase.auth
+            );
+
+        try {
+            var funcionarioSnap =
+                await firestore.getDoc(
+                    firestore.doc(
+                        firebase.db,
+                        "funcionarios",
+                        usuario.uid
+                    )
+                );
+
+            if (
+                funcionarioSnap.exists() &&
+                funcionarioSnap.data()?.donoUID
+            ) {
+                return String(
+                    funcionarioSnap.data().donoUID
+                ).trim();
+            }
+        } catch (erro) {
+            console.warn(
+                "[Vide Hub] Vínculo do funcionário não consultado no diagnóstico de aquisição:",
+                erro?.message || erro
+            );
+        }
+
+        return usuario.uid;
+    }
+
+    async function conectarDiagnosticoAquisicao() {
+        if (diagnosticoAquisicaoIniciado) return;
+
+        if (!criarPainelDiagnosticoAquisicao()) {
+            return;
+        }
+
+        diagnosticoAquisicaoIniciado = true;
+
+        try {
+            var modulos = await Promise.all([
+                import("./firebase-init.js"),
+                import(
+                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+                ),
+                import(
+                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"
+                )
+            ]);
+
+            var firebase = modulos[0];
+            var firestore = modulos[1];
+            var authModulo = modulos[2];
+
+            var tenantUid =
+                await resolverTenantDiagnosticoAquisicao(
+                    firebase,
+                    firestore,
+                    authModulo
+                );
+
+            if (!tenantUid) {
+                throw new Error(
+                    "Não foi possível identificar a loja ativa."
+                );
+            }
+
+            if (
+                typeof diagnosticoAquisicaoDesinscrever ===
+                "function"
+            ) {
+                diagnosticoAquisicaoDesinscrever();
+            }
+
+            diagnosticoAquisicaoDesinscrever =
+                firestore.onSnapshot(
+                    firestore.doc(
+                        firebase.db,
+                        "metricas_vitrines",
+                        tenantUid
+                    ),
+                    function(snapshot) {
+                        renderizarDiagnosticoAquisicao(
+                            snapshot.exists()
+                                ? snapshot.data() || {}
+                                : {}
+                        );
+                    },
+                    function(erro) {
+                        console.error(
+                            "[Vide Hub] Erro ao carregar diagnóstico de aquisição:",
+                            erro
+                        );
+
+                        var status =
+                            document.getElementById(
+                                "vide-diag-aquisicao-status"
+                            );
+
+                        if (status) {
+                            status.textContent =
+                                erro?.code ===
+                                "permission-denied"
+                                    ? "Sem permissão"
+                                    : "Falha ao analisar";
+
+                            status.dataset.level =
+                                "critical";
+                        }
+                    }
+                );
+        } catch (erro) {
+            diagnosticoAquisicaoIniciado = false;
+
+            console.error(
+                "[Vide Hub] Erro ao iniciar diagnóstico de aquisição:",
+                erro
+            );
+
+            var status = document.getElementById(
+                "vide-diag-aquisicao-status"
+            );
+
+            if (status) {
+                status.textContent =
+                    "Não foi possível analisar";
+
+                status.dataset.level =
+                    "critical";
+            }
+        }
+    }
+
+    function inicializarDiagnosticoAquisicao() {
+        var tentativas = 0;
+
+        var intervalo = setInterval(function() {
+            tentativas += 1;
+
+            if (
+                criarPainelDiagnosticoAquisicao()
+            ) {
+                clearInterval(intervalo);
+                conectarDiagnosticoAquisicao();
+                return;
+            }
+
+            if (tentativas >= 80) {
+                clearInterval(intervalo);
+
+                console.warn(
+                    "[Vide Hub] O painel de aquisição não foi encontrado para inserir o diagnóstico."
+                );
+            }
+        }, 180);
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            inicializarDiagnosticoAquisicao,
+            { once: true }
+        );
+    } else {
+        inicializarDiagnosticoAquisicao();
+    }
+})();
+
