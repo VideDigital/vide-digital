@@ -8340,99 +8340,285 @@
 })();
 
 /* =========================================================
-   VIDE HUB — OTIMIZAÇÃO VISUAL DA ABA MÉTRICAS
-   Evita pintura e layout de blocos que estão fora da tela.
+   VIDE HUB — MODO DE ALTO DESEMPENHO NA ABA MÉTRICAS
+   Reduz repintura durante o scroll sem remover funcionalidades.
    ========================================================= */
 (function() {
     "use strict";
 
-    if (
-        document.getElementById(
-            "vide-metricas-performance-style"
-        )
-    ) {
-        return;
+    var STYLE_ID = "vide-metricas-performance-style";
+    var BODY_CLASS = "vide-metricas-performance-mode";
+
+    function inserirEstilosPerformanceMetricas() {
+        var antigo = document.getElementById(STYLE_ID);
+
+        if (antigo) {
+            antigo.remove();
+        }
+
+        var style = document.createElement("style");
+        style.id = STYLE_ID;
+
+        style.textContent = `
+            @supports (content-visibility: auto) {
+                body.${BODY_CLASS} #vide-aquisicao-real,
+                body.${BODY_CLASS} #vide-gerador-campanhas,
+                body.${BODY_CLASS} #vide-diagnostico-aquisicao,
+                body.${BODY_CLASS}
+                    #vide-funil-loja-publica
+                    .vide-produtos-performance {
+                    content-visibility: auto;
+                }
+
+                body.${BODY_CLASS} #vide-aquisicao-real {
+                    contain-intrinsic-size: auto 1450px;
+                }
+
+                body.${BODY_CLASS} #vide-gerador-campanhas {
+                    contain-intrinsic-size: auto 560px;
+                }
+
+                body.${BODY_CLASS} #vide-diagnostico-aquisicao {
+                    contain-intrinsic-size: auto 520px;
+                }
+
+                body.${BODY_CLASS}
+                    #vide-funil-loja-publica
+                    .vide-produtos-performance {
+                    contain-intrinsic-size: auto 850px;
+                }
+            }
+
+            body.${BODY_CLASS} {
+                background-color: #0a0918 !important;
+                background-image: none !important;
+            }
+
+            body.${BODY_CLASS} #admin-sidebar {
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+                background: #0f0d24 !important;
+                box-shadow: none !important;
+            }
+
+            body.${BODY_CLASS} #admin-sidebar::before,
+            body.${BODY_CLASS} #admin-sidebar::after,
+            body.${BODY_CLASS}
+                #admin-sidebar
+                .blur-2xl,
+            body.${BODY_CLASS}
+                #admin-sidebar
+                .blur-3xl {
+                display: none !important;
+            }
+
+            body.${BODY_CLASS} header,
+            body.${BODY_CLASS} [id*="topbar"],
+            body.${BODY_CLASS} .topbar,
+            body.${BODY_CLASS} #view-metricas .glass-card,
+            body.${BODY_CLASS} #vide-funil-loja-publica,
+            body.${BODY_CLASS} #vide-aquisicao-real,
+            body.${BODY_CLASS} #vide-gerador-campanhas,
+            body.${BODY_CLASS} #vide-diagnostico-aquisicao,
+            body.${BODY_CLASS} #view-metricas thead th {
+                -webkit-backdrop-filter: none !important;
+                backdrop-filter: none !important;
+            }
+
+            body.${BODY_CLASS} .aura-sidebar-navigation {
+                scroll-behavior: auto !important;
+                mask-image: none !important;
+                -webkit-mask-image: none !important;
+            }
+
+            body.${BODY_CLASS} #btn-notificacoes,
+            body.${BODY_CLASS} #btn-notificacoes *,
+            body.${BODY_CLASS} #view-metricas *,
+            body.${BODY_CLASS} #view-metricas *::before,
+            body.${BODY_CLASS} #view-metricas *::after {
+                animation: none !important;
+                transition-duration: 0.001ms !important;
+                transition-delay: 0ms !important;
+            }
+
+            body.${BODY_CLASS}
+                #view-metricas
+                .glass-card::before,
+            body.${BODY_CLASS}
+                #view-metricas
+                .glass-card::after {
+                display: none !important;
+            }
+
+            body.${BODY_CLASS} #view-metricas .glass-card,
+            body.${BODY_CLASS} #view-metricas .glass-card:hover,
+            body.${BODY_CLASS} #vide-funil-loja-publica,
+            body.${BODY_CLASS} #vide-aquisicao-real,
+            body.${BODY_CLASS} #vide-gerador-campanhas,
+            body.${BODY_CLASS} #vide-diagnostico-aquisicao {
+                transform: none !important;
+                filter: none !important;
+                box-shadow: none !important;
+            }
+
+            body.${BODY_CLASS} #view-metricas thead th {
+                position: static !important;
+                background-color: #111229 !important;
+                background-image: none !important;
+            }
+
+            body.${BODY_CLASS} #vide-aquisicao-real {
+                background-color: #080e1c !important;
+                background-image: none !important;
+            }
+
+            body.${BODY_CLASS} #vide-gerador-campanhas,
+            body.${BODY_CLASS} #vide-diagnostico-aquisicao {
+                background-color: #070c18 !important;
+                background-image: none !important;
+            }
+
+            body.${BODY_CLASS} #vide-aquisicao-real,
+            body.${BODY_CLASS} #vide-gerador-campanhas,
+            body.${BODY_CLASS} #vide-diagnostico-aquisicao,
+            body.${BODY_CLASS}
+                #vide-funil-loja-publica
+                .vide-produtos-performance {
+                contain: layout paint style;
+                isolation: isolate;
+            }
+
+            body.${BODY_CLASS}
+                #view-metricas
+                [class*="blur-"] {
+                filter: none !important;
+            }
+
+            body.${BODY_CLASS}
+                #view-metricas
+                [class*="shadow-"] {
+                box-shadow: none !important;
+            }
+
+            @media (max-width: 900px) {
+                body.${BODY_CLASS} #vide-aquisicao-real,
+                body.${BODY_CLASS} #vide-gerador-campanhas,
+                body.${BODY_CLASS} #vide-diagnostico-aquisicao {
+                    border-radius: 15px;
+                }
+            }
+        `;
+
+        document.head.appendChild(style);
     }
 
-    var style = document.createElement("style");
-    style.id = "vide-metricas-performance-style";
+    function metricasEstaAtiva() {
+        var view = document.getElementById(
+            "view-metricas"
+        );
 
-    style.textContent = `
-        @supports (content-visibility: auto) {
-            #vide-aquisicao-real {
-                content-visibility: auto;
-                contain-intrinsic-size: auto 1450px;
-            }
+        if (!view) return false;
 
-            #vide-gerador-campanhas {
-                content-visibility: auto;
-                contain-intrinsic-size: auto 560px;
-            }
+        return (
+            view.classList.contains("active") &&
+            getComputedStyle(view).display !== "none"
+        );
+    }
 
-            #vide-aquisicao-real > .vide-aquisicao-resumo {
-                content-visibility: auto;
-                contain-intrinsic-size: auto 150px;
-            }
+    function atualizarModoPerformanceMetricas() {
+        document.body.classList.toggle(
+            BODY_CLASS,
+            metricasEstaAtiva()
+        );
+    }
 
-            #vide-aquisicao-real > .vide-aquisicao-layout {
-                content-visibility: auto;
-                contain-intrinsic-size: auto 440px;
-            }
+    function observarAberturaMetricas() {
+        inserirEstilosPerformanceMetricas();
 
-            #vide-diagnostico-aquisicao {
-                content-visibility: auto;
-                contain-intrinsic-size: auto 520px;
-            }
+        var view = document.getElementById(
+            "view-metricas"
+        );
 
-            #vide-funil-loja-publica
-                .vide-produtos-performance {
-                content-visibility: auto;
-                contain-intrinsic-size: auto 850px;
-            }
+        if (!view) {
+            var tentativas = 0;
+
+            var intervalo = setInterval(function() {
+                tentativas += 1;
+
+                view = document.getElementById(
+                    "view-metricas"
+                );
+
+                if (view) {
+                    clearInterval(intervalo);
+                    observarAberturaMetricas();
+                    return;
+                }
+
+                if (tentativas >= 60) {
+                    clearInterval(intervalo);
+                }
+            }, 150);
+
+            return;
         }
 
-        #view-metricas .glass-card,
-        #vide-funil-loja-publica,
-        #vide-aquisicao-real,
-        #vide-gerador-campanhas,
-        #vide-diagnostico-aquisicao {
-            -webkit-backdrop-filter: none !important;
-            backdrop-filter: none !important;
-        }
+        atualizarModoPerformanceMetricas();
 
-        #vide-aquisicao-real {
-            background-color: rgba(6, 12, 25, .96) !important;
-            background-image: none !important;
-            box-shadow: none !important;
-        }
+        var observer = new MutationObserver(function() {
+            requestAnimationFrame(
+                atualizarModoPerformanceMetricas
+            );
+        });
 
-        #vide-gerador-campanhas,
-        #vide-diagnostico-aquisicao {
-            background-color: rgba(5, 10, 22, .94) !important;
-            background-image: none !important;
-            box-shadow: none !important;
-        }
+        observer.observe(view, {
+            attributes: true,
+            attributeFilter: [
+                "class",
+                "style",
+                "hidden"
+            ]
+        });
 
-        #vide-aquisicao-real .vide-aquisicao-kpi,
-        #vide-aquisicao-real .vide-aquisicao-bloco,
-        #vide-gerador-campanhas
-            .vide-gerador-historico-item,
-        #vide-diagnostico-aquisicao
-            .vide-diag-aquisicao-kpi,
-        #vide-diagnostico-aquisicao
-            .vide-diag-aquisicao-item {
-            box-shadow: none !important;
-        }
+        document.addEventListener(
+            "click",
+            function(evento) {
+                if (
+                    evento.target.closest(
+                        '[data-target="view-metricas"]'
+                    ) ||
+                    evento.target.closest(
+                        ".nav-item"
+                    )
+                ) {
+                    requestAnimationFrame(function() {
+                        requestAnimationFrame(
+                            atualizarModoPerformanceMetricas
+                        );
+                    });
+                }
+            },
+            true
+        );
 
-        @media (max-width: 900px) {
-            #vide-aquisicao-real,
-            #vide-gerador-campanhas,
-            #vide-diagnostico-aquisicao {
-                border-radius: 15px;
-            }
-        }
-    `;
+        window.addEventListener(
+            "hashchange",
+            atualizarModoPerformanceMetricas
+        );
 
-    document.head.appendChild(style);
+        document.addEventListener(
+            "visibilitychange",
+            atualizarModoPerformanceMetricas
+        );
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener(
+            "DOMContentLoaded",
+            observarAberturaMetricas,
+            { once: true }
+        );
+    } else {
+        observarAberturaMetricas();
+    }
 })();
-
