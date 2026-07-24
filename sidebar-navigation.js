@@ -1,6 +1,6 @@
 /**
- * Vide Hub — Sidebar V3.1
- * Rail inteligente corrigido: módulos sempre visíveis, ícones fixos, mini descrição individual e rolagem estável.
+ * Vide Hub — Sidebar V3.2
+ * Rail inteligente corrigido, módulos visíveis e compatibilidade restaurada com os testes de permissão.
  */
 (function iniciarNavegacaoVideHub() {
     "use strict";
@@ -1386,7 +1386,10 @@
             const alvosUsados = new Set();
 
             areaGrupos.querySelectorAll("button[data-target]").forEach(function(botao) {
-                if (!comandoEstaDisponivel(botao)) return;
+                // Mantém o filtro de permissões explícito. Além de evitar que módulos
+                // ocultos entrem na busca, este contrato é validado pela suíte do projeto.
+                const botaoVisivelPorPermissao = !botao.classList.contains("hidden");
+                if (!botaoVisivelPorPermissao || !comandoEstaDisponivel(botao)) return;
 
                 const alvo = botao.getAttribute("data-target") || "";
                 if (!alvo || alvosUsados.has(alvo)) return;
