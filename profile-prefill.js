@@ -1789,6 +1789,230 @@
                 }
             }
 
+            /* V3 — correção estrutural do dock: remove a reserva antiga de 256 px,
+               transforma a lateral em overlay fixo e evita cards cortados. */
+            @media (min-width: 768px) {
+                body.vide-navigation-v2 {
+                    display: block !important;
+                    min-width: 0 !important;
+                    overflow-x: hidden !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar {
+                    position: fixed !important;
+                    inset: 0 auto 0 0 !important;
+                    width: var(--vide-dock-width) !important;
+                    min-width: var(--vide-dock-width) !important;
+                    max-width: var(--vide-dock-width) !important;
+                    height: 100dvh !important;
+                    flex: none !important;
+                    padding: 10px !important;
+                    overflow: visible !important;
+                    z-index: 90 !important;
+                }
+
+                body.vide-navigation-v2 > main {
+                    box-sizing: border-box !important;
+                    width: calc(100% - var(--vide-dock-width)) !important;
+                    max-width: none !important;
+                    min-width: 0 !important;
+                    margin-left: var(--vide-dock-width) !important;
+                    flex: none !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar::before {
+                    inset: 8px auto 8px 8px !important;
+                    width: calc(var(--vide-dock-width) - 16px) !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover::before,
+                body.vide-navigation-v2 #admin-sidebar:focus-within::before {
+                    width: calc(var(--vide-dock-expanded) - 16px) !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar > * {
+                    width: calc(var(--vide-dock-width) - 20px) !important;
+                    max-width: calc(var(--vide-dock-width) - 20px) !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover > *,
+                body.vide-navigation-v2 #admin-sidebar:focus-within > * {
+                    width: calc(var(--vide-dock-expanded) - 20px) !important;
+                    max-width: calc(var(--vide-dock-expanded) - 20px) !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-main {
+                    gap: 8px !important;
+                    overflow: visible !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-main > :not([hidden]) ~ :not([hidden]) {
+                    margin-top: 0 !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    min-height: 58px !important;
+                    height: 58px !important;
+                    padding: 7px !important;
+                    margin: 0 !important;
+                    flex: 0 0 58px !important;
+                    overflow: hidden !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand > .absolute {
+                    display: none !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand > .relative {
+                    height: 100% !important;
+                    justify-content: flex-start !important;
+                    overflow: hidden !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-brand #mobile-menu-toggle {
+                    display: none !important;
+                }
+
+                /* O card Workspace era o principal elemento cortado na captura.
+                   No dock ele fica oculto; as informações principais continuam no dashboard. */
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-workspace,
+                body.vide-navigation-v2 #admin-sidebar .vide-dock-main > .glass-card {
+                    display: none !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-nav {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    padding: 0 1px 4px !important;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-navigation-header {
+                    height: 0 !important;
+                    min-height: 0 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    opacity: 0 !important;
+                    overflow: hidden !important;
+                    transition: height .22s ease, min-height .22s ease, opacity .18s ease, margin .22s ease !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover .aura-sidebar-navigation-header,
+                body.vide-navigation-v2 #admin-sidebar:focus-within .aura-sidebar-navigation-header {
+                    height: 34px !important;
+                    min-height: 34px !important;
+                    margin: 0 2px 7px !important;
+                    padding: 0 8px !important;
+                    opacity: 1 !important;
+                }
+
+                body.vide-navigation-v2 .aura-sidebar-search {
+                    min-height: 44px !important;
+                    height: 44px !important;
+                    margin: 0 1px 7px !important;
+                    padding: 0 12px !important;
+                    border-radius: 14px !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups {
+                    gap: 3px !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item {
+                    min-height: 41px !important;
+                    height: 41px !important;
+                    padding: 9px 12px !important;
+                    border-radius: 12px !important;
+                    flex: 0 0 41px !important;
+                }
+
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item > svg,
+                body.vide-navigation-v2 #sidebar-navigation-groups .nav-item > .vide-dock-icon {
+                    width: 18px !important;
+                    height: 18px !important;
+                    min-width: 18px !important;
+                    flex-basis: 18px !important;
+                }
+
+                /* O status completo da loja não cabe em um dock. Ele segue disponível
+                   no conteúdo principal e deixa de gerar uma caixa cortada no rodapé. */
+                body.vide-navigation-v2 #box-atalho {
+                    display: none !important;
+                }
+
+                body.vide-navigation-v2 #box-logout {
+                    display: block !important;
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    padding: 6px 1px 0 !important;
+                    margin: 0 !important;
+                    overflow: hidden !important;
+                    flex: 0 0 auto !important;
+                }
+
+                body.vide-navigation-v2 #box-logout .aura-sidebar-account-actions {
+                    display: flex !important;
+                    flex-direction: column !important;
+                    gap: 5px !important;
+                    width: 100% !important;
+                }
+
+                body.vide-navigation-v2 #box-logout .aura-sidebar-account-button {
+                    width: 100% !important;
+                    min-height: 42px !important;
+                    height: 42px !important;
+                    padding: 9px 11px !important;
+                    display: flex !important;
+                    align-items: center !important;
+                    justify-content: flex-start !important;
+                    gap: 0 !important;
+                    overflow: hidden !important;
+                    border-radius: 12px !important;
+                }
+
+                body.vide-navigation-v2 #box-logout .aura-sidebar-account-button.hidden {
+                    display: none !important;
+                }
+
+                body.vide-navigation-v2 #box-logout .aura-sidebar-account-icon {
+                    width: 20px !important;
+                    height: 20px !important;
+                    min-width: 20px !important;
+                    flex: 0 0 20px !important;
+                }
+
+                body.vide-navigation-v2 #box-logout .aura-sidebar-account-text,
+                body.vide-navigation-v2 #box-logout .aura-sidebar-account-arrow {
+                    max-width: 0 !important;
+                    margin-left: 0 !important;
+                    opacity: 0 !important;
+                    visibility: hidden !important;
+                    overflow: hidden !important;
+                    white-space: nowrap !important;
+                    transform: translateX(-6px);
+                    transition: max-width .25s ease, margin-left .25s ease, opacity .16s ease, transform .22s ease, visibility .16s ease !important;
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover #box-logout .aura-sidebar-account-text,
+                body.vide-navigation-v2 #admin-sidebar:focus-within #box-logout .aura-sidebar-account-text {
+                    max-width: 180px !important;
+                    margin-left: 11px !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    transform: translateX(0);
+                }
+
+                body.vide-navigation-v2 #admin-sidebar:hover #box-logout .aura-sidebar-account-arrow,
+                body.vide-navigation-v2 #admin-sidebar:focus-within #box-logout .aura-sidebar-account-arrow {
+                    max-width: 22px !important;
+                    margin-left: auto !important;
+                    opacity: 1 !important;
+                    visibility: visible !important;
+                    transform: translateX(0);
+                }
+            }
+
             #vide-command-center-v2 {
                 position: fixed;
                 inset: 0;
@@ -2292,7 +2516,7 @@
         var logo = sidebar.querySelector("#admin-logo-box");
         if (!logo) return;
 
-        var marca = logo.closest(".relative");
+        var marca = logo.closest(".relative.overflow-hidden.rounded-3xl") || logo.closest(".relative");
         if (marca) {
             marca.classList.add("vide-dock-brand");
             var linha = logo.parentElement;
