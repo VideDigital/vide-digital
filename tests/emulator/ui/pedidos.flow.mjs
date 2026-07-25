@@ -1,129 +1,370 @@
-// Fase 7 do Quality Gate — validação profunda de Pedidos (o gap que o
-// Codex deixou explicitamente incompleto: "a tela abre, fica acessível e
-// não quebra"). Aqui é fluxo real: abrir modal, buscar produto do
-// catálogo, adicionar item, conferir subtotal, confirmar que texto
-// livre/valor não são sobrescritos depois de edição manual, prazo de
-// entrega, criar, conferir na lista, mudar status.
-//
-// IMPORTANTE (seguindo a instrução explícita do mandato): este app NÃO
-// tem edição completa de um pedido já criado — existe criação (modal) e
-// mudança de status (select no card / drag-and-drop), só isso. Este
-// arquivo não testa "editar pedido" porque essa funcionalidade não
-// existe; testar algo inexistente seria inventar cobertura falsa.
-//
-// Mesma limitação de rede documentada em login.smoke.mjs se aplica aqui.
+// Estabilização V1 — fluxo profundo atual de Pedidos.
+// Valida o modal legado de criação e, depois, a Central de Pedidos V1.0:
+// criar pedido, preservar campos editados manualmente, localizar o novo
+// pedido na tabela atual, abrir o detalhe e alterar o status.
 import assert from "node:assert/strict";
-import { captureDiagnostics, coletarErrosConsole, ehErroDeRedeExterno, launchBrowser, loginReal, startStaticServer } from "./_helpers.mjs";
+import {
+    captureDiagnostics,
+    coletarErrosConsole,
+    ehErroDeRedeExterno,
+    launchBrowser,
+    loginReal,
+    startStaticServer
+} from "./_helpers.mjs";
 
 async function main() {
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
     let falhou = false;
-    const page = await browser.newPage();
+
+    const page = await browser.newPage({
+        viewport: { width: 1440, height: 900 }
+    });
+
     const erros = coletarErrosConsole(page);
+
     try {
-        await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
-        await page.evaluate(() => window.ativarAba("view-pedidos"));
+        await loginReal(page, baseUrl, {
+            email: "owner.pro@local.test",
+            senha: "Local123!pro"
+        });
+
+        const ativou = await page.evaluate(() => {
+            return typeof window.ativarAba === "function"
+                ? window.ativarAba("view-pedidos")
+                : false;
+        });
+
+        assert.equal(
+            ativou,
+            true,
+            "A view de Pedidos deveria ser ativada"
+        );
+
+        await page.waitForSelector(
+            "#view-pedidos.active",
+            { state: "visible", timeout: 15000 }
+        );
+
         await page.waitForLoadState("networkidle").catch(() => {});
 
-        // 1-2. Abrir modal de novo pedido.
-        await page.evaluate(() => window.abrirModalPedido && window.abrirModalPedido());
-        await page.waitForSelector("#pedido-modal", { state: "visible", timeout: 10000 });
-
-        // 3. Preencher cliente.
-        await page.fill("#ped-cliente", "Cliente Playwright QA");
-
-        // 4-6. Buscar produto do catálogo (seedado como "Produto Local") e selecionar.
-        await page.fill("#ped-item-busca", "Produto Local");
-        await page.waitForSelector(".aura-order-item-sugestao", { state: "visible", timeout: 10000 });
-        await page.click(".aura-order-item-sugestao");
-
-        // 6-7. Confirmar que o item apareceu na lista.
-        await page.waitForSelector(".aura-order-item-row", { state: "visible", timeout: 10000 });
-        const nomeItem = await page.textContent(".aura-order-item-nome");
-        assert.match(nomeItem || "", /Produto Local/, "item adicionado deveria mostrar o nome do produto do catálogo");
-
-        // 7. Alterar quantidade (2 unidades).
-        await page.fill(".aura-order-item-qtd", "2");
-        await page.dispatchEvent(".aura-order-item-qtd", "change");
-        await page.waitForFunction(() => {
-            const preco = document.querySelector(".aura-order-item-preco");
-            return preco && /198/.test(preco.textContent);
-        }, { timeout: 10000 }).catch(async () => {
-            const atual = await page.textContent(".aura-order-item-preco").catch(() => null);
-            throw new Error(`preço do item não refletiu quantidade 2 (produto R$99 → esperado conter "198"); valor atual: ${atual}`);
+        // Abrir modal de novo pedido.
+        await page.evaluate(() => {
+            window.abrirModalPedido?.();
         });
 
-        // 8. Confirmar subtotal (2 x R$99 = R$198).
-        const subtotalTexto = await page.textContent("#ped-itens-subtotal");
-        assert.match(subtotalTexto || "", /198/, `subtotal deveria refletir 2x R$99, obtido: "${subtotalTexto}"`);
+        await page.waitForSelector(
+            "#pedido-modal",
+            { state: "visible", timeout: 10000 }
+        );
 
-        // 9. Confirmar preenchimento automático do texto livre.
-        const produtosAuto = await page.inputValue("#ped-produtos");
-        assert.match(produtosAuto, /Produto Local/, "campo de texto livre deveria pré-preencher com o resumo dos itens");
+        // Cliente.
+        await page.fill(
+            "#ped-cliente",
+            "Cliente Playwright QA"
+        );
 
-        // 10. Editar manualmente o texto livre e garantir que não é sobrescrito.
-        await page.fill("#ped-produtos", "2x Produto Local (editado manualmente pelo QA)");
-        await page.evaluate(() => window.marcarPedidoCampoEditadoManual && window.marcarPedidoCampoEditadoManual("ped-produtos"));
-        // Mexe de novo na quantidade pra forçar um novo re-render de renderItensPedido()
-        // e confirmar que o texto editado manualmente sobrevive.
-        await page.fill(".aura-order-item-qtd", "3");
-        await page.dispatchEvent(".aura-order-item-qtd", "change");
-        await page.waitForTimeout(300);
-        const produtosDepois = await page.inputValue("#ped-produtos");
-        assert.equal(produtosDepois, "2x Produto Local (editado manualmente pelo QA)", "texto livre editado manualmente foi sobrescrito pelo auto-preenchimento");
+        // Produto seedado.
+        await page.fill(
+            "#ped-item-busca",
+            "Produto Local"
+        );
 
-        // 11. Editar manualmente o valor e garantir que não é sobrescrito.
-        await page.fill("#ped-valor", "250.00");
-        await page.evaluate(() => window.marcarPedidoCampoEditadoManual && window.marcarPedidoCampoEditadoManual("ped-valor"));
-        await page.fill(".aura-order-item-qtd", "1");
-        await page.dispatchEvent(".aura-order-item-qtd", "change");
-        await page.waitForTimeout(300);
-        const valorDepois = await page.inputValue("#ped-valor");
-        assert.equal(valorDepois, "250.00", "valor editado manualmente foi sobrescrito pelo auto-preenchimento");
+        await page.waitForSelector(
+            ".aura-order-item-sugestao",
+            { state: "visible", timeout: 10000 }
+        );
 
-        // 12. Selecionar prazo de entrega. input[type="date"] só aceita
-        // fill() com valor no formato ISO (YYYY-MM-DD) — texto livre como
-        // "5 dias úteis" dá "Malformed value" no Playwright.
-        const prazoEntregaISO = new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
-        await page.fill("#ped-prazo-entrega", prazoEntregaISO);
+        await page.click(
+            ".aura-order-item-sugestao"
+        );
 
-        // 13. Criar pedido.
-        await page.click("[onclick='salvarPedido()']");
-        await page.waitForSelector("#pedido-modal.hidden, #pedido-modal[style*='display: none']", { timeout: 15000 }).catch(() => {});
+        await page.waitForSelector(
+            ".aura-order-item-row",
+            { state: "visible", timeout: 10000 }
+        );
 
-        // 14-15. Confirmar pedido na lista com status inicial "aguardando".
+        const nomeItem = await page.textContent(
+            ".aura-order-item-nome"
+        );
+
+        assert.match(
+            nomeItem || "",
+            /Produto Local/,
+            "O item deveria mostrar Produto Local"
+        );
+
+        // Quantidade 2: subtotal esperado R$ 198,00.
+        await page.fill(
+            ".aura-order-item-qtd",
+            "2"
+        );
+
+        await page.dispatchEvent(
+            ".aura-order-item-qtd",
+            "change"
+        );
+
         await page.waitForFunction(() => {
-            return Array.from(document.querySelectorAll(".aura-order-flow-card"))
-                .some(card => (card.textContent || "").includes("Cliente Playwright QA"));
-        }, { timeout: 15000 });
-        const cardAguardando = await page.$('.aura-order-flow-card[data-status="aguardando"]');
-        const contemNovoPedido = cardAguardando ? (await cardAguardando.textContent() || "").includes("Cliente Playwright QA") : false;
-        assert.ok(contemNovoPedido, "pedido recém-criado deveria aparecer na coluna 'aguardando'");
+            const preco = document.querySelector(
+                ".aura-order-item-preco"
+            );
 
-        // 16-17. Alterar status e confirmar.
+            return Boolean(
+                preco &&
+                /198/.test(preco.textContent || "")
+            );
+        }, { timeout: 10000 });
+
+        const subtotalTexto = await page.textContent(
+            "#ped-itens-subtotal"
+        );
+
+        assert.match(
+            subtotalTexto || "",
+            /198/,
+            `Subtotal esperado R$ 198,00; obtido: ${subtotalTexto}`
+        );
+
+        // Campo de produtos preenchido automaticamente.
+        const produtosAuto = await page.inputValue(
+            "#ped-produtos"
+        );
+
+        assert.match(
+            produtosAuto,
+            /Produto Local/,
+            "O resumo dos itens deveria preencher ped-produtos"
+        );
+
+        // Edição manual deve sobreviver ao re-render.
+        const resumoManual =
+            "2x Produto Local (editado manualmente pelo QA)";
+
+        await page.fill(
+            "#ped-produtos",
+            resumoManual
+        );
+
+        await page.evaluate(() => {
+            window.marcarPedidoCampoEditadoManual?.(
+                "ped-produtos"
+            );
+        });
+
+        await page.fill(
+            ".aura-order-item-qtd",
+            "3"
+        );
+
+        await page.dispatchEvent(
+            ".aura-order-item-qtd",
+            "change"
+        );
+
+        await page.waitForTimeout(300);
+
+        assert.equal(
+            await page.inputValue("#ped-produtos"),
+            resumoManual,
+            "O texto manual de produtos foi sobrescrito"
+        );
+
+        // Valor manual também deve sobreviver ao re-render.
+        await page.fill(
+            "#ped-valor",
+            "250.00"
+        );
+
+        await page.evaluate(() => {
+            window.marcarPedidoCampoEditadoManual?.(
+                "ped-valor"
+            );
+        });
+
+        await page.fill(
+            ".aura-order-item-qtd",
+            "1"
+        );
+
+        await page.dispatchEvent(
+            ".aura-order-item-qtd",
+            "change"
+        );
+
+        await page.waitForTimeout(300);
+
+        assert.equal(
+            await page.inputValue("#ped-valor"),
+            "250.00",
+            "O valor manual foi sobrescrito"
+        );
+
+        const prazoEntregaISO = new Date(
+            Date.now() + 5 * 24 * 60 * 60 * 1000
+        ).toISOString().slice(0, 10);
+
+        await page.fill(
+            "#ped-prazo-entrega",
+            prazoEntregaISO
+        );
+
+        // Criar pedido.
+        await page.click(
+            "[onclick='salvarPedido()']"
+        );
+
+        await page.waitForFunction(() => {
+            const modal = document.getElementById(
+                "pedido-modal"
+            );
+
+            if (!modal) return true;
+
+            const estilo = window.getComputedStyle(modal);
+
+            return (
+                modal.classList.contains("hidden") ||
+                estilo.display === "none" ||
+                estilo.visibility === "hidden"
+            );
+        }, { timeout: 15000 }).catch(() => {});
+
+        // A Central atual mostra a Visão geral em tabela. O teste antigo
+        // procurava .aura-order-flow-card e status "aguardando", que pertencem
+        // ao layout anterior e não existem na V1.0.
+        await page.waitForFunction(() => {
+            return Array.from(
+                document.querySelectorAll(
+                    "[data-open-order]"
+                )
+            ).some(elemento =>
+                (elemento.textContent || "").includes(
+                    "Cliente Playwright QA"
+                )
+            );
+        }, { timeout: 20000 });
+
         const pedidoId = await page.evaluate(() => {
-            const card = Array.from(document.querySelectorAll(".aura-order-flow-card"))
-                .find(c => (c.textContent || "").includes("Cliente Playwright QA"));
-            return card ? card.getAttribute("data-pedido-id") : null;
-        });
-        assert.ok(pedidoId, "não consegui localizar o id do pedido recém-criado no DOM");
-        await page.evaluate(id => window.moverPedidoFluxo && window.moverPedidoFluxo(id, "confirmado"), pedidoId);
-        await page.waitForFunction(id => {
-            const card = document.querySelector(`.aura-order-flow-card[data-pedido-id="${id}"]`);
-            return card && card.getAttribute("data-status") === "confirmado";
-        }, pedidoId, { timeout: 15000 });
+            const elemento = Array.from(
+                document.querySelectorAll(
+                    "[data-open-order]"
+                )
+            ).find(item =>
+                (item.textContent || "").includes(
+                    "Cliente Playwright QA"
+                )
+            );
 
-        console.log("pedidos.flow: OK — criação, itens estruturados, subtotal, edição manual preservada, prazo de entrega e mudança de status validados de ponta a ponta.");
+            return elemento?.getAttribute(
+                "data-open-order"
+            ) || null;
+        });
+
+        assert.ok(
+            pedidoId,
+            "Não foi possível localizar o novo pedido na tabela"
+        );
+
+        // Abrir o detalhe atual.
+        await page.click(
+            `[data-open-order="${pedidoId}"]`
+        );
+
+        await page.waitForSelector(
+            "#aura-orders-v1-detail-status",
+            { state: "visible", timeout: 15000 }
+        );
+
+        assert.equal(
+            await page.inputValue(
+                "#aura-orders-v1-detail-status"
+            ),
+            "novo",
+            "O pedido novo deveria iniciar com status novo"
+        );
+
+        // Alterar status no detalhe e salvar.
+        await page.selectOption(
+            "#aura-orders-v1-detail-status",
+            "confirmado"
+        );
+
+        await page.click(
+            '[data-orders-action="save"]'
+        );
+
+        await page.waitForFunction(id => {
+            const state =
+                window.AuraOrdersV1?.getState?.();
+
+            if (!state) return false;
+
+            const select = document.getElementById(
+                "aura-orders-v1-detail-status"
+            );
+
+            return (
+                select &&
+                select.value === "confirmado"
+            );
+        }, pedidoId, { timeout: 20000 });
+
+        // Voltar e confirmar a etiqueta na tabela.
+        await page.click(
+            '[data-orders-action="back"]'
+        );
+
+        await page.waitForFunction(id => {
+            const linha = document.querySelector(
+                `[data-open-order="${id}"]`
+            );
+
+            return Boolean(
+                linha &&
+                linha.querySelector(
+                    '[data-status="confirmado"]'
+                )
+            );
+        }, pedidoId, { timeout: 20000 });
+
+        const errosRelevantes = erros.filter(
+            erro => !ehErroDeRedeExterno(erro)
+        );
+
+        assert.deepEqual(
+            errosRelevantes,
+            [],
+            `Erros de console no fluxo de Pedidos: ` +
+            `${JSON.stringify(errosRelevantes)}`
+        );
+
+        console.log(
+            "pedidos.flow: OK — criação, itens estruturados, " +
+            "subtotal, campos manuais, prazo, tabela atual, detalhe " +
+            "e mudança de status validados."
+        );
     } catch (error) {
         falhou = true;
-        await captureDiagnostics(page, "pedidos-flow", erros.filter(e => !ehErroDeRedeExterno(e)));
-        console.error("pedidos.flow: FALHOU —", error.message);
+
+        await captureDiagnostics(
+            page,
+            "pedidos-flow",
+            erros.filter(
+                erro => !ehErroDeRedeExterno(erro)
+            )
+        );
+
+        console.error(
+            "pedidos.flow: FALHOU —",
+            error.message
+        );
     } finally {
         await page.close();
         await browser.close();
         await close();
     }
+
     if (falhou) process.exit(1);
 }
 
