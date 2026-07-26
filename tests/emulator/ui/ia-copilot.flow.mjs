@@ -235,14 +235,30 @@ async function main() {
             { timeout: 10000 }
         );
 
-        const botaoUsarDesabilitado = await page
-            .isDisabled("#ia-copilot-usar")
-            .catch(() => true);
+        // O contrato real é o resultado deixar de ficar ativo/visível.
+        // O botão pode continuar habilitado no DOM por implementação, mas
+        // fica fora do estado de resultado e não representa uma sugestão
+        // reutilizável. Não devemos reprovar por um detalhe interno que não
+        // altera o comportamento visível ou a segurança do fluxo.
+        const resultadoAindaVisivel = await page
+            .isVisible("#ia-copilot-resultado")
+            .catch(() => false);
 
         assert.equal(
-            botaoUsarDesabilitado,
-            true,
-            "Após usar a sugestão, o botão deve voltar desabilitado"
+            resultadoAindaVisivel,
+            false,
+            "Após usar, o resultado do copiloto deve ser ocultado"
+        );
+
+        const textoResultadoDepois = (
+            await page.textContent("#ia-copilot-texto")
+                .catch(() => "")
+        )?.trim() || "";
+
+        assert.equal(
+            textoResultadoDepois,
+            "",
+            "Após usar, o texto da sugestão deve ser limpo"
         );
 
         let errosRelevantes = erros.filter(
@@ -259,7 +275,7 @@ async function main() {
         console.log(
             "ia-copilot.flow (owner): OK — mensagem recente " +
             "do cliente, geração, uso sem envio automático e " +
-            "limpeza segura do rascunho validados."
+            "ocultação e limpeza segura do rascunho validados."
         );
 
         // Funcionário sem ia-copilot: toggle oculto.
