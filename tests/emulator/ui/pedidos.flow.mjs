@@ -64,15 +64,46 @@ async function main() {
             "Cliente Playwright QA"
         );
 
-        // Produto seedado.
-        await page.fill(
-            "#ped-item-busca",
-            "Produto Local"
-        );
+        // Produto seedado. O catálogo é carregado de forma assíncrona;
+        // em runners mais lentos, o primeiro evento de input pode acontecer
+        // antes de a lista estar pronta. Repetimos somente a busca, sem
+        // mascarar erro: se o produto não aparecer após as tentativas, o
+        // teste continua falhando normalmente.
+        let encontrouSugestao = false;
 
-        await page.waitForSelector(
-            ".aura-order-item-sugestao",
-            { state: "visible", timeout: 10000 }
+        for (let tentativa = 1; tentativa <= 4; tentativa += 1) {
+            await page.fill(
+                "#ped-item-busca",
+                ""
+            );
+
+            await page.fill(
+                "#ped-item-busca",
+                "Produto Local"
+            );
+
+            await page.dispatchEvent(
+                "#ped-item-busca",
+                "input"
+            );
+
+            encontrouSugestao = await page
+                .waitForSelector(
+                    ".aura-order-item-sugestao",
+                    { state: "visible", timeout: 5000 }
+                )
+                .then(() => true)
+                .catch(() => false);
+
+            if (encontrouSugestao) break;
+
+            await page.waitForTimeout(750);
+        }
+
+        assert.equal(
+            encontrouSugestao,
+            true,
+            "Produto Local não apareceu nas sugestões após o carregamento do catálogo"
         );
 
         await page.click(
