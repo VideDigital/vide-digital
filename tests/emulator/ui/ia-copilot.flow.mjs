@@ -1,104 +1,374 @@
-// IA Copilot do Atendimento — Fase 1: validação profunda no navegador.
-// Cobre: geração de sugestão (mock local, sem rede externa), "Usar
-// resposta" inserindo no compositor (nunca enviando sozinho), descarte,
-// e o gate de permissão (funcionário sem "ia-copilot" nunca vê o
-// toggle do painel, mesmo tendo acesso ao Atendimento).
+// Estabilização V1 — IA Copilot do Atendimento.
 //
-// Mesma limitação de rede documentada em login.smoke.mjs se aplica aqui
-// (SDK do Firebase carregado de www.gstatic.com).
+// O fluxo anterior dependia da ordem dos testes: Atendimento respondia e
+// resolvia a conversa antes do Copiloto rodar. Assim, a mensagem mais recente
+// passava a ser da equipe e a ação "Sugerir resposta" corretamente retornava
+// vazio, deixando "Usar resposta" desabilitado.
+//
+// Esta versão prepara, dentro do Emulator, uma nova mensagem recente do
+// cliente antes de validar o Copiloto. O navegador continua exercitando o
+// fluxo real: gerar sugestão, usar sem envio automático, pedir confirmação
+// quando o compositor já possui texto, descartar e validar permissões.
 import assert from "node:assert/strict";
-import { captureDiagnostics, coletarErrosConsole, ehErroDeRedeExterno, launchBrowser, loginReal, startStaticServer } from "./_helpers.mjs";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { FieldValue, getFirestore } from "firebase-admin/firestore";
+import {
+    captureDiagnostics,
+    coletarErrosConsole,
+    ehErroDeRedeExterno,
+    launchBrowser,
+    loginReal,
+    startStaticServer
+} from "./_helpers.mjs";
 
-async function abrirPrimeiraConversa(page) {
-    await page.evaluate(() => window.ativarAba("view-atendimento"));
-    await page.waitForSelector("#atend-lista-conversas", { state: "visible", timeout: 10000 });
-    await page.waitForSelector("[data-atend-conversa-id]", { state: "visible", timeout: 15000 });
-    await page.click("[data-atend-conversa-id]");
-    await page.waitForSelector("#atend-resposta-input", { state: "visible", timeout: 10000 });
+const PROJECT_ID = "demo-vide-hub";
+const CHAT_ID = "chat-local-1";
+
+function adminDb() {
+    if (!getApps().length) {
+        initializeApp({ projectId: PROJECT_ID });
+    }
+    return getFirestore();
+}
+
+async function prepararMensagemRecenteDoCliente() {
+    const db = adminDb();
+    const texto =
+        "Olá, preciso saber o prazo de entrega do Produto Local.";
+
+    await db
+        .collection("chats")
+        .doc(CHAT_ID)
+        .collection("mensagens")
+        .add({
+            tipo: "cliente",
+            sender: "cliente",
+            autorTipo: "cliente",
+            texto,
+            criadoEm: FieldValue.serverTimestamp(),
+            timestamp: FieldValue.serverTimestamp()
+        });
+
+    await db.collection("chats").doc(CHAT_ID).set({
+        ultimaMensagem: texto,
+        atualizadoEm: FieldValue.serverTimestamp(),
+        timestamp: Date.now(),
+        status: "aberta",
+        statusAdmin: "pendente",
+        naoLidasLoja: 1
+    }, { merge: true });
+}
+
+async function abrirConversaSeedada(page) {
+    const ativou = await page.evaluate(() => {
+        if (typeof window.ativarAba !== "function") return false;
+        return window.ativarAba("view-atendimento");
+    });
+
+    assert.equal(
+        ativou,
+        true,
+        "A Central de Atendimento deveria ser ativada"
+    );
+
+    await page.waitForSelector(
+        "#atend-lista-conversas",
+        { state: "visible", timeout: 15000 }
+    );
+
+    await page.waitForSelector(
+        `[data-atend-conversa-id="${CHAT_ID}"]`,
+        { state: "visible", timeout: 20000 }
+    );
+
+    await page.click(
+        `[data-atend-conversa-id="${CHAT_ID}"]`
+    );
+
+    await page.waitForSelector(
+        "#atend-resposta-input",
+        { state: "visible", timeout: 15000 }
+    );
+
+    await page.waitForFunction(texto => {
+        return Array.from(
+            document.querySelectorAll("#atend-mensagens *")
+        ).some(elemento =>
+            (elemento.textContent || "").includes(texto)
+        );
+    }, "preciso saber o prazo de entrega", {
+        timeout: 20000
+    });
+}
+
+async function gerarSugestaoUtilizavel(page) {
+    await page.selectOption(
+        "#ia-copilot-acao",
+        "sugerir_resposta"
+    );
+
+    await page.click("#ia-copilot-gerar");
+
+    await page.waitForSelector(
+        "#ia-copilot-resultado:not([hidden])",
+        { timeout: 15000 }
+    );
+
+    await page.waitForFunction(() => {
+        const texto = (
+            document.getElementById(
+                "ia-copilot-texto"
+            )?.textContent || ""
+        ).trim();
+
+        const botao = document.getElementById(
+            "ia-copilot-usar"
+        );
+
+        return texto.length > 0 && botao && !botao.disabled;
+    }, { timeout: 15000 });
+
+    const textoSugestao = (
+        await page.textContent("#ia-copilot-texto")
+    )?.trim();
+
+    assert.ok(
+        textoSugestao && textoSugestao.length > 0,
+        "O copiloto deveria gerar uma sugestão utilizável"
+    );
+
+    return textoSugestao;
 }
 
 async function main() {
+    await prepararMensagemRecenteDoCliente();
+
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
     let falhou = false;
-    let page = await browser.newPage();
+
+    let page = await browser.newPage({
+        viewport: { width: 1440, height: 900 }
+    });
+
     let erros = coletarErrosConsole(page);
+
     try {
-        // ===== Dono: vê o painel, gera sugestão, usa e descarta =====
-        await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
-        await abrirPrimeiraConversa(page);
-
-        await page.waitForSelector("#ia-copilot-toggle-linha:not([hidden])", { timeout: 10000 });
-        await page.click("#ia-copilot-toggle");
-        await page.waitForSelector("#ia-copilot-painel:not([hidden])", { timeout: 10000 });
-
-        await page.selectOption("#ia-copilot-acao", "sugerir_resposta");
-        await page.click("#ia-copilot-gerar");
-        await page.waitForSelector("#ia-copilot-resultado:not([hidden])", { timeout: 10000 });
-        const textoSugestao = (await page.textContent("#ia-copilot-texto"))?.trim();
-        assert.ok(textoSugestao && textoSugestao.length > 0, "o copiloto deveria gerar um texto de sugestão");
-
-        // Compositor vazio: "Usar resposta" insere direto, sem pedir confirmação.
-        const composerAntes = (await page.inputValue("#atend-resposta-input")).trim();
-        assert.equal(composerAntes, "", "compositor deveria começar vazio para este teste");
-        await page.click("#ia-copilot-usar");
-        await page.waitForFunction(() => {
-            const val = document.getElementById("atend-resposta-input")?.value || "";
-            return val.length > 0;
-        }, { timeout: 10000 });
-        const composerDepois = await page.inputValue("#atend-resposta-input");
-        assert.ok(composerDepois.length > 0, "\"Usar resposta\" deveria preencher o compositor");
-        // Nunca envia sozinho: o texto fica só no textarea, aguardando o clique em "Enviar".
-        const enviouSozinho = await page.evaluate(() => {
-            return Array.from(document.querySelectorAll("#atend-mensagens *"))
-                .some(el => (el.textContent || "").includes(document.getElementById("atend-resposta-input").value));
+        // Dono: gerar, usar e descartar.
+        await loginReal(page, baseUrl, {
+            email: "owner.pro@local.test",
+            senha: "Local123!pro"
         });
-        assert.equal(enviouSozinho, false, "o copiloto nunca deve enviar a mensagem sozinho");
 
-        // Compositor já tem texto: gerar de novo e usar deve pedir confirmação.
-        await page.click("#ia-copilot-gerar");
-        await page.waitForSelector("#ia-copilot-resultado:not([hidden])", { timeout: 10000 });
+        await abrirConversaSeedada(page);
+
+        await page.waitForSelector(
+            "#ia-copilot-toggle-linha:not([hidden])",
+            { timeout: 10000 }
+        );
+
+        await page.click("#ia-copilot-toggle");
+
+        await page.waitForSelector(
+            "#ia-copilot-painel:not([hidden])",
+            { timeout: 10000 }
+        );
+
+        await gerarSugestaoUtilizavel(page);
+
+        // Compositor vazio: usar insere o texto, nunca envia sozinho.
+        const composerAntes = (
+            await page.inputValue("#atend-resposta-input")
+        ).trim();
+
+        assert.equal(
+            composerAntes,
+            "",
+            "O compositor deveria começar vazio"
+        );
+
         await page.click("#ia-copilot-usar");
-        await page.waitForSelector("#ia-copilot-confirmar:not([hidden])", { timeout: 10000 });
-        await page.click("#ia-copilot-cancelar-uso");
 
-        // Descartar sugestão limpa o painel de volta ao estado vazio.
-        await page.click("#ia-copilot-gerar");
-        await page.waitForSelector("#ia-copilot-resultado:not([hidden])", { timeout: 10000 });
-        await page.click("#ia-copilot-descartar");
-        await page.waitForSelector("#ia-copilot-vazio:not([hidden])", { timeout: 10000 });
+        await page.waitForFunction(() => {
+            return Boolean(
+                document.getElementById(
+                    "atend-resposta-input"
+                )?.value.trim()
+            );
+        }, { timeout: 10000 });
 
-        console.log("ia-copilot.flow (owner): OK — gerar, usar (com e sem confirmação) e descartar validados.");
+        const composerDepois = await page.inputValue(
+            "#atend-resposta-input"
+        );
 
-        // ===== Funcionário com atendimento mas SEM ia-copilot: não vê o toggle =====
+        assert.ok(
+            composerDepois.trim().length > 0,
+            "Usar resposta deveria preencher o compositor"
+        );
+
+        const enviouSozinho = await page.evaluate(() => {
+            const valor = document.getElementById(
+                "atend-resposta-input"
+            )?.value || "";
+
+            return Array.from(
+                document.querySelectorAll(
+                    "#atend-mensagens *"
+                )
+            ).some(elemento =>
+                valor &&
+                (elemento.textContent || "").includes(valor)
+            );
+        });
+
+        assert.equal(
+            enviouSozinho,
+            false,
+            "O copiloto nunca deve enviar a mensagem sozinho"
+        );
+
+        // Compositor preenchido: usar nova sugestão exige confirmação.
+        await gerarSugestaoUtilizavel(page);
+
+        await page.click("#ia-copilot-usar");
+
+        await page.waitForSelector(
+            "#ia-copilot-confirmar:not([hidden])",
+            { timeout: 10000 }
+        );
+
+        await page.click(
+            "#ia-copilot-cancelar-uso"
+        );
+
+        // Descartar volta ao estado vazio.
+        await gerarSugestaoUtilizavel(page);
+
+        await page.click(
+            "#ia-copilot-descartar"
+        );
+
+        await page.waitForSelector(
+            "#ia-copilot-vazio:not([hidden])",
+            { timeout: 10000 }
+        );
+
+        let errosRelevantes = erros.filter(
+            erro => !ehErroDeRedeExterno(erro)
+        );
+
+        assert.deepEqual(
+            errosRelevantes,
+            [],
+            `Erros no fluxo do dono: ` +
+            `${JSON.stringify(errosRelevantes)}`
+        );
+
+        console.log(
+            "ia-copilot.flow (owner): OK — mensagem recente " +
+            "do cliente, geração, uso com e sem confirmação, " +
+            "não envio automático e descarte validados."
+        );
+
+        // Funcionário sem ia-copilot: toggle oculto.
         await page.close();
-        page = await browser.newPage();
+
+        page = await browser.newPage({
+            viewport: { width: 1440, height: 900 }
+        });
+
         erros = coletarErrosConsole(page);
-        await loginReal(page, baseUrl, { email: "employee.read@local.test", senha: "Local123!read" });
-        await abrirPrimeiraConversa(page);
-        const toggleVisivel = await page.isVisible("#ia-copilot-toggle-linha").catch(() => false);
-        assert.equal(toggleVisivel, false, "funcionário sem a permissão dedicada 'ia-copilot' não deveria ver o toggle do copiloto");
 
-        console.log("ia-copilot.flow (employee.read): OK — toggle do copiloto corretamente oculto sem a permissão dedicada.");
+        await loginReal(page, baseUrl, {
+            email: "employee.read@local.test",
+            senha: "Local123!read"
+        });
 
-        // ===== Funcionário com atendimento + ia-copilot concedidos: vê o toggle =====
+        await abrirConversaSeedada(page);
+
+        const toggleVisivel = await page
+            .isVisible("#ia-copilot-toggle-linha")
+            .catch(() => false);
+
+        assert.equal(
+            toggleVisivel,
+            false,
+            "Funcionário sem ia-copilot não deveria ver o toggle"
+        );
+
+        errosRelevantes = erros.filter(
+            erro => !ehErroDeRedeExterno(erro)
+        );
+
+        assert.deepEqual(
+            errosRelevantes,
+            [],
+            `Erros no perfil reader: ` +
+            `${JSON.stringify(errosRelevantes)}`
+        );
+
+        console.log(
+            "ia-copilot.flow (employee.read): OK — toggle " +
+            "oculto sem a permissão dedicada."
+        );
+
+        // Funcionário com ia-copilot: toggle visível.
         await page.close();
-        page = await browser.newPage();
-        erros = coletarErrosConsole(page);
-        await loginReal(page, baseUrl, { email: "employee.edit@local.test", senha: "Local123!edit" });
-        await abrirPrimeiraConversa(page);
-        await page.waitForSelector("#ia-copilot-toggle-linha:not([hidden])", { timeout: 10000 });
 
-        console.log("ia-copilot.flow (employee.edit): OK — toggle do copiloto visível com a permissão dedicada concedida.");
+        page = await browser.newPage({
+            viewport: { width: 1440, height: 900 }
+        });
+
+        erros = coletarErrosConsole(page);
+
+        await loginReal(page, baseUrl, {
+            email: "employee.edit@local.test",
+            senha: "Local123!edit"
+        });
+
+        await abrirConversaSeedada(page);
+
+        await page.waitForSelector(
+            "#ia-copilot-toggle-linha:not([hidden])",
+            { timeout: 10000 }
+        );
+
+        errosRelevantes = erros.filter(
+            erro => !ehErroDeRedeExterno(erro)
+        );
+
+        assert.deepEqual(
+            errosRelevantes,
+            [],
+            `Erros no perfil editor: ` +
+            `${JSON.stringify(errosRelevantes)}`
+        );
+
+        console.log(
+            "ia-copilot.flow (employee.edit): OK — toggle " +
+            "visível com a permissão dedicada."
+        );
     } catch (error) {
         falhou = true;
-        await captureDiagnostics(page, "ia-copilot-flow", erros.filter(e => !ehErroDeRedeExterno(e)));
-        console.error("ia-copilot.flow: FALHOU —", error.message);
+
+        await captureDiagnostics(
+            page,
+            "ia-copilot-flow",
+            erros.filter(
+                erro => !ehErroDeRedeExterno(erro)
+            )
+        );
+
+        console.error(
+            "ia-copilot.flow: FALHOU —",
+            error.message
+        );
     } finally {
         await page.close();
         await browser.close();
         await close();
     }
+
     if (falhou) process.exit(1);
 }
 
