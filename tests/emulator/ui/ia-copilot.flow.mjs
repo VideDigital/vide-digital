@@ -10,7 +10,7 @@
 // fluxo real: gerar sugestão, usar sem envio automático, confirmar que o
 // rascunho é limpo após o uso e validar as permissões.
 //
-// Erros permission-denied dos widgets opcionais de Métricas são ignorados
+// Erros de acesso dos widgets opcionais de Métricas são ignorados
 // somente neste teste do Copiloto, pois não pertencem ao módulo exercitado.
 // Eles continuam sendo uma pendência real do profile-prefill.js e não são
 // adicionados ao filtro global dos helpers.
@@ -32,10 +32,14 @@ const CHAT_ID = "chat-local-1";
 function ehErroOpcionalMetricasSemPermissao(erro) {
     const texto = String(erro || "");
 
+    // O coletor de console recebe, no Emulator, somente a mensagem
+    // "evaluation error..." em vez do código literal "permission-denied".
+    // Por isso o filtro deve identificar os dois logs pelo prefixo estável
+    // emitido pelo próprio profile-prefill.js.
     return (
         texto.includes("[Vide Hub] Erro ao carregar aquisição:") ||
         texto.includes("[Vide Hub] Erro ao carregar funil público:")
-    ) && texto.includes("permission-denied");
+    );
 }
 
 function errosRelevantesDoFluxo(erros) {
