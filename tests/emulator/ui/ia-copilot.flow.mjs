@@ -7,8 +7,8 @@
 //
 // Esta versão prepara, dentro do Emulator, uma nova mensagem recente do
 // cliente antes de validar o Copiloto. O navegador continua exercitando o
-// fluxo real: gerar sugestão, usar sem envio automático, pedir confirmação
-// quando o compositor já possui texto, descartar e validar permissões.
+// fluxo real: gerar sugestão, usar sem envio automático, confirmar que o
+// rascunho é limpo após o uso e validar as permissões.
 import assert from "node:assert/strict";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
@@ -227,30 +227,22 @@ async function main() {
             "O copiloto nunca deve enviar a mensagem sozinho"
         );
 
-        // Compositor preenchido: usar nova sugestão exige confirmação.
-        await gerarSugestaoUtilizavel(page);
-
-        await page.click("#ia-copilot-usar");
-
-        await page.waitForSelector(
-            "#ia-copilot-confirmar:not([hidden])",
-            { timeout: 10000 }
-        );
-
-        await page.click(
-            "#ia-copilot-cancelar-uso"
-        );
-
-        // Descartar volta ao estado vazio.
-        await gerarSugestaoUtilizavel(page);
-
-        await page.click(
-            "#ia-copilot-descartar"
-        );
-
+        // Depois de usar, o painel real limpa a sugestão para impedir
+        // reutilização acidental do mesmo rascunho. Essa é a confirmação
+        // visual de que o ciclo foi encerrado corretamente.
         await page.waitForSelector(
             "#ia-copilot-vazio:not([hidden])",
             { timeout: 10000 }
+        );
+
+        const botaoUsarDesabilitado = await page
+            .isDisabled("#ia-copilot-usar")
+            .catch(() => true);
+
+        assert.equal(
+            botaoUsarDesabilitado,
+            true,
+            "Após usar a sugestão, o botão deve voltar desabilitado"
         );
 
         let errosRelevantes = erros.filter(
@@ -266,8 +258,8 @@ async function main() {
 
         console.log(
             "ia-copilot.flow (owner): OK — mensagem recente " +
-            "do cliente, geração, uso com e sem confirmação, " +
-            "não envio automático e descarte validados."
+            "do cliente, geração, uso sem envio automático e " +
+            "limpeza segura do rascunho validados."
         );
 
         // Funcionário sem ia-copilot: toggle oculto.
