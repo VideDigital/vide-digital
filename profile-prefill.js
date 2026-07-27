@@ -4541,17 +4541,60 @@
         }
     }
 
+    async function aguardarAcessoMetricasFunil() {
+        var contexto = window.VideHubContext;
+
+        if (!contexto?.initialized) {
+            await new Promise(function(resolve) {
+                var finalizado = false;
+                var concluir = function() {
+                    if (finalizado) return;
+                    finalizado = true;
+                    window.removeEventListener(
+                        "videhub:context-ready",
+                        concluir
+                    );
+                    clearTimeout(limite);
+                    resolve();
+                };
+
+                window.addEventListener(
+                    "videhub:context-ready",
+                    concluir,
+                    { once: true }
+                );
+
+                var limite = setTimeout(concluir, 8000);
+            });
+        }
+
+        contexto = window.VideHubContext;
+
+        return Boolean(
+            contexto?.initialized &&
+            contexto?.isActive?.() &&
+            contexto?.canView?.("metricas")
+        );
+    }
+
     async function conectarMetricasFunil() {
         if (metricasFunilIniciadas) return;
+
+        var podeAcessarMetricas =
+            await aguardarAcessoMetricasFunil();
+
+        if (!podeAcessarMetricas) {
+            document.getElementById(
+                "vide-funil-loja-publica"
+            )?.remove();
+            return;
+        }
+
         metricasFunilIniciadas = true;
 
         var status = document.getElementById("vide-funil-status");
 
         try {
-            if (window.VideHubContext?.initialized && !window.VideHubContext.canView?.("metricas")) {
-                document.getElementById("vide-funil-loja-publica")?.remove();
-                return;
-            }
 
             var tenantUid = await obterTenantMetricasFunil();
             if (!tenantUid) {
@@ -5610,8 +5653,55 @@
         return usuario.uid;
     }
 
+    async function aguardarAcessoMetricasAquisicao() {
+        var contexto = window.VideHubContext;
+
+        if (!contexto?.initialized) {
+            await new Promise(function(resolve) {
+                var finalizado = false;
+                var concluir = function() {
+                    if (finalizado) return;
+                    finalizado = true;
+                    window.removeEventListener(
+                        "videhub:context-ready",
+                        concluir
+                    );
+                    clearTimeout(limite);
+                    resolve();
+                };
+
+                window.addEventListener(
+                    "videhub:context-ready",
+                    concluir,
+                    { once: true }
+                );
+
+                var limite = setTimeout(concluir, 8000);
+            });
+        }
+
+        contexto = window.VideHubContext;
+
+        return Boolean(
+            contexto?.initialized &&
+            contexto?.isActive?.() &&
+            contexto?.canView?.("metricas")
+        );
+    }
+
     async function conectarAquisicao() {
         if (conexaoIniciada) return;
+
+        var podeAcessarMetricas =
+            await aguardarAcessoMetricasAquisicao();
+
+        if (!podeAcessarMetricas) {
+            document.getElementById(
+                "vide-aquisicao-real"
+            )?.remove();
+            return;
+        }
+
         if (!criarPainelAquisicao()) return;
 
         conexaoIniciada = true;
@@ -5707,7 +5797,6 @@
                                 null;
                         });
                 },
-
                 function(erro) {
                     console.error(
                         "[Vide Hub] Erro ao carregar aquisição:",
@@ -5768,6 +5857,7 @@
         inicializarAquisicaoDashboard();
     }
 })();
+
 
 /* =========================================================
    VIDE HUB — GERADOR DE LINKS RASTREÁVEIS
