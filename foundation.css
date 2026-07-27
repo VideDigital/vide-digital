@@ -2387,3 +2387,79 @@ body#admin-body > main {
     grid-template-columns: repeat(4, 1fr) !important;
   }
 }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: COMPACTAÇÃO DOS CARDS DO TOPO (V6.0)
+   Identidade, Workspace e Status da loja acumulavam espaço vertical
+   por causa de: (a) Tailwind .space-y-8 somando 32px de margin-top
+   por card + (b) mb-2/mb-5 próprios de cada card + (c) padding
+   interno generoso. Nada aqui reduz font-size — só padding, margin,
+   gap e o tamanho de elementos puramente decorativos (logo, ícones).
+   ================================================================ */
+
+#admin-sidebar > div:first-child {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 10px !important;
+}
+
+#admin-sidebar > div:first-child > * {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+/* Card de identidade */
+#admin-sidebar > div:first-child > .relative.overflow-hidden.rounded-3xl {
+  padding: 14px !important;
+}
+
+#admin-sidebar #admin-logo-box {
+  width: 46px !important;
+  height: 46px !important;
+  min-width: 46px !important;
+  border-radius: 14px !important;
+}
+
+/* Workspace */
+#admin-sidebar > div:first-child > .glass-card.rounded-2xl {
+  padding: 12px !important;
+}
+
+#admin-sidebar > div:first-child > .glass-card.rounded-2xl .mt-4 {
+  margin-top: 10px !important;
+}
+
+/* Status da loja */
+#admin-sidebar #box-atalho {
+  padding: 4px 2px 0 !important;
+}
+
+#admin-sidebar .aura-store-status-card {
+  padding: 12px !important;
+}
+
+#admin-sidebar .aura-store-status-header {
+  margin-bottom: 8px !important;
+}
+
+#admin-sidebar .aura-store-status-link {
+  min-height: 54px !important;
+  padding: 9px !important;
+  gap: 9px !important;
+}
+
+#admin-sidebar .aura-store-status-link-icon {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+}
+
+#admin-sidebar .aura-store-status-share {
+  margin-top: 9px !important;
+  gap: 7px !important;
+}
+
+#admin-sidebar .aura-store-status-copy {
+  min-height: 36px !important;
+}
+}
