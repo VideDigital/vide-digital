@@ -1509,3 +1509,413 @@ textarea:focus{
     grid-template-columns: 1fr !important;
   }
 }
+
+/* =========================================================
+   VIDE HUB — SIDEBAR VISUAL PREMIUM V4.2
+   Ajuste estético seguro, escopado em #admin-sidebar
+   ========================================================= */
+
+#admin-sidebar {
+  position: relative;
+}
+
+#admin-sidebar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 30px;
+  pointer-events: none;
+  background:
+    radial-gradient(320px 140px at 50% -5%, rgba(255,122,69,.08), transparent 72%),
+    linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,0));
+  opacity: .95;
+}
+
+#admin-sidebar > div {
+  position: relative;
+  z-index: 1;
+}
+
+/* Estrutura geral */
+#admin-sidebar {
+  border-radius: 30px !important;
+  box-shadow:
+    0 24px 50px -28px rgba(0,0,0,.78),
+    inset 0 1px 0 rgba(255,255,255,.04) !important;
+}
+
+#admin-sidebar > div:first-child {
+  gap: 18px !important;
+}
+
+/* Card principal da marca */
+#admin-sidebar > div:first-child > .relative.overflow-hidden.rounded-3xl {
+  position: relative;
+  padding: 20px !important;
+  border-radius: 28px !important;
+  border: 1px solid rgba(255,255,255,.08) !important;
+  background:
+    radial-gradient(240px 120px at 85% 0%, rgba(255,122,69,.10), transparent 70%),
+    linear-gradient(180deg, rgba(255,255,255,.035), rgba(255,255,255,.015)) !important;
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.03);
+}
+
+#admin-sidebar #admin-logo-box {
+  width: 60px !important;
+  height: 60px !important;
+  min-width: 60px !important;
+  border-radius: 18px !important;
+  box-shadow:
+    0 18px 34px -18px rgba(255,122,69,.65),
+    inset 0 1px 0 rgba(255,255,255,.22) !important;
+}
+
+/* Workspace */
+#admin-sidebar > div:first-child > .glass-card.rounded-2xl {
+  padding: 18px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.032), rgba(255,255,255,.015)) !important;
+}
+
+/* Navegação */
+#admin-sidebar .aura-sidebar-navigation {
+  padding: 0 6px 18px 4px !important;
+}
+
+#admin-sidebar .aura-sidebar-navigation-header {
+  padding: 4px 8px 15px !important;
+}
+
+#admin-sidebar .aura-sidebar-search {
+  min-height: 46px !important;
+  margin: 0 4px 20px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  background: rgba(255,255,255,.03) !important;
+}
+
+#admin-sidebar .aura-sidebar-search:focus-within {
+  border-color: rgba(255,122,69,.28) !important;
+  box-shadow: 0 0 0 3px rgba(255,122,69,.09) !important;
+}
+
+#admin-sidebar .aura-sidebar-search-editor {
+  min-height: 44px !important;
+  padding: 0 54px 0 41px !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+#admin-sidebar .aura-sidebar-search > svg {
+  width: 16px !important;
+  height: 16px !important;
+  left: 14px !important;
+}
+
+/* Grupos */
+#admin-sidebar .aura-sidebar-navigation-groups {
+  gap: 14px !important;
+}
+
+#admin-sidebar .aura-sidebar-group {
+  position: relative;
+  padding-bottom: 2px;
+}
+
+#admin-sidebar .aura-sidebar-group + .aura-sidebar-group {
+  padding-top: 14px;
+}
+
+#admin-sidebar .aura-sidebar-group + .aura-sidebar-group::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 8px;
+  right: 8px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.08), transparent);
+}
+
+#admin-sidebar .aura-sidebar-group-header {
+  min-height: 48px !important;
+  padding: 8px 9px !important;
+  border-radius: 15px !important;
+  transition: background .22s ease, border-color .22s ease, transform .22s ease !important;
+}
+
+#admin-sidebar .aura-sidebar-group-header:hover {
+  background: rgba(255,255,255,.04) !important;
+  transform: translateX(2px);
+}
+
+#admin-sidebar .aura-sidebar-group-title {
+  gap: 11px !important;
+}
+
+#admin-sidebar .aura-sidebar-group-icon {
+  width: 34px !important;
+  height: 34px !important;
+  min-width: 34px !important;
+  border-radius: 11px !important;
+  border: 1px solid rgba(255,122,69,.14) !important;
+  background: rgba(255,122,69,.06) !important;
+}
+
+#admin-sidebar .aura-sidebar-group-icon svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+#admin-sidebar .aura-sidebar-group-title strong {
+  font-size: 10px !important;
+  line-height: 1.2 !important;
+  letter-spacing: .12em !important;
+  color: rgba(255,255,255,.92) !important;
+}
+
+#admin-sidebar .aura-sidebar-group-title small {
+  margin-top: 3px !important;
+  font-size: 9px !important;
+  line-height: 1.3 !important;
+  color: rgba(255,255,255,.48) !important;
+}
+
+#admin-sidebar .aura-sidebar-group-content {
+  padding: 7px 0 4px !important;
+}
+
+/* Itens do menu */
+#admin-sidebar .aura-sidebar-group-content > button[data-target],
+#admin-sidebar .nav-item {
+  position: relative;
+  min-height: 56px !important;
+  margin-top: 7px !important;
+  padding: 12px 14px !important;
+  gap: 12px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.04) !important;
+  background: rgba(255,255,255,.018) !important;
+  transition:
+    background .22s ease,
+    border-color .22s ease,
+    transform .22s ease,
+    box-shadow .22s ease !important;
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target]:first-child,
+#admin-sidebar .nav-item:first-child {
+  margin-top: 0 !important;
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target]:hover,
+#admin-sidebar .nav-item:hover {
+  background: rgba(255,255,255,.042) !important;
+  border-color: rgba(255,255,255,.08) !important;
+  transform: translateX(3px);
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target].active,
+#admin-sidebar .nav-item.active {
+  background:
+    linear-gradient(90deg, rgba(255,122,69,.12), rgba(255,122,69,.035)) !important;
+  border-color: rgba(255,122,69,.22) !important;
+  box-shadow: 0 8px 24px -18px rgba(255,122,69,.55) !important;
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target].active::before,
+#admin-sidebar .nav-item.active::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 16%;
+  bottom: 16%;
+  width: 3px;
+  border-radius: 999px;
+  background: #FF7A45;
+  box-shadow: 0 0 12px rgba(255,122,69,.65);
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target] > svg,
+#admin-sidebar .nav-item > svg {
+  width: 18px !important;
+  height: 18px !important;
+  min-width: 18px !important;
+  opacity: .95;
+}
+
+#admin-sidebar .vide-dock-label {
+  display: flex !important;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+#admin-sidebar .vide-dock-label strong {
+  color: #F8FAFC !important;
+  font-size: 13.5px !important;
+  line-height: 1.22 !important;
+  font-weight: 750 !important;
+  letter-spacing: -.012em !important;
+}
+
+#admin-sidebar .vide-dock-description {
+  display: block !important;
+  margin-top: 4px !important;
+  color: rgba(255,255,255,.46) !important;
+  font-size: 10.5px !important;
+  line-height: 1.36 !important;
+  font-weight: 500 !important;
+  white-space: normal !important;
+}
+
+/* Status da loja */
+#admin-sidebar #box-atalho {
+  padding: 6px 2px 0 !important;
+}
+
+#admin-sidebar .aura-store-status-card {
+  padding: 17px !important;
+  border-radius: 24px !important;
+  border: 1px solid rgba(255,255,255,.07) !important;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.016)) !important;
+}
+
+#admin-sidebar .aura-store-status-header {
+  margin-bottom: 14px !important;
+}
+
+#admin-sidebar .aura-store-status-title {
+  margin-top: 4px !important;
+  font-size: 14px !important;
+  line-height: 1.25 !important;
+}
+
+#admin-sidebar .aura-store-status-badge {
+  min-height: 27px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+}
+
+#admin-sidebar .aura-store-status-link {
+  min-height: 68px !important;
+  padding: 12px !important;
+  gap: 11px !important;
+  border-radius: 17px !important;
+  background: rgba(255,255,255,.02) !important;
+}
+
+#admin-sidebar .aura-store-status-link-icon {
+  width: 38px !important;
+  height: 38px !important;
+  min-width: 38px !important;
+  border-radius: 12px !important;
+}
+
+#admin-sidebar .aura-store-status-address strong {
+  display: block;
+  margin-top: 4px !important;
+  overflow: hidden;
+  font-size: 12px !important;
+  line-height: 1.35 !important;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+#admin-sidebar .aura-store-status-share {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 9px !important;
+  margin-top: 13px !important;
+}
+
+#admin-sidebar .aura-store-status-copy {
+  min-height: 42px !important;
+  padding: 0 11px !important;
+  gap: 7px !important;
+  border-radius: 14px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  background: rgba(255,255,255,.018) !important;
+  border: 1px solid rgba(255,255,255,.05) !important;
+}
+
+#admin-sidebar .aura-store-status-copy:hover {
+  background: rgba(255,255,255,.04) !important;
+}
+
+/* Plano premium */
+#admin-sidebar .aura-store-status-card button:last-child,
+#admin-sidebar .aura-store-status-card a:last-child {
+  min-height: 41px !important;
+  border-radius: 14px !important;
+  letter-spacing: .18em !important;
+}
+
+/* Rodapé */
+#admin-sidebar #box-logout {
+  padding: 14px 2px 0 !important;
+  margin-top: 2px !important;
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+
+#admin-sidebar .aura-sidebar-account-actions {
+  gap: 10px !important;
+}
+
+#admin-sidebar .aura-sidebar-account-button {
+  min-height: 60px !important;
+  padding: 11px 12px !important;
+  gap: 11px !important;
+  border-radius: 16px !important;
+  border: 1px solid rgba(255,255,255,.04) !important;
+  background: rgba(255,255,255,.015) !important;
+}
+
+#admin-sidebar .aura-sidebar-account-button:hover {
+  background: rgba(255,255,255,.035) !important;
+  border-color: rgba(255,255,255,.08) !important;
+}
+
+#admin-sidebar .aura-sidebar-account-icon {
+  width: 36px !important;
+  height: 36px !important;
+  min-width: 36px !important;
+  border-radius: 12px !important;
+}
+
+#admin-sidebar .aura-sidebar-account-text strong {
+  font-size: 13px !important;
+  line-height: 1.25 !important;
+}
+
+#admin-sidebar .aura-sidebar-account-text small {
+  margin-top: 3px !important;
+  font-size: 10px !important;
+  line-height: 1.3 !important;
+  color: rgba(255,255,255,.46) !important;
+}
+
+/* Scroll da navegação */
+#admin-sidebar .aura-sidebar-navigation::-webkit-scrollbar {
+  width: 6px !important;
+}
+
+#admin-sidebar .aura-sidebar-navigation::-webkit-scrollbar-thumb {
+  border-radius: 999px !important;
+  background: rgba(255,255,255,.16) !important;
+}
+
+#admin-sidebar .aura-sidebar-navigation::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,.26) !important;
+}
+
+/* Responsivo */
+@media (max-width: 1023px) {
+  #admin-sidebar .aura-store-status-share {
+    grid-template-columns: 1fr !important;
+  }
+}
