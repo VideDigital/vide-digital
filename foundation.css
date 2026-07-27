@@ -2662,3 +2662,101 @@ body#admin-body > main {
 .tema-claro #admin-sidebar .aura-sidebar-account-button:hover {
   background: rgba(0,0,0,.04) !important;
 }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: LEGIBILIDADE DA NAVEGAÇÃO + CORREÇÕES DE
+   GRADE DE ÍCONES (V8.0)
+   1) Um botão (ex.: Funcionários) mantinha o rótulo visível porque o
+      texto vinha dentro de um <span>, não solto no botão — o script
+      só removia texto solto (corrigido em sidebar-navigation.js).
+      Isso fazia a célula "vazar" da grade e ficar larga/deslocada,
+      dando a impressão de grupo quebrado. Com o ícone puro de volta,
+      a grade volta a ficar uniforme.
+   2) Badge de cadeado (recurso premium bloqueado) precisa virar um
+      selo pequeno no canto do ícone — do jeito antigo (margin-left:
+      auto, pensado pra lista horizontal) ele também alargava a
+      célula.
+   3) Cabeçalho da navegação, campo de busca e o atalho ⌘K estavam
+      pequenos demais pra ler. Aumentados, e a caixa de busca ganhou
+      o mesmo peso visual (borda fina, fundo leve) usado no rodapé
+      (Painel Master / Sair da conta), pra soar como o mesmo sistema.
+   ================================================================ */
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target] {
+  position: relative !important;
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target] .cadeado-badge {
+  position: absolute !important;
+  top: 5px !important;
+  right: 5px !important;
+  margin-left: 0 !important;
+  width: 16px !important;
+  height: 16px !important;
+}
+
+#admin-sidebar .aura-sidebar-group-content > button[data-target] .cadeado-badge svg {
+  width: 9px !important;
+  height: 9px !important;
+}
+
+/* Ícones um pouco mais firmes — alguns traços do conjunto (ex.: raio,
+   IA) são visualmente mais finos que outros mesmo na mesma altura. */
+#admin-sidebar .aura-sidebar-group-content > button[data-target] > svg,
+#admin-sidebar .nav-item > svg {
+  width: 23px !important;
+  height: 23px !important;
+  min-width: 23px !important;
+  stroke-width: 2.15 !important;
+}
+
+/* Cabeçalho "Navegação / Central de operação" */
+#admin-sidebar .aura-sidebar-navigation-header p {
+  font-size: 10px !important;
+}
+
+#admin-sidebar .aura-sidebar-navigation-header h3 {
+  margin-top: 3px !important;
+  font-size: 13px !important;
+}
+
+#admin-sidebar .aura-sidebar-navigation-badge {
+  min-width: 38px !important;
+  height: 24px !important;
+  padding: 0 10px !important;
+  font-size: 10px !important;
+}
+
+/* Busca: mesmo peso visual leve do rodapé (borda fina + fundo sutil) */
+#admin-sidebar .aura-sidebar-search {
+  border-radius: 13px !important;
+  border-color: rgba(255,255,255,.08) !important;
+  background: rgba(255,255,255,.03) !important;
+}
+
+.tema-claro #admin-sidebar .aura-sidebar-search {
+  border-color: rgba(0,0,0,.08) !important;
+  background: rgba(0,0,0,.02) !important;
+}
+
+#admin-sidebar .aura-sidebar-search-editor {
+  font-size: 13px !important;
+  font-weight: 600 !important;
+}
+
+#admin-sidebar .aura-sidebar-search kbd {
+  min-width: 34px !important;
+  height: 24px !important;
+  padding: 0 8px !important;
+  border-radius: 7px !important;
+  font-size: 10.5px !important;
+  font-weight: 800 !important;
+  letter-spacing: .04em !important;
+  color: rgba(255,255,255,.65) !important;
+  background: rgba(255,255,255,.06) !important;
+}
+
+.tema-claro #admin-sidebar .aura-sidebar-search kbd {
+  color: rgba(0,0,0,.6) !important;
+  background: rgba(0,0,0,.05) !important;
+}

@@ -124,13 +124,14 @@
             botao.setAttribute("aria-label", nome + ". " + descricao);
             botao.removeAttribute("title");
 
-            const rotuloAntigo = botao.querySelector(".vide-dock-label");
-            if (rotuloAntigo) rotuloAntigo.remove();
-
-            const textosSoltos = Array.from(botao.childNodes).filter(function(no) {
-                return no.nodeType === Node.TEXT_NODE && no.textContent.trim() !== "";
+            // Alguns botões (ex.: Funcionários) trazem o rótulo dentro de um
+            // <span> em vez de texto solto direto no botão — remove QUALQUER
+            // filho que não seja o ícone, não só nós de texto direto, senão
+            // o rótulo continua visível e quebra a grade de ícones.
+            Array.from(botao.childNodes).forEach(function(no) {
+                if (no.nodeType === Node.ELEMENT_NODE && no.tagName.toLowerCase() === "svg") return;
+                no.remove();
             });
-            textosSoltos.forEach(function(no) { no.remove(); });
         }
 
         function organizarGrupos() {
