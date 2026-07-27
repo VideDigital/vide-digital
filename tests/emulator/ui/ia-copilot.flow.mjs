@@ -10,10 +10,9 @@
 // fluxo real: gerar sugestão, usar sem envio automático, confirmar que o
 // rascunho é limpo após o uso e validar as permissões.
 //
-// Erros de acesso dos widgets opcionais de Métricas são ignorados
-// somente neste teste do Copiloto, pois não pertencem ao módulo exercitado.
-// Eles continuam sendo uma pendência real do profile-prefill.js e não são
-// adicionados ao filtro global dos helpers.
+// Com CRM 360 e permissões de Métricas corrigidos, qualquer erro de console
+// relevante volta a reprovar o fluxo. Apenas falhas externas de rede já
+// reconhecidas pelos helpers permanecem fora da validação.
 import assert from "node:assert/strict";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { FieldValue, getFirestore } from "firebase-admin/firestore";
@@ -29,24 +28,9 @@ import {
 const PROJECT_ID = "demo-vide-hub";
 const CHAT_ID = "chat-local-1";
 
-function ehErroOpcionalMetricasSemPermissao(erro) {
-    const texto = String(erro || "");
-
-    // O coletor de console recebe, no Emulator, somente a mensagem
-    // "evaluation error..." em vez do código literal "permission-denied".
-    // Por isso o filtro deve identificar os dois logs pelo prefixo estável
-    // emitido pelo próprio profile-prefill.js.
-    return (
-        texto.includes("[Vide Hub] Erro ao carregar aquisição:") ||
-        texto.includes("[Vide Hub] Erro ao carregar funil público:")
-    );
-}
-
 function errosRelevantesDoFluxo(erros) {
     return erros.filter(
-        erro =>
-            !ehErroDeRedeExterno(erro) &&
-            !ehErroOpcionalMetricasSemPermissao(erro)
+        erro => !ehErroDeRedeExterno(erro)
     );
 }
 
