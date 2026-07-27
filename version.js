@@ -1,80 +1,66 @@
 window.VIDE_AURA_BUILD = Object.freeze({
     nome: "Vide Aura OS",
-    versao: "3.1.0-dashboard-executivo",
+    versao: "3.2.0-configuracoes-executivas",
     data: "2026-07-27",
     canal: "main"
 });
 
 /* =========================================================
-   VIDE HUB — CARREGADOR DA VISÃO GERAL EXECUTIVA V1
-   Mantém o código isolado dos arquivos legados do dashboard.
+   VIDE HUB — CARREGADOR DE CAMADAS MODULARES
    ========================================================= */
 
-(function carregarVisaoGeralExecutivaVideHub() {
+(function carregarCamadasModularesVideHub() {
     "use strict";
 
-    if (window.__videDashboardExecutivoLoader) {
+    if (window.__videCamadasModularesLoader) {
         return;
     }
 
-    window.__videDashboardExecutivoLoader = true;
+    window.__videCamadasModularesLoader = true;
 
-    function adicionarFolhaDeEstilo() {
-        if (
-            document.getElementById(
-                "vide-dashboard-executivo-css"
-            )
-        ) {
+    function adicionarCSS(id, caminho) {
+        if (document.getElementById(id)) {
             return;
         }
 
         var link =
             document.createElement("link");
 
-        link.id =
-            "vide-dashboard-executivo-css";
-
-        link.rel =
-            "stylesheet";
-
-        link.href =
-            "./dashboard-executive-v1.css?v=20260727-1";
+        link.id = id;
+        link.rel = "stylesheet";
+        link.href = caminho;
 
         document.head.appendChild(link);
     }
 
-    function adicionarControlador() {
-        if (
-            document.getElementById(
-                "vide-dashboard-executivo-js"
-            )
-        ) {
+    function adicionarJS(
+        id,
+        caminho,
+        mensagemErro
+    ) {
+        if (document.getElementById(id)) {
             return;
         }
 
         var script =
             document.createElement("script");
 
-        script.id =
-            "vide-dashboard-executivo-js";
+        script.id = id;
+        script.src = caminho;
+        script.defer = true;
 
-        script.src =
-            "./dashboard-executive-v1.js?v=20260727-1";
+        script.onerror = function() {
+            console.error(
+                mensagemErro
+            );
+        };
 
-        script.defer =
-            true;
-
-        script.onerror =
-            function() {
-                console.error(
-                    "[Vide Hub] Não foi possível carregar a Visão Geral Executiva."
-                );
-            };
-
-        document.head.appendChild(script);
+        document.head.appendChild(
+            script
+        );
     }
 
-    function iniciar() {
+    function carregarDashboardExecutivo() {
         if (
             !document.getElementById(
                 "view-dashboard"
@@ -83,8 +69,42 @@ window.VIDE_AURA_BUILD = Object.freeze({
             return;
         }
 
-        adicionarFolhaDeEstilo();
-        adicionarControlador();
+        adicionarCSS(
+            "vide-dashboard-executivo-css",
+            "./dashboard-executive-v1.css?v=20260727-1"
+        );
+
+        adicionarJS(
+            "vide-dashboard-executivo-js",
+            "./dashboard-executive-v1.js?v=20260727-1",
+            "[Vide Hub] Não foi possível carregar a Visão Geral Executiva."
+        );
+    }
+
+    function carregarConfiguracoesExecutivas() {
+        if (
+            !document.getElementById(
+                "view-perfil"
+            )
+        ) {
+            return;
+        }
+
+        adicionarCSS(
+            "vide-store-settings-executive-css",
+            "./store-settings-executive-v1.css?v=20260727-1"
+        );
+
+        adicionarJS(
+            "vide-store-settings-executive-js",
+            "./store-settings-executive-v1.js?v=20260727-1",
+            "[Vide Hub] Não foi possível carregar o Painel Executivo de Configurações."
+        );
+    }
+
+    function iniciar() {
+        carregarDashboardExecutivo();
+        carregarConfiguracoesExecutivas();
     }
 
     if (

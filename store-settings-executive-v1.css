@@ -1,0 +1,1357 @@
+/* =========================================================
+   VIDE HUB — CONFIGURAÇÕES DA LOJA EXECUTIVAS V1
+   Folha isolada e carregada após os estilos legados.
+   ========================================================= */
+
+#view-perfil.store-settings-executive-view {
+    --settings-accent:
+        var(
+            --aura-accent,
+            var(
+                --sys-destaque,
+                #ff7a45
+            )
+        );
+    --settings-primary:
+        var(
+            --aura-primary,
+            var(
+                --sys-primaria,
+                #ef3340
+            )
+        );
+}
+
+/* =========================================================
+   PAINEL DE CONFIGURAÇÃO
+   ========================================================= */
+
+#view-perfil
+.store-settings-command {
+    position: relative;
+    padding: 22px;
+    overflow: hidden;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .075
+        );
+    border-radius: 25px;
+    background:
+        radial-gradient(
+            520px 220px at 100% 0%,
+            color-mix(
+                in srgb,
+                var(--settings-primary) 12%,
+                transparent
+            ),
+            transparent 72%
+        ),
+        linear-gradient(
+            155deg,
+            rgba(
+                255,
+                255,
+                255,
+                .035
+            ),
+            rgba(
+                255,
+                255,
+                255,
+                .014
+            )
+        );
+    box-shadow:
+        inset 0 1px 0
+        rgba(
+            255,
+            255,
+            255,
+            .035
+        );
+}
+
+#view-perfil
+.store-settings-command::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            var(--settings-primary) 22%,
+            var(--settings-accent) 78%,
+            transparent
+        );
+    pointer-events: none;
+}
+
+#view-perfil
+.store-settings-command-header {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content:
+        space-between;
+    gap: 22px;
+}
+
+#view-perfil
+.store-settings-command-heading {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+}
+
+#view-perfil
+.store-settings-command-symbol {
+    display: inline-flex;
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+    align-items: center;
+    justify-content: center;
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--settings-primary) 26%,
+            transparent
+        );
+    border-radius: 15px;
+    color:
+        var(--settings-primary);
+    background:
+        color-mix(
+            in srgb,
+            var(--settings-primary) 8%,
+            transparent
+        );
+}
+
+#view-perfil
+.store-settings-command-symbol svg {
+    width: 20px;
+    height: 20px;
+    stroke-width: 1.8;
+}
+
+#view-perfil
+.store-settings-command-heading small,
+#view-perfil
+.store-settings-command-score small {
+    display: block;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 9px;
+    font-weight: 850;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+}
+
+#view-perfil
+.store-settings-command-heading h2 {
+    margin-top: 4px;
+    color:
+        var(
+            --aura-text,
+            #fff
+        );
+    font-size:
+        clamp(
+            17px,
+            2vw,
+            22px
+        );
+    font-weight: 850;
+    letter-spacing: -.03em;
+}
+
+#view-perfil
+.store-settings-command-heading p {
+    max-width: 610px;
+    margin-top: 5px;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+#view-perfil
+.store-settings-command-score {
+    display: flex;
+    min-width: 285px;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 13px;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .07
+        );
+    border-radius: 17px;
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .022
+        );
+}
+
+#view-perfil
+.store-settings-command-score-ring {
+    --settings-progress: 0deg;
+    position: relative;
+    display: inline-flex;
+    width: 54px;
+    height: 54px;
+    min-width: 54px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background:
+        conic-gradient(
+            var(--settings-accent)
+            var(--settings-progress),
+            rgba(
+                255,
+                255,
+                255,
+                .07
+            ) 0
+        );
+}
+
+#view-perfil
+.store-settings-command-score-ring::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border-radius: 50%;
+    background:
+        color-mix(
+            in srgb,
+            var(
+                --aura-surface,
+                #15151c
+            ) 94%,
+            black
+        );
+}
+
+#view-perfil
+.store-settings-command-score-ring strong {
+    position: relative;
+    z-index: 1;
+    color:
+        var(
+            --aura-text,
+            #fff
+        );
+    font-size: 12px;
+    font-weight: 900;
+}
+
+#view-perfil
+.store-settings-command-score > div:last-child {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+#view-perfil
+.store-settings-command-score > div:last-child > strong {
+    margin-top: 4px;
+    color:
+        var(
+            --aura-text,
+            #fff
+        );
+    font-size: 11px;
+    font-weight: 800;
+}
+
+#view-perfil
+.store-settings-command-score > div:last-child > span {
+    margin-top: 3px;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 9px;
+}
+
+/* Barra de pesquisa e ações */
+
+#view-perfil
+.store-settings-command-toolbar {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns:
+        minmax(260px, 1fr)
+        auto;
+    align-items: center;
+    gap: 12px;
+    margin-top: 18px;
+}
+
+#view-perfil
+.store-settings-command-search {
+    position: relative;
+    display: flex;
+    min-height: 46px;
+    align-items: center;
+    overflow: hidden;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .075
+        );
+    border-radius: 15px;
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .025
+        );
+}
+
+#view-perfil
+.store-settings-command-search:focus-within {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 35%,
+            transparent
+        );
+    box-shadow:
+        0 0 0 3px
+        color-mix(
+            in srgb,
+            var(--settings-accent) 9%,
+            transparent
+        );
+}
+
+#view-perfil
+.store-settings-command-search svg {
+    position: absolute;
+    left: 14px;
+    width: 16px;
+    height: 16px;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    stroke-width: 1.8;
+}
+
+#view-perfil
+.store-settings-command-search input {
+    width: 100%;
+    min-height: 44px;
+    padding: 0 76px 0 42px;
+    border: 0;
+    outline: 0;
+    color:
+        var(
+            --aura-text,
+            #fff
+        );
+    background: transparent;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+#view-perfil
+.store-settings-command-search input::placeholder {
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+}
+
+#view-perfil
+.store-settings-command-search kbd {
+    position: absolute;
+    right: 9px;
+    display: inline-flex;
+    min-height: 26px;
+    padding: 0 9px;
+    align-items: center;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .07
+        );
+    border-radius: 9px;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .035
+        );
+    font-family: inherit;
+    font-size: 8px;
+    font-weight: 850;
+}
+
+#view-perfil
+.store-settings-command-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#view-perfil
+.store-settings-change-status {
+    display: inline-flex;
+    min-height: 34px;
+    padding: 0 11px;
+    align-items: center;
+    border:
+        1px solid
+        rgba(
+            52,
+            211,
+            153,
+            .18
+        );
+    border-radius: 999px;
+    color: #34d399;
+    background:
+        rgba(
+            52,
+            211,
+            153,
+            .06
+        );
+    font-size: 8px;
+    font-weight: 850;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+#view-perfil
+.store-settings-change-status[data-state="dirty"] {
+    border-color:
+        rgba(
+            251,
+            191,
+            36,
+            .2
+        );
+    color: #fbbf24;
+    background:
+        rgba(
+            251,
+            191,
+            36,
+            .07
+        );
+}
+
+#view-perfil
+.store-settings-change-status[data-state="saving"] {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 28%,
+            transparent
+        );
+    color:
+        var(--settings-accent);
+    background:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 7%,
+            transparent
+        );
+}
+
+#view-perfil
+.store-settings-save-proxy {
+    display: inline-flex;
+    min-height: 40px;
+    padding: 0 14px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--settings-primary) 28%,
+            transparent
+        );
+    border-radius: 13px;
+    color: #fff;
+    background:
+        linear-gradient(
+            135deg,
+            var(--settings-primary),
+            var(--settings-accent)
+        );
+    box-shadow:
+        0 14px 28px -18px
+        color-mix(
+            in srgb,
+            var(--settings-primary) 80%,
+            transparent
+        );
+    font-size: 10px;
+    font-weight: 850;
+    transition:
+        transform .2s ease,
+        filter .2s ease;
+}
+
+#view-perfil
+.store-settings-save-proxy:hover {
+    transform:
+        translateY(-1px);
+    filter: brightness(1.08);
+}
+
+#view-perfil
+.store-settings-save-proxy svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 2;
+}
+
+/* Etapas */
+
+#view-perfil
+.store-settings-command-steps {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns:
+        repeat(
+            9,
+            minmax(0, 1fr)
+        );
+    gap: 8px;
+    margin-top: 14px;
+}
+
+#view-perfil
+.store-settings-step {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 62px;
+    padding: 9px;
+    align-items: center;
+    gap: 8px;
+    overflow: hidden;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .055
+        );
+    border-radius: 14px;
+    color:
+        var(
+            --aura-text-secondary,
+            #d5d6df
+        );
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .018
+        );
+    text-align: left;
+    transition:
+        transform .2s ease,
+        border-color .2s ease,
+        background .2s ease,
+        opacity .2s ease;
+}
+
+#view-perfil
+.store-settings-step:hover,
+#view-perfil
+.store-settings-step.is-active {
+    transform:
+        translateY(-1px);
+    border-color:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 22%,
+            rgba(
+                255,
+                255,
+                255,
+                .06
+            )
+        );
+    background:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 6%,
+            rgba(
+                255,
+                255,
+                255,
+                .018
+            )
+        );
+}
+
+#view-perfil
+.store-settings-step-number {
+    display: inline-flex;
+    width: 25px;
+    height: 25px;
+    min-width: 25px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    color:
+        var(--settings-accent);
+    background:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 8%,
+            transparent
+        );
+    font-size: 7px;
+    font-weight: 900;
+    letter-spacing: .08em;
+}
+
+#view-perfil
+.store-settings-step-copy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+}
+
+#view-perfil
+.store-settings-step-copy strong {
+    overflow: hidden;
+    font-size: 8px;
+    font-weight: 850;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#view-perfil
+.store-settings-step-copy small {
+    margin-top: 3px;
+    overflow: hidden;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 7px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#view-perfil
+.store-settings-step-status {
+    width: 7px;
+    height: 7px;
+    min-width: 7px;
+    border-radius: 50%;
+    background:
+        rgba(
+            251,
+            191,
+            36,
+            .9
+        );
+    box-shadow:
+        0 0 8px
+        rgba(
+            251,
+            191,
+            36,
+            .4
+        );
+}
+
+#view-perfil
+.store-settings-step-status[data-state="ready"] {
+    background: #34d399;
+    box-shadow:
+        0 0 8px
+        rgba(
+            52,
+            211,
+            153,
+            .5
+        );
+}
+
+#view-perfil
+.store-settings-step.store-settings-search-muted {
+    opacity: .34;
+}
+
+#view-perfil
+.store-settings-search-empty {
+    margin-top: 14px;
+    padding: 16px;
+    border:
+        1px dashed
+        rgba(
+            255,
+            255,
+            255,
+            .09
+        );
+    border-radius: 14px;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 10px;
+    text-align: center;
+}
+
+/* =========================================================
+   SEÇÕES DE CONFIGURAÇÃO
+   ========================================================= */
+
+#view-perfil
+.store-settings-section {
+    position: relative;
+    scroll-margin-top: 24px;
+    padding: 20px !important;
+    overflow: hidden;
+    border-radius: 23px !important;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .07
+        ) !important;
+    background:
+        linear-gradient(
+            155deg,
+            rgba(
+                255,
+                255,
+                255,
+                .027
+            ),
+            rgba(
+                255,
+                255,
+                255,
+                .012
+            )
+        ) !important;
+    box-shadow:
+        inset 0 1px 0
+        rgba(
+            255,
+            255,
+            255,
+            .025
+        ) !important;
+    transition:
+        border-color .22s ease,
+        box-shadow .22s ease,
+        transform .22s ease;
+}
+
+#view-perfil
+.store-settings-section::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    opacity: .65;
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            color-mix(
+                in srgb,
+                var(--settings-accent) 72%,
+                transparent
+            ),
+            transparent
+        );
+}
+
+#view-perfil
+.store-settings-section-highlight {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 34%,
+            transparent
+        ) !important;
+    box-shadow:
+        0 0 0 3px
+        color-mix(
+            in srgb,
+            var(--settings-accent) 8%,
+            transparent
+        ),
+        inset 0 1px 0
+        rgba(
+            255,
+            255,
+            255,
+            .04
+        ) !important;
+}
+
+#view-perfil
+.store-settings-section-topbar {
+    display: flex;
+    align-items: center;
+    justify-content:
+        space-between;
+    gap: 16px;
+    margin: -2px -2px 18px;
+    padding: 2px 2px 17px;
+    border-bottom:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .065
+        );
+}
+
+#view-perfil
+.store-settings-section-heading {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px;
+}
+
+#view-perfil
+.store-settings-section-number {
+    color:
+        var(--settings-accent);
+    font-size: 8px;
+    font-weight: 900;
+    letter-spacing: .12em;
+}
+
+#view-perfil
+.store-settings-section-icon {
+    display: inline-flex;
+    width: 37px;
+    height: 37px;
+    min-width: 37px;
+    align-items: center;
+    justify-content: center;
+    border:
+        1px solid
+        color-mix(
+            in srgb,
+            var(--settings-primary) 20%,
+            transparent
+        );
+    border-radius: 12px;
+    color:
+        var(--settings-primary);
+    background:
+        color-mix(
+            in srgb,
+            var(--settings-primary) 7%,
+            transparent
+        );
+}
+
+#view-perfil
+.store-settings-section-icon svg {
+    width: 16px;
+    height: 16px;
+    stroke-width: 1.8;
+}
+
+#view-perfil
+.store-settings-section-heading > div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+}
+
+#view-perfil
+.store-settings-section-heading small {
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 8px;
+    font-weight: 850;
+    letter-spacing: .11em;
+    text-transform: uppercase;
+}
+
+#view-perfil
+.store-settings-section-heading strong {
+    margin-top: 3px;
+    color:
+        var(
+            --aura-text,
+            #fff
+        );
+    font-size: 13px;
+    font-weight: 850;
+}
+
+#view-perfil
+.store-settings-section-heading p {
+    max-width: 660px;
+    margin-top: 4px;
+    color:
+        var(
+            --aura-text-muted,
+            #8b8fa3
+        );
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+#view-perfil
+.store-settings-section-controls {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+#view-perfil
+.store-settings-section-state {
+    display: inline-flex;
+    min-height: 28px;
+    padding: 0 9px;
+    align-items: center;
+    border:
+        1px solid
+        rgba(
+            251,
+            191,
+            36,
+            .16
+        );
+    border-radius: 999px;
+    color: #fbbf24;
+    background:
+        rgba(
+            251,
+            191,
+            36,
+            .055
+        );
+    font-size: 7px;
+    font-weight: 850;
+    white-space: nowrap;
+    text-transform: uppercase;
+}
+
+#view-perfil
+.store-settings-section-state[data-state="ready"] {
+    border-color:
+        rgba(
+            52,
+            211,
+            153,
+            .17
+        );
+    color: #34d399;
+    background:
+        rgba(
+            52,
+            211,
+            153,
+            .055
+        );
+}
+
+#view-perfil
+.store-settings-section-toggle {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .075
+        );
+    border-radius: 11px;
+    color:
+        var(
+            --aura-text-secondary,
+            #d5d6df
+        );
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .025
+        );
+}
+
+#view-perfil
+.store-settings-section-toggle:hover {
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .14
+        );
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .05
+        );
+}
+
+#view-perfil
+.store-settings-section-toggle svg {
+    width: 15px;
+    height: 15px;
+    stroke-width: 2;
+    transition:
+        transform .22s ease;
+}
+
+#view-perfil
+.store-settings-section.is-collapsed
+.store-settings-section-toggle svg {
+    transform:
+        rotate(-90deg);
+}
+
+#view-perfil
+.store-settings-section.is-collapsed
+> :not(
+    .store-settings-section-topbar
+) {
+    display: none !important;
+}
+
+#view-perfil
+.store-settings-section.is-collapsed
+.store-settings-section-topbar {
+    margin-bottom: 0;
+    padding-bottom: 2px;
+    border-bottom: 0;
+}
+
+#view-perfil
+.store-settings-legacy-title {
+    display: none !important;
+}
+
+#view-perfil
+.store-settings-search-hidden {
+    display: none !important;
+}
+
+/* Campos internos */
+
+#view-perfil
+.store-settings-section
+.glass-input {
+    min-height: 44px;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .075
+        ) !important;
+    border-radius: 13px !important;
+    background:
+        rgba(
+            0,
+            0,
+            0,
+            .18
+        ) !important;
+}
+
+#view-perfil
+.store-settings-section
+textarea.glass-input {
+    min-height: 88px;
+}
+
+#view-perfil
+.store-settings-section
+.glass-input:focus {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 38%,
+            transparent
+        ) !important;
+    box-shadow:
+        0 0 0 3px
+        color-mix(
+            in srgb,
+            var(--settings-accent) 8%,
+            transparent
+        ) !important;
+}
+
+#view-perfil
+.store-settings-section
+input[type="color"] {
+    width: 36px !important;
+    height: 36px !important;
+    padding: 2px;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .1
+        ) !important;
+    border-radius: 11px !important;
+}
+
+#view-perfil
+.store-settings-section
+label {
+    line-height: 1.35;
+}
+
+/* Barra de ações existente */
+
+#view-perfil
+.aura-store-settings-actions {
+    position: sticky;
+    bottom: 14px;
+    z-index: 24;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .1
+        ) !important;
+    background:
+        color-mix(
+            in srgb,
+            var(
+                --aura-surface,
+                #15151c
+            ) 92%,
+            transparent
+        ) !important;
+    box-shadow:
+        0 22px 54px
+        rgba(
+            0,
+            0,
+            0,
+            .34
+        ) !important;
+    backdrop-filter:
+        blur(22px);
+}
+
+#view-perfil.has-unsaved-settings
+.aura-store-settings-actions {
+    border-color:
+        color-mix(
+            in srgb,
+            var(--settings-accent) 24%,
+            rgba(
+                255,
+                255,
+                255,
+                .08
+            )
+        ) !important;
+}
+
+/* =========================================================
+   RESPONSIVIDADE
+   ========================================================= */
+
+@media (max-width: 1180px) {
+    #view-perfil
+    .store-settings-command-steps {
+        grid-template-columns:
+            repeat(
+                5,
+                minmax(0, 1fr)
+            );
+    }
+}
+
+@media (max-width: 900px) {
+    #view-perfil
+    .store-settings-command-header {
+        align-items:
+            flex-start;
+        flex-direction: column;
+    }
+
+    #view-perfil
+    .store-settings-command-score {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #view-perfil
+    .store-settings-command-toolbar {
+        grid-template-columns:
+            1fr;
+    }
+
+    #view-perfil
+    .store-settings-command-actions {
+        justify-content:
+            space-between;
+    }
+
+    #view-perfil
+    .store-settings-command-steps {
+        display: flex;
+        overflow-x: auto;
+        padding-bottom: 5px;
+        scroll-snap-type:
+            x proximity;
+    }
+
+    #view-perfil
+    .store-settings-step {
+        min-width: 150px;
+        scroll-snap-align:
+            start;
+    }
+}
+
+@media (max-width: 640px) {
+    #view-perfil
+    .store-settings-command {
+        padding: 17px;
+        border-radius: 21px;
+    }
+
+    #view-perfil
+    .store-settings-command-heading {
+        align-items:
+            flex-start;
+    }
+
+    #view-perfil
+    .store-settings-command-symbol {
+        width: 42px;
+        height: 42px;
+        min-width: 42px;
+        border-radius: 13px;
+    }
+
+    #view-perfil
+    .store-settings-command-heading p {
+        font-size: 10px;
+    }
+
+    #view-perfil
+    .store-settings-command-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    #view-perfil
+    .store-settings-change-status,
+    #view-perfil
+    .store-settings-save-proxy {
+        width: 100%;
+        justify-content: center;
+    }
+
+    #view-perfil
+    .store-settings-section {
+        padding: 16px !important;
+        border-radius: 20px !important;
+    }
+
+    #view-perfil
+    .store-settings-section-topbar {
+        align-items:
+            flex-start;
+        flex-direction: column;
+    }
+
+    #view-perfil
+    .store-settings-section-controls {
+        width: 100%;
+        justify-content:
+            space-between;
+    }
+
+    #view-perfil
+    .store-settings-section-heading p {
+        display: none;
+    }
+
+    #view-perfil
+    .aura-store-settings-actions {
+        bottom: 8px;
+    }
+}
