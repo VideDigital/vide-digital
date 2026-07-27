@@ -164,6 +164,25 @@
 
         function organizarGrupos() {
             const botoesExistentes = Array.from(areaGrupos.querySelectorAll(":scope > button[data-target]"));
+            if (botoesExistentes.length === 0) return;
+
+            // Nunca deixa a lista vazia: se o agrupamento falhar no meio do
+            // caminho (erro em qualquer grupo), os botões originais voltam
+            // pro lugar sem agrupamento, em vez de sumir de vez — antes,
+            // areaGrupos.innerHTML = "" rodava ANTES de reconstruir, então
+            // qualquer exceção no meio deixava a sidebar sem nenhum módulo
+            // visível pelo resto da sessão.
+            try {
+                montarGrupos(botoesExistentes);
+                if (!areaGrupos.children.length) throw new Error("nenhum grupo montado");
+            } catch (erro) {
+                console.error("[Sidebar] Falha ao agrupar módulos, restaurando lista simples.", erro);
+                areaGrupos.innerHTML = "";
+                botoesExistentes.forEach(function(botao) { areaGrupos.appendChild(botao); });
+            }
+        }
+
+        function montarGrupos(botoesExistentes) {
             areaGrupos.innerHTML = "";
 
             configuracaoGrupos.forEach(function(grupo, indiceGrupo) {
