@@ -1,0 +1,628 @@
+/* =========================================================
+   VIDE HUB — VISÃO GERAL EXECUTIVA V1
+   Folha isolada e carregada depois dos estilos legados.
+   ========================================================= */
+
+#view-dashboard.dashboard-executive-view {
+    --dashboard-executive-gap: 22px;
+}
+
+#view-dashboard
+.dashboard-executive-legacy-hidden {
+    display: none !important;
+}
+
+/* =========================================================
+   HOJE / PENDÊNCIAS
+   ========================================================= */
+
+#view-dashboard
+.dashboard-executive-today {
+    position: relative;
+    padding: 24px !important;
+    overflow: hidden !important;
+    border-radius: 26px !important;
+    border-color:
+        color-mix(
+            in srgb,
+            var(--aura-accent) 22%,
+            var(--aura-border)
+        ) !important;
+    background:
+        radial-gradient(
+            520px 240px at 100% 0%,
+            color-mix(
+                in srgb,
+                var(--aura-accent) 11%,
+                transparent
+            ),
+            transparent 72%
+        ),
+        linear-gradient(
+            155deg,
+            color-mix(
+                in srgb,
+                var(--aura-surface) 83%,
+                transparent
+            ),
+            color-mix(
+                in srgb,
+                var(--aura-surface-soft) 67%,
+                transparent
+            )
+        ) !important;
+}
+
+#view-dashboard
+.dashboard-executive-today::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    pointer-events: none;
+    opacity: .86;
+    background:
+        linear-gradient(
+            to bottom,
+            transparent,
+            var(--aura-accent) 22%,
+            var(--aura-accent) 78%,
+            transparent
+        );
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-header {
+    padding-bottom: 20px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-title small {
+    color:
+        var(--aura-accent) !important;
+    font-size: 10px !important;
+    letter-spacing: .18em !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-title h3 {
+    margin-top: 5px !important;
+    font-size:
+        clamp(
+            20px,
+            2vw,
+            27px
+        ) !important;
+    line-height: 1.12 !important;
+    letter-spacing: -.035em !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-title p {
+    max-width: 620px;
+    margin-top: 7px !important;
+    font-size: 12px !important;
+    line-height: 1.55 !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-live {
+    min-height: 32px !important;
+    padding: 0 12px !important;
+}
+
+/* Cards de pendência */
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-alerts {
+    grid-template-columns:
+        repeat(
+            4,
+            minmax(0, 1fr)
+        ) !important;
+    gap: 12px !important;
+    margin-top: 20px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-alert {
+    min-height: 118px !important;
+    padding: 16px !important;
+    border-radius: 18px !important;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .075
+        ) !important;
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .026
+        ) !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-alert:hover {
+    transform:
+        translateY(-2px);
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .14
+        ) !important;
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .045
+        ) !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-alert > span {
+    font-size: 9px !important;
+    letter-spacing: .1em !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-alert strong {
+    margin-top: 14px !important;
+    font-size: 28px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-alert small {
+    margin-top: 9px !important;
+    font-size: 9px !important;
+    line-height: 1.4 !important;
+}
+
+/* Atividade + atalhos */
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-grid {
+    grid-template-columns:
+        minmax(0, 1.35fr)
+        minmax(290px, .65fr) !important;
+    gap: 14px !important;
+    margin-top: 14px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-section {
+    padding: 18px !important;
+    border-radius: 20px !important;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .065
+        ) !important;
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .018
+        ) !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-section-header {
+    padding-bottom: 14px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-section-header small {
+    font-size: 9px !important;
+    letter-spacing: .13em !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-section-header h4 {
+    font-size: 13px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-activity-list {
+    margin-top: 12px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-activity {
+    min-height: 70px !important;
+    padding: 11px 12px !important;
+    border-radius: 14px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-actions {
+    gap: 9px !important;
+    margin-top: 12px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-actions button {
+    min-height: 72px !important;
+    padding: 11px !important;
+    border-radius: 14px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-actions strong {
+    font-size: 9px !important;
+}
+
+#view-dashboard
+.dashboard-executive-today
+.dashboard-ops-actions small {
+    font-size: 8px !important;
+}
+
+/* =========================================================
+   RESULTADOS
+   ========================================================= */
+
+#view-dashboard
+.dashboard-executive-results:not(.hidden) {
+    display: block;
+}
+
+#view-dashboard
+.dashboard-executive-results > * {
+    border-radius: 24px !important;
+}
+
+#view-dashboard
+.dashboard-executive-results
+.glass-card {
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .07
+        ) !important;
+}
+
+/* =========================================================
+   ONBOARDING RECOLHÍVEL
+   ========================================================= */
+
+#view-dashboard
+.dashboard-executive-onboarding {
+    padding: 20px !important;
+    border-radius: 24px !important;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .065
+        ) !important;
+    background:
+        linear-gradient(
+            155deg,
+            rgba(
+                255,
+                255,
+                255,
+                .025
+            ),
+            rgba(
+                255,
+                255,
+                255,
+                .012
+            )
+        ) !important;
+}
+
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-header {
+    display: grid !important;
+    grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        auto !important;
+    align-items: center !important;
+    gap: 14px !important;
+}
+
+#view-dashboard
+.dashboard-launch-toggle {
+    display: inline-flex;
+    min-height: 36px;
+    padding: 0 12px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border:
+        1px solid
+        rgba(
+            255,
+            255,
+            255,
+            .08
+        );
+    border-radius: 12px;
+    color:
+        var(
+            --aura-text-secondary
+        );
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .025
+        );
+    font-size: 10px;
+    font-weight: 800;
+    white-space: nowrap;
+}
+
+#view-dashboard
+.dashboard-launch-toggle:hover {
+    color:
+        var(--aura-text);
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .16
+        );
+    background:
+        rgba(
+            255,
+            255,
+            255,
+            .055
+        );
+}
+
+#view-dashboard
+.dashboard-launch-toggle svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 2;
+    transition:
+        transform
+        .25s
+        var(--rd-ease);
+}
+
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-summary,
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-tasks,
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-footer {
+    transition:
+        opacity .22s ease,
+        transform
+        .22s
+        var(--rd-ease);
+}
+
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-summary,
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-tasks,
+#view-dashboard
+.dashboard-executive-onboarding
+.dashboard-launch-footer {
+    animation:
+        videExecutiveReveal
+        .26s
+        var(--rd-ease);
+}
+
+#view-dashboard
+.dashboard-executive-onboarding.dashboard-launch-is-collapsed {
+    padding-bottom: 20px !important;
+}
+
+#view-dashboard
+.dashboard-executive-onboarding.dashboard-launch-is-collapsed
+.dashboard-launch-summary,
+#view-dashboard
+.dashboard-executive-onboarding.dashboard-launch-is-collapsed
+.dashboard-launch-tasks,
+#view-dashboard
+.dashboard-executive-onboarding.dashboard-launch-is-collapsed
+.dashboard-launch-footer {
+    display: none !important;
+}
+
+#view-dashboard
+.dashboard-executive-onboarding.dashboard-launch-is-collapsed
+.dashboard-launch-toggle svg {
+    transform:
+        rotate(-90deg);
+}
+
+@keyframes videExecutiveReveal {
+    from {
+        opacity: 0;
+        transform:
+            translateY(-4px);
+    }
+
+    to {
+        opacity: 1;
+        transform:
+            translateY(0);
+    }
+}
+
+/* =========================================================
+   CENTRAL DE MÓDULOS SECUNDÁRIA
+   ========================================================= */
+
+#view-dashboard
+.dashboard-executive-hub-secondary {
+    padding: 20px !important;
+    border-radius: 24px !important;
+    border-color:
+        rgba(
+            255,
+            255,
+            255,
+            .06
+        ) !important;
+    background:
+        linear-gradient(
+            155deg,
+            rgba(
+                255,
+                255,
+                255,
+                .022
+            ),
+            rgba(
+                255,
+                255,
+                255,
+                .01
+            )
+        ) !important;
+}
+
+#view-dashboard
+.dashboard-executive-hub-secondary
+.aura-hub-symbol {
+    width: 42px !important;
+    height: 42px !important;
+}
+
+#view-dashboard
+.dashboard-executive-hub-secondary
+#grid-hub-modulos > div {
+    min-height: 118px !important;
+}
+
+/* =========================================================
+   TABLET
+   ========================================================= */
+
+@media (max-width: 1100px) {
+    #view-dashboard
+    .dashboard-executive-today
+    .dashboard-ops-alerts {
+        grid-template-columns:
+            repeat(
+                2,
+                minmax(0, 1fr)
+            ) !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-today
+    .dashboard-ops-grid {
+        grid-template-columns:
+            1fr !important;
+    }
+}
+
+/* =========================================================
+   CELULAR
+   ========================================================= */
+
+@media (max-width: 640px) {
+    #view-dashboard
+    .dashboard-executive-today {
+        padding: 18px !important;
+        border-radius: 22px !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-today
+    .dashboard-ops-header {
+        align-items:
+            flex-start !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-today
+    .dashboard-ops-alerts {
+        grid-template-columns:
+            1fr 1fr !important;
+        gap: 9px !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-today
+    .dashboard-ops-alert {
+        min-height: 105px !important;
+        padding: 13px !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-today
+    .dashboard-ops-alert strong {
+        font-size: 24px !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-onboarding
+    .dashboard-launch-header {
+        grid-template-columns:
+            minmax(0, 1fr)
+            auto !important;
+    }
+
+    #view-dashboard
+    .dashboard-executive-onboarding
+    .dashboard-launch-score {
+        grid-column: 2;
+        grid-row: 1;
+    }
+
+    #view-dashboard
+    .dashboard-launch-toggle {
+        grid-column: 1 / -1;
+        width: 100%;
+    }
+
+    #view-dashboard
+    .dashboard-executive-hub-secondary {
+        padding: 17px !important;
+    }
+}
