@@ -1806,3 +1806,65 @@ body.aura-command-open{
 .aura-catalog-selection-toggle svg{ width:17px !important; height:17px !important; }
 .aura-catalog-view-switch button{ width:40px !important; height:40px !important; }
 .aura-catalog-view-switch svg{ width:17px !important; height:17px !important; }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: CORRIGE A GRADE DE #admin-sidebar (V1.0)
+   dashboard-modules.css transforma #admin-sidebar num CSS grid com
+   `grid-template-rows: minmax(0,1fr) auto` — só 2 faixas — mas o
+   elemento tem 4 filhos diretos (identidade, navegação, status da
+   loja, rodapé). Os filhos extras caem em faixas implícitas "auto"
+   e a única faixa flexível (minmax(0,1fr), ocupada pela identidade)
+   é a que fica com espaço zero quando o resto não cabe — por isso o
+   cartão "Vide Hub" podia sumir por completo. Esta é a folha
+   carregada por último no <head>, então vence o empate de
+   especificidade com dashboard-modules.css e redefine a grade com
+   uma faixa por filho real: só a navegação (que já rola por conta
+   própria) fica flexível, o resto sempre aparece no tamanho natural.
+   ================================================================ */
+
+@media (min-width: 768px) {
+  #admin-sidebar {
+    grid-template-rows: auto minmax(0, 1fr) auto auto !important;
+  }
+
+  #admin-sidebar > div:first-child {
+    min-height: auto !important;
+    overflow: visible !important;
+  }
+
+  #admin-sidebar > div:first-child > * {
+    flex: 0 0 auto !important;
+  }
+
+  #sidebar-nav,
+  #admin-sidebar .aura-sidebar-navigation {
+    min-height: 0 !important;
+  }
+
+  #box-atalho,
+  #box-logout {
+    min-height: 0 !important;
+  }
+}
+
+/* Painel Master / Sair da conta: grid de 2 colunas + aspect-ratio:1/1
+   fazia cada botão virar um quadrado gigante (cada coluna ocupa
+   ~metade da largura da sidebar, então o lado do "quadrado" ficava
+   enorme). Altura fixa, independente da largura, resolve. */
+#admin-sidebar .aura-sidebar-account-button {
+  aspect-ratio: auto !important;
+  height: 64px !important;
+}
+
+/* Ícone do cabeçalho de cada grupo (o que fica ao lado do nome do
+   grupo, ex.: "Suporte") maior — ainda pequeno demais. */
+#admin-sidebar .aura-sidebar-group-icon {
+  width: 22px !important;
+  height: 22px !important;
+  min-width: 22px !important;
+}
+
+#admin-sidebar .aura-sidebar-group-icon svg {
+  width: 17px !important;
+  height: 17px !important;
+}
