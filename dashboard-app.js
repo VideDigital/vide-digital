@@ -88,10 +88,18 @@ window.addEventListener("pageshow", function(event) {
         }
 
         // RESPONSIVIDADE MOBILE: TOGGLE SIDEBAR MENU
+        // Ao abrir, a sidebar vira um overlay fixo de tela cheia (ver
+        // .aura-sidebar-mobile-aberto em late-overrides.css) e o scroll da
+        // página por trás é travado — antes o menu só crescia dentro do
+        // fluxo normal da página, então rolar a tela saía do menu e caía
+        // de volta na view que estava aberta antes de abrir o menu.
         document.getElementById("mobile-menu-toggle").addEventListener("click", () => {
+            const abrindo = document.getElementById("sidebar-nav").classList.contains("hidden");
             document.getElementById("sidebar-nav").classList.toggle("hidden");
             document.getElementById("box-atalho").classList.toggle("hidden");
             document.getElementById("box-logout").classList.toggle("hidden");
+            document.getElementById("admin-sidebar").classList.toggle("aura-sidebar-mobile-aberto", abrindo);
+            document.body.classList.toggle("aura-sidebar-mobile-scroll-lock", abrindo);
         });
 
         function ativarBannerModoMaster(nomeLoja) {
@@ -2428,6 +2436,17 @@ if (targetId === "view-metricas") {
 
     if (targetId === "view-landing-pages") {
         carregarLandingPages();
+    }
+
+    // No mobile o menu vira um overlay de tela cheia — ao navegar pra um
+    // módulo, fecha o overlay pra revelar a view escolhida.
+    const sidebarMobile = document.getElementById("admin-sidebar");
+    if (sidebarMobile?.classList.contains("aura-sidebar-mobile-aberto")) {
+        document.getElementById("sidebar-nav")?.classList.add("hidden");
+        document.getElementById("box-atalho")?.classList.add("hidden");
+        document.getElementById("box-logout")?.classList.add("hidden");
+        sidebarMobile.classList.remove("aura-sidebar-mobile-aberto");
+        document.body.classList.remove("aura-sidebar-mobile-scroll-lock");
     }
 
     return true;

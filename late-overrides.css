@@ -1868,3 +1868,65 @@ body.aura-command-open{
   width: 17px !important;
   height: 17px !important;
 }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: MENU MOBILE VIRA OVERLAY DE TELA CHEIA (V2.0)
+   Antes, abrir o menu no mobile só revelava nav/status/rodapé dentro
+   do fluxo normal da página (a sidebar não tinha position:fixed) —
+   rolar a tela saía do menu e caía na view que estava aberta antes de
+   abrir. Ver toggle em dashboard-app.js (mobile-menu-toggle), que
+   agora também alterna .aura-sidebar-mobile-aberto no #admin-sidebar
+   e .aura-sidebar-mobile-scroll-lock no <body>.
+   ================================================================ */
+
+@media (max-width: 767px) {
+  #admin-sidebar.aura-sidebar-mobile-aberto {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 100 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch !important;
+  }
+}
+
+body.aura-sidebar-mobile-scroll-lock {
+  overflow: hidden !important;
+}
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: IDENTIDADE COMPACTA NO DESKTOP (V2.1)
+   O cartão de identidade estava sumindo (corrigido acima, na correção
+   da grade de #admin-sidebar) mas, ao voltar a aparecer, revelou um
+   tamanho natural grande demais — herdado de padding/logo de patches
+   antigos que nunca chegavam a renderizar de verdade. Valores finais
+   e definitivos aqui, na folha carregada por último.
+   ================================================================ */
+
+@media (min-width: 768px) {
+  #admin-sidebar .aura-sidebar-identity {
+    padding: 14px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-logo,
+  #admin-sidebar #admin-logo-box {
+    width: 42px !important;
+    height: 42px !important;
+    min-width: 42px !important;
+    font-size: 16px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-brand-name {
+    font-size: 15px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-eyebrow {
+    font-size: 9px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-workspace-name {
+    font-size: 13px !important;
+  }
+}
