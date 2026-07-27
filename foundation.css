@@ -2760,3 +2760,79 @@ body#admin-body > main {
   color: rgba(0,0,0,.6) !important;
   background: rgba(0,0,0,.05) !important;
 }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: RODAPÉ EM ÍCONES + CORREÇÕES (V9.0)
+   1) O cartão de identidade sumia quando o conteúdo da navegação
+      crescia: ele e a navegação disputavam o mesmo espaço flexível
+      (flex:1 nos dois) e, sem proteção contra encolher, ele perdia a
+      disputa e ia a zero. Status da loja e rodapé já tinham essa
+      proteção (flex-shrink:0) — faltava só na identidade.
+   2) Painel Master / Sair da conta viram ícones lado a lado com
+      tooltip no hover/foco, igual aos módulos — libera espaço
+      vertical pra navegação, como pedido.
+   3) Ícone do cabeçalho de cada grupo (o que fica ao lado do nome do
+      grupo, ex.: "Suporte") aumentado — estava pequeno demais.
+   ================================================================ */
+
+#admin-sidebar > div:first-child {
+  flex-shrink: 0 !important;
+}
+
+#admin-sidebar .aura-sidebar-group-icon {
+  width: 19px !important;
+  height: 19px !important;
+  min-width: 19px !important;
+}
+
+#admin-sidebar .aura-sidebar-group-icon svg {
+  width: 15px !important;
+  height: 15px !important;
+}
+
+#admin-sidebar .aura-sidebar-account-actions {
+  display: grid !important;
+  grid-template-columns: repeat(2, 1fr) !important;
+  gap: 8px !important;
+}
+
+#admin-sidebar .aura-sidebar-account-button {
+  position: relative !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  aspect-ratio: 1 / 1 !important;
+  min-height: 0 !important;
+  padding: 4px !important;
+  border-radius: 15px !important;
+  border: 1px solid rgba(255,255,255,.05) !important;
+  background: rgba(255,255,255,.02) !important;
+  transition: background .18s ease, border-color .18s ease, transform .18s ease !important;
+}
+
+#admin-sidebar .aura-sidebar-account-button:hover,
+#admin-sidebar .aura-sidebar-account-button:focus-visible {
+  background: color-mix(in srgb, var(--aura-primary, #5B3DF5) 15%, transparent) !important;
+  border-color: color-mix(in srgb, var(--aura-primary, #5B3DF5) 32%, transparent) !important;
+  transform: translateY(-2px) !important;
+  outline: none !important;
+}
+
+#admin-sidebar .aura-sidebar-account-icon {
+  width: 23px !important;
+  height: 23px !important;
+  min-width: 23px !important;
+  border-radius: 0 !important;
+  background: none !important;
+}
+
+#admin-sidebar .aura-sidebar-account-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.tema-claro #admin-sidebar .aura-sidebar-account-button:hover {
+  background: color-mix(in srgb, var(--aura-primary, #5B3DF5) 12%, transparent) !important;
+}

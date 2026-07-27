@@ -2597,127 +2597,8 @@ window.addEventListener("DOMContentLoaded", () => {
                 "aura-command-close"
             );
 
-        const itens = [
-
-            {
-                titulo: "Visão Geral",
-                descricao: "Dashboard e central operacional",
-                grupo: "Navegação",
-                view: "view-dashboard",
-                palavras: "inicio painel dashboard cockpit"
-            },
-
-            {
-                titulo: "Produtos",
-                descricao: "Catálogo, estoque e ofertas",
-                grupo: "Navegação",
-                view: "view-produtos",
-                palavras: "produto catalogo oferta estoque"
-            },
-
-            {
-                titulo: "Configurações da Loja",
-                descricao: "Identidade, cores e vitrine",
-                grupo: "Navegação",
-                view: "view-perfil",
-                palavras: "configuracao loja perfil cores visual"
-            },
-
-            {
-                titulo: "Pixels e Domínio",
-                descricao: "Integrações e endereço da loja",
-                grupo: "Navegação",
-                view: "view-dominios",
-                palavras: "pixel dominio integracao url"
-            },
-
-            {
-                titulo: "Leads",
-                descricao: "Contatos e oportunidades",
-                grupo: "Navegação",
-                view: "view-leads",
-                palavras: "lead contato cliente crm captura"
-            },
-
-            {
-                titulo: "Automação de Leads",
-                descricao: "Regras e jornadas comerciais",
-                grupo: "Navegação",
-                view: "view-automacao-leads",
-                palavras: "automacao fluxo regra jornada"
-            },
-
-            {
-                titulo: "Templates",
-                descricao: "Mensagens prontas",
-                grupo: "Navegação",
-                view: "view-templates",
-                palavras: "template mensagem whatsapp resposta"
-            },
-
-            {
-                titulo: "Campanhas",
-                descricao: "Ofertas e ações comerciais",
-                grupo: "Navegação",
-                view: "view-campanhas",
-                palavras: "campanha marketing oferta promocao"
-            },
-
-            {
-                titulo: "Landing Pages",
-                descricao: "Páginas de conversão",
-                grupo: "Navegação",
-                view: "view-landing-pages",
-                palavras: "landing page pagina conversao editor"
-            },
-
-            {
-                titulo: "Pedidos",
-                descricao: "Vendas e pagamentos",
-                grupo: "Navegação",
-                view: "view-pedidos",
-                palavras: "pedido venda pagamento financeiro"
-            },
-
-            {
-                titulo: "Métricas",
-                descricao: "Resultados e desempenho",
-                grupo: "Navegação",
-                view: "view-metricas",
-                palavras: "metrica relatorio resultado analytics"
-            },
-
-            {
-                titulo: "Notificações",
-                descricao: "Avisos da operação",
-                grupo: "Navegação",
-                view: "view-notificacoes",
-                palavras: "notificacao aviso alerta"
-            },
-
-            {
-                titulo: "Personalização Premium",
-                descricao: "Aparência avançada do painel",
-                grupo: "Navegação",
-                view: "view-personalizacao",
-                palavras: "personalizacao visual painel tema"
-            },
-
-            {
-                titulo: "Guia do Plano",
-                descricao: "Recursos disponíveis",
-                grupo: "Navegação",
-                view: "view-guia",
-                palavras: "guia plano recurso ajuda"
-            },
-
-            {
-                titulo: "Funcionários",
-                descricao: "Equipe e permissões",
-                grupo: "Navegação",
-                view: "view-funcionarios",
-                palavras: "funcionario equipe acesso permissao"
-            },
+        // Ações rápidas: fixas, não são módulos de navegação.
+        const acoesRapidas = [
 
             {
                 titulo: "Cadastrar produto",
@@ -2752,6 +2633,36 @@ window.addEventListener("DOMContentLoaded", () => {
             }
 
         ];
+
+        // A lista de módulos era uma cópia fixa que ficava desatualizada
+        // toda vez que um módulo novo era adicionado à sidebar (Atendimento,
+        // CRM 360, Central de IA, Base de Conhecimento etc. nunca apareciam
+        // aqui). Em vez de manter duas listas em paralelo, monta a partir
+        // dos próprios botões da navegação — a mesma fonte que a sidebar
+        // usa — sempre que a central de comandos é aberta.
+        function construirItensNavegacao() {
+            return Array.from(
+                document.querySelectorAll(
+                    "#sidebar-nav button[data-target]"
+                )
+            )
+                .filter(botao => !botao.classList.contains("hidden"))
+                .map(botao => {
+                    const view = botao.getAttribute("data-target");
+                    const titulo = botao.dataset.moduleName || view;
+                    const descricao = botao.dataset.moduleDescription || "";
+
+                    return {
+                        titulo,
+                        descricao,
+                        grupo: "Navegação",
+                        view,
+                        palavras: `${titulo} ${descricao} ${view}`
+                    };
+                });
+        }
+
+        let itens = construirItensNavegacao().concat(acoesRapidas);
 
         let resultados = [];
         let selecionado = 0;
@@ -3079,6 +2990,8 @@ abrirDepois(
             document.body.classList.add(
                 "aura-command-open"
             );
+
+            itens = construirItensNavegacao().concat(acoesRapidas);
 
             input.value = "";
 

@@ -13,6 +13,7 @@
         const areaGrupos = document.getElementById("sidebar-navigation-groups");
         const campoBusca = document.getElementById("busca-sidebar-modulos");
         const estadoVazio = document.getElementById("sidebar-navigation-empty");
+        const boxLogout = document.getElementById("box-logout");
 
         if (!sidebar || !navegacao || !areaGrupos || !campoBusca) return;
         if (sidebar.dataset.videDockReady === "true") return;
@@ -134,6 +135,27 @@
             });
         }
 
+        // Painel Master e Sair da conta seguem o mesmo tratamento dos
+        // módulos: viram ícones compactos lado a lado, com nome e
+        // descrição só no tooltip flutuante (o rótulo já existia em
+        // <strong>/<small>, só precisa sair do botão e virar dataset).
+        function enriquecerBotaoConta(botao) {
+            const nome = botao.querySelector(".aura-sidebar-account-text strong")?.textContent.trim() || "";
+            const descricao = botao.querySelector(".aura-sidebar-account-text small")?.textContent.trim() || "";
+            if (!nome) return;
+
+            botao.dataset.moduleName = nome;
+            botao.dataset.moduleDescription = descricao;
+            botao.setAttribute("aria-label", descricao ? (nome + ". " + descricao) : nome);
+
+            Array.from(botao.childNodes).forEach(function(no) {
+                const ehIcone = no.nodeType === Node.ELEMENT_NODE &&
+                    no.classList.contains("aura-sidebar-account-icon");
+                if (ehIcone) return;
+                no.remove();
+            });
+        }
+
         function organizarGrupos() {
             const botoesExistentes = Array.from(areaGrupos.querySelectorAll(":scope > button[data-target]"));
             if (botoesExistentes.length === 0) return;
@@ -238,26 +260,34 @@
             }, 60);
         }
 
-        function conectarTooltips() {
-            areaGrupos.addEventListener("mouseover", function(evento) {
-                const botao = evento.target.closest("button[data-target]");
+        // Qualquer botão enriquecido (módulo da grade ou atalho de conta)
+        // ganha data-module-name — usa isso como seletor comum em vez de
+        // exigir data-target, que só os módulos de navegação têm.
+        function conectarTooltipsEm(container) {
+            container.addEventListener("mouseover", function(evento) {
+                const botao = evento.target.closest("button[data-module-name]");
                 if (botao && botao !== botaoComTooltip) mostrarTooltip(botao);
             });
-            areaGrupos.addEventListener("mouseout", function(evento) {
-                const botao = evento.target.closest("button[data-target]");
+            container.addEventListener("mouseout", function(evento) {
+                const botao = evento.target.closest("button[data-module-name]");
                 const indoPara = evento.relatedTarget && evento.relatedTarget.closest
-                    ? evento.relatedTarget.closest("button[data-target]")
+                    ? evento.relatedTarget.closest("button[data-module-name]")
                     : null;
                 if (botao && botao === botaoComTooltip && indoPara !== botao) esconderTooltip();
             });
-            areaGrupos.addEventListener("focusin", function(evento) {
-                const botao = evento.target.closest("button[data-target]");
+            container.addEventListener("focusin", function(evento) {
+                const botao = evento.target.closest("button[data-module-name]");
                 if (botao) mostrarTooltip(botao);
             });
-            areaGrupos.addEventListener("focusout", function(evento) {
-                const botao = evento.target.closest("button[data-target]");
+            container.addEventListener("focusout", function(evento) {
+                const botao = evento.target.closest("button[data-module-name]");
                 if (botao) esconderTooltip();
             });
+        }
+
+        function conectarTooltips() {
+            conectarTooltipsEm(areaGrupos);
+            if (boxLogout) conectarTooltipsEm(boxLogout);
             navegacao.addEventListener("scroll", function() {
                 tooltip.classList.remove("is-visivel");
                 botaoComTooltip = null;
@@ -325,6 +355,9 @@
         }
 
         organizarGrupos();
+        if (boxLogout) {
+            boxLogout.querySelectorAll(".aura-sidebar-account-button").forEach(enriquecerBotaoConta);
+        }
         conectarTooltips();
         conectarEventosBusca();
         limparBuscaSidebar();
