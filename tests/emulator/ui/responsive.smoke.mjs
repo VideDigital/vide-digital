@@ -8,9 +8,9 @@
 // Continua validando as mesmas 5 telas e todos os viewports, usando esperas
 // curtas e determinísticas após cada mudança visual.
 //
-// O teste mede layout e overflow. Erros conhecidos de módulos funcionais que
-// já possuem testes próprios (Métricas e abertura de cliente no CRM 360) não
-// devem reprovar este smoke responsivo.
+// Com CRM 360 e permissões de Métricas corrigidos, o smoke responsivo volta
+// a reprovar qualquer erro de JavaScript relevante encontrado durante a
+// matriz de telas e viewports.
 import assert from "node:assert/strict";
 import {
     captureDiagnostics,
@@ -172,22 +172,6 @@ function medirOverflow(page) {
     });
 }
 
-function erroOpcionalDeOutroModulo(erro) {
-    const texto = String(erro || "");
-
-    return (
-        texto.includes(
-            "[Vide Hub] Erro ao carregar aquisição:"
-        ) ||
-        texto.includes(
-            "[Vide Hub] Erro ao carregar funil público:"
-        ) ||
-        texto.includes(
-            "[CRM 360] Falha ao abrir cliente por id:"
-        )
-    );
-}
-
 async function main() {
     const { baseUrl, close } =
         await startStaticServer();
@@ -285,9 +269,7 @@ async function main() {
         }
 
         const errosRelevantes = erros.filter(
-            erro =>
-                !ehErroDeRedeExterno(erro) &&
-                !erroOpcionalDeOutroModulo(erro)
+            erro => !ehErroDeRedeExterno(erro)
         );
 
         if (errosRelevantes.length > 0) {
@@ -320,4 +302,3 @@ async function main() {
 }
 
 await main();
-
