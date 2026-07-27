@@ -1,25 +1,25 @@
 // CRM 360 do Cliente — evolui o painel lateral da Central de Atendimento
 // (chats) reaproveitando leads/pedidos/produtos já existentes. Plano
-// Blaze, escrita direta protegida por Regras: sem IA real, sem WhatsApp,
-// sem automação nesta etapa — identidade, relacionamento e histórico de identidade.
+// Blaze, escrita direta protegida por Rules: sem IA real, sem WhatsApp,
+// sem automação nesta etapa — só identidade, relacionamento e histórico.
 
 import { CANAIS_CONVERSA, STATUS_CONVERSA, funcionarioPodeAtender, funcionariosElegiveisAtendimento, categoriaEventoAtendimento } from "./atendimento.js";
 import { contarProdutosMaisComprados, produtosInteresseConvertidos } from "./pedidos-estruturados.js";
 
-exportar {funcionarioPodeAtender};
+export { funcionarioPodeAtender };
 
-exportar const STATUS_RELACIONAMENTO = Object.freeze({
+export const STATUS_RELACIONAMENTO = Object.freeze({
     novo: "Novo",
-    Liderança: "Liderança",
+    lead: "Lead",
     qualificado: "Qualificado",
-    negociação: "Em negociação",
+    negociacao: "Em negociação",
     cliente: "Cliente",
     recorrente: "Recorrente",
     inativo: "Inativo",
-    : "Perdido"
+    perdido: "Perdido"
 });
 
-exportar const TAGS_SUGERIDAS_CLIENTE = Object.freeze([
+export const TAGS_SUGERIDAS_CLIENTE = Object.freeze([
     "lead quente", "cliente recorrente", "orcamento enviado", "aguardando pagamento",
     "vip", "suporte", "pos-venda"
 ]);
@@ -34,98 +34,98 @@ export const LIMITES_CRM = Object.freeze({
 
 // ---------- Normalização (Fase 2) ----------
 // Espelha EXATAMENTE normalizePhone()/normalizeEmail() de lp-forms-v5.js —
-// leva já gravam telefone/email nesse formato, então use o mesmo
+// leads já gravam telefone/email nesse formato, então usar o mesmo
 // algoritmo aqui é o que permite comparar sem migrar nada.
 export function normalizarTelefone(valor) {
     let digits = String(valor || "").replace(/\D/g, "");
-    se (digits.length === 10 || digits.length === 11) {
-        dígitos = `55${dígitos}`;
+    if (digits.length === 10 || digits.length === 11) {
+        digits = `55${digits}`;
     }
-    retornar dígitos;
+    return digits;
 }
 
 export function normalizarEmail(valor) {
-    retornar String(valor || "").trim().toLowerCase();
+    return String(valor || "").trim().toLowerCase();
 }
 
 export function telefoneValido(normalizado) {
     return typeof normalizado === "string" && normalizado.length >= 12 && normalizado.length <= 13;
 }
 
-função de exportação emailValido(normalizado) {
+export function emailValido(normalizado) {
     return typeof normalizado === "string" && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizado);
 }
 
 // ---------- Identidade canônica (Fase 2) ----------
 // Ordem de prioridade: clienteId explícito > authUid > leadId/pedidoId
-// políticas óbvias > telefone normalizado > email normalizado.
-// Nunca usei só o nome. Sempre dentro do mesmo locatário (quem chama já filtra
-// por inquilino nas consultas — aqui só decidimos a prioridade do match).
-função de exportação resolverIdentidadeCliente({ clienteId, authUid, leadIdVinculado, pedidoIdVinculado, telefoneNormalizado, emailNormalizado } = {}) {
-    if (clienteId) return { estratégia: "clienteId", valor: clienteId };
-    if (authUid) return { estratégia: "authUid", valor: authUid };
-    if (leadIdVinculado) return { estratégia: "leadId", valor: leadIdVinculado };
-    if (pedidoIdVinculado) return { estratégia: "pedidoId", valor: pedidoIdVinculado };
-    if (telefoneNormalizado && telefoneValido(telefoneNormalizado)) return { estratégia: "telefone", valor: telefoneNormalizado };
-    if (emailNormalizado && emailValido(emailNormalizado)) return { estratégia: "email", valor: emailNormalizado };
-    return { estratégia: "nenhuma", valor: "" };
+// vinculados explicitamente > telefone normalizado > email normalizado.
+// Nunca usa só o nome. Sempre dentro do mesmo tenant (quem chama já filtra
+// por tenant nas queries — aqui só decidimos a prioridade do match).
+export function resolverIdentidadeCliente({ clienteId, authUid, leadIdVinculado, pedidoIdVinculado, telefoneNormalizado, emailNormalizado } = {}) {
+    if (clienteId) return { estrategia: "clienteId", valor: clienteId };
+    if (authUid) return { estrategia: "authUid", valor: authUid };
+    if (leadIdVinculado) return { estrategia: "leadId", valor: leadIdVinculado };
+    if (pedidoIdVinculado) return { estrategia: "pedidoId", valor: pedidoIdVinculado };
+    if (telefoneNormalizado && telefoneValido(telefoneNormalizado)) return { estrategia: "telefone", valor: telefoneNormalizado };
+    if (emailNormalizado && emailValido(emailNormalizado)) return { estrategia: "email", valor: emailNormalizado };
+    return { estrategia: "nenhuma", valor: "" };
 }
 
 // Encontra candidatos a "mesmo cliente" dentro de uma lista já filtrada
-// pelo inquilino (a chamada nunca deve alterar listas de inquilinos diferentes).
-// Retorna { correspondências, ambiguo } — ambiguo quando há mais de um
+// pelo tenant (a chamada nunca deve misturar listas de tenants diferentes).
+// Retorna { correspondencias, ambiguo } — ambiguo quando há mais de um
 // candidato distinto e nenhum critério forte (clienteId/authUid) desempata.
-função de exportação encontrarCorrespondências(referência, candidatos) {
-    const lista = Array.isArray(candidatos) ? candidatos: [];
+export function encontrarCorrespondencias(referencia, candidatos) {
+    const lista = Array.isArray(candidatos) ? candidatos : [];
     const telRef = referencia?.telefoneNormalizado || "";
     const emailRef = referencia?.emailNormalizado || "";
     const authUidRef = referencia?.authUid || "";
 
     const porAuthUid = authUidRef ? lista.filter(c => c.authUid && c.authUid === authUidRef) : [];
-    if (porAuthUid.length > 0) return { correspondências: porAuthUid, critério: "authUid", ambiguidade: false };
+    if (porAuthUid.length > 0) return { correspondencias: porAuthUid, criterio: "authUid", ambiguo: false };
 
     const porTelefone = telRef ? lista.filter(c => c.telefoneNormalizado && c.telefoneNormalizado === telRef) : [];
-    const porEmail = emailRef? lista.filter(c => c.emailNormalizado && c.emailNormalizado === emailRef) : [];
+    const porEmail = emailRef ? lista.filter(c => c.emailNormalizado && c.emailNormalizado === emailRef) : [];
 
-    const combinados = novo Mapa();
+    const combinados = new Map();
     [...porTelefone, ...porEmail].forEach(c => combinados.set(c.id, c));
-    const correspondências = Array.from(combinados.values());
+    const correspondencias = Array.from(combinados.values());
 
-    if (correspondências.length === 0) return { correspondências: [], critério: "nenhum", ambiguo: false };
-    if (correspondências.length === 1) {
-        return { correspondências, critério: porTelefone.length ? "telefone" : "e-mail", ambiguo: false };
+    if (correspondencias.length === 0) return { correspondencias: [], criterio: "nenhum", ambiguo: false };
+    if (correspondencias.length === 1) {
+        return { correspondencias, criterio: porTelefone.length ? "telefone" : "email", ambiguo: false };
     }
     // Mais de um candidato distinto batendo por telefone/e-mail: ambíguo,
     // decisão fica para um humano (nunca escolhe sozinho).
-    return { correspondências, critério: "multiplo", ambiguo: true };
+    return { correspondencias, criterio: "multiplo", ambiguo: true };
 }
 
 // ---------- Status do relacionamento (Fase 4) ----------
-export function statusRelatedValido(status) {
-    retornar status em STATUS_RELACIONAMENTO;
+export function statusRelacionamentoValido(status) {
+    return status in STATUS_RELACIONAMENTO;
 }
 
-// SÓ SUGERE — uma mudança de status é sempre uma ação explicada da equipe.
-função de exportação sugerindoStatusRelacionamento({ statusAtual = "novo", pedidosPagos = 0, diasDesdeUltimaCompra = null } = {}) {
+// Só SUGERE — a mudança de status é sempre uma ação explícita da equipe.
+export function sugerirStatusRelacionamento({ statusAtual = "novo", pedidosPagos = 0, diasDesdeUltimaCompra = null } = {}) {
     if (statusAtual === "perdido" || statusAtual === "inativo") return null;
     if (pedidosPagos >= 2 && statusAtual !== "recorrente") {
-        return { sugestão: "recorrente", motivo: "Já tem 2 ou mais pedidos pagos." };
+        return { sugestao: "recorrente", motivo: "Já tem 2 ou mais pedidos pagos." };
     }
     if (pedidosPagos === 1 && !["cliente", "recorrente"].includes(statusAtual)) {
-        return { sugestão: "cliente", motivo: "Tem um pedido pago." };
+        return { sugestao: "cliente", motivo: "Tem um pedido pago." };
     }
-    if (typeof diasDesdeUltimaCompra === "número" && diasDesdeUltimaCompra >= LIMITES_CRM.diasInativoSugestao
+    if (typeof diasDesdeUltimaCompra === "number" && diasDesdeUltimaCompra >= LIMITES_CRM.diasInativoSugestao
         && ["cliente", "recorrente"].includes(statusAtual)) {
-        return { sugestão: "inativo", motivo: `Sem interação há ${diasDesdeUltimaCompra} dias.` };
+        return { sugestao: "inativo", motivo: `Sem interação há ${diasDesdeUltimaCompra} dias.` };
     }
-    retornar nulo;
+    return null;
 }
 
-// ---------- Tags (Fase 3, seño 7) ----------
+// ---------- Tags (Fase 3, seção 7) ----------
 export function slugTag(nome) {
-    retornar String(nome || "")
-        .aparar()
-        .paraLowerCase()
+    return String(nome || "")
+        .trim()
+        .toLowerCase()
         .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
         .replace(/[^a-z0-9]+/g, "-")
         .replace(/^-+|-+$/g, "")
@@ -136,7 +136,7 @@ export function tagJaExiste(slugNovo, tagsExistentes) {
     return (tagsExistentes || []).some(t => (t.slug || slugTag(t.nome)) === slugNovo);
 }
 
-função de exportação adicionarTagCliente(tagsAtuais, novaTagSlug) {
+export function adicionarTagCliente(tagsAtuais, novaTagSlug) {
     const atuais = Array.isArray(tagsAtuais) ? tagsAtuais : [];
     if (!novaTagSlug || atuais.includes(novaTagSlug)) return atuais;
     if (atuais.length >= LIMITES_CRM.maxTags) return atuais;
@@ -148,33 +148,33 @@ export function removerTagCliente(tagsAtuais, tagSlug) {
 }
 
 // ---------- Resumo comercial (Fase 3, seção 2) ----------
-// Recebe os pedidos já filtrados por cliente (quem chama faz a consulta
-// restrito — nunca carregue o locatário inteiro pra calcular isto).
-função de exportação calcularResumoComercial(pedidosDoCliente) {
+// Recebe SÓ os pedidos já filtrados por cliente (quem chama faz a query
+// restrita — nunca carregar o tenant inteiro pra calcular isto).
+export function calcularResumoComercial(pedidosDoCliente) {
     const pedidos = Array.isArray(pedidosDoCliente) ? pedidosDoCliente : [];
-    const pagamentos = pedidos.filter(p => p.status === "pago");
+    const pagos = pedidos.filter(p => p.status === "pago");
     const cancelados = pedidos.filter(p => p.status === "cancelado");
     const valorTotal = pagos.reduce((soma, p) => soma + (Number(p.valor) || 0), 0);
     const ordenadosPorData = [...pedidos].sort((a, b) => (Number(b.data) || 0) - (Number(a.data) || 0));
-    const últimoPedido = ordenadosPorData[0] || nulo;
-    const diasDesdeUltimaCompra = últimoPedido?.data
+    const ultimoPedido = ordenadosPorData[0] || null;
+    const diasDesdeUltimaCompra = ultimoPedido?.data
         ? Math.floor((Date.now() - Number(ultimoPedido.data)) / 86400000)
-        : nulo;
+        : null;
 
     // "Produtos mais comprados": desde a etapa "Pedidos Estruturados",
     // pedidos com `itens` (produtoId real) contam com precisão real;
     // pedidos antigos sem `itens` continuam contando pelo texto livre de
-    // `produtos` (best-effort) — nunca descarte nenhum pedido, só use o
+    // `produtos` (best-effort) — nunca descarta nenhum pedido, só usa o
     // melhor dado disponível em cada um (ver pedidos-estruturados.js).
     const produtosMaisComprados = contarProdutosMaisComprados(pedidos, 5);
 
-    retornar {
+    return {
         totalPedidos: pedidos.length,
         pedidosPagos: pagos.length,
-        pedidos cancelados: cancelados.length,
+        pedidosCancelados: cancelados.length,
         valorTotal,
-        ticketMedio: pagos.length > 0 ? valorTotal/pagos.length : 0,
-        últimoPedido,
+        ticketMedio: pagos.length > 0 ? valorTotal / pagos.length : 0,
+        ultimoPedido,
         diasDesdeUltimaCompra,
         produtosMaisComprados
     };
@@ -184,20 +184,20 @@ função de exportação calcularResumoComercial(pedidosDoCliente) {
 export function validarProdutoInteresse(item) {
     if (!item?.produtoId) return "Selecione um produto.";
     if (!item?.nomeSnapshot) return "Produto sem nome.";
-    retornar "";
+    return "";
 }
 
-função de exportação adicionarProdutoInteresse(listaAtual, produto, { vinculadoPor, origem = "manual" } = {}) {
+export function adicionarProdutoInteresse(listaAtual, produto, { vinculadoPor, origem = "manual" } = {}) {
     const atuais = Array.isArray(listaAtual) ? listaAtual : [];
     if (atuais.some(p => p.produtoId === produto.id)) return atuais;
     if (atuais.length >= LIMITES_CRM.maxProdutosInteresse) return atuais;
-    retornar [...atuais, {
+    return [...atuais, {
         produtoId: produto.id,
         nomeSnapshot: String(produto.nome || "").slice(0, 160),
-        precoSnapshot: Número(produto.preco) || 0,
+        precoSnapshot: Number(produto.preco) || 0,
         vinculadoEm: Date.now(),
-        contratoPor:contratoPor || "",
-        sim
+        vinculadoPor: vinculadoPor || "",
+        origem
     }];
 }
 
@@ -205,12 +205,12 @@ export function removerProdutoInteresse(listaAtual, produtoId) {
     return (Array.isArray(listaAtual) ? listaAtual : []).filter(p => p.produtoId !== produtoId);
 }
 
-// ---------- Observações internas (Fase 3, sessão 6) ----------
-função de exportação validarObservacaoCliente(texto) {
+// ---------- Observações internas (Fase 3, seção 6) ----------
+export function validarObservacaoCliente(texto) {
     const valor = String(texto || "").trim();
     if (!valor) return "A observação não pode ficar vazia.";
-    if (valor.length > LIMITES_CRM.observacaoMax) return `Uma observação pode ter no máximo ${LIMITES_CRM.observacaoMax} caracteres.`;
-    retornar "";
+    if (valor.length > LIMITES_CRM.observacaoMax) return `A observação pode ter no máximo ${LIMITES_CRM.observacaoMax} caracteres.`;
+    return "";
 }
 
 // ---------- Linha do tempo (Fase 7) ----------
@@ -220,13 +220,13 @@ export const TIPOS_EVENTO_TIMELINE = Object.freeze({
     lead_criado: "Lead criado",
     lead_vinculado: "Lead vinculado",
     pedido_criado: "Pedido criado",
-    pedido_vinculado: "Pedido garantido",
+    pedido_vinculado: "Pedido vinculado",
     pagamento_confirmado: "Pagamento confirmado",
     pedido_cancelado: "Pedido cancelado",
     tag_adicionada: "Tag adicionada",
-    tag_removida: "Tagn",
+    tag_removida: "Tag removida",
     status_alterado: "Status alterado",
-    responsavel_alterado: "Responsável alterada",
+    responsavel_alterado: "Responsável alterado",
     observacao_adicionada: "Observação adicionada",
     produto_vinculado: "Produto de interesse vinculado"
 });
@@ -242,170 +242,170 @@ const CATEGORIA_POR_TIPO = Object.freeze({
     pedido_cancelado: "pedidos",
     tag_adicionada: "alteracoes",
     tag_removida: "alteracoes",
-    status_alterado: "alterações",
-    responsavel_alterado: "alterações",
-    observacao_adicionada: "alterações",
-    produto_vinculado: "alterações"
+    status_alterado: "alteracoes",
+    responsavel_alterado: "alteracoes",
+    observacao_adicionada: "alteracoes",
+    produto_vinculado: "alteracoes"
 });
 
-export function CatEvento(tipo) {
-    retornar CATEGORIA_POR_TIPO[tipo] || "alterações";
+export function categoriaEvento(tipo) {
+    return CATEGORIA_POR_TIPO[tipo] || "alteracoes";
 }
 
 export function ordenarTimeline(eventos) {
     return [...(eventos || [])].sort((a, b) => (Number(b.criadoEm) || 0) - (Number(a.criadoEm) || 0));
 }
 
-função de exportação filtrarTimeline(eventos, filtro = "todos") {
+export function filtrarTimeline(eventos, filtro = "todos") {
     if (filtro === "todos") return eventos || [];
     return (eventos || []).filter(e => categoriaEvento(e.tipo) === filtro);
 }
 
 // Lista de clientes do CRM 360 (Fase de navegação própria) — busca por
 // nome/telefone/e-mail e filtro por status de relacionamento, tudo em
-// memória sobre os clientes já carregados do locatário. Nunca procurei em
-// outro locatário (uma consulta que carrega a lista já filtrada por tenantId).
-função de exportação filtrarListaClientes(clientes, { busca = "", status = "todos" } = {}) {
+// memória sobre os clientes já carregados do tenant. Nunca busca em
+// outro tenant (a query que carrega a lista já filtra por tenantId).
+export function filtrarListaClientes(clientes, { busca = "", status = "todos" } = {}) {
     const termo = String(busca || "").trim().toLowerCase();
     return (clientes || []).filter(c => {
-        if (status !== "todos" && c.statusRelacionamento !== status) retorna falso;
-        se (!termo) retornar verdadeiro;
+        if (status !== "todos" && c.statusRelacionamento !== status) return false;
+        if (!termo) return true;
         const texto = [c.nome, c.telefone, c.email].filter(Boolean).join(" ").toLowerCase();
-        retornar texto.includes(termo);
+        return texto.includes(termo);
     });
 }
 
 export function ordenarListaClientes(clientes, criterio = "recente") {
     const lista = [...(clientes || [])];
-    switch (critério) {
-        caso "nome":
+    switch (criterio) {
+        case "nome":
             return lista.sort((a, b) => String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR"));
-        caso "recente":
-        padrão:
+        case "recente":
+        default:
             return lista.sort((a, b) => (Number(b.ultimaInteracaoEm) || 0) - (Number(a.ultimaInteracaoEm) || 0));
     }
 }
 
-função escaparHtml(valor) {
-    retornar String(valor ?? "")
-        .replace(/&/g, "&")
-        .replace(/</g, "<")
-        .replace(/>/g, ">")
-        .replace(/"/g, """)
-        .replace(/'/g, "'");
+function escaparHtml(valor) {
+    return String(valor ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
 }
 
-função codigoErroFirebase(erro) {
+function codigoErroFirebase(error) {
     return String(error?.code || "").trim().toLowerCase().replace(/^firestore\//, "");
 }
 
-função formatarMoeda(valor) {
+function formatarMoeda(valor) {
     return (Number(valor) || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-função formatarDados(valor) {
-    const ms = valor?.toMillis ? valor.toMillis() : Número(valor) || 0;
-    retornar ms ? novo Date(ms).toLocaleDateString("pt-BR") : "â--";
+function formatarData(valor) {
+    const ms = valor?.toMillis ? valor.toMillis() : Number(valor) || 0;
+    return ms ? new Date(ms).toLocaleDateString("pt-BR") : "—";
 }
 
 // Controller da tela — mesmo padrão de central-ia.js/base-conhecimento-ia.js/
-// atendimento.js (deps injetados, testável sem navegador real). É chamado
+// atendimento.js (deps injetadas, testável sem navegador real). É chamado
 // de dentro da Central de Atendimento (abrirParaConversa), nunca sozinho.
 export function criarCrm360Controller(deps) {
     const { db, context, firestore, notify = () => {} } = deps;
     const {
-        coleção, documento, obterDocumento, obterDocumentos, definirDocumento, atualizarDocumento,
-        consulta, onde, limite, carimbo de data/hora do servidor
+        collection, doc, getDoc, getDocs, setDoc, updateDoc,
+        query, where, limit, serverTimestamp
     } = firestore;
 
-    const estado = {
-        conversa: nulo,
+    const state = {
+        conversa: null,
         clienteId: "",
-        cliente: nulo,
-        carregando: falso,
-        erro: falso,
-        naoIdentificado: falso,
+        cliente: null,
+        carregando: false,
+        erro: false,
+        naoIdentificado: false,
         candidatos: [],
-        ambíguo: falso,
-        pistas: [],
+        ambiguo: false,
+        leads: [],
         pedidos: [],
         conversas: [],
         observacoes: [],
         eventos: [],
-        tagsCatálogo: [],
-        funcionários: [],
+        tagsCatalogo: [],
+        funcionarios: [],
         filtroTimeline: "todos",
-        salvandoObservação: falso,
+        salvandoObservacao: false,
         buscaProdutoResultado: [],
         // Lista própria de clientes (navegação direta, fora de uma
         // conversa) — mesma coleção `clientes`, nenhum dado duplicado.
         listaClientes: [],
         listaCarregando: false,
-        listaErro: falso,
+        listaErro: false,
         listaFiltro: { busca: "", status: "todos", ordem: "recente" }
     };
 
-    função el(id) {
-        retornar document.getElementById(id);
+    function el(id) {
+        return document.getElementById(id);
     }
 
-    função armazenarUid() {
-        retornar context.getSnapshot().storeUid || "";
+    function storeUid() {
+        return context.getSnapshot().storeUid || "";
     }
 
-    função authUid() {
-        retornar context.getSnapshot().authUid || "";
+    function authUid() {
+        return context.getSnapshot().authUid || "";
     }
 
-    função podeVer() {
-        retornar contexto.canView("crm") || context.canView("atendimento");
+    function podeVer() {
+        return context.canView("crm") || context.canView("atendimento");
     }
 
-    função podeEditar() {
-        retornar contexto.canEdit("crm") || context.canEdit("atendimento");
+    function podeEditar() {
+        return context.canEdit("crm") || context.canEdit("atendimento");
     }
 
-    função nomeAutorAtual() {
+    function nomeAutorAtual() {
         const snapshot = context.getSnapshot();
         if (snapshot.isEmployee) return snapshot.employee?.nome || "Funcionário";
-        retornar snapshot.owner?.nomeLoja || snapshot.owner?.nome || "Loja";
+        return snapshot.owner?.nomeLoja || snapshot.owner?.nome || "Loja";
     }
 
-    // Nunca crie/edite evento sem antes garantir que o cliente pertence ao
-    // inquilino atual — quem chama já resolveu clienteId a partir de dados do
-    // próprio locatário, isto é apenas uma segunda trava defensiva do lado do cliente
-    // (a trava real está nas Regras). Retorna o id do evento criado (usado
-    // como correlaçãoId pelo espelho em chats/*/eventos, quando a ação
+    // Nunca cria/edita evento sem antes garantir que o cliente pertence ao
+    // tenant atual — quem chama já resolveu clienteId a partir de dados do
+    // próprio tenant, isto é só uma segunda trava defensiva client-side
+    // (a trava real está nas Rules). Retorna o id do evento criado (usado
+    // como correlationId pelo espelho em chats/*/eventos, quando a ação
     // parte de uma conversa aberta) ou "" se não gravou.
-    função assíncrona registrarEvento(tipo, extra = {}) {
-        Se (!state.clienteId) retornar "";
-        tentar {
+    async function registrarEvento(tipo, extra = {}) {
+        if (!state.clienteId) return "";
+        try {
             const ref = doc(collection(db, "clientes", state.clienteId, "eventos"));
-            aguarde setDoc(ref, {
+            await setDoc(ref, {
                 tipo,
                 autorUid: authUid(),
                 autorNome: nomeAutorAtual(),
                 criadoEm: serverTimestamp(),
                 ...extra
             });
-            retornar ref.id;
-        } catch (erro) {
-            console.error("[CRM 360] Falha ao registrar evento:", codigoErroFirebase(error), erro?.message);
-            retornar "";
+            return ref.id;
+        } catch (error) {
+            console.error("[CRM 360] Falha ao registrar evento:", codigoErroFirebase(error), error?.message);
+            return "";
         }
     }
 
     // Espelha (sem duplicar) uma ação de vínculo do CRM 360 no histórico
-    // da conversa — só quando a gaveta foi aberta A PARTIR de uma
-    // conversa (state.conversa definida para abrirParaConversa). Ó
-    // correlaçãoId aponta pro evento irmão em clientes/*/eventos: são
+    // da conversa — só quando o drawer foi aberto A PARTIR de uma
+    // conversa (state.conversa setado por abrirParaConversa). O
+    // correlationId aponta pro evento irmão em clientes/*/eventos: são
     // dois registros de escopos diferentes (por chat / por cliente)
     // sobre o mesmo fato, nunca uma cópia do conteúdo um do outro. Falha
-    // aqui nunca interrompeu a ação principal do CRM (best-effort, mesmo
-    // padrão de registradorEvento).
-    função assíncrona registrarEventoConversa(tipo, extra = {}, correlationId = "") {
-        se (!state.conversa?.id) retorne;
-        tentar {
+    // aqui nunca interrompe a ação principal do CRM (best-effort, mesmo
+    // padrão de registrarEvento).
+    async function registrarEventoConversa(tipo, extra = {}, correlationId = "") {
+        if (!state.conversa?.id) return;
+        try {
             await setDoc(doc(collection(db, "chats", state.conversa.id, "eventos")), {
                 tenantId: storeUid(),
                 lojaId: storeUid(),
@@ -413,34 +413,34 @@ export function criarCrm360Controller(deps) {
                 tipo,
                 categoria: categoriaEventoAtendimento(tipo),
                 autorUid: authUid(),
-                autorTipo: context.getSnapshot().isEmployee ? "funcionario" : "proprietário",
+                autorTipo: context.getSnapshot().isEmployee ? "funcionario" : "proprietario",
                 autorNome: nomeAutorAtual(),
-                s: "equipar",
+                origem: "equipe",
                 criadoEm: serverTimestamp(),
-                esquemaVerso: 1,
-                clienteId: estado.clienteId,
+                versaoSchema: 1,
+                clienteId: state.clienteId,
                 ...(correlationId ? { correlationId } : {}),
                 ...extra
             });
-        } catch (erro) {
+        } catch (error) {
             console.error("[CRM 360] Falha ao espelhar evento na conversa:", codigoErroFirebase(error), error?.message);
         }
     }
 
     function renderCarregando(carregando) {
-        estado.carregando = carregando;
-        el("carregando crm")?.classList.toggle("oculto", !carregando);
-        el("crm-conteudo")?.classList.toggle("oculto", carregando);
+        state.carregando = carregando;
+        el("crm-loading")?.classList.toggle("hidden", !carregando);
+        el("crm-conteudo")?.classList.toggle("hidden", carregando);
     }
 
-    função renderizarNaoIdentificado() {
-        el("crm-não-identificado")?.classList.remove("oculto");
-        el("crm-conteudo")?.classList.add("oculto");
+    function renderNaoIdentificado() {
+        el("crm-nao-identificado")?.classList.remove("hidden");
+        el("crm-conteudo")?.classList.add("hidden");
         const lista = el("crm-candidatos-lista");
-        se (lista) {
-            se (state.candidatos.length === 0) {
+        if (lista) {
+            if (state.candidatos.length === 0) {
                 lista.innerHTML = `<p class="crm-vazio-texto">Nenhum cliente parecido encontrado. Você pode cadastrar este contato como um novo cliente.</p>`;
-            } outro {
+            } else {
                 lista.innerHTML = state.candidatos.map(c => `
                     <button type="button" class="atend-btn crm-candidato-item" data-crm-candidato-id="${escaparHtml(c.id)}" style="width:100%;justify-content:space-between;margin-bottom:6px;">
                         <span>${escaparHtml(c.nome || "Sem nome")} · ${escaparHtml(c.telefone || c.email || "")}</span>
@@ -449,16 +449,16 @@ export function criarCrm360Controller(deps) {
                 `).join("");
             }
         }
-        if (el("crm-ambiguo-aviso")) el("crm-ambiguo-aviso").classList.toggle("oculto", !state.ambiguo);
+        if (el("crm-ambiguo-aviso")) el("crm-ambiguo-aviso").classList.toggle("hidden", !state.ambiguo);
     }
 
-    função renderIdentidade() {
-        const c = estado.cliente;
-        se (!c) retornar;
-        if (el("crm-nome")) el("crm-nome").textContent = c.nome || estado.conversa?.clienteNome || “Cliente”;
+    function renderIdentidade() {
+        const c = state.cliente;
+        if (!c) return;
+        if (el("crm-nome")) el("crm-nome").textContent = c.nome || state.conversa?.clienteNome || "Cliente";
         if (el("crm-avatar")) el("crm-avatar").textContent = (c.nome || state.conversa?.clienteNome || "?").trim().slice(0, 1).toUpperCase() || "?";
         if (el("crm-telefone")) el("crm-telefone").textContent = c.telefone || "—";
-        if (el("crm-email")) el("crm-email").textContent = c.email || "â--";
+        if (el("crm-email")) el("crm-email").textContent = c.email || "—";
         if (el("crm-origem")) el("crm-origem").textContent = c.origem || "—";
         if (el("crm-primeiro-contato")) el("crm-primeiro-contato").textContent = formatarData(c.primeiraInteracaoEm);
         if (el("crm-ultimo-contato")) el("crm-ultimo-contato").textContent = formatarData(c.ultimaInteracaoEm);
@@ -466,16 +466,16 @@ export function criarCrm360Controller(deps) {
         renderOpcoesResponsavel();
         if (el("crm-responsavel-select")) el("crm-responsavel-select").value = c.responsavelUid || "";
         const tagsBox = el("crm-tags-lista");
-        se (tagsBox) {
+        if (tagsBox) {
             tagsBox.innerHTML = (c.tags || []).map(slug => {
                 const tag = state.tagsCatalogo.find(t => t.slug === slug);
-                return `<span class="atend-chip crm-tag-chip">${escaparHtml(tag?.nome || slug)}<button type="button" data-crm-tag-remover="${escaparHtml(slug)}" aria-label="Remover tag">×—</button></span>`;
+                return `<span class="atend-chip crm-tag-chip">${escaparHtml(tag?.nome || slug)}<button type="button" data-crm-tag-remover="${escaparHtml(slug)}" aria-label="Remover tag">×</button></span>`;
             }).join("") || `<span class="crm-vazio-texto">Nenhuma tag ainda.</span>`;
         }
     }
 
-    função renderizarResumoComercial() {
-        const resumo = calcularResumoComercial(estado.pedidos);
+    function renderResumoComercial() {
+        const resumo = calcularResumoComercial(state.pedidos);
         if (el("crm-kpi-total-pedidos")) el("crm-kpi-total-pedidos").textContent = String(resumo.totalPedidos);
         if (el("crm-kpi-pedidos-pagos")) el("crm-kpi-pedidos-pagos").textContent = String(resumo.pedidosPagos);
         if (el("crm-kpi-pedidos-cancelados")) el("crm-kpi-pedidos-cancelados").textContent = String(resumo.pedidosCancelados);
@@ -486,49 +486,49 @@ export function criarCrm360Controller(deps) {
         if (el("crm-kpi-leads")) el("crm-kpi-leads").textContent = String(state.leads.length);
 
         const produtosBox = el("crm-produtos-comprados");
-        se (produtosBox) {
+        if (produtosBox) {
             produtosBox.innerHTML = resumo.produtosMaisComprados.length === 0
                 ? `<span class="crm-vazio-texto">Sem pedidos suficientes ainda.</span>`
-                : resumo.produtosMaisComprados.map(p => `<span class="atend-chip">${escaparHtml(p.nome)} Ã— ${p.total}</span>`).join("");
+                : resumo.produtosMaisComprados.map(p => `<span class="atend-chip">${escaparHtml(p.nome)} × ${p.total}</span>`).join("");
         }
 
-        const sugestão = sugerirStatusRelacionamento({
-            statusAtual: estado.cliente?.statusRelacionamento || "novo",
+        const sugestao = sugerirStatusRelacionamento({
+            statusAtual: state.cliente?.statusRelacionamento || "novo",
             pedidosPagos: resumo.pedidosPagos,
             diasDesdeUltimaCompra: resumo.diasDesdeUltimaCompra
         });
-        const sugestãoBox = el("crm-status-sugestao");
-        se (sugestaoBox) {
-            se (sugestao) {
+        const sugestaoBox = el("crm-status-sugestao");
+        if (sugestaoBox) {
+            if (sugestao) {
                 sugestaoBox.classList.remove("hidden");
                 sugestaoBox.innerHTML = `Sugestão: <strong>${escaparHtml(STATUS_RELACIONAMENTO[sugestao.sugestao])}</strong> — ${escaparHtml(sugestao.motivo)} <button type="button" class="atend-btn" data-crm-aplicar-sugestao="${escaparHtml(sugestao.sugestao)}">Aplicar</button>`;
-            } outro {
+            } else {
                 sugestaoBox.classList.add("hidden");
             }
         }
     }
 
-    função renderizarLeads() {
+    function renderLeads() {
         const box = el("crm-leads-lista");
-        se (!box) retornar;
+        if (!box) return;
         box.innerHTML = state.leads.length === 0
-            ? `<p class="crm-vazio-texto">Nenhum lead ainda.</p>`
+            ? `<p class="crm-vazio-texto">Nenhum lead vinculado ainda.</p>`
             : state.leads.map(l => `
                 <div class="crm-item-relacionado">
                     <div>
                         <strong>${escaparHtml(l.nome || "Sem nome")}</strong>
-                        <span class="crm-item-meta">${escaparHtml(l.origem || "â—")} Â· ${escaparHtml(l.produtoInteresse || "â—")} Â· ${escaparHtml(l.statusLead || "novo")}</span>
+                        <span class="crm-item-meta">${escaparHtml(l.origem || "—")} · ${escaparHtml(l.produtoInteresse || "—")} · ${escaparHtml(l.statusLead || "novo")}</span>
                     </div>
                     <button type="button" class="atend-btn" data-crm-desvincular-lead="${escaparHtml(l.id)}">Desvincular</button>
                 </div>
             `).join("");
     }
 
-    função renderizarPedidos() {
+    function renderPedidos() {
         const box = el("crm-pedidos-lista");
-        se (!box) retornar;
+        if (!box) return;
         box.innerHTML = state.pedidos.length === 0
-            ? `<p class="crm-vazio-texto">Nenhum pedido estipulado ainda.</p>`
+            ? `<p class="crm-vazio-texto">Nenhum pedido vinculado ainda.</p>`
             : state.pedidos.map(p => `
                 <div class="crm-item-relacionado">
                     <div>
@@ -540,25 +540,25 @@ export function criarCrm360Controller(deps) {
             `).join("");
     }
 
-    função renderizarConversas() {
+    function renderConversas() {
         const box = el("crm-conversas-lista");
-        se (!box) retornar;
+        if (!box) return;
         box.innerHTML = state.conversas.length === 0
             ? `<p class="crm-vazio-texto">Nenhuma outra conversa deste cliente.</p>`
             : state.conversas.map(c => `
                 <div class="crm-item-relacionado">
                     <div>
                         <strong>${escaparHtml(CANAIS_CONVERSA[c.canal] || "Conversa")}</strong>
-                        <span class="crm-item-meta">${escaparHtml(STATUS_CONVERSA[c.status] || "â—")} Â· ${escaparHtml(c.ultimaMensagem || "")}</span>
+                        <span class="crm-item-meta">${escaparHtml(STATUS_CONVERSA[c.status] || "—")} · ${escaparHtml(c.ultimaMensagem || "")}</span>
                     </div>
                     <button type="button" class="atend-btn" data-crm-abrir-conversa="${escaparHtml(c.id)}">Abrir</button>
                 </div>
             `).join("");
     }
 
-    função renderizarObservatórios() {
+    function renderObservacoes() {
         const box = el("crm-observacoes-lista");
-        se (!box) retornar;
+        if (!box) return;
         const visiveis = state.observacoes.filter(o => !o.arquivado);
         box.innerHTML = visiveis.length === 0
             ? `<p class="crm-vazio-texto">Nenhuma observação registrada ainda.</p>`
@@ -571,27 +571,27 @@ export function criarCrm360Controller(deps) {
             `).join("");
     }
 
-    função renderizarTimeline() {
+    function renderTimeline() {
         const box = el("crm-timeline-lista");
-        se (!box) retornar;
+        if (!box) return;
         const visiveis = filtrarTimeline(ordenarTimeline(state.eventos), state.filtroTimeline);
         box.innerHTML = visiveis.length === 0
             ? `<p class="crm-vazio-texto">Sem eventos ainda.</p>`
             : visiveis.map(e => `
                 <div class="crm-timeline-item">
                     <strong>${escaparHtml(TIPOS_EVENTO_TIMELINE[e.tipo] || e.tipo)}</strong>
-                    <span class="crm-item-meta">${escaparHtml(e.resumo || "")} Â· ${escaparHtml(e.autorNome || "Equipe")} Â· ${formatarData(e.criadoEm)}</span>
+                    <span class="crm-item-meta">${escaparHtml(e.resumo || "")} · ${escaparHtml(e.autorNome || "Equipe")} · ${formatarData(e.criadoEm)}</span>
                 </div>
             `).join("");
     }
 
-    função renderizarProdutosInteresse() {
+    function renderProdutosInteresse() {
         const box = el("crm-produtos-interesse-lista");
-        se (!box) retornar;
+        if (!box) return;
         const lista = state.cliente?.produtosInteresse || [];
         // "Convertido": o produtoId do interesse aparece nos itens
         // estruturados de algum pedido real deste cliente (Fase de
-        // Pedidos Estruturados) — só um selo informativo, não altere
+        // Pedidos Estruturados) — só um selo informativo, não altera
         // nenhum dado; pedidos antigos sem `itens` nunca geram esse selo
         // (não há como saber sem dado estruturado, e não inventamos).
         const todosItens = (state.pedidos || []).flatMap(p => Array.isArray(p.itens) ? p.itens : []);
@@ -602,7 +602,7 @@ export function criarCrm360Controller(deps) {
                 <div class="crm-item-relacionado">
                     <div>
                         <strong>${escaparHtml(p.nomeSnapshot)}</strong>
-                        <span class="crm-item-meta">${formatarMoeda(p.precoSnapshot)} Â· vinculado em ${formatarData(p.vinculadoEm)}</span>
+                        <span class="crm-item-meta">${formatarMoeda(p.precoSnapshot)} · vinculado em ${formatarData(p.vinculadoEm)}</span>
                         ${convertidos.has(p.produtoId) ? `<span class="atend-chip is-status-resolvida">Convertido em pedido</span>` : ""}
                     </div>
                     <button type="button" class="atend-btn" data-crm-remover-produto="${escaparHtml(p.produtoId)}">Remover</button>
@@ -610,13 +610,13 @@ export function criarCrm360Controller(deps) {
             `).join("");
     }
 
-    função renderizar() {
-        se (state.naoIdentificado) {
+    function render() {
+        if (state.naoIdentificado) {
             renderNaoIdentificado();
-            retornar;
+            return;
         }
-        el("crm-não-identificado")?.classList.add("oculto");
-        el("crm-conteudo")?.classList.remove("oculto");
+        el("crm-nao-identificado")?.classList.add("hidden");
+        el("crm-conteudo")?.classList.remove("hidden");
         renderIdentidade();
         renderResumoComercial();
         renderLeads();
@@ -627,46 +627,46 @@ export function criarCrm360Controller(deps) {
         renderTimeline();
     }
 
-    função renderizarOpcoesResponsavel() {
+    function renderOpcoesResponsavel() {
         const select = el("crm-responsavel-select");
-        se (!selecionado) retornar;
-        const elegíveis = funcionariosElegíveisAtendimento(estado.funcionarios);
-        selecionar.innerHTML = [
-            `<option value="">Sem responsabil</option>`,
+        if (!select) return;
+        const elegiveis = funcionariosElegiveisAtendimento(state.funcionarios);
+        select.innerHTML = [
+            `<option value="">Sem responsável</option>`,
             `<option value="${escaparHtml(storeUid())}">Você (dono da loja)</option>`,
             ...elegiveis.map(f => `<option value="${escaparHtml(f.id)}">${escaparHtml(f.nome || f.id)}</option>`)
-        ].juntar("");
+        ].join("");
     }
 
-    função assíncrona carregandoFuncionarios() {
-        se (!podeEditar()) retornar;
-        tentar {
+    async function carregarFuncionarios() {
+        if (!podeEditar()) return;
+        try {
             const snap = await getDocs(query(collection(db, "funcionarios"), where("donoUID", "==", storeUid())));
-            estado.funcionarios = [];
+            state.funcionarios = [];
             snap.forEach(d => state.funcionarios.push({ id: d.id, ...d.data() }));
-        } catch (erro) {
-            estado.funcionarios = [];
+        } catch (error) {
+            state.funcionarios = [];
         }
     }
 
-    função assíncrona carregarCatálogoDeTags() {
-        tentar {
+    async function carregarTagsCatalogo() {
+        try {
             const snap = await getDocs(query(collection(db, "tags_clientes"), where("tenantId", "==", storeUid()), limit(100)));
             state.tagsCatalogo = [];
             snap.forEach(d => state.tagsCatalogo.push({ id: d.id, ...d.data() }));
-        } catch (erro) {
+        } catch (error) {
             state.tagsCatalogo = [];
         }
     }
 
-    função assíncrona carregarDadosRelacionados() {
+    async function carregarDadosRelacionados() {
         const clienteId = state.clienteId;
         const tenantId = storeUid();
 
-        // As regras de leads/pedidos/chats validam o locatário pelos campos
+        // As Rules de leads/pedidos/chats validam o tenant pelos campos
         // criadoPor/donoUID/emailDono. Consultar apenas por clienteId não
-        // permite que o Firestore comprove uma autorização da lista. Por isso como
-        // consultas abaixo são limitadas ao inquilino e o clienteId é filtrado
+        // permite que o Firestore prove a autorização da lista. Por isso as
+        // consultas abaixo são limitadas ao tenant e o clienteId é filtrado
         // em memória. Esse padrão também evita depender de índices compostos.
         const [
             leadsSnap,
@@ -676,37 +676,37 @@ export function criarCrm360Controller(deps) {
             obsSnap,
             eventosSnap
         ] = await Promise.all([
-            obterDocumentos(consulta(
-                coleção(db, "leads"),
+            getDocs(query(
+                collection(db, "leads"),
                 where("criadoPor", "==", tenantId),
-                limite(300)
+                limit(300)
             )),
-            obterDocumentos(consulta(
-                coleção(db, "pedidos"),
+            getDocs(query(
+                collection(db, "pedidos"),
                 where("criadoPor", "==", tenantId),
-                limite(300)
+                limit(300)
             )),
-            obterDocumentos(consulta(
-                coleção(db, "chats"),
-                onde("donoUID", "==", tenantId),
-                limite(300)
+            getDocs(query(
+                collection(db, "chats"),
+                where("donoUID", "==", tenantId),
+                limit(300)
             )),
-            obterDocumentos(consulta(
-                coleção(db, "chats"),
-                onde("emailDono", "==", tenantId),
-                limite(300)
+            getDocs(query(
+                collection(db, "chats"),
+                where("emailDono", "==", tenantId),
+                limit(300)
             )),
-            obterDocumentos(consulta(
-                coleção(db, "clientes", clienteId, "observações"),
-                limite(100)
+            getDocs(query(
+                collection(db, "clientes", clienteId, "observacoes"),
+                limit(100)
             )),
-            obterDocumentos(consulta(
-                coleção(db, "clientes", clienteId, "eventos"),
-                limite(100)
+            getDocs(query(
+                collection(db, "clientes", clienteId, "eventos"),
+                limit(100)
             ))
         ]);
 
-        estado.leads = [];
+        state.leads = [];
         leadsSnap.forEach(documento => {
             const dados = documento.data();
             if (dados.clienteId === clienteId) {
@@ -714,7 +714,7 @@ export function criarCrm360Controller(deps) {
             }
         });
 
-        estado.pedidos = [];
+        state.pedidos = [];
         pedidosSnap.forEach(documento => {
             const dados = documento.data();
             if (dados.clienteId === clienteId) {
@@ -722,14 +722,14 @@ export function criarCrm360Controller(deps) {
             }
         });
 
-        const conversasPorId = novo Map();
+        const conversasPorId = new Map();
 
-        [conversasDonoSnap, conversaSnap por e-mail].forEach(snapshot => {
+        [conversasDonoSnap, conversasEmailSnap].forEach(snapshot => {
             snapshot.forEach(documento => {
                 const dados = documento.data();
-                se (
+                if (
                     dados.clienteId === clienteId &&
-                    documento.id !== estado.conversa?.id
+                    documento.id !== state.conversa?.id
                 ) {
                     conversasPorId.set(documento.id, {
                         id: documento.id,
@@ -739,171 +739,171 @@ export function criarCrm360Controller(deps) {
             });
         });
 
-        estado.conversas = Array.from(conversasPorId.values());
+        state.conversas = Array.from(conversasPorId.values());
 
-        estado.observações = [];
+        state.observacoes = [];
         obsSnap.forEach(documento => {
-            estado.observacoes.push({
+            state.observacoes.push({
                 id: documento.id,
-                ...documento.dados()
+                ...documento.data()
             });
         });
 
-        estado.eventos = [];
+        state.eventos = [];
         eventosSnap.forEach(documento => {
-            estado.eventos.push({
+            state.eventos.push({
                 id: documento.id,
-                ...documento.dados()
+                ...documento.data()
             });
         });
     }
 
-    função assíncrona carregarClientePorId(clienteId) {
+    async function carregarClientePorId(clienteId) {
         const snap = await getDoc(doc(db, "clientes", clienteId));
-        se (!snap.exists()) {
+        if (!snap.exists()) {
             state.clienteId = "";
-            estado.cliente = nulo;
+            state.cliente = null;
             state.naoIdentificado = true;
-            retornar;
+            return;
         }
         state.clienteId = clienteId;
         state.cliente = { id: snap.id, ...snap.data() };
-        estado.naoIdentificado = falso;
-        aguardar Promise.all([carregarDadosRelacionados(), carregarTagsCatalogo(), carregarFuncionarios()]);
+        state.naoIdentificado = false;
+        await Promise.all([carregarDadosRelacionados(), carregarTagsCatalogo(), carregarFuncionarios()]);
     }
 
-    // Busca candidatos por telefone/e-mail dentro do PRÓPRIO inquilino (nunca
-    // entre inquilinos) — usa a mesma prioridade de identidade de
-    //encontrarCorrespondências(). Não use nome sozinho.
-    função assíncrona buscarCandidatos() {
-        const conversa = estado.conversa;
+    // Busca candidatos por telefone/e-mail dentro do PRÓPRIO tenant (nunca
+    // entre tenants) — usa a mesma prioridade de identidade de
+    // encontrarCorrespondencias(). Não usa nome sozinho.
+    async function buscarCandidatos() {
+        const conversa = state.conversa;
         const telefoneNormalizado = normalizarTelefone(conversa?.telefone || "");
         const emailNormalizado = normalizarEmail(conversa?.email || "");
         if (!telefoneValido(telefoneNormalizado) && !emailValido(emailNormalizado)) {
-            estado.candidatos = [];
-            estado.ambiguo = falso;
-            retornar;
+            state.candidatos = [];
+            state.ambiguo = false;
+            return;
         }
-        tentar {
+        try {
             const snap = await getDocs(query(collection(db, "clientes"), where("tenantId", "==", storeUid()), limit(200)));
             const todos = [];
             snap.forEach(d => todos.push({ id: d.id, ...d.data() }));
-            const resultado = encontrarCorrespondências({ telefoneNormalizado, emailNormalizado }, todos);
-            estado.candidatos = resultado.correspondencias;
-            estado.ambiguo = resultado.ambiguo;
-        } catch (erro) {
-            estado.candidatos = [];
-            estado.ambiguo = falso;
+            const resultado = encontrarCorrespondencias({ telefoneNormalizado, emailNormalizado }, todos);
+            state.candidatos = resultado.correspondencias;
+            state.ambiguo = resultado.ambiguo;
+        } catch (error) {
+            state.candidatos = [];
+            state.ambiguo = false;
         }
     }
 
-    função assíncrona abrirParaConversa(conversa) {
-        if (!conversa || !podeVer()) retornar;
-        estado.conversa = conversa;
+    async function abrirParaConversa(conversa) {
+        if (!conversa || !podeVer()) return;
+        state.conversa = conversa;
         state.filtroTimeline = "todos";
-        el("crm-cliente-modal")?.classList.remove("oculto");
+        el("crm-cliente-modal")?.classList.remove("hidden");
         renderCarregando(true);
-        tentar {
-            se (conversa.clienteId) {
-                aguardar carregarClientePorId(conversa.clienteId);
-            } outro {
+        try {
+            if (conversa.clienteId) {
+                await carregarClientePorId(conversa.clienteId);
+            } else {
                 state.clienteId = "";
-                estado.cliente = nulo;
+                state.cliente = null;
                 state.naoIdentificado = true;
-                aguardar buscarCandidatos();
+                await buscarCandidatos();
             }
-            estado.erro = falso;
-        } catch (erro) {
+            state.erro = false;
+        } catch (error) {
             console.error("[CRM 360] Falha ao abrir perfil do cliente:", codigoErroFirebase(error), error?.message);
-            estado.erro = verdadeiro;
+            state.erro = true;
             notify("Não foi possível carregar o CRM deste cliente.", "error");
-        } finalmente {
+        } finally {
             renderCarregando(false);
-            renderizar();
+            render();
         }
     }
 
-    função fechar() {
+    function fechar() {
         el("crm-cliente-modal")?.classList.add("hidden");
     }
 
-    // Entrada direta (ex.: clicar numa notificação de "cliente sem
+    // Entrada direta (ex.: clicando numa notificação de "cliente sem
     // retorno") sem partir de uma conversa aberta. Só mostra o perfil se
-    // o cliente realmente pertence ao locatário atual — getDoc()/Rules já
-    // barram outro inquilino, mas a verificação aqui evita renderizar um estado
+    // o cliente realmente pertencer ao tenant atual — getDoc()/Rules já
+    // barram outro tenant, mas a checagem aqui evita renderizar um estado
     // parcial antes da negação chegar.
-    função assíncrona abrirParaClienteId(clienteId) {
-        Se (!clienteId || !podeVer()) retornar falso;
-        estado.conversa = nulo;
+    async function abrirParaClienteId(clienteId) {
+        if (!clienteId || !podeVer()) return false;
+        state.conversa = null;
         state.filtroTimeline = "todos";
-        el("crm-cliente-modal")?.classList.remove("oculto");
+        el("crm-cliente-modal")?.classList.remove("hidden");
         renderCarregando(true);
-        tentar {
-            aguardar carregarClientePorId(clienteId);
+        try {
+            await carregarClientePorId(clienteId);
             if (!state.cliente || state.cliente.tenantId !== storeUid()) {
-                estado.naoIdentificado = falso;
-                estado.cliente = nulo;
+                state.naoIdentificado = false;
+                state.cliente = null;
                 state.clienteId = "";
                 notify("Cliente não encontrado ou sem acesso.", "error");
                 fechar();
-                retornar falso;
+                return false;
             }
-            estado.erro = falso;
-            retornar verdadeiro;
-        } catch (erro) {
+            state.erro = false;
+            return true;
+        } catch (error) {
             console.error("[CRM 360] Falha ao abrir cliente por id:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível carregar o CRM deste cliente.", "error");
             fechar();
-            retornar falso;
-        } finalmente {
+            return false;
+        } finally {
             renderCarregando(false);
-            renderizar();
+            render();
         }
     }
 
     // ===== Lista própria do CRM 360 (navegação direta, fora do Atendimento) =====
-    // Mesma coleção `clientes`, mesma gaveta (abrirParaClienteId) — só uma
+    // Mesma coleção `clientes`, mesmo drawer (abrirParaClienteId) — só uma
     // porta de entrada nova, sem duplicar dado nem estrutura nenhuma.
-    função assíncrona carregarListaClientes() {
-        se (!podeVer()) retornar;
-        estado.listaCarregando = verdadeiro;
-        estado.listaErro = falso;
-        renderListClientes();
-        tentar {
+    async function carregarListaClientes() {
+        if (!podeVer()) return;
+        state.listaCarregando = true;
+        state.listaErro = false;
+        renderListaClientes();
+        try {
             const snap = await getDocs(query(collection(db, "clientes"), where("tenantId", "==", storeUid()), limit(500)));
             state.listaClientes = [];
             snap.forEach(d => state.listaClientes.push({ id: d.id, ...d.data() }));
-        } catch (erro) {
-            console.error("[CRM 360] Falha ao carregar lista de clientes:", codigoErroFirebase(error), erro?.message);
+        } catch (error) {
+            console.error("[CRM 360] Falha ao carregar lista de clientes:", codigoErroFirebase(error), error?.message);
             state.listaClientes = [];
-            estado.listaErro = verdadeiro;
-        } finalmente {
-            estado.listaCarregando = false;
-            renderListClientes();
+            state.listaErro = true;
+        } finally {
+            state.listaCarregando = false;
+            renderListaClientes();
         }
     }
 
-    função renderizarListaClientes() {
+    function renderListaClientes() {
         const box = el("crm-lista-clientes");
-        se (!box) retornar;
-        se (!podeVer()) {
+        if (!box) return;
+        if (!podeVer()) {
             box.innerHTML = `<p class="crm-vazio-texto">Você não tem permissão para ver o CRM 360.</p>`;
-            retornar;
+            return;
         }
-        se (estado.listaCarregando) {
+        if (state.listaCarregando) {
             box.innerHTML = `<div class="atend-mensagens-skel"><span class="aura-skel" style="width:60%;height:32px"></span><span class="aura-skel" style="width:40%;height:32px"></span></div>`;
-            retornar;
+            return;
         }
-        se (estado.listaErro) {
+        if (state.listaErro) {
             box.innerHTML = `<div class="atend-vazio"><strong>Não deu pra carregar os clientes.</strong><button type="button" class="atend-btn" data-crm-lista-acao="recarregar">Tentar novamente</button></div>`;
-            retornar;
+            return;
         }
         const visiveis = ordenarListaClientes(filtrarListaClientes(state.listaClientes, state.listaFiltro), state.listaFiltro.ordem);
-        se (visiveis.length === 0) {
+        if (visiveis.length === 0) {
             box.innerHTML = state.listaClientes.length === 0
-                ? `<p class="crm-vazio-texto">Nenhum cliente identificado ainda — clientes aparecem aqui assim que estão vinculados a uma conversa, lead ou pedido.</p>`
+                ? `<p class="crm-vazio-texto">Nenhum cliente identificado ainda — clientes aparecem aqui assim que forem vinculados a uma conversa, lead ou pedido.</p>`
                 : `<p class="crm-vazio-texto">Nenhum cliente encontrado com esse filtro.</p>`;
-            retornar;
+            return;
         }
         box.innerHTML = visiveis.map(c => `
             <button type="button" class="crm-lista-item" data-crm-abrir-cliente="${escaparHtml(c.id)}">
@@ -912,7 +912,7 @@ export function criarCrm360Controller(deps) {
                     <strong>${escaparHtml(c.nome || "Cliente sem nome")}</strong>
                     <span class="crm-item-meta">${escaparHtml(STATUS_RELACIONAMENTO[c.statusRelacionamento] || "Novo")}${c.telefone ? " · " + escaparHtml(c.telefone) : ""}</span>
                 </span>
-                <span class="crm-lista-item-data">${c.ultimaInteracaoEm ? formatarData(c.ultimaInteracaoEm) : "â--"}</span>
+                <span class="crm-lista-item-data">${c.ultimaInteracaoEm ? formatarData(c.ultimaInteracaoEm) : "—"}</span>
             </button>
         `).join("");
     }
@@ -921,213 +921,213 @@ export function criarCrm360Controller(deps) {
     // de carregarTemplatesAtendimento/carregarPedidos: só recarrega do
     // zero se ainda não tinha carregado, evitando releitura a cada troca
     // de aba.
-    função assíncrona carregarLista({ força = falso } = {}) {
-        se (!podeVer()) retornar;
-        se (state.listaClientes.length > 0 && !force && !state.listaErro) {
-            renderListClientes();
-            retornar;
+    async function loadLista({ force = false } = {}) {
+        if (!podeVer()) return;
+        if (state.listaClientes.length > 0 && !force && !state.listaErro) {
+            renderListaClientes();
+            return;
         }
-        aguardar carregarListaClientes();
+        await carregarListaClientes();
     }
 
     // Vincula a conversa ATUAL a um cliente já existente (candidato
-    // sugerido) — grave clienteId no chat e recarregue o perfil.
-    função assíncrona vincularConversaACliente(clienteId) {
+    // sugerido) — grava clienteId no chat e recarrega o perfil.
+    async function vincularConversaACliente(clienteId) {
         if (!state.conversa || !podeEditar()) return;
-        tentar {
-            await updateDoc(doc(db, "chats", state.conversa.id), { clienteId, atualizarEm: Date.now() });
+        try {
+            await updateDoc(doc(db, "chats", state.conversa.id), { clienteId, atualizadoEm: Date.now() });
             state.conversa.clienteId = clienteId;
-            aguardar carregarClientePorId(clienteId);
-            aguardar registradorEventoConversa("cliente_vinculado", { clienteId });
+            await carregarClientePorId(clienteId);
+            await registrarEventoConversa("cliente_vinculado", { clienteId });
             notify("Conversa vinculada ao cliente.");
-            renderizar();
-        } catch (erro) {
+            render();
+        } catch (error) {
             console.error("[CRM 360] Falha ao vincular conversa:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível vincular. Tente novamente.", "error");
         }
     }
 
     // Cria um cliente novo a partir dos dados já visíveis na conversa
-    // (nome/telefone/e-mail digitado pela equipe) e vinculado na hora.
-    função assíncrona criarClienteDaConversa() {
+    // (nome/telefone/e-mail digitados pela equipe) e vincula na hora.
+    async function criarClienteDaConversa() {
         if (!state.conversa || !podeEditar()) return;
-        const conversa = estado.conversa;
+        const conversa = state.conversa;
         const telefoneNormalizado = normalizarTelefone(conversa.telefone || "");
         const emailNormalizado = normalizarEmail(conversa.email || "");
-        tentar {
+        try {
             const agora = serverTimestamp();
             const ref = doc(collection(db, "clientes"));
-            aguarde setDoc(ref, {
+            await setDoc(ref, {
                 tenantId: storeUid(),
                 lojaId: storeUid(),
                 nome: conversa.clienteNome || "Cliente",
                 ...(conversa.telefone ? { telefone: conversa.telefone, telefoneNormalizado } : {}),
                 ...(conversa.email ? { email: conversa.email, emailNormalizado } : {}),
                 origem: conversa.canal || "atendimento",
-                statusRela fawn: "novo",
-                etiquetas: [],
+                statusRelacionamento: "novo",
+                tags: [],
                 produtosInteresse: [],
                 primeiraInteracaoEm: Date.now(),
-                últimaInteraçãoEm: Date.now(),
+                ultimaInteracaoEm: Date.now(),
                 criadoEm: agora,
                 criadoPor: authUid(),
-                Em: agora,
-                Por: authUid()
+                atualizadoEm: agora,
+                atualizadoPor: authUid()
             });
-            await updateDoc(doc(db, "chats", conversa.id), { clienteId: ref.id, atualizarEm: Date.now() });
+            await updateDoc(doc(db, "chats", conversa.id), { clienteId: ref.id, atualizadoEm: Date.now() });
             state.conversa.clienteId = ref.id;
-            aguarde carregarClientePorId(ref.id);
+            await carregarClientePorId(ref.id);
             await registrarEvento("primeiro_contato", { resumo: "Cliente cadastrado a partir da conversa.", refColecao: "chats", refId: conversa.id });
-            aguardar registradorEventoConversa("cliente_vinculado", { clienteId: ref.id });
+            await registrarEventoConversa("cliente_vinculado", { clienteId: ref.id });
             notify("Cliente cadastrado.");
-            renderizar();
-        } catch (erro) {
+            render();
+        } catch (error) {
             console.error("[CRM 360] Falha ao cadastrar cliente:", codigoErroFirebase(error), error?.message);
-            notify("Não foi possível cadastrar o cliente.", "erro");
+            notify("Não foi possível cadastrar o cliente.", "error");
         }
     }
 
-    função assíncrona atualizarCliente(campos) {
+    async function atualizarCliente(campos) {
         if (!state.clienteId || !podeEditar()) return false;
-        tentar {
-            aguardar atualizaçãoDoc(doc(db, "clientes", state.clienteId), {
+        try {
+            await updateDoc(doc(db, "clientes", state.clienteId), {
                 ...campos,
-                Por: authUid(),
-                atualizarEm: serverTimestamp()
+                atualizadoPor: authUid(),
+                atualizadoEm: serverTimestamp()
             });
-            Object.assign(estado.cliente, campos);
-            retornar verdadeiro;
-        } catch (erro) {
-            console.error("[CRM 360] Falha ao atualizar cliente:", codigoErroFirebase(error), erro?.message);
+            Object.assign(state.cliente, campos);
+            return true;
+        } catch (error) {
+            console.error("[CRM 360] Falha ao atualizar cliente:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível salvar agora.", "error");
-            retornar falso;
+            return false;
         }
     }
 
-    função assíncrona atualizarStatusRelacionamento(novoStatus) {
-        se (!statusRelataValido(novoStatus)) retorne;
-        const anterior = estado.cliente?.statusRelacionamento || "novo";
-        se (anterior === novoStatus) retornar;
-        const ok = aguarda atualizaçãoCliente({
+    async function atualizarStatusRelacionamento(novoStatus) {
+        if (!statusRelacionamentoValido(novoStatus)) return;
+        const anterior = state.cliente?.statusRelacionamento || "novo";
+        if (anterior === novoStatus) return;
+        const ok = await atualizarCliente({
             statusRelacionamento: novoStatus,
             statusAtualizadoPor: authUid(),
             statusAtualizadoEm: serverTimestamp()
         });
-        se (ok) {
+        if (ok) {
             await registrarEvento("status_alterado", { resumo: `${STATUS_RELACIONAMENTO[anterior]} → ${STATUS_RELACIONAMENTO[novoStatus]}` });
             notify("Status do relacionamento atualizado.");
-            renderizar();
+            render();
         }
     }
 
-    função assíncrona atualizarResponsavel(uid) {
-        const ok = aguarda atualizarCliente({ responsavelUid: uid || "" });
-        se (ok) {
+    async function atualizarResponsavel(uid) {
+        const ok = await atualizarCliente({ responsavelUid: uid || "" });
+        if (ok) {
             await registrarEvento("responsavel_alterado", { resumo: uid ? "Responsável atribuído." : "Responsável removido." });
             notify(uid ? "Responsável atualizado." : "Responsável removido.");
-            renderizar();
+            render();
         }
     }
 
-    função assíncrona salvarObservacao(texto) {
+    async function salvarObservacao(texto) {
         const erro = validarObservacaoCliente(texto);
-        se (erro) {
-            notificar(erro, "erro");
-            retornar;
+        if (erro) {
+            notify(erro, "error");
+            return;
         }
         if (!state.clienteId || !podeEditar() || state.salvandoObservacao) return;
-        estado.salvandoObservacao = true;
-        tentar {
+        state.salvandoObservacao = true;
+        try {
             await setDoc(doc(collection(db, "clientes", state.clienteId, "observacoes")), {
-                conteúdo: texto.trim(),
+                conteudo: texto.trim(),
                 autorUid: authUid(),
                 autorNome: nomeAutorAtual(),
                 criadoEm: serverTimestamp()
             });
-            aguardar registradorEvento("observacao_adicionada");
-            aguardar carregamentoDadosRelacionados();
+            await registrarEvento("observacao_adicionada");
+            await carregarDadosRelacionados();
             notify("Observação registrada.");
-            renderizar();
-        } catch (erro) {
+            render();
+        } catch (error) {
             console.error("[CRM 360] Falha ao salvar observação:", codigoErroFirebase(error), error?.message);
-            notify("Não foi possível salvar uma observação.", "error");
-        } finalmente {
-            estado.salvandoObservacao = false;
+            notify("Não foi possível salvar a observação.", "error");
+        } finally {
+            state.salvandoObservacao = false;
         }
     }
 
-    função assíncrona arquivarObservacao(obsId) {
+    async function arquivarObservacao(obsId) {
         if (!state.clienteId || !podeEditar()) return;
-        tentar {
+        try {
             await updateDoc(doc(db, "clientes", state.clienteId, "observacoes", obsId), {
-                arquivado: verdadeiro,
-                atualizarEm: serverTimestamp()
+                arquivado: true,
+                atualizadoEm: serverTimestamp()
             });
-            aguardar carregamentoDadosRelacionados();
-            renderizar();
-        } catch (erro) {
+            await carregarDadosRelacionados();
+            render();
+        } catch (error) {
             console.error("[CRM 360] Falha ao arquivar observação:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível arquivar.", "error");
         }
     }
 
-    função assíncrona obterOuCriarTag(nomeTag) {
+    async function obterOuCriarTag(nomeTag) {
         const slug = slugTag(nomeTag);
-        se (!slug) retornar "";
+        if (!slug) return "";
         const existente = state.tagsCatalogo.find(t => t.slug === slug);
         if (existente) return existente.slug;
-        tentar {
+        try {
             await setDoc(doc(collection(db, "tags_clientes")), {
                 tenantId: storeUid(),
                 nome: nomeTag.trim().slice(0, 40),
-                lesma,
-                ativo: verdadeiro,
+                slug,
+                ativo: true,
                 criadoEm: serverTimestamp(),
                 criadoPor: authUid()
             });
-            aguarde carregarTagsCatalogo();
-        } catch (erro) {
-            console.error("[CRM 360] Falha ao criar tag:", codigoErroFirebase(error), erro?.message);
+            await carregarTagsCatalogo();
+        } catch (error) {
+            console.error("[CRM 360] Falha ao criar tag:", codigoErroFirebase(error), error?.message);
         }
-        retornar slug;
+        return slug;
     }
 
-    função assíncrona adicionarTag(nomeTag) {
+    async function adicionarTag(nomeTag) {
         if (!state.clienteId || !podeEditar()) return;
         const slug = await obterOuCriarTag(nomeTag);
-        se (!slug) retornar;
+        if (!slug) return;
         const novasTags = adicionarTagCliente(state.cliente?.tags, slug);
-        const ok = aguarda atualizarCliente({ tags: novasTags });
-        se (ok) {
-            aguardar registradorEvento("tag_adicionada", { resumo: nomeTag });
-            renderizar();
+        const ok = await atualizarCliente({ tags: novasTags });
+        if (ok) {
+            await registrarEvento("tag_adicionada", { resumo: nomeTag });
+            render();
         }
     }
 
-    função assíncrona removerTag(slug) {
+    async function removerTag(slug) {
         if (!state.clienteId || !podeEditar()) return;
         const novasTags = removerTagCliente(state.cliente?.tags, slug);
-        const ok = aguarda atualizarCliente({ tags: novasTags });
-        se (ok) {
-            aguardar registradorEvento("tag_removida", { resumo: slug });
-            renderizar();
+        const ok = await atualizarCliente({ tags: novasTags });
+        if (ok) {
+            await registrarEvento("tag_removida", { resumo: slug });
+            render();
         }
     }
 
-    função assíncrona buscarProdutos(termo) {
-        tentar {
-            const snap = aguarda getDocs(query(collection(db, "produtos"), where("criadoPor", "==", storeUid()), limit(100)));
+    async function buscarProdutos(termo) {
+        try {
+            const snap = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", storeUid()), limit(100)));
             const todos = [];
             snap.forEach(d => todos.push({ id: d.id, ...d.data() }));
             const termoLimpo = String(termo || "").trim().toLowerCase();
             state.buscaProdutoResultado = termoLimpo
                 ? todos.filter(p => String(p.nome || "").toLowerCase().includes(termoLimpo)).slice(0, 20)
                 : [];
-        } catch (erro) {
-            estado.buscaProdutoResultado = [];
+        } catch (error) {
+            state.buscaProdutoResultado = [];
         }
         const box = el("crm-produtos-busca-resultado");
-        se (caixa) {
+        if (box) {
             box.innerHTML = state.buscaProdutoResultado.map(p => `
                 <button type="button" class="atend-btn" data-crm-add-produto="${escaparHtml(p.id)}" style="width:100%;justify-content:space-between;margin-bottom:4px;">
                     <span>${escaparHtml(p.nome)}</span><span>${formatarMoeda(p.preco)}</span>
@@ -1139,128 +1139,128 @@ export function criarCrm360Controller(deps) {
     async function vincularProdutoInteresse(produtoId) {
         if (!state.clienteId || !podeEditar()) return;
         const produto = state.buscaProdutoResultado.find(p => p.id === produtoId);
-        se (!produto) retornar;
+        if (!produto) return;
         const novaLista = adicionarProdutoInteresse(state.cliente?.produtosInteresse, produto, { vinculadoPor: authUid() });
-        const ok = aguarda atualizaçãoCliente({ produtosInteresse: novaLista });
-        se (ok) {
-            const correlaçãoId = await registrarEvento("produto_vinculado", { resumo: produto.nome, refColecao: "produtos", refId: produtoId });
-            aguardar registradorEventoConversa("produto_vinculado", { produtoId, resumo: produto.nome.slice(0, 300) }, correlaçãoId);
-            renderizar();
+        const ok = await atualizarCliente({ produtosInteresse: novaLista });
+        if (ok) {
+            const correlationId = await registrarEvento("produto_vinculado", { resumo: produto.nome, refColecao: "produtos", refId: produtoId });
+            await registrarEventoConversa("produto_vinculado", { produtoId, resumo: produto.nome.slice(0, 300) }, correlationId);
+            render();
         }
     }
 
-    função assíncrona removerProdutoDaLista(produtoId) {
+    async function removerProdutoDaLista(produtoId) {
         if (!state.clienteId || !podeEditar()) return;
-        const novaLista = removedorProdutoInteresse(estado.cliente?.produtosInteresse, produtoId);
-        aguardar atualizaçãoCliente({ produtosInteresse: novaLista });
-        aguardar registradorEventoConversa("produto_desvinculado", { produtoId });
-        renderizar();
+        const novaLista = removerProdutoInteresse(state.cliente?.produtosInteresse, produtoId);
+        await atualizarCliente({ produtosInteresse: novaLista });
+        await registrarEventoConversa("produto_desvinculado", { produtoId });
+        render();
     }
 
     // Vincula um lead/pedido EXISTENTE (busca manual) ao cliente aberto.
-    // Sempre confirme que o registro é do mesmo inquilino antes de dezembro —
-    // a Regras revalidas do lado do servidor de qualquer formato.
-    função assíncrona vincularLead(leadId) {
+    // Sempre confirma que o registro é do mesmo tenant antes de gravar —
+    // a Rules revalida do lado do servidor de qualquer forma.
+    async function vincularLead(leadId) {
         if (!state.clienteId || !podeEditar()) return;
-        tentar {
+        try {
             await updateDoc(doc(db, "leads", leadId), { clienteId: state.clienteId });
-            const correlaçãoId = await registradorEvento("lead_vinculado", { refColecao: "leads", refId: leadId });
-            aguardar registradorEventoConversa("lead_vinculado", { leadId }, correlaçãoId);
-            aguardar carregamentoDadosRelacionados();
-            notificar("Lead vinculado.");
-            renderizar();
-        } catch (erro) {
+            const correlationId = await registrarEvento("lead_vinculado", { refColecao: "leads", refId: leadId });
+            await registrarEventoConversa("lead_vinculado", { leadId }, correlationId);
+            await carregarDadosRelacionados();
+            notify("Lead vinculado.");
+            render();
+        } catch (error) {
             console.error("[CRM 360] Falha ao vincular lead:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível vincular este lead.", "error");
         }
     }
 
-    função assíncrona desvincularLead(leadId) {
-        tentar {
+    async function desvincularLead(leadId) {
+        try {
             await updateDoc(doc(db, "leads", leadId), { clienteId: "" });
-            aguardar registradorEventoConversa("lead_desvinculado", { leadId });
-            aguardar carregamentoDadosRelacionados();
-            renderizar();
-        } catch (erro) {
+            await registrarEventoConversa("lead_desvinculado", { leadId });
+            await carregarDadosRelacionados();
+            render();
+        } catch (error) {
             notify("Não foi possível desvincular.", "error");
         }
     }
 
-    função assíncrona vincularPedido(pedidoId) {
+    async function vincularPedido(pedidoId) {
         if (!state.clienteId || !podeEditar()) return;
-        tentar {
+        try {
             await updateDoc(doc(db, "pedidos", pedidoId), { clienteId: state.clienteId });
-            const correlaçãoId = await registrarEvento("pedido_vinculado", { refColecao: "pedidos", refId: pedidoId });
-            aguardar registradorEventoConversa("pedido_vinculado", { pedidoId }, correlaçãoId);
-            aguardar carregamentoDadosRelacionados();
-            notificar("Pedido vinculado.");
-            renderizar();
-        } catch (erro) {
+            const correlationId = await registrarEvento("pedido_vinculado", { refColecao: "pedidos", refId: pedidoId });
+            await registrarEventoConversa("pedido_vinculado", { pedidoId }, correlationId);
+            await carregarDadosRelacionados();
+            notify("Pedido vinculado.");
+            render();
+        } catch (error) {
             console.error("[CRM 360] Falha ao vincular pedido:", codigoErroFirebase(error), error?.message);
             notify("Não foi possível vincular este pedido.", "error");
         }
     }
 
-    função assíncrona desvincularPedido(pedidoId) {
-        tentar {
+    async function desvincularPedido(pedidoId) {
+        try {
             await updateDoc(doc(db, "pedidos", pedidoId), { clienteId: "" });
-            aguardar registradorEventoConversa("pedido_desvinculado", { pedidoId });
-            aguardar carregamentoDadosRelacionados();
-            renderizar();
-        } catch (erro) {
+            await registrarEventoConversa("pedido_desvinculado", { pedidoId });
+            await carregarDadosRelacionados();
+            render();
+        } catch (error) {
             notify("Não foi possível desvincular.", "error");
         }
     }
 
-    // Busca leads/pedidos SEM cliente garantidos ainda, do próprio locatário,
-    // por nome — usado pela vinculação manual (Fase 3, seções 3 e 4).
-    função assíncrona buscarLeadsParaVincular(termo) {
+    // Busca leads/pedidos SEM cliente vinculado ainda, do próprio tenant,
+    // por nome — usada pela vinculação manual (Fase 3, seções 3 e 4).
+    async function buscarLeadsParaVincular(termo) {
         const termoLimpo = String(termo || "").trim().toLowerCase();
-        se (!termoLimpo) retorne [];
-        tentar {
+        if (!termoLimpo) return [];
+        try {
             const snap = await getDocs(query(collection(db, "leads"), where("criadoPor", "==", storeUid()), limit(200)));
             const todos = [];
             snap.forEach(d => todos.push({ id: d.id, ...d.data() }));
             return todos.filter(l => !l.clienteId && String(l.nome || "").toLowerCase().includes(termoLimpo)).slice(0, 20);
-        } catch (erro) {
-            retornar [];
+        } catch (error) {
+            return [];
         }
     }
 
-    função assíncrona buscarPedidosParaVincular(termo) {
+    async function buscarPedidosParaVincular(termo) {
         const termoLimpo = String(termo || "").trim().toLowerCase();
-        se (!termoLimpo) retorne [];
-        tentar {
-            const snap = aguarda getDocs(query(collection(db, "pedidos"), where("criadoPor", "==", storeUid()), limit(200)));
+        if (!termoLimpo) return [];
+        try {
+            const snap = await getDocs(query(collection(db, "pedidos"), where("criadoPor", "==", storeUid()), limit(200)));
             const todos = [];
             snap.forEach(d => todos.push({ id: d.id, ...d.data() }));
             return todos.filter(p => !p.clienteId && String(p.cliente || "").toLowerCase().includes(termoLimpo)).slice(0, 20);
-        } catch (erro) {
-            retornar [];
+        } catch (error) {
+            return [];
         }
     }
 
-    função bindEventos() {
-        el("crm-cliente-fechar")?.addEventListener("clique", fechar);
-        el("crm-btn-criar-cliente")?.addEventListener("clique", criarClienteDaConversa);
+    function bindEventos() {
+        el("crm-cliente-fechar")?.addEventListener("click", fechar);
+        el("crm-btn-criar-cliente")?.addEventListener("click", criarClienteDaConversa);
 
         // Lista própria (navegação direta pro CRM 360, view-crm360).
-        el("crm-lista-clientes")?.addEventListener("clique", evento => {
+        el("crm-lista-clientes")?.addEventListener("click", event => {
             const abrir = event.target.closest("[data-crm-abrir-cliente]");
             if (abrir) abrirParaClienteId(abrir.getAttribute("data-crm-abrir-cliente"));
             if (event.target.closest("[data-crm-lista-acao='recarregar']")) loadLista({ force: true });
         });
         el("crm-lista-busca")?.addEventListener("input", event => {
             state.listaFiltro.busca = event.target.value;
-            renderListClientes();
+            renderListaClientes();
         });
         el("crm-lista-filtro-status")?.addEventListener("change", event => {
             state.listaFiltro.status = event.target.value;
-            renderListClientes();
+            renderListaClientes();
         });
-        el("crm-lista-ordem")?.addEventListener("alterar", evento => {
+        el("crm-lista-ordem")?.addEventListener("change", event => {
             state.listaFiltro.ordem = event.target.value;
-            renderListClientes();
+            renderListaClientes();
         });
         el("crm-lista-atualizar")?.addEventListener("click", () => loadLista({ force: true }));
 
@@ -1278,22 +1278,22 @@ export function criarCrm360Controller(deps) {
 
         el("crm-tags-lista")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-crm-tag-remover]");
-            se (alvo) removerTag(alvo.getAttribute("data-crm-tag-remover"));
+            if (alvo) removerTag(alvo.getAttribute("data-crm-tag-remover"));
         });
         el("crm-tag-form")?.addEventListener("submit", event => {
-            evento.prevenirPadrão();
+            event.preventDefault();
             const input = el("crm-tag-input");
             const valor = input?.value.trim();
-            se (!valor) retorne;
+            if (!valor) return;
             adicionarTag(valor);
-            se (entrada) input.value = "";
+            if (input) input.value = "";
         });
 
         el("crm-observacao-form")?.addEventListener("submit", event => {
-            evento.prevenirPadrão();
+            event.preventDefault();
             const input = el("crm-observacao-input");
             const valor = input?.value.trim();
-            se (!valor) retorne;
+            if (!valor) return;
             salvarObservacao(valor).then(() => { if (input) input.value = ""; });
         });
         el("crm-observacoes-lista")?.addEventListener("click", event => {
@@ -1305,9 +1305,9 @@ export function criarCrm360Controller(deps) {
             const alvo = event.target.closest("[data-crm-desvincular-lead]");
             if (alvo) desvincularLead(alvo.getAttribute("data-crm-desvincular-lead"));
         });
-        el("crm-pedidos-lista")?.addEventListener("clique", evento => {
+        el("crm-pedidos-lista")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-crm-desvincular-pedido]");
-            if (alvo)desvincularPedido(alvo.getAttribute("data-crm-desvincular-pedido"));
+            if (alvo) desvincularPedido(alvo.getAttribute("data-crm-desvincular-pedido"));
         });
 
         el("crm-produtos-busca-input")?.addEventListener("input", event => buscarProdutos(event.target.value));
@@ -1315,9 +1315,9 @@ export function criarCrm360Controller(deps) {
             const alvo = event.target.closest("[data-crm-add-produto]");
             if (alvo) vincularProdutoInteresse(alvo.getAttribute("data-crm-add-produto"));
         });
-        el("crm-produtos-interesse-lista")?.addEventListener("clique", evento => {
+        el("crm-produtos-interesse-lista")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-crm-remover-produto]");
-            if (alvo) removedorProdutoDaLista(alvo.getAttribute("data-crm-remover-produto"));
+            if (alvo) removerProdutoDaLista(alvo.getAttribute("data-crm-remover-produto"));
         });
 
         el("crm-timeline-filtro")?.addEventListener("change", event => {
@@ -1325,15 +1325,15 @@ export function criarCrm360Controller(deps) {
             renderTimeline();
         });
 
-        // Debounce simples: evita disparar uma consulta a cada tecla digitada.
-        let noneBuscaLead = null;
+        // Debounce simples: evita disparar uma query a cada tecla digitada.
+        let temporizadorBuscaLead = null;
         el("crm-busca-lead")?.addEventListener("input", event => {
             clearTimeout(temporizadorBuscaLead);
             const termo = event.target.value;
-            legBuscaLead = setTimeout(async () => {
-                const resultados = aguardar buscarLeadsParaVincular(termo);
+            temporizadorBuscaLead = setTimeout(async () => {
+                const resultados = await buscarLeadsParaVincular(termo);
                 const box = el("crm-busca-lead-resultado");
-                se (!box) retornar;
+                if (!box) return;
                 box.innerHTML = resultados.map(l => `
                     <button type="button" class="atend-btn" data-crm-vincular-lead="${escaparHtml(l.id)}" style="width:100%;justify-content:space-between;margin-top:4px;">
                         <span>${escaparHtml(l.nome || "Sem nome")}</span><span>Vincular</span>
@@ -1341,42 +1341,42 @@ export function criarCrm360Controller(deps) {
                 `).join("") || `<p class="crm-vazio-texto">Nada encontrado.</p>`;
             }, 300);
         });
-        el("crm-busca-lead-resultado")?.addEventListener("clique", evento => {
+        el("crm-busca-lead-resultado")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-crm-vincular-lead]");
             if (alvo) vincularLead(alvo.getAttribute("data-crm-vincular-lead"));
         });
 
-        deixe temporizadorBuscaPedido = null;
+        let temporizadorBuscaPedido = null;
         el("crm-busca-pedido")?.addEventListener("input", event => {
             clearTimeout(temporizadorBuscaPedido);
             const termo = event.target.value;
-            boaBuscaPedido = setTimeout(async () => {
-                const resultados = aguardar buscarPedidosParaVincular(termo);
+            temporizadorBuscaPedido = setTimeout(async () => {
+                const resultados = await buscarPedidosParaVincular(termo);
                 const box = el("crm-busca-pedido-resultado");
-                se (!box) retornar;
+                if (!box) return;
                 box.innerHTML = resultados.map(p => `
                     <button type="button" class="atend-btn" data-crm-vincular-pedido="${escaparHtml(p.id)}" style="width:100%;justify-content:space-between;margin-top:4px;">
-                        <span>${escaparHtml(p.cliente || "Pedido")} Â· ${formatarMoeda(p.valor)}</span><span>Vincular</span>
+                        <span>${escaparHtml(p.cliente || "Pedido")} · ${formatarMoeda(p.valor)}</span><span>Vincular</span>
                     </button>
                 `).join("") || `<p class="crm-vazio-texto">Nada encontrado.</p>`;
             }, 300);
         });
-        el("crm-busca-pedido-resultado")?.addEventListener("clique", evento => {
+        el("crm-busca-pedido-resultado")?.addEventListener("click", event => {
             const alvo = event.target.closest("[data-crm-vincular-pedido]");
             if (alvo) vincularPedido(alvo.getAttribute("data-crm-vincular-pedido"));
         });
     }
 
-    retornar {
+    return {
         abrirParaConversa,
         abrirParaClienteId,
         fechar,
-        †Líder,
+        vincularLead,
         vincularPedido,
         buscarLeadsParaVincular,
         buscarPedidosParaVincular,
-        carregarLista,
+        loadLista,
         bindEventos,
-        estado
+        state
     };
 }
