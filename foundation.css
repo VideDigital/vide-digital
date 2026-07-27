@@ -1919,3 +1919,109 @@ textarea:focus{
     grid-template-columns: 1fr !important;
   }
 }
+
+VIDE HUB — CORREÇÃO DA ÁREA DE MÓDULOS V4.2.1
+
+O V4.2 foi aplicado corretamente.
+Esta correção impede o Workspace e o Status da loja de esmagarem a navegação.
+
+ARQUIVO: foundation.css
+AÇÃO: cole TODO o bloco abaixo no FINAL do arquivo, depois do V4.2.
+
+/* =========================================================
+   VIDE HUB — CORREÇÃO DA ÁREA DE MÓDULOS V4.2.1
+   ========================================================= */
+
+@media (min-width: 768px) {
+  #admin-sidebar {
+    height: calc(100dvh - 28px) !important;
+    max-height: calc(100dvh - 28px) !important;
+  }
+
+  #admin-sidebar > div:first-child {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+
+  /* Marca e workspace não podem crescer indefinidamente */
+  #admin-sidebar > div:first-child > .relative.overflow-hidden.rounded-3xl,
+  #admin-sidebar > div:first-child > .glass-card.rounded-2xl {
+    flex: 0 0 auto !important;
+  }
+
+  /* A navegação recebe prioridade e rolagem própria */
+  #admin-sidebar .aura-sidebar-navigation {
+    display: block !important;
+    flex: 1 1 280px !important;
+    min-height: 230px !important;
+    max-height: none !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    padding-bottom: 20px !important;
+    mask-image: none !important;
+    -webkit-mask-image: none !important;
+  }
+
+  #admin-sidebar .aura-sidebar-navigation-groups {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 13px !important;
+    padding-bottom: 18px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-group,
+  #admin-sidebar .aura-sidebar-group-header,
+  #admin-sidebar .aura-sidebar-group-content {
+    visibility: visible !important;
+  }
+
+  /* O status continua visível, mas ocupa menos altura */
+  #admin-sidebar #box-atalho {
+    flex: 0 0 auto !important;
+    padding-top: 2px !important;
+  }
+
+  #admin-sidebar .aura-store-status-card {
+    padding: 15px !important;
+  }
+
+  #admin-sidebar .aura-store-status-link {
+    min-height: 60px !important;
+    padding: 10px 11px !important;
+  }
+
+  #admin-sidebar .aura-store-status-share {
+    margin-top: 10px !important;
+  }
+
+  #admin-sidebar .aura-store-status-copy {
+    min-height: 38px !important;
+  }
+
+  /* Rodapé preservado sem comprimir o menu */
+  #admin-sidebar #box-logout {
+    flex: 0 0 auto !important;
+  }
+}
+
+@media (max-height: 820px) and (min-width: 768px) {
+  #admin-sidebar > div:first-child {
+    gap: 13px !important;
+  }
+
+  #admin-sidebar > div:first-child > .relative.overflow-hidden.rounded-3xl {
+    padding: 15px !important;
+  }
+
+  #admin-sidebar > div:first-child > .glass-card.rounded-2xl {
+    padding: 14px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-navigation {
+    min-height: 200px !important;
+  }
+
+  #admin-sidebar .aura-store-status-card {
+    padding: 13px !important;
+  }
+}
