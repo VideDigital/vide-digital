@@ -24,9 +24,21 @@
    link/QR Code, Painel Master/Sair, Ctrl+K ou qualquer outra parte
    da sidebar — essas continuam exatamente como as rodadas anteriores
    deixaram.
+
+   REFORÇO DE ESPECIFICIDADE (rodada de correção pós-CI): o cartão
+   ainda saía nos 90-146px em produção mesmo com esta folha carregada
+   por último. late-overrides.css tem blocos "-compact" com a MESMA
+   contagem de especificidade (#admin-sidebar + 2 classes) das regras
+   daqui — empate decidido por ordem no documento, e qualquer
+   suposição errada sobre essa ordem (ou uma regra legada nova que
+   apareça depois) derruba o layout de novo. #admin-sidebar#admin-sidebar
+   (o mesmo seletor de ID repetido) é válido em CSS e conta a
+   especificidade do ID duas vezes — nenhuma regra em
+   foundation.css/late-overrides.css faz isso, então cada seletor
+   abaixo passa a vencer de forma garantida, independente de ordem.
    ================================================================ */
 
-#admin-sidebar .aura-sidebar-identity-compact {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact {
     display: block !important;
     height: auto !important;
     min-height: 0 !important;
@@ -37,14 +49,14 @@
     text-align: left !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-glow {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-glow {
     pointer-events: none !important;
 }
 
 /* Faixa única: logo+nomes | status | armazenamento | menu mobile.
    flex-wrap:nowrap garante que nenhum item pule pra uma segunda
    linha, não importa a largura disponível. */
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-row {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-row {
     display: flex !important;
     flex-direction: row !important;
     flex-wrap: nowrap !important;
@@ -57,7 +69,7 @@
     padding: 0 !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-brand {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-brand {
     display: flex !important;
     flex-direction: row !important;
     flex: 1 1 auto !important;
@@ -66,8 +78,8 @@
     gap: 8px !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-logo,
-#admin-sidebar .aura-sidebar-identity-compact #admin-logo-box {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-logo,
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact #admin-logo-box {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
@@ -83,7 +95,7 @@
 
 /* "Vide Hub" e "Minha Empresa" na MESMA linha, separados por um
    ponto discreto (::before no workspace) — nunca em coluna. */
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-names {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-names {
     display: flex !important;
     flex-direction: row !important;
     flex: 1 1 auto !important;
@@ -93,7 +105,7 @@
     gap: 0 !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-brand-name {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-brand-name {
     flex-shrink: 0 !important;
     margin: 0 !important;
     padding: 0 !important;
@@ -106,7 +118,7 @@
     text-align: left !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
     flex: 1 1 auto !important;
     min-width: 0 !important;
     margin: 0 0 0 5px !important;
@@ -121,17 +133,17 @@
     text-align: left !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name::before {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name::before {
     content: "•" !important;
     margin-right: 5px !important;
     opacity: .35 !important;
 }
 
-.tema-claro #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
+.tema-claro #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
     color: rgba(15, 23, 42, .5) !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill {
     display: flex !important;
     flex-shrink: 0 !important;
     align-items: center !important;
@@ -143,13 +155,13 @@
     gap: 5px !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill span {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill span {
     font-size: 8.5px !important;
     line-height: 1 !important;
     white-space: nowrap !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-dot {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-dot {
     width: 5px !important;
     height: 5px !important;
     flex-shrink: 0 !important;
@@ -161,7 +173,7 @@
    visualmente; o texto e o valor reais continuam lá para qualquer
    leitor de tela ou script que precise deles. O nome acessível vem
    do title/aria-label no próprio contêiner (dashboard.html). */
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
     display: flex !important;
     flex-shrink: 0 !important;
     align-items: center !important;
@@ -175,17 +187,17 @@
     background: rgba(255, 255, 255, .03) !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label {
     display: flex !important;
     margin: 0 !important;
     padding: 0 !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label > span:first-child {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label > span:first-child {
     display: none !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label > span:last-child {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label > span:last-child {
     color: rgba(255, 255, 255, .55) !important;
     font-size: 8.5px !important;
     font-weight: 700 !important;
@@ -193,16 +205,16 @@
     white-space: nowrap !important;
 }
 
-#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-track {
+#admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-track {
     display: none !important;
 }
 
-.tema-claro #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
+.tema-claro #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
     border-color: rgba(15, 23, 42, .1) !important;
     background: rgba(15, 23, 42, .03) !important;
 }
 
-.tema-claro #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label > span:last-child {
+.tema-claro #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage-label > span:last-child {
     color: rgba(15, 23, 42, .55) !important;
 }
 
@@ -211,13 +223,13 @@
    a aparecer só abaixo disso — sem alterar o comportamento em
    dashboard-app.js, só a visibilidade. */
 @media (min-width: 768px) {
-    #admin-sidebar .aura-sidebar-identity-compact #mobile-menu-toggle {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact #mobile-menu-toggle {
         display: none !important;
     }
 }
 
 @media (max-width: 767px) {
-    #admin-sidebar .aura-sidebar-identity-compact #mobile-menu-toggle {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact #mobile-menu-toggle {
         display: inline-flex !important;
         width: 26px !important;
         height: 26px !important;
@@ -231,7 +243,7 @@
    menores (tablet e mobile) some primeiro, antes de qualquer outro
    elemento, pra nunca forçar quebra de linha. */
 @media (max-width: 1199px) {
-    #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
         display: none !important;
     }
 }
@@ -241,22 +253,22 @@
    status vira só o ponto verde (sem o texto "Online") pra sempre
    caber numa linha só. */
 @media (max-width: 429px) {
-    #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-row {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-row {
         gap: 6px !important;
     }
 
-    #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
         max-width: 70px !important;
     }
 
-    #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill {
         width: 20px !important;
         height: 20px !important;
         min-width: 20px !important;
         padding: 0 !important;
     }
 
-    #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill span:last-child {
+    #admin-sidebar#admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill span:last-child {
         display: none !important;
     }
 }

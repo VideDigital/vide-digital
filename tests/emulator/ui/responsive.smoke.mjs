@@ -154,6 +154,18 @@ function medirIdentidadeSidebar(page) {
             return null;
         }
 
+        // A verificação de overflow usa a LINHA (.aura-sidebar-identity-row),
+        // não o cartão inteiro: o cartão contém o glow decorativo
+        // (.aura-sidebar-identity-glow), que é position:absolute e se
+        // projeta de propósito para fora da área visível (efeito de
+        // brilho) — isso infla scrollHeight mesmo com o cartão
+        // visualmente compacto e sem nenhum conteúdo real transbordando.
+        // A linha não contém o glow (são irmãos, ambos filhos do
+        // cartão), então mede só o que realmente precisa caber numa
+        // linha só.
+        const row = card.querySelector(
+            ".aura-sidebar-identity-row"
+        );
         const logo = card.querySelector(
             "#admin-logo-box, .aura-sidebar-logo"
         );
@@ -196,8 +208,8 @@ function medirIdentidadeSidebar(page) {
             brand: caixa(brand),
             workspace: caixa(workspace),
             status: caixa(status),
-            cardScrollHeight: card.scrollHeight,
-            cardClientHeight: card.clientHeight,
+            rowScrollHeight: row ? row.scrollHeight : null,
+            rowClientHeight: row ? row.clientHeight : null,
             toggleVisivel
         };
     });
@@ -224,8 +236,8 @@ function avaliarIdentidadeSidebar(
         brand,
         workspace,
         status,
-        cardScrollHeight,
-        cardClientHeight,
+        rowScrollHeight,
+        rowClientHeight,
         toggleVisivel
     } = medida;
 
@@ -236,11 +248,14 @@ function avaliarIdentidadeSidebar(
         );
     }
 
-    if (cardScrollHeight > cardClientHeight + 4) {
+    if (
+        rowScrollHeight !== null &&
+        rowScrollHeight > rowClientHeight + 4
+    ) {
         problemas.push(
-            `Identidade da sidebar @ ${viewportNome}: conteúdo ` +
-            `transbordando verticalmente (scrollHeight ` +
-            `${cardScrollHeight} > clientHeight ${cardClientHeight}).`
+            `Identidade da sidebar @ ${viewportNome}: conteúdo da ` +
+            "linha transbordando verticalmente (scrollHeight " +
+            `${rowScrollHeight} > clientHeight ${rowClientHeight}).`
         );
     }
 
