@@ -1641,6 +1641,7 @@
         import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { connectFunctionsEmulator, getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
         import { criarIaNegocioPublicaController } from "./ia-negocio-publica.js";
+        import { initTracking, track as trackCrescimento } from "./public-tracking-v1.js";
         import {
             erroIndicaFallbackTransitorio,
             garantirVisitanteAnonimo,
@@ -3180,6 +3181,14 @@
 
             try {
                 await setDoc(doc(db, "leads", leadId), lead);
+                trackCrescimento("lead", {
+                    produtoId: lead.produtoId || undefined,
+                    utmSource: lead.utmSource || undefined,
+                    utmMedium: lead.utmMedium || undefined,
+                    utmCampaign: lead.utmCampaign || undefined,
+                    value: pedidoSnapshot ? pedidoSnapshot.total : undefined,
+                    currency: pedidoSnapshot ? "BRL" : undefined
+                });
                 return { duplicado: false, id: leadId, dedupeKey };
             } catch (error) {
                 liberarDedupeLeadPublico(dedupeKey);
@@ -3714,6 +3723,8 @@
                 if (publicSnap.exists()) {
                     const dados = publicSnap.data();
                     fornecedorEmail = dados.emailDono;
+                    initTracking({ slug: lojaSlug.toLowerCase(), tracking: dados.tracking });
+                    trackCrescimento("page_view", { slug: lojaSlug.toLowerCase() });
                     // Fire-and-forget: se não houver referência salva pra
                     // esta loja, retorna quase instantaneamente sem criar
                     // nenhuma conta anônima (ver restaurarChatSalvo em
@@ -4750,6 +4761,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 productId: produtoId,
                 productName: nomeProd
             });
+            trackCrescimento("product_click", { produtoId: produtoId || undefined });
 
             await capturarLeadPublico({
                 origem: utmSourceCapturada,
@@ -4769,6 +4781,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     return;
                 }
                 const msg = encodeURIComponent("Ola! Tenho interesse no produto: " + nomeProd);
+                trackCrescimento("contact", { produtoId: produtoId || undefined });
                 window.open("https://wa.me/" + numeroDestino + "?text=" + msg, "_blank");
             } else {
                 window.open(destinoValue, "_blank");
@@ -4932,6 +4945,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (deveAbrir) {
                 registrarFocoAnteriorA11y("chat");
                 tentarRestaurarChatSalvo();
+                trackCrescimento("chat_started", {});
                 requestAnimationFrame(function() { document.getElementById("chat-client-input")?.focus(); });
             } else {
                 restaurarFocoA11y("chat", "chat-trigger-btn");

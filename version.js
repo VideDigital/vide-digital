@@ -102,6 +102,21 @@ window.VIDE_AURA_BUILD = Object.freeze({
         );
     }
 
+    function carregarCentralCrescimentoCSS() {
+        if (
+            !document.getElementById(
+                "view-dominios"
+            )
+        ) {
+            return;
+        }
+
+        adicionarCSS(
+            "vide-growth-tracking-css",
+            "./growth-tracking-v1.css?v=20260728-1"
+        );
+    }
+
     function carregarPedidosExecutivos() {
         if (
             !document.getElementById(
@@ -156,6 +171,7 @@ window.VIDE_AURA_BUILD = Object.freeze({
     function iniciar() {
         carregarDashboardExecutivo();
         carregarConfiguracoesExecutivas();
+        carregarCentralCrescimentoCSS();
         carregarPedidosExecutivos();
         carregarIdentidadeCompactaSidebar();
         carregarLarguraDesktopSidebar();

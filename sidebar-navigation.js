@@ -82,7 +82,7 @@
             "view-landing-pages": { nome: "Landing Pages", descricao: "Páginas de venda e captação" },
             "view-metricas": { nome: "Métricas", descricao: "Desempenho, origem e conversão" },
             "view-perfil": { nome: "Configurações da Loja", descricao: "Dados, identidade e funcionamento" },
-            "view-dominios": { nome: "Pixels & Domínio", descricao: "Domínio, SEO e rastreamento" },
+            "view-dominios": { nome: "Central de Crescimento", descricao: "Campanhas, pixels e domínio próprio" },
             "view-notificacoes": { nome: "Notificações", descricao: "Alertas e atualizações do sistema" },
             "view-personalizacao": { nome: "Personalização Premium", descricao: "Cores, visual e experiência" },
             "view-funcionarios": { nome: "Funcionários", descricao: "Equipe, acessos e permissões" },

@@ -6,6 +6,7 @@ import { criarAtendimentoController } from "./atendimento.js";
 import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
 import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
 import { criarIaNegocioController, payloadIaNegocioPublica } from "./ia-negocio.js";
+import { criarGrowthTrackingController } from "./growth-tracking-v1.js";
 import { VideFunctions } from "./core/vide-functions.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
@@ -2426,6 +2427,10 @@ if (targetId === "view-metricas") {
         crm360Controller.loadLista();
     }
 
+    if (targetId === "view-dominios") {
+        growthTrackingController.load();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3536,6 +3541,16 @@ btn.classList.add("opacity-40");
         });
         atendimentoController.bindEventos();
         window.atendimentoController = atendimentoController;
+
+        const growthTrackingController = criarGrowthTrackingController({
+            db,
+            context: VideHubContext,
+            firestore: { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, limit, serverTimestamp, writeBatch },
+            notify: showToast,
+            obterSlugAtual: () => slugAtualSalvo
+        });
+        growthTrackingController.bindEventos();
+        window.growthTrackingController = growthTrackingController;
 
         // Painel do copiloto de IA dentro da Central de Atendimento — só
         // texto (nunca innerHTML) pro conteúdo gerado, pra nunca renderizar

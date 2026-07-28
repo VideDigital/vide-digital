@@ -356,6 +356,79 @@ service cloud.firestore {
         && request.resource.data.atualizadoEm == request.time;
     }
 
+    // ===== Central de Crescimento & Rastreamento V1 =====
+    // Config privada de pixels/consentimento (Meta/GA4/TikTok), 1
+    // documento por tenant — mesmo formato de configuracoes_ia acima.
+    // Só o ID/measurementId e o toggle "ativo" de cada integração;
+    // nunca script, HTML ou URL arbitrária (o cliente só informa o
+    // ID, o loader oficial fica fixo no código de public-tracking-v1.js).
+    function camposTrackingConfig() {
+      return ["criadoPor", "metaPixel", "ga4", "tiktokPixel", "consentimento", "criadoEm", "atualizadoEm", "atualizadoPor"];
+    }
+
+    function trackingIntegracaoValida(valor, campoId) {
+      return valor is map
+        && valor.keys().hasOnly([campoId, "ativo"])
+        && (!(campoId in valor) || (valor[campoId] is string && valor[campoId].size() <= 40))
+        && (!("ativo" in valor) || valor.ativo is bool);
+    }
+
+    function trackingConsentimentoValido(valor) {
+      return valor is map
+        && valor.keys().hasOnly(["ativo", "versao"])
+        && (!("ativo" in valor) || valor.ativo is bool)
+        && (!("versao" in valor) || valor.versao is int);
+    }
+
+    function validTrackingConfigData(data, ownerUid) {
+      return data.keys().hasOnly(camposTrackingConfig())
+        && data.criadoPor == ownerUid
+        && (!("metaPixel" in data) || trackingIntegracaoValida(data.metaPixel, "id"))
+        && (!("ga4" in data) || trackingIntegracaoValida(data.ga4, "measurementId"))
+        && (!("tiktokPixel" in data) || trackingIntegracaoValida(data.tiktokPixel, "id"))
+        && (!("consentimento" in data) || trackingConsentimentoValido(data.consentimento));
+    }
+
+    function validTrackingConfigCreate(ownerUid) {
+      return canEditTenant(ownerUid, "configuracoes")
+        && validTrackingConfigData(request.resource.data, ownerUid)
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
+    function validTrackingConfigUpdate(ownerUid) {
+      return canEditTenant(ownerUid, "configuracoes")
+        && validTrackingConfigData(request.resource.data, ownerUid)
+        && request.resource.data.criadoPor == resource.data.criadoPor
+        && request.resource.data.criadoEm == resource.data.criadoEm
+        && request.resource.data.atualizadoPor == request.auth.uid
+        && request.resource.data.atualizadoEm == request.time;
+    }
+
+    // Biblioteca de campanhas UTM — mesmo padrão tenant-scoped de
+    // templates acima. O limite operacional de 100 links por tenant é
+    // reforçado no cliente (query com limit(100) + checagem antes de
+    // criar); Rules não conseguem contar documentos de forma barata,
+    // então aqui validamos formato/dono, não quantidade.
+    function camposTrackingLink() {
+      return ["criadoPor", "nome", "baseUrl", "source", "medium", "campaign", "content", "term", "finalUrl", "ativo", "criadoEm", "atualizadoEm"];
+    }
+
+    function validTrackingLinkData(data) {
+      return data.keys().hasOnly(camposTrackingLink())
+        && data.keys().hasAll(["criadoPor", "nome", "baseUrl", "source", "campaign", "finalUrl", "ativo"])
+        && data.nome is string && data.nome.size() > 0 && data.nome.size() <= 80
+        && data.baseUrl is string && data.baseUrl.size() > 0 && data.baseUrl.size() <= 500
+        && data.source is string && data.source.size() > 0 && data.source.size() <= 120
+        && (!("medium" in data) || (data.medium is string && data.medium.size() <= 120))
+        && data.campaign is string && data.campaign.size() > 0 && data.campaign.size() <= 120
+        && (!("content" in data) || (data.content is string && data.content.size() <= 120))
+        && (!("term" in data) || (data.term is string && data.term.size() <= 120))
+        && data.finalUrl is string && data.finalUrl.size() > 0 && data.finalUrl.size() <= 700
+        && data.ativo is bool;
+    }
+
     // ===== Base de Conhecimento da IA =====
     // Item de conhecimento por tenant. Opções fechadas, limites de tamanho
     // e autoria/timestamps do servidor; metadados de criação imutáveis.
@@ -1053,8 +1126,30 @@ service cloud.firestore {
         "link2Url",
         "link2Icone",
         "layoutLojaPublica",
-        "atualizadoEm"
+        "atualizadoEm",
+        "tracking"
       ];
+    }
+
+    // Só o subconjunto seguro publicado pra loja (ver Central de
+    // Crescimento): IDs de pixel e toggles não são segredo, mas nunca
+    // podem carregar HTML/script — sempre string curta ou bool.
+    function trackingPublicoValido(valor) {
+      return valor is map
+        && valor.keys().hasOnly([
+          "metaPixelId", "metaPixelAtivo",
+          "ga4MeasurementId", "ga4Ativo",
+          "tiktokPixelId", "tiktokAtivo",
+          "consentimentoAtivo", "consentimentoVersao"
+        ])
+        && (!("metaPixelId" in valor) || (valor.metaPixelId is string && valor.metaPixelId.size() <= 40))
+        && (!("metaPixelAtivo" in valor) || valor.metaPixelAtivo is bool)
+        && (!("ga4MeasurementId" in valor) || (valor.ga4MeasurementId is string && valor.ga4MeasurementId.size() <= 20))
+        && (!("ga4Ativo" in valor) || valor.ga4Ativo is bool)
+        && (!("tiktokPixelId" in valor) || (valor.tiktokPixelId is string && valor.tiktokPixelId.size() <= 40))
+        && (!("tiktokAtivo" in valor) || valor.tiktokAtivo is bool)
+        && (!("consentimentoAtivo" in valor) || valor.consentimentoAtivo is bool)
+        && (!("consentimentoVersao" in valor) || valor.consentimentoVersao is int);
     }
 
     function publicBannerFields() {
@@ -1325,6 +1420,27 @@ service cloud.firestore {
       allow write: if canEditTenant(ownerUid, "campanhas");
     }
 
+    match /tracking_configs/{ownerUid} {
+      allow read: if canViewTenant(ownerUid, "configuracoes");
+      allow create: if validTrackingConfigCreate(ownerUid);
+      allow update: if validTrackingConfigUpdate(ownerUid);
+      allow delete: if false;
+    }
+
+    match /tracking_links/{id} {
+      allow read: if canViewTenant(resource.data.criadoPor, "configuracoes");
+      allow create: if canEditTenant(request.resource.data.criadoPor, "configuracoes")
+        && validTrackingLinkData(request.resource.data)
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.atualizadoEm == request.time;
+      allow update: if criadoPorUnchanged()
+        && canEditTenant(resource.data.criadoPor, "configuracoes")
+        && validTrackingLinkData(request.resource.data)
+        && request.resource.data.criadoEm == resource.data.criadoEm
+        && request.resource.data.atualizadoEm == request.time;
+      allow delete: if canEditTenant(resource.data.criadoPor, "configuracoes");
+    }
+
     match /configuracoes_ia/{storeUid} {
       allow read: if canViewTenant(storeUid, "central-ia");
       allow create: if validIaConfigCreate(storeUid);
@@ -1365,7 +1481,8 @@ service cloud.firestore {
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly(publicStoreFields())
         && request.resource.data.keys().hasAll(["donoUID"])
-        && canEditTenant(request.resource.data.donoUID, "configuracoes");
+        && canEditTenant(request.resource.data.donoUID, "configuracoes")
+        && (!("tracking" in request.resource.data) || trackingPublicoValido(request.resource.data.tracking));
       // Segundo caminho de update, separado do perfil geral (que exige
       // "configuracoes"): só o espelho público do toggle "ativar IA de
       // Negócio na loja pública" (dashboard.html), gated por "central-ia" —
@@ -1382,6 +1499,7 @@ allow update: if (
       resource.data.donoUID,
       "configuracoes"
     )
+    && (!("tracking" in request.resource.data) || trackingPublicoValido(request.resource.data.tracking))
   )
   || (
     request.resource.data

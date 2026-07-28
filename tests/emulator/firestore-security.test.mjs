@@ -197,6 +197,33 @@ function configuracaoIaValida(storeUid, authUid, overrides = {}) {
   };
 }
 
+function trackingConfigValida(ownerUid, overrides = {}) {
+  return {
+    criadoPor: ownerUid,
+    metaPixel: { id: "1234567890123", ativo: true },
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp(),
+    atualizadoPor: ownerUid,
+    ...overrides
+  };
+}
+
+function trackingLinkValida(ownerUid, overrides = {}) {
+  return {
+    criadoPor: ownerUid,
+    nome: "Campanha de teste",
+    baseUrl: "https://vide.digital/loja/teste",
+    source: "instagram",
+    medium: "bio",
+    campaign: "lancamento",
+    finalUrl: "https://vide.digital/loja/teste?utm_source=instagram&utm_medium=bio&utm_campaign=lancamento",
+    ativo: true,
+    criadoEm: serverTimestamp(),
+    atualizadoEm: serverTimestamp(),
+    ...overrides
+  };
+}
+
 describe("usuarios", () => {
   it("owner cria cadastro pendente válido", async () => {
     await assertSucceeds(setDoc(doc(authed("newOwner"), "usuarios", "newOwner"), {
@@ -342,6 +369,182 @@ describe("configuracoes_ia: permissões e isolamento multi-tenant", () => {
     await assertFails(setDoc(doc(db, "configuracoes_ia", "ownerB"), configuracaoIaValida("ownerB", "ownerB", { idioma: "xx" })));
     await assertFails(setDoc(doc(db, "configuracoes_ia", "ownerB"), configuracaoIaValida("ownerB", "ownerB", { nomeAssistente: "x".repeat(41) })));
     await assertFails(setDoc(doc(db, "configuracoes_ia", "ownerB"), configuracaoIaValida("ownerB", "ownerB", { apiKey: "não permitido" })));
+  });
+});
+
+describe("tracking_configs: permissões e validação de pixels/consentimento", () => {
+  it("proprietário lê, cria e atualiza a própria config", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "tracking_configs", "ownerA"), trackingConfigValida("ownerA")));
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "tracking_configs", "ownerA")));
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "tracking_configs", "ownerA"), {
+      ga4: { measurementId: "G-ABC123", ativo: true },
+      atualizadoPor: "ownerA",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("funcionário com 'configuracoes' de ver lê mas não salva; editar salva", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "employeeConfigRead"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["configuracoes"], editar: [] }
+      });
+      await setDoc(doc(db, "funcionarios", "employeeConfigEdit"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["configuracoes"], editar: ["configuracoes"] }
+      });
+      await setDoc(doc(db, "tracking_configs", "ownerA"), trackingConfigValida("ownerA"));
+    });
+
+    await assertSucceeds(getDoc(doc(authed("employeeConfigRead"), "tracking_configs", "ownerA")));
+    await assertFails(updateDoc(doc(authed("employeeConfigRead"), "tracking_configs", "ownerA"), {
+      atualizadoPor: "employeeConfigRead",
+      atualizadoEm: serverTimestamp()
+    }));
+    await assertSucceeds(updateDoc(doc(authed("employeeConfigEdit"), "tracking_configs", "ownerA"), {
+      atualizadoPor: "employeeConfigEdit",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("outro tenant e visitante anônimo não acessam", async () => {
+    await assertFails(getDoc(doc(authed("ownerB"), "tracking_configs", "ownerA")));
+    await assertFails(getDoc(doc(anon(), "tracking_configs", "ownerA")));
+  });
+
+  it("criadoPor é imutável", async () => {
+    await assertFails(updateDoc(doc(authed("ownerA"), "tracking_configs", "ownerA"), {
+      criadoPor: "ownerB",
+      atualizadoPor: "ownerA",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("rejeita campo extra e ID de pixel acima do limite", async () => {
+    const db = authed("ownerB");
+    await assertFails(setDoc(doc(db, "tracking_configs", "ownerB"), trackingConfigValida("ownerB", { extra: true })));
+    await assertFails(setDoc(doc(db, "tracking_configs", "ownerB"), trackingConfigValida("ownerB", {
+      metaPixel: { id: "x".repeat(60), ativo: true }
+    })));
+  });
+});
+
+describe("tracking_links: campanhas UTM tenant-scoped", () => {
+  it("proprietário cria, edita e exclui um link", async () => {
+    const ref = doc(authed("ownerA"), "tracking_links", "linkA1");
+    await assertSucceeds(setDoc(ref, trackingLinkValida("ownerA")));
+    await assertSucceeds(updateDoc(ref, { ativo: false, atualizadoEm: serverTimestamp() }));
+    await assertSucceeds(deleteDoc(ref));
+  });
+
+  it("funcionário com 'configuracoes' de ver lê mas não cria; editar cria", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "employeeLinkRead"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["configuracoes"], editar: [] }
+      });
+      await setDoc(doc(db, "funcionarios", "employeeLinkEdit"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["configuracoes"], editar: ["configuracoes"] }
+      });
+      await setDoc(doc(db, "tracking_links", "linkSeed"), trackingLinkValida("ownerA"));
+    });
+
+    await assertSucceeds(getDoc(doc(authed("employeeLinkRead"), "tracking_links", "linkSeed")));
+    await assertFails(setDoc(doc(authed("employeeLinkRead"), "tracking_links", "linkNovoRead"), trackingLinkValida("ownerA")));
+    await assertSucceeds(setDoc(doc(authed("employeeLinkEdit"), "tracking_links", "linkNovoEdit"), trackingLinkValida("ownerA")));
+  });
+
+  it("outro tenant não lê nem escreve; visitante anônimo não acessa", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "tracking_links", "linkCross"), trackingLinkValida("ownerA"));
+    });
+
+    await assertFails(getDoc(doc(authed("ownerB"), "tracking_links", "linkCross")));
+    await assertFails(updateDoc(doc(authed("ownerB"), "tracking_links", "linkCross"), { ativo: false }));
+    await assertFails(getDoc(doc(anon(), "tracking_links", "linkCross")));
+  });
+
+  it("criadoPor é imutável", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "tracking_links", "linkImutavel"), trackingLinkValida("ownerA"));
+    });
+
+    await assertFails(updateDoc(doc(authed("ownerA"), "tracking_links", "linkImutavel"), {
+      criadoPor: "ownerB",
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("rejeita campo desconhecido, nome vazio e URL acima do limite", async () => {
+    const db = authed("ownerA");
+    await assertFails(setDoc(doc(db, "tracking_links", "linkExtra"), trackingLinkValida("ownerA", { extra: "x" })));
+    await assertFails(setDoc(doc(db, "tracking_links", "linkSemNome"), trackingLinkValida("ownerA", { nome: "" })));
+    await assertFails(setDoc(doc(db, "tracking_links", "linkUrlGrande"), trackingLinkValida("ownerA", { baseUrl: "x".repeat(600) })));
+  });
+});
+
+describe("vitrines_publicas: publicação segura de tracking (Central de Crescimento)", () => {
+  it("dono publica subconjunto seguro de tracking; leitura pública preservada", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "vitrines_publicas", "lojaTeste"), {
+        donoUID: "ownerA",
+        nomeLoja: "Loja Teste",
+        atualizadoEm: serverTimestamp()
+      });
+    });
+
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "vitrines_publicas", "lojaTeste"), {
+      tracking: {
+        metaPixelId: "1234567890123",
+        metaPixelAtivo: true,
+        consentimentoAtivo: true,
+        consentimentoVersao: 1
+      },
+      atualizadoEm: serverTimestamp()
+    }));
+
+    await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "lojaTeste")));
+  });
+
+  it("visitante e outro tenant nunca alteram o tracking publicado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "vitrines_publicas", "lojaTeste2"), {
+        donoUID: "ownerA",
+        nomeLoja: "Loja Teste 2",
+        atualizadoEm: serverTimestamp()
+      });
+    });
+
+    await assertFails(updateDoc(doc(anon(), "vitrines_publicas", "lojaTeste2"), {
+      tracking: { metaPixelAtivo: true },
+      atualizadoEm: serverTimestamp()
+    }));
+    await assertFails(updateDoc(doc(authed("ownerB"), "vitrines_publicas", "lojaTeste2"), {
+      tracking: { metaPixelAtivo: true },
+      atualizadoEm: serverTimestamp()
+    }));
+  });
+
+  it("rejeita campo desconhecido dentro de tracking (ex.: script)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "vitrines_publicas", "lojaTeste3"), {
+        donoUID: "ownerA",
+        nomeLoja: "Loja Teste 3",
+        atualizadoEm: serverTimestamp()
+      });
+    });
+
+    await assertFails(updateDoc(doc(authed("ownerA"), "vitrines_publicas", "lojaTeste3"), {
+      tracking: { script: "<script>1</script>" },
+      atualizadoEm: serverTimestamp()
+    }));
   });
 });
 
