@@ -1910,37 +1910,68 @@ body.aura-sidebar-mobile-scroll-lock {
 }
 
 /* ================================================================
-   VIDE HUB — SIDEBAR: IDENTIDADE COMPACTA NO DESKTOP (V2.1)
+   VIDE HUB — SIDEBAR: IDENTIDADE COMPACTA NO DESKTOP (V2.1 → V2.4)
    O cartão de identidade estava sumindo (corrigido acima, na correção
    da grade de #admin-sidebar) mas, ao voltar a aparecer, revelou um
    tamanho natural grande demais — herdado de padding/logo de patches
-   antigos que nunca chegavam a renderizar de verdade. Valores finais
-   e definitivos aqui, na folha carregada por último.
+   antigos que nunca chegavam a renderizar de verdade. V2.4 aperta
+   ainda mais (confirmado pelo usuário com print real de desktop em
+   tela cheia que a V2.1 ainda deixava "Vide Hub" grande demais) —
+   objetivo é sobrar o máximo de altura pra grade de módulos, que é o
+   que realmente importa no dia a dia.
    ================================================================ */
 
 @media (min-width: 768px) {
   #admin-sidebar .aura-sidebar-identity {
-    padding: 14px !important;
+    padding: 10px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-row {
+    gap: 8px !important;
   }
 
   #admin-sidebar .aura-sidebar-logo,
   #admin-sidebar #admin-logo-box {
-    width: 42px !important;
-    height: 42px !important;
-    min-width: 42px !important;
-    font-size: 16px !important;
+    width: 32px !important;
+    height: 32px !important;
+    min-width: 32px !important;
+    font-size: 13px !important;
+    border-radius: 10px !important;
   }
 
   #admin-sidebar .aura-sidebar-brand-name {
-    font-size: 15px !important;
+    margin-top: 1px !important;
+    font-size: 12.5px !important;
   }
 
   #admin-sidebar .aura-sidebar-eyebrow {
-    font-size: 9px !important;
+    font-size: 7.5px !important;
+    letter-spacing: .22em !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-divider {
+    margin: 8px 0 !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-row.aura-sidebar-workspace-row {
+    gap: 6px !important;
   }
 
   #admin-sidebar .aura-sidebar-workspace-name {
-    font-size: 13px !important;
+    margin-top: 1px !important;
+    font-size: 11.5px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-status-pill {
+    padding: 3px 8px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-storage {
+    margin-top: 7px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-storage-label {
+    font-size: 9.5px !important;
   }
 }
 
@@ -2029,4 +2060,54 @@ body.aura-sidebar-mobile-scroll-lock {
 #admin-sidebar .aura-sidebar-account-icon svg {
   width: 18px !important;
   height: 18px !important;
+}
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: BOTÃO DE MENU MOBILE NUNCA APARECE NO DESKTOP (V2.5)
+   #mobile-menu-toggle é `class="md:hidden"` no HTML (Tailwind) — só
+   deveria existir no mobile, onde o clique abre o overlay de tela
+   cheia (ver V2.0 acima). Mas .aura-sidebar-mobile-toggle
+   (foundation.css) define display:inline-flex sem !important e com
+   #admin-sidebar no seletor — mais específico que a classe utilitária
+   md:hidden do Tailwind, então vence e o botão fica sempre visível,
+   mesmo em desktop com janela maximizada. Clicar nele nesse caso não
+   fazia nada visível (só alternava classes cujo efeito é 100%
+   mobile-only), parecendo "não funcionar". Escondendo de vez a partir
+   de min-width:768px, que é exatamente onde a navegação já fica
+   sempre visível sem precisar de nenhum toggle.
+   ================================================================ */
+
+@media (min-width: 768px) {
+  #admin-sidebar .aura-sidebar-mobile-toggle {
+    display: none !important;
+  }
+}
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: DEGRADÊ INDICANDO QUE A GRADE DE MÓDULOS ROLA (V2.6)
+   O degradê já existia (foundation.css, .aura-sidebar-navigation,
+   mask-image) mas duas folhas diferentes o desligavam com
+   mask-image:none !important — uma pro mobile, outra pro desktop
+   (min-width:768px) — então nunca aparecia em lugar nenhum. Com só
+   1-2 fileiras de ícones visíveis por vez (a identidade+status+conta
+   ocupam o resto da altura da sidebar), não ficava nada óbvio que
+   dava pra rolar pra ver os outros grupos (Crescimento, Sistema,
+   Suporte). Reativado aqui, na folha final.
+   ================================================================ */
+
+#admin-sidebar .aura-sidebar-navigation {
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 14px,
+    black calc(100% - 22px),
+    transparent 100%
+  ) !important;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    black 14px,
+    black calc(100% - 22px),
+    transparent 100%
+  ) !important;
 }
