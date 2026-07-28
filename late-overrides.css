@@ -1943,3 +1943,85 @@ body.aura-sidebar-mobile-scroll-lock {
     font-size: 13px !important;
   }
 }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: COMPACTAÇÃO NO MOBILE (V2.2)
+   A compactação V2.1 acima só vale a partir de min-width:768px — no
+   mobile (onde o menu vira o overlay de tela cheia, ver V2.0 acima),
+   a identidade ficava no tamanho "natural" grande (V7.0, definido em
+   foundation.css sem nenhuma compactação para telas pequenas): logo
+   de 44px, nome da marca em 17px, cartão com 16px de padding — daí
+   o "Vide Hub" enorme reportado no celular.
+   Os botões de Painel Master / Sair da conta tinham um problema à
+   parte: sidebar-navigation.js remove o texto de dentro deles (só
+   sobra o ícone, mesmo tratamento dado aos módulos), mas a regra que
+   fixa a altura em 64px (abaixo, "grid de 2 colunas...") continuava
+   width:100% — um botão enorme e quase vazio, só com um ícone
+   pequeno colado à esquerda. Aqui os dois botões viram uma linha de
+   ícones compactos lado a lado, mesma linguagem visual da grade de
+   módulos (V5.0 acima).
+   ================================================================ */
+
+@media (max-width: 767px) {
+  #admin-sidebar .aura-sidebar-identity {
+    padding: 12px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-logo,
+  #admin-sidebar #admin-logo-box {
+    width: 38px !important;
+    height: 38px !important;
+    min-width: 38px !important;
+    font-size: 15px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-brand-name {
+    font-size: 14px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-eyebrow {
+    font-size: 8.5px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-divider {
+    margin: 10px 0 !important;
+  }
+
+  #admin-sidebar .aura-sidebar-workspace-name {
+    font-size: 12px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-storage {
+    margin-top: 8px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-account-actions {
+    flex-direction: row !important;
+    gap: 8px !important;
+    padding-top: 10px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-account-button {
+    flex: 1 1 0 !important;
+    width: auto !important;
+    height: 48px !important;
+    justify-content: center !important;
+    padding: 0 !important;
+    border-radius: 13px !important;
+    border: 1px solid rgba(255, 255, 255, .05) !important;
+    background: rgba(255, 255, 255, .02) !important;
+  }
+
+  #admin-sidebar .aura-sidebar-account-icon {
+    width: 20px !important;
+    height: 20px !important;
+    min-width: 20px !important;
+    border: none !important;
+    background: none !important;
+  }
+
+  #admin-sidebar .aura-sidebar-account-icon svg {
+    width: 18px !important;
+    height: 18px !important;
+  }
+}
