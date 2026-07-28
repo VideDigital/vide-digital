@@ -1,10 +1,11 @@
 # Quality Gate — nunca faz deploy de nada. O deploy de produção continua
 # manual e separado, em "Deploy Firebase Spark" (.github/workflows/
-# firebase-deploy.yml). Este workflow só valida: sintaxe, testes
+# firebase-deploy.yml). Este workflow valida: sintaxe, testes
 # unitários, Firestore/Storage Rules no Emulator, smoke de frontend e
-# (ui-login) o smoke de UI com login real via Playwright — que hoje só
-# passa em ambientes cujo egress alcance www.gstatic.com (ver
-# docs/QUALITY_GATE_RELEASE.md, "Limitações reais").
+# (ui-login) o smoke de UI com login real via Playwright — confirmado
+# 100% verde em CI (runners ubuntu-latest têm egress real pra
+# www.gstatic.com) em 2026-07-28, ver docs/QUALITY_GATE_RELEASE.md e
+# docs/HANDOFF_2026-07-28.md. Job bloqueante desde então.
 name: Quality Gate
 
 on:
@@ -129,13 +130,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 25
     needs: [static-and-unit]
-    # Não bloqueia o merge sozinho: ambientes cujo egress não alcance
-    # www.gstatic.com (CDN do SDK do Firebase) sempre falham aqui por
-    # motivo de rede, não de código — ver docs/QUALITY_GATE_RELEASE.md.
-    # Runners hospedados do GitHub Actions alcançam a internet normalmente,
-    # então isso é esperado passar em CI mesmo tendo falhado no sandbox de
-    # desenvolvimento usado pra escrever este workflow.
-    continue-on-error: true
+    # Bloqueante desde 2026-07-28: os 3 scripts (test:ui:login, test:ui:flows,
+    # test:ui:responsive) confirmados 100% verdes num run real de CI (ver
+    # docs/HANDOFF_2026-07-28.md pro run ID e SHA exatos). Ambientes cujo
+    # egress não alcance www.gstatic.com (CDN do SDK do Firebase) — como o
+    # sandbox de desenvolvimento usado pra escrever este workflow — sempre
+    # falham aqui por motivo de rede, não de código; runners hospedados do
+    # GitHub Actions alcançam a internet normalmente, ver
+    # docs/QUALITY_GATE_RELEASE.md.
     steps:
       - name: Checkout
         uses: actions/checkout@v6
