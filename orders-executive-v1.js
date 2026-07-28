@@ -21,7 +21,6 @@
     var observer = null;
     var quadroAgendado = 0;
     var elementoAoAbrirDetalhe = null;
-    var backdrop = null;
 
     var CAMPOS_DETALHE = [
         "aura-orders-v1-detail-status",
@@ -342,18 +341,28 @@
     }
 
     // ===== Detalhe como painel/drawer =====
-    function garantirBackdrop() {
-        if (backdrop) return backdrop;
-
-        backdrop = document.createElement("div");
-        backdrop.className = "orders-exec-backdrop";
-        backdrop.setAttribute("aria-hidden", "true");
-        backdrop.addEventListener("click", function() {
+    // O backdrop é recriado a cada abertura como IRMÃO direto de
+    // .aura-orders-v1-detail (mesmo pai, inserido logo antes dele) — não
+    // como filho único de document.body. Ancestrais de #view-pedidos
+    // (ex.: a animação de troca de aba em .view-section.active) podem
+    // criar um stacking context próprio; um backdrop anexado direto ao
+    // body ficava fora desse contexto e, dependendo do ancestral, podia
+    // renderizar por cima do drawer mesmo com z-index menor — foi o que
+    // bloqueou o clique real em "Salvar pedido" no primeiro run do
+    // Quality Gate. Como irmãos do mesmo pai, a comparação de z-index
+    // entre os dois é sempre direta, não importa o que os ancestrais
+    // façam. O nó antigo já é descartado sozinho a cada render() do
+    // motor (troca todo o conteúdo), então não precisa de limpeza manual.
+    function criarBackdropJuntoDoDetalhe(detalhe) {
+        var bd = document.createElement("div");
+        bd.className = "orders-exec-backdrop";
+        bd.setAttribute("aria-hidden", "true");
+        bd.addEventListener("click", function() {
             content?.querySelector('[data-orders-action="back"]')?.click();
         });
 
-        document.body.appendChild(backdrop);
-        return backdrop;
+        detalhe.parentElement?.insertBefore(bd, detalhe);
+        return bd;
     }
 
     function definirEstadoDirty(detalhe, estado) {
@@ -415,7 +424,7 @@
 
     function abrirDrawerVisual(detalhe) {
         detalhe.classList.add("orders-exec-drawer");
-        garantirBackdrop().classList.add("is-visivel");
+        criarBackdropJuntoDoDetalhe(detalhe).classList.add("is-visivel");
         document.body.classList.add("orders-exec-drawer-open");
 
         var alvoFoco = detalhe.querySelector(".aura-orders-v1-back");
@@ -434,7 +443,10 @@
     }
 
     function fecharDrawerVisual() {
-        backdrop?.classList.remove("is-visivel");
+        // O backdrop era irmão de .aura-orders-v1-detail dentro de
+        // #aura-orders-v1-content — já foi removido junto quando o motor
+        // substituiu o conteúdo (render()); só falta destravar o scroll
+        // e devolver o foco.
         document.body.classList.remove("orders-exec-drawer-open");
 
         if (
