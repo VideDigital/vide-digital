@@ -123,10 +123,26 @@ window.VIDE_AURA_BUILD = Object.freeze({
         );
     }
 
+    function carregarIdentidadeCompactaSidebar() {
+        if (
+            !document.getElementById(
+                "admin-sidebar"
+            )
+        ) {
+            return;
+        }
+
+        adicionarCSS(
+            "vide-sidebar-identity-compact-css",
+            "./sidebar-identity-compact-v1.css?v=20260728-1"
+        );
+    }
+
     function iniciar() {
         carregarDashboardExecutivo();
         carregarConfiguracoesExecutivas();
         carregarPedidosExecutivos();
+        carregarIdentidadeCompactaSidebar();
     }
 
     if (
