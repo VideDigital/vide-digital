@@ -371,6 +371,28 @@ describe("compararPedidoComDraft / resumirAlteracoesPedido", () => {
         assert.equal(resumirAlteracoesPedido(diff), "cliente, recebimento, valores");
     });
 
+    it("bug real encontrado no Quality Gate: mesma data de prazo com horas diferentes (meia-noite vs meio-dia) não deveria marcar dirty", () => {
+        // O modal de novo pedido grava prazoEntrega com T00:00:00; o motor
+        // reconstrói o valor do <input type=date> na edição completa com
+        // T12:00:00 (evita escorregar de dia por fuso/DST) — mesma data,
+        // milissegundo diferente. Sem normalizar por dia, o botão Salvar
+        // aparecia habilitado (e o selo "Alterações não salvas" visível)
+        // assim que a edição era aberta, sem o usuário tocar em nada.
+        const meiaNoite = new Date("2026-08-05T00:00:00").getTime();
+        const meioDia = new Date("2026-08-05T12:00:00").getTime();
+        const order = orderFixture({ dueDate: meiaNoite });
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(order), dueDate: meioDia });
+        const diff = compararPedidoComDraft(order, draft);
+        assert.equal(diff.grupos.prazo, false);
+        assert.equal(diff.alterado, false);
+    });
+
+    it("prazo em dia realmente diferente continua marcando dirty", () => {
+        const order = orderFixture({ dueDate: new Date("2026-08-05T00:00:00").getTime() });
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(order), dueDate: new Date("2026-08-06T00:00:00").getTime() });
+        assert.equal(compararPedidoComDraft(order, draft).grupos.prazo, true);
+    });
+
     it("nunca inclui texto livre de telefone/endereço no resumo — só nomes de grupo", () => {
         const order = orderFixture();
         const draft = normalizarDraftPedido({ ...criarDraftPedido(order), address: "Rua Sigilosa, 123" });

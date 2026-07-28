@@ -288,8 +288,24 @@ function itensDeParaIguais(a, b) {
     });
 }
 
+// Prazo previsto é um <input type="date"> — só o DIA importa. O motor
+// reconstrói o timestamp a partir do valor do input com uma hora fixa
+// (meio-dia, pra nunca escorregar de dia por causa de fuso horário/DST),
+// mas o pedido original pode ter sido criado com outra hora fixa (o modal
+// de novo pedido usa meia-noite) — comparar por milissegundo exato geraria
+// "alterado" mesmo quando ninguém tocou no campo. Comparar só o dia
+// (no fuso local, mesmo onde os dois timestamps foram gerados) evita esse
+// falso positivo sem exigir que as duas telas usem a mesma hora fixa.
+function diaCalendarioLocal(valorEmMs) {
+    const numero = Number(valorEmMs) || 0;
+    if (!numero) return "";
+    const data = new Date(numero);
+    return `${data.getFullYear()}-${data.getMonth()}-${data.getDate()}`;
+}
+
 function camposDeParaIguais(campo, valorOriginal, valorNovo) {
     if (campo === "items") return itensDeParaIguais(valorOriginal, valorNovo);
+    if (campo === "dueDate") return diaCalendarioLocal(valorOriginal) === diaCalendarioLocal(valorNovo);
     if (typeof valorOriginal === "number" || typeof valorNovo === "number") {
         return (Number(valorOriginal) || 0) === (Number(valorNovo) || 0);
     }
