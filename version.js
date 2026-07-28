@@ -134,7 +134,7 @@ window.VIDE_AURA_BUILD = Object.freeze({
 
         adicionarCSS(
             "vide-sidebar-identity-compact-css",
-            "./sidebar-identity-compact-v1.css?v=20260728-1"
+            "./sidebar-identity-compact-v1.css?v=20260728-3"
         );
     }
 
