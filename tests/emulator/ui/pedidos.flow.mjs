@@ -401,6 +401,346 @@ async function main() {
             );
         }, { timeout: 10000 });
 
+        // ===== Edição Completa de Pedido Existente V1 =====
+        // Reabre o mesmo pedido e edita os campos que, antes desta etapa,
+        // eram só leitura: cliente, recebimento e itens.
+        await page.click(
+            `[data-open-order="${pedidoId}"]`
+        );
+
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-open",
+            { state: "visible", timeout: 15000 }
+        );
+
+        await page.click("#aura-orders-v1-edit-open");
+
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-customer",
+            { state: "visible", timeout: 10000 }
+        );
+
+        // Botão Salvar começa desabilitado — nada foi alterado ainda.
+        const salvarDesabilitadoAntes = await page.getAttribute(
+            "#aura-orders-v1-edit-save",
+            "disabled"
+        );
+
+        assert.notEqual(
+            salvarDesabilitadoAntes,
+            null,
+            "Salvar edição deveria começar desabilitado sem alterações"
+        );
+
+        // Cliente snapshot.
+        await page.fill(
+            "#aura-orders-v1-edit-customer",
+            "Cliente Playwright QA Editado"
+        );
+
+        // Recebimento: tipo, CEP, endereço e observações do cliente.
+        await page.selectOption(
+            "#aura-orders-v1-edit-delivery",
+            "entrega"
+        );
+
+        await page.fill(
+            "#aura-orders-v1-edit-cep",
+            "01310-000"
+        );
+
+        await page.fill(
+            "#aura-orders-v1-edit-address",
+            "Av. Paulista, 1000"
+        );
+
+        await page.fill(
+            "#aura-orders-v1-edit-customer-notes",
+            "Deixar com o porteiro."
+        );
+
+        // Busca de produto no catálogo dentro da edição: com o único
+        // produto seedado já presente no pedido, a busca deve indicar
+        // corretamente que não há produto novo pra adicionar (prova que a
+        // busca está funcionando e que itens já presentes não duplicam).
+        await page.fill(
+            "#aura-orders-v1-edit-item-busca",
+            "Produto Local"
+        );
+
+        await page.waitForFunction(() => {
+            const box = document.getElementById(
+                "aura-orders-v1-edit-item-resultados"
+            );
+
+            return Boolean(
+                box &&
+                !box.hidden &&
+                /Nenhum produto encontrado/.test(box.textContent || "")
+            );
+        }, { timeout: 10000 });
+
+        await page.fill("#aura-orders-v1-edit-item-busca", "");
+
+        // Alterar quantidade e preço do item existente — subtotal/total
+        // devem recalcular ao vivo, sem depender do valor salvo.
+        await page.fill(
+            ".aura-orders-v1-edit-item-qtd",
+            "4"
+        );
+
+        await page.dispatchEvent(
+            ".aura-orders-v1-edit-item-qtd",
+            "change"
+        );
+
+        await page.fill(
+            ".aura-orders-v1-edit-item-preco",
+            "80"
+        );
+
+        await page.dispatchEvent(
+            ".aura-orders-v1-edit-item-preco",
+            "change"
+        );
+
+        // Subtotal esperado: 4 x R$ 80,00 = R$ 320,00.
+        await page.waitForFunction(() => {
+            const subtotal = document.getElementById(
+                "aura-orders-v1-edit-subtotal"
+            );
+
+            return Boolean(
+                subtotal &&
+                /320/.test(subtotal.textContent || "")
+            );
+        }, { timeout: 10000 });
+
+        // Badge de alterações não salvas visível e Salvar habilitado.
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-dirty:not([hidden])",
+            { state: "visible", timeout: 10000 }
+        );
+
+        const salvarHabilitado = await page.getAttribute(
+            "#aura-orders-v1-edit-save",
+            "disabled"
+        );
+
+        assert.equal(
+            salvarHabilitado,
+            null,
+            "Salvar edição deveria habilitar com alterações válidas"
+        );
+
+        await page.click("#aura-orders-v1-edit-save");
+
+        // Sucesso: volta pro modo leitura (o botão Editar reaparece) e o
+        // total do card na tabela reflete os novos itens/subtotal.
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-open",
+            { state: "visible", timeout: 20000 }
+        );
+
+        await page.waitForFunction(() => {
+            const nome = document.querySelector(
+                ".aura-orders-v1-detail-hero p"
+            );
+
+            return Boolean(
+                nome &&
+                nome.textContent.includes(
+                    "Cliente Playwright QA Editado"
+                )
+            );
+        }, { timeout: 20000 });
+
+        // Histórico deve ter o novo evento (sem vazar CEP/endereço no
+        // texto do resumo).
+        await page.waitForFunction(() => {
+            return Array.from(
+                document.querySelectorAll(
+                    ".aura-orders-v1-history article strong"
+                )
+            ).some(elemento =>
+                (elemento.textContent || "").includes(
+                    "Dados do pedido editados"
+                )
+            );
+        }, { timeout: 10000 });
+
+        const historicoTexto = await page.textContent(
+            ".aura-orders-v1-history"
+        );
+
+        assert.doesNotMatch(
+            historicoTexto || "",
+            /01310-000|Av\. Paulista/,
+            "O histórico não deveria expor o endereço completo"
+        );
+
+        // Fechar, reabrir e recarregar a página — a edição precisa
+        // persistir depois do listener em tempo real E depois de um
+        // reload completo (não só em memória).
+        await page.click('[data-orders-action="back"]');
+
+        await page.click(
+            `[data-open-order="${pedidoId}"]`
+        );
+
+        await page.waitForFunction(() => {
+            const nome = document.querySelector(
+                ".aura-orders-v1-detail-hero p"
+            );
+
+            return Boolean(
+                nome &&
+                nome.textContent.includes(
+                    "Cliente Playwright QA Editado"
+                )
+            );
+        }, { timeout: 15000 });
+
+        await page.reload();
+
+        await page.waitForSelector(
+            "#view-pedidos.active",
+            { state: "visible", timeout: 20000 }
+        );
+
+        await page.waitForFunction(() => {
+            return Array.from(
+                document.querySelectorAll(
+                    "[data-open-order]"
+                )
+            ).some(elemento =>
+                (elemento.textContent || "").includes(
+                    "Cliente Playwright QA Editado"
+                )
+            );
+        }, { timeout: 20000 });
+
+        // Segunda edição, agora cancelada — nada deve persistir.
+        await page.click(
+            `[data-open-order="${pedidoId}"]`
+        );
+
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-open",
+            { state: "visible", timeout: 15000 }
+        );
+
+        await page.click("#aura-orders-v1-edit-open");
+
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-customer",
+            { state: "visible", timeout: 10000 }
+        );
+
+        await page.fill(
+            "#aura-orders-v1-edit-customer",
+            "Nome Que Não Deveria Salvar"
+        );
+
+        page.once("dialog", dialog => dialog.accept());
+
+        await page.click("#aura-orders-v1-edit-cancel");
+
+        await page.waitForSelector(
+            "#aura-orders-v1-edit-open",
+            { state: "visible", timeout: 10000 }
+        );
+
+        const nomeAposCancelar = await page.textContent(
+            ".aura-orders-v1-detail-hero p"
+        );
+
+        assert.doesNotMatch(
+            nomeAposCancelar || "",
+            /Não Deveria Salvar/,
+            "Cancelar a edição não deveria persistir a alteração"
+        );
+
+        await page.click('[data-orders-action="back"]');
+
+        // ===== Cenário reader: visualiza, mas não edita nem grava =====
+        const readerPage = await browser.newPage({
+            viewport: { width: 1440, height: 900 }
+        });
+
+        const errosReader = coletarErrosConsole(readerPage);
+
+        await loginReal(readerPage, baseUrl, {
+            email: "employee.read@local.test",
+            senha: "Local123!read"
+        });
+
+        await readerPage.evaluate(() => {
+            window.ativarAba?.("view-pedidos");
+        });
+
+        await readerPage.waitForSelector(
+            "#view-pedidos.active",
+            { state: "visible", timeout: 15000 }
+        );
+
+        await readerPage.waitForFunction(() => {
+            return Array.from(
+                document.querySelectorAll(
+                    "[data-open-order]"
+                )
+            ).some(elemento =>
+                (elemento.textContent || "").includes(
+                    "Cliente Playwright QA Editado"
+                )
+            );
+        }, { timeout: 20000 });
+
+        await readerPage.click(
+            `[data-open-order="${pedidoId}"]`
+        );
+
+        await readerPage.waitForSelector(
+            "#aura-orders-v1-detail-status",
+            { state: "visible", timeout: 15000 }
+        );
+
+        // Reader vê o pedido, mas não tem o botão de edição completa nem
+        // controles de gestão habilitados.
+        const temBotaoEditar = await readerPage.$(
+            "#aura-orders-v1-edit-open"
+        );
+
+        assert.equal(
+            temBotaoEditar,
+            null,
+            "Reader não deveria ver o botão Editar pedido"
+        );
+
+        const statusDesabilitadoReader = await readerPage.getAttribute(
+            "#aura-orders-v1-detail-status",
+            "disabled"
+        );
+
+        assert.notEqual(
+            statusDesabilitadoReader,
+            null,
+            "Reader não deveria conseguir editar o status do pedido"
+        );
+
+        const errosReaderRelevantes = errosReader.filter(
+            erro => !ehErroDeRedeExterno(erro)
+        );
+
+        assert.deepEqual(
+            errosReaderRelevantes,
+            [],
+            `Erros de console no cenário reader de Pedidos: ` +
+            `${JSON.stringify(errosReaderRelevantes)}`
+        );
+
+        await readerPage.close();
+
         const errosRelevantes = erros.filter(
             erro => !ehErroDeRedeExterno(erro)
         );
@@ -415,8 +755,10 @@ async function main() {
         console.log(
             "pedidos.flow: OK — criação, itens estruturados, " +
             "subtotal, campos manuais, prazo, tabela atual, detalhe, " +
-            "mudança de status, sinais da Central de hoje e drawer " +
-            "de Pedidos Executivos V1 validados."
+            "mudança de status, sinais da Central de hoje, drawer " +
+            "de Pedidos Executivos V1, edição completa (cliente, " +
+            "recebimento, itens, histórico, persistência após reload, " +
+            "cancelamento) e cenário reader validados."
         );
     } catch (error) {
         falhou = true;

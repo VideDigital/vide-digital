@@ -1076,9 +1076,16 @@ service cloud.firestore {
     function itensPedidoValidos(itens) {
       return itens == null || (itens is list && itens.size() <= 20);
     }
+    // Edição Completa de Pedido Existente V1: seis campos opcionais novos,
+    // nomes alinhados ao contrato já usado em pedidoSnapshot (leads) —
+    // clienteWhatsapp/tipoRecebimento/cep/endereco já existem lá; clienteEmail
+    // e observacoesCliente são novos também no snapshot (nunca sobrescrevem
+    // identidade canônica em clientes/{id}, só o snapshot deste pedido).
     function validPedidoData(data) {
       return data.keys().hasOnly(["cliente", "produtos", "valor", "status", "obs", "criadoPor",
-          "data", "clienteId", "statusAtualizadoEm", "itens", "prazoEntrega"])
+          "data", "clienteId", "statusAtualizadoEm", "itens", "prazoEntrega",
+          "clienteWhatsapp", "clienteEmail", "tipoRecebimento", "cep", "endereco", "observacoesCliente",
+          "historico"])
         && data.keys().hasAll(["cliente", "produtos", "valor", "status", "criadoPor"])
         && data.cliente is string && data.cliente.size() >= 1 && data.cliente.size() <= 160
         && data.produtos is string && data.produtos.size() >= 1 && data.produtos.size() <= 2000
@@ -1089,7 +1096,14 @@ service cloud.firestore {
         && (!data.keys().hasAny(["statusAtualizadoEm"]) || data.statusAtualizadoEm is number)
         && (!data.keys().hasAny(["itens"]) || itensPedidoValidos(data.itens))
         && (!data.keys().hasAny(["prazoEntrega"]) || data.prazoEntrega is number || data.prazoEntrega == null)
-        && (!data.keys().hasAny(["clienteId"]) || data.clienteId is string);
+        && (!data.keys().hasAny(["clienteId"]) || data.clienteId is string)
+        && (!data.keys().hasAny(["clienteWhatsapp"]) || (data.clienteWhatsapp is string && data.clienteWhatsapp.size() <= 30))
+        && (!data.keys().hasAny(["clienteEmail"]) || (data.clienteEmail is string && data.clienteEmail.size() <= 160))
+        && (!data.keys().hasAny(["tipoRecebimento"]) || data.tipoRecebimento in ["retirada", "entrega", "não informado"])
+        && (!data.keys().hasAny(["cep"]) || (data.cep is string && data.cep.size() <= 12))
+        && (!data.keys().hasAny(["endereco"]) || (data.endereco is string && data.endereco.size() <= 300))
+        && (!data.keys().hasAny(["observacoesCliente"]) || (data.observacoesCliente is string && data.observacoesCliente.size() <= 2000))
+        && (!data.keys().hasAny(["historico"]) || (data.historico is list && data.historico.size() <= 40));
     }
 
     match /pedidos/{id} {

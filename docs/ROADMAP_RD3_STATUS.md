@@ -46,7 +46,7 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 | Entrega | Estado | Próximo passo |
 |---|---|---|
-| Quality Gate — validação da suíte de UI com login real (`test:ui:login`, `test:ui:flows` — inclui `ia-copilot.flow.mjs` desde a Fase 1 do copiloto —, `test:ui:responsive`) | **Rodada de verdade pela primeira vez via GitHub Actions em 2026-07-23** (o sandbox de dev continua bloqueando `www.gstatic.com` — isso não muda, mas deixou de ser o fator limitante desde que se rode em CI). `test:ui:login` (login + 3 perfis owner/editor/reader) está **100% verde**, confirmado em 2 runs consecutivos — 8 bugs reais encontrados e corrigidos no processo (ver `docs/HANDOFF_2026-07-23.md` pra lista completa e lições aprendidas). `test:ui:flows` rodou pela primeira vez e chegou até `pedidos.flow.mjs` (verde) — bloqueado agora em `atendimento-templates.flow.mjs` (`#atend-lista-conversas` não fica visível). `test:ui:responsive` ainda não rodou (atrás de `test:ui:flows` no `&&`). | Ver `docs/HANDOFF_2026-07-23.md`, seção "Bloqueio ATUAL" — investigar `atendimento-templates.flow.mjs`, corrigir, disparar `quality-gate.yml` de novo, repetir até `flows` e `responsive` passarem limpos, só então trocar `continue-on-error: true` por `false` no job `ui-login` de `quality-gate.yml` |
+| Edição Completa de Pedido Existente V1 (cliente, recebimento, itens, texto livre, financeiro editáveis; histórico agora persiste pra qualquer pedido, não só vinculado a lead) | Implementado (`orders-engine-v1.js`, `pedidos-estruturados.js`, `firestore.rules`), testado localmente (unit + Rules + `test:frontend:emulator`), aguardando confirmação do run integral do Quality Gate — job `ui-login` é bloqueante, então essa run é a prova real | Ver `docs/PEDIDOS_EDICAO_COMPLETA.md`; após run verde, mover esta linha pra CONCLUÍDO |
 
 ## NÃO INICIADO
 
@@ -65,6 +65,5 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 ## Próximas prioridades reais
 
-1. **Confirmar a suíte `test:ui:*` rodando de verdade num ambiente com acesso a `www.gstatic.com`** (qualquer runner GitHub Actions padrão) — próxima prioridade real, já que IA de Negócio (dono e pública) está publicada, confirmada e com os bugs de UI encontrados ao vivo corrigidos.
-2. Se um dia `collectionGroup("eventos")` for realmente necessário (ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`, Fase 19), vai precisar de um campo achatado no documento do chat em vez de uma regra nova de Rules.
+1. Se um dia `collectionGroup("eventos")` for realmente necessário (ver `docs/HISTORICO_EVENTOS_ATENDIMENTO.md`, Fase 19), vai precisar de um campo achatado no documento do chat em vez de uma regra nova de Rules.
 3. Busca server-side no catálogo de produtos (Base de Conhecimento e Pedidos) se algum tenant um dia passar de ~300 produtos ativos — hoje nenhum plano chega perto disso.

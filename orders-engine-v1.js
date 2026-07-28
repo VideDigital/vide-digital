@@ -9,12 +9,26 @@ import {
     doc,
     getDoc,
     getDocs,
+    limit,
     onSnapshot,
     query,
     setDoc,
     where,
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+    adicionarItemPedido,
+    atualizarPrecoItem,
+    atualizarQuantidadeItem,
+    calcularTotaisDraft,
+    compararPedidoComDraft,
+    criarDraftPedido,
+    gerarProdutosTextoSemSobrescreverManual,
+    normalizarDraftPedido,
+    removerItemPedido,
+    resumirAlteracoesPedido,
+    validarDraftPedido
+} from "./pedidos-estruturados.js";
 
 const VERSION = "1.0.0";
 const MAX_HISTORY = 40;
@@ -57,7 +71,17 @@ const state = {
     legacyReady: false,
     unsubscribeLegacy: null,
     searchTimer: null,
-    initialized: false
+    initialized: false,
+    // Edição Completa de Pedido Existente V1 — estado transitório, nunca
+    // persistido: o draft só existe enquanto a equipe edita um pedido já
+    // criado. state.orders continua sendo a única fonte de verdade.
+    editingId: "",
+    editDraft: null,
+    editCatalog: [],
+    editCatalogLoaded: false,
+    editCatalogLoading: false,
+    editSaving: false,
+    editError: ""
 };
 
 const icons = {
@@ -73,7 +97,8 @@ const icons = {
     back: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>`,
     whatsapp: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 11.5a8 8 0 0 1-11.8 7L4 20l1.4-4A8 8 0 1 1 20 11.5Z"></path><path d="M9 8.5c.3 2.4 2.1 4.2 4.5 4.7"></path></svg>`,
     print: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><path d="M6 14h12v7H6z"></path></svg>`,
-    save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3M8 21v-7h8v7"></path></svg>`
+    save: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 3h12l2 2v16H5z"></path><path d="M8 3v6h8V3M8 21v-7h8v7"></path></svg>`,
+    edit: `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 20h9"></path><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"></path></svg>`
 };
 
 function esc(value) {
@@ -202,7 +227,7 @@ function normalizeLeadOrder(lead) {
         number: String(lead.numeroPedido || snapshot.numeroPedido || `PED-${String(lead.id).slice(-6).toUpperCase()}`),
         customer: String(snapshot.clienteNome || lead.nome || "Cliente"),
         whatsapp: String(snapshot.clienteWhatsapp || lead.whatsapp || lead.telefone || ""),
-        email: String(lead.email || ""),
+        email: String(snapshot.clienteEmail || lead.email || ""),
         items,
         productsText: String(snapshot.produtosTexto || lead.produtoInteresse || items.map((item) => `${item.quantidade}x ${item.nomeSnapshot}`).join(", ")),
         subtotal,
@@ -243,8 +268,8 @@ function normalizeLegacyOrder(raw) {
         source: "legacy",
         number: String(raw.numeroPedido || `PED-${String(raw.id).slice(-6).toUpperCase()}`),
         customer: String(raw.cliente || "Cliente"),
-        whatsapp: String(raw.whatsapp || raw.telefone || ""),
-        email: String(raw.email || ""),
+        whatsapp: String(raw.clienteWhatsapp || raw.whatsapp || raw.telefone || ""),
+        email: String(raw.clienteEmail || raw.email || ""),
         items,
         productsText: String(raw.produtos || items.map((item) => `${item.quantidade}x ${item.nomeSnapshot}`).join(", ")),
         subtotal,
@@ -256,8 +281,16 @@ function normalizeLegacyOrder(raw) {
         delivery: String(raw.tipoRecebimento || "não informado"),
         cep: String(raw.cep || ""),
         address: String(raw.endereco || ""),
-        customerNotes: String(raw.obs || ""),
+        customerNotes: String(raw.observacoesCliente || ""),
         internalNotes: String(raw.obs || ""),
+        // Bug real pré-existente encontrado nesta etapa: pedidos criados
+        // pelo modal "Novo pedido" (sem leadId) nunca tinham histórico
+        // persistido de verdade — persistOrder() só gravava eventos
+        // quando havia leadId, então qualquer mudança sempre aparecia só
+        // como o evento sintético "Pedido registrado". Corrigido lendo
+        // (e, em persistOrder/legacyPayload, gravando) o novo campo
+        // opcional `historico` também na coleção pedidos/{id}.
+        history: historyList(raw.historico),
         responsibleUid: "",
         responsibleName: "",
         dueDate: ts(raw.prazoEntrega),
@@ -265,7 +298,6 @@ function normalizeLegacyOrder(raw) {
         campaign: String(raw.campanha || "Sem campanha"),
         created: ts(raw.data || raw.criadoEm),
         updated: ts(raw.statusAtualizadoEm),
-        history: [],
         rawLead: null,
         rawLegacy: raw
     };
@@ -361,6 +393,27 @@ async function loadTeam() {
         });
     } catch (error) {}
     state.team = Array.from(map.values()).sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+// Catálogo pra edição completa de pedido — carregado sob demanda (só
+// quando a equipe abre a edição pela primeira vez na sessão), no máximo
+// uma vez: sem onSnapshot, sem busca server-side, mesmo teto (limit 300)
+// já usado no modal de novo pedido em dashboard-app.js.
+async function loadEditCatalog() {
+    if (state.editCatalogLoaded || state.editCatalogLoading) return state.editCatalog;
+    state.editCatalogLoading = true;
+    try {
+        const snapshot = await getDocs(query(collection(db, "produtos"), where("criadoPor", "==", state.ownerUid), limit(300)));
+        state.editCatalog = snapshot.docs
+            .map((item) => ({ id: item.id, ...item.data() }))
+            .filter((product) => product.statusProduto !== "arquivado");
+    } catch (error) {
+        console.warn("[Aura Pedidos] Catálogo não carregado para edição.", error);
+        state.editCatalog = [];
+    }
+    state.editCatalogLoaded = true;
+    state.editCatalogLoading = false;
+    return state.editCatalog;
 }
 
 function ensureView() {
@@ -549,12 +602,88 @@ function renderHistory(order) {
     return `<section class="aura-orders-v1-history"><header><h3>Histórico do pedido</h3><span>${entries.length} evento(s)</span></header>${entries.map((entry) => `<article><i></i><div><strong>${esc(entry.titulo || "Atualização")}</strong><p>${esc(entry.detalhe || "")}</p><small>${dateTime(entry.timestamp)} · ${esc(entry.autorNome || "Equipe")}</small></div></article>`).join("")}</section>`;
 }
 
+function computeDetailHeroTotal(order) {
+    if (state.editingId === order.id && state.editDraft) {
+        return calcularTotaisDraft({ ...state.editDraft, discount: order.discount, freight: order.freight }).total;
+    }
+    return Math.max(0, order.subtotal - order.discount + order.freight);
+}
+
+function renderCustomerPanel(order) {
+    return `<section class="aura-orders-v1-panel"><header><small>Cliente</small><h3>Dados e recebimento</h3></header><dl>
+        <div><dt>Nome</dt><dd>${esc(order.customer)}</dd></div>
+        <div><dt>WhatsApp</dt><dd>${esc(order.whatsapp || "—")}</dd></div>
+        <div><dt>E-mail</dt><dd>${esc(order.email || "—")}</dd></div>
+        <div><dt>Recebimento</dt><dd>${esc(order.delivery)}</dd></div>
+        <div><dt>CEP</dt><dd>${esc(order.cep || "—")}</dd></div>
+        <div><dt>Endereço</dt><dd>${esc(order.address || "—")}</dd></div>
+        <div><dt>Observações</dt><dd>${esc(order.customerNotes || "—")}</dd></div>
+    </dl></section>`;
+}
+
+function renderCustomerEditPanel(draft) {
+    return `<section class="aura-orders-v1-panel aura-orders-v1-edit-panel"><header><small>Cliente</small><h3>Editar dados e recebimento</h3></header>
+        <div class="aura-orders-v1-form-grid">
+            <label><span>Nome do cliente</span><input id="aura-orders-v1-edit-customer" type="text" maxlength="160" value="${esc(draft.customer)}"></label>
+            <label><span>WhatsApp</span><input id="aura-orders-v1-edit-whatsapp" type="text" maxlength="30" value="${esc(draft.whatsapp)}"></label>
+            <label><span>E-mail</span><input id="aura-orders-v1-edit-email" type="email" maxlength="160" value="${esc(draft.email)}"></label>
+            <label><span>Recebimento</span><select id="aura-orders-v1-edit-delivery">
+                <option value="retirada" ${draft.delivery === "retirada" ? "selected" : ""}>Retirada</option>
+                <option value="entrega" ${draft.delivery === "entrega" ? "selected" : ""}>Entrega</option>
+                <option value="não informado" ${draft.delivery === "não informado" ? "selected" : ""}>Não informado</option>
+            </select></label>
+            <label><span>CEP</span><input id="aura-orders-v1-edit-cep" type="text" maxlength="12" value="${esc(draft.cep)}"></label>
+            <label><span>Endereço</span><input id="aura-orders-v1-edit-address" type="text" maxlength="300" value="${esc(draft.address)}"></label>
+        </div>
+        <label class="aura-orders-v1-note"><span>Observações do cliente</span><textarea id="aura-orders-v1-edit-customer-notes" rows="3" maxlength="2000">${esc(draft.customerNotes)}</textarea></label>
+    </section>`;
+}
+
+function renderItemsPanel(order) {
+    return `<section class="aura-orders-v1-panel"><header><small>Itens</small><h3>Resumo do pedido</h3></header><div class="aura-orders-v1-items">${order.items.map((item) => `<article><div><strong>${item.quantidade}x ${esc(item.nomeSnapshot)}</strong><small>${money(item.precoSnapshot)} por unidade</small></div><b>${money(item.precoSnapshot * item.quantidade)}</b></article>`).join("") || `<p>Itens não estruturados: ${esc(order.productsText)}</p>`}<footer><span>Subtotal</span><strong>${money(order.subtotal)}</strong></footer></div></section>`;
+}
+
+function renderItemsEditPanel(draft) {
+    const subtotal = calcularTotaisDraft(draft).subtotal;
+    return `<section class="aura-orders-v1-panel" data-edit-panel="items"><header><small>Itens</small><h3>Editar itens do pedido</h3></header>
+        <div class="aura-orders-v1-edit-items">${draft.items.map((item) => `<article class="aura-orders-v1-edit-item-row" data-edit-item="${esc(item.produtoId)}">
+            <strong>${esc(item.nomeSnapshot)}</strong>
+            <input type="number" min="1" max="999" step="1" class="aura-orders-v1-edit-item-qtd" data-edit-item-field="quantidade" data-edit-item-id="${esc(item.produtoId)}" value="${item.quantidade}" aria-label="Quantidade de ${esc(item.nomeSnapshot)}">
+            <input type="number" min="0" step="0.01" class="aura-orders-v1-edit-item-preco" data-edit-item-field="preco" data-edit-item-id="${esc(item.produtoId)}" value="${item.precoSnapshot}" aria-label="Preço de ${esc(item.nomeSnapshot)}">
+            <b>${money(item.precoSnapshot * item.quantidade)}</b>
+            <button type="button" data-edit-item-remove="${esc(item.produtoId)}" aria-label="Remover ${esc(item.nomeSnapshot)}">&times;</button>
+        </article>`).join("") || `<p class="aura-orders-v1-edit-items-empty">Nenhum item estruturado — descreva no texto livre abaixo.</p>`}</div>
+        <div class="aura-orders-v1-edit-item-search">
+            <label><span>Adicionar produto do catálogo</span><input id="aura-orders-v1-edit-item-busca" type="search" placeholder="Buscar produto" autocomplete="off"></label>
+            <div id="aura-orders-v1-edit-item-resultados" class="aura-orders-v1-edit-item-resultados" hidden></div>
+        </div>
+        <label class="aura-orders-v1-note"><span>Produtos ou serviços (texto livre)</span><textarea id="aura-orders-v1-edit-products-text" rows="3" maxlength="2000">${esc(draft.productsText)}</textarea></label>
+        <div class="aura-orders-v1-items"><footer><span>Subtotal</span><strong id="aura-orders-v1-edit-subtotal">${money(subtotal)}</strong></footer></div>
+    </section>`;
+}
+
+function renderEditActionsBar(order) {
+    const dirty = isEditDirty(order);
+    return `<div class="aura-orders-v1-edit-actions">
+        <div id="aura-orders-v1-edit-feedback" class="aura-orders-v1-edit-feedback" role="alert" aria-live="assertive" ${state.editError ? "" : "hidden"}>${esc(state.editError)}</div>
+        <span class="aura-orders-v1-edit-dirty" id="aura-orders-v1-edit-dirty" ${dirty ? "" : "hidden"}>Alterações não salvas</span>
+        <button type="button" data-orders-action="edit-cancel" class="aura-orders-v1-edit-cancel">Cancelar edição</button>
+        <button type="button" data-orders-action="edit-save" id="aura-orders-v1-edit-save" class="aura-orders-v1-save" ${(!dirty || state.editSaving) ? "disabled" : ""}>${icons.save} ${state.editSaving ? "Salvando..." : "Salvar edição"}</button>
+    </div>`;
+}
+
 function renderDetail(order) {
-    const total = Math.max(0, order.subtotal - order.discount + order.freight);
+    const editing = state.editingId === order.id;
+    const draft = editing ? state.editDraft : null;
+    const total = computeDetailHeroTotal(order);
     return `<div class="aura-orders-v1-detail">
         <button type="button" class="aura-orders-v1-back" data-orders-action="back">${icons.back} Voltar para pedidos</button>
         <section class="aura-orders-v1-detail-hero"><div><small>Pedido ativo</small><h2>${esc(order.number)}</h2><p>${esc(order.customer)} · ${esc(order.whatsapp || "Sem WhatsApp")}</p></div><div><span>Total do pedido</span><strong id="aura-orders-v1-total-preview">${money(total)}</strong><em class="aura-orders-v1-status" data-status="${order.status}">${stageLabel(order.status)}</em></div></section>
-        <section class="aura-orders-v1-detail-actions"><button type="button" data-orders-action="whatsapp" class="is-whatsapp">${icons.whatsapp} Abrir WhatsApp</button><button type="button" data-orders-action="print">${icons.print} Imprimir comprovante</button></section>
+        <section class="aura-orders-v1-detail-actions">
+            <button type="button" data-orders-action="whatsapp" class="is-whatsapp">${icons.whatsapp} Abrir WhatsApp</button>
+            <button type="button" data-orders-action="print">${icons.print} Imprimir comprovante</button>
+            ${state.canEdit && !editing ? `<button type="button" data-orders-action="edit-open" id="aura-orders-v1-edit-open" class="aura-orders-v1-edit-toggle">${icons.edit} Editar pedido</button>` : ""}
+        </section>
         <div class="aura-orders-v1-detail-grid">
             <main>
                 <section class="aura-orders-v1-panel"><header><small>Gestão</small><h3>Status e próximos passos</h3></header><div class="aura-orders-v1-form-grid">
@@ -565,15 +694,16 @@ function renderDetail(order) {
                     <label><span>Desconto</span><input id="aura-orders-v1-detail-discount" type="number" min="0" step="0.01" value="${order.discount || ""}" ${state.canEdit ? "" : "disabled"}></label>
                     <label><span>Frete</span><input id="aura-orders-v1-detail-freight" type="number" min="0" step="0.01" value="${order.freight || ""}" ${state.canEdit ? "" : "disabled"}></label>
                 </div><label class="aura-orders-v1-note"><span>Observações internas</span><textarea id="aura-orders-v1-detail-notes" rows="4" ${state.canEdit ? "" : "disabled"}>${esc(order.internalNotes)}</textarea></label></section>
-                <section class="aura-orders-v1-panel"><header><small>Itens</small><h3>Resumo do pedido</h3></header><div class="aura-orders-v1-items">${order.items.map((item) => `<article><div><strong>${item.quantidade}x ${esc(item.nomeSnapshot)}</strong><small>${money(item.precoSnapshot)} por unidade</small></div><b>${money(item.precoSnapshot * item.quantidade)}</b></article>`).join("") || `<p>Itens não estruturados: ${esc(order.productsText)}</p>`}<footer><span>Subtotal</span><strong>${money(order.subtotal)}</strong></footer></div></section>
-                ${state.canEdit ? `<button type="button" class="aura-orders-v1-save" data-orders-action="save">${icons.save} Salvar pedido</button>` : ""}
+                ${editing ? renderItemsEditPanel(draft) : renderItemsPanel(order)}
+                ${state.canEdit && !editing ? `<button type="button" class="aura-orders-v1-save" data-orders-action="save">${icons.save} Salvar pedido</button>` : ""}
             </main>
             <aside>
-                <section class="aura-orders-v1-panel"><header><small>Cliente</small><h3>Dados e recebimento</h3></header><dl><div><dt>Nome</dt><dd>${esc(order.customer)}</dd></div><div><dt>WhatsApp</dt><dd>${esc(order.whatsapp || "—")}</dd></div><div><dt>Recebimento</dt><dd>${esc(order.delivery)}</dd></div><div><dt>CEP</dt><dd>${esc(order.cep || "—")}</dd></div><div><dt>Endereço</dt><dd>${esc(order.address || "—")}</dd></div><div><dt>Observações</dt><dd>${esc(order.customerNotes || "—")}</dd></div></dl></section>
+                ${editing ? renderCustomerEditPanel(draft) : renderCustomerPanel(order)}
                 <section class="aura-orders-v1-panel"><header><small>Atribuição</small><h3>Origem comercial</h3></header><dl><div><dt>Origem</dt><dd>${esc(order.origin)}</dd></div><div><dt>Campanha</dt><dd>${esc(order.campaign)}</dd></div><div><dt>Capturado</dt><dd>${dateTime(order.created)}</dd></div><div><dt>Responsável</dt><dd>${esc(order.responsibleName || "Sem responsável")}</dd></div></dl></section>
                 ${renderHistory(order)}
             </aside>
         </div>
+        ${editing ? renderEditActionsBar(order) : ""}
     </div>`;
 }
 
@@ -635,6 +765,17 @@ function legacyPayload(order, patch = {}) {
         prazoEntrega: merged.dueDate || null
     };
     if (raw.clienteId) payload.clienteId = String(raw.clienteId);
+    // Edição Completa de Pedido Existente V1 — campos opcionais novos,
+    // sempre reescritos com o valor atual conhecido (mesmo em salvamentos
+    // rápidos que não passam pela edição completa) porque legacyPayload usa
+    // set() sem merge: omitir um campo aqui removeria o dado já salvo.
+    if (merged.whatsapp) payload.clienteWhatsapp = String(merged.whatsapp).slice(0, 30);
+    if (merged.email) payload.clienteEmail = String(merged.email).slice(0, 160);
+    if (merged.delivery) payload.tipoRecebimento = String(merged.delivery);
+    if (merged.cep) payload.cep = String(merged.cep).slice(0, 12);
+    if (merged.address) payload.endereco = String(merged.address).slice(0, 300);
+    if (merged.customerNotes) payload.observacoesCliente = String(merged.customerNotes).slice(0, 2000);
+    if (merged.history) payload.historico = merged.history;
     return payload;
 }
 
@@ -647,18 +788,24 @@ function leadStageForOrder(status) {
 }
 
 async function persistOrder(order, patch, title) {
-    if (!state.canEdit) return toast("Acesso somente para consulta.", "error");
+    if (!state.canEdit) { toast("Acesso somente para consulta.", "error"); return false; }
     const merged = { ...order, ...patch };
     const teamMember = state.team.find((person) => person.uid === merged.responsibleUid);
     merged.responsibleName = teamMember?.nome || merged.responsibleName || "";
     const itemsSubtotal = subtotalItems(merged.items) || merged.subtotal;
     merged.subtotal = itemsSubtotal;
     merged.total = Math.max(0, itemsSubtotal - num(merged.discount) + num(merged.freight));
+    // Histórico agora é gravado pra QUALQUER pedido (legado ou vinculado a
+    // lead) — bug real encontrado nesta etapa: antes só persistia quando
+    // havia leadId, então uma mudança num pedido criado pelo modal "Novo
+    // pedido" nunca aparecia de verdade no histórico, só o evento
+    // sintético "Pedido registrado" (ver normalizeLegacyOrder).
+    merged.history = [...order.history, eventEntry(title, `${stageLabel(merged.status)} · ${PAYMENT_LABELS[merged.payment]} · ${money(merged.total)}`)].slice(-MAX_HISTORY);
     const batch = writeBatch(db);
     const legacyId = order.legacyId || order.id;
     batch.set(doc(db, "pedidos", legacyId), legacyPayload(order, merged));
     if (order.leadId) {
-        const history = [...order.history, eventEntry(title, `${stageLabel(merged.status)} · ${PAYMENT_LABELS[merged.payment]} · ${money(merged.total)}`)].slice(-MAX_HISTORY);
+        const history = merged.history;
         const leadStatus = leadStageForOrder(merged.status);
         const leadPatch = {
             pedidoVinculadoId: legacyId,
@@ -675,7 +822,21 @@ async function persistOrder(order, patch, title) {
             valorOportunidade: merged.total,
             statusLead: leadStatus,
             status: leadStatus,
-            pipelineStage: leadStatus
+            pipelineStage: leadStatus,
+            // Edição Completa de Pedido Existente V1 — merge por caminho de
+            // campo (dot-path) dentro de pedidoSnapshot: atualiza só estes
+            // subcampos, nunca sobrescreve o mapa inteiro nem o restante do
+            // lead (nome/email/whatsapp canônicos do CRM continuam intocados).
+            "pedidoSnapshot.clienteNome": String(merged.customer || "").slice(0, 160),
+            "pedidoSnapshot.clienteWhatsapp": String(merged.whatsapp || "").slice(0, 30),
+            "pedidoSnapshot.clienteEmail": String(merged.email || "").slice(0, 160),
+            "pedidoSnapshot.tipoRecebimento": String(merged.delivery || "não informado"),
+            "pedidoSnapshot.cep": String(merged.cep || "").slice(0, 12),
+            "pedidoSnapshot.endereco": String(merged.address || "").slice(0, 300),
+            "pedidoSnapshot.observacoes": String(merged.customerNotes || "").slice(0, 2000),
+            "pedidoSnapshot.produtosTexto": String(merged.productsText || "").slice(0, 2000),
+            "pedidoSnapshot.itens": merged.items,
+            "pedidoSnapshot.subtotal": merged.subtotal
         };
         if (leadStatus === "convertido") leadPatch.probabilidade = 100;
         if (leadStatus === "perdido") leadPatch.probabilidade = 0;
@@ -685,27 +846,227 @@ async function persistOrder(order, patch, title) {
         await batch.commit();
         toast("Pedido atualizado.");
         state.selectedId = order.id;
+        return true;
     } catch (error) {
         console.error("[Aura Pedidos] Falha ao salvar:", error);
         toast("Não foi possível salvar o pedido.", "error");
+        return false;
     }
 }
 
-async function saveDetail() {
-    const order = state.orders.find((item) => item.id === state.selectedId);
-    if (!order) return;
+// Lê os 7 campos de gestão sempre editáveis (contrato preservado desde a
+// V1.0) — usados tanto pelo salvamento rápido (saveDetail) quanto como
+// parte do rascunho completo da Edição Completa de Pedido (saveEdit).
+function readGestaoPanelValues() {
     const responsibleUid = document.getElementById("aura-orders-v1-detail-responsible")?.value || "";
     const dueRaw = document.getElementById("aura-orders-v1-detail-due")?.value || "";
-    await persistOrder(order, {
-        status: document.getElementById("aura-orders-v1-detail-status")?.value || order.status,
-        payment: document.getElementById("aura-orders-v1-detail-payment")?.value || order.payment,
+    return {
+        status: document.getElementById("aura-orders-v1-detail-status")?.value || "",
+        payment: document.getElementById("aura-orders-v1-detail-payment")?.value || "",
         responsibleUid,
         responsibleName: state.team.find((person) => person.uid === responsibleUid)?.nome || "",
         dueDate: dueRaw ? new Date(`${dueRaw}T12:00:00`).getTime() : 0,
         discount: Math.max(0, num(document.getElementById("aura-orders-v1-detail-discount")?.value)),
         freight: Math.max(0, num(document.getElementById("aura-orders-v1-detail-freight")?.value)),
         internalNotes: document.getElementById("aura-orders-v1-detail-notes")?.value.trim() || ""
+    };
+}
+
+async function saveDetail() {
+    const order = state.orders.find((item) => item.id === state.selectedId);
+    if (!order) return;
+    const values = readGestaoPanelValues();
+    await persistOrder(order, {
+        status: values.status || order.status,
+        payment: values.payment || order.payment,
+        responsibleUid: values.responsibleUid,
+        responsibleName: values.responsibleName,
+        dueDate: values.dueDate,
+        discount: values.discount,
+        freight: values.freight,
+        internalNotes: values.internalNotes
     }, "Pedido atualizado");
+}
+
+// ===== Edição Completa de Pedido Existente V1 =====
+// Junta o rascunho exclusivo da edição completa (cliente/recebimento/itens/
+// texto livre) com os campos de gestão já sempre editáveis, normaliza e
+// retorna o draft completo pronto pra comparar/validar/salvar.
+function fullEditDraft(order) {
+    if (!state.editDraft) return null;
+    return normalizarDraftPedido({ ...state.editDraft, ...readGestaoPanelValues() });
+}
+
+function isEditDirty(order) {
+    const draft = fullEditDraft(order);
+    if (!draft) return false;
+    return compararPedidoComDraft(order, draft).alterado;
+}
+
+// Duplo requestAnimationFrame: garante que o foco seja aplicado DEPOIS do
+// próprio setup de abertura do drawer em orders-executive-v1.js (que já
+// agenda seu próprio requestAnimationFrame focando o botão Voltar sempre
+// que um novo nó .aura-orders-v1-detail aparece) — sem isso, o foco do
+// primeiro campo/botão da edição seria roubado de volta pro Voltar.
+function focarDepoisDoDrawer(id) {
+    window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => {
+            document.getElementById(id)?.focus();
+        });
+    });
+}
+
+function openEdit(order) {
+    if (!state.canEdit || !order) return;
+    state.editingId = order.id;
+    state.editDraft = criarDraftPedido(order);
+    state.editError = "";
+    loadEditCatalog();
+    render();
+    focarDepoisDoDrawer("aura-orders-v1-edit-customer");
+}
+
+function cancelEdit(order) {
+    if (order && isEditDirty(order)) {
+        const confirmar = window.confirm("Descartar as alterações não salvas deste pedido?");
+        if (!confirmar) return;
+    }
+    state.editingId = "";
+    state.editDraft = null;
+    state.editError = "";
+    render();
+    focarDepoisDoDrawer("aura-orders-v1-edit-open");
+}
+
+async function saveEdit(order) {
+    const draft = fullEditDraft(order);
+    if (!order || !draft) return;
+    const erro = validarDraftPedido(draft);
+    if (erro) {
+        state.editError = erro;
+        toast(erro, "error");
+        render();
+        return;
+    }
+    const diff = compararPedidoComDraft(order, draft);
+    if (!diff.alterado) {
+        state.editingId = "";
+        state.editDraft = null;
+        state.editError = "";
+        render();
+        return;
+    }
+    state.editError = "";
+    state.editSaving = true;
+    render();
+    const resumo = resumirAlteracoesPedido(diff);
+    const sucesso = await persistOrder(order, {
+        customer: draft.customer,
+        whatsapp: draft.whatsapp,
+        email: draft.email,
+        delivery: draft.delivery,
+        cep: draft.cep,
+        address: draft.address,
+        customerNotes: draft.customerNotes,
+        items: draft.items,
+        productsText: draft.productsText,
+        discount: draft.discount,
+        freight: draft.freight,
+        status: draft.status,
+        payment: draft.payment,
+        responsibleUid: draft.responsibleUid,
+        responsibleName: draft.responsibleName,
+        dueDate: draft.dueDate,
+        internalNotes: draft.internalNotes
+    }, `Dados do pedido editados${resumo ? ` (${resumo})` : ""}`);
+    state.editSaving = false;
+    if (sucesso) {
+        // Não força um novo render aqui: o listener em tempo real
+        // (onSnapshot de pedidos/leads) já reconstrói state.orders com os
+        // dados reais e chama render() logo em seguida — renderizar antes
+        // disso mostraria por um instante os dados ANTIGOS em modo leitura.
+        state.editingId = "";
+        state.editDraft = null;
+    } else {
+        render();
+    }
+}
+
+// Re-renderiza só o painel de Itens (não o .aura-orders-v1-detail inteiro)
+// — troca de item é uma ação discreta (clique/blur), mas se disparasse o
+// render() completo, recriaria o nó .aura-orders-v1-detail a cada troca e
+// re-acionaria o setup de abertura do drawer em orders-executive-v1.js
+// (foco/backdrop) desnecessariamente a cada item adicionado/removido.
+function refreshEditItemsUI() {
+    const order = state.orders.find((item) => item.id === state.editingId);
+    if (!order || !state.editDraft) return;
+    const panel = document.querySelector('[data-edit-panel="items"]');
+    if (panel) panel.outerHTML = renderItemsEditPanel(state.editDraft);
+    refreshEditDirtyUI(order);
+}
+
+function editAddCatalogItem(order, produtoId) {
+    const produto = (state.editCatalog || []).find((item) => item.id === produtoId);
+    if (!produto || !state.editDraft) return;
+    state.editDraft.items = adicionarItemPedido(state.editDraft.items, produto, 1);
+    state.editDraft.productsText = gerarProdutosTextoSemSobrescreverManual(state.editDraft);
+    refreshEditItemsUI();
+}
+
+function editRemoveItem(produtoId) {
+    if (!state.editDraft) return;
+    state.editDraft.items = removerItemPedido(state.editDraft.items, produtoId);
+    state.editDraft.productsText = gerarProdutosTextoSemSobrescreverManual(state.editDraft);
+    refreshEditItemsUI();
+}
+
+function editUpdateItemQuantity(produtoId, value) {
+    if (!state.editDraft) return;
+    state.editDraft.items = atualizarQuantidadeItem(state.editDraft.items, produtoId, value);
+    state.editDraft.productsText = gerarProdutosTextoSemSobrescreverManual(state.editDraft);
+    refreshEditItemsUI();
+}
+
+function editUpdateItemPrice(produtoId, value) {
+    if (!state.editDraft) return;
+    state.editDraft.items = atualizarPrecoItem(state.editDraft.items, produtoId, value);
+    refreshEditItemsUI();
+}
+
+function renderEditItemResults(term) {
+    const box = document.getElementById("aura-orders-v1-edit-item-resultados");
+    if (!box) return;
+    const clean = normalizeText(term);
+    if (!clean) { box.innerHTML = ""; box.hidden = true; return; }
+    if (state.editCatalogLoading) {
+        box.innerHTML = `<p class="aura-orders-v1-edit-item-vazio">Carregando catálogo...</p>`;
+        box.hidden = false;
+        return;
+    }
+    const existentes = new Set((state.editDraft?.items || []).map((item) => item.produtoId));
+    const found = (state.editCatalog || [])
+        .filter((product) => !existentes.has(product.id) && normalizeText(product.nome).includes(clean))
+        .slice(0, 8);
+    if (!found.length) {
+        box.innerHTML = `<p class="aura-orders-v1-edit-item-vazio">Nenhum produto encontrado.</p>`;
+        box.hidden = false;
+        return;
+    }
+    box.innerHTML = found.map((product) => `<button type="button" data-edit-item-add="${esc(product.id)}"><span>${esc(product.nome)}</span><span>${money(product.preco)}</span></button>`).join("");
+    box.hidden = false;
+}
+
+// Atualiza só o selo "não salvo"/botão Salvar e o preview de total sem
+// re-renderizar o formulário inteiro — evita perder o foco/cursor do
+// usuário a cada tecla digitada nos campos de texto da edição completa.
+function refreshEditDirtyUI(order) {
+    if (!order) return;
+    const dirty = isEditDirty(order);
+    const badge = document.getElementById("aura-orders-v1-edit-dirty");
+    const saveButton = document.getElementById("aura-orders-v1-edit-save");
+    if (badge) badge.hidden = !dirty;
+    if (saveButton) saveButton.disabled = !dirty || state.editSaving;
+    updateEditTotalsPreview();
 }
 
 function openOrder(id) {
@@ -767,10 +1128,51 @@ function updateTotalPreview() {
     target.textContent = money(Math.max(0, order.subtotal - discount + freight));
 }
 
+// Mesma ideia de updateTotalPreview(), mas considerando os itens do
+// rascunho da edição completa (que podem ter mudado sem passar por um
+// render() inteiro) em vez do subtotal já persistido do pedido.
+function updateEditTotalsPreview() {
+    if (!state.editDraft) return;
+    const gestao = readGestaoPanelValues();
+    const { subtotal, total } = calcularTotaisDraft({ ...state.editDraft, discount: gestao.discount, freight: gestao.freight });
+    const subtotalNode = document.getElementById("aura-orders-v1-edit-subtotal");
+    if (subtotalNode) subtotalNode.textContent = money(subtotal);
+    const totalNode = document.getElementById("aura-orders-v1-total-preview");
+    if (totalNode) totalNode.textContent = money(total);
+}
+
+// Campos de texto/seleção da edição completa que só atualizam o rascunho
+// em memória (sem re-render) — evita perder foco/cursor a cada tecla.
+// A chave é o id do campo; o valor é o nome do campo correspondente no
+// draft (ou "manual-products-text" pro caso especial do texto livre).
+const CAMPOS_EDICAO_LIVE = Object.freeze({
+    "aura-orders-v1-edit-customer": "customer",
+    "aura-orders-v1-edit-whatsapp": "whatsapp",
+    "aura-orders-v1-edit-email": "email",
+    "aura-orders-v1-edit-delivery": "delivery",
+    "aura-orders-v1-edit-cep": "cep",
+    "aura-orders-v1-edit-address": "address",
+    "aura-orders-v1-edit-customer-notes": "customerNotes"
+});
+
+function guardarSaidaComEdicaoAberta(order) {
+    if (!state.editingId) return true;
+    if (isEditDirty(order)) {
+        const confirmar = window.confirm("Você tem alterações não salvas neste pedido. Sair mesmo assim?");
+        if (!confirmar) return false;
+    }
+    state.editingId = "";
+    state.editDraft = null;
+    state.editError = "";
+    return true;
+}
+
 function bindView(view) {
     view.addEventListener("click", (event) => {
         const tab = event.target.closest("[data-orders-tab], [data-orders-tab-jump]");
         if (tab) {
+            const current = state.orders.find((item) => item.id === state.selectedId);
+            if (!guardarSaidaComEdicaoAberta(current)) return;
             state.activeTab = tab.dataset.ordersTab || tab.dataset.ordersTabJump || "overview";
             state.selectedId = "";
             render();
@@ -778,9 +1180,36 @@ function bindView(view) {
         }
         const open = event.target.closest("[data-open-order]");
         if (open && !event.target.closest("select")) return openOrder(open.dataset.openOrder);
+
+        const editAdd = event.target.closest("[data-edit-item-add]");
+        if (editAdd) {
+            const order = state.orders.find((item) => item.id === state.editingId);
+            if (order) editAddCatalogItem(order, editAdd.dataset.editItemAdd);
+            return;
+        }
+        const editRemove = event.target.closest("[data-edit-item-remove]");
+        if (editRemove) { editRemoveItem(editRemove.dataset.editItemRemove); return; }
+
         const action = event.target.closest("[data-orders-action]")?.dataset.ordersAction;
-        if (action === "back") { state.selectedId = ""; render(); }
+        if (action === "back") {
+            const current = state.orders.find((item) => item.id === state.selectedId);
+            if (!guardarSaidaComEdicaoAberta(current)) return;
+            state.selectedId = "";
+            render();
+        }
         if (action === "save") saveDetail();
+        if (action === "edit-open") {
+            const order = state.orders.find((item) => item.id === state.selectedId);
+            if (order) openEdit(order);
+        }
+        if (action === "edit-cancel") {
+            const order = state.orders.find((item) => item.id === state.editingId);
+            cancelEdit(order);
+        }
+        if (action === "edit-save") {
+            const order = state.orders.find((item) => item.id === state.editingId);
+            if (order) saveEdit(order);
+        }
         if (action === "export") exportCSV();
         if (action === "refresh") refreshAll();
         if (action === "whatsapp") {
@@ -801,6 +1230,23 @@ function bindView(view) {
             const order = state.orders.find((item) => item.id === target.dataset.moveOrder);
             if (order) persistOrder(order, { status: target.value }, "Etapa alterada");
             return;
+        } else if (target.matches(".aura-orders-v1-edit-item-qtd")) {
+            editUpdateItemQuantity(target.dataset.editItemId, target.value);
+            return;
+        } else if (target.matches(".aura-orders-v1-edit-item-preco")) {
+            editUpdateItemPrice(target.dataset.editItemId, target.value);
+            return;
+        } else if (CAMPOS_EDICAO_LIVE[target.id] && state.editDraft) {
+            state.editDraft[CAMPOS_EDICAO_LIVE[target.id]] = target.value;
+            const order = state.orders.find((item) => item.id === state.editingId);
+            refreshEditDirtyUI(order);
+            return;
+        } else if (target.id === "aura-orders-v1-detail-discount" || target.id === "aura-orders-v1-detail-freight") {
+            if (state.editingId) {
+                const order = state.orders.find((item) => item.id === state.editingId);
+                refreshEditDirtyUI(order);
+            }
+            return;
         } else return;
         render();
     });
@@ -814,8 +1260,38 @@ function bindView(view) {
                 input?.focus();
                 input?.setSelectionRange(state.search.length, state.search.length);
             }, 140);
+            return;
         }
-        if (["aura-orders-v1-detail-discount", "aura-orders-v1-detail-freight"].includes(event.target.id)) updateTotalPreview();
+        if (["aura-orders-v1-detail-discount", "aura-orders-v1-detail-freight"].includes(event.target.id)) {
+            if (state.editingId) {
+                const order = state.orders.find((item) => item.id === state.editingId);
+                refreshEditDirtyUI(order);
+            } else {
+                updateTotalPreview();
+            }
+            return;
+        }
+        if (event.target.id === "aura-orders-v1-edit-item-busca") {
+            loadEditCatalog().then(() => renderEditItemResults(event.target.value));
+            renderEditItemResults(event.target.value);
+            return;
+        }
+        if (event.target.id === "aura-orders-v1-edit-products-text" && state.editDraft) {
+            state.editDraft.productsTextManual = true;
+            state.editDraft.productsText = event.target.value;
+            const order = state.orders.find((item) => item.id === state.editingId);
+            refreshEditDirtyUI(order);
+            return;
+        }
+        if (CAMPOS_EDICAO_LIVE[event.target.id] && state.editDraft) {
+            state.editDraft[CAMPOS_EDICAO_LIVE[event.target.id]] = event.target.value;
+            const order = state.orders.find((item) => item.id === state.editingId);
+            refreshEditDirtyUI(order);
+        }
+    });
+    view.addEventListener("keydown", (event) => {
+        if (event.key !== "Enter") return;
+        if (event.target.id === "aura-orders-v1-edit-item-busca") event.preventDefault();
     });
     view.addEventListener("dragstart", (event) => {
         const card = event.target.closest("[data-drag-order]");

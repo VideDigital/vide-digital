@@ -10,7 +10,16 @@ import {
     removerItemPedido,
     atualizarQuantidadeItem,
     contarProdutosMaisComprados,
-    produtosInteresseConvertidos
+    produtosInteresseConvertidos,
+    LIMITES_EDICAO_PEDIDO,
+    criarDraftPedido,
+    gerarProdutosTextoSemSobrescreverManual,
+    calcularTotaisDraft,
+    normalizarDraftPedido,
+    validarDraftPedido,
+    atualizarPrecoItem,
+    compararPedidoComDraft,
+    resumirAlteracoesPedido
 } from "../pedidos-estruturados.js";
 
 function itemFixture(overrides = {}) {
@@ -173,5 +182,200 @@ describe("produtos de interesse convertidos em pedido real", () => {
 
     it("sem correspondência retorna lista vazia", () => {
         assert.deepEqual(produtosInteresseConvertidos([{ produtoId: "p9" }], [itemFixture({ produtoId: "p1" })]), []);
+    });
+});
+
+// ===== Edição Completa de Pedido Existente V1 =====
+
+function orderFixture(overrides = {}) {
+    return {
+        customer: "Fulano de Tal",
+        whatsapp: "5511999998888",
+        email: "fulano@exemplo.com",
+        delivery: "retirada",
+        cep: "",
+        address: "",
+        customerNotes: "",
+        items: [itemFixture()],
+        productsText: "Camiseta P x2",
+        subtotal: 100,
+        discount: 0,
+        freight: 0,
+        total: 100,
+        status: "novo",
+        payment: "pendente",
+        responsibleUid: "",
+        responsibleName: "",
+        dueDate: 0,
+        internalNotes: "",
+        ...overrides
+    };
+}
+
+describe("criarDraftPedido: espelha o pedido normalizado", () => {
+    it("copia todos os campos editáveis, sem referência compartilhada nos itens", () => {
+        const order = orderFixture();
+        const draft = criarDraftPedido(order);
+        assert.equal(draft.customer, order.customer);
+        assert.equal(draft.items.length, 1);
+        assert.notEqual(draft.items, order.items);
+        assert.equal(draft.productsTextManual, false);
+    });
+
+    it("aplica um padrão seguro quando o pedido é vazio/ausente", () => {
+        const draft = criarDraftPedido(undefined);
+        assert.equal(draft.customer, "");
+        assert.deepEqual(draft.items, []);
+        assert.equal(draft.delivery, "não informado");
+    });
+});
+
+describe("gerarProdutosTextoSemSobrescreverManual", () => {
+    it("gera o texto a partir dos itens quando não editado manualmente", () => {
+        const draft = { items: [itemFixture({ nomeSnapshot: "Camiseta", quantidade: 3 })], productsText: "", productsTextManual: false };
+        assert.equal(gerarProdutosTextoSemSobrescreverManual(draft), "Camiseta x3");
+    });
+
+    it("preserva o texto manual mesmo com itens presentes", () => {
+        const draft = { items: [itemFixture()], productsText: "Texto digitado à mão", productsTextManual: true };
+        assert.equal(gerarProdutosTextoSemSobrescreverManual(draft), "Texto digitado à mão");
+    });
+
+    it("sem itens, mantém o texto livre existente (nunca fica vazio à toa)", () => {
+        const draft = { items: [], productsText: "Serviço combinado por telefone", productsTextManual: false };
+        assert.equal(gerarProdutosTextoSemSobrescreverManual(draft), "Serviço combinado por telefone");
+    });
+});
+
+describe("calcularTotaisDraft", () => {
+    it("subtotal vem dos itens quando existem", () => {
+        const draft = { items: [itemFixture({ precoSnapshot: 10, quantidade: 2 })], subtotal: 999, discount: 0, freight: 0 };
+        assert.equal(calcularTotaisDraft(draft).subtotal, 20);
+    });
+
+    it("total nunca fica negativo mesmo com desconto maior que o subtotal", () => {
+        const draft = { items: [itemFixture({ precoSnapshot: 10, quantidade: 1 })], discount: 999, freight: 0 };
+        assert.equal(calcularTotaisDraft(draft).total, 0);
+    });
+
+    it("soma o frete normalmente", () => {
+        const draft = { items: [itemFixture({ precoSnapshot: 10, quantidade: 1 })], discount: 2, freight: 5 };
+        assert.equal(calcularTotaisDraft(draft).total, 13);
+    });
+});
+
+describe("atualizarPrecoItem", () => {
+    it("atualiza o preço só do item indicado, sem tocar quantidade", () => {
+        const itens = adicionarItemPedido([], produtoFixture(), 3);
+        const atualizado = atualizarPrecoItem(itens, "prod1", 75);
+        assert.equal(atualizado[0].precoSnapshot, 75);
+        assert.equal(atualizado[0].quantidade, 3);
+    });
+
+    it("nunca aceita preço negativo", () => {
+        const itens = adicionarItemPedido([], produtoFixture(), 1);
+        assert.equal(atualizarPrecoItem(itens, "prod1", -50)[0].precoSnapshot, 0);
+    });
+});
+
+describe("normalizarDraftPedido", () => {
+    it("aplica limites de tamanho e recalcula subtotal/total a partir dos itens", () => {
+        const draft = criarDraftPedido(orderFixture({ items: [itemFixture({ precoSnapshot: 10, quantidade: 2 })], discount: 1, freight: 1 }));
+        const normalizado = normalizarDraftPedido(draft);
+        assert.equal(normalizado.subtotal, 20);
+        assert.equal(normalizado.total, 20);
+    });
+
+    it("recebimento fora do enum vira 'não informado'", () => {
+        const normalizado = normalizarDraftPedido({ ...criarDraftPedido(orderFixture()), delivery: "invasor" });
+        assert.equal(normalizado.delivery, "não informado");
+    });
+
+    it("corta campos de texto acima do limite", () => {
+        const draft = { ...criarDraftPedido(orderFixture()), customer: "x".repeat(LIMITES_EDICAO_PEDIDO.clienteMax + 20) };
+        assert.equal(normalizarDraftPedido(draft).customer.length, LIMITES_EDICAO_PEDIDO.clienteMax);
+    });
+});
+
+describe("validarDraftPedido", () => {
+    it("aceita um draft válido completo", () => {
+        assert.equal(validarDraftPedido(normalizarDraftPedido(criarDraftPedido(orderFixture()))), "");
+    });
+
+    it("rejeita cliente vazio", () => {
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(orderFixture()), customer: "" });
+        assert.notEqual(validarDraftPedido(draft), "");
+    });
+
+    it("rejeita e-mail com formato inválido", () => {
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(orderFixture()), email: "não-é-email" });
+        assert.notEqual(validarDraftPedido(draft), "");
+    });
+
+    it("rejeita quando não há itens nem texto de produtos", () => {
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(orderFixture()), items: [], productsText: "" });
+        assert.notEqual(validarDraftPedido(draft), "");
+    });
+
+    it("aceita pedido legado sem itens, desde que tenha texto livre", () => {
+        const draft = normalizarDraftPedido(criarDraftPedido(orderFixture({ items: [], productsText: "Bolo de chocolate" })));
+        assert.equal(validarDraftPedido(draft), "");
+    });
+
+    it("rejeita desconto/frete negativos (checagem de segurança; normalizarDraftPedido já os zera antes)", () => {
+        const draftDesconto = { ...criarDraftPedido(orderFixture()), discount: -1 };
+        assert.notEqual(validarDraftPedido(draftDesconto), "");
+        const draftFrete = { ...criarDraftPedido(orderFixture()), freight: -1 };
+        assert.notEqual(validarDraftPedido(draftFrete), "");
+    });
+});
+
+describe("compararPedidoComDraft / resumirAlteracoesPedido", () => {
+    it("sem mudanças, alterado é falso e nenhum grupo aparece", () => {
+        const order = orderFixture();
+        const draft = normalizarDraftPedido(criarDraftPedido(order));
+        const diff = compararPedidoComDraft(order, draft);
+        assert.equal(diff.alterado, false);
+        assert.equal(resumirAlteracoesPedido(diff), "");
+    });
+
+    it("detecta mudança isolada no grupo cliente", () => {
+        const order = orderFixture();
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(order), customer: "Outro Nome" });
+        const diff = compararPedidoComDraft(order, draft);
+        assert.equal(diff.alterado, true);
+        assert.equal(diff.grupos.cliente, true);
+        assert.equal(diff.grupos.itens, false);
+        assert.equal(resumirAlteracoesPedido(diff), "cliente");
+    });
+
+    it("mudança nos itens não é confundida com mudança em valores", () => {
+        const order = orderFixture();
+        const itensNovos = adicionarItemPedido(order.items, produtoFixture({ id: "prod2", nome: "Boné", preco: 20 }), 1);
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(order), items: itensNovos });
+        const diff = compararPedidoComDraft(order, draft);
+        assert.equal(diff.grupos.itens, true);
+        assert.equal(diff.grupos.valores, false);
+    });
+
+    it("reordenar/duplicar não altera igualdade de itens de forma incorreta (mesmo conteúdo, mesma ordem = igual)", () => {
+        const order = orderFixture();
+        const draft = normalizarDraftPedido(criarDraftPedido(order));
+        assert.equal(compararPedidoComDraft(order, draft).grupos.itens, false);
+    });
+
+    it("junta múltiplos grupos alterados no resumo", () => {
+        const order = orderFixture();
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(order), customer: "Novo Nome", cep: "01000-000", discount: 10 });
+        const diff = compararPedidoComDraft(order, draft);
+        assert.equal(resumirAlteracoesPedido(diff), "cliente, recebimento, valores");
+    });
+
+    it("nunca inclui texto livre de telefone/endereço no resumo — só nomes de grupo", () => {
+        const order = orderFixture();
+        const draft = normalizarDraftPedido({ ...criarDraftPedido(order), address: "Rua Sigilosa, 123" });
+        const resumo = resumirAlteracoesPedido(compararPedidoComDraft(order, draft));
+        assert.doesNotMatch(resumo, /Sigilosa/);
+        assert.equal(resumo, "recebimento");
     });
 });

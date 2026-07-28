@@ -125,3 +125,197 @@ export function produtosInteresseConvertidos(produtosInteresse, itensPedido) {
     const idsComprados = new Set((itensPedido || []).map(item => item.produtoId));
     return (produtosInteresse || []).filter(interesse => idsComprados.has(interesse.produtoId));
 }
+
+// ===== Edição Completa de Pedido Existente V1 =====
+// Lógica pura do rascunho (draft) de edição — usada por orders-engine-v1.js.
+// O draft nunca é fonte permanente: só existe enquanto a equipe edita um
+// pedido já criado; ao salvar, o motor grava no mesmo caminho de sempre
+// (persistOrder/writeBatch) e os listeners reconstroem state.orders.
+
+export const LIMITES_EDICAO_PEDIDO = Object.freeze({
+    clienteMax: 160,
+    whatsappMax: 30,
+    emailMax: 160,
+    cepMax: 12,
+    enderecoMax: 300,
+    observacoesMax: 2000,
+    produtosTextoMax: 2000
+});
+
+export const OPCOES_RECEBIMENTO_PEDIDO = Object.freeze(["retirada", "entrega", "não informado"]);
+
+const REGEX_EMAIL_PEDIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+// Campos que compõem o rascunho editável — espelha exatamente o pedido
+// normalizado pelo motor (mesmos nomes de `order` em orders-engine-v1.js),
+// nunca um formato paralelo.
+export function criarDraftPedido(order) {
+    return {
+        customer: String(order?.customer || ""),
+        whatsapp: String(order?.whatsapp || ""),
+        email: String(order?.email || ""),
+        delivery: OPCOES_RECEBIMENTO_PEDIDO.includes(order?.delivery) ? order.delivery : "não informado",
+        cep: String(order?.cep || ""),
+        address: String(order?.address || ""),
+        customerNotes: String(order?.customerNotes || ""),
+        items: Array.isArray(order?.items) ? order.items.map(item => ({ ...item })) : [],
+        productsText: String(order?.productsText || ""),
+        productsTextManual: false,
+        subtotal: Number(order?.subtotal) || 0,
+        discount: Math.max(0, Number(order?.discount) || 0),
+        freight: Math.max(0, Number(order?.freight) || 0),
+        total: Number(order?.total) || 0,
+        status: String(order?.status || "novo"),
+        payment: String(order?.payment || "pendente"),
+        responsibleUid: String(order?.responsibleUid || ""),
+        responsibleName: String(order?.responsibleName || ""),
+        dueDate: Number(order?.dueDate) || 0,
+        internalNotes: String(order?.internalNotes || "")
+    };
+}
+
+// Gera o texto de "Produtos ou serviços" a partir dos itens — mesmo
+// princípio de `marcarPedidoCampoEditadoManual` já usado no modal de novo
+// pedido: depois que a equipe edita o texto manualmente, mudanças nos itens
+// param de sobrescrever silenciosamente.
+export function gerarProdutosTextoSemSobrescreverManual(draft) {
+    if (draft?.productsTextManual) return String(draft?.productsText || "");
+    if (Array.isArray(draft?.items) && draft.items.length) return resumoTextoItens(draft.items);
+    return String(draft?.productsText || "");
+}
+
+export function calcularTotaisDraft(draft) {
+    const subtotal = Array.isArray(draft?.items) && draft.items.length
+        ? calcularValorItens(draft.items)
+        : Math.max(0, Number(draft?.subtotal) || 0);
+    const total = Math.max(0, subtotal - Math.max(0, Number(draft?.discount) || 0) + Math.max(0, Number(draft?.freight) || 0));
+    return { subtotal, total };
+}
+
+// Normaliza o draft antes de validar/salvar: aplica limites, recalcula
+// texto automático (respeitando edição manual) e recalcula subtotal/total
+// a partir dos itens — nunca confia em número digitado à mão no total.
+export function normalizarDraftPedido(draft) {
+    const items = (Array.isArray(draft?.items) ? draft.items : []).slice(0, LIMITES_PEDIDO_ESTRUTURADO.itensMax);
+    const base = { ...draft, items };
+    const productsText = gerarProdutosTextoSemSobrescreverManual(base).slice(0, LIMITES_EDICAO_PEDIDO.produtosTextoMax);
+    const { subtotal, total } = calcularTotaisDraft(base);
+    return {
+        ...draft,
+        customer: String(draft?.customer || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.clienteMax),
+        whatsapp: String(draft?.whatsapp || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.whatsappMax),
+        email: String(draft?.email || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.emailMax),
+        delivery: OPCOES_RECEBIMENTO_PEDIDO.includes(draft?.delivery) ? draft.delivery : "não informado",
+        cep: String(draft?.cep || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.cepMax),
+        address: String(draft?.address || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.enderecoMax),
+        customerNotes: String(draft?.customerNotes || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.observacoesMax),
+        internalNotes: String(draft?.internalNotes || "").trim().slice(0, LIMITES_EDICAO_PEDIDO.observacoesMax),
+        items,
+        productsText,
+        subtotal,
+        total,
+        discount: Math.max(0, Number(draft?.discount) || 0),
+        freight: Math.max(0, Number(draft?.freight) || 0),
+        dueDate: Math.max(0, Number(draft?.dueDate) || 0)
+    };
+}
+
+// Retorna "" quando válido, ou a primeira mensagem de erro encontrada —
+// mesmo contrato de validarItemPedido/validarItensPedido.
+export function validarDraftPedido(draft) {
+    if (!draft || typeof draft !== "object") return "Dados do pedido inválidos.";
+    const cliente = String(draft.customer || "").trim();
+    if (!cliente) return "Informe o nome do cliente.";
+    if (cliente.length > LIMITES_EDICAO_PEDIDO.clienteMax) return "Nome do cliente muito longo.";
+    const whatsapp = String(draft.whatsapp || "").trim();
+    if (whatsapp.length > LIMITES_EDICAO_PEDIDO.whatsappMax) return "WhatsApp muito longo.";
+    if (whatsapp && whatsapp.replace(/\D/g, "").length < 8) return "WhatsApp inválido.";
+    const email = String(draft.email || "").trim();
+    if (email.length > LIMITES_EDICAO_PEDIDO.emailMax) return "E-mail muito longo.";
+    if (email && !REGEX_EMAIL_PEDIDO.test(email)) return "E-mail inválido.";
+    if (!OPCOES_RECEBIMENTO_PEDIDO.includes(draft.delivery)) return "Tipo de recebimento inválido.";
+    if (String(draft.cep || "").length > LIMITES_EDICAO_PEDIDO.cepMax) return "CEP muito longo.";
+    if (String(draft.address || "").length > LIMITES_EDICAO_PEDIDO.enderecoMax) return "Endereço muito longo.";
+    if (String(draft.customerNotes || "").length > LIMITES_EDICAO_PEDIDO.observacoesMax) return "Observações do cliente muito longas.";
+    if (String(draft.internalNotes || "").length > LIMITES_EDICAO_PEDIDO.observacoesMax) return "Observações internas muito longas.";
+    const erroItens = validarItensPedido(draft.items);
+    if (erroItens) return erroItens;
+    const temItens = Array.isArray(draft.items) && draft.items.length > 0;
+    const produtosTexto = String(draft.productsText || "").trim();
+    if (!temItens && !produtosTexto) return "Descreva ao menos um produto.";
+    if (produtosTexto.length > LIMITES_EDICAO_PEDIDO.produtosTextoMax) return "Texto de produtos muito longo.";
+    if (Number(draft.discount) < 0) return "Desconto inválido.";
+    if (Number(draft.freight) < 0) return "Frete inválido.";
+    return "";
+}
+
+export function atualizarPrecoItem(itensAtuais, produtoId, preco) {
+    const valor = Math.max(0, Number(preco) || 0);
+    return (itensAtuais || []).map(item => item.produtoId === produtoId ? { ...item, precoSnapshot: valor } : item);
+}
+
+// Grupos usados tanto para decidir se algo mudou (habilitar Salvar) quanto
+// para o resumo do evento de histórico "Dados do pedido editados".
+const GRUPOS_DIFF_PEDIDO = Object.freeze({
+    cliente: ["customer", "whatsapp", "email"],
+    recebimento: ["delivery", "cep", "address", "customerNotes"],
+    itens: ["items", "productsText"],
+    valores: ["discount", "freight"],
+    prazo: ["dueDate"],
+    gestao: ["status", "payment", "responsibleUid", "internalNotes"]
+});
+
+const ROTULOS_GRUPO_DIFF_PEDIDO = Object.freeze({
+    cliente: "cliente",
+    recebimento: "recebimento",
+    itens: "itens",
+    valores: "valores",
+    prazo: "prazo",
+    gestao: "gestão"
+});
+
+function itensDeParaIguais(a, b) {
+    const listaA = Array.isArray(a) ? a : [];
+    const listaB = Array.isArray(b) ? b : [];
+    if (listaA.length !== listaB.length) return false;
+    return listaA.every((item, index) => {
+        const outro = listaB[index];
+        return Boolean(outro)
+            && item.produtoId === outro.produtoId
+            && item.nomeSnapshot === outro.nomeSnapshot
+            && Number(item.precoSnapshot) === Number(outro.precoSnapshot)
+            && Number(item.quantidade) === Number(outro.quantidade);
+    });
+}
+
+function camposDeParaIguais(campo, valorOriginal, valorNovo) {
+    if (campo === "items") return itensDeParaIguais(valorOriginal, valorNovo);
+    if (typeof valorOriginal === "number" || typeof valorNovo === "number") {
+        return (Number(valorOriginal) || 0) === (Number(valorNovo) || 0);
+    }
+    return String(valorOriginal ?? "").trim() === String(valorNovo ?? "").trim();
+}
+
+// Compara o pedido original (como veio do motor) com o draft normalizado —
+// nunca compara objetos inteiros por referência, só os campos que a
+// edição completa realmente pode alterar.
+export function compararPedidoComDraft(pedidoOriginal, draft) {
+    const grupos = {};
+    let alterado = false;
+    Object.entries(GRUPOS_DIFF_PEDIDO).forEach(([grupo, campos]) => {
+        const mudou = campos.some(campo => !camposDeParaIguais(campo, pedidoOriginal?.[campo], draft?.[campo]));
+        grupos[grupo] = mudou;
+        if (mudou) alterado = true;
+    });
+    return { alterado, grupos };
+}
+
+// Resumo curto pro histórico — nunca inclui telefone, endereço ou
+// observação completa, só os nomes dos grupos que mudaram.
+export function resumirAlteracoesPedido(diff) {
+    if (!diff || !diff.alterado) return "";
+    return Object.keys(ROTULOS_GRUPO_DIFF_PEDIDO)
+        .filter(grupo => diff.grupos?.[grupo])
+        .map(grupo => ROTULOS_GRUPO_DIFF_PEDIDO[grupo])
+        .join(", ");
+}

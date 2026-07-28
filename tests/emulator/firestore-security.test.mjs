@@ -1669,6 +1669,92 @@ describe("pedidos: validação de campos (antes desta etapa não havia nenhuma)"
   });
 });
 
+// ===== Edição Completa de Pedido Existente V1 — campos novos opcionais =====
+
+describe("pedidos: edição completa (clienteWhatsapp/clienteEmail/tipoRecebimento/cep/endereco/observacoesCliente)", () => {
+  it("dono cria e depois atualiza pedido com todos os campos novos válidos", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedEdit1"), pedidoFixture({
+      clienteWhatsapp: "5511999998888",
+      clienteEmail: "cliente@exemplo.com",
+      tipoRecebimento: "entrega",
+      cep: "01310-000",
+      endereco: "Av. Paulista, 1000",
+      observacoesCliente: "Entregar após as 18h"
+    })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedEdit1"), pedidoFixture({
+      cliente: "Novo Nome do Cliente",
+      tipoRecebimento: "retirada"
+    })));
+  });
+
+  it("tipoRecebimento aceita só o enum fechado", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedRecebOk"), pedidoFixture({ tipoRecebimento: "não informado" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedRecebBad"), pedidoFixture({ tipoRecebimento: "correios" })));
+  });
+
+  it("rejeita clienteWhatsapp/clienteEmail/cep/endereco/observacoesCliente acima do limite ou de tipo errado", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedWhatsBad"), pedidoFixture({ clienteWhatsapp: "5".repeat(31) })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedEmailBad"), pedidoFixture({ clienteEmail: "x".repeat(161) })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedCepBad"), pedidoFixture({ cep: "1".repeat(13) })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedEnderecoBad"), pedidoFixture({ endereco: "x".repeat(301) })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedObsClienteBad"), pedidoFixture({ observacoesCliente: "x".repeat(2001) })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedWhatsTipo"), pedidoFixture({ clienteWhatsapp: 5511999998888 })));
+  });
+
+  it("compatibilidade: pedido antigo sem os campos novos continua sendo atualizado normalmente", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedidos", "pedLegadoSemNovosCampos"), pedidoFixture());
+    });
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedLegadoSemNovosCampos"), pedidoFixture({
+      cliente: "Cliente Atualizado"
+    })));
+  });
+
+  it("funcionário sem permissão de edição não consegue gravar os campos novos; reader não grava nada", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedidos", "pedReaderEdit"), pedidoFixture());
+    });
+    await assertFails(setDoc(doc(authed("employeeRead"), "pedidos", "pedReaderEdit"), pedidoFixture({
+      criadoPor: "ownerA", cep: "00000-000"
+    })));
+  });
+
+  it("historico aceita lista até 40 entradas; rejeita acima disso ou tipo errado", async () => {
+    const evento = { titulo: "Dados do pedido editados", detalhe: "cliente", timestamp: Date.now(), autorNome: "Equipe" };
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedHist1"), pedidoFixture({
+      historico: Array.from({ length: 40 }, () => evento)
+    })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedHist2"), pedidoFixture({
+      historico: Array.from({ length: 41 }, () => evento)
+    })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedHist3"), pedidoFixture({
+      historico: "não é lista"
+    })));
+  });
+
+  it("lead: pedidoSnapshot aceita atualização parcial por dot-path sem exigir whitelist (mesmo contrato já existente de leads)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "leads", "leadSnapshotEdit"), {
+        criadoPor: "ownerA", nome: "Lead Original", email: "original@exemplo.com",
+        pedidoSnapshot: { clienteNome: "Lead Original", numeroPedido: "PED-000001" }
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadSnapshotEdit"), {
+      "pedidoSnapshot.clienteNome": "Lead Editado",
+      "pedidoSnapshot.clienteEmail": "editado@exemplo.com",
+      "pedidoSnapshot.itens": [{ produtoId: "p1", nomeSnapshot: "Camiseta", precoSnapshot: 50, quantidade: 1 }]
+    }));
+    // Identidade canônica do lead (nome/email de topo) não é tocada por
+    // esse patch — continua exatamente a mesma.
+    const snap = await getDoc(doc(authed("ownerA"), "leads", "leadSnapshotEdit"));
+    const depois = snap.data();
+    assert.equal(depois.nome, "Lead Original");
+    assert.equal(depois.email, "original@exemplo.com");
+    assert.equal(depois.pedidoSnapshot.clienteNome, "Lead Editado");
+    assert.equal(depois.pedidoSnapshot.numeroPedido, "PED-000001");
+  });
+});
+
 // ===== Histórico de eventos do Atendimento (chats/{chatId}/eventos) =====
 
 function eventoStaffFixture(overrides = {}) {
