@@ -665,6 +665,13 @@
         );
     }
 
+    // Elementos onde um clique na topbar NÃO deve alternar a seção —
+    // a seta continua sendo o controle principal acessível; a topbar
+    // clicável é só conveniência de mouse por cima dela.
+    var SELETOR_SEM_TOGGLE =
+        "button, a, input, select, textarea, " +
+        "[data-no-section-toggle]";
+
     function criarTopbar(
         bloco,
         area
@@ -677,6 +684,23 @@
         if (existente) {
             return existente;
         }
+
+        bloco.id =
+            bloco.id ||
+            ("store-settings-panel-" + area.id);
+
+        var idTitulo =
+            "store-settings-heading-" + area.id;
+
+        bloco.setAttribute(
+            "role",
+            "region"
+        );
+
+        bloco.setAttribute(
+            "aria-labelledby",
+            idTitulo
+        );
 
         var topbar =
             document.createElement(
@@ -698,7 +722,7 @@
 
                 <div>
                     <small>${area.categoria}</small>
-                    <strong>${area.titulo}</strong>
+                    <strong id="${idTitulo}">${area.titulo}</strong>
                     <p>${area.descricao}</p>
                 </div>
             </div>
@@ -716,6 +740,7 @@
                     class="store-settings-section-toggle"
                     data-settings-toggle="${area.id}"
                     aria-expanded="true"
+                    aria-controls="${bloco.id}"
                     aria-label="Recolher ${area.titulo}"
                 >
                     <svg
@@ -735,18 +760,37 @@
             bloco.firstChild
         );
 
-        topbar
-            .querySelector(
-                "[data-settings-toggle]"
-            )
-            ?.addEventListener(
-                "click",
-                function() {
-                    alternarArea(
-                        area.id
+        // Um único listener de clique cobre a seta E o resto da
+        // topbar (área não interativa) — evita duplicar o toggle: o
+        // clique na própria seta é sempre resolvido aqui, nunca por
+        // um segundo listener direto no botão.
+        topbar.addEventListener(
+            "click",
+            function(evento) {
+                var elementoSemToggle =
+                    evento.target.closest(
+                        SELETOR_SEM_TOGGLE
                     );
+
+                var eBotaoToggle =
+                    elementoSemToggle?.hasAttribute(
+                        "data-settings-toggle"
+                    );
+
+                if (
+                    elementoSemToggle &&
+                    !eBotaoToggle
+                ) {
+                    return;
                 }
-            );
+
+                evento.preventDefault();
+
+                alternarArea(
+                    area.id
+                );
+            }
+        );
 
         return topbar;
     }
@@ -802,6 +846,113 @@
         );
     }
 
+    // Único ponto que decide o estado expandido/recolhido de uma
+    // área — tanto a seta do card quanto o botão do painel superior
+    // passam por aqui, então os dois caminhos sempre terminam no
+    // mesmo estado (classe, aria-expanded, aria-label, botão do
+    // painel superior sincronizado). Idempotente: chamar duas vezes
+    // com o mesmo `expandida` não faz nada na segunda vez.
+    function definirAreaExpandida(
+        id,
+        expandida,
+        opcoes
+    ) {
+        var bloco =
+            buscarBloco(id);
+
+        if (!bloco) {
+            return;
+        }
+
+        opcoes = opcoes || {};
+
+        var jaExpandida =
+            !bloco.classList.contains(
+                "is-collapsed"
+            );
+
+        if (jaExpandida === expandida) {
+            if (opcoes.scroll) {
+                bloco.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start"
+                });
+            }
+
+            return;
+        }
+
+        bloco.classList.toggle(
+            "is-collapsed",
+            !expandida
+        );
+
+        var botao =
+            bloco.querySelector(
+                "[data-settings-toggle]"
+            );
+
+        botao?.setAttribute(
+            "aria-expanded",
+            String(expandida)
+        );
+
+        botao?.setAttribute(
+            "aria-label",
+            (
+                expandida
+                    ? "Recolher "
+                    : "Expandir "
+            ) +
+            (
+                buscarArea(id)?.titulo ||
+                "configuração"
+            )
+        );
+
+        var passo =
+            painel?.querySelector(
+                '[data-settings-step="' +
+                id +
+                '"]'
+            );
+
+        passo?.setAttribute(
+            "aria-expanded",
+            String(expandida)
+        );
+
+        if (expandida && opcoes.scroll) {
+            bloco.scrollIntoView({
+                behavior: "smooth",
+                block: "start"
+            });
+        }
+
+        if (expandida && opcoes.highlight) {
+            bloco.classList.add(
+                "store-settings-section-highlight"
+            );
+
+            window.setTimeout(
+                function() {
+                    bloco.classList.remove(
+                        "store-settings-section-highlight"
+                    );
+                },
+                1100
+            );
+        }
+
+        if (!expandida && opcoes.foco) {
+            bloco
+                .querySelector(
+                    "[data-settings-toggle]"
+                )
+                ?.focus();
+        }
+    }
+
     function alternarArea(id) {
         var bloco =
             buscarBloco(id);
@@ -810,78 +961,32 @@
             return;
         }
 
-        var recolhido =
+        var expandidaAgora =
             !bloco.classList.contains(
                 "is-collapsed"
             );
 
-        bloco.classList.toggle(
-            "is-collapsed",
-            recolhido
-        );
-
-        var botao =
-            bloco.querySelector(
-                "[data-settings-toggle]"
-            );
-
-        botao?.setAttribute(
-            "aria-expanded",
-            String(!recolhido)
-        );
-
-        botao?.setAttribute(
-            "aria-label",
-            (
-                recolhido
-                    ? "Expandir "
-                    : "Recolher "
-            ) +
-            (
-                buscarArea(id)?.titulo ||
-                "configuração"
-            )
+        definirAreaExpandida(
+            id,
+            !expandidaAgora
         );
     }
 
     function abrirArea(id) {
-        var bloco =
-            buscarBloco(id);
-
-        if (!bloco) {
-            return;
-        }
-
-        bloco.classList.remove(
-            "is-collapsed"
+        definirAreaExpandida(
+            id,
+            true,
+            {
+                scroll: true,
+                highlight: true
+            }
         );
+    }
 
-        var botao =
-            bloco.querySelector(
-                "[data-settings-toggle]"
-            );
-
-        botao?.setAttribute(
-            "aria-expanded",
-            "true"
-        );
-
-        bloco.scrollIntoView({
-            behavior: "smooth",
-            block: "start"
-        });
-
-        bloco.classList.add(
-            "store-settings-section-highlight"
-        );
-
-        window.setTimeout(
-            function() {
-                bloco.classList.remove(
-                    "store-settings-section-highlight"
-                );
-            },
-            1100
+    function recolherArea(id) {
+        definirAreaExpandida(
+            id,
+            false
         );
     }
 
