@@ -624,16 +624,16 @@ function renderCustomerPanel(order) {
 function renderCustomerEditPanel(draft) {
     return `<section class="aura-orders-v1-panel aura-orders-v1-edit-panel"><header><small>Cliente</small><h3>Editar dados e recebimento</h3></header>
         <div class="aura-orders-v1-form-grid">
-            <label><span>Nome do cliente</span><input id="aura-orders-v1-edit-customer" type="text" maxlength="160" value="${esc(draft.customer)}"></label>
-            <label><span>WhatsApp</span><input id="aura-orders-v1-edit-whatsapp" type="text" maxlength="30" value="${esc(draft.whatsapp)}"></label>
-            <label><span>E-mail</span><input id="aura-orders-v1-edit-email" type="email" maxlength="160" value="${esc(draft.email)}"></label>
+            <label><span>Nome do cliente</span><input id="aura-orders-v1-edit-customer" type="text" maxlength="160" autocomplete="off" value="${esc(draft.customer)}"></label>
+            <label><span>WhatsApp</span><input id="aura-orders-v1-edit-whatsapp" type="text" maxlength="30" autocomplete="off" value="${esc(draft.whatsapp)}"></label>
+            <label><span>E-mail</span><input id="aura-orders-v1-edit-email" type="email" maxlength="160" autocomplete="off" value="${esc(draft.email)}"></label>
             <label><span>Recebimento</span><select id="aura-orders-v1-edit-delivery">
                 <option value="retirada" ${draft.delivery === "retirada" ? "selected" : ""}>Retirada</option>
                 <option value="entrega" ${draft.delivery === "entrega" ? "selected" : ""}>Entrega</option>
                 <option value="não informado" ${draft.delivery === "não informado" ? "selected" : ""}>Não informado</option>
             </select></label>
-            <label><span>CEP</span><input id="aura-orders-v1-edit-cep" type="text" maxlength="12" value="${esc(draft.cep)}"></label>
-            <label><span>Endereço</span><input id="aura-orders-v1-edit-address" type="text" maxlength="300" value="${esc(draft.address)}"></label>
+            <label><span>CEP</span><input id="aura-orders-v1-edit-cep" type="text" maxlength="12" autocomplete="off" value="${esc(draft.cep)}"></label>
+            <label><span>Endereço</span><input id="aura-orders-v1-edit-address" type="text" maxlength="300" autocomplete="off" value="${esc(draft.address)}"></label>
         </div>
         <label class="aura-orders-v1-note"><span>Observações do cliente</span><textarea id="aura-orders-v1-edit-customer-notes" rows="3" maxlength="2000">${esc(draft.customerNotes)}</textarea></label>
     </section>`;
@@ -648,8 +648,8 @@ function renderItemsEditPanel(draft) {
     return `<section class="aura-orders-v1-panel" data-edit-panel="items"><header><small>Itens</small><h3>Editar itens do pedido</h3></header>
         <div class="aura-orders-v1-edit-items">${draft.items.map((item) => `<article class="aura-orders-v1-edit-item-row" data-edit-item="${esc(item.produtoId)}">
             <strong>${esc(item.nomeSnapshot)}</strong>
-            <input type="number" min="1" max="999" step="1" class="aura-orders-v1-edit-item-qtd" data-edit-item-field="quantidade" data-edit-item-id="${esc(item.produtoId)}" value="${item.quantidade}" aria-label="Quantidade de ${esc(item.nomeSnapshot)}">
-            <input type="number" min="0" step="0.01" class="aura-orders-v1-edit-item-preco" data-edit-item-field="preco" data-edit-item-id="${esc(item.produtoId)}" value="${item.precoSnapshot}" aria-label="Preço de ${esc(item.nomeSnapshot)}">
+            <input type="number" min="1" max="999" step="1" class="aura-orders-v1-edit-item-qtd" data-edit-item-field="quantidade" data-edit-item-id="${esc(item.produtoId)}" autocomplete="off" value="${item.quantidade}" aria-label="Quantidade de ${esc(item.nomeSnapshot)}">
+            <input type="number" min="0" step="0.01" class="aura-orders-v1-edit-item-preco" data-edit-item-field="preco" data-edit-item-id="${esc(item.produtoId)}" autocomplete="off" value="${item.precoSnapshot}" aria-label="Preço de ${esc(item.nomeSnapshot)}">
             <b>${money(item.precoSnapshot * item.quantidade)}</b>
             <button type="button" data-edit-item-remove="${esc(item.produtoId)}" aria-label="Remover ${esc(item.nomeSnapshot)}">&times;</button>
         </article>`).join("") || `<p class="aura-orders-v1-edit-items-empty">Nenhum item estruturado — descreva no texto livre abaixo.</p>`}</div>
@@ -663,11 +663,20 @@ function renderItemsEditPanel(draft) {
 }
 
 function renderEditActionsBar(order) {
-    const dirty = isEditDirty(order);
+    // Blindagem: se o cálculo de diferenças falhar por qualquer motivo,
+    // assume "alterado" (mais seguro deixar Salvar disponível do que
+    // escondê-lo) em vez de deixar uma exceção impedir a própria barra de
+    // ações (Cancelar/Salvar) de aparecer.
+    let dirty = true;
+    try {
+        dirty = isEditDirty(order);
+    } catch (error) {
+        console.warn("[Aura Pedidos] Falha ao calcular alterações da edição.", error);
+    }
     return `<div class="aura-orders-v1-edit-actions">
         <div id="aura-orders-v1-edit-feedback" class="aura-orders-v1-edit-feedback" role="alert" aria-live="assertive" ${state.editError ? "" : "hidden"}>${esc(state.editError)}</div>
         <span class="aura-orders-v1-edit-dirty" id="aura-orders-v1-edit-dirty" ${dirty ? "" : "hidden"}>Alterações não salvas</span>
-        <button type="button" data-orders-action="edit-cancel" class="aura-orders-v1-edit-cancel">Cancelar edição</button>
+        <button type="button" data-orders-action="edit-cancel" id="aura-orders-v1-edit-cancel" class="aura-orders-v1-edit-cancel">Cancelar edição</button>
         <button type="button" data-orders-action="edit-save" id="aura-orders-v1-edit-save" class="aura-orders-v1-save" ${(!dirty || state.editSaving) ? "disabled" : ""}>${icons.save} ${state.editSaving ? "Salvando..." : "Salvar edição"}</button>
     </div>`;
 }
@@ -1114,7 +1123,12 @@ function renderEditItemResults(term) {
 // usuário a cada tecla digitada nos campos de texto da edição completa.
 function refreshEditDirtyUI(order) {
     if (!order) return;
-    const dirty = isEditDirty(order);
+    let dirty = true;
+    try {
+        dirty = isEditDirty(order);
+    } catch (error) {
+        console.warn("[Aura Pedidos] Falha ao calcular alterações da edição.", error);
+    }
     const badge = document.getElementById("aura-orders-v1-edit-dirty");
     const saveButton = document.getElementById("aura-orders-v1-edit-save");
     if (badge) badge.hidden = !dirty;
