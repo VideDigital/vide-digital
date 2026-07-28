@@ -877,6 +877,81 @@ body.aura-command-open{
 
 }
 
+/* ================================================================
+   VIDE HUB — PAINEL DE COMANDOS (CTRL/CMD+K): TEXTO LEGÍVEL (V4.0)
+   Achado real: studio-pro.css (editor de Landing Pages, carregado
+   DEPOIS desta folha em dashboard.html) define #aura-command-list
+   button small/strong — um seletor de outra funcionalidade que por
+   coincidência usa o MESMO id (#aura-command-list) do painel de
+   comandos do dashboard. Com ID no seletor, aquelas regras venciam
+   as classes .aura-command-item-copy strong/small definidas aqui
+   embaixo (5px/8px em vez de 10px/8px, e nenhum dos dois já era
+   grande o bastante) — daí "texto pequeno, ruim de ver e navegar".
+   Reforçado com !important pra nunca mais perder esse empate, e os
+   tamanhos aumentados de verdade em toda a lista.
+   ================================================================ */
+
+.aura-command-heading strong {
+  font-size: 16px !important;
+}
+
+.aura-command-heading small {
+  font-size: 9.5px !important;
+}
+
+#aura-command-count {
+  font-size: 10px !important;
+}
+
+.aura-command-group {
+  font-size: 9.5px !important;
+}
+
+.aura-command-item {
+  min-height: 62px !important;
+}
+
+.aura-command-item-copy strong,
+#aura-command-list button strong {
+  margin-top: 0 !important;
+  color: var(--aura-text-secondary) !important;
+  font-size: 14px !important;
+  font-weight: 800 !important;
+}
+
+.aura-command-item-copy small,
+#aura-command-list button small {
+  margin-top: 3px !important;
+  color: var(--aura-text-muted) !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+}
+
+.aura-command-item-badge {
+  font-size: 9.5px !important;
+}
+
+.aura-command-footer {
+  font-size: 10px !important;
+}
+
+.aura-command-footer kbd {
+  font-size: 9.5px !important;
+}
+
+#aura-command-close {
+  font-size: 10px !important;
+}
+
+#aura-command-input {
+  font-size: 15px !important;
+}
+
+#aura-command-input::placeholder {
+  font-size: 15px !important;
+}
+
 /* =========================================================
    DASHBOARD — CENTRAL DE IMPLANTAÇÃO
    ========================================================= */
