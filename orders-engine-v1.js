@@ -981,15 +981,23 @@ async function saveEdit(order) {
     }, `Dados do pedido editados${resumo ? ` (${resumo})` : ""}`);
     state.editSaving = false;
     if (sucesso) {
-        // Não força um novo render aqui: o listener em tempo real
-        // (onSnapshot de pedidos/leads) já reconstrói state.orders com os
-        // dados reais e chama render() logo em seguida — renderizar antes
-        // disso mostraria por um instante os dados ANTIGOS em modo leitura.
         state.editingId = "";
         state.editDraft = null;
-    } else {
-        render();
     }
+    // Bug real encontrado no Quality Gate: sem chamar render() aqui, a UI
+    // ficava presa em "Salvando..." pra sempre em alguns runs. A causa era
+    // uma corrida real entre dois caminhos assíncronos independentes sem
+    // ordem garantida entre si: o listener em tempo real (onSnapshot) pode
+    // reconstruir state.orders e chamar seu próprio render() ANTES do
+    // "await batch.commit()" resolver aqui — nesse caso, aquele render já
+    // aconteceu com editingId AINDA setado (mostrando o modo de edição de
+    // novo, com os dados novos) e, sem uma chamada explícita depois de
+    // limpar editingId, nada renderizava de novo — a última tela ficava
+    // presa no modo de edição indefinidamente. Chamar render() aqui sempre
+    // garante que o estado atual (editingId já limpo) seja refletido,
+    // mesmo que signifique redesenhar uma vez a mais que o estritamente
+    // necessário.
+    render();
 }
 
 // Re-renderiza só o painel de Itens (não o .aura-orders-v1-detail inteiro)
@@ -997,11 +1005,28 @@ async function saveEdit(order) {
 // render() completo, recriaria o nó .aura-orders-v1-detail a cada troca e
 // re-acionaria o setup de abertura do drawer em orders-executive-v1.js
 // (foco/backdrop) desnecessariamente a cada item adicionado/removido.
+//
+// Bug real encontrado no Quality Gate: alterar quantidade e preço em
+// sequência rápida (dois eventos "change" próximos, incluindo o disparo
+// nativo do próprio campo somado ao evento explícito) podia fazer duas
+// chamadas tentarem substituir o mesmo nó quase ao mesmo tempo — a segunda
+// via outerHTML encontrava o nó já removido pela primeira e lançava
+// "NotFoundError: ... The node to be removed is no longer a child of this
+// node", travando o restante da edição. Mesmo padrão de agendamento via
+// requestAnimationFrame já usado em orders-executive-v1.js (agendarMelhorias):
+// só a última chamada dentro do mesmo quadro realmente mexe no DOM.
+let quadroItensEdicaoAgendado = 0;
+
 function refreshEditItemsUI() {
+    window.cancelAnimationFrame(quadroItensEdicaoAgendado);
+    quadroItensEdicaoAgendado = window.requestAnimationFrame(aplicarRefreshEditItemsUI);
+}
+
+function aplicarRefreshEditItemsUI() {
     const order = state.orders.find((item) => item.id === state.editingId);
     if (!order || !state.editDraft) return;
     const panel = document.querySelector('[data-edit-panel="items"]');
-    if (panel) panel.outerHTML = renderItemsEditPanel(state.editDraft);
+    if (panel && panel.isConnected) panel.outerHTML = renderItemsEditPanel(state.editDraft);
     refreshEditDirtyUI(order);
 }
 
