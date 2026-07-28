@@ -1,0 +1,64 @@
+/* ================================================================
+   VIDE HUB — SIDEBAR: TRILHO INTERNO PREENCHE A LARGURA NO DESKTOP (V1)
+   Carregada por último, depois de sidebar-identity-compact-v1.css,
+   via version.js#adicionarCSS(), com cache-busting próprio.
+
+   CAUSA RAIZ CONFIRMADA (lendo dashboard-modules.css, não suposta):
+   a partir de min-width:768px, dashboard-modules.css define
+   #admin-sidebar como display:grid (grid-template-rows:minmax(0,1fr)
+   auto), mas NUNCA define grid-template-columns. Sem coluna explícita,
+   o navegador cria uma única coluna IMPLÍCITA cujo tamanho (via
+   grid-auto-columns:auto, valor padrão) encolhe para o conteúdo em
+   vez de preencher o container — e como o total das colunas fica
+   menor que a largura da sidebar, o alinhamento padrão do grid
+   (justify-content:normal, equivalente a start) empurra tudo pra
+   esquerda, sobrando exatamente a faixa vazia à direita relatada no
+   desktop. #admin-sidebar > div:first-child (identidade),
+   #sidebar-nav, #box-atalho e #box-logout são os 4 itens desse grid
+   (confirmado lendo dashboard.html: são filhos diretos e irmãos de
+   #admin-sidebar) — todos ficam presos nessa coluna estreita.
+
+   Esta folha só acrescenta a coluna que faltava (minmax(0,1fr), a
+   mesma sintaxe já usada em outras grades do projeto) e reforça a
+   largura dos 4 itens — não redefine o grid nem mexe em
+   dashboard-modules.css/foundation.css/late-overrides.css. Usa o
+   mesmo truque de ID repetido (#admin-sidebar#admin-sidebar) já usado
+   em sidebar-identity-compact-v1.css pra vencer de forma garantida
+   qualquer regra legada de especificidade igual, sem depender de
+   ordem de carregamento.
+
+   Escopo: só a estrutura de colunas do #admin-sidebar em desktop
+   (min-width:768px, o mesmo ponto de corte onde dashboard-modules.css
+   liga o grid). Nada aqui toca o overlay mobile (max-width:767px,
+   resolvido antes em late-overrides.css), Ctrl+K, módulos, tooltips,
+   Status da loja, Painel Master/Sair ou qualquer conteúdo interno —
+   só a largura do trilho que os contém.
+   ================================================================ */
+
+@media (min-width: 768px) {
+    #admin-sidebar#admin-sidebar {
+        grid-template-columns: minmax(0, 1fr) !important;
+        justify-items: stretch !important;
+    }
+
+    #admin-sidebar#admin-sidebar > div:first-child,
+    #admin-sidebar#admin-sidebar > #sidebar-nav,
+    #admin-sidebar#admin-sidebar > #box-atalho,
+    #admin-sidebar#admin-sidebar > #box-logout {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+        justify-self: stretch !important;
+    }
+
+    /* Cartão de identidade: mesma garantia, um nível abaixo do
+       wrapper (não é filho direto do grid, é neto). */
+    #admin-sidebar#admin-sidebar > div:first-child
+    > .aura-sidebar-identity-compact {
+        box-sizing: border-box !important;
+        width: 100% !important;
+        min-width: 0 !important;
+        max-width: none !important;
+    }
+}

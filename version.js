@@ -138,11 +138,27 @@ window.VIDE_AURA_BUILD = Object.freeze({
         );
     }
 
+    function carregarLarguraDesktopSidebar() {
+        if (
+            !document.getElementById(
+                "admin-sidebar"
+            )
+        ) {
+            return;
+        }
+
+        adicionarCSS(
+            "vide-sidebar-desktop-width-css",
+            "./sidebar-desktop-width-v1.css?v=20260728-1"
+        );
+    }
+
     function iniciar() {
         carregarDashboardExecutivo();
         carregarConfiguracoesExecutivas();
         carregarPedidosExecutivos();
         carregarIdentidadeCompactaSidebar();
+        carregarLarguraDesktopSidebar();
     }
 
     if (

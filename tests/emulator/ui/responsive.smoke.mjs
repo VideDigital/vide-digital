@@ -456,6 +456,161 @@ function avaliarLargurasSidebarMobile(medida, viewportNome) {
     return problemas;
 }
 
+// Trilho interno da sidebar no desktop (>=768px, onde
+// dashboard-modules.css transforma #admin-sidebar em display:grid).
+// Sem abrir overlay nenhum — no desktop a sidebar já fica visível o
+// tempo todo. Mede a mesma coisa que a versão mobile (largura útil
+// real vs. largura de cada bloco principal), mas para o layout de
+// grid de desktop, que tem uma causa estrutural diferente do overlay.
+async function medirLargurasSidebarDesktop(page) {
+    return page.evaluate(() => {
+        const sidebar = document.getElementById("admin-sidebar");
+
+        if (!sidebar) {
+            return null;
+        }
+
+        const wrapper = sidebar.querySelector(":scope > div:first-child");
+        const identity = sidebar.querySelector(
+            ".aura-sidebar-identity-compact"
+        );
+        const nav = document.getElementById("sidebar-nav");
+        const status = document.getElementById("box-atalho");
+        const account = document.getElementById("box-logout");
+
+        const estiloSidebar = getComputedStyle(sidebar);
+        const paddingLeft = parseFloat(estiloSidebar.paddingLeft) || 0;
+        const paddingRight = parseFloat(estiloSidebar.paddingRight) || 0;
+        const sidebarBox = sidebar.getBoundingClientRect();
+        const usableWidth =
+            sidebar.clientWidth - paddingLeft - paddingRight;
+        const usableLeft = sidebarBox.left + paddingLeft;
+        const usableRight = sidebarBox.right - paddingRight;
+
+        const medirBloco = elemento => {
+            if (!elemento) {
+                return null;
+            }
+
+            const estilo = getComputedStyle(elemento);
+            const visivel =
+                estilo.display !== "none" &&
+                estilo.visibility !== "hidden";
+
+            if (!visivel) {
+                return { visivel: false };
+            }
+
+            const box = elemento.getBoundingClientRect();
+
+            return {
+                visivel: true,
+                width: box.width,
+                height: box.height,
+                left: box.left,
+                right: box.right,
+                ratio: usableWidth > 0 ? box.width / usableWidth : null,
+                folgaEsquerda: box.left - usableLeft,
+                folgaDireita: usableRight - box.right
+            };
+        };
+
+        return {
+            viewportWidth: window.innerWidth,
+            sidebarDisplay: estiloSidebar.display,
+            sidebarWidth: sidebarBox.width,
+            usableWidth,
+            paddingLeft,
+            paddingRight,
+            wrapper: medirBloco(wrapper),
+            identity: medirBloco(identity),
+            nav: medirBloco(nav),
+            status: medirBloco(status),
+            account: medirBloco(account)
+        };
+    });
+}
+
+function avaliarLargurasSidebarDesktop(medida, viewportNome) {
+    const problemas = [];
+
+    if (!medida) {
+        problemas.push(
+            `Sidebar desktop @ ${viewportNome}: #admin-sidebar não ` +
+            "encontrado."
+        );
+        return problemas;
+    }
+
+    const blocos = [
+        ["wrapper (identidade)", medida.wrapper],
+        ["identidade", medida.identity],
+        ["navegação", medida.nav],
+        ["Status da loja", medida.status],
+        ["rodapé de conta", medida.account]
+    ];
+
+    const larguras = [];
+
+    for (const [nome, bloco] of blocos) {
+        if (!bloco || bloco.visivel === false) {
+            continue;
+        }
+
+        larguras.push(bloco.width);
+
+        if (bloco.ratio !== null && bloco.ratio < 0.94) {
+            problemas.push(
+                `Sidebar desktop @ ${viewportNome}: ${nome} ocupa ` +
+                `${(bloco.ratio * 100).toFixed(0)}% da largura útil; ` +
+                "esperado >= 94%."
+            );
+        }
+
+        if (bloco.folgaEsquerda > 12) {
+            problemas.push(
+                `Sidebar desktop @ ${viewportNome}: ${nome} deixa ` +
+                `${bloco.folgaEsquerda.toFixed(1)}px de folga à ` +
+                "esquerda da largura útil (esperado <= 12px)."
+            );
+        }
+
+        if (bloco.folgaDireita > 12) {
+            problemas.push(
+                `Sidebar desktop @ ${viewportNome}: ${nome} deixa ` +
+                `${bloco.folgaDireita.toFixed(1)}px de folga à ` +
+                "direita da largura útil (esperado <= 12px) — faixa " +
+                "vazia estrutural."
+            );
+        }
+    }
+
+    if (larguras.length >= 2) {
+        const diferenca = Math.max(...larguras) - Math.min(...larguras);
+
+        if (diferenca > 16) {
+            problemas.push(
+                `Sidebar desktop @ ${viewportNome}: diferença de ` +
+                `${diferenca.toFixed(1)}px entre as larguras dos ` +
+                "blocos principais (esperado <= 16px) — trilho " +
+                "desalinhado."
+            );
+        }
+    }
+
+    if (medida.identity && medida.identity.visivel !== false) {
+        if (medida.identity.height > 64) {
+            problemas.push(
+                `Sidebar desktop @ ${viewportNome}: identidade com ` +
+                `${medida.identity.height.toFixed(1)}px de altura, ` +
+                "acima do limite de 64px."
+            );
+        }
+    }
+
+    return problemas;
+}
+
 function medirOverflow(page) {
     return page.evaluate(() => {
         const documento = document.documentElement;
@@ -657,6 +812,72 @@ async function main() {
                     );
                 }
             }
+        }
+
+        // Trilho interno da sidebar em desktop largo (768px+, onde
+        // dashboard-modules.css liga display:grid no #admin-sidebar):
+        // confirma que identidade, navegação, Status da loja e rodapé
+        // preenchem a largura útil, não uma coluna implícita estreita
+        // com uma faixa vazia sobrando à direita.
+        {
+            const VIEWPORTS_DESKTOP = {
+                "notebook-1366": VIEWPORTS["notebook-1366"],
+                "desktop-1440": VIEWPORTS["desktop-1440"],
+                "desktop-1920": { width: 1920, height: 900 }
+            };
+
+            const diagDir = path.join(
+                REPO_ROOT,
+                "test-results",
+                "ui-diagnostics"
+            );
+            await mkdir(diagDir, { recursive: true });
+
+            const diagnosticoDesktop = {};
+
+            await fecharCamadasAbertas(page);
+
+            await page.evaluate(id => {
+                return typeof window.ativarAba === "function"
+                    ? window.ativarAba(id)
+                    : false;
+            }, "view-dashboard");
+
+            for (const [viewportNome, viewport] of Object.entries(
+                VIEWPORTS_DESKTOP
+            )) {
+                await page.setViewportSize(viewport);
+                await aguardarRender(page);
+
+                const medidaDesktop =
+                    await medirLargurasSidebarDesktop(page);
+
+                diagnosticoDesktop[viewportNome] = medidaDesktop;
+
+                await page.screenshot({
+                    path: path.join(
+                        diagDir,
+                        `sidebar-desktop-${viewport.width}.png`
+                    ),
+                    fullPage: false
+                }).catch(() => {});
+
+                problemas.push(
+                    ...avaliarLargurasSidebarDesktop(
+                        medidaDesktop,
+                        viewportNome
+                    )
+                );
+            }
+
+            await writeFile(
+                path.join(diagDir, "sidebar-desktop-widths.json"),
+                JSON.stringify(diagnosticoDesktop, null, 2),
+                "utf8"
+            ).catch(() => {});
+
+            await page.setViewportSize(VIEWPORTS["desktop-1440"]);
+            await aguardarRender(page);
         }
 
         // Ctrl+K continua abrindo a Aura Command Center (não foi tocada
