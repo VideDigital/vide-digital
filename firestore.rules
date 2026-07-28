@@ -530,9 +530,12 @@ service cloud.firestore {
     // existente — não é uma estrutura paralela) =====
     //
     // Visitante da loja pública cria o chat e manda mensagens "cliente"
-    // direto; dono/funcionário responde com "admin". O id do chat é um
-    // token aleatório do Firestore, então serve de capability pro
-    // visitante ler as mensagens do próprio chat.
+    // direto; dono/funcionário responde com "admin". Chats legados (V1, sem
+    // Anonymous Auth): o id do chat é um token aleatório do Firestore, e
+    // serve de capability pro visitante ler as mensagens do próprio chat.
+    // Chats V2 (Anonymous Auth, ver docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md):
+    // exigem identidade real (visitorUid == request.auth.uid) — ver
+    // isAnonymousAuth()/visitantePodeAcessarChat() mais abaixo.
     //
     // status é o campo novo e mais rico (6 estados) usado pela Central de
     // Atendimento; statusAdmin ("pendente"/"respondido") é o campo legado
@@ -542,6 +545,10 @@ service cloud.firestore {
       return status in ["nova", "aberta", "aguardando_cliente", "aguardando_equipe", "resolvida", "arquivada"];
     }
 
+    // Caminho LEGADO (V1): sem Anonymous Auth, o id aleatório do documento
+    // é a única capability. Mantido por compatibilidade — ver
+    // chatLegadoSemVisitor() logo abaixo, que impede que este caminho
+    // continue valendo pra um chat que já nasceu V2.
     function chatPublicoValido() {
       return request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja"])
         && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
@@ -555,9 +562,72 @@ service cloud.firestore {
     // O visitante só toca no resumo/status ao mandar mensagem — nunca em
     // atribuição, setor ou nos campos administrativos da Central de
     // Atendimento (esses só mudam pela escrita autenticada abaixo).
+    // chatLegadoSemVisitor() garante que este caminho (sem exigir Auth
+    // nenhum) só continue valendo pra chats que JÁ nasceram sem
+    // visitorUid/versaoAcesso — um chat V2 nunca volta a aceitar escrita
+    // pública sem identidade, mesmo que o atacante conheça o id.
     function chatUpdatePublicoValido() {
       let antes = resource.data.keys().hasAny(["naoLidasLoja"]) && resource.data.naoLidasLoja is number ? resource.data.naoLidasLoja : 0;
-      return request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "status", "atualizadoEm", "naoLidasLoja"])
+      return chatLegadoSemVisitor(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "status", "atualizadoEm", "naoLidasLoja"])
+        && request.resource.data.statusAdmin == "pendente"
+        && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "aguardando_equipe")
+        && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == antes + 1)
+        && donoUIDUnchanged();
+    }
+
+    // ===== Anonymous Auth no chat público V2 (rollout em duas fases,
+    // ver docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md) =====
+    //
+    // Substitui "conhecer o id do chat" por uma identidade real de
+    // visitante (Firebase Anonymous Auth). Um chat V2 sempre grava
+    // visitorUid == request.auth.uid (no momento da criação) e
+    // versaoAcesso == 2; os dois campos são imutáveis dali em diante —
+    // nenhum caminho de update (público ou administrativo) os inclui na
+    // lista de chaves permitidas.
+    function isAnonymousAuth() {
+      return signedIn()
+        && request.auth.token.keys().hasAny(["firebase"])
+        && request.auth.token.firebase.keys().hasAny(["sign_in_provider"])
+        && request.auth.token.firebase.sign_in_provider == "anonymous";
+    }
+    function chatTemAcessoV2(chatData) {
+      return chatData.keys().hasAll(["visitorUid", "versaoAcesso"])
+        && chatData.visitorUid is string
+        && chatData.visitorUid != ""
+        && chatData.versaoAcesso == 2;
+    }
+    // Documento sem o par visitorUid/versaoAcesso == 2 completo conta como
+    // legado — inclui chats criados antes desta etapa E qualquer tentativa
+    // de escrever só um dos dois campos (nunca um estado "meio V2").
+    function chatLegadoSemVisitor(chatData) {
+      return !chatTemAcessoV2(chatData);
+    }
+    function visitantePodeAcessarChat(chatData) {
+      return isAnonymousAuth()
+        && chatTemAcessoV2(chatData)
+        && chatData.visitorUid == request.auth.uid;
+    }
+    function chatPublicoV2CreateValido() {
+      return isAnonymousAuth()
+        && request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja", "visitorUid", "versaoAcesso"])
+        && request.resource.data.keys().hasAll(["donoUID", "clienteNome", "visitorUid", "versaoAcesso"])
+        && request.resource.data.donoUID is string
+        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.donoUID))
+        && request.resource.data.visitorUid == request.auth.uid
+        && request.resource.data.versaoAcesso == 2
+        && request.resource.data.statusAdmin == "pendente"
+        && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "nova")
+        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro"])
+        && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == 1);
+    }
+    // Espelha chatUpdatePublicoValido(), mas só quem tem a identidade
+    // (visitorUid == request.auth.uid) pode tocar no próprio chat — nunca
+    // mais basta conhecer o id.
+    function chatPublicoV2UpdateValido() {
+      let antes = resource.data.keys().hasAny(["naoLidasLoja"]) && resource.data.naoLidasLoja is number ? resource.data.naoLidasLoja : 0;
+      return visitantePodeAcessarChat(resource.data)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(["ultimaMensagem", "statusAdmin", "status", "atualizadoEm", "naoLidasLoja"])
         && request.resource.data.statusAdmin == "pendente"
         && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "aguardando_equipe")
         && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == antes + 1)
@@ -680,6 +750,7 @@ service cloud.firestore {
       let data = request.resource.data;
       return exists(chatRef)
         && chatNaoArquivado(chatData)
+        && chatLegadoSemVisitor(chatData)
         && data.keys().hasOnly(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "resumo", "criadoEm", "versaoSchema"])
         && data.keys().hasAll(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "criadoEm", "versaoSchema"])
         && data.chatId == chatId
@@ -688,6 +759,30 @@ service cloud.firestore {
         && data.tipo in ["conversa_criada", "mensagem_cliente_recebida", "aguardando_equipe", "cliente_respondeu_apos_resolucao"]
         && data.categoria == categoriaEventoAtendimentoEsperada(data.tipo)
         && data.autorUid == ""
+        && data.autorTipo == "cliente"
+        && data.origem == "cliente"
+        && data.criadoEm == request.time
+        && data.versaoSchema == 1
+        && (!data.keys().hasAny(["resumo"]) || (data.resumo is string && data.resumo.size() <= 300));
+    }
+    // Espelha eventoAtendimentoClientePublicoValido(), mas para chats V2:
+    // autoria real (autorUid == request.auth.uid), nunca vazia — só quem
+    // tem a identidade do visitante grava evento nesta conversa.
+    function eventoClienteV2Valido(chatId) {
+      let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      let chatData = get(chatRef).data;
+      let data = request.resource.data;
+      return exists(chatRef)
+        && chatNaoArquivado(chatData)
+        && visitantePodeAcessarChat(chatData)
+        && data.keys().hasOnly(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "resumo", "criadoEm", "versaoSchema"])
+        && data.keys().hasAll(["tenantId", "lojaId", "chatId", "tipo", "categoria", "autorUid", "autorTipo", "origem", "criadoEm", "versaoSchema"])
+        && data.chatId == chatId
+        && data.tenantId == donoUidDoChat(chatData)
+        && data.lojaId == data.tenantId
+        && data.tipo in ["conversa_criada", "mensagem_cliente_recebida", "aguardando_equipe", "cliente_respondeu_apos_resolucao"]
+        && data.categoria == categoriaEventoAtendimentoEsperada(data.tipo)
+        && data.autorUid == request.auth.uid
         && data.autorTipo == "cliente"
         && data.origem == "cliente"
         && data.criadoEm == request.time
@@ -704,14 +799,34 @@ service cloud.firestore {
     }
     function mensagemClienteValida(chatId) {
       let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      let chatData = get(chatRef).data;
       return exists(chatRef)
-        && chatNaoArquivado(get(chatRef).data)
+        && chatNaoArquivado(chatData)
+        && chatLegadoSemVisitor(chatData)
         && request.resource.data.sender == "cliente"
         && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm", "autorTipo"])
         && request.resource.data.texto is string
         && request.resource.data.texto.size() > 0
         && request.resource.data.texto.size() <= 4000
         && (!request.resource.data.keys().hasAny(["autorTipo"]) || request.resource.data.autorTipo == "cliente");
+    }
+    // Espelha mensagemClienteValida(), mas exige a identidade do visitante
+    // V2 e sempre grava autorUid real (nunca vazio) — ver "MENSAGENS DO
+    // CLIENTE V2" em docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md.
+    function mensagemClienteV2Valida(chatId) {
+      let chatRef = /databases/$(database)/documents/chats/$(chatId);
+      let chatData = get(chatRef).data;
+      return exists(chatRef)
+        && chatNaoArquivado(chatData)
+        && visitantePodeAcessarChat(chatData)
+        && request.resource.data.sender == "cliente"
+        && request.resource.data.keys().hasOnly(["texto", "sender", "timestamp", "criadoEm", "autorTipo", "autorUid"])
+        && request.resource.data.keys().hasAll(["texto", "sender", "autorTipo", "autorUid"])
+        && request.resource.data.texto is string
+        && request.resource.data.texto.size() > 0
+        && request.resource.data.texto.size() <= 4000
+        && request.resource.data.autorTipo == "cliente"
+        && request.resource.data.autorUid == request.auth.uid;
     }
     // autorNome não é revalidado contra o cadastro (custaria mais um
     // get() por escrita) — a confiança vem de nenhuma tela oferecer um
@@ -1412,38 +1527,44 @@ allow update: if (
     }
 
     match /chats/{chatId} {
-      allow read: if signedIn()
-        && (
-          isBackendAdmin()
-          || (hasTenantField("emailDono") && (canViewTenant(resource.data.emailDono, "atendimento") || canViewTenant(resource.data.emailDono, "leads")))
-          || (hasTenantField("donoUID") && (canViewTenant(resource.data.donoUID, "atendimento") || canViewTenant(resource.data.donoUID, "leads")))
-        );
-      // Visitante da loja cria o chat direto (validado); dono/funcionário
-      // também pode (conversa interna, ex.: registrar um atendimento por
-      // outro canal) — mesma validação de chaves/tipos do fluxo público,
-      // só que sem exigir statusAdmin/status fixos.
+      allow read: if isBackendAdmin()
+        || (signedIn() && hasTenantField("emailDono") && (canViewTenant(resource.data.emailDono, "atendimento") || canViewTenant(resource.data.emailDono, "leads")))
+        || (signedIn() && hasTenantField("donoUID") && (canViewTenant(resource.data.donoUID, "atendimento") || canViewTenant(resource.data.donoUID, "leads")))
+        // Anonymous Auth V2: o próprio visitante pode ler (get) o chat que
+        // criou — nunca list, nunca o chat de outro visitante (ver
+        // visitantePodeAcessarChat()).
+        || visitantePodeAcessarChat(resource.data);
+      // Visitante da loja cria o chat direto (validado, V1 legado ou V2
+      // com Anonymous Auth); dono/funcionário também pode (conversa
+      // interna, ex.: registrar um atendimento por outro canal) — mesma
+      // validação de chaves/tipos do fluxo público, só que sem exigir
+      // statusAdmin/status fixos.
       allow create: if chatPublicoValido()
+        || chatPublicoV2CreateValido()
         || (
           canEditTenant(request.resource.data.donoUID, "atendimento") || canEditTenant(request.resource.data.donoUID, "leads")
         ) && request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "setor", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja", "naoLidasCliente"])
           && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
           && (!request.resource.data.keys().hasAny(["status"]) || statusConversaValido(request.resource.data.status))
           && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "interno", "whatsapp_futuro"]);
-      // Visitante só mexe em resumo/status ao mandar mensagem; dono/funcionário
-      // usa o caminho validado da Central de Atendimento (status, atribuição,
-      // setor, observações — nunca doar tenant nem inventar campo novo).
-      allow update: if chatUpdatePublicoValido() || chatAdminUpdateValido();
+      // Visitante só mexe em resumo/status ao mandar mensagem (V1 legado
+      // OU V2 com a identidade certa — nunca os dois ao mesmo tempo pro
+      // mesmo chat); dono/funcionário usa o caminho validado da Central de
+      // Atendimento (status, atribuição, setor, observações — nunca doar
+      // tenant nem inventar campo novo).
+      allow update: if chatUpdatePublicoValido() || chatPublicoV2UpdateValido() || chatAdminUpdateValido();
       allow delete: if (hasTenantField("donoUID") && (canEditTenant(resource.data.donoUID, "atendimento") || canEditTenant(resource.data.donoUID, "leads")))
         || (hasTenantField("emailDono") && (canEditTenant(resource.data.emailDono, "atendimento") || canEditTenant(resource.data.emailDono, "leads")));
 
       match /mensagens/{msgId} {
-        // Visitante não autenticado: conhecer o id do chat (token aleatório)
-        // já é a capability de leitura — é assim que o próprio widget lê a
-        // conversa que acabou de criar, sem Auth. Usuário autenticado: só
-        // lê se realmente pertencer ao tenant dono do chat (dono, admin
-        // backend ou funcionário com permissão) — sem esse recorte, outro
-        // dono autenticado que soubesse/adivinhasse o id conseguiria ler
-        // mensagens de um tenant alheio.
+        // Visitante não autenticado (chat V1 legado): conhecer o id do
+        // chat (token aleatório) já é a capability de leitura. Visitante
+        // autenticado anônimo (chat V2): só lê se a identidade bater com o
+        // visitorUid do próprio chat. Equipe: só lê se realmente pertencer
+        // ao tenant dono do chat (dono, admin backend ou funcionário com
+        // permissão) — sem esse recorte, outro dono autenticado que
+        // soubesse/adivinhasse o id conseguiria ler mensagens de um tenant
+        // alheio.
         allow read: if
           (!signedIn() && exists(/databases/$(database)/documents/chats/$(chatId)))
           || (
@@ -1452,19 +1573,22 @@ allow update: if (
             && (
               isBackendAdmin()
               || podeVerChat(get(/databases/$(database)/documents/chats/$(chatId)).data)
+              || visitantePodeAcessarChat(get(/databases/$(database)/documents/chats/$(chatId)).data)
             )
           );
-        // Cliente cria mensagem "cliente"; dono/funcionário cria "admin".
-        allow create: if mensagemClienteValida(chatId) || mensagemAdminValida(chatId);
+        // Cliente cria mensagem "cliente" (V1 legado ou V2 com autoria
+        // real); dono/funcionário cria "admin".
+        allow create: if mensagemClienteValida(chatId) || mensagemClienteV2Valida(chatId) || mensagemAdminValida(chatId);
         allow update, delete: if false;
       }
 
       // Histórico imutável da conversa. Preferência do produto: nunca
       // expor esta subcoleção ao cliente público em leitura (mesmo sabendo
-      // o id do chat) — só quem tem acesso à conversa como equipe.
+      // o id do chat, ou sendo o visitante V2 dono do chat) — só quem tem
+      // acesso à conversa como equipe.
       match /eventos/{eventoId} {
         allow read: if isBackendAdmin() || (exists(/databases/$(database)/documents/chats/$(chatId)) && podeVerChat(get(/databases/$(database)/documents/chats/$(chatId)).data));
-        allow create: if eventoAtendimentoStaffValido(chatId) || eventoAtendimentoClientePublicoValido(chatId);
+        allow create: if eventoAtendimentoStaffValido(chatId) || eventoAtendimentoClientePublicoValido(chatId) || eventoClienteV2Valido(chatId);
         allow update, delete: if false;
       }
     }

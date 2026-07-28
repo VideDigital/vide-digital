@@ -56,9 +56,18 @@ está envolvida aqui.
   timestamp: number,
   criadoEm: number,
   ultimaMensagem: "string",
-  atualizadoEm: number
+  atualizadoEm: number,
+  visitorUid: "{uid Anonymous Auth} (opcional, chats V2)",   // imutável
+  versaoAcesso: "2 (opcional, chats V2)"                      // imutável
 }
 ```
+
+Desde o ciclo "Anonymous Auth no Chat Público" (Fase A,
+`docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`), chats novos ganham `visitorUid`/
+`versaoAcesso` e passam a exigir Firebase Anonymous Auth em vez de só
+conhecer o id do documento — este bloco só documenta os campos; o modelo
+completo (Rules, app secundário, restauração, fallback transitório) está no
+documento dedicado.
 
 ### Subcoleção `chats/{chatId}/mensagens/{msgId}` (id automático)
 
@@ -130,7 +139,7 @@ de Atendimento compartilham o mesmo dado).
 | Funcionário ativo com "ver" atendimento/leads | lê conversas e mensagens, não responde nem muda status |
 | Funcionário ativo com "editar" atendimento/leads | ver + responder + mudar status + atribuir |
 | Funcionário inativo / sem permissão | bloqueado (módulo invisível) |
-| Outro tenant / anônimo autenticado sem vínculo | bloqueado — só o visitante anônimo que criou o chat lê aquela conversa específica (capability pelo id) |
+| Outro tenant / anônimo autenticado sem vínculo | bloqueado — o visitante que criou um chat V1 legado lê aquela conversa específica pelo id (capability); um visitante V2 (Anonymous Auth) só lê se `visitorUid == request.auth.uid` — ver `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md` |
 
 ## Notificações
 

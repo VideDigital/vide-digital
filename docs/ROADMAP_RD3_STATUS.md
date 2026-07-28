@@ -45,13 +45,14 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 
 ## PARCIAL
 
-_Nenhuma entrega parcial no momento._
+| Entrega | Onde | Observação |
+|---|---|---|
+| Anonymous Auth no chat público — **Fase A concluída** (preparação compatível): app Firebase secundário (`public-chat-auth-v1.js`), chat V2 com `visitorUid`/`versaoAcesso`, autoria real em mensagens/eventos do visitante, restauração por sessão persistida, Rules aditivas (chat V2 nunca mais aceita escrita pública sem identidade, mesmo durante a janela de rollout), fallback transitório pro caminho V1 legado enquanto o passo externo não é confirmado | `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`, `public-chat-auth-core.js`, `public-chat-auth-v1.js`, `loja.html`, `firestore.rules` | **Proteção obrigatória (Fase B) ainda pendente** — falta: (1) habilitar Anonymous Auth no Firebase Console (produção); (2) publicar as Rules desta Fase A; (3) confirmar chat V2 real em produção; (4) só então remover o fallback legado e negar criação de chat V1 novo. Ver checklist em `docs/HANDOFF_2026-07-28.md` |
 
 ## NÃO INICIADO
 
 | Entrega | Observação |
 |---|---|
-| Anonymous Auth no chat público | Hoje a capability é o id aleatório do chat. Ativar Firebase Anonymous Auth é etapa EXTERNA (console); depois, vincular `visitorUid` ao `request.auth.uid` nas regras |
 | WhatsApp oficial | Depende do backend externo |
 | Auditoria centralizada pós-Functions | `writeAudit` deixou de existir nas operações migradas |
 

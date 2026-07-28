@@ -149,6 +149,13 @@ function anon() {
   return testEnv.unauthenticatedContext().firestore();
 }
 
+// Anonymous Auth no chat público V2: mesma authenticatedContext(), mas com
+// o claim que o Firebase Auth real sempre inclui numa sessão anônima —
+// isAnonymousAuth() (firestore.rules) confere exatamente esse campo.
+function anonV2(uid) {
+  return testEnv.authenticatedContext(uid, { firebase: { sign_in_provider: "anonymous" } }).firestore();
+}
+
 function avaliacaoValida(overrides = {}) {
   return {
     produtoId: "prodA",
@@ -1137,6 +1144,234 @@ describe("mensagens: autoria e transição arquivada", () => {
     await assertSucceeds(getDocs(collection(anon(), "chats", "chatMsg12", "mensagens")));
     await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatMsg12", "mensagens", "m1"), { texto: "Editado" }));
     await assertFails(deleteDoc(doc(authed("ownerA"), "chats", "chatMsg12", "mensagens", "m1")));
+  });
+});
+
+// ===== Anonymous Auth no chat público V2 (docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md) =====
+
+function chatV2Fixture(overrides = {}) {
+  return {
+    donoUID: "ownerA",
+    emailDono: "ownerA",
+    clienteNome: "Visitante V2",
+    statusAdmin: "pendente",
+    status: "nova",
+    canal: "loja_publica",
+    timestamp: Date.now(),
+    naoLidasLoja: 1,
+    visitorUid: "visitorA1",
+    versaoAcesso: 2,
+    ...overrides
+  };
+}
+
+async function semearChatV2(id, overrides = {}) {
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "chats", id), chatV2Fixture(overrides));
+  });
+}
+
+describe("chats V2: criação com Anonymous Auth", () => {
+  it("visitante anônimo cria chat V2 com visitorUid == request.auth.uid", async () => {
+    await assertSucceeds(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create1"), chatV2Fixture()));
+  });
+
+  it("usuário NÃO anônimo (senha/e-mail) nunca cria pelo caminho público — só equipe autenticada com permissão", async () => {
+    // ownerA tem permissão de atendimento/leads em si mesmo (é o dono), mas
+    // não está criando como conversa interna válida aqui (falta a
+    // whitelist do caminho "dono cria conversa interna"); o ponto do teste
+    // é que chatPublicoV2CreateValido() exige isAnonymousAuth() — um uid
+    // autenticado comum nunca passa por ali mesmo que o resto bata.
+    await assertFails(setDoc(doc(authed("visitorA1"), "chats", "chatV2Create2"), chatV2Fixture()));
+  });
+
+  it("visitante não forja visitorUid de outra sessão nem versaoAcesso diferente de 2", async () => {
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create3"), chatV2Fixture({ visitorUid: "outroUid" })));
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create4"), chatV2Fixture({ versaoAcesso: 1 })));
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create5"), chatV2Fixture({ versaoAcesso: 3 })));
+  });
+
+  it("visitante V2 continua sujeito às mesmas validações do contrato público (dono existente, status inicial, campo extra)", async () => {
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create6"), chatV2Fixture({ donoUID: "naoExiste" })));
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create7"), chatV2Fixture({ status: "resolvida" })));
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create8"), chatV2Fixture({ naoLidasLoja: 9 })));
+    await assertFails(setDoc(doc(anonV2("visitorA1"), "chats", "chatV2Create9"), { ...chatV2Fixture(), campoInvasor: true }));
+  });
+});
+
+describe("chats V2: leitura restrita ao próprio visitante", () => {
+  it("o visitante dono do chat lê (get) o próprio chat", async () => {
+    await semearChatV2("chatV2Read1", { visitorUid: "visitorA1" });
+    await assertSucceeds(getDoc(doc(anonV2("visitorA1"), "chats", "chatV2Read1")));
+  });
+
+  it("outro visitante (uid anônimo diferente) nunca lê o chat alheio", async () => {
+    await semearChatV2("chatV2Read2", { visitorUid: "visitorA1" });
+    await assertFails(getDoc(doc(anonV2("visitorB1"), "chats", "chatV2Read2")));
+  });
+
+  it("visitante V1 legado (sem Auth) nunca lê um chat V2 só por conhecer o id", async () => {
+    await semearChatV2("chatV2Read3", { visitorUid: "visitorA1" });
+    await assertFails(getDoc(doc(anon(), "chats", "chatV2Read3")));
+  });
+
+  it("equipe do tenant continua lendo normalmente um chat V2 (mesma regra de sempre)", async () => {
+    await semearChatV2("chatV2Read4", { visitorUid: "visitorA1" });
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "chats", "chatV2Read4")));
+  });
+});
+
+describe("chats V2: atualização (mensagem do cliente) só pelo próprio visitante", () => {
+  it("o visitante dono do chat atualiza o resumo/status ao mandar mensagem", async () => {
+    await semearChatV2("chatV2Upd1", { visitorUid: "visitorA1", naoLidasLoja: 1 });
+    await assertSucceeds(updateDoc(doc(anonV2("visitorA1"), "chats", "chatV2Upd1"), {
+      ultimaMensagem: "Nova mensagem", statusAdmin: "pendente", status: "aguardando_equipe",
+      atualizadoEm: Date.now(), naoLidasLoja: 2
+    }));
+  });
+
+  it("outro visitante nunca atualiza o chat alheio", async () => {
+    await semearChatV2("chatV2Upd2", { visitorUid: "visitorA1", naoLidasLoja: 1 });
+    await assertFails(updateDoc(doc(anonV2("visitorB1"), "chats", "chatV2Upd2"), {
+      ultimaMensagem: "Invasão", statusAdmin: "pendente", status: "aguardando_equipe",
+      atualizadoEm: Date.now(), naoLidasLoja: 2
+    }));
+  });
+
+  it("visitorUid e versaoAcesso são imutáveis — nenhum update (público ou próprio dono) os inclui na whitelist", async () => {
+    await semearChatV2("chatV2Upd3", { visitorUid: "visitorA1" });
+    await assertFails(updateDoc(doc(anonV2("visitorA1"), "chats", "chatV2Upd3"), { visitorUid: "outroUid" }));
+    await assertFails(updateDoc(doc(anonV2("visitorA1"), "chats", "chatV2Upd3"), { versaoAcesso: 1 }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatV2Upd3"), { visitorUid: "outroUid" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatV2Upd3"), { versaoAcesso: 3 }));
+  });
+
+  it("o caminho V1 legado (sem Auth) nunca mais atualiza um chat que já nasceu V2", async () => {
+    await semearChatV2("chatV2Upd4", { visitorUid: "visitorA1", naoLidasLoja: 1 });
+    await assertFails(updateDoc(doc(anon(), "chats", "chatV2Upd4"), {
+      ultimaMensagem: "Tentando pelo caminho antigo", statusAdmin: "pendente", status: "aguardando_equipe",
+      atualizadoEm: Date.now(), naoLidasLoja: 2
+    }));
+  });
+
+  it("equipe continua respondendo/mudando status de um chat V2 normalmente", async () => {
+    await semearChatV2("chatV2Upd5", { visitorUid: "visitorA1" });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatV2Upd5"), {
+      status: "resolvida", statusAtualizadoPor: "ownerA", statusAtualizadoEm: serverTimestamp()
+    }));
+  });
+});
+
+describe("mensagens V2: autoria real (nunca autorUid vazio)", () => {
+  it("o visitante dono do chat cria mensagem própria com autoria real", async () => {
+    await semearChatV2("chatMsgV2_1", { visitorUid: "visitorA1" });
+    await assertSucceeds(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatMsgV2_1", "mensagens")), {
+      texto: "Olá, tudo bem?", sender: "cliente", timestamp: Date.now(),
+      autorUid: "visitorA1", autorTipo: "cliente"
+    }));
+  });
+
+  it("outro visitante nunca cria mensagem no chat alheio", async () => {
+    await semearChatV2("chatMsgV2_2", { visitorUid: "visitorA1" });
+    await assertFails(setDoc(doc(collection(anonV2("visitorB1"), "chats", "chatMsgV2_2", "mensagens")), {
+      texto: "Invasão", sender: "cliente", timestamp: Date.now(),
+      autorUid: "visitorB1", autorTipo: "cliente"
+    }));
+  });
+
+  it("visitante V2 nunca forja autorUid de outra sessão nem omite a autoria", async () => {
+    await semearChatV2("chatMsgV2_3", { visitorUid: "visitorA1" });
+    await assertFails(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatMsgV2_3", "mensagens")), {
+      texto: "Autoria falsa", sender: "cliente", timestamp: Date.now(),
+      autorUid: "outroUid", autorTipo: "cliente"
+    }));
+    await assertFails(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatMsgV2_3", "mensagens")), {
+      texto: "Sem autoria", sender: "cliente", timestamp: Date.now()
+    }));
+  });
+
+  it("o caminho V1 legado (sem Auth) nunca mais cria mensagem num chat que já nasceu V2", async () => {
+    await semearChatV2("chatMsgV2_4", { visitorUid: "visitorA1" });
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatMsgV2_4", "mensagens")), {
+      texto: "Tentando pelo caminho antigo", sender: "cliente", timestamp: Date.now()
+    }));
+  });
+
+  it("mensagem em chat V2 arquivado continua bloqueada", async () => {
+    await semearChatV2("chatMsgV2_5", { visitorUid: "visitorA1", status: "arquivada" });
+    await assertFails(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatMsgV2_5", "mensagens")), {
+      texto: "Ainda dá pra falar?", sender: "cliente", timestamp: Date.now(),
+      autorUid: "visitorA1", autorTipo: "cliente"
+    }));
+  });
+
+  it("equipe continua respondendo mensagens num chat V2 normalmente", async () => {
+    await semearChatV2("chatMsgV2_6", { visitorUid: "visitorA1" });
+    await assertSucceeds(setDoc(doc(collection(authed("ownerA"), "chats", "chatMsgV2_6", "mensagens")), {
+      texto: "Oi! Como posso ajudar?", sender: "admin", timestamp: Date.now(),
+      autorTipo: "proprietario", autorUid: "ownerA"
+    }));
+  });
+});
+
+describe("chats/eventos V2: autoria real (nunca autorUid vazio)", () => {
+  it("o visitante dono do chat cria evento próprio com autoria real", async () => {
+    await semearChatV2("chatEvtV2_1", { visitorUid: "visitorA1" });
+    await assertSucceeds(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatEvtV2_1", "eventos")), {
+      tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvtV2_1",
+      tipo: "conversa_criada", categoria: "atendimento",
+      autorUid: "visitorA1", autorTipo: "cliente", origem: "cliente",
+      criadoEm: serverTimestamp(), versaoSchema: 1
+    }));
+  });
+
+  it("outro visitante nunca cria evento no chat alheio", async () => {
+    await semearChatV2("chatEvtV2_2", { visitorUid: "visitorA1" });
+    await assertFails(setDoc(doc(collection(anonV2("visitorB1"), "chats", "chatEvtV2_2", "eventos")), {
+      tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvtV2_2",
+      tipo: "mensagem_cliente_recebida", categoria: "mensagens",
+      autorUid: "visitorB1", autorTipo: "cliente", origem: "cliente",
+      criadoEm: serverTimestamp(), versaoSchema: 1
+    }));
+  });
+
+  it("visitante V2 nunca grava autorUid vazio nem tipo administrativo", async () => {
+    await semearChatV2("chatEvtV2_3", { visitorUid: "visitorA1" });
+    await assertFails(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatEvtV2_3", "eventos")), {
+      tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvtV2_3",
+      tipo: "mensagem_cliente_recebida", categoria: "mensagens",
+      autorUid: "", autorTipo: "cliente", origem: "cliente",
+      criadoEm: serverTimestamp(), versaoSchema: 1
+    }));
+    await assertFails(setDoc(doc(collection(anonV2("visitorA1"), "chats", "chatEvtV2_3", "eventos")), {
+      tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvtV2_3",
+      tipo: "conversa_resolvida", categoria: "atendimento",
+      autorUid: "visitorA1", autorTipo: "cliente", origem: "cliente",
+      criadoEm: serverTimestamp(), versaoSchema: 1
+    }));
+  });
+
+  it("o caminho V1 legado (sem Auth) nunca mais cria evento num chat que já nasceu V2", async () => {
+    await semearChatV2("chatEvtV2_4", { visitorUid: "visitorA1" });
+    await assertFails(setDoc(doc(collection(anon(), "chats", "chatEvtV2_4", "eventos")), {
+      tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvtV2_4",
+      tipo: "conversa_criada", categoria: "atendimento",
+      autorUid: "", autorTipo: "cliente", origem: "cliente",
+      criadoEm: serverTimestamp(), versaoSchema: 1
+    }));
+  });
+
+  it("visitante nunca lê a subcoleção de eventos do próprio chat V2 (contrato preservado)", async () => {
+    await semearChatV2("chatEvtV2_5", { visitorUid: "visitorA1" });
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatEvtV2_5", "eventos", "evt1"), {
+        tenantId: "ownerA", lojaId: "ownerA", chatId: "chatEvtV2_5",
+        tipo: "conversa_criada", categoria: "atendimento",
+        autorUid: "visitorA1", autorTipo: "cliente", origem: "cliente",
+        criadoEm: new Date(), versaoSchema: 1
+      });
+    });
+    await assertFails(getDocs(collection(anonV2("visitorA1"), "chats", "chatEvtV2_5", "eventos")));
   });
 });
 

@@ -1641,6 +1641,15 @@
         import { collection, doc, getDoc, getDocs, setDoc, query, where, onSnapshot, increment, orderBy, serverTimestamp, writeBatch } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
         import { connectFunctionsEmulator, getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
         import { criarIaNegocioPublicaController } from "./ia-negocio-publica.js";
+        import {
+            erroIndicaFallbackTransitorio,
+            garantirVisitanteAnonimo,
+            normalizarErroChatPublico,
+            obterDbPublico,
+            restaurarChatSalvo,
+            salvarChatAtual,
+            sanitizarNomeVisitanteChat
+        } from "./public-chat-auth-v1.js";
 
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get("loja");
@@ -1668,6 +1677,14 @@
         // só pra decidir, no envio de mensagem, se o evento é o normal
         // "aguardando_equipe" ou o distinto "cliente_respondeu_apos_resolucao".
         let chatStatusAtual = "nova";
+        // Anonymous Auth no chat público (Fase A, ver
+        // docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md). Vazio = chat V1 legado
+        // (sem identidade); preenchido = chat V2, autenticado com
+        // Anonymous Auth, autoria real em mensagens/eventos.
+        let visitorUidAtual = "";
+        let chatConectando = false;
+        let chatRestaurando = false;
+        let tentouRestaurarChat = false;
         let produtoDetalhesAtualId = "";
         let produtoDetalhesFocoAnterior = null;
         let notaAvaliacaoSelecionada = 0;
@@ -3697,6 +3714,12 @@
                 if (publicSnap.exists()) {
                     const dados = publicSnap.data();
                     fornecedorEmail = dados.emailDono;
+                    // Fire-and-forget: se não houver referência salva pra
+                    // esta loja, retorna quase instantaneamente sem criar
+                    // nenhuma conta anônima (ver restaurarChatSalvo em
+                    // public-chat-auth-v1.js). Só quem já conversou antes
+                    // paga o custo de reidratar a sessão anônima aqui.
+                    tentarRestaurarChatSalvo();
                     whatsappDono = normalizarWhatsappBrasil(dados.whatsappCentral || dados.whatsappChat || "");
                     carrinhoAtivo = dados.carrinhoAtivo === true;
                     carrinhoMensagemCustom = dados.carrinhoMensagem || "";
@@ -4908,6 +4931,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             atualizarEstadoJanelaA11y("chat-window", "chat-trigger-btn", deveAbrir);
             if (deveAbrir) {
                 registrarFocoAnteriorA11y("chat");
+                tentarRestaurarChatSalvo();
                 requestAnimationFrame(function() { document.getElementById("chat-client-input")?.focus(); });
             } else {
                 restaurarFocoA11y("chat", "chat-trigger-btn");
@@ -5010,132 +5034,306 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             });
         }
 
-        document.getElementById("chat-client-form").addEventListener("submit", async function(e) {
-            e.preventDefault();
-            const input = document.getElementById("chat-client-input");
-            const txt = input.value.trim();
-            if (!txt) return;
+        function escaparHtmlChat(texto) {
+            const div = document.createElement("div");
+            div.textContent = String(texto || "");
+            return div.innerHTML;
+        }
 
-            if (!clienteRegistrado) {
-                clienteNome = txt;
-                clienteRegistrado = true;
-                // Cria o chat direto no banco (sem Cloud Function). O id
-                // gerado vira o "token" que dá acesso a este chat.
-                const chatRef = doc(collection(db, "chats"));
-                await setDoc(chatRef, {
-                    donoUID: fornecedorEmail,
-                    emailDono: fornecedorEmail,
-                    clienteNome: txt.slice(0, 120),
-                    statusAdmin: "pendente",
-                    status: "nova",
-                    canal: "loja_publica",
-                    utmSource: (utmSourceCapturada || "").toString().slice(0, 120),
-                    timestamp: Date.now(),
-                    naoLidasLoja: 1
+        function definirEstadoConectandoChat(ativo) {
+            chatConectando = ativo;
+            const input = document.getElementById("chat-client-input");
+            const botao = document.getElementById("chat-send-btn");
+            const janela = document.getElementById("chat-window");
+            if (input) input.disabled = ativo;
+            if (botao) botao.disabled = ativo;
+            if (janela) janela.setAttribute("aria-busy", ativo ? "true" : "false");
+            if (input && ativo) input.placeholder = "Conectando com a loja...";
+            else if (input && !clienteRegistrado) input.placeholder = "Seu nome...";
+        }
+
+        function mostrarErroConexaoChat(mensagem) {
+            const box = document.getElementById("chat-client-messages");
+            if (!box) return;
+            box.innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" role="alert" style="background: color-mix(in oklch, #ef4444 12%, transparent); color: #ef4444; border: 1px solid color-mix(in oklch, #ef4444 24%, transparent);">' + escaparHtmlChat(mensagem) + "</div>";
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function atualizarMensagemInicialChat() {
+            if (clienteRegistrado) return;
+            const box = document.getElementById("chat-client-messages");
+            if (!box) return;
+            const texto = chatRestaurando
+                ? "Restaurando sua conversa..."
+                : "Ola! Digite seu nome completo para iniciarmos o suporte:";
+            box.innerHTML = '<div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">' + escaparHtmlChat(texto) + "</div>";
+        }
+
+        // Compartilhado pelos dois caminhos (V2 e legado transitório): liga
+        // os dois onSnapshot (status do chat + mensagens) na instância de
+        // Firestore certa — a secundária (dbPublico) pra chats V2, a
+        // principal (db) pro caminho legado.
+        function conectarChatEmTempoReal(chatId, dbInstancia) {
+            onSnapshot(doc(dbInstancia, "chats", chatId), function(snap) {
+                const dadosChat = snap.data();
+                if (dadosChat && dadosChat.status) chatStatusAtual = dadosChat.status;
+            });
+
+            onSnapshot(query(collection(dbInstancia, "chats/" + chatId + "/mensagens"), orderBy("timestamp", "asc")), function(snapshot) {
+                const box = document.getElementById("chat-client-messages");
+                box.innerHTML = "";
+                snapshot.forEach(function(docM) {
+                    const m = docM.data();
+                    const bubble = document.createElement("div");
+                    bubble.className = "p-3 rounded-2xl max-w-[85%] text-[12px]";
+                    if (m.sender === "admin") {
+                        bubble.style.cssText = "background: var(--surface-soft); color: var(--ink); border: 1px solid var(--border); align-self: flex-start; border-top-left-radius: 4px;";
+                    } else {
+                        bubble.style.cssText = "background: var(--ink); color: var(--bg); align-self: flex-end; border-top-right-radius: 4px;";
+                    }
+                    bubble.innerText = m.texto;
+                    box.appendChild(bubble);
+                    if (m.sender === "admin") clearTimeout(timeoutRedirecionamentoWhats);
                 });
-                salaChatId = chatRef.id;
-                chatStatusAtual = "nova";
-                // Histórico de eventos: registra a criação da conversa
-                // (tipo público estreito, autoria sempre "cliente" e vazia
-                // em autorUid — Rules não deixam forjar outro valor).
-                try {
-                    await setDoc(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
-                        tenantId: fornecedorEmail,
-                        lojaId: fornecedorEmail,
-                        chatId: salaChatId,
-                        tipo: "conversa_criada",
-                        categoria: "atendimento",
-                        autorUid: "",
-                        autorTipo: "cliente",
-                        origem: "cliente",
-                        criadoEm: serverTimestamp(),
-                        versaoSchema: 1
-                    });
-                } catch (erroEvento) {
-                    console.error(erroEvento);
-                }
+                box.scrollTop = box.scrollHeight;
+            });
+        }
+
+        function finalizarRegistroChat(nome) {
+            clienteRegistrado = true;
+            clienteNome = nome;
+            const input = document.getElementById("chat-client-input");
+            if (input) {
                 input.value = "";
                 input.placeholder = "Escreva sua mensagem...";
-                document.getElementById("chat-send-btn").innerText = "Enviar";
-                document.getElementById("chat-client-messages").innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" style="background: color-mix(in oklch, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);">Conectado como ' + clienteNome + ".</div>";
+            }
+            document.getElementById("chat-send-btn").innerText = "Enviar";
+            document.getElementById("chat-client-messages").innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" style="background: color-mix(in oklch, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);">Conectado como ' + escaparHtmlChat(nome) + ".</div>";
+        }
 
-                onSnapshot(doc(db, "chats", salaChatId), function(snap) {
-                    const dadosChat = snap.data();
-                    if (dadosChat && dadosChat.status) chatStatusAtual = dadosChat.status;
-                });
-
-                onSnapshot(query(collection(db, "chats/" + salaChatId + "/mensagens"), orderBy("timestamp", "asc")), function(snapshot) {
-                    const box = document.getElementById("chat-client-messages");
-                    box.innerHTML = "";
-                    snapshot.forEach(function(docM) {
-                        const m = docM.data();
-                        const bubble = document.createElement("div");
-                        bubble.className = "p-3 rounded-2xl max-w-[85%] text-[12px]";
-                        if (m.sender === "admin") {
-                            bubble.style.cssText = "background: var(--surface-soft); color: var(--ink); border: 1px solid var(--border); align-self: flex-start; border-top-left-radius: 4px;";
-                        } else {
-                            bubble.style.cssText = "background: var(--ink); color: var(--bg); align-self: flex-end; border-top-right-radius: 4px;";
-                        }
-                        bubble.innerText = m.texto;
-                        box.appendChild(bubble);
-                        if (m.sender === "admin") clearTimeout(timeoutRedirecionamentoWhats);
-                    });
-                    box.scrollTop = box.scrollHeight;
-                });
-            } else {
-                // Mensagem do cliente + atualização do resumo do chat + o(s)
-                // evento(s) correspondentes, tudo no mesmo lote atômico
-                // (nunca fica mensagem sem o registro de histórico, nem
-                // vice-versa).
-                const txtLimitado = txt.slice(0, 1000);
-                const statusAntes = chatStatusAtual;
-                const batch = writeBatch(db);
-                batch.set(doc(collection(db, "chats/" + salaChatId + "/mensagens")), {
-                    texto: txtLimitado,
-                    sender: "cliente",
-                    timestamp: Date.now()
-                });
-                batch.set(doc(db, "chats", salaChatId), {
-                    ultimaMensagem: txtLimitado,
-                    statusAdmin: "pendente",
-                    status: "aguardando_equipe",
-                    atualizadoEm: Date.now(),
-                    naoLidasLoja: increment(1)
-                }, { merge: true });
-                const eventoBase = {
+        // Caminho V2: exige identidade real (Anonymous Auth) antes de criar
+        // o chat, grava visitorUid/versaoAcesso e autoria real em
+        // mensagens/eventos. Usa o Firestore SECUNDÁRIO (obterDbPublico) —
+        // o token da sessão anônima só é válido nesse app.
+        async function criarChatV2(nome) {
+            const uid = await garantirVisitanteAnonimo();
+            const dbPub = obterDbPublico();
+            const chatRef = doc(collection(dbPub, "chats"));
+            await setDoc(chatRef, {
+                donoUID: fornecedorEmail,
+                emailDono: fornecedorEmail,
+                clienteNome: nome,
+                statusAdmin: "pendente",
+                status: "nova",
+                canal: "loja_publica",
+                utmSource: (utmSourceCapturada || "").toString().slice(0, 120),
+                timestamp: Date.now(),
+                naoLidasLoja: 1,
+                visitorUid: uid,
+                versaoAcesso: 2
+            });
+            salaChatId = chatRef.id;
+            visitorUidAtual = uid;
+            chatStatusAtual = "nova";
+            salvarChatAtual(fornecedorEmail, salaChatId, uid);
+            try {
+                await setDoc(doc(collection(dbPub, "chats/" + salaChatId + "/eventos")), {
                     tenantId: fornecedorEmail,
                     lojaId: fornecedorEmail,
                     chatId: salaChatId,
+                    tipo: "conversa_criada",
+                    categoria: "atendimento",
+                    autorUid: uid,
+                    autorTipo: "cliente",
+                    origem: "cliente",
+                    criadoEm: serverTimestamp(),
+                    versaoSchema: 1
+                });
+            } catch (erroEvento) {
+                console.error(erroEvento);
+            }
+            finalizarRegistroChat(nome);
+            conectarChatEmTempoReal(salaChatId, dbPub);
+        }
+
+        // Caminho LEGADO (V1), TRANSITÓRIO — só entra em jogo se o V2
+        // falhar por Anonymous Auth ainda não habilitado no Console ou
+        // Rules antigas ainda em produção (ver erroIndicaFallbackTransitorio
+        // em public-chat-auth-v1.js). Existe pra o chat nunca cair durante
+        // a janela de rollout da Fase A; remover na Fase B, depois de
+        // confirmar Anonymous ativo + Rules V2 publicadas em produção (ver
+        // docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md).
+        async function criarChatLegado(nome) {
+            const chatRef = doc(collection(db, "chats"));
+            await setDoc(chatRef, {
+                donoUID: fornecedorEmail,
+                emailDono: fornecedorEmail,
+                clienteNome: nome,
+                statusAdmin: "pendente",
+                status: "nova",
+                canal: "loja_publica",
+                utmSource: (utmSourceCapturada || "").toString().slice(0, 120),
+                timestamp: Date.now(),
+                naoLidasLoja: 1
+            });
+            salaChatId = chatRef.id;
+            visitorUidAtual = "";
+            chatStatusAtual = "nova";
+            try {
+                await setDoc(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
+                    tenantId: fornecedorEmail,
+                    lojaId: fornecedorEmail,
+                    chatId: salaChatId,
+                    tipo: "conversa_criada",
+                    categoria: "atendimento",
                     autorUid: "",
                     autorTipo: "cliente",
                     origem: "cliente",
                     criadoEm: serverTimestamp(),
                     versaoSchema: 1
-                };
-                batch.set(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
+                });
+            } catch (erroEvento) {
+                console.error(erroEvento);
+            }
+            finalizarRegistroChat(nome);
+            conectarChatEmTempoReal(salaChatId, db);
+        }
+
+        async function iniciarConversa(nomeBruto) {
+            const nome = sanitizarNomeVisitanteChat(nomeBruto);
+            if (!nome) return;
+            definirEstadoConectandoChat(true);
+            let usouFallback = false;
+            try {
+                await criarChatV2(nome);
+            } catch (erro) {
+                if (erroIndicaFallbackTransitorio(erro)) {
+                    // TRANSITÓRIO (Fase A) — ver comentário de criarChatLegado.
+                    console.warn("[Vide Hub] Chat público: caminho V2 (Anonymous Auth) indisponível ainda (" + (erro && erro.code || "erro desconhecido") + ") — usando caminho legado transitório.");
+                    usouFallback = true;
+                } else {
+                    definirEstadoConectandoChat(false);
+                    mostrarErroConexaoChat(normalizarErroChatPublico(erro));
+                    return;
+                }
+            }
+            if (usouFallback) {
+                try {
+                    await criarChatLegado(nome);
+                } catch (erroLegado) {
+                    console.error(erroLegado);
+                    definirEstadoConectandoChat(false);
+                    mostrarErroConexaoChat("Não foi possível conectar o chat. Atualize a página e tente novamente.");
+                    return;
+                }
+            }
+            definirEstadoConectandoChat(false);
+        }
+
+        // Mensagem do cliente + atualização do resumo do chat + o(s)
+        // evento(s) correspondentes, tudo no mesmo lote atômico (nunca fica
+        // mensagem sem o registro de histórico, nem vice-versa). Chat V2
+        // grava autoria real (autorUid/autorTipo); chat legado preserva o
+        // contrato antigo (autorUid sempre vazio nas mensagens).
+        async function enviarMensagemCliente(txt) {
+            const dbAtivo = visitorUidAtual ? obterDbPublico() : db;
+            const txtLimitado = txt.slice(0, 1000);
+            const statusAntes = chatStatusAtual;
+            const batch = writeBatch(dbAtivo);
+            const mensagemPayload = {
+                texto: txtLimitado,
+                sender: "cliente",
+                timestamp: Date.now()
+            };
+            if (visitorUidAtual) {
+                mensagemPayload.autorUid = visitorUidAtual;
+                mensagemPayload.autorTipo = "cliente";
+            }
+            batch.set(doc(collection(dbAtivo, "chats/" + salaChatId + "/mensagens")), mensagemPayload);
+            batch.set(doc(dbAtivo, "chats", salaChatId), {
+                ultimaMensagem: txtLimitado,
+                statusAdmin: "pendente",
+                status: "aguardando_equipe",
+                atualizadoEm: Date.now(),
+                naoLidasLoja: increment(1)
+            }, { merge: true });
+            const eventoBase = {
+                tenantId: fornecedorEmail,
+                lojaId: fornecedorEmail,
+                chatId: salaChatId,
+                autorUid: visitorUidAtual || "",
+                autorTipo: "cliente",
+                origem: "cliente",
+                criadoEm: serverTimestamp(),
+                versaoSchema: 1
+            };
+            batch.set(doc(collection(dbAtivo, "chats/" + salaChatId + "/eventos")), {
+                ...eventoBase,
+                tipo: "mensagem_cliente_recebida",
+                categoria: "mensagens"
+            });
+            if (statusAntes === "resolvida") {
+                batch.set(doc(collection(dbAtivo, "chats/" + salaChatId + "/eventos")), {
                     ...eventoBase,
-                    tipo: "mensagem_cliente_recebida",
+                    tipo: "cliente_respondeu_apos_resolucao",
                     categoria: "mensagens"
                 });
-                if (statusAntes === "resolvida") {
-                    batch.set(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
-                        ...eventoBase,
-                        tipo: "cliente_respondeu_apos_resolucao",
-                        categoria: "mensagens"
-                    });
-                } else if (statusAntes !== "aguardando_equipe") {
-                    batch.set(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
-                        ...eventoBase,
-                        tipo: "aguardando_equipe",
-                        categoria: "atendimento"
-                    });
-                }
+            } else if (statusAntes !== "aguardando_equipe") {
+                batch.set(doc(collection(dbAtivo, "chats/" + salaChatId + "/eventos")), {
+                    ...eventoBase,
+                    tipo: "aguardando_equipe",
+                    categoria: "atendimento"
+                });
+            }
+            await batch.commit();
+        }
+
+        // Restauração ao reabrir a loja (ver "SESSÃO E RESTAURAÇÃO" em
+        // docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md). Sem referência local salva
+        // pra esta loja, restaurarChatSalvo() retorna quase instantaneamente
+        // sem criar nenhuma conta anônima nova — só quem já conversou antes
+        // paga esse custo.
+        async function tentarRestaurarChatSalvo() {
+            if (tentouRestaurarChat || clienteRegistrado || !fornecedorEmail) return;
+            tentouRestaurarChat = true;
+            chatRestaurando = true;
+            atualizarMensagemInicialChat();
+            let resultado = null;
+            try {
+                resultado = await restaurarChatSalvo(fornecedorEmail);
+            } catch (erro) {
+                resultado = null;
+            }
+            chatRestaurando = false;
+            if (!resultado) {
+                atualizarMensagemInicialChat();
+                return;
+            }
+            salaChatId = resultado.chatId;
+            visitorUidAtual = resultado.visitorUid;
+            chatStatusAtual = resultado.status || "nova";
+            clienteRegistrado = true;
+            const input = document.getElementById("chat-client-input");
+            if (input) input.placeholder = "Escreva sua mensagem...";
+            document.getElementById("chat-send-btn").innerText = "Enviar";
+            conectarChatEmTempoReal(salaChatId, obterDbPublico());
+        }
+
+        document.getElementById("chat-client-form").addEventListener("submit", async function(e) {
+            e.preventDefault();
+            const input = document.getElementById("chat-client-input");
+            const txt = input.value.trim();
+            if (!txt || chatConectando) return;
+
+            if (!clienteRegistrado) {
+                await iniciarConversa(txt);
+            } else {
+                input.value = "";
                 try {
-                    await batch.commit();
+                    await enviarMensagemCliente(txt);
                 } catch (erroEnvio) {
                     console.error(erroEnvio);
                 }
-                input.value = "";
                 clearTimeout(timeoutRedirecionamentoWhats);
                 timeoutRedirecionamentoWhats = setTimeout(function() {
                     if (whatsappDono) {

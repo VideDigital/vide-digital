@@ -18,6 +18,7 @@
 - O modelo de notificações com `lidoPor` agora usa Function para alterar apenas o próprio UID, mas subcoleção por leitura segue como melhoria futura.
 - Master Mode permanece centralizado no `VideHubContext`; backend seguro para impersonation completa ainda deve ser expandido em Function dedicada se forem adicionadas ações administrativas mais profundas.
 - Chat do dashboard atualmente lê mensagens; envio administrativo pelo dashboard não foi ampliado nesta etapa.
+- **[NOVO]** Anonymous Auth no chat público (`docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`) está em **Fase A** (preparação compatível): até o Anonymous Auth ser habilitado no Firebase Console e as Rules desta etapa serem publicadas em produção, o widget da loja cai automaticamente no fallback legado (chat V1, sem identidade real) — é intencional (não derrubar o chat durante o rollout), mas significa que a proteção V2 (visitorUid obrigatório) só é real em CI/local até o passo externo ser confirmado. Ver checklist de Fase B em `docs/HANDOFF_2026-07-28.md`.
 
 ## P3
 

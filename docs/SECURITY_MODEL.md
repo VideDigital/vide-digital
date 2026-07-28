@@ -19,10 +19,15 @@ a documentação específica linkada em cada seção.
 - **Admin de backend** = claim `videAdmin: true` emitida fora do cliente
   (`scripts/set-admin-claim.mjs`) — nunca derivada de uma coleção
   editável pelo próprio cliente.
-- **Visitante público** (loja, LP) é sempre anônimo/não autenticado; o que ele
-  pode gravar é validado campo a campo pelas Rules (`chatPublicoValido()`,
-  `leadPublicoValido()`, `avaliacaoPublicaValida()`), nunca por confiança no
-  cliente.
+- **Visitante público** (loja, LP) — leads/avaliações continuam sempre
+  anônimos/não autenticados, validados campo a campo pelas Rules
+  (`leadPublicoValido()`, `avaliacaoPublicaValida()`), nunca por confiança no
+  cliente. O **chat público** evoluiu (ver
+  `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`): chats novos passam a exigir
+  **Firebase Anonymous Auth** — `visitorUid == request.auth.uid` — em vez de
+  só "conhecer o id do documento"; chats criados antes dessa etapa continuam
+  pelo contrato legado (`chatPublicoValido()`), mas nunca voltam a aceitar
+  escrita pública sem identidade uma vez que nasceram com `visitorUid`.
 
 ## Permissões por módulo
 
@@ -102,9 +107,13 @@ escolha registrada em `docs/CENTRAL_ATENDIMENTO.md`.
 
 Só três exceções permitem leitura sem autenticação, todas com escopo
 estreito e documentadas: a loja pública (`vitrines_publicas`, `landing_pages_*`),
-avaliações publicadas, e a capability de leitura de mensagens de chat por
-quem conhece o id aleatório do próprio chat (visitante que acabou de
-conversar) — nunca listagem, sempre um documento específico já conhecido.
+avaliações publicadas, e a capability de leitura de mensagens de chat **V1
+legado** por quem conhece o id aleatório do próprio chat (visitante que
+acabou de conversar) — nunca listagem, sempre um documento específico já
+conhecido. Chats **V2** (Anonymous Auth, ver
+`docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`) não entram nesta exceção: a leitura
+exige `request.auth` real (anônimo) com `visitorUid` batendo — o id sozinho
+não abre mais um chat novo.
 
 ## O que ainda não está aqui
 
