@@ -3144,17 +3144,41 @@ abrirDepois(
             fechar
         );
 
-        // Ctrl/Cmd+K NÃO abre mais este painel — a grade de ícones da
-        // sidebar (sidebar-navigation.js) tem sua própria busca inline
-        // com o mesmo atalho, e os dois competiam pelo mesmo keydown
-        // global (nenhum tinha stopPropagation), abrindo os dois ao
-        // mesmo tempo. O painel deste arquivo continua existindo (fecha
-        // via ESC/clique fora/botão) caso ainda seja aberto por algum
-        // outro caminho, mas o atalho de teclado agora é só da busca
-        // da sidebar.
+        // Ctrl/Cmd+K é dono exclusivo deste painel — a busca inline da
+        // sidebar (sidebar-navigation.js) NÃO escuta mais esse atalho
+        // (só reage a clique/digitação direta no campo), pra nunca mais
+        // os dois abrirem ao mesmo tempo por cima um do outro.
         document.addEventListener(
             "keydown",
             evento => {
+
+                const teclaK =
+                    String(evento?.key || "")
+                        .toLowerCase() === "k";
+
+                if (
+                    teclaK &&
+                    (
+                        evento.ctrlKey ||
+                        evento.metaKey
+                    )
+                ) {
+
+                    evento.preventDefault();
+
+                    if (
+                        modal.classList.contains(
+                            "hidden"
+                        )
+                    ) {
+                        abrir();
+                    } else {
+                        fechar();
+                    }
+
+                    return;
+
+                }
 
                 if (
                     evento.key === "Escape" &&
@@ -3168,21 +3192,13 @@ abrirDepois(
             }
         );
 
-        // O "⌘ K" mostrado dentro da própria busca da sidebar só foca
-        // aquele campo — não abre mais o painel antigo.
         document
             .querySelector(
                 ".aura-sidebar-search kbd"
             )
             ?.addEventListener(
                 "click",
-                () => {
-                    document
-                        .getElementById(
-                            "busca-sidebar-modulos"
-                        )
-                        ?.focus();
-                }
+                abrir
             );
 
         window.abrirAuraCommandCenter =

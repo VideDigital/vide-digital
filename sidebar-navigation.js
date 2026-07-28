@@ -332,21 +332,13 @@
             }
         }
 
+        // Ctrl/Cmd+K é atalho global da Central de Comandos (Aura Command
+        // Center, dashboard-app.js) — esta busca inline não escuta mais
+        // esse atalho (escutava antes, e os dois abriam ao mesmo tempo,
+        // um por cima do outro). Reage só a clique/digitação direta.
         function conectarEventosBusca() {
             campoBusca.addEventListener("input", aplicarBusca);
             document.addEventListener("keydown", function(evento) {
-                const teclaBusca = String(evento?.key || "").toLowerCase() === "k";
-
-                if (teclaBusca && (evento.ctrlKey || evento.metaKey)) {
-                    evento.preventDefault();
-                    campoBusca.focus();
-                    const selecao = window.getSelection();
-                    const intervalo = document.createRange();
-                    intervalo.selectNodeContents(campoBusca);
-                    selecao.removeAllRanges();
-                    selecao.addRange(intervalo);
-                }
-
                 if (evento.key === "Escape" && document.activeElement === campoBusca) {
                     limparBuscaSidebar();
                     campoBusca.blur();

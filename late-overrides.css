@@ -2125,3 +2125,88 @@ body.aura-sidebar-mobile-scroll-lock {
     transparent 100%
   ) !important;
 }
+
+/* ================================================================
+   VIDE HUB — SIDEBAR: IDENTIDADE VIRA UM BLOCO HORIZONTAL ÚNICO (V3.0)
+   As rodadas V2.1→V2.4 só reduziam fonte/padding em cima da estrutura
+   antiga (duas linhas empilhadas — marca, depois um divisor, depois
+   workspace+status — cada uma com seu próprio rótulo "Enterprise"/
+   "Workspace"), e mesmo comprimida ao máximo o usuário ainda achava
+   grande demais. HTML (dashboard.html) mudou de estrutura: logo + nome
+   da marca + nome do workspace agora ficam juntos numa coluna de texto
+   compacta ao lado do logo, o status "Online" fica na mesma linha
+   (não mais numa segunda linha com divisor), e os rótulos "Enterprise"/
+   "Workspace" (só ocupavam espaço, sem informação nova) saíram. Sobra
+   muito mais altura pra grade de módulos.
+   ================================================================ */
+
+#admin-sidebar .aura-sidebar-identity-row {
+  flex-wrap: nowrap !important;
+}
+
+#admin-sidebar .aura-sidebar-identity-names {
+  display: flex !important;
+  flex-direction: column !important;
+  min-width: 0 !important;
+  gap: 1px !important;
+}
+
+#admin-sidebar .aura-sidebar-identity-names .aura-sidebar-brand-name {
+  margin-top: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#admin-sidebar .aura-sidebar-identity-names .aura-sidebar-workspace-name {
+  margin-top: 0 !important;
+  color: var(--aura-text-muted, rgba(255, 255, 255, .5)) !important;
+  font-weight: 600 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+#admin-sidebar .aura-sidebar-identity-row > .aura-sidebar-status-pill {
+  flex-shrink: 0 !important;
+  margin-left: auto !important;
+}
+
+@media (min-width: 768px) {
+  #admin-sidebar .aura-sidebar-identity-compact {
+    padding: 9px 10px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-identity-row {
+    gap: 8px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-logo,
+  #admin-sidebar .aura-sidebar-identity-compact #admin-logo-box {
+    width: 30px !important;
+    height: 30px !important;
+    min-width: 30px !important;
+    font-size: 12px !important;
+    border-radius: 9px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-brand-name {
+    font-size: 12.5px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-workspace-name {
+    font-size: 9.5px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill {
+    padding: 3px 7px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-status-pill span {
+    font-size: 8.5px !important;
+  }
+
+  #admin-sidebar .aura-sidebar-identity-compact .aura-sidebar-storage {
+    margin-top: 6px !important;
+  }
+}
