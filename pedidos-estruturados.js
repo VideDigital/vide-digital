@@ -150,6 +150,18 @@ const REGEX_EMAIL_PEDIDO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 // normalizado pelo motor (mesmos nomes de `order` em orders-engine-v1.js),
 // nunca um formato paralelo.
 export function criarDraftPedido(order) {
+    const items = Array.isArray(order?.items) ? order.items.map(item => ({ ...item })) : [];
+    const productsText = String(order?.productsText || "");
+    // Bug real encontrado no Quality Gate: começar sempre com
+    // productsTextManual: false fazia normalizarDraftPedido() REGERAR o
+    // texto a partir dos itens assim que a edição abria — mesmo sem o
+    // usuário tocar em nada. Pedidos reais podem legitimamente ter um
+    // texto customizado que diverge do que os itens gerariam sozinhos
+    // (o próprio modal de novo pedido permite isso via
+    // marcarPedidoCampoEditadoManual). Detectar essa divergência aqui e
+    // já nascer "manual" nesse caso preserva o texto existente até o
+    // usuário realmente editar algo — evita marcar "alterado" à toa.
+    const productsTextManual = items.length > 0 && productsText !== resumoTextoItens(items);
     return {
         customer: String(order?.customer || ""),
         whatsapp: String(order?.whatsapp || ""),
@@ -158,9 +170,9 @@ export function criarDraftPedido(order) {
         cep: String(order?.cep || ""),
         address: String(order?.address || ""),
         customerNotes: String(order?.customerNotes || ""),
-        items: Array.isArray(order?.items) ? order.items.map(item => ({ ...item })) : [],
-        productsText: String(order?.productsText || ""),
-        productsTextManual: false,
+        items,
+        productsText,
+        productsTextManual,
         subtotal: Number(order?.subtotal) || 0,
         discount: Math.max(0, Number(order?.discount) || 0),
         freight: Math.max(0, Number(order?.freight) || 0),

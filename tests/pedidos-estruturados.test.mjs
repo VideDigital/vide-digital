@@ -387,6 +387,32 @@ describe("compararPedidoComDraft / resumirAlteracoesPedido", () => {
         assert.equal(diff.alterado, false);
     });
 
+    it("bug real encontrado no Quality Gate: texto de produtos customizado (diverge do que os itens gerariam) não deveria marcar dirty ao só abrir a edição", () => {
+        // Mesmo cenário do teste de UI que falhou: o pedido nasceu com um
+        // item (quantidade 1) mas o texto livre foi editado manualmente
+        // pra outra coisa no modal de criação (marcarPedidoCampoEditadoManual).
+        // criarDraftPedido() começava sempre com productsTextManual: false,
+        // então normalizarDraftPedido() regenerava o texto a partir do
+        // item (que dá "Camiseta P", sem sufixo pra quantidade 1) — String
+        // diferente do texto customizado original, "alterado" ficava true
+        // antes de qualquer clique.
+        const order = orderFixture({
+            items: [itemFixture({ quantidade: 1 })],
+            productsText: "Camiseta P (editada manualmente pelo QA)"
+        });
+        const draft = criarDraftPedido(order);
+        assert.equal(draft.productsTextManual, true);
+        const normalizado = normalizarDraftPedido(draft);
+        assert.equal(normalizado.productsText, order.productsText);
+        assert.equal(compararPedidoComDraft(order, normalizado).alterado, false);
+    });
+
+    it("texto consistente com os itens continua não-manual (segue auto-atualizando)", () => {
+        const order = orderFixture();
+        const draft = criarDraftPedido(order);
+        assert.equal(draft.productsTextManual, false);
+    });
+
     it("prazo em dia realmente diferente continua marcando dirty", () => {
         const order = orderFixture({ dueDate: new Date("2026-08-05T00:00:00").getTime() });
         const draft = normalizarDraftPedido({ ...criarDraftPedido(order), dueDate: new Date("2026-08-06T00:00:00").getTime() });
