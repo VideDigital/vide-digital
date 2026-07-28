@@ -466,6 +466,20 @@ export function criarAuditCenterController({
         if (!view || view.dataset.auditEventosLigados === "true") return;
         view.dataset.auditEventosLigados = "true";
 
+        // O drawer nasce dentro do fluxo normal do documento (depois da
+        // section da view). Reparentar pro <body> garante que ele participa
+        // do stacking context raiz — sem isso, z-index alto sozinho não
+        // basta: elementos fixos do chrome global (ex.: o sino de
+        // notificações, .aura-notification-orb) podem viver dentro de um
+        // ancestor com seu próprio stacking context e continuar
+        // interceptando cliques mesmo com z-index menor (achado real via
+        // Playwright em CI: clique em #audit-drawer-fechar interceptado
+        // pelo sino).
+        const drawer = byId("audit-drawer");
+        if (drawer && drawer.parentElement !== document.body) {
+            document.body.appendChild(drawer);
+        }
+
         view.addEventListener("click", (evento) => {
             const alvoPeriodo = evento.target.closest("[data-audit-period]");
             if (alvoPeriodo) {

@@ -3267,6 +3267,7 @@ abrirDepois(
             "view-atendimento": "atendimento",
             "view-crm360": "crm",
             "view-funcionarios": "funcionarios",
+            "view-auditoria": "auditoria",
             "view-landing-pages": "landing-pages"
         };
 

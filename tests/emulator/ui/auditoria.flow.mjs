@@ -125,15 +125,14 @@ async function flowFuncionarioBloqueado(page, baseUrl) {
         senha: "Local123!edit"
     });
 
-    const botaoVisivel = await page.locator('[data-target="view-auditoria"]').first().isVisible().catch(() => false);
-    assert.equal(botaoVisivel, false, "Funcionário (mesmo editor) não deveria ver a entrada Auditoria");
-
+    // Mesmo padrão de profiles.smoke.mjs: o gate real testado é
+    // ativarAba(targetId) — não confia só na visibilidade do botão de
+    // menu (data-module-permission esconde o botão quando o CSS/DOM já
+    // aplicou, mas o bloqueio de verdade é podeVerAba/PERMISSOES_NAV).
     const ativou = await page.evaluate(() => window.ativarAba?.("view-auditoria") ?? null);
-    if (ativou) {
-        await page.waitForSelector("#audit-estado-sem-permissao", { state: "visible", timeout: 10000 });
-    }
+    assert.equal(ativou, false, "Funcionário (mesmo editor) não deveria conseguir ativar a view Auditoria");
 
-    console.log("auditoria.flow: OK (funcionário) — Auditoria não visível/acessível para editor.");
+    console.log("auditoria.flow: OK (funcionário) — Auditoria bloqueada na navegação para editor.");
 }
 
 async function main() {

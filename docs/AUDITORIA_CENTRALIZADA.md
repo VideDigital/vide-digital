@@ -258,10 +258,13 @@ de índices compostos de 4+ campos.
 ## Central de Auditoria (UI)
 
 - **Entrada**: grupo "Sistema" na sidebar, item "Auditoria" — `data-target=
-  "view-auditoria"`, `data-module-permission="auditoria"` (nunca aparece na
-  lista de permissões concedíveis a funcionário, então nenhum funcionário
+  "view-auditoria"`, `data-module-permission="auditoria"` (esconde o botão)
+  e `PERMISSOES_NAV["view-auditoria"] = "auditoria"` em `dashboard-app.js`
+  (bloqueia `ativarAba()` de verdade, mesmo se alguém acionar a troca de
+  view por outro caminho). "auditoria" nunca aparece na lista de permissões
+  concedíveis a funcionário (`MODULOS_PERMISSAO`), então nenhum funcionário
   consegue ganhar acesso pela UI de gestão de equipe; mesmo que ganhasse, as
-  Rules bloqueiam a leitura de qualquer jeito).
+  Rules bloqueiam a leitura de qualquer jeito — três camadas independentes.
 - **Hero**: "Auditoria & Segurança", badges "Registro server-side" / "Somente
   leitura" / "Dados sensíveis protegidos".
 - **KPIs**: eventos hoje, ações de alto risco, atores ativos, módulos alterados
