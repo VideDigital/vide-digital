@@ -50,13 +50,13 @@ Atualizado no ciclo que terminou no merge deste documento. Legenda: CONCLUÍDO �
 | Entrega | Onde | Observação |
 |---|---|---|
 | Anonymous Auth no chat público — **Fase A concluída** (preparação compatível): app Firebase secundário (`public-chat-auth-v1.js`), chat V2 com `visitorUid`/`versaoAcesso`, autoria real em mensagens/eventos do visitante, restauração por sessão persistida, Rules aditivas (chat V2 nunca mais aceita escrita pública sem identidade, mesmo durante a janela de rollout), fallback transitório pro caminho V1 legado enquanto o passo externo não é confirmado | `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`, `public-chat-auth-core.js`, `public-chat-auth-v1.js`, `loja.html`, `firestore.rules` | **Proteção obrigatória (Fase B) ainda pendente** — falta: (1) habilitar Anonymous Auth no Firebase Console (produção); (2) publicar as Rules desta Fase A; (3) confirmar chat V2 real em produção; (4) só então remover o fallback legado e negar criação de chat V1 novo. Ver checklist em `docs/HANDOFF_2026-07-28.md` |
+| Auditoria Centralizada V1 — **Fase A concluída**: `writeAudit`/`auditWrite` (callable público, sem consumidor de produção) removidos; 15 Firestore triggers server-side (`onDocumentWrittenWithAuthContext`, Auth Context real) cobrindo usuarios/funcionarios/pedidos/produtos/clientes/leads/chats(pai)/templates/vitrines_publicas/landing_pages(privadas e públicas)/configuracoes_ia/base_conhecimento_ia/tracking_configs/tracking_links; ator derivado do Auth Context (nunca do payload), tenant derivado do documento (nunca aceito do cliente), sanitização em duas camadas (allowlist por coleção + blocklist recursivo de PII), `eventId` determinístico (idempotente, sem duplicar em retry), Central de Auditoria owner-only no dashboard (KPIs, filtros, paginação, drawer, exportação CSV/JSON) | `docs/AUDITORIA_CENTRALIZADA.md`, `functions/src/audit/core.js`, `functions/src/audit/triggers.js`, `audit-core-v1.js`, `audit-center-v1.js`, `audit-center-v1.css`, `dashboard.html`, `firestore.rules`, `firestore.indexes.json` | **Deploy dos triggers e teste real em produção (Fase B) ainda pendente** — falta: (1) publicar Rules/índices (Deploy Firebase Spark); (2) rodar o workflow "Deploy Firebase Functions — Auditoria" (`DEPLOY_AUDIT`); (3) alterar um pedido e um produto de teste em produção; (4) confirmar ator/tenant/ausência de PII na Central real; (5) confirmar que outro tenant não vê esses eventos; (6) só então marcar como CONCLUÍDO. Ver checklist completo em `docs/AUDITORIA_CENTRALIZADA.md` |
 
 ## NÃO INICIADO
 
 | Entrega | Observação |
 |---|---|
 | WhatsApp oficial | Depende do backend externo |
-| Auditoria centralizada pós-Functions | `writeAudit` deixou de existir nas operações migradas |
 
 ## Bloqueios externos (fora do repositório)
 

@@ -30,7 +30,27 @@ exports.incrementPublicMetric = publicFns.incrementPublicMetric;
 exports.createPublicChat = publicFns.createPublicChat;
 exports.sendPublicChatMessage = publicFns.sendPublicChatMessage;
 
-exports.auditWrite = audit.auditWrite;
+// auditWrite (callable público) foi removido nesta missão — aceitava
+// ownerUid do payload do cliente, sem consumidor de produção. writeAudit
+// segue como helper interno (não exportado como Function própria); os
+// triggers de auditoria abaixo são a fonte real de eventos server-side.
+// Ver docs/AUDITORIA_CENTRALIZADA.md.
+exports.auditUsuariosWrite = audit.auditUsuariosWrite;
+exports.auditFuncionariosWrite = audit.auditFuncionariosWrite;
+exports.auditPedidosWrite = audit.auditPedidosWrite;
+exports.auditProdutosWrite = audit.auditProdutosWrite;
+exports.auditClientesWrite = audit.auditClientesWrite;
+exports.auditLeadsWrite = audit.auditLeadsWrite;
+exports.auditChatsWrite = audit.auditChatsWrite;
+exports.auditTemplatesWrite = audit.auditTemplatesWrite;
+exports.auditVitrinesWrite = audit.auditVitrinesWrite;
+exports.auditLandingPagesWrite = audit.auditLandingPagesWrite;
+exports.auditLandingPagesPublicasWrite = audit.auditLandingPagesPublicasWrite;
+exports.auditIaConfigWrite = audit.auditIaConfigWrite;
+exports.auditKnowledgeWrite = audit.auditKnowledgeWrite;
+exports.auditTrackingConfigsWrite = audit.auditTrackingConfigsWrite;
+exports.auditTrackingLinksWrite = audit.auditTrackingLinksWrite;
+
 exports.markNotificationRead = notifications.markNotificationRead;
 
 exports.sendAdminChatMessage = leads.sendAdminChatMessage;

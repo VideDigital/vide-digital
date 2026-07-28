@@ -56,7 +56,8 @@
                     "view-dominios",
                     "view-notificacoes",
                     "view-personalizacao",
-                    "view-funcionarios"
+                    "view-funcionarios",
+                    "view-auditoria"
                 ]
             },
             {
@@ -86,6 +87,7 @@
             "view-notificacoes": { nome: "Notificações", descricao: "Alertas e atualizações do sistema" },
             "view-personalizacao": { nome: "Personalização Premium", descricao: "Cores, visual e experiência" },
             "view-funcionarios": { nome: "Funcionários", descricao: "Equipe, acessos e permissões" },
+            "view-auditoria": { nome: "Auditoria", descricao: "Alterações importantes da sua operação" },
             "view-guia": { nome: "Guia do Plano", descricao: "Recursos, limites e orientações" }
         };
 

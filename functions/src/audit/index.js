@@ -1,38 +1,63 @@
 "use strict";
 
-const { onCall, HttpsError } = require("firebase-functions/v2/https");
+// writeAudit() é o único ponto desta pasta que ainda escreve em
+// auditoria/{eventId} fora de um Firestore trigger (./triggers.js) —
+// reservado para ações que não são uma mutation observável em nenhuma
+// coleção auditada: criação de membro admin (grava em equipe_admin,
+// fora da lista de coleções auditadas), sincronização de custom claims
+// (não é uma escrita de documento) e redefinição de senha de
+// funcionário (só gera um link do Auth, não toca Firestore). Nunca
+// chamado por uma mutation já coberta por um trigger — evitaria dois
+// eventos pra mesma escrita real.
+//
+// O callable público `auditWrite` que existia aqui foi REMOVIDO nesta
+// missão: aceitava um `ownerUid` vindo do payload do cliente, o que o
+// tornava inutilizável como fonte de verdade (qualquer chamador
+// autenticado podia alegar ser qualquer tenant). Não havia consumidor
+// de produção — nenhuma página chamava VideFunctions.auditWrite. Ver
+// docs/AUDITORIA_CENTRALIZADA.md.
+
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { requireAuth, requireBackendAdmin } = require("../shared/context");
 const { normalizeString } = require("../shared/validators");
+const core = require("./core");
+const triggers = require("./triggers");
 
 async function writeAudit(entry) {
-  await getFirestore().collection("auditoria").add({
-    authUid: entry.authUid || null,
-    ownerUid: entry.ownerUid || null,
-    module: normalizeString(entry.module, 80),
-    action: normalizeString(entry.action, 120),
-    targetId: normalizeString(entry.targetId, 160),
-    source: normalizeString(entry.source || "function", 80),
+  const ownerUid = normalizeString(entry.ownerUid, 160);
+  const targetId = normalizeString(entry.targetId, 160);
+  if (!ownerUid || !targetId) return;
+
+  const module = normalizeString(entry.module, 80) || "sistema";
+  const action = normalizeString(entry.action, 120) || `${module}.acao`;
+  const actorUid = entry.authUid ? normalizeString(entry.authUid, 160) : null;
+
+  const db = getFirestore();
+  const eventId = core.safeEventId(db.collection("auditoria").doc().id);
+  if (!eventId) return;
+
+  const auditEvent = core.buildAuditEvent({
+    eventId,
+    ownerUid,
+    actorUid,
+    actorType: actorUid ? "user" : "system",
+    module,
+    entityType: module,
+    entityId: targetId,
+    operation: "action",
+    action,
+    risk: core.RISK_LEVELS.has(entry.risk) ? entry.risk : "medium",
+    summary: entry.summary || `Ação "${action}" executada.`,
+    changedFields: [],
+    before: {},
+    after: {},
+    source: core.SOURCES.has(entry.source) ? entry.source : "function"
+  });
+
+  await db.doc(`auditoria/${eventId}`).set({
+    ...auditEvent,
     ok: entry.ok !== false,
     createdAt: FieldValue.serverTimestamp()
   });
 }
 
-const auditWrite = onCall({ region: "southamerica-east1" }, async (request) => {
-  const auth = requireAuth(request);
-  if (!request.data?.module || !request.data?.action) {
-    throw new HttpsError("invalid-argument", "module e action são obrigatórios.");
-  }
-  if (request.data.adminOnly) requireBackendAdmin(request);
-  await writeAudit({
-    authUid: auth.uid,
-    ownerUid: normalizeString(request.data.ownerUid, 160),
-    module: request.data.module,
-    action: request.data.action,
-    targetId: request.data.targetId,
-    source: "callable"
-  });
-  return { ok: true };
-});
-
-module.exports = { auditWrite, writeAudit };
+module.exports = { writeAudit, ...triggers };

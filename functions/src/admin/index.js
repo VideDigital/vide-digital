@@ -68,7 +68,9 @@ const adminUpdateStoreStatus = onCall({ region: "southamerica-east1" }, async (r
     statusAtualizadoEm: FieldValue.serverTimestamp(),
     statusAtualizadoPor: auth.uid
   }, { merge: true });
-  await writeAudit({ authUid: auth.uid, ownerUid: uid, module: "admin", action: "adminUpdateStoreStatus", targetId: uid });
+  // Sem writeAudit() aqui: esta escrita em usuarios/{uid} já é coberta
+  // por auditUsuariosWrite (functions/src/audit/triggers.js) — chamar
+  // writeAudit também geraria um segundo evento pra mesma mutation.
   return { ok: true, status };
 });
 
@@ -90,7 +92,8 @@ const adminUpdatePlan = onCall({ region: "southamerica-east1" }, async (request)
     planoAtualizadoEm: FieldValue.serverTimestamp(),
     planoAtualizadoPor: auth.uid
   }, { merge: true });
-  await writeAudit({ authUid: auth.uid, ownerUid: uid, module: "admin", action: "adminUpdatePlan", targetId: uid });
+  // Sem writeAudit() aqui pelo mesmo motivo de adminUpdateStoreStatus:
+  // auditUsuariosWrite já cobre usuarios/{uid}.
   return { ok: true, plano, featuresManuais };
 });
 

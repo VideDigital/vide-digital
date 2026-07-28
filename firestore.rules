@@ -1597,8 +1597,15 @@ allow update: if (
       allow update, delete: if isBackendAdmin();
     }
 
-    match /auditoria/{id} {
-      allow read: if isBackendAdmin();
+    match /auditoria/{eventId} {
+      // V1: só o dono do tenant e o admin backend leem. Funcionário não
+      // lê, nem o que tem "configuracoes"/"funcionarios" em editar — a
+      // Central de Auditoria é owner-only nesta fase (ver
+      // docs/AUDITORIA_CENTRALIZADA.md). Nenhuma escrita vem do cliente:
+      // todo evento nasce de um Firestore trigger ou do helper interno
+      // writeAudit() (Admin SDK, sem passar por Rules).
+      allow read: if isBackendAdmin()
+        || (signedIn() && resource.data.ownerUid == request.auth.uid);
       allow create, update, delete: if false;
     }
 

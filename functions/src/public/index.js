@@ -109,14 +109,10 @@ const createPublicLead = onCall(publicOptions, async (request) => {
   const tenant = await resolvePublicTenant(request.data || {});
   const payload = leadPayload(request.data || {}, tenant);
   const ref = await getFirestore().collection("leads").add(payload);
-  await writeAudit({
-    authUid: null,
-    ownerUid: tenant.ownerUid,
-    module: "leads",
-    action: "createPublicLead",
-    targetId: ref.id,
-    source: tenant.sourceType
-  });
+  // Sem writeAudit() aqui: auditLeadsWrite (trigger em leads/{id}) já
+  // audita a criação, com actorType "unknown"/"unauthenticated" derivado
+  // do Auth Context real da escrita (esta Function não passa por auth de
+  // usuário — visitante público sempre foi anônimo aqui).
   return { ok: true, leadId: ref.id };
 });
 

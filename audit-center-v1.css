@@ -1,0 +1,475 @@
+/* =========================================================
+   VIDE HUB — CENTRAL DE AUDITORIA V1
+   Estilos da view #view-auditoria. Segue o mesmo padrão visual de
+   growth-tracking-v1.css: variáveis --sys-*, breakpoints em
+   1279/1023/767/389px, tema claro via .tema-claro.
+   ========================================================= */
+
+#view-auditoria .aura-audit-hero {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 24px;
+    border-radius: 18px;
+    background: linear-gradient(135deg, rgba(0, 212, 255, 0.08), rgba(255, 255, 255, 0.02));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 20px;
+}
+
+#view-auditoria .aura-audit-hero h2 {
+    font-size: 20px;
+    font-weight: 800;
+    margin: 0 0 6px;
+}
+
+#view-auditoria .aura-audit-hero p {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.65);
+    margin: 0;
+    max-width: 560px;
+}
+
+#view-auditoria .aura-audit-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+#view-auditoria .aura-audit-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.75);
+    white-space: nowrap;
+}
+
+#view-auditoria .aura-audit-kpis {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+#view-auditoria .aura-audit-kpi {
+    padding: 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#view-auditoria .aura-audit-kpi span {
+    display: block;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.55);
+    margin-bottom: 6px;
+}
+
+#view-auditoria .aura-audit-kpi strong {
+    font-size: 24px;
+    font-weight: 800;
+}
+
+#view-auditoria .aura-audit-filtros {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    margin-bottom: 16px;
+}
+
+#view-auditoria .aura-audit-periodo {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+}
+
+#view-auditoria .aura-audit-periodo button {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 7px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(255, 255, 255, 0.75);
+    cursor: pointer;
+    min-height: 36px;
+}
+
+#view-auditoria .aura-audit-periodo button.is-active {
+    background: #00d4ff;
+    color: #06141c;
+    border-color: transparent;
+}
+
+#view-auditoria .aura-audit-periodo-personalizado {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+#view-auditoria .aura-audit-filtros select,
+#view-auditoria .aura-audit-filtros input[type="date"],
+#view-auditoria .aura-audit-filtros input[type="text"],
+#view-auditoria .aura-audit-filtros input[type="search"] {
+    font-size: 12px;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    min-height: 36px;
+}
+
+#view-auditoria .aura-audit-acoes {
+    display: flex;
+    gap: 8px;
+    margin-left: auto;
+    flex-wrap: wrap;
+}
+
+#view-auditoria .aura-audit-acoes button {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 12px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    cursor: pointer;
+    min-height: 36px;
+}
+
+#view-auditoria .aura-audit-busca {
+    flex: 1 1 220px;
+    min-width: 180px;
+}
+
+#view-auditoria #audit-estado-carregando,
+#view-auditoria #audit-estado-erro,
+#view-auditoria #audit-estado-sem-permissao,
+#view-auditoria #audit-vazio {
+    padding: 40px 20px;
+    text-align: center;
+    border-radius: 14px;
+    border: 1px dashed rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+}
+
+#view-auditoria .aura-audit-contagem {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 10px;
+}
+
+#view-auditoria .aura-audit-tabela-wrap {
+    overflow-x: auto;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#view-auditoria table.aura-audit-tabela {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+
+#view-auditoria table.aura-audit-tabela th {
+    text-align: left;
+    padding: 10px 12px;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.5);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    white-space: nowrap;
+}
+
+#view-auditoria table.aura-audit-tabela td {
+    padding: 10px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    vertical-align: top;
+}
+
+#view-auditoria table.aura-audit-tabela tr {
+    cursor: pointer;
+}
+
+#view-auditoria table.aura-audit-tabela tr:hover {
+    background: rgba(255, 255, 255, 0.03);
+}
+
+#view-auditoria table.aura-audit-tabela small {
+    display: block;
+    color: rgba(255, 255, 255, 0.45);
+    font-size: 10.5px;
+    margin-top: 2px;
+}
+
+#view-auditoria .audit-col-detalhes button {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 5px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+}
+
+#view-auditoria .audit-badge-risco {
+    display: inline-block;
+    font-size: 10.5px;
+    font-weight: 800;
+    padding: 4px 9px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+#view-auditoria .audit-badge-risco[data-risco="low"] { background: rgba(52, 211, 153, 0.15); color: #34d399; }
+#view-auditoria .audit-badge-risco[data-risco="medium"] { background: rgba(251, 191, 36, 0.15); color: #fbbf24; }
+#view-auditoria .audit-badge-risco[data-risco="high"] { background: rgba(251, 146, 60, 0.18); color: #fb923c; }
+#view-auditoria .audit-badge-risco[data-risco="critical"] { background: rgba(248, 113, 113, 0.18); color: #f87171; }
+
+#view-auditoria .aura-audit-cards-mobile {
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#view-auditoria .audit-card-mobile {
+    padding: 14px;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    cursor: pointer;
+}
+
+#view-auditoria .audit-card-mobile header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#view-auditoria .audit-card-mobile strong {
+    display: block;
+    font-size: 13px;
+    margin-bottom: 4px;
+}
+
+#view-auditoria .audit-card-mobile p {
+    margin: 0 0 6px;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+}
+
+#view-auditoria .audit-card-mobile footer {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+#view-auditoria .aura-audit-paginacao {
+    display: flex;
+    justify-content: center;
+    margin-top: 16px;
+}
+
+#view-auditoria #audit-ver-mais {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 10px 18px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.05);
+    color: inherit;
+    cursor: pointer;
+    min-height: 40px;
+}
+
+#view-auditoria #audit-ver-mais:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ===== Drawer de detalhes ===== */
+
+#audit-drawer {
+    position: fixed;
+    inset: 0;
+    z-index: 2147482000;
+    background: rgba(4, 8, 14, 0.55);
+    display: flex;
+    justify-content: flex-end;
+}
+
+#audit-drawer.hidden {
+    display: none;
+}
+
+#audit-drawer .aura-audit-drawer-painel {
+    width: min(420px, 100%);
+    height: 100%;
+    background: #10131c;
+    border-left: 1px solid rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    overflow-y: auto;
+}
+
+#audit-drawer header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+#audit-drawer header h3 {
+    font-size: 15px;
+    font-weight: 800;
+    margin: 0;
+}
+
+#audit-drawer-fechar {
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    min-height: 32px;
+}
+
+.audit-drawer-summary {
+    font-size: 13.5px;
+    font-weight: 700;
+    margin: 0 0 14px;
+}
+
+.audit-drawer-linha {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    font-size: 12.5px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.audit-drawer-linha span {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.audit-drawer-bloco {
+    margin-top: 14px;
+}
+
+.audit-drawer-bloco h4 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.5);
+    margin: 0 0 6px;
+}
+
+.audit-drawer-bloco pre {
+    font-size: 11px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 10px;
+    padding: 10px;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-word;
+    margin: 0;
+}
+
+.audit-drawer-aviso {
+    font-size: 11.5px;
+    color: rgba(255, 255, 255, 0.5);
+    margin-top: 14px;
+}
+
+#audit-drawer-abrir-entidade {
+    margin-top: 10px;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 8px 14px;
+    border-radius: 10px;
+    background: #00d4ff;
+    color: #06141c;
+    border: none;
+    cursor: pointer;
+}
+
+/* ===== Tema claro ===== */
+
+.tema-claro #view-auditoria .aura-audit-hero,
+.tema-claro #view-auditoria .aura-audit-kpi,
+.tema-claro #view-auditoria .aura-audit-filtros,
+.tema-claro #view-auditoria .aura-audit-tabela-wrap,
+.tema-claro #view-auditoria .audit-card-mobile {
+    background: rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 0, 0, 0.08);
+}
+
+.tema-claro #audit-drawer .aura-audit-drawer-painel {
+    background: #ffffff;
+    border-color: rgba(0, 0, 0, 0.08);
+    color: #0f172a;
+}
+
+.tema-claro .audit-drawer-bloco pre {
+    background: rgba(0, 0, 0, 0.04);
+}
+
+/* ===== Responsivo ===== */
+
+@media (max-width: 1279px) {
+    #view-auditoria .aura-audit-kpis {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 1023px) {
+    #view-auditoria .aura-audit-acoes {
+        margin-left: 0;
+        width: 100%;
+    }
+}
+
+@media (max-width: 767px) {
+    #view-auditoria .aura-audit-kpis {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    #view-auditoria .aura-audit-tabela-wrap {
+        display: none;
+    }
+    #view-auditoria .aura-audit-cards-mobile {
+        display: flex;
+    }
+    #audit-drawer .aura-audit-drawer-painel {
+        width: 100%;
+    }
+}
+
+@media (max-width: 389px) {
+    #view-auditoria .aura-audit-hero {
+        padding: 16px;
+    }
+    #view-auditoria .aura-audit-kpis {
+        grid-template-columns: 1fr;
+    }
+}

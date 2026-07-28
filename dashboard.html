@@ -308,6 +308,10 @@ Guia do Plano
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zM7 10a2 2 0 11-4 0 2 2 0 014 0zM21 10a2 2 0 11-4 0 2 2 0 014 0z"></path></svg>
 <span class="flex-1">Funcionários</span>
 </button>
+<button data-target="view-auditoria" data-module-permission="auditoria" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+<span class="flex-1">Auditoria</span>
+</button>
 
 </div>
 
@@ -5272,6 +5276,103 @@ Carregando equipe...
 </div>
 
 </section>
+
+<section id="view-auditoria" class="view-section space-y-6 max-w-6xl mx-auto aura-audit-view">
+
+<div class="aura-audit-hero">
+<div>
+<h2>Auditoria &amp; Segurança</h2>
+<p>Acompanhe alterações importantes realizadas na sua operação.</p>
+</div>
+<div class="aura-audit-badges">
+<span class="aura-audit-badge">Registro server-side</span>
+<span class="aura-audit-badge">Somente leitura</span>
+<span class="aura-audit-badge">Dados sensíveis protegidos</span>
+</div>
+</div>
+
+<div class="aura-audit-kpis">
+<div class="aura-audit-kpi"><span>Eventos hoje</span><strong id="audit-kpi-eventos-hoje">0</strong></div>
+<div class="aura-audit-kpi"><span>Ações de alto risco</span><strong id="audit-kpi-alto-risco">0</strong></div>
+<div class="aura-audit-kpi"><span>Atores ativos</span><strong id="audit-kpi-atores">0</strong></div>
+<div class="aura-audit-kpi"><span>Módulos alterados</span><strong id="audit-kpi-modulos">0</strong></div>
+</div>
+
+<div class="aura-audit-filtros">
+<div class="aura-audit-periodo">
+<button type="button" data-audit-period="hoje">Hoje</button>
+<button type="button" data-audit-period="7d" class="is-active">7 dias</button>
+<button type="button" data-audit-period="30d">30 dias</button>
+<button type="button" data-audit-period="90d">90 dias</button>
+<button type="button" data-audit-period="personalizado">Personalizado</button>
+</div>
+<div id="audit-periodo-personalizado" class="aura-audit-periodo-personalizado hidden">
+<input type="date" id="audit-periodo-de" aria-label="Data inicial">
+<input type="date" id="audit-periodo-ate" aria-label="Data final">
+<button type="button" id="audit-aplicar-periodo-personalizado">Aplicar</button>
+</div>
+<select id="audit-filtro-campo" aria-label="Filtrar por">
+<option value="">Sem filtro adicional</option>
+<option value="modulo">Módulo</option>
+<option value="operacao">Operação</option>
+<option value="risco">Risco</option>
+<option value="ator">Ator (UID)</option>
+</select>
+<span id="audit-filtro-valor-container"></span>
+<input type="search" id="audit-busca" class="aura-audit-busca" placeholder="Buscar por resumo, entidade ou ação…" aria-label="Buscar eventos carregados">
+<div class="aura-audit-acoes">
+<button type="button" id="audit-atualizar">Atualizar</button>
+<button type="button" id="audit-limpar">Limpar filtros</button>
+<button type="button" id="audit-exportar-csv">Exportar CSV</button>
+<button type="button" id="audit-exportar-json">Exportar JSON</button>
+</div>
+</div>
+
+<div id="audit-estado-carregando">Carregando eventos de auditoria…</div>
+<div id="audit-estado-erro" class="hidden">Não foi possível carregar os eventos de auditoria agora. Tente novamente.</div>
+<div id="audit-estado-sem-permissao" class="hidden">Você não tem permissão para ver a Auditoria desta loja.</div>
+
+<div id="audit-conteudo" class="hidden">
+<p class="aura-audit-contagem" id="audit-contagem"></p>
+<p class="aura-audit-contagem">Os eventos podem levar alguns segundos para aparecer depois de uma alteração.</p>
+
+<div id="audit-vazio" class="hidden">Nenhum evento de auditoria neste período/filtro.</div>
+
+<div class="aura-audit-tabela-wrap">
+<table class="aura-audit-tabela">
+<thead>
+<tr>
+<th>Horário</th>
+<th>Ator</th>
+<th>Módulo</th>
+<th>Ação</th>
+<th>Entidade</th>
+<th>Risco</th>
+<th></th>
+</tr>
+</thead>
+<tbody id="audit-tabela-corpo"></tbody>
+</table>
+</div>
+
+<div class="aura-audit-cards-mobile" id="audit-cards-mobile"></div>
+
+<div class="aura-audit-paginacao">
+<button type="button" id="audit-ver-mais">Ver mais</button>
+</div>
+</div>
+
+</section>
+
+<div id="audit-drawer" class="hidden" aria-hidden="true" role="dialog" aria-label="Detalhes do evento de auditoria">
+<div class="aura-audit-drawer-painel">
+<header>
+<h3>Detalhes do evento</h3>
+<button type="button" id="audit-drawer-fechar" aria-label="Fechar detalhes">Fechar</button>
+</header>
+<div id="audit-drawer-conteudo"></div>
+</div>
+</div>
 
 <section id="view-perfil"
 class="view-section space-y-6 max-w-6xl mx-auto aura-store-settings-view">

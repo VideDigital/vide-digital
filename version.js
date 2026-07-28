@@ -117,6 +117,21 @@ window.VIDE_AURA_BUILD = Object.freeze({
         );
     }
 
+    function carregarAuditoriaCSS() {
+        if (
+            !document.getElementById(
+                "view-auditoria"
+            )
+        ) {
+            return;
+        }
+
+        adicionarCSS(
+            "vide-audit-center-css",
+            "./audit-center-v1.css?v=20260728-1"
+        );
+    }
+
     function carregarPedidosExecutivos() {
         if (
             !document.getElementById(
@@ -172,6 +187,7 @@ window.VIDE_AURA_BUILD = Object.freeze({
         carregarDashboardExecutivo();
         carregarConfiguracoesExecutivas();
         carregarCentralCrescimentoCSS();
+        carregarAuditoriaCSS();
         carregarPedidosExecutivos();
         carregarIdentidadeCompactaSidebar();
         carregarLarguraDesktopSidebar();

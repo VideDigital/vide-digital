@@ -4,7 +4,6 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { requireAuth, isBackendAdmin } = require("../shared/context");
 const { normalizeString } = require("../shared/validators");
-const { writeAudit } = require("../audit");
 
 const markNotificationRead = onCall({ region: "southamerica-east1" }, async (request) => {
   const auth = requireAuth(request);
@@ -27,7 +26,9 @@ const markNotificationRead = onCall({ region: "southamerica-east1" }, async (req
     lidoPor: read ? FieldValue.arrayUnion(auth.uid) : FieldValue.arrayRemove(auth.uid),
     leituraAtualizadaEm: FieldValue.serverTimestamp()
   }, { merge: true });
-  await writeAudit({ authUid: auth.uid, ownerUid: data.uid || null, module: "notificacoes", action: "markNotificationRead", targetId: id });
+  // Notificações de leitura estão na lista explícita de "não auditar"
+  // da missão (ruído de alta frequência, sem valor de segurança) — nunca
+  // geram evento em auditoria/, nem por writeAudit nem por trigger.
   return { ok: true };
 });
 

@@ -7,6 +7,7 @@ import { criarCrm360Controller, LIMITES_CRM } from "./crm360.js";
 import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
 import { criarIaNegocioController, payloadIaNegocioPublica } from "./ia-negocio.js";
 import { criarGrowthTrackingController } from "./growth-tracking-v1.js";
+import { criarAuditCenterController } from "./audit-center-v1.js";
 import { VideFunctions } from "./core/vide-functions.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
@@ -39,7 +40,7 @@ window.addEventListener("pageshow", function(event) {
     } catch(err) { console.error(err); }
 })();
         import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, startAfter, Timestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
@@ -2431,6 +2432,10 @@ if (targetId === "view-metricas") {
         growthTrackingController.load();
     }
 
+    if (targetId === "view-auditoria") {
+        auditCenterController.load();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3551,6 +3556,15 @@ btn.classList.add("opacity-40");
         });
         growthTrackingController.bindEventos();
         window.growthTrackingController = growthTrackingController;
+
+        const auditCenterController = criarAuditCenterController({
+            db,
+            context: VideHubContext,
+            firestore: { collection, doc, getDoc, getDocs, query, where, orderBy, limit, startAfter, Timestamp },
+            notify: showToast
+        });
+        auditCenterController.bindEventos();
+        window.auditCenterController = auditCenterController;
 
         // Painel do copiloto de IA dentro da Central de Atendimento — só
         // texto (nunca innerHTML) pro conteúdo gerado, pra nunca renderizar

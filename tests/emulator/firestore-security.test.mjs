@@ -2459,3 +2459,87 @@ describe("chats/eventos: leitura restrita à equipe; sempre append-only", () => 
     await assertFails(deleteDoc(doc(authed("ownerA"), "chats", "chatEvt14", "eventos", evtRef.id)));
   });
 });
+
+describe("auditoria: leitura owner-only + videAdmin; sem escrita nenhuma do cliente", () => {
+  async function eventoAuditoriaFixture(overrides = {}) {
+    return {
+      schemaVersion: 1,
+      eventId: overrides.eventId || "evt-fixture",
+      ownerUid: "ownerA",
+      actorUid: "ownerA",
+      actorType: "user",
+      module: "produtos",
+      entityType: "produto",
+      entityId: "prodA",
+      operation: "update",
+      action: "produto.preco_alterado",
+      risk: "medium",
+      summary: "Preço do produto foi alterado",
+      changedFields: ["preco"],
+      before: { preco: 10 },
+      after: { preco: 20 },
+      source: "firestore-trigger",
+      ok: true,
+      createdAt: serverTimestamp(),
+      ...overrides
+    };
+  }
+
+  async function semearEventoAuditoria(id, overrides = {}) {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "auditoria", id), await eventoAuditoriaFixture({ eventId: id, ...overrides }));
+    });
+  }
+
+  it("owner lê evento do próprio tenant", async () => {
+    await semearEventoAuditoria("evtAud1");
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "auditoria", "evtAud1")));
+  });
+
+  it("owner NÃO lê evento de outro tenant", async () => {
+    await semearEventoAuditoria("evtAud2", { ownerUid: "ownerB" });
+    await assertFails(getDoc(doc(authed("ownerA"), "auditoria", "evtAud2")));
+  });
+
+  it("funcionário editor (todas as outras permissões) não lê auditoria — owner-only na V1", async () => {
+    await semearEventoAuditoria("evtAud3");
+    await assertFails(getDoc(doc(authed("employeeEdit"), "auditoria", "evtAud3")));
+  });
+
+  it("funcionário leitor não lê auditoria", async () => {
+    await semearEventoAuditoria("evtAud4");
+    await assertFails(getDoc(doc(authed("employeeRead"), "auditoria", "evtAud4")));
+  });
+
+  it("videAdmin lê qualquer evento, de qualquer tenant", async () => {
+    await semearEventoAuditoria("evtAud5", { ownerUid: "ownerB" });
+    await assertSucceeds(getDoc(doc(authed("admin", { videAdmin: true }), "auditoria", "evtAud5")));
+  });
+
+  it("owner nunca cria evento de auditoria pelo cliente", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "auditoria", "evtAud6"), await eventoAuditoriaFixture({ eventId: "evtAud6" })));
+  });
+
+  it("owner nunca atualiza nem apaga um evento existente", async () => {
+    await semearEventoAuditoria("evtAud7");
+    await assertFails(updateDoc(doc(authed("ownerA"), "auditoria", "evtAud7"), { risk: "critical" }));
+    await assertFails(deleteDoc(doc(authed("ownerA"), "auditoria", "evtAud7")));
+  });
+
+  it("admin backend também nunca escreve (só lê)", async () => {
+    await semearEventoAuditoria("evtAud8");
+    await assertFails(updateDoc(doc(authed("admin", { videAdmin: true }), "auditoria", "evtAud8"), { risk: "low" }));
+    await assertFails(deleteDoc(doc(authed("admin", { videAdmin: true }), "auditoria", "evtAud8")));
+  });
+
+  it("consulta por ownerUid nunca vaza eventos de outro tenant", async () => {
+    await semearEventoAuditoria("evtAud9", { ownerUid: "ownerA" });
+    await semearEventoAuditoria("evtAud10", { ownerUid: "ownerB" });
+
+    const proprios = await getDocs(query(collection(authed("ownerA"), "auditoria"), where("ownerUid", "==", "ownerA")));
+    assert.equal(proprios.size, 1);
+    assert.equal(proprios.docs[0].id, "evtAud9");
+
+    await assertFails(getDocs(query(collection(authed("ownerA"), "auditoria"), where("ownerUid", "==", "ownerB"))));
+  });
+});

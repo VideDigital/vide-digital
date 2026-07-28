@@ -1,0 +1,220 @@
+# Deploy dedicado só pros triggers da Auditoria Centralizada V1 —
+# SEPARADO de "Deploy Firebase Functions (IA de Negócio)" (esse continua
+# publicando só askBusinessAI/askPublicBusinessAI) e de "Deploy Firebase
+# Spark" (esse nunca publica Functions). Publica SÓ os 15 triggers de
+# auditoria (--only functions:auditUsuariosWrite,...), nunca "todas as
+# functions" — createEmployee, updateEmployee, adminUpdateStoreStatus e
+# as demais Functions legadas continuam código não usado em produção,
+# sem mudar esse estado aqui. Nunca toca askBusinessAI/askPublicBusinessAI.
+#
+# Fase B da missão (ver docs/AUDITORIA_CENTRALIZADA.md): só rodar depois
+# de Rules/índices já publicados (workflow "Deploy Firebase Spark") — os
+# triggers escrevem em auditoria/{eventId}, que depende das Rules novas
+# já estarem no ar pra leitura funcionar.
+name: Deploy Firebase Functions — Auditoria
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: ID real do projeto Firebase de produção
+        required: true
+        type: string
+      confirm_production:
+        description: Digite DEPLOY_AUDIT para confirmar a publicação dos triggers de auditoria em produção
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-production-audit-deploy
+  cancel-in-progress: false
+
+env:
+  AUDIT_FUNCTIONS: "functions:auditUsuariosWrite,functions:auditFuncionariosWrite,functions:auditPedidosWrite,functions:auditProdutosWrite,functions:auditClientesWrite,functions:auditLeadsWrite,functions:auditChatsWrite,functions:auditTemplatesWrite,functions:auditVitrinesWrite,functions:auditLandingPagesWrite,functions:auditLandingPagesPublicasWrite,functions:auditIaConfigWrite,functions:auditKnowledgeWrite,functions:auditTrackingConfigsWrite,functions:auditTrackingLinksWrite"
+
+jobs:
+  validate-and-test:
+    name: Validar solicitação e executar testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Validar branch e confirmação de produção
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            echo "Erro: este workflow aceita somente execução manual."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Erro: execute este workflow somente a partir da branch main."
+            exit 1
+          fi
+
+          if [[ -z "${PROJECT_ID//[[:space:]]/}" ]]; then
+            echo "Erro: project_id é obrigatório."
+            exit 1
+          fi
+
+          NORMALIZED_PROJECT_ID="$(printf '%s' "${PROJECT_ID}" | tr '[:upper:]' '[:lower:]')"
+          if [[ "${NORMALIZED_PROJECT_ID}" == *demo* ]]; then
+            echo "Erro: projetos com 'demo' no ID não podem receber deploy de produção."
+            exit 1
+          fi
+
+          if [[ ! "${PROJECT_ID}" =~ ^[a-z][a-z0-9-]{4,28}[a-z0-9]$ ]]; then
+            echo "Erro: project_id não possui o formato esperado de um ID de projeto Google Cloud."
+            exit 1
+          fi
+
+          if [[ "${PROJECT_ID}" != "vide-digital-saas" ]]; then
+            echo "Erro: o backend de produção usa o projeto vide-digital-saas."
+            exit 1
+          fi
+
+          if [[ "${CONFIRM_PRODUCTION}" != "DEPLOY_AUDIT" ]]; then
+            echo "Erro: confirm_production deve ser exatamente DEPLOY_AUDIT."
+            exit 1
+          fi
+
+      - name: Checkout da main
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java 21 para o Firestore Emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar sintaxe do projeto
+        run: pnpm run check
+
+      - name: Testar funções puras (validadores + audit core + audit triggers)
+        run: pnpm run test:functions
+
+      - name: Testar unitários (inclui audit-core-v1 do frontend)
+        run: pnpm run test:unit
+
+      - name: Testar regras no Emulator Suite (inclui auditoria/{eventId})
+        run: pnpm run test:rules
+
+      - name: Smoke test do frontend no Emulator Suite (exercita os triggers reais)
+        run: pnpm run test:frontend:emulator
+
+  deploy:
+    name: Publicar os 15 triggers de auditoria
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout da main validada
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar dependências das Functions
+        run: pnpm install --frozen-lockfile --dir functions
+
+      # Mesmo detector de autenticação dos outros workflows de deploy —
+      # nenhum secret novo é introduzido por este workflow.
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            echo "Configure UM dos métodos abaixo em Settings → Secrets and variables → Actions:"
+            echo "  1. GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT (Workload Identity Federation), ou"
+            echo "  2. FIREBASE_SERVICE_ACCOUNT (conteúdo JSON completo da chave da conta de serviço)."
+            echo "Alternativa manual, com o Firebase CLI logado localmente:"
+            echo "  firebase use vide-digital-saas"
+            echo "  firebase deploy --only \"\$AUDIT_FUNCTIONS\""
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      # --only recebe a lista explícita (env AUDIT_FUNCTIONS acima) —
+      # nunca "--only functions" sozinho, que publicaria toda Function
+      # legada e a IA junto.
+      - name: Publicar os 15 triggers de auditoria
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${AUDIT_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive

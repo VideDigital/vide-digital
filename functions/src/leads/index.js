@@ -4,7 +4,6 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { resolveCallerContext, requireEdit } = require("../shared/context");
 const { normalizeString, publicText } = require("../shared/validators");
-const { writeAudit } = require("../audit");
 
 // O dono/funcionário lê o chat público (createPublicChat/sendPublicChatMessage)
 // pelo painel há tempos, mas nunca teve como responder: as rules bloqueiam
@@ -44,13 +43,9 @@ const sendAdminChatMessage = onCall({ region: "southamerica-east1" }, async (req
     atualizadoEm: FieldValue.serverTimestamp()
   }, { merge: true });
 
-  await writeAudit({
-    authUid: context.authUid,
-    ownerUid: context.ownerUid,
-    module: "leads",
-    action: "sendAdminChatMessage",
-    targetId: chatId
-  });
+  // Sem writeAudit() aqui: mensagens de chat nunca são auditadas (alta
+  // frequência/conteúdo de conversa) e a atualização do documento pai
+  // (statusAdmin: "respondido") já é coberta por auditChatsWrite.
 
   return { ok: true };
 });

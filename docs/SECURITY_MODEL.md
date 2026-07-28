@@ -119,11 +119,15 @@ não abre mais um chat novo.
 
 - IA real (nenhum provedor externo é chamado; nenhuma chave no frontend).
 - WhatsApp oficial.
-- Log de eventos administrativo **centralizado entre tenants/módulos**
-  pós-migração de Cloud Functions (`writeAudit` foi descontinuado nas
-  operações migradas — ver `docs/ROADMAP_RD3_STATUS.md`). O que existe hoje
-  é por escopo: `chats/{id}/eventos` (por conversa) e `clientes/{id}/eventos`
-  (por cliente) — nenhum dos dois é um log global entre tenants.
+- **Auditoria Centralizada V1 em produção** — o código está pronto (Fase A:
+  15 Firestore triggers server-side com Auth Context, Central de Auditoria
+  owner-only no dashboard, ver `docs/AUDITORIA_CENTRALIZADA.md`), mas os
+  triggers ainda não foram publicados nem testados com dados reais de
+  produção (Fase B, depende de confirmação do usuário). Até lá, continua
+  valendo o que já existia por escopo: `chats/{id}/eventos` (por conversa) e
+  `clientes/{id}/eventos` (por cliente) — nenhum dos dois é um log
+  centralizado entre tenants/módulos, que é exatamente a lacuna que a
+  Auditoria Centralizada fecha.
 
 Cloud Functions continuam reservadas para quando existir segredo real,
 integração externa, operação administrativa privilegiada, rate limit

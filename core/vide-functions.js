@@ -52,7 +52,10 @@ export const VideFunctions = Object.freeze({
     createPublicChat: (payload) => callFunction("createPublicChat", payload),
     sendPublicChatMessage: (payload) => callFunction("sendPublicChatMessage", payload),
     markNotificationRead: (payload) => callFunction("markNotificationRead", payload),
-    auditWrite: (payload) => callFunction("auditWrite", payload),
+    // auditWrite removido: o callable público foi descontinuado (sem
+    // consumidor de produção, aceitava ownerUid do cliente). A Auditoria
+    // Centralizada V1 é 100% server-side via Firestore triggers — ver
+    // docs/AUDITORIA_CENTRALIZADA.md.
     sendAdminChatMessage: (payload) => callFunction("sendAdminChatMessage", payload),
     askBusinessAI: (payload) => callFunction("askBusinessAI", payload)
 });

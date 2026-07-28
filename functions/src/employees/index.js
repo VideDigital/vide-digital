@@ -96,13 +96,8 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
       criadoPorAuthUid: context.authUid
     });
 
-    await writeAudit({
-      authUid: context.authUid,
-      ownerUid: context.ownerUid,
-      module: "funcionarios",
-      action: "createEmployee",
-      targetId: createdUser.uid
-    });
+    // Sem writeAudit() aqui: auditFuncionariosWrite (trigger em
+    // funcionarios/{uid}) já cobre create/update/status desta coleção.
 
     return { ok: true, uid: createdUser.uid, email, nome, cargo, status: "ativo", permissoes };
   } catch (error) {
@@ -142,13 +137,7 @@ const updateEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     atualizadoPorAuthUid: context.authUid
   }, { merge: true });
 
-  await writeAudit({
-    authUid: context.authUid,
-    ownerUid: context.ownerUid,
-    module: "funcionarios",
-    action: "updateEmployee",
-    targetId: employeeUid
-  });
+  // Sem writeAudit() aqui: auditFuncionariosWrite já cobre esta escrita.
 
   return { ok: true };
 });
@@ -173,13 +162,8 @@ async function setEmployeeEnabled(request, enabled) {
   }, { merge: true });
   await getAuth().updateUser(employeeUid, { disabled: !enabled });
   await getAuth().revokeRefreshTokens(employeeUid);
-  await writeAudit({
-    authUid: context.authUid,
-    ownerUid: context.ownerUid,
-    module: "funcionarios",
-    action: enabled ? "enableEmployee" : "disableEmployee",
-    targetId: employeeUid
-  });
+  // Sem writeAudit() aqui: auditFuncionariosWrite já classifica a
+  // mudança de status (funcionario.desativado/funcionario.reativado).
   return { ok: true, status };
 }
 
