@@ -702,6 +702,11 @@
             idTitulo
         );
 
+        var expandidaInicial =
+            !bloco.classList.contains(
+                "is-collapsed"
+            );
+
         var topbar =
             document.createElement(
                 "div"
@@ -739,9 +744,9 @@
                     type="button"
                     class="store-settings-section-toggle"
                     data-settings-toggle="${area.id}"
-                    aria-expanded="true"
+                    aria-expanded="${expandidaInicial}"
                     aria-controls="${bloco.id}"
-                    aria-label="Recolher ${area.titulo}"
+                    aria-label="${expandidaInicial ? "Recolher" : "Expandir"} ${area.titulo}"
                 >
                     <svg
                         viewBox="0 0 24 24"
