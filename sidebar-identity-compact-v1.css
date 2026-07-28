@@ -641,3 +641,253 @@
         display: none !important;
     }
 }
+
+/* ================================================================
+   VIDE HUB — REMOVE ESPAÇO VAZIO DA IDENTIDADE V1.2
+   Logo, nomes, status e armazenamento participam diretamente da grade.
+   ================================================================ */
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-identity-row {
+    display: grid !important;
+
+    grid-template-columns:
+        30px
+        minmax(0, 1fr)
+        auto
+        auto !important;
+
+    align-items: center !important;
+
+    width: 100% !important;
+    min-width: 0 !important;
+
+    height: 32px !important;
+    min-height: 32px !important;
+    max-height: 32px !important;
+
+    gap: 4px !important;
+}
+
+/*
+O contêiner intermediário deixa de ocupar uma coluna.
+Logo e nomes passam a ser itens diretos da grade.
+*/
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-identity-brand {
+    display: contents !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-logo,
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+#admin-logo-box {
+    grid-column: 1 !important;
+    grid-row: 1 !important;
+
+    width: 30px !important;
+    min-width: 30px !important;
+    max-width: 30px !important;
+
+    height: 30px !important;
+    min-height: 30px !important;
+    max-height: 30px !important;
+
+    margin: 0 !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-identity-names {
+    grid-column: 2 !important;
+    grid-row: 1 !important;
+
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: baseline !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+
+    overflow: hidden !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-brand-name {
+    display: block !important;
+    flex: 0 0 auto !important;
+
+    margin: 0 !important;
+    padding: 0 !important;
+
+    overflow: visible !important;
+
+    color: #ffffff !important;
+
+    font-size: 11px !important;
+    font-weight: 850 !important;
+    line-height: 1 !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    white-space: nowrap !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-workspace-name {
+    display: block !important;
+    flex: 1 1 auto !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+
+    margin: 0 0 0 4px !important;
+    padding: 0 !important;
+
+    overflow: hidden !important;
+
+    color: rgba(255, 255, 255, .52) !important;
+
+    font-size: 8.5px !important;
+    font-weight: 650 !important;
+    line-height: 1 !important;
+
+    opacity: 1 !important;
+    visibility: visible !important;
+
+    white-space: nowrap !important;
+    text-overflow: ellipsis !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-workspace-name::before {
+    content: "•" !important;
+
+    margin-right: 4px !important;
+
+    opacity: .45 !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-status-pill {
+    grid-column: 3 !important;
+    grid-row: 1 !important;
+
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 43px !important;
+
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 5px !important;
+    gap: 3px !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-status-pill span {
+    font-size: 7.5px !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-storage {
+    grid-column: 4 !important;
+    grid-row: 1 !important;
+
+    width: 34px !important;
+    min-width: 34px !important;
+    max-width: 34px !important;
+
+    height: 21px !important;
+    min-height: 21px !important;
+    max-height: 21px !important;
+
+    margin: 0 !important;
+    padding: 0 4px !important;
+}
+
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-storage-value {
+    font-size: 7.5px !important;
+}
+
+.tema-claro
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-brand-name {
+    color: #0f172a !important;
+}
+
+.tema-claro
+#admin-sidebar#admin-sidebar
+.aura-sidebar-identity-compact
+.aura-sidebar-workspace-name {
+    color: rgba(15, 23, 42, .55) !important;
+}
+
+/* Tablet: armazenamento oculto e três colunas */
+@media (min-width: 768px) and (max-width: 1199px) {
+    #admin-sidebar#admin-sidebar
+    .aura-sidebar-identity-compact
+    .aura-sidebar-identity-row {
+        grid-template-columns:
+            30px
+            minmax(0, 1fr)
+            auto !important;
+    }
+
+    #admin-sidebar#admin-sidebar
+    .aura-sidebar-identity-compact
+    .aura-sidebar-storage {
+        display: none !important;
+    }
+}
+
+/* Celular: logo, nomes, status e botão */
+@media (max-width: 767px) {
+    #admin-sidebar#admin-sidebar
+    .aura-sidebar-identity-compact
+    .aura-sidebar-identity-row {
+        grid-template-columns:
+            30px
+            minmax(0, 1fr)
+            auto
+            28px !important;
+    }
+
+    #admin-sidebar#admin-sidebar
+    .aura-sidebar-identity-compact
+    .aura-sidebar-storage {
+        display: none !important;
+    }
+
+    #admin-sidebar#admin-sidebar
+    .aura-sidebar-identity-compact
+    #mobile-menu-toggle {
+        grid-column: 4 !important;
+        grid-row: 1 !important;
+    }
+}
