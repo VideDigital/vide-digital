@@ -180,10 +180,14 @@ export function criarAuditCenterController({
             mostrarEstado(state.eventos.length ? "conteudo" : "vazio");
             renderTabela();
         } catch (error) {
-            logger.error?.("[auditoria] Falha ao carregar eventos:", error);
+            // permission-denied é esperado pra quem não é dono/videAdmin
+            // (Rules bloqueando de propósito) — não é uma falha inesperada
+            // da aplicação, então não vira console.error.
             if (String(error?.code || "").includes("permission-denied")) {
+                logger.warn?.("[auditoria] Sem permissão para ler eventos (esperado pra não-dono):", error);
                 mostrarEstado("sem-permissao");
             } else {
+                logger.error?.("[auditoria] Falha ao carregar eventos:", error);
                 mostrarEstado("erro");
             }
         } finally {

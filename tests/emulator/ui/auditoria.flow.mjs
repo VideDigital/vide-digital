@@ -25,13 +25,23 @@ function adminDb() {
     return getFirestore();
 }
 
-async function ativarView(page, viewId, seletor) {
+async function ativarView(page, viewId, seletorLista) {
     const ativou = await page.evaluate(id => {
         if (typeof window.ativarAba !== "function") return false;
         return window.ativarAba(id);
     }, viewId);
     if (ativou) {
-        await page.waitForSelector(seletor, { state: "visible", timeout: 15000 });
+        // page.waitForSelector com uma lista "a, b" separada por vírgula
+        // não tem semântica de "espera qualquer um" — ele resolve pro
+        // primeiro elemento em ordem no DOM e espera SÓ o estado dele,
+        // o que trava quando esse primeiro é o que fica escondido de
+        // propósito. waitForFunction checando cada seletor manualmente
+        // não tem essa armadilha.
+        const seletores = seletorLista.split(",").map(s => s.trim());
+        await page.waitForFunction(sels => sels.some(sel => {
+            const el = document.querySelector(sel);
+            return Boolean(el) && !el.classList.contains("hidden") && el.offsetParent !== null;
+        }), seletores, { timeout: 15000 });
     }
     return ativou;
 }
