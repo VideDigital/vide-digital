@@ -297,6 +297,20 @@ async function main() {
             "Não foi possível localizar o novo pedido na tabela"
         );
 
+        // Pedidos Executivos V1 — camada modular carregada de forma
+        // assíncrona (version.js). Confirma que os sinais agregados
+        // (usados pela faixa "Central Hoje") estão disponíveis via o
+        // motor real, sem depender de nenhuma consulta nova.
+        await page.waitForFunction(() => {
+            const sinais = window.AuraOrdersV1?.getSignals?.();
+            return Boolean(sinais) && typeof sinais.total === "number";
+        }, { timeout: 20000 });
+
+        await page.waitForSelector(
+            "#orders-exec-today",
+            { state: "visible", timeout: 20000 }
+        );
+
         // Abrir o detalhe atual.
         await page.click(
             `[data-open-order="${pedidoId}"]`
@@ -313,6 +327,19 @@ async function main() {
             ),
             "novo",
             "O pedido novo deveria iniciar com status novo"
+        );
+
+        // No viewport desktop deste teste (1440x900), o detalhe deve virar
+        // um painel/drawer lateral, com o fundo esmaecido por um backdrop
+        // real (não um overlay invisível preso na tela).
+        await page.waitForSelector(
+            ".aura-orders-v1-detail.orders-exec-drawer",
+            { state: "visible", timeout: 10000 }
+        );
+
+        await page.waitForSelector(
+            ".orders-exec-backdrop.is-visivel",
+            { state: "visible", timeout: 10000 }
         );
 
         // Alterar status no detalhe e salvar.
@@ -359,6 +386,21 @@ async function main() {
             );
         }, pedidoId, { timeout: 20000 });
 
+        // Fechar o drawer precisa devolver o fundo ao normal: sem
+        // backdrop visível e sem o scroll da página travado.
+        await page.waitForFunction(() => {
+            const backdrop = document.querySelector(
+                ".orders-exec-backdrop"
+            );
+
+            return (
+                !backdrop ||
+                !backdrop.classList.contains("is-visivel")
+            ) && !document.body.classList.contains(
+                "orders-exec-drawer-open"
+            );
+        }, { timeout: 10000 });
+
         const errosRelevantes = erros.filter(
             erro => !ehErroDeRedeExterno(erro)
         );
@@ -372,8 +414,9 @@ async function main() {
 
         console.log(
             "pedidos.flow: OK — criação, itens estruturados, " +
-            "subtotal, campos manuais, prazo, tabela atual, detalhe " +
-            "e mudança de status validados."
+            "subtotal, campos manuais, prazo, tabela atual, detalhe, " +
+            "mudança de status, sinais da Central de hoje e drawer " +
+            "de Pedidos Executivos V1 validados."
         );
     } catch (error) {
         falhou = true;

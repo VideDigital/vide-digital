@@ -1,6 +1,6 @@
 window.VIDE_AURA_BUILD = Object.freeze({
     nome: "Vide Aura OS",
-    versao: "3.2.0-configuracoes-executivas",
+    versao: "3.3.0-pedidos-executivos",
     data: "2026-07-27",
     canal: "main"
 });
@@ -102,9 +102,31 @@ window.VIDE_AURA_BUILD = Object.freeze({
         );
     }
 
+    function carregarPedidosExecutivos() {
+        if (
+            !document.getElementById(
+                "view-pedidos"
+            )
+        ) {
+            return;
+        }
+
+        adicionarCSS(
+            "vide-orders-executive-css",
+            "./orders-executive-v1.css?v=20260727-1"
+        );
+
+        adicionarJS(
+            "vide-orders-executive-js",
+            "./orders-executive-v1.js?v=20260727-1",
+            "[Vide Hub] Não foi possível carregar os Pedidos Executivos."
+        );
+    }
+
     function iniciar() {
         carregarDashboardExecutivo();
         carregarConfiguracoesExecutivas();
+        carregarPedidosExecutivos();
     }
 
     if (

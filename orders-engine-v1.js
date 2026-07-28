@@ -401,6 +401,27 @@ function syncBadge() {
     badge.innerHTML = `<i></i> ${ready ? "Sincronizado" : "Sincronizando"}`;
 }
 
+// Camada modular (orders-executive-v1.js) precisa de contadores agregados
+// para a faixa "Central Hoje", mas state.orders é privado deste módulo —
+// em vez de expor o array bruto (dados de cliente inclusos), expõe só os
+// números já derivados via window.AuraOrdersV1.getSignals(). Nenhuma
+// consulta nova: reaproveita state.orders, já carregado pelos listeners
+// existentes.
+function computeSignals() {
+    const now = Date.now();
+    const active = state.orders.filter((order) => order.status !== "cancelado");
+    const awaitingPayment = active.filter((order) => order.payment !== "pago");
+    return {
+        total: state.orders.length,
+        new: active.filter((order) => order.status === "novo").length,
+        inProgress: active.filter((order) => ["confirmado", "em_producao"].includes(order.status)).length,
+        awaitingPayment: awaitingPayment.length,
+        ready: active.filter((order) => ["pronto", "enviado"].includes(order.status)).length,
+        overdue: active.filter((order) => order.dueDate && order.dueDate < now && order.status !== "entregue").length,
+        receivable: awaitingPayment.reduce((sum, order) => sum + order.total, 0)
+    };
+}
+
 function metrics() {
     const active = state.orders.filter((order) => order.status !== "cancelado");
     const paid = active.filter((order) => order.payment === "pago");
@@ -884,7 +905,8 @@ async function initialize(user) {
         version: VERSION,
         reload: refreshAll,
         openOrder,
-        getState: () => ({ ownerUid: state.ownerUid, total: state.orders.length, canView: state.canView, canEdit: state.canEdit, activeTab: state.activeTab, version: VERSION })
+        getState: () => ({ ownerUid: state.ownerUid, total: state.orders.length, canView: state.canView, canEdit: state.canEdit, activeTab: state.activeTab, version: VERSION }),
+        getSignals: computeSignals
     };
     console.info(`[Vide Aura Pedidos] Inicializado — ${state.ownerUid} — v${VERSION}`);
 }
