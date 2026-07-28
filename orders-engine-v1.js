@@ -1045,17 +1045,45 @@ function editRemoveItem(produtoId) {
     refreshEditItemsUI();
 }
 
+// Bug real encontrado no Quality Gate: alterar quantidade e depois preço
+// em sequência (dois "change" próximos) podia fazer o preço digitado
+// sumir — o re-render adiado (requestAnimationFrame) disparado pela
+// mudança de QUANTIDADE recriava o campo de preço via outerHTML usando o
+// estado ainda ANTIGO (sem o preço novo, que só vira estado quando o
+// "change" dele dispara) — a troca de nó descartava silenciosamente o
+// valor que a pessoa (ou, no teste, o Playwright) acabou de digitar no
+// campo irmão. Mudança de quantidade/preço nunca altera a QUANTIDADE de
+// linhas — só o valor de cada uma —, então nunca precisa recriar os
+// próprios campos de input: só atualiza os totais calculados (linha,
+// subtotal, total, texto automático), sem tocar em nenhum <input>.
+function refreshEditItemLineTotals() {
+    const order = state.orders.find((item) => item.id === state.editingId);
+    if (!order || !state.editDraft) return;
+    state.editDraft.items.forEach((item) => {
+        const linha = document.querySelector(`[data-edit-item="${item.produtoId}"]`);
+        const total = linha?.querySelector("b");
+        if (total) total.textContent = money(item.precoSnapshot * item.quantidade);
+    });
+    const subtotalNode = document.getElementById("aura-orders-v1-edit-subtotal");
+    if (subtotalNode) subtotalNode.textContent = money(calcularTotaisDraft(state.editDraft).subtotal);
+    const textoNode = document.getElementById("aura-orders-v1-edit-products-text");
+    if (textoNode && !state.editDraft.productsTextManual && document.activeElement !== textoNode) {
+        textoNode.value = state.editDraft.productsText;
+    }
+    refreshEditDirtyUI(order);
+}
+
 function editUpdateItemQuantity(produtoId, value) {
     if (!state.editDraft) return;
     state.editDraft.items = atualizarQuantidadeItem(state.editDraft.items, produtoId, value);
     state.editDraft.productsText = gerarProdutosTextoSemSobrescreverManual(state.editDraft);
-    refreshEditItemsUI();
+    refreshEditItemLineTotals();
 }
 
 function editUpdateItemPrice(produtoId, value) {
     if (!state.editDraft) return;
     state.editDraft.items = atualizarPrecoItem(state.editDraft.items, produtoId, value);
-    refreshEditItemsUI();
+    refreshEditItemLineTotals();
 }
 
 function renderEditItemResults(term) {
