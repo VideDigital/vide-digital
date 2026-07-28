@@ -12,12 +12,15 @@
 // a reprovar qualquer erro de JavaScript relevante encontrado durante a
 // matriz de telas e viewports.
 import assert from "node:assert/strict";
+import { mkdir, writeFile } from "node:fs/promises";
+import path from "node:path";
 import {
     captureDiagnostics,
     coletarErrosConsole,
     ehErroDeRedeExterno,
     launchBrowser,
     loginReal,
+    REPO_ROOT,
     startStaticServer,
     VIEWPORTS
 } from "./_helpers.mjs";
@@ -308,6 +311,151 @@ function avaliarIdentidadeSidebar(
     return problemas;
 }
 
+// Overlay mobile do menu (#admin-sidebar.aura-sidebar-mobile-aberto):
+// o overlay em si já ocupava 100% da tela, mas nada garantia que os
+// blocos internos (identidade, navegação, Status da loja, rodapé de
+// conta) esticassem até essa largura — sobrava uma faixa vazia à
+// direita. Mede a largura útil real (largura do próprio #admin-sidebar
+// menos o padding lateral) e a fração que cada bloco principal ocupa
+// dela.
+async function medirLargurasSidebarMobile(page) {
+    const abriu = await page.evaluate(() => {
+        const botao = document.getElementById("mobile-menu-toggle");
+        const sidebar = document.getElementById("admin-sidebar");
+
+        if (!botao || !sidebar) {
+            return false;
+        }
+
+        botao.click();
+
+        return sidebar.classList.contains(
+            "aura-sidebar-mobile-aberto"
+        );
+    });
+
+    if (!abriu) {
+        return null;
+    }
+
+    await page.waitForTimeout(250);
+
+    const medida = await page.evaluate(() => {
+        const sidebar = document.getElementById("admin-sidebar");
+        const wrapper = sidebar.querySelector(":scope > div:first-child");
+        const identity = sidebar.querySelector(
+            ".aura-sidebar-identity-compact"
+        );
+        const nav = document.getElementById("sidebar-nav");
+        const status = document.getElementById("box-atalho");
+        const account = document.getElementById("box-logout");
+
+        const estiloSidebar = getComputedStyle(sidebar);
+        const paddingLeft = parseFloat(estiloSidebar.paddingLeft) || 0;
+        const paddingRight = parseFloat(estiloSidebar.paddingRight) || 0;
+        const sidebarBox = sidebar.getBoundingClientRect();
+        const usableWidth =
+            sidebar.clientWidth - paddingLeft - paddingRight;
+        const usableLeft = sidebarBox.left + paddingLeft;
+        const usableRight = sidebarBox.right - paddingRight;
+
+        const medirBloco = elemento => {
+            if (!elemento) {
+                return null;
+            }
+
+            const estilo = getComputedStyle(elemento);
+            const visivel =
+                estilo.display !== "none" &&
+                estilo.visibility !== "hidden";
+
+            if (!visivel) {
+                return { visivel: false };
+            }
+
+            const box = elemento.getBoundingClientRect();
+
+            return {
+                visivel: true,
+                width: box.width,
+                left: box.left,
+                right: box.right,
+                ratio: usableWidth > 0 ? box.width / usableWidth : null,
+                folgaEsquerda: box.left - usableLeft,
+                folgaDireita: usableRight - box.right
+            };
+        };
+
+        return {
+            viewportWidth: window.innerWidth,
+            sidebarWidth: sidebarBox.width,
+            usableWidth,
+            paddingLeft,
+            paddingRight,
+            wrapper: medirBloco(wrapper),
+            identity: medirBloco(identity),
+            nav: medirBloco(nav),
+            status: medirBloco(status),
+            account: medirBloco(account)
+        };
+    });
+
+    return medida;
+}
+
+function avaliarLargurasSidebarMobile(medida, viewportNome) {
+    const problemas = [];
+
+    if (!medida) {
+        problemas.push(
+            `Sidebar mobile @ ${viewportNome}: não foi possível abrir ` +
+            "o overlay do menu para medir as larguras internas."
+        );
+        return problemas;
+    }
+
+    const blocos = [
+        ["wrapper (identidade)", medida.wrapper],
+        ["identidade", medida.identity],
+        ["navegação", medida.nav],
+        ["Status da loja", medida.status],
+        ["rodapé de conta", medida.account]
+    ];
+
+    for (const [nome, bloco] of blocos) {
+        if (!bloco || bloco.visivel === false) {
+            continue;
+        }
+
+        if (bloco.ratio !== null && bloco.ratio < 0.92) {
+            problemas.push(
+                `Sidebar mobile @ ${viewportNome}: ${nome} ocupa ` +
+                `${(bloco.ratio * 100).toFixed(0)}% da largura útil; ` +
+                "esperado >= 92%."
+            );
+        }
+
+        if (bloco.folgaEsquerda > 12) {
+            problemas.push(
+                `Sidebar mobile @ ${viewportNome}: ${nome} deixa ` +
+                `${bloco.folgaEsquerda.toFixed(1)}px de folga à ` +
+                "esquerda da largura útil (esperado <= 12px)."
+            );
+        }
+
+        if (bloco.folgaDireita > 12) {
+            problemas.push(
+                `Sidebar mobile @ ${viewportNome}: ${nome} deixa ` +
+                `${bloco.folgaDireita.toFixed(1)}px de folga à ` +
+                "direita da largura útil (esperado <= 12px) — faixa " +
+                "vazia estrutural."
+            );
+        }
+    }
+
+    return problemas;
+}
+
 function medirOverflow(page) {
     return page.evaluate(() => {
         const documento = document.documentElement;
@@ -428,6 +576,67 @@ async function main() {
                             viewport.width
                         )
                     );
+                }
+
+                if (
+                    tela.nome === "Hub" &&
+                    viewportNome === "celular-390"
+                ) {
+                    const medidaLarguras =
+                        await medirLargurasSidebarMobile(page);
+
+                    const diagDir = path.join(
+                        REPO_ROOT,
+                        "test-results",
+                        "ui-diagnostics"
+                    );
+                    await mkdir(diagDir, { recursive: true });
+
+                    await page.screenshot({
+                        path: path.join(
+                            diagDir,
+                            "sidebar-mobile-390.png"
+                        ),
+                        fullPage: false
+                    }).catch(() => {});
+
+                    await writeFile(
+                        path.join(
+                            diagDir,
+                            "sidebar-mobile-widths.json"
+                        ),
+                        JSON.stringify(medidaLarguras, null, 2),
+                        "utf8"
+                    ).catch(() => {});
+
+                    problemas.push(
+                        ...avaliarLargurasSidebarMobile(
+                            medidaLarguras,
+                            viewportNome
+                        )
+                    );
+
+                    // Fecha o overlay de volta pra não interferir nas
+                    // próximas telas/viewports do loop principal.
+                    await page.evaluate(() => {
+                        const botao = document.getElementById(
+                            "mobile-menu-toggle"
+                        );
+                        const sidebar = document.getElementById(
+                            "admin-sidebar"
+                        );
+
+                        if (
+                            botao &&
+                            sidebar?.classList.contains(
+                                "aura-sidebar-mobile-aberto"
+                            )
+                        ) {
+                            botao.click();
+                        }
+                    });
+
+                    await aguardarRender(page);
                 }
 
                 if (

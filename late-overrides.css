@@ -1978,6 +1978,28 @@ body.aura-command-open{
     min-height: 0 !important;
     flex: 1 1 auto !important;
   }
+
+  /* V2.7 — trilho interno do overlay ficava estreito (~260-280px)
+     dentro de um overlay já em 100% de largura: o aside vira full-
+     screen, mas nenhuma regra garantia que os FILHOS diretos (o
+     wrapper da identidade, a navegação, "Status da loja" e o rodapé
+     de conta) esticassem até essa largura — sobrando uma faixa vazia
+     à direita. #admin-sidebar já é flex-column (Tailwind), então por
+     padrão os filhos deveriam esticar (align-items:stretch), mas
+     regras antigas/latentes na cascade tinham chance de vencer esse
+     comportamento padrão; aqui isso fica garantido de forma explícita
+     e à prova de futuras regras, sem depender de herança silenciosa. */
+  #admin-sidebar.aura-sidebar-mobile-aberto > div:first-child,
+  #admin-sidebar.aura-sidebar-mobile-aberto .aura-sidebar-identity-compact,
+  #admin-sidebar.aura-sidebar-mobile-aberto #sidebar-nav,
+  #admin-sidebar.aura-sidebar-mobile-aberto #box-atalho,
+  #admin-sidebar.aura-sidebar-mobile-aberto #box-logout {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: none !important;
+    align-self: stretch !important;
+  }
 }
 
 body.aura-sidebar-mobile-scroll-lock {
