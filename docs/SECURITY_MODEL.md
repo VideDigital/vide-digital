@@ -23,11 +23,13 @@ a documentação específica linkada em cada seção.
   anônimos/não autenticados, validados campo a campo pelas Rules
   (`leadPublicoValido()`, `avaliacaoPublicaValida()`), nunca por confiança no
   cliente. O **chat público** evoluiu (ver
-  `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`): chats novos passam a exigir
-  **Firebase Anonymous Auth** — `visitorUid == request.auth.uid` — em vez de
-  só "conhecer o id do documento"; chats criados antes dessa etapa continuam
-  pelo contrato legado (`chatPublicoValido()`), mas nunca voltam a aceitar
-  escrita pública sem identidade uma vez que nasceram com `visitorUid`.
+  `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`, Fase B — pronta no código, ainda
+  não mesclada/publicada): todo chat novo exige **Firebase Anonymous
+  Auth** — `visitorUid == request.auth.uid` — a criação pelo formato antigo
+  (só "conhecer o id do documento") foi negada; chats criados antes dessa
+  etapa continuam pelo contrato legado de leitura/mensagem/evento, mas nunca
+  voltam a aceitar escrita pública sem identidade uma vez que nasceram com
+  `visitorUid`.
 
 ## Permissões por módulo
 

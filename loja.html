@@ -1655,7 +1655,6 @@
         import { criarIaNegocioPublicaController } from "./ia-negocio-publica.js";
         import { initTracking, track as trackCrescimento } from "./public-tracking-v1.js";
         import {
-            erroIndicaFallbackTransitorio,
             garantirVisitanteAnonimo,
             normalizarErroChatPublico,
             obterDbPublico,
@@ -5268,77 +5267,22 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             conectarChatEmTempoReal(salaChatId, dbPub);
         }
 
-        // Caminho LEGADO (V1), TRANSITÓRIO — só entra em jogo se o V2
-        // falhar por Anonymous Auth ainda não habilitado no Console ou
-        // Rules antigas ainda em produção (ver erroIndicaFallbackTransitorio
-        // em public-chat-auth-v1.js). Existe pra o chat nunca cair durante
-        // a janela de rollout da Fase A; remover na Fase B, depois de
-        // confirmar Anonymous ativo + Rules V2 publicadas em produção (ver
-        // docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md).
-        async function criarChatLegado(nome) {
-            const chatRef = doc(collection(db, "chats"));
-            await setDoc(chatRef, {
-                donoUID: fornecedorEmail,
-                emailDono: fornecedorEmail,
-                clienteNome: nome,
-                statusAdmin: "pendente",
-                status: "nova",
-                canal: "loja_publica",
-                utmSource: (utmSourceCapturada || "").toString().slice(0, 120),
-                timestamp: Date.now(),
-                naoLidasLoja: 1
-            });
-            salaChatId = chatRef.id;
-            visitorUidAtual = "";
-            chatStatusAtual = "nova";
-            try {
-                await setDoc(doc(collection(db, "chats/" + salaChatId + "/eventos")), {
-                    tenantId: fornecedorEmail,
-                    lojaId: fornecedorEmail,
-                    chatId: salaChatId,
-                    tipo: "conversa_criada",
-                    categoria: "atendimento",
-                    autorUid: "",
-                    autorTipo: "cliente",
-                    origem: "cliente",
-                    criadoEm: serverTimestamp(),
-                    versaoSchema: 1
-                });
-            } catch (erroEvento) {
-                console.warn("[Vide Hub] Chat público: evento inicial legado não registrado.", erroEvento?.code || erroEvento?.message || erroEvento);
-            }
-            finalizarRegistroChat(nome);
-            conectarChatEmTempoReal(salaChatId, db);
-        }
-
+        // Fase B: único caminho de criação — exige Anonymous Auth (ver
+        // criarChatV2 acima). Sem fallback legado: qualquer falha (Auth
+        // desabilitado, Rules antigas, rede) mostra um erro único,
+        // amigável e recuperável, sem criar chat V1 nenhum. O composer
+        // fica pronto pra nova tentativa (o nome digitado não é perdido).
         async function iniciarConversa(nomeBruto) {
             const nome = sanitizarNomeVisitanteChat(nomeBruto);
             if (!nome) return;
             removerErroConexaoChat();
             definirEstadoConectandoChat(true, "conectando");
-            let usouFallback = false;
             try {
                 await criarChatV2(nome);
             } catch (erro) {
-                if (erroIndicaFallbackTransitorio(erro)) {
-                    // TRANSITÓRIO (Fase A) — ver comentário de criarChatLegado.
-                    console.warn("[Vide Hub] Chat público: caminho V2 (Anonymous Auth) indisponível ainda (" + (erro && erro.code || "erro desconhecido") + ") — usando caminho legado transitório.");
-                    usouFallback = true;
-                } else {
-                    definirEstadoConectandoChat(false);
-                    mostrarErroConexaoChat(normalizarErroChatPublico(erro));
-                    return;
-                }
-            }
-            if (usouFallback) {
-                try {
-                    await criarChatLegado(nome);
-                } catch (erroLegado) {
-                    console.warn("[Vide Hub] Chat público: fallback legado indisponível.", erroLegado?.code || erroLegado?.message || erroLegado);
-                    definirEstadoConectandoChat(false);
-                    mostrarErroConexaoChat("Não foi possível conectar o chat. Atualize a página e tente novamente.");
-                    return;
-                }
+                definirEstadoConectandoChat(false);
+                mostrarErroConexaoChat(normalizarErroChatPublico(erro));
+                return;
             }
             definirEstadoConectandoChat(false);
         }

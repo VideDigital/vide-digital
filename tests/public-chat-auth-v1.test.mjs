@@ -5,7 +5,6 @@ import {
     chatV2PertenceALoja,
     chatV2ValidoParaRestaurar,
     chavePublicChatV2,
-    erroIndicaFallbackTransitorio,
     normalizarErroChatPublico,
     parseReferenciaChatSalva,
     referenciaPertenceAoVisitante,
@@ -166,17 +165,24 @@ describe("normalizarErroChatPublico", () => {
         const rede = normalizarErroChatPublico({ code: "unavailable" });
         assert.notEqual(permissao, rede);
     });
-});
 
-describe("erroIndicaFallbackTransitorio", () => {
-    it("só operation-not-allowed e permission-denied acionam o fallback legado da Fase A", () => {
-        assert.equal(erroIndicaFallbackTransitorio({ code: "auth/operation-not-allowed" }), true);
-        assert.equal(erroIndicaFallbackTransitorio({ code: "permission-denied" }), true);
+    // Fase B: sem fallback legado, normalizarErroChatPublico() é o ÚNICO
+    // ponto de tradução de erro pro visitante — auth/operation-not-allowed
+    // (Anonymous Auth desabilitado) e permission-denied (Rules antigas
+    // ainda em produção) não acionam mais nenhum caminho V1, só mostram
+    // uma mensagem recuperável.
+    it("auth/operation-not-allowed vira uma mensagem recuperável, nunca um fallback silencioso", () => {
+        const mensagem = normalizarErroChatPublico({ code: "auth/operation-not-allowed" });
+        assert.equal(mensagem, "Não foi possível conectar o chat agora. Atualize a página e tente novamente.");
     });
 
-    it("erro de rede ou desconhecido nunca aciona o fallback (não é o mesmo problema)", () => {
-        assert.equal(erroIndicaFallbackTransitorio({ code: "auth/network-request-failed" }), false);
-        assert.equal(erroIndicaFallbackTransitorio({ code: "unavailable" }), false);
-        assert.equal(erroIndicaFallbackTransitorio(undefined), false);
+    it("permission-denied vira uma mensagem recuperável distinta, nunca um fallback silencioso", () => {
+        const mensagem = normalizarErroChatPublico({ code: "permission-denied" });
+        assert.equal(mensagem, "Sua conversa anterior não está mais disponível. Inicie uma nova.");
+    });
+
+    it("é chamada de forma idempotente: repetir o mesmo erro sempre produz a mesma mensagem (nova tentativa não duplica estado)", () => {
+        const erro = { code: "permission-denied" };
+        assert.equal(normalizarErroChatPublico(erro), normalizarErroChatPublico(erro));
     });
 });

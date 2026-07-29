@@ -1101,9 +1101,15 @@ async function semearFuncionarioAtendimento(uid, overrides = {}) {
   });
 }
 
-describe("chats: criação pública e pelo dono (Central de Atendimento)", () => {
-  it("visitante cria chat público válido, com status nova e naoLidasLoja 1", async () => {
-    await assertSucceeds(setDoc(doc(anon(), "chats", "chatPub1"), {
+describe("chats: criação pública (Fase B — só V2, V1 novo é negado) e pelo dono (Central de Atendimento)", () => {
+  // Fase B (docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md): chatPublicoValido() foi
+  // removida do allow create — a criação pública sem Anonymous Auth
+  // (formato V1) agora é sempre negada, mesmo com todos os campos
+  // corretos. Chats V1 que já existiam continuam funcionando (ver
+  // describe "chats V1 existentes" mais abaixo); só a CRIAÇÃO de um V1
+  // novo foi fechada.
+  it("visitante NÃO autenticado nunca mais cria chat no formato V1 (sem visitorUid/versaoAcesso) — criação de V1 novo negada", async () => {
+    await assertFails(setDoc(doc(anon(), "chats", "chatPub1"), {
       donoUID: "ownerA",
       emailDono: "ownerA",
       clienteNome: "Visitante",
@@ -1115,21 +1121,18 @@ describe("chats: criação pública e pelo dono (Central de Atendimento)", () =>
     }));
   });
 
-  it("visitante não cria chat com status diferente de nova nem naoLidasLoja diferente de 1", async () => {
-    await assertFails(setDoc(doc(anon(), "chats", "chatPub2"), {
-      donoUID: "ownerA", clienteNome: "X", statusAdmin: "pendente", status: "resolvida", timestamp: Date.now()
-    }));
-    await assertFails(setDoc(doc(anon(), "chats", "chatPub3"), {
-      donoUID: "ownerA", clienteNome: "X", statusAdmin: "pendente", naoLidasLoja: 5, timestamp: Date.now()
+  it("usuário autenticado não-anônimo também não cria chat público no formato V1 nem V2 (isAnonymousAuth exige provider anonymous)", async () => {
+    await assertFails(setDoc(doc(authed("visitorSemPermissao"), "chats", "chatPub1b"), {
+      donoUID: "ownerA", clienteNome: "Visitante", statusAdmin: "pendente", status: "nova",
+      canal: "loja_publica", timestamp: Date.now(), naoLidasLoja: 1
     }));
   });
 
-  it("visitante não cria chat apontando para dono inexistente nem com campo extra", async () => {
-    await assertFails(setDoc(doc(anon(), "chats", "chatPub4"), {
-      donoUID: "naoExiste", clienteNome: "X", statusAdmin: "pendente", timestamp: Date.now()
-    }));
-    await assertFails(setDoc(doc(anon(), "chats", "chatPub5"), {
-      donoUID: "ownerA", clienteNome: "X", statusAdmin: "pendente", timestamp: Date.now(), campoInvasor: true
+  it("visitante anônimo (Anonymous Auth) não cria chat V2 apontando pra outro tenant (donoUID de um dono que não existe conta como cross-tenant inválido)", async () => {
+    await assertFails(setDoc(doc(anonV2("visitorCross1"), "chats", "chatPub1c"), {
+      donoUID: "tenantQueNaoExiste", emailDono: "tenantQueNaoExiste", clienteNome: "Visitante",
+      statusAdmin: "pendente", status: "nova", canal: "loja_publica", timestamp: Date.now(),
+      naoLidasLoja: 1, visitorUid: "visitorCross1", versaoAcesso: 2
     }));
   });
 
@@ -1575,6 +1578,58 @@ describe("chats/eventos V2: autoria real (nunca autorUid vazio)", () => {
       });
     });
     await assertFails(getDocs(collection(anonV2("visitorA1"), "chats", "chatEvtV2_5", "eventos")));
+  });
+});
+
+describe("chats V2: visitante nunca lista, só get() do próprio chat", () => {
+  it("query/list de chats é sempre negada pro visitante, mesmo autenticado como anônimo dono de um chat", async () => {
+    await semearChatV2("chatV2List1", { visitorUid: "visitorA1" });
+    await assertFails(getDocs(collection(anonV2("visitorA1"), "chats")));
+  });
+});
+
+// ===== Chats V1 existentes: continuidade preservada na Fase B =====
+// A CRIAÇÃO de V1 novo foi negada (ver describe acima), mas um chat V1 que
+// já existia antes desta etapa (semeado direto, sem visitorUid/
+// versaoAcesso) precisa continuar funcionando pelo contrato antigo —
+// leitura/mensagem/evento pelo caminho público sem Auth, e leitura/
+// resposta pela equipe exatamente como sempre foi.
+describe("chats V1 existentes: continuidade preservada na Fase B", () => {
+  it("equipe (dono e funcionário autorizado) continua lendo e respondendo um chat V1 já existente", async () => {
+    await semearFuncionarioAtendimento("employeeAtendV1Cont");
+    await semearChat("chatV1Cont1");
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "chats", "chatV1Cont1")));
+    await assertSucceeds(getDoc(doc(authed("employeeAtendV1Cont"), "chats", "chatV1Cont1")));
+    await assertSucceeds(setDoc(doc(collection(authed("employeeAtendV1Cont"), "chats", "chatV1Cont1", "mensagens")), {
+      texto: "Ainda respondendo normalmente", sender: "admin", timestamp: Date.now(),
+      autorTipo: "funcionario", autorUid: "employeeAtendV1Cont"
+    }));
+  });
+
+  it("visitante de um chat V1 já existente (sem Auth, só conhecendo o id) continua mandando mensagem pelo caminho legado", async () => {
+    await semearChat("chatV1Cont2", { naoLidasLoja: 1 });
+    await assertSucceeds(setDoc(doc(collection(anon(), "chats", "chatV1Cont2", "mensagens")), {
+      texto: "Continuando minha conversa antiga", sender: "cliente", timestamp: Date.now()
+    }));
+    await assertSucceeds(updateDoc(doc(anon(), "chats", "chatV1Cont2"), {
+      ultimaMensagem: "Continuando minha conversa antiga", statusAdmin: "pendente",
+      status: "aguardando_equipe", atualizadoEm: Date.now(), naoLidasLoja: 2
+    }));
+  });
+
+  it("um chat V1 existente nunca ganha visitorUid/versaoAcesso — não vira V2 depois de nascer V1", async () => {
+    await semearChat("chatV1Cont3");
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatV1Cont3"), { visitorUid: "novoUid" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "chats", "chatV1Cont3"), { versaoAcesso: 2 }));
+    await assertFails(updateDoc(doc(anon(), "chats", "chatV1Cont3"), { visitorUid: "novoUid", versaoAcesso: 2 }));
+  });
+
+  it("um chat V1 existente não pode ser duplicado/recriado como novo V1 usando o mesmo id de outro documento", async () => {
+    await semearChat("chatV1Cont4");
+    await assertFails(setDoc(doc(anon(), "chats", "chatV1Cont4Copia"), {
+      donoUID: "ownerA", clienteNome: "Cópia", statusAdmin: "pendente", status: "nova",
+      canal: "loja_publica", timestamp: Date.now(), naoLidasLoja: 1
+    }));
   });
 });
 

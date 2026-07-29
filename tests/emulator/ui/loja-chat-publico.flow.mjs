@@ -386,6 +386,76 @@ async function validarErroUnicoDeConexao(browser, baseUrl) {
     }
 }
 
+// Fase B (docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md): sem fallback legado, uma
+// falha de Anonymous Auth (aqui simulada como auth/operation-not-allowed,
+// interceptando a chamada REST do signInAnonymously) nunca mais cria um
+// chat V1 — só mostra um erro único, amigável e recuperável, com o
+// composer pronto pra uma nova tentativa controlada.
+async function validarFalhaAuthAnonimaSemFallbackV1(browser, baseUrl) {
+    const nomeTentativa = `Visitante Sem Auth ${Date.now()}`;
+    const contexto = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await contexto.newPage();
+    const erros = coletarErrosConsole(page);
+    try {
+        await abrirLojaPublica(page, baseUrl, { tema: "light" });
+        await page.evaluate(() => {
+            const fetchOriginal = window.fetch.bind(window);
+            window.fetch = (...args) => {
+                const destino = String(args[0]?.url || args[0] || "");
+                if (destino.includes("accounts:signUp")) {
+                    return Promise.resolve(new Response(
+                        JSON.stringify({ error: { code: 400, message: "OPERATION_NOT_ALLOWED" } }),
+                        { status: 400, headers: { "Content-Type": "application/json" } }
+                    ));
+                }
+                return fetchOriginal(...args);
+            };
+        });
+
+        await abrirEIniciarConversa(page);
+        await page.fill("#chat-client-input", nomeTentativa);
+        await page.click("#chat-send-btn");
+
+        await page.waitForFunction(
+            () => document.querySelectorAll("[data-chat-connection-error]").length === 1,
+            undefined,
+            { timeout: 15000 }
+        );
+        await validarComposerLiberado(page, "Anonymous Auth indisponível");
+
+        const mensagemErro = await page.evaluate(
+            () => document.querySelector("[data-chat-connection-error]")?.textContent || ""
+        );
+        assert.ok(mensagemErro.length > 0, "Deveria mostrar uma mensagem de erro amigável");
+        assert.ok(
+            !/auth\/|firebase|uid|stack/i.test(mensagemErro),
+            `Erro de Anonymous Auth indisponível nunca deveria expor detalhe técnico: ${mensagemErro}`
+        );
+
+        const db = adminDb();
+        let chatsSnap = await db.collection("chats").where("clienteNome", "==", nomeTentativa).get();
+        assert.equal(chatsSnap.size, 0, "Falha de Anonymous Auth nunca deveria criar chat nenhum (nem V1 nem V2) — sem fallback");
+
+        // Retry controlado: recarrega a página (a interceptação foi feita
+        // via evaluate, não addInitScript, então some no reload) e tenta de
+        // novo — deveria funcionar normalmente e nascer V2, nunca V1.
+        await page.reload({ waitUntil: "load", timeout: 30000 });
+        await abrirEIniciarConversa(page);
+        await page.fill("#chat-client-input", nomeTentativa);
+        await page.click("#chat-send-btn");
+        await esperarChatConectado(page);
+        await validarComposerLiberado(page, "retry após falha de Anonymous Auth");
+
+        chatsSnap = await db.collection("chats").where("clienteNome", "==", nomeTentativa).get();
+        assert.equal(chatsSnap.size, 1, "Nova tentativa (retry) deveria criar exatamente um chat");
+        assert.equal(chatsSnap.docs[0].data().versaoAcesso, 2, "Retry bem-sucedido deveria nascer V2, nunca cair pra V1");
+    } finally {
+        const errosInesperados = erros.filter((msg) => !ehErroDeRedeExterno(msg));
+        assert.deepEqual(errosInesperados, [], `Falha de Anonymous Auth: não deveria emitir console.error: ${errosInesperados.join("\n")}`);
+        await contexto.close();
+    }
+}
+
 async function validarMatrizVisualWidgets(browser, baseUrl) {
     for (const viewport of MATRIZ_VIEWPORTS_PUBLICOS) {
         for (const zoom of viewport.zooms) {
@@ -631,12 +701,14 @@ async function main() {
         );
 
         await validarErroUnicoDeConexao(browser, baseUrl);
+        await validarFalhaAuthAnonimaSemFallbackV1(browser, baseUrl);
         await validarMatrizVisualWidgets(browser, baseUrl);
 
         console.log(
             "loja-chat-publico.flow: OK — chat V2 criado com Anonymous Auth, " +
             "autoria real em mensagens/eventos, restauração pela mesma sessão, " +
             "visitante B isolado (mesmo forjando a referência local), " +
+            "falha de Anonymous Auth sem fallback V1 (erro único, recuperável, retry funcional), " +
             "resposta do dono chegando em tempo real."
         );
     } catch (erro) {

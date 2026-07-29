@@ -81,12 +81,3 @@ export function normalizarErroChatPublico(error) {
     }
     return "Não foi possível conectar o chat. Atualize a página e tente novamente.";
 }
-
-// Único ponto de decisão do fallback transitório da Fase A: só estes dois
-// códigos significam "o caminho V2 ainda não está disponível de verdade"
-// (Anonymous desativado no Console, ou Rules antigas ainda em produção) —
-// qualquer outro erro é real e não deve ser escondido atrás do legado.
-export function erroIndicaFallbackTransitorio(error) {
-    const codigo = String(error?.code || "");
-    return codigo === "auth/operation-not-allowed" || codigo === "permission-denied";
-}

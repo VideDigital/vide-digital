@@ -618,20 +618,13 @@ service cloud.firestore {
       return status in ["nova", "aberta", "aguardando_cliente", "aguardando_equipe", "resolvida", "arquivada"];
     }
 
-    // Caminho LEGADO (V1): sem Anonymous Auth, o id aleatório do documento
-    // é a única capability. Mantido por compatibilidade — ver
-    // chatLegadoSemVisitor() logo abaixo, que impede que este caminho
-    // continue valendo pra um chat que já nasceu V2.
-    function chatPublicoValido() {
-      return request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja"])
-        && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
-        && request.resource.data.donoUID is string
-        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.donoUID))
-        && request.resource.data.statusAdmin == "pendente"
-        && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "nova")
-        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro", "whatsapp"])
-        && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == 1);
-    }
+    // Caminho LEGADO (V1) de UPDATE/mensagem/evento: sem Anonymous Auth, o
+    // id aleatório do documento é a única capability. A CRIAÇÃO de chat V1
+    // novo foi negada na Fase B (ver chatPublicoV2CreateValido() abaixo) —
+    // este caminho só continua servindo chats V1 que JÁ existiam antes
+    // dessa etapa (chatLegadoSemVisitor() logo abaixo garante que um chat
+    // que já nasceu V2 nunca volta a aceitar escrita pública sem
+    // identidade).
     // O visitante só toca no resumo/status ao mandar mensagem — nunca em
     // atribuição, setor ou nos campos administrativos da Central de
     // Atendimento (esses só mudam pela escrita autenticada abaixo).
@@ -1659,13 +1652,15 @@ allow update: if (
         // criou — nunca list, nunca o chat de outro visitante (ver
         // visitantePodeAcessarChat()).
         || visitantePodeAcessarChat(resource.data);
-      // Visitante da loja cria o chat direto (validado, V1 legado ou V2
-      // com Anonymous Auth); dono/funcionário também pode (conversa
-      // interna, ex.: registrar um atendimento por outro canal) — mesma
-      // validação de chaves/tipos do fluxo público, só que sem exigir
-      // statusAdmin/status fixos.
-      allow create: if chatPublicoValido()
-        || chatPublicoV2CreateValido()
+      // Visitante da loja cria o chat direto — Fase B: só o caminho V2
+      // (Anonymous Auth) é aceito; criação de chat V1 novo é negada (ver
+      // docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md). Chats V1 que já existem
+      // continuam funcionando pelo caminho legado de update/mensagem/
+      // evento, nunca pelo de criação. Dono/funcionário também pode criar
+      // (conversa interna, ex.: registrar um atendimento por outro canal)
+      // — mesma validação de chaves/tipos do fluxo público, só que sem
+      // exigir statusAdmin/status fixos.
+      allow create: if chatPublicoV2CreateValido()
         || (
           canEditTenant(request.resource.data.donoUID, "atendimento") || canEditTenant(request.resource.data.donoUID, "leads")
         ) && request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "setor", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja", "naoLidasCliente"])

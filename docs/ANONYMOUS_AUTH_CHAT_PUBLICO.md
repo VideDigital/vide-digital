@@ -7,7 +7,13 @@ Anonymous Auth), vinculada ao chat via `visitorUid`. Evolui a coleção
 Atendimento, ver `docs/CENTRAL_ATENDIMENTO.md`) — não cria uma central, um
 modal ou uma coleção nova. Rollout em **duas fases** para nunca derrubar o
 chat público durante a migração; este documento cobre o estado ao final da
-**Fase A**.
+**Fase B**.
+
+**Status: Anonymous Auth no Chat Público — Fase B pronta no código,
+aguardando habilitação em produção, publicação das Rules e validação real
+antes do merge.** Esta branch (`feat/anonymous-auth-chat-fase-b`) não foi
+mesclada em `main` e nenhum deploy foi executado — ver "Passos externos
+antes do merge" no fim deste documento.
 
 ## Por que
 
@@ -82,8 +88,7 @@ tentativa de gravar só um dos dois) contam como **legado** — ver
 
 ## Firestore Rules
 
-Funções novas em `firestore.rules` (todas puramente aditivas na Fase A —
-nenhuma removida):
+Funções em `firestore.rules` (criadas na Fase A, ajustadas na Fase B):
 
 | Função | Papel |
 |---|---|
@@ -91,19 +96,26 @@ nenhuma removida):
 | `chatTemAcessoV2(chatData)` | o documento tem `visitorUid` (string não vazia) e `versaoAcesso == 2` |
 | `chatLegadoSemVisitor(chatData)` | o inverso — qualquer doc sem o par completo conta como V1 |
 | `visitantePodeAcessarChat(chatData)` | anônimo + `chatTemAcessoV2` + `visitorUid == request.auth.uid` |
-| `chatPublicoV2CreateValido()` | create de `chats/{id}` pelo visitante anônimo (whitelist fechada, `visitorUid == request.auth.uid`, `versaoAcesso == 2`) |
+| `chatPublicoV2CreateValido()` | create de `chats/{id}` pelo visitante anônimo (whitelist fechada, `visitorUid == request.auth.uid`, `versaoAcesso == 2`) — **Fase B: único caminho público de criação** |
 | `chatPublicoV2UpdateValido()` | update público (mensagem do cliente) só por quem tem a identidade |
 | `mensagemClienteV2Valida(chatId)` | mensagem do cliente com `autorUid`/`autorTipo` reais e obrigatórios |
 | `eventoClienteV2Valido(chatId)` | evento do cliente com `autorUid` real (nunca vazio) |
 
-**Ponto crítico de segurança, já ativo na Fase A** (não esperar a Fase B):
-assim que um chat nasce V2, os caminhos LEGADOS de update/mensagem/evento
-(`chatUpdatePublicoValido`, `mensagemClienteValida`,
-`eventoAtendimentoClientePublicoValido`) passam a exigir
-`chatLegadoSemVisitor(chatData)` — ou seja, **um chat V2 nunca mais aceita
-escrita pública sem identidade**, mesmo que o atacante conheça o id. Sem
-essa trava, o rollout ficaria pior que o modelo antigo: coexistiriam DOIS
-caminhos de escrita pública pro mesmo chat (com e sem identidade).
+**Fase B: `chatPublicoValido()` foi removida.** Essa função só validava a
+CRIAÇÃO de um chat V1 novo (sem Anonymous Auth) — o `allow create` de
+`chats/{chatId}` deixou de aceitá-la; agora só `chatPublicoV2CreateValido()`
+(visitante) ou a whitelist de conversa interna (equipe autenticada) criam um
+chat. **Criar um chat V1 novo pelo caminho público passou a ser sempre
+negado.**
+
+Isso NÃO afeta chats V1 que já existiam antes desta etapa: os caminhos de
+UPDATE/mensagem/evento legados (`chatUpdatePublicoValido()`,
+`mensagemClienteValida()`, `eventoAtendimentoClientePublicoValido()`) **não
+foram tocados** — continuam validando exatamente como antes, protegidos por
+`chatLegadoSemVisitor(chatData)` (que já garantia, desde a Fase A, que um
+chat que nasceu V2 nunca aceita escrita pública sem identidade). Ou seja: a
+Fase B fecha a porteira de entrada (criação), nunca a de quem já estava
+dentro (chats V1 em andamento).
 
 Leitura: `chats/{chatId}` ganhou `|| visitantePodeAcessarChat(resource.data)`
 no `allow read` (get, nunca list — o visitante continua sem listar chats).
@@ -113,37 +125,51 @@ contrato preservado.
 
 `visitorUid`/`versaoAcesso` são **imutáveis**: nenhuma whitelist de update
 (pública ou administrativa) inclui essas chaves — nem o próprio dono
-consegue alterá-las depois da criação.
+consegue alterá-las depois da criação. Isso vale nos dois sentidos: um chat
+V1 existente nunca ganha esses campos (não vira V2 depois de nascer V1), e
+um chat V2 nunca os perde.
 
 ## Compatibilidade com chats legados (V1)
 
 - Chats criados antes desta etapa (sem `visitorUid`) continuam funcionando
-  pelo contrato antigo — `chatPublicoValido()`, `chatUpdatePublicoValido()`,
-  `mensagemClienteValida()`, `eventoAtendimentoClientePublicoValido()` não
-  mudaram de comportamento pra eles.
-- **Fase A ainda permite criar chat legado novo** — é o fallback transitório
-  (ver abaixo). Isso só termina na Fase B.
+  pelo contrato antigo de leitura/mensagem/evento —
+  `chatUpdatePublicoValido()`, `mensagemClienteValida()`,
+  `eventoAtendimentoClientePublicoValido()` não mudaram de comportamento
+  pra eles, e a equipe continua lendo/respondendo normalmente.
+- **A criação de chat V1 novo foi negada na Fase B** (ver acima). Não existe
+  mais nenhum caminho, público ou no frontend, que produza um chat sem
+  `visitorUid`/`versaoAcesso == 2`.
 - Equipe (dono/funcionário) continua lendo e respondendo chats V1 e V2 pela
   mesma regra de sempre (`podeVerChat`/`podeResponderChat` nunca olham pra
   `visitorUid`).
+- Um chat V1 existente nunca é apagado nem migrado automaticamente para V2
+  — a Fase B não faz nenhuma escrita retroativa nos documentos que já
+  existem, só fecha a criação de novos.
 
-## Fallback transitório (Fase A)
+## Fallback transitório removido (Fase B)
 
-`loja.html#iniciarConversa()` tenta o caminho V2 primeiro
-(`garantirVisitanteAnonimo()` + `criarChatV2()`). Se falhar com
-`auth/operation-not-allowed` (Anonymous ainda não habilitado no Firebase
-Console) **ou** `permission-denied` (Rules antigas ainda em produção — o
-código novo publicado antes do deploy de Rules), cai pro caminho legado
-(`criarChatLegado()`, idêntico ao comportamento anterior a esta missão) —
-com `console.warn` claro, sem nenhuma mensagem técnica pro visitante, e
-comentário `TRANSITÓRIO` marcando os dois pontos do código
-(`public-chat-auth-core.js#erroIndicaFallbackTransitorio`,
-`loja.html#iniciarConversa`).
+Na Fase A, `loja.html#iniciarConversa()` tentava o caminho V2 primeiro e,
+se falhasse com `auth/operation-not-allowed` (Anonymous ainda não
+habilitado no Firebase Console) **ou** `permission-denied` (Rules antigas
+ainda em produção), caía pro caminho legado (`criarChatLegado()`) — um
+fallback transitório pra não derrubar o chat durante o rollout.
 
-**Este fallback existe só para a Fase A não derrubar o chat durante o
-rollout.** Ele deve ser removido na Fase B, depois de confirmar em produção
-que Anonymous está ativo e as Rules V2 estão publicadas — ver checklist em
-`docs/HANDOFF_2026-07-28.md`.
+**A Fase B remove esse fallback por completo**: `criarChatLegado()` foi
+apagada de `loja.html`, junto com a checagem
+`erroIndicaFallbackTransitorio()` (removida de `public-chat-auth-core.js` e
+`public-chat-auth-v1.js`, sem consumidor restante). `iniciarConversa()`
+agora só chama `criarChatV2()`; qualquer erro (Anonymous desabilitado,
+Rules antigas, rede) mostra uma mensagem única, amigável e recuperável via
+`normalizarErroChatPublico()`, sem nunca criar um chat V1. O composer
+volta a um estado limpo (input/botão liberados, nome digitado preservado)
+pra permitir uma nova tentativa controlada.
+
+**Isso significa que, até a Fase Externa 1 (habilitar Anonymous Auth) e a
+Fase Externa 2 (publicar as Rules desta etapa) serem confirmadas em
+produção, o chat público real fica indisponível para novos visitantes** —
+não é mais um degrade silencioso pra V1, é um erro visível. É a troca
+consciente desta fase: só depois de validar um chat real em produção (ver
+"Passos externos antes do merge") esta branch deve ser mesclada em `main`.
 
 ## Sessão e restauração
 
@@ -202,13 +228,40 @@ ao abrir o widget (`toggleChatWindow`) — idempotente via a flag
 
 ## Limitações conhecidas desta fase
 
-- O fallback legado da Fase A significa que, até o passo externo (Anonymous
-  habilitado + Rules publicadas) ser confirmado em produção, **novos chats
-  em produção continuam nascendo V1** — a proteção V2 só é real localmente/
-  no CI até lá. Isso é esperado e documentado, não escondido.
+- **Esta branch não está em produção.** Enquanto Anonymous Auth não for
+  habilitado no Firebase Console e as Rules desta etapa não forem
+  publicadas, o chat público em produção continua rodando o código atual
+  de `main` (ainda com o fallback da Fase A) — nada aqui muda produção até
+  o merge.
 - `restaurarChatSalvo()` não distingue "chat arquivado" de "chat não
   encontrado"/"sessão diferente" na resposta ao chamador — todos viram
   `null` (mesma UI: inicia uma conversa nova). É intencional (não revelar
   detalhes de por que a restauração falhou), mas significa que um visitante
   cujo chat foi arquivado pela equipe simplesmente começa um novo, sem
   aviso específico "sua conversa foi encerrada".
+- Sem o fallback, um visitante real cujo navegador bloqueia Anonymous Auth
+  (extensão de privacidade agressiva, política corporativa) não consegue
+  mais iniciar um chat novo — antes, na Fase A, ele caía pro V1. É a troca
+  consciente desta fase (ver "Fallback transitório removido" acima); não
+  há dado de quantos visitantes reais isso afeta, porque ainda não foi
+  testado em produção.
+
+## Passos externos antes do merge (não executados nesta missão)
+
+Nenhum destes passos foi executado nesta sessão — só o código, os testes e
+a documentação desta fase estão prontos:
+
+1. **Fase Externa 1** — habilitar Anonymous Auth no Firebase Console
+   (`vide-digital-saas` → Authentication → Sign-in method → Anonymous →
+   Enable → Save).
+2. **Fase Externa 2** — rodar o workflow "Deploy Firebase Spark" a partir
+   da `main` atual (que já contém as Rules V2 da Fase A) pra publicar essas
+   Rules em produção — objetivo do deploy é só Rules/Storage/índices, nunca
+   Functions.
+3. **Fase Externa 3** — validação manual real: abrir a loja numa aba
+   anônima, criar um chat, mandar mensagem, recarregar e confirmar a
+   restauração, confirmar que a Central de Atendimento recebe a conversa.
+4. Só depois de 1–3 confirmados: rebasear esta branch sobre a `main`
+   atualizada, revisar o diff de novo, mesclar, e rodar "Deploy Firebase
+   Spark" outra vez pra publicar a Rule desta etapa (nega criação de V1
+   novo) — fechando o rollout.
