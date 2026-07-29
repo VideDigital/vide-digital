@@ -1,9 +1,17 @@
 // Fluxo profundo do Catálogo de Produtos (Central Inteligente de Catálogo).
 // Cobre os bugs reais relatados: catálogo zerado por autofill de e-mail no
 // campo de busca, salto de scroll ao usar os filtros e KPIs incoerentes com
-// o cabeçalho. Login real (Firebase Auth Emulator) + Firestore Emulator com
-// os dois produtos seedados em scripts/seed-emulator.mjs (owner-pro).
+// o cabeçalho. Login real (Firebase Auth Emulator) + Firestore Emulator.
+//
+// test:ui:flows roda vários fluxos em sequência contra o MESMO Emulator,
+// sem reset entre eles — e auditoria.flow.mjs, de propósito, muda o preço
+// de produtos/prod-local-1 pra 129.9 pra testar o trigger de auditoria.
+// Por isso este fluxo reescreve os dois produtos via Admin SDK logo no
+// início (mesmo padrão de auditoria.flow.mjs), garantindo valores
+// conhecidos independente da ordem de execução dos outros fluxos.
 import assert from "node:assert/strict";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import {
     captureDiagnostics,
     coletarErrosConsole,
@@ -12,6 +20,15 @@ import {
     loginReal,
     startStaticServer
 } from "./_helpers.mjs";
+
+const PROJECT_ID = "demo-vide-hub";
+
+function adminDb() {
+    if (!getApps().length) {
+        initializeApp({ projectId: PROJECT_ID });
+    }
+    return getFirestore();
+}
 
 async function main() {
     const { baseUrl, close } = await startStaticServer();
@@ -25,6 +42,28 @@ async function main() {
     const erros = coletarErrosConsole(page);
 
     try {
+        const db = adminDb();
+        await db.doc("produtos/prod-local-1").set({
+            criadoPor: "owner-pro",
+            nome: "Produto Local",
+            preco: 99,
+            tipo: "fisico",
+            estoque: 10,
+            statusProduto: "ativo",
+            destaque: true,
+            ordem: 1
+        }, { merge: true });
+        await db.doc("produtos/prod-local-2").set({
+            criadoPor: "owner-pro",
+            nome: "Produto Digital Local",
+            descricao: "Segundo produto de teste do catálogo",
+            preco: 49,
+            precoDe: 70,
+            tipo: "digital",
+            statusProduto: "ativo",
+            ordem: 2
+        }, { merge: true });
+
         await loginReal(page, baseUrl, {
             email: "owner.pro@local.test",
             senha: "Local123!pro"
@@ -41,6 +80,19 @@ async function main() {
         await page.waitForFunction(() => {
             return document.querySelectorAll("#produtos-container .aura-commerce-card").length === 2;
         }, { timeout: 15000 });
+
+        // Garante que a UI já carregou os valores de preço reescritos acima
+        // (não os de uma execução anterior de outro fluxo).
+        await page.waitForFunction(() => {
+            const preco = document.getElementById("catalogo-resumo-preco");
+            return preco && preco.textContent.includes("74,00");
+        }, { timeout: 15000 }).catch(async () => {
+            await page.evaluate(() => window.carregarProdutos && window.carregarProdutos());
+            await page.waitForFunction(() => {
+                const preco = document.getElementById("catalogo-resumo-preco");
+                return preco && preco.textContent.includes("74,00");
+            }, { timeout: 15000 });
+        });
 
         const contadorInicial = await page.textContent("#contador-produtos");
         assert.match(
