@@ -5177,6 +5177,27 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             box.innerHTML = '<div class="p-3 rounded-2xl rounded-tl-none" style="background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2);">' + escaparHtmlChat(texto) + "</div>";
         }
 
+                function renderizarEstadoVazioChat(box) {
+            if (!box) return;
+
+            box.innerHTML = "";
+
+            const estado = document.createElement("div");
+            estado.className = "p-3 rounded-2xl text-center font-semibold";
+            estado.setAttribute("data-chat-empty-state", "true");
+            estado.style.cssText = [
+                "background: color-mix(in oklch, var(--success) 12%, transparent)",
+                "color: var(--success)",
+                "border: 1px solid color-mix(in oklch, var(--success) 24%, transparent)"
+            ].join(";");
+
+            estado.textContent = clienteNome
+                ? "Conectado como " + clienteNome + ". Envie sua primeira mensagem."
+                : "Conversa restaurada. Envie sua primeira mensagem.";
+
+            box.appendChild(estado);
+        }
+
         // Compartilhado pelos dois caminhos (V2 e legado transitório): liga
         // os dois onSnapshot (status do chat + mensagens) na instância de
         // Firestore certa — a secundária (dbPublico) pra chats V2, a
@@ -5187,25 +5208,52 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 if (dadosChat && dadosChat.status) chatStatusAtual = dadosChat.status;
             });
 
-            onSnapshot(query(collection(dbInstancia, "chats/" + chatId + "/mensagens"), orderBy("timestamp", "asc")), { includeMetadataChanges: true }, function(snapshot) {
-                const box = document.getElementById("chat-client-messages");
-                box.innerHTML = "";
-                snapshot.forEach(function(docM) {
-                    if (docM.metadata.hasPendingWrites) return;
-                    const m = docM.data();
-                    const bubble = document.createElement("div");
-                    bubble.className = "p-3 rounded-2xl max-w-[85%] text-[12px]";
-                    if (m.sender === "admin") {
-                        bubble.style.cssText = "background: var(--surface-soft); color: var(--ink); border: 1px solid var(--border); align-self: flex-start; border-top-left-radius: 4px;";
-                    } else {
-                        bubble.style.cssText = "background: var(--ink); color: var(--bg); align-self: flex-end; border-top-right-radius: 4px;";
+            onSnapshot(
+                query(
+                    collection(dbInstancia, "chats/" + chatId + "/mensagens"),
+                    orderBy("timestamp", "asc")
+                ),
+                { includeMetadataChanges: true },
+                function(snapshot) {
+                    const box = document.getElementById("chat-client-messages");
+                    if (!box) return;
+
+                    box.innerHTML = "";
+
+                    let mensagensConfirmadas = 0;
+
+                    snapshot.forEach(function(docM) {
+                        // Não mostra mensagem otimista antes da confirmação
+                        // do Firestore.
+                        if (docM.metadata.hasPendingWrites) return;
+
+                        mensagensConfirmadas += 1;
+
+                        const m = docM.data();
+                        const bubble = document.createElement("div");
+                        bubble.className = "p-3 rounded-2xl max-w-[85%] text-[12px]";
+
+                        if (m.sender === "admin") {
+                            bubble.style.cssText = "background: var(--surface-soft); color: var(--ink); border: 1px solid var(--border); align-self: flex-start; border-top-left-radius: 4px;";
+                        } else {
+                            bubble.style.cssText = "background: var(--ink); color: var(--bg); align-self: flex-end; border-top-right-radius: 4px;";
+                        }
+
+                        bubble.innerText = m.texto;
+                        box.appendChild(bubble);
+
+                        if (m.sender === "admin") {
+                            clearTimeout(timeoutRedirecionamentoWhats);
+                        }
+                    });
+
+                    if (mensagensConfirmadas === 0) {
+                        renderizarEstadoVazioChat(box);
                     }
-                    bubble.innerText = m.texto;
-                    box.appendChild(bubble);
-                    if (m.sender === "admin") clearTimeout(timeoutRedirecionamentoWhats);
-                });
-                box.scrollTop = box.scrollHeight;
-            });
+
+                    box.scrollTop = box.scrollHeight;
+                }
+            );
         }
 
         function finalizarRegistroChat(nome) {
@@ -5219,7 +5267,9 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 input.placeholder = "Escreva sua mensagem...";
             }
             document.getElementById("chat-send-btn").innerText = "Enviar";
-            document.getElementById("chat-client-messages").innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" style="background: color-mix(in oklch, var(--success) 12%, transparent); color: var(--success); border: 1px solid color-mix(in oklch, var(--success) 24%, transparent);">Conectado como ' + escaparHtmlChat(nome) + ".</div>";
+                        renderizarEstadoVazioChat(
+                document.getElementById("chat-client-messages")
+            );
         }
 
         // Caminho V2: exige identidade real (Anonymous Auth) antes de criar
