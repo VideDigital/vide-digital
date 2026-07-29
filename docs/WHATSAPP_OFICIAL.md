@@ -14,18 +14,31 @@ fora deste repositório) — ver checklist no fim deste documento.
 
 ## Fontes oficiais consultadas
 
-`developers.facebook.com` retornou 403 Forbidden a `WebFetch` neste
-ambiente de desenvolvimento (duas tentativas: `/docs/graph-api/changelog`
-e `/docs/graph-api/guides/versioning/`) — um bloqueio de rede do sandbox,
-não uma indisponibilidade real da Meta. A versão da Graph API usada aqui
+`developers.facebook.com` retornou 403 Forbidden tanto a `WebFetch` quanto
+a `WebSearch` (que tentou também abrir a página diretamente) neste
+ambiente de desenvolvimento, em **duas rodadas de tentativas** em duas
+sessões diferentes (`/docs/graph-api/changelog`,
+`/docs/graph-api/guides/versioning/`) — um bloqueio de rede do sandbox,
+não uma indisponibilidade real da Meta.
+
+**Atualização (Fase B — auditoria de prontidão)**: uma busca indireta
+(`WebSearch`, nunca leitura direta da fonte oficial) encontrou evidência
+específica e razoavelmente forte de que a versão usada aqui
 (`v21.0`, centralizada em `functions/src/whatsapp/constants.js` como
-`WHATSAPP_GRAPH_VERSION`) foi determinada por busca indireta (`WebSearch`),
-com evidência razoável de que é uma versão corrente, mas **sem
-confirmação direta na documentação oficial**. Antes de qualquer deploy
-real (Fase B), reconfirme a versão vigente em
-`https://developers.facebook.com/docs/graph-api/changelog` e ajuste
-`WHATSAPP_GRAPH_VERSION` se necessário — é a única constante que precisa
-mudar.
+`WHATSAPP_GRAPH_VERSION`) pode já estar **inativa**: múltiplos resultados
+de busca independentes (incluindo títulos de posts oficiais do blog da
+Meta como "Introducing Graph API v23.0" de maio/2025 e "Introducing Graph
+API v25.0" de fevereiro/2026) indicam que a Meta parou de aceitar chamadas
+a versões anteriores a `v22.0` a partir de **09/09/2025**. Como não foi
+possível ler a página oficial diretamente para confirmar essa data com
+100% de certeza, **a constante não foi alterada** — trocar a versão só
+com base em busca indireta violaria a mesma cautela que levou a não
+alterá-la na Fase A. Em vez disso, `scripts/whatsapp-production-preflight.mjs`
+(ver `docs/WHATSAPP_FASE_B_OPERACAO.md`) trata isso como um **Gate Manual
+sempre BLOCKED**: o preflight nunca aprova a versão sozinho, sempre exige
+que um humano confirme pessoalmente em
+`https://developers.facebook.com/docs/graph-api/changelog` antes do
+deploy real e, se necessário, atualize só essa constante.
 
 Permissões usadas (`whatsapp_business_messaging`, `whatsapp_business_management`)
 são escopos estáveis e amplamente documentados há várias versões da API —
@@ -334,6 +347,23 @@ disparado nesta missão. `workflow_dispatch` manual, projeto fixo
 `DEPLOY_WHATSAPP`, testes locais antes do deploy, `--only` explícito
 listando só as 7 Functions do WhatsApp (nunca toca `askBusinessAI`,
 `askPublicBusinessAI` nem os 15 triggers de auditoria), Node 22.
+
+## Runbook e preflight (Fase B)
+
+`docs/WHATSAPP_FASE_B_OPERACAO.md` — runbook completo, passo a passo,
+escrito pra ser seguido por alguém com pouco conhecimento técnico: Meta
+(App/WABA/número/token), Firebase/GCP (secrets, IAM), os dois deploys
+(Spark primeiro, depois WhatsApp), configuração do webhook, piloto, um
+checklist de 24 itens de teste real, e rollback.
+
+`node scripts/whatsapp-production-preflight.mjs` — checagem somente
+leitura antes do deploy real: Node/pnpm/Firebase CLI/gcloud/Java, worktree
+limpo, autenticação Google, projeto GCP correto, APIs habilitadas,
+existência dos secrets globais (metadados, nunca valor), papéis IAM da
+service account de runtime, quais das 7 Functions já estão publicadas, e
+opcionalmente uma validação real de conexão com a Meta. Nunca cria
+secret, nunca escreve no Firestore, nunca faz deploy. Saída: tabela
+PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
 
 ## Checklist externo (Fase B, feito depois pelo usuário)
 
