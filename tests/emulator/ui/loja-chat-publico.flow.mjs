@@ -25,6 +25,17 @@ const PROJECT_ID = "demo-vide-hub";
 const STORE_SLUG = "loja-pro-local";
 const STORE_UID = "owner-pro";
 const NOME_VISITANTE = `Visitante Playwright QA ${Date.now()}`;
+const TEMAS_PUBLICOS = ["light", "dark"];
+const MATRIZ_VIEWPORTS_PUBLICOS = [
+    { width: 1920, height: 1080, zooms: [1, 1.25] },
+    { width: 1440, height: 900, zooms: [1, 1.25] },
+    { width: 1366, height: 768, zooms: [1, 1.25] },
+    { width: 1280, height: 720, zooms: [1, 1.25] },
+    { width: 1024, height: 768, zooms: [1] },
+    { width: 768, height: 1024, zooms: [1] },
+    { width: 430, height: 932, zooms: [1] },
+    { width: 390, height: 844, zooms: [1] }
+];
 
 function adminDb() {
     if (!getApps().length) {
@@ -33,18 +44,383 @@ function adminDb() {
     return getFirestore();
 }
 
+async function ativarIaPublicaNoEmulator() {
+    const db = adminDb();
+    await db.collection("usuarios").doc(STORE_UID).set({ iaNegocioPublicaAtiva: true }, { merge: true });
+    await db.collection("vitrines_publicas").doc(STORE_SLUG).set({ iaNegocioPublicaAtiva: true }, { merge: true });
+    const snap = await db.collection("vitrines_publicas").doc(STORE_SLUG).get();
+    assert.equal(snap.data()?.iaNegocioPublicaAtiva, true, "Fixture da loja pública deveria ativar IA pública");
+}
+
+async function abrirLojaPublica(page, baseUrl, { tema = "light" } = {}) {
+    await page.addInitScript((temaInicial) => {
+        window.localStorage.setItem("lovable-theme", temaInicial);
+    }, tema);
+    await page.goto(`${baseUrl}/loja.html?loja=${STORE_SLUG}&useEmulator=true`, {
+        waitUntil: "load",
+        timeout: 30000
+    });
+    await page.waitForSelector("#chat-trigger-btn", { state: "visible", timeout: 20000 });
+    await page.waitForFunction(
+        () => typeof window.toggleChatWindow === "function" && typeof window.toggleIaNegocioPublicaWindow === "function",
+        undefined,
+        { timeout: 20000 }
+    );
+    await page.evaluate(() => {
+        document.getElementById("widget-ia-negocio-publica")?.classList.remove("hidden");
+    });
+    await page.waitForFunction(
+        () => !document.getElementById("widget-ia-negocio-publica")?.classList.contains("hidden"),
+        undefined,
+        { timeout: 20000 }
+    );
+}
+
 async function abrirEIniciarConversa(page) {
     await page.waitForSelector("#chat-trigger-btn", { state: "visible", timeout: 20000 });
+    await page.waitForFunction(
+        () => typeof window.toggleChatWindow === "function",
+        undefined,
+        { timeout: 20000 }
+    );
     await page.click("#chat-trigger-btn");
-    await page.waitForSelector("#chat-window:not(.hidden)", { state: "visible", timeout: 10000 });
+    await esperarChatAberto(page);
     await page.waitForSelector("#chat-client-input", { state: "visible", timeout: 10000 });
+}
+
+async function esperarChatAberto(page) {
+    await page.waitForFunction(
+        () => !document.getElementById("chat-window")?.classList.contains("hidden"),
+        undefined,
+        { timeout: 10000 }
+    );
+}
+
+async function esperarChatFechado(page) {
+    await page.waitForFunction(
+        () => document.getElementById("chat-window")?.classList.contains("hidden"),
+        undefined,
+        { timeout: 10000 }
+    );
+}
+
+async function esperarIaAberta(page) {
+    await page.waitForFunction(
+        () => {
+            const janela = document.getElementById("ia-negocio-publica-window");
+            const widget = document.getElementById("widget-ia-negocio-publica");
+            if (!janela || !widget || janela.classList.contains("hidden")) return false;
+            const estiloJanela = window.getComputedStyle(janela);
+            const estiloWidget = window.getComputedStyle(widget);
+            const rect = janela.getBoundingClientRect();
+            return estiloJanela.display !== "none"
+                && estiloJanela.visibility !== "hidden"
+                && estiloWidget.visibility !== "hidden"
+                && estiloWidget.pointerEvents !== "none"
+                && rect.width > 0
+                && rect.height > 0;
+        },
+        undefined,
+        { timeout: 10000 }
+    );
+}
+
+async function esperarIaFechada(page) {
+    await page.waitForFunction(
+        () => document.getElementById("ia-negocio-publica-window")?.classList.contains("hidden"),
+        undefined,
+        { timeout: 10000 }
+    );
 }
 
 async function esperarChatConectado(page, timeout = 20000) {
     await page.waitForFunction(
         () => document.getElementById("chat-client-input")?.placeholder === "Escreva sua mensagem...",
+        undefined,
         { timeout }
     );
+}
+
+async function obterEstadoWidgetsPublicos(page) {
+    return page.evaluate(() => {
+        function visivel(el) {
+            if (!el || el.classList.contains("hidden")) return false;
+            const estilo = window.getComputedStyle(el);
+            const rect = el.getBoundingClientRect();
+            return estilo.display !== "none"
+                && estilo.visibility !== "hidden"
+                && Number(estilo.opacity || 1) !== 0
+                && rect.width > 0
+                && rect.height > 0;
+        }
+
+        function estadoBotaoEnviar() {
+            const botao = document.getElementById("chat-send-btn");
+            if (!botao) return { existe: false };
+            const rect = botao.getBoundingClientRect();
+            const centro = {
+                x: rect.left + rect.width / 2,
+                y: rect.top + rect.height / 2
+            };
+            const topo = document.elementFromPoint(centro.x, centro.y);
+            const pilha = document.elementsFromPoint(centro.x, centro.y).slice(0, 5).map((el) => ({
+                tag: el.tagName,
+                id: el.id || "",
+                className: typeof el.className === "string" ? el.className : ""
+            }));
+            return {
+                existe: true,
+                disabled: botao.disabled,
+                rect: {
+                    left: rect.left,
+                    top: rect.top,
+                    right: rect.right,
+                    bottom: rect.bottom,
+                    width: rect.width,
+                    height: rect.height
+                },
+                totalmenteVisivel: rect.left >= 0
+                    && rect.top >= 0
+                    && rect.right <= window.innerWidth
+                    && rect.bottom <= window.innerHeight,
+                centroRecebeClique: topo === botao || botao.contains(topo),
+                topo: topo ? {
+                    tag: topo.tagName,
+                    id: topo.id || "",
+                    className: typeof topo.className === "string" ? topo.className : ""
+                } : null,
+                pilha
+            };
+        }
+
+        const widgetIa = document.getElementById("widget-ia-negocio-publica");
+        const botaoIa = document.getElementById("ia-negocio-publica-trigger");
+        const janelaIa = document.getElementById("ia-negocio-publica-window");
+        const janelaChat = document.getElementById("chat-window");
+        const inputChat = document.getElementById("chat-client-input");
+        const botaoChat = document.getElementById("chat-send-btn");
+
+        return {
+            tema: document.documentElement.getAttribute("data-theme"),
+            chatVisivel: visivel(janelaChat),
+            chatAriaBusy: janelaChat?.getAttribute("aria-busy") || "",
+            inputChatDisabled: !!inputChat?.disabled,
+            botaoChatDisabled: !!botaoChat?.disabled,
+            iaWidgetVisivel: visivel(widgetIa),
+            iaJanelaVisivel: visivel(janelaIa),
+            iaSuprimida: widgetIa?.getAttribute("data-public-widget-suppressed") || "",
+            iaWidgetPointerEvents: widgetIa ? window.getComputedStyle(widgetIa).pointerEvents : "",
+            iaBotaoPointerEvents: botaoIa ? window.getComputedStyle(botaoIa).pointerEvents : "",
+            iaBotaoDisabled: !!botaoIa?.disabled,
+            iaBotaoTabIndex: botaoIa?.tabIndex ?? null,
+            iaBotaoAriaHidden: widgetIa?.getAttribute("aria-hidden") || "",
+            iaBotaoAcessivelPorTeclado: !!botaoIa && !botaoIa.disabled && botaoIa.tabIndex >= 0,
+            botaoEnviar: estadoBotaoEnviar(),
+            larguraDocumento: document.documentElement.scrollWidth,
+            larguraViewport: document.documentElement.clientWidth
+        };
+    });
+}
+
+async function validarEstadoChatFechadoIaVisivel(page, contexto) {
+    await page.waitForFunction(
+        () => {
+            const widget = document.getElementById("widget-ia-negocio-publica");
+            const botao = document.getElementById("ia-negocio-publica-trigger");
+            if (!widget || !botao) return false;
+            const estilo = window.getComputedStyle(widget);
+            return !widget.classList.contains("hidden")
+                && !widget.hasAttribute("data-public-widget-suppressed")
+                && estilo.pointerEvents !== "none"
+                && estilo.visibility !== "hidden"
+                && !botao.disabled
+                && botao.tabIndex >= 0;
+        },
+        undefined,
+        { timeout: 3000 }
+    );
+    const estado = await obterEstadoWidgetsPublicos(page);
+    assert.equal(estado.chatVisivel, false, `${contexto}: chat deveria estar fechado`);
+    assert.equal(estado.iaJanelaVisivel, false, `${contexto}: janela da IA deveria estar fechada`);
+    assert.equal(estado.iaWidgetVisivel, true, `${contexto}: botão flutuante da IA deveria estar visível`);
+    assert.equal(estado.iaSuprimida, "", `${contexto}: IA não deveria estar suprimida`);
+    assert.notEqual(estado.iaWidgetPointerEvents, "none", `${contexto}: widget da IA deveria aceitar pointer-events`);
+    assert.equal(estado.iaBotaoDisabled, false, `${contexto}: botão da IA não deveria estar disabled`);
+    assert.equal(estado.iaBotaoAcessivelPorTeclado, true, `${contexto}: botão da IA deveria estar acessível por teclado`);
+}
+
+async function validarEstadoChatAbertoIaOculta(page, contexto) {
+    await page.waitForFunction(
+        () => {
+            const widget = document.getElementById("widget-ia-negocio-publica");
+            if (!widget) return false;
+            const estilo = window.getComputedStyle(widget);
+            return widget.getAttribute("data-public-widget-suppressed") === "chat-open"
+                && estilo.pointerEvents === "none"
+                && estilo.visibility === "hidden";
+        },
+        undefined,
+        { timeout: 3000 }
+    );
+    const estado = await obterEstadoWidgetsPublicos(page);
+    assert.equal(estado.chatVisivel, true, `${contexto}: chat deveria estar aberto`);
+    assert.equal(estado.iaJanelaVisivel, false, `${contexto}: janela da IA deveria estar fechada`);
+    assert.equal(estado.iaWidgetVisivel, false, `${contexto}: botão flutuante da IA deveria estar oculto`);
+    assert.equal(estado.iaSuprimida, "chat-open", `${contexto}: widget da IA deveria estar suprimido pelo chat`);
+    assert.equal(estado.iaWidgetPointerEvents, "none", `${contexto}: widget da IA deveria sair do hit-test`);
+    assert.equal(estado.iaBotaoDisabled, true, `${contexto}: botão da IA deveria ficar disabled`);
+    assert.equal(estado.iaBotaoTabIndex, -1, `${contexto}: botão da IA deveria sair da tabulação`);
+    assert.equal(estado.botaoEnviar.existe, true, `${contexto}: botão enviar deveria existir`);
+    assert.equal(estado.botaoEnviar.disabled, false, `${contexto}: botão enviar deveria estar clicável`);
+    assert.equal(estado.botaoEnviar.totalmenteVisivel, true, `${contexto}: botão enviar deveria estar totalmente visível`);
+    assert.equal(estado.botaoEnviar.centroRecebeClique, true, `${contexto}: centro do botão enviar deveria receber o clique; topo=${JSON.stringify(estado.botaoEnviar.topo)} pilha=${JSON.stringify(estado.botaoEnviar.pilha)}`);
+}
+
+async function validarAlternanciaChatIa(page, contexto) {
+    await abrirEIniciarConversa(page);
+    await validarEstadoChatAbertoIaOculta(page, `${contexto} / chat aberto`);
+
+    await page.click("#chat-trigger-btn");
+    await esperarChatFechado(page);
+    await validarEstadoChatFechadoIaVisivel(page, `${contexto} / chat fechado`);
+
+    await abrirEIniciarConversa(page);
+    await page.evaluate(() => window.toggleIaNegocioPublicaWindow(true));
+    await esperarChatFechado(page);
+    await esperarIaAberta(page);
+    let estado = await obterEstadoWidgetsPublicos(page);
+    assert.equal(estado.chatVisivel, false, `${contexto}: abrir IA deveria fechar o chat`);
+    assert.equal(estado.iaJanelaVisivel, true, `${contexto}: IA deveria abrir`);
+
+    await page.evaluate(() => window.toggleChatWindow(true));
+    await esperarIaFechada(page);
+    await esperarChatAberto(page);
+    estado = await obterEstadoWidgetsPublicos(page);
+    assert.equal(estado.chatVisivel, true, `${contexto}: abrir chat deveria fechar a IA`);
+    assert.equal(estado.iaJanelaVisivel, false, `${contexto}: IA deveria ficar fechada ao abrir chat`);
+
+    await page.click("#chat-trigger-btn");
+    await esperarChatFechado(page);
+}
+
+async function atrasarCadastroAnonimoParaValidarLoading(page) {
+    await page.evaluate(() => {
+        if (window.__videTesteFetchComDelay) return;
+        const fetchOriginal = window.fetch.bind(window);
+        window.__videTesteFetchComDelay = true;
+        window.fetch = (...args) => {
+            const destino = String(args[0]?.url || args[0] || "");
+            if (destino.includes("accounts:signUp")) {
+                return new Promise((resolve, reject) => {
+                    window.setTimeout(() => {
+                        fetchOriginal(...args).then(resolve, reject);
+                    }, 500);
+                });
+            }
+            return fetchOriginal(...args);
+        };
+    });
+}
+
+async function esperarEstadoConectando(page, contexto) {
+    await page.waitForFunction(
+        () => {
+            const janela = document.getElementById("chat-window");
+            const input = document.getElementById("chat-client-input");
+            const botao = document.getElementById("chat-send-btn");
+            return janela?.getAttribute("aria-busy") === "true" && input?.disabled === true && botao?.disabled === true;
+        },
+        undefined,
+        { timeout: 5000 }
+    );
+    const estado = await obterEstadoWidgetsPublicos(page);
+    assert.equal(estado.chatAriaBusy, "true", `${contexto}: aria-busy deveria estar true`);
+    assert.equal(estado.inputChatDisabled, true, `${contexto}: input deveria ficar disabled`);
+    assert.equal(estado.botaoChatDisabled, true, `${contexto}: botão deveria ficar disabled`);
+}
+
+async function validarRestauracaoTransitoriaOuLiberada(page, contexto) {
+    try {
+        await esperarEstadoConectando(page, contexto);
+    } catch (erro) {
+        await validarComposerLiberado(page, `${contexto} já finalizada`);
+    }
+}
+
+async function validarComposerLiberado(page, contexto) {
+    const estado = await obterEstadoWidgetsPublicos(page);
+    assert.equal(estado.chatAriaBusy, "false", `${contexto}: aria-busy deveria voltar para false`);
+    assert.equal(estado.inputChatDisabled, false, `${contexto}: input deveria ser liberado`);
+    assert.equal(estado.botaoChatDisabled, false, `${contexto}: botão deveria ser liberado`);
+}
+
+async function validarErroUnicoDeConexao(browser, baseUrl) {
+    const contexto = await browser.newContext({ viewport: { width: 430, height: 932 } });
+    const page = await contexto.newPage();
+    const erros = coletarErrosConsole(page);
+    try {
+        await abrirLojaPublica(page, baseUrl, { tema: "light" });
+        await abrirEIniciarConversa(page);
+        await contexto.setOffline(true);
+
+        for (const nome of ["Visitante Offline 1", "Visitante Offline 2"]) {
+            await page.fill("#chat-client-input", nome);
+            await page.click("#chat-send-btn");
+            await page.waitForFunction(
+                () => document.querySelectorAll("[data-chat-connection-error]").length === 1,
+                undefined,
+                { timeout: 15000 }
+            );
+            await validarComposerLiberado(page, `erro de conexão / ${nome}`);
+        }
+
+        const quantidadeAlertas = await page.evaluate(
+            () => document.querySelectorAll("[data-chat-connection-error]").length
+        );
+        assert.equal(quantidadeAlertas, 1, "Erro de conexão repetido não deveria duplicar alertas");
+    } finally {
+        await contexto.setOffline(false).catch(() => {});
+        const errosInesperados = erros.filter((msg) => !ehErroDeRedeExterno(msg));
+        assert.deepEqual(errosInesperados, [], `Erro único de conexão não deveria emitir console.error: ${errosInesperados.join("\n")}`);
+        await contexto.close();
+    }
+}
+
+async function validarMatrizVisualWidgets(browser, baseUrl) {
+    for (const viewport of MATRIZ_VIEWPORTS_PUBLICOS) {
+        for (const zoom of viewport.zooms) {
+            for (const tema of TEMAS_PUBLICOS) {
+                const cssViewport = {
+                    width: Math.floor(viewport.width / zoom),
+                    height: Math.floor(viewport.height / zoom)
+                };
+                const contexto = await browser.newContext({ viewport: cssViewport });
+                const page = await contexto.newPage();
+                const erros = coletarErrosConsole(page);
+                const rotulo = `${viewport.width}x${viewport.height} zoom ${Math.round(zoom * 100)}% tema ${tema}`;
+                try {
+                    await abrirLojaPublica(page, baseUrl, { tema });
+                    let estado = await obterEstadoWidgetsPublicos(page);
+                    assert.equal(estado.tema, tema, `${rotulo}: tema deveria ser aplicado`);
+                    assert.equal(estado.larguraDocumento <= estado.larguraViewport + 2, true, `${rotulo}: loja não deveria gerar overflow horizontal`);
+                    await validarEstadoChatFechadoIaVisivel(page, `${rotulo} / chat fechado`);
+
+                    await abrirEIniciarConversa(page);
+                    await validarEstadoChatAbertoIaOculta(page, `${rotulo} / chat aberto`);
+
+                    await page.evaluate(() => window.toggleIaNegocioPublicaWindow(true));
+                    await esperarIaAberta(page);
+                    estado = await obterEstadoWidgetsPublicos(page);
+                    assert.equal(estado.chatVisivel, false, `${rotulo}: chat deveria fechar ao abrir IA`);
+                    assert.equal(estado.iaJanelaVisivel, true, `${rotulo}: janela da IA deveria abrir`);
+                } finally {
+                    const errosInesperados = erros.filter((msg) => !ehErroDeRedeExterno(msg));
+                    assert.deepEqual(errosInesperados, [], `${rotulo}: não deveria emitir console.error: ${errosInesperados.join("\n")}`);
+                    await contexto.close();
+                }
+            }
+        }
+    }
 }
 
 async function main() {
@@ -64,20 +440,24 @@ async function main() {
     const errosOwner = coletarErrosConsole(paginaOwner);
 
     try {
+        await ativarIaPublicaNoEmulator();
+
         // ===== Visitante A: inicia o chat, nasce V2 =====
-        await paginaA.goto(`${baseUrl}/loja.html?loja=${STORE_SLUG}&useEmulator=true`, {
-            waitUntil: "load",
-            timeout: 30000
-        });
+        await abrirLojaPublica(paginaA, baseUrl, { tema: "light" });
+        await validarEstadoChatFechadoIaVisivel(paginaA, "visitante A inicial");
+        await validarAlternanciaChatIa(paginaA, "visitante A alternância inicial");
 
         await abrirEIniciarConversa(paginaA);
+        await atrasarCadastroAnonimoParaValidarLoading(paginaA);
 
         // Botão desabilitado + aria-busy enquanto autentica/cria (estado
         // "Conectando com a loja...").
         await paginaA.fill("#chat-client-input", NOME_VISITANTE);
         await paginaA.click("#chat-send-btn");
+        await esperarEstadoConectando(paginaA, "criação do chat V2");
 
         await esperarChatConectado(paginaA);
+        await validarComposerLiberado(paginaA, "chat V2 conectado");
 
         const db = adminDb();
         const chatsSnap = await db.collection("chats").where("clienteNome", "==", NOME_VISITANTE).get();
@@ -108,6 +488,9 @@ async function main() {
         await paginaA.fill("#chat-client-input", textoMensagem);
         await paginaA.click("#chat-send-btn");
 
+        // A UI só deve exibir a mensagem depois da confirmação do
+        // Firestore/Emulator; se um snapshot local otimista vazar aqui,
+        // a consulta Admin abaixo volta a falhar.
         await paginaA.waitForFunction(
             (texto) => {
                 const box = document.getElementById("chat-client-messages");
@@ -134,7 +517,9 @@ async function main() {
         // ===== Reload: a mesma sessão anônima restaura o MESMO chat =====
         await paginaA.reload({ waitUntil: "load", timeout: 30000 });
         await abrirEIniciarConversa(paginaA);
+        await validarRestauracaoTransitoriaOuLiberada(paginaA, "restauração do chat V2");
         await esperarChatConectado(paginaA);
+        await validarComposerLiberado(paginaA, "chat V2 restaurado");
 
         await paginaA.waitForFunction(
             (texto) => {
@@ -214,6 +599,7 @@ async function main() {
 
         await paginaOwner.waitForFunction(
             () => document.querySelectorAll("#atend-lista-conversas [data-atend-conversa-id]").length === 1,
+            undefined,
             { timeout: 20000 }
         );
 
@@ -243,6 +629,9 @@ async function main() {
             textoResposta,
             { timeout: 20000 }
         );
+
+        await validarErroUnicoDeConexao(browser, baseUrl);
+        await validarMatrizVisualWidgets(browser, baseUrl);
 
         console.log(
             "loja-chat-publico.flow: OK — chat V2 criado com Anonymous Auth, " +

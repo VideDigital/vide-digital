@@ -241,6 +241,18 @@
         #ia-negocio-publica-input:focus { border-color: var(--accent) !important; outline: none; }
         #ia-negocio-publica-enviar { background: var(--ink) !important; color: var(--bg) !important; }
         #ia-negocio-publica-trigger { border-radius: 999px !important; box-shadow: var(--shadow-lg) !important; color: var(--ink) !important; background: var(--surface) !important; border: 1px solid var(--border); }
+        #widget-ia-negocio-publica {
+            transition: opacity .18s ease, transform .18s ease, visibility .18s ease;
+        }
+        #widget-ia-negocio-publica[data-public-widget-suppressed="chat-open"] {
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+            transform: translateY(10px);
+        }
+        #widget-ia-negocio-publica[data-public-widget-suppressed="chat-open"] #ia-negocio-publica-window {
+            display: none !important;
+        }
         .ia-negocio-publica-mensagem { max-width: 85%; padding: 8px 12px; border-radius: 14px; line-height: 1.5; white-space: pre-wrap; }
         .ia-negocio-publica-mensagem.is-visitante { align-self: flex-end; background: var(--accent); color: var(--client-texto-botao, #fff); }
         .ia-negocio-publica-mensagem.is-ia { align-self: flex-start; background: var(--surface-soft); border: 1px solid var(--border); color: var(--ink-2); }
@@ -1686,6 +1698,7 @@
         let chatConectando = false;
         let chatRestaurando = false;
         let tentouRestaurarChat = false;
+        let restauracaoChatEmAndamento = null;
         let produtoDetalhesAtualId = "";
         let produtoDetalhesFocoAnterior = null;
         let notaAvaliacaoSelecionada = 0;
@@ -1781,6 +1794,46 @@
                     ? (janelaId === "chat-window" ? "Fechar atendimento online" : "Fechar assistente da loja")
                     : (janelaId === "chat-window" ? "Abrir atendimento online" : "Abrir assistente da loja"));
             }
+        }
+
+        function janelaPublicaAberta(janelaId) {
+            return elementoVisivelA11y(document.getElementById(janelaId));
+        }
+
+        function sincronizarWidgetsPublicosFlutuantes() {
+            const chatAberto = janelaPublicaAberta("chat-window");
+            const iaAberta = janelaPublicaAberta("ia-negocio-publica-window");
+            const widgetIa = document.getElementById("widget-ia-negocio-publica");
+            const gatilhoIa = document.getElementById("ia-negocio-publica-trigger");
+
+            document.body.classList.toggle("chat-publico-aberto", chatAberto);
+            document.body.classList.toggle("ia-publica-aberta", iaAberta);
+
+            if (!widgetIa || widgetIa.classList.contains("hidden")) return;
+
+            if (chatAberto && !iaAberta) {
+                widgetIa.setAttribute("data-public-widget-suppressed", "chat-open");
+                widgetIa.setAttribute("aria-hidden", "true");
+                if (gatilhoIa) {
+                    gatilhoIa.disabled = true;
+                    gatilhoIa.tabIndex = -1;
+                }
+                return;
+            }
+
+            widgetIa.removeAttribute("data-public-widget-suppressed");
+            widgetIa.removeAttribute("aria-hidden");
+            if (gatilhoIa) {
+                gatilhoIa.disabled = false;
+                gatilhoIa.removeAttribute("tabindex");
+            }
+        }
+
+        function fecharJanelaPublicaSemRestaurarFoco(janelaId, gatilhoId) {
+            const janela = document.getElementById(janelaId);
+            if (!janela || janela.classList.contains("hidden")) return;
+            janela.classList.add("hidden");
+            atualizarEstadoJanelaA11y(janelaId, gatilhoId, false);
         }
 
         document.addEventListener("keydown", function(event) {
@@ -3888,6 +3941,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                         document.getElementById("widget-ia-negocio-publica").classList.remove("hidden");
                         iniciarIaNegocioPublica(lojaSlug.toLowerCase());
                     }
+                    sincronizarWidgetsPublicosFlutuantes();
 
                     await registrarMetricaPublica({ event: "store_session" });
 
@@ -4940,28 +4994,41 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         window.toggleChatWindow = function(forcarAberto) {
             const janela = document.getElementById("chat-window");
             const deveAbrir = typeof forcarAberto === "boolean" ? forcarAberto : janela.classList.contains("hidden");
+            if (deveAbrir) {
+                fecharJanelaPublicaSemRestaurarFoco("ia-negocio-publica-window", "ia-negocio-publica-trigger");
+            }
             janela.classList.toggle("hidden", !deveAbrir);
             atualizarEstadoJanelaA11y("chat-window", "chat-trigger-btn", deveAbrir);
+            sincronizarWidgetsPublicosFlutuantes();
             if (deveAbrir) {
                 registrarFocoAnteriorA11y("chat");
                 tentarRestaurarChatSalvo();
                 trackCrescimento("chat_started", {});
-                requestAnimationFrame(function() { document.getElementById("chat-client-input")?.focus(); });
+                requestAnimationFrame(function() {
+                    const input = document.getElementById("chat-client-input");
+                    if (input && !input.disabled) input.focus();
+                });
             } else {
                 restaurarFocoA11y("chat", "chat-trigger-btn");
+                sincronizarWidgetsPublicosFlutuantes();
             }
         };
 
         window.toggleIaNegocioPublicaWindow = function(forcarAberto) {
             const janela = document.getElementById("ia-negocio-publica-window");
             const deveAbrir = typeof forcarAberto === "boolean" ? forcarAberto : janela.classList.contains("hidden");
+            if (deveAbrir) {
+                fecharJanelaPublicaSemRestaurarFoco("chat-window", "chat-trigger-btn");
+            }
             janela.classList.toggle("hidden", !deveAbrir);
             atualizarEstadoJanelaA11y("ia-negocio-publica-window", "ia-negocio-publica-trigger", deveAbrir);
+            sincronizarWidgetsPublicosFlutuantes();
             if (deveAbrir) {
                 registrarFocoAnteriorA11y("ia");
                 requestAnimationFrame(function() { document.getElementById("ia-negocio-publica-input")?.focus(); });
             } else {
                 restaurarFocoA11y("ia", "ia-negocio-publica-trigger");
+                sincronizarWidgetsPublicosFlutuantes();
             }
         };
 
@@ -5054,7 +5121,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             return div.innerHTML;
         }
 
-        function definirEstadoConectandoChat(ativo) {
+        function definirEstadoConectandoChat(ativo, modo) {
             chatConectando = ativo;
             const input = document.getElementById("chat-client-input");
             const botao = document.getElementById("chat-send-btn");
@@ -5062,14 +5129,41 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (input) input.disabled = ativo;
             if (botao) botao.disabled = ativo;
             if (janela) janela.setAttribute("aria-busy", ativo ? "true" : "false");
-            if (input && ativo) input.placeholder = "Conectando com a loja...";
-            else if (input && !clienteRegistrado) input.placeholder = "Seu nome...";
+            if (input && ativo) {
+                input.placeholder = modo === "restaurando"
+                    ? "Restaurando sua conversa..."
+                    : "Conectando com a loja...";
+            } else if (input && !clienteRegistrado) {
+                input.placeholder = "Seu nome...";
+            } else if (input) {
+                input.placeholder = "Escreva sua mensagem...";
+            }
+            if (botao) {
+                botao.innerText = ativo
+                    ? "Aguarde"
+                    : (clienteRegistrado ? "Enviar" : "OK");
+            }
+        }
+
+        function removerErroConexaoChat() {
+            document.querySelectorAll("[data-chat-connection-error]").forEach(function(alerta) {
+                alerta.remove();
+            });
         }
 
         function mostrarErroConexaoChat(mensagem) {
             const box = document.getElementById("chat-client-messages");
             if (!box) return;
-            box.innerHTML += '<div class="p-2.5 rounded-xl text-center font-semibold" role="alert" style="background: color-mix(in oklch, #ef4444 12%, transparent); color: #ef4444; border: 1px solid color-mix(in oklch, #ef4444 24%, transparent);">' + escaparHtmlChat(mensagem) + "</div>";
+            let alerta = box.querySelector("[data-chat-connection-error]");
+            if (!alerta) {
+                alerta = document.createElement("div");
+                alerta.className = "p-2.5 rounded-xl text-center font-semibold";
+                alerta.setAttribute("role", "alert");
+                alerta.setAttribute("data-chat-connection-error", "true");
+                alerta.style.cssText = "background: color-mix(in oklch, #ef4444 12%, transparent); color: #ef4444; border: 1px solid color-mix(in oklch, #ef4444 24%, transparent);";
+                box.appendChild(alerta);
+            }
+            alerta.textContent = mensagem;
             box.scrollTop = box.scrollHeight;
         }
 
@@ -5077,6 +5171,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             if (clienteRegistrado) return;
             const box = document.getElementById("chat-client-messages");
             if (!box) return;
+            removerErroConexaoChat();
             const texto = chatRestaurando
                 ? "Restaurando sua conversa..."
                 : "Ola! Digite seu nome completo para iniciarmos o suporte:";
@@ -5093,10 +5188,11 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 if (dadosChat && dadosChat.status) chatStatusAtual = dadosChat.status;
             });
 
-            onSnapshot(query(collection(dbInstancia, "chats/" + chatId + "/mensagens"), orderBy("timestamp", "asc")), function(snapshot) {
+            onSnapshot(query(collection(dbInstancia, "chats/" + chatId + "/mensagens"), orderBy("timestamp", "asc")), { includeMetadataChanges: true }, function(snapshot) {
                 const box = document.getElementById("chat-client-messages");
                 box.innerHTML = "";
                 snapshot.forEach(function(docM) {
+                    if (docM.metadata.hasPendingWrites) return;
                     const m = docM.data();
                     const bubble = document.createElement("div");
                     bubble.className = "p-3 rounded-2xl max-w-[85%] text-[12px]";
@@ -5116,6 +5212,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         function finalizarRegistroChat(nome) {
             clienteRegistrado = true;
             clienteNome = nome;
+            definirEstadoConectandoChat(false);
+            removerErroConexaoChat();
             const input = document.getElementById("chat-client-input");
             if (input) {
                 input.value = "";
@@ -5164,7 +5262,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     versaoSchema: 1
                 });
             } catch (erroEvento) {
-                console.error(erroEvento);
+                console.warn("[Vide Hub] Chat público: evento inicial V2 não registrado.", erroEvento?.code || erroEvento?.message || erroEvento);
             }
             finalizarRegistroChat(nome);
             conectarChatEmTempoReal(salaChatId, dbPub);
@@ -5207,7 +5305,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     versaoSchema: 1
                 });
             } catch (erroEvento) {
-                console.error(erroEvento);
+                console.warn("[Vide Hub] Chat público: evento inicial legado não registrado.", erroEvento?.code || erroEvento?.message || erroEvento);
             }
             finalizarRegistroChat(nome);
             conectarChatEmTempoReal(salaChatId, db);
@@ -5216,7 +5314,8 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         async function iniciarConversa(nomeBruto) {
             const nome = sanitizarNomeVisitanteChat(nomeBruto);
             if (!nome) return;
-            definirEstadoConectandoChat(true);
+            removerErroConexaoChat();
+            definirEstadoConectandoChat(true, "conectando");
             let usouFallback = false;
             try {
                 await criarChatV2(nome);
@@ -5235,7 +5334,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 try {
                     await criarChatLegado(nome);
                 } catch (erroLegado) {
-                    console.error(erroLegado);
+                    console.warn("[Vide Hub] Chat público: fallback legado indisponível.", erroLegado?.code || erroLegado?.message || erroLegado);
                     definirEstadoConectandoChat(false);
                     mostrarErroConexaoChat("Não foi possível conectar o chat. Atualize a página e tente novamente.");
                     return;
@@ -5309,28 +5408,38 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
         // paga esse custo.
         async function tentarRestaurarChatSalvo() {
             if (tentouRestaurarChat || clienteRegistrado || !fornecedorEmail) return;
+            if (restauracaoChatEmAndamento) return restauracaoChatEmAndamento;
             tentouRestaurarChat = true;
-            chatRestaurando = true;
-            atualizarMensagemInicialChat();
-            let resultado = null;
-            try {
-                resultado = await restaurarChatSalvo(fornecedorEmail);
-            } catch (erro) {
-                resultado = null;
-            }
-            chatRestaurando = false;
-            if (!resultado) {
+            restauracaoChatEmAndamento = (async function() {
+                chatRestaurando = true;
+                definirEstadoConectandoChat(true, "restaurando");
                 atualizarMensagemInicialChat();
-                return;
-            }
-            salaChatId = resultado.chatId;
-            visitorUidAtual = resultado.visitorUid;
-            chatStatusAtual = resultado.status || "nova";
-            clienteRegistrado = true;
-            const input = document.getElementById("chat-client-input");
-            if (input) input.placeholder = "Escreva sua mensagem...";
-            document.getElementById("chat-send-btn").innerText = "Enviar";
-            conectarChatEmTempoReal(salaChatId, obterDbPublico());
+                let resultado = null;
+                try {
+                    resultado = await restaurarChatSalvo(fornecedorEmail);
+                } catch (erro) {
+                    resultado = null;
+                } finally {
+                    chatRestaurando = false;
+                    restauracaoChatEmAndamento = null;
+                }
+                if (!resultado) {
+                    definirEstadoConectandoChat(false);
+                    atualizarMensagemInicialChat();
+                    return;
+                }
+                salaChatId = resultado.chatId;
+                visitorUidAtual = resultado.visitorUid;
+                chatStatusAtual = resultado.status || "nova";
+                clienteRegistrado = true;
+                removerErroConexaoChat();
+                definirEstadoConectandoChat(false);
+                const input = document.getElementById("chat-client-input");
+                if (input) input.placeholder = "Escreva sua mensagem...";
+                document.getElementById("chat-send-btn").innerText = "Enviar";
+                conectarChatEmTempoReal(salaChatId, obterDbPublico());
+            })();
+            return restauracaoChatEmAndamento;
         }
 
         document.getElementById("chat-client-form").addEventListener("submit", async function(e) {
@@ -5346,7 +5455,10 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 try {
                     await enviarMensagemCliente(txt);
                 } catch (erroEnvio) {
-                    console.error(erroEnvio);
+                    console.warn("[Vide Hub] Chat público: mensagem não enviada.", erroEnvio?.code || erroEnvio?.message || erroEnvio);
+                    input.value = txt;
+                    mostrarErroConexaoChat("Não foi possível enviar a mensagem agora. Verifique sua conexão e tente novamente.");
+                    return;
                 }
                 clearTimeout(timeoutRedirecionamentoWhats);
                 timeoutRedirecionamentoWhats = setTimeout(function() {
@@ -5360,6 +5472,7 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
 
         atualizarEstadoJanelaA11y("chat-window", "chat-trigger-btn", false);
         atualizarEstadoJanelaA11y("ia-negocio-publica-window", "ia-negocio-publica-trigger", false);
+        sincronizarWidgetsPublicosFlutuantes();
         document.getElementById("carrinho-painel")?.setAttribute("aria-hidden", "true");
         sincronizarBloqueioRolagemA11y();
     </script>
