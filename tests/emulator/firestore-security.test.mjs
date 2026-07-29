@@ -2543,3 +2543,134 @@ describe("auditoria: leitura owner-only + videAdmin; sem escrita nenhuma do clie
     await assertFails(getDocs(query(collection(authed("ownerA"), "auditoria"), where("ownerUid", "==", "ownerB"))));
   });
 });
+
+describe("WhatsApp Oficial V1: coleções privadas — só leitura autorizada, escrita sempre do backend", () => {
+  async function semear() {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "employeeAtendimentoVer"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["atendimento"], editar: [] }
+      });
+      await setDoc(doc(db, "whatsapp_connections", "ownerA"), {
+        ownerUid: "ownerA",
+        status: "connected",
+        phoneNumberId: "1000",
+        displayPhoneNumber: "+55 11 90000-0000"
+      });
+      await setDoc(doc(db, "whatsapp_templates", "ownerA_tpl1"), {
+        ownerUid: "ownerA",
+        name: "boas_vindas",
+        status: "APPROVED"
+      });
+      await setDoc(doc(db, "whatsapp_message_map", "safeWamid1"), { ownerUid: "ownerA", chatId: "chatX" });
+      await setDoc(doc(db, "whatsapp_webhook_events", "eventHash1"), { ownerUid: "ownerA" });
+      await setDoc(doc(db, "whatsapp_phone_routes", "1000"), { ownerUid: "ownerA", connectionStatus: "connected" });
+      await setDoc(doc(db, "whatsapp_contact_map", "ownerA_contactHash1"), { ownerUid: "ownerA", waId: "5511999990000" });
+      await setDoc(doc(db, "whatsapp_consents", "ownerA_contactHash1"), { ownerUid: "ownerA", status: "granted" });
+    });
+  }
+
+  it("dono lê a própria conexão", async () => {
+    await semear();
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "whatsapp_connections", "ownerA")));
+  });
+
+  it("funcionário com permissão de ver atendimento lê a conexão do próprio tenant", async () => {
+    await semear();
+    await assertSucceeds(getDoc(doc(authed("employeeAtendimentoVer"), "whatsapp_connections", "ownerA")));
+  });
+
+  it("funcionário sem permissão de atendimento/configuracoes não lê a conexão", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("employeeRead"), "whatsapp_connections", "ownerA")));
+  });
+
+  it("outro tenant nunca lê a conexão alheia", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("ownerB"), "whatsapp_connections", "ownerA")));
+  });
+
+  it("cliente nunca escreve token/status/qualquer campo da conexão", async () => {
+    await semear();
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_connections", "ownerA"), { status: "connected", ownerUid: "ownerA" }));
+    await assertFails(updateDoc(doc(authed("ownerA"), "whatsapp_connections", "ownerA"), { status: "disconnected" }));
+  });
+
+  it("dono lê os próprios templates; outro tenant não", async () => {
+    await semear();
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "whatsapp_templates", "ownerA_tpl1")));
+    await assertFails(getDoc(doc(authed("ownerB"), "whatsapp_templates", "ownerA_tpl1")));
+  });
+
+  it("cliente nunca escreve um template (só a Cloud Function de sync)", async () => {
+    await semear();
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_templates", "ownerA_tpl2"), { ownerUid: "ownerA", name: "outro", status: "APPROVED" }));
+  });
+
+  it("whatsapp_message_map nunca é lido nem escrito pelo cliente, nem pelo próprio dono", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("ownerA"), "whatsapp_message_map", "safeWamid1")));
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_message_map", "safeWamid2"), { ownerUid: "ownerA" }));
+  });
+
+  it("whatsapp_webhook_events nunca é lido nem escrito pelo cliente", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("ownerA"), "whatsapp_webhook_events", "eventHash1")));
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_webhook_events", "eventHash2"), { ownerUid: "ownerA" }));
+  });
+
+  it("whatsapp_phone_routes nunca é lido nem escrito pelo cliente — nem por quem é dono do número", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("ownerA"), "whatsapp_phone_routes", "1000")));
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_phone_routes", "2000"), { ownerUid: "ownerA", connectionStatus: "connected" }));
+  });
+
+  it("whatsapp_contact_map (PII de wa_id) nunca é lido nem escrito pelo cliente", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("ownerA"), "whatsapp_contact_map", "ownerA_contactHash1")));
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_contact_map", "ownerA_contactHash2"), { ownerUid: "ownerA", waId: "5511888880000" }));
+  });
+
+  it("whatsapp_consents nunca é lido nem escrito pelo cliente", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("ownerA"), "whatsapp_consents", "ownerA_contactHash1")));
+    await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_consents", "ownerA_contactHash2"), { ownerUid: "ownerA", status: "granted" }));
+  });
+
+  it("anônimo não lê nenhuma coleção do WhatsApp Oficial", async () => {
+    await semear();
+    await assertFails(getDoc(doc(anon(), "whatsapp_connections", "ownerA")));
+    await assertFails(getDoc(doc(anon(), "whatsapp_templates", "ownerA_tpl1")));
+    await assertFails(getDoc(doc(anon(), "whatsapp_contact_map", "ownerA_contactHash1")));
+  });
+});
+
+describe("WhatsApp Oficial V1: canal \"whatsapp\" aceito nos chats (compatibilidade com loja_publica/interno/whatsapp_futuro)", () => {
+  it("dono grava um chat com canal whatsapp usando o caminho admin válido", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatWpp1"), {
+        donoUID: "ownerA",
+        clienteNome: "Cliente WhatsApp",
+        canal: "whatsapp",
+        status: "nova",
+        statusAdmin: "pendente"
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "chats", "chatWpp1"), { status: "aberta" }));
+  });
+
+  it("outro tenant não lê um chat de canal whatsapp alheio", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chatWpp2"), {
+        donoUID: "ownerA",
+        clienteNome: "Cliente WhatsApp",
+        canal: "whatsapp",
+        status: "nova",
+        statusAdmin: "pendente"
+      });
+    });
+    await assertFails(getDoc(doc(authed("ownerB"), "chats", "chatWpp2")));
+  });
+});

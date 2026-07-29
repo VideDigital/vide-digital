@@ -1,0 +1,125 @@
+"use strict";
+
+// WhatsApp Oficial V1 — Templates: sincroniza os templates aprovados na
+// Meta (WhatsApp Manager) para whatsapp_templates/{ownerUid}_{metaTemplateId}.
+// V1 nunca CRIA template via API (isso continua só no WhatsApp Manager,
+// fora daqui) — só lista/espelha o que já existe lá.
+const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { resolveCallerContext, requireEdit } = require("../shared/context");
+const { assertRateLimit } = require("../shared/rateLimit");
+const { writeAudit } = require("../audit");
+const { REGION, COLLECTIONS, ERROR_CODES, ERROR_MESSAGES, RATE_LIMITS } = require("./constants");
+const secrets = require("./secrets");
+const { criarMetaClient } = require("./metaClient");
+const { identificadorRateLimit } = require("./validators");
+
+const metaClient = criarMetaClient();
+
+function erroPublico(code) {
+  return new HttpsError("failed-precondition", ERROR_MESSAGES[code] || "Erro ao sincronizar templates.", { code });
+}
+
+// Deriva um parameterSchema simples (só parâmetros de texto, V1) a partir
+// do componente BODY de um template da Meta — um corpo como "Olá {{1}},
+// seu pedido {{2}} foi atualizado" vira [{name:"1",...}, {name:"2",...}].
+// Mantém a ordem numérica dos marcadores, que é a ordem que a Graph API
+// espera ao enviar os parâmetros.
+function derivarParameterSchema(components) {
+  const body = (Array.isArray(components) ? components : []).find((c) => c?.type === "BODY");
+  const texto = String(body?.text || "");
+  const marcadores = new Set();
+  const regex = /\{\{\s*(\d+)\s*\}\}/g;
+  let match = regex.exec(texto);
+  while (match !== null) {
+    marcadores.add(match[1]);
+    match = regex.exec(texto);
+  }
+  return Array.from(marcadores)
+    .sort((a, b) => Number(a) - Number(b))
+    .map((nome) => ({ name: nome, type: "text", required: true }));
+}
+
+function normalizarTemplateMeta(ownerUid, wabaId, templateMeta) {
+  const qualidade = templateMeta.quality_score?.score || templateMeta.quality_score || "";
+  return {
+    ownerUid,
+    wabaId,
+    metaTemplateId: String(templateMeta.id || ""),
+    name: String(templateMeta.name || "").slice(0, 200),
+    language: String(templateMeta.language || "").slice(0, 20),
+    category: String(templateMeta.category || "").slice(0, 60),
+    status: String(templateMeta.status || "").slice(0, 40),
+    components: Array.isArray(templateMeta.components) ? templateMeta.components : [],
+    parameterSchema: derivarParameterSchema(templateMeta.components),
+    qualityScore: String(qualidade).slice(0, 40),
+    syncedAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  };
+}
+
+const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
+  const context = await resolveCallerContext(request);
+  requireEdit(context, "atendimento");
+
+  await assertRateLimit({
+    scope: "whatsappSyncTemplates",
+    identifier: identificadorRateLimit("owner", context.ownerUid),
+    max: RATE_LIMITS.TEMPLATE_SYNC_PER_HOUR
+  });
+
+  const db = getFirestore();
+  const conexaoSnap = await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).get();
+  if (!conexaoSnap.exists) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
+  const conexao = conexaoSnap.data() || {};
+  if (!conexao.wabaId) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
+
+  let accessToken;
+  try {
+    accessToken = await secrets.accessTenantToken(context.ownerUid);
+  } catch (erro) {
+    throw erroPublico(erro?.code || ERROR_CODES.NOT_CONNECTED);
+  }
+
+  let resposta;
+  try {
+    resposta = await metaClient.listTemplates({ accessToken, wabaId: conexao.wabaId });
+  } catch (erro) {
+    throw erroPublico(erro?.code || ERROR_CODES.PROVIDER_UNAVAILABLE);
+  }
+
+  const templatesMeta = Array.isArray(resposta?.data) ? resposta.data : [];
+  let sincronizados = 0;
+  // batch.commit() tem limite de 500 escritas — templates por número
+  // costumam ser dezenas, não milhares; se algum dia isso mudar, paginar
+  // aqui é a extensão natural.
+  const batch = db.batch();
+  for (const templateMeta of templatesMeta) {
+    if (!templateMeta?.id) continue;
+    const ref = db.doc(`${COLLECTIONS.TEMPLATES}/${context.ownerUid}_${templateMeta.id}`);
+    batch.set(ref, normalizarTemplateMeta(context.ownerUid, conexao.wabaId, templateMeta), { merge: true });
+    sincronizados += 1;
+  }
+  if (sincronizados > 0) await batch.commit();
+
+  await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).set({
+    lastTemplateSyncAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp(),
+    updatedBy: context.authUid
+  }, { merge: true });
+
+  await writeAudit({
+    ownerUid: context.ownerUid,
+    authUid: context.authUid,
+    module: "atendimento",
+    targetId: context.ownerUid,
+    action: "whatsapp.templates_sincronizados",
+    risk: "low",
+    summary: `Sincronização manual de templates do WhatsApp (${sincronizados} template(s)).`,
+    source: "function"
+  });
+
+  return { ok: true, sincronizados };
+});
+
+module.exports = { whatsappSyncTemplates, derivarParameterSchema, normalizarTemplateMeta };

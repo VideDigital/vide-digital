@@ -629,7 +629,7 @@ service cloud.firestore {
         && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.donoUID))
         && request.resource.data.statusAdmin == "pendente"
         && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "nova")
-        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro"])
+        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro", "whatsapp"])
         && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == 1);
     }
     // O visitante só toca no resumo/status ao mandar mensagem — nunca em
@@ -691,7 +691,7 @@ service cloud.firestore {
         && request.resource.data.versaoAcesso == 2
         && request.resource.data.statusAdmin == "pendente"
         && (!request.resource.data.keys().hasAny(["status"]) || request.resource.data.status == "nova")
-        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro"])
+        && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "whatsapp_futuro", "whatsapp"])
         && (!request.resource.data.keys().hasAny(["naoLidasLoja"]) || request.resource.data.naoLidasLoja == 1);
     }
     // Espelha chatUpdatePublicoValido(), mas só quem tem a identidade
@@ -1671,7 +1671,7 @@ allow update: if (
         ) && request.resource.data.keys().hasOnly(["donoUID", "emailDono", "clienteNome", "statusAdmin", "status", "canal", "setor", "utmSource", "timestamp", "ultimaMensagem", "atualizadoEm", "criadoEm", "naoLidasLoja", "naoLidasCliente"])
           && request.resource.data.keys().hasAll(["donoUID", "clienteNome"])
           && (!request.resource.data.keys().hasAny(["status"]) || statusConversaValido(request.resource.data.status))
-          && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "interno", "whatsapp_futuro"]);
+          && (!request.resource.data.keys().hasAny(["canal"]) || request.resource.data.canal in ["loja_publica", "interno", "whatsapp_futuro", "whatsapp"]);
       // Visitante só mexe em resumo/status ao mandar mensagem (V1 legado
       // OU V2 com a identidade certa — nunca os dois ao mesmo tempo pro
       // mesmo chat); dono/funcionário usa o caminho validado da Central de
@@ -1748,6 +1748,60 @@ allow update: if (
         && podeEditarCRM(resource.data.tenantId)
         && request.resource.data.ativo is bool;
       allow delete: if false;
+    }
+
+    // ===== WhatsApp Oficial V1 =====
+    // Todas as coleções abaixo só são escritas pelo Admin SDK (Cloud
+    // Functions do módulo whatsapp/ — webhook, send, templates), que
+    // ignora estas Rules. As regras aqui só controlam LEITURA pelo
+    // cliente (dashboard) — nenhuma delas libera escrita direta, porque
+    // qualquer valor aqui (status de conexão, roteamento por número,
+    // mapa de idempotência, dedupe de webhook, contato/consentimento)
+    // precisa ser decidido pelo servidor, nunca aceito do navegador. Ver
+    // docs/WHATSAPP_OFICIAL.md.
+    match /whatsapp_connections/{ownerUid} {
+      // Decisão documentada: dono sempre; funcionário só se tiver
+      // permissão de ver OU editar "atendimento" OU "configuracoes"
+      // (mesma checagem de podeVerConexao() em functions/src/whatsapp/send.js).
+      allow read: if isBackendAdmin()
+        || canViewTenant(ownerUid, "atendimento")
+        || canViewTenant(ownerUid, "configuracoes");
+      allow write: if false;
+    }
+
+    match /whatsapp_templates/{templateId} {
+      // ID é "{ownerUid}_{metaTemplateId}" — o prefixo garante que o
+      // filtro abaixo nunca vaza template de outro tenant mesmo sem
+      // where() explícito no client.
+      allow read: if isBackendAdmin() || canViewTenant(resource.data.ownerUid, "atendimento");
+      allow write: if false;
+    }
+
+    // Idempotência/roteamento/dedupe — nunca lidos pelo dashboard,
+    // sempre resolvidos server-side. Negar leitura evita inclusive que
+    // um cliente descubra por tentativa/erro quais wamid/telefone já
+    // foram processados.
+    match /whatsapp_message_map/{safeWamid} {
+      allow read, write: if false;
+    }
+
+    match /whatsapp_webhook_events/{eventHash} {
+      allow read, write: if false;
+    }
+
+    match /whatsapp_phone_routes/{phoneNumberId} {
+      allow read, write: if false;
+    }
+
+    match /whatsapp_contact_map/{contactId} {
+      // wa_id é PII operacional — nunca lido pelo cliente, nem pelo
+      // próprio dono (a Central de Atendimento já mostra o telefone
+      // mascarado a partir do campo do chat, não precisa desta coleção).
+      allow read, write: if false;
+    }
+
+    match /whatsapp_consents/{consentId} {
+      allow read, write: if false;
     }
 
     match /{document=**} {

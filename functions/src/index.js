@@ -13,6 +13,7 @@ const audit = require("./audit");
 const notifications = require("./notifications");
 const leads = require("./leads");
 const ai = require("./ai");
+const whatsapp = require("./whatsapp");
 
 exports.createEmployee = employee.createEmployee;
 exports.updateEmployee = employee.updateEmployee;
@@ -57,3 +58,14 @@ exports.sendAdminChatMessage = leads.sendAdminChatMessage;
 
 exports.askBusinessAI = ai.askBusinessAI;
 exports.askPublicBusinessAI = ai.askPublicBusinessAI;
+
+// WhatsApp Oficial V1 — Fase A (código; conexão real depende de
+// configuração externa da Meta, secrets e deploy dedicado). Ver
+// docs/WHATSAPP_OFICIAL.md.
+exports.whatsappWebhook = whatsapp.whatsappWebhook;
+exports.whatsappSendText = whatsapp.whatsappSendText;
+exports.whatsappSendTemplate = whatsapp.whatsappSendTemplate;
+exports.whatsappMarkRead = whatsapp.whatsappMarkRead;
+exports.whatsappSyncTemplates = whatsapp.whatsappSyncTemplates;
+exports.whatsappConnectionStatus = whatsapp.whatsappConnectionStatus;
+exports.whatsappValidateConnection = whatsapp.whatsappValidateConnection;
