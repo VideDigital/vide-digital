@@ -8,6 +8,7 @@ import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
 import { criarIaNegocioController, payloadIaNegocioPublica } from "./ia-negocio.js";
 import { criarGrowthTrackingController } from "./growth-tracking-v1.js";
 import { criarAuditCenterController } from "./audit-center-v1.js";
+import { criarWhatsappOficialController } from "./whatsapp-oficial-v1.js";
 import { VideFunctions } from "./core/vide-functions.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
@@ -2436,6 +2437,10 @@ if (targetId === "view-metricas") {
         auditCenterController.load();
     }
 
+    if (targetId === "view-whatsapp-oficial") {
+        whatsappOficialController.load();
+    }
+
     if (targetId === "view-personalizacao") {
         carregarStatusPersonalizacao();
     }
@@ -3268,6 +3273,7 @@ abrirDepois(
             "view-crm360": "crm",
             "view-funcionarios": "funcionarios",
             "view-auditoria": "auditoria",
+            "view-whatsapp-oficial": "atendimento",
             "view-landing-pages": "landing-pages"
         };
 
@@ -3543,7 +3549,10 @@ btn.classList.add("opacity-40");
             context: VideHubContext,
             firestore: { collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, onSnapshot, serverTimestamp, writeBatch, increment },
             notify: showToast,
-            onAbrirDadosCliente: conversa => crm360Controller.abrirParaConversa(conversa)
+            onAbrirDadosCliente: conversa => crm360Controller.abrirParaConversa(conversa),
+            chamarWhatsappSendText: VideFunctions.whatsappSendText,
+            chamarWhatsappSendTemplate: VideFunctions.whatsappSendTemplate,
+            chamarWhatsappMarkRead: VideFunctions.whatsappMarkRead
         });
         atendimentoController.bindEventos();
         window.atendimentoController = atendimentoController;
@@ -3566,6 +3575,16 @@ btn.classList.add("opacity-40");
         });
         auditCenterController.bindEventos();
         window.auditCenterController = auditCenterController;
+
+        const whatsappOficialController = criarWhatsappOficialController({
+            context: VideHubContext,
+            notify: showToast,
+            chamarConnectionStatus: VideFunctions.whatsappConnectionStatus,
+            chamarValidateConnection: VideFunctions.whatsappValidateConnection,
+            chamarSyncTemplates: VideFunctions.whatsappSyncTemplates
+        });
+        whatsappOficialController.bindEventos();
+        window.whatsappOficialController = whatsappOficialController;
 
         // Painel do copiloto de IA dentro da Central de Atendimento — só
         // texto (nunca innerHTML) pro conteúdo gerado, pra nunca renderizar

@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="./business-modules.css">
 <link rel="stylesheet" href="./central-ia.css">
 <link rel="stylesheet" href="./atendimento.css">
+<link rel="stylesheet" href="./whatsapp-oficial-v1.css">
 <link rel="stylesheet" href="./ia-copilot.css">
 <link rel="stylesheet" href="./ia-negocio.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
@@ -311,6 +312,10 @@ Guia do Plano
 <button data-target="view-auditoria" data-module-permission="auditoria" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
 <span class="flex-1">Auditoria</span>
+</button>
+<button data-target="view-whatsapp-oficial" data-module-permission="atendimento" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
+<span class="flex-1">WhatsApp Oficial</span>
 </button>
 
 </div>
@@ -3454,7 +3459,7 @@ Voltar
 <option value="todos">Todos os canais</option>
 <option value="loja_publica">Loja pública</option>
 <option value="interno">Interno</option>
-<option value="whatsapp_futuro">WhatsApp (futuro)</option>
+<option value="whatsapp">WhatsApp</option>
 </select>
 </div>
 <div class="atend-filtro-grupo">
@@ -3486,6 +3491,7 @@ Filtros
 <div class="atend-detalhe-meta-linha">
 <span id="atend-detalhe-status">Aberta</span>
 <span id="atend-detalhe-canal">—</span>
+<span id="atend-detalhe-janela-whatsapp" class="atend-chip-janela-whatsapp" hidden></span>
 <span id="atend-detalhe-setor">Sem setor</span>
 <span>Início: <span id="atend-detalhe-inicio">—</span></span>
 </div>
@@ -3583,6 +3589,7 @@ Copiloto de IA
 Enviar
 </button>
 </form>
+<div id="atend-whatsapp-template-picker" class="atend-whatsapp-picker" hidden></div>
 </div>
 
 </div>
@@ -5359,6 +5366,90 @@ Carregando equipe...
 
 <div class="aura-audit-paginacao">
 <button type="button" id="audit-ver-mais">Ver mais</button>
+</div>
+</div>
+
+</section>
+
+<section id="view-whatsapp-oficial" class="view-section space-y-6 max-w-6xl mx-auto aura-whatsapp-view">
+
+<div class="aura-whatsapp-hero">
+<div>
+<h2>WhatsApp Oficial</h2>
+<p>Conecte o WhatsApp Business à sua operação.</p>
+</div>
+<div class="aura-whatsapp-badges">
+<span class="aura-whatsapp-badge">API oficial da Meta</span>
+<span class="aura-whatsapp-badge">Webhook seguro</span>
+<span class="aura-whatsapp-badge">Atendimento unificado</span>
+</div>
+</div>
+
+<div id="whatsapp-estado-carregando">Carregando o status da conexão…</div>
+<div id="whatsapp-estado-erro" class="hidden">Não foi possível carregar o status do WhatsApp agora. <button type="button" id="whatsapp-btn-tentar-novamente">Tentar novamente</button></div>
+<div id="whatsapp-estado-sem-permissao" class="hidden">Você não tem permissão para ver a conexão do WhatsApp desta loja.</div>
+
+<div id="whatsapp-estado-conteudo" class="hidden">
+<div class="aura-whatsapp-status-linha">
+<span id="whatsapp-status-badge" class="aura-whatsapp-badge is-status-disconnected">Não configurado</span>
+<p id="whatsapp-status-descricao"></p>
+<button type="button" id="whatsapp-btn-atualizar" class="aura-whatsapp-btn">Atualizar</button>
+</div>
+
+<div id="whatsapp-acoes-piloto-nao-conectado" class="aura-whatsapp-piloto-aviso">
+<p>A conexão real é feita por um administrador via piloto assistido (nunca por um clique no dashboard — a integração ainda depende de aprovação da Meta e de segredos configurados fora daqui).</p>
+</div>
+
+<div class="aura-whatsapp-cards">
+
+<div class="aura-whatsapp-card">
+<h3>Conexão</h3>
+<p id="whatsapp-card-conexao-token">Nenhum token conectado</p>
+<button type="button" id="whatsapp-btn-validar" class="aura-whatsapp-btn">Validar conexão</button>
+</div>
+
+<div class="aura-whatsapp-card">
+<h3>Número</h3>
+<p id="whatsapp-card-numero-valor">—</p>
+<p id="whatsapp-card-numero-nome" class="aura-whatsapp-card-sub"></p>
+</div>
+
+<div class="aura-whatsapp-card">
+<h3>Webhook</h3>
+<p id="whatsapp-card-webhook-status">Ainda não confirmado</p>
+<p id="whatsapp-card-webhook-ultimo" class="aura-whatsapp-card-sub"></p>
+<div class="aura-whatsapp-webhook-copiar">
+<input type="text" id="whatsapp-webhook-url" readonly aria-label="URL do webhook">
+<button type="button" id="whatsapp-btn-copiar-webhook" class="aura-whatsapp-btn">Copiar URL</button>
+</div>
+</div>
+
+<div class="aura-whatsapp-card">
+<h3>Templates</h3>
+<p id="whatsapp-card-templates-sync">Última sincronização: —</p>
+<button type="button" id="whatsapp-btn-sincronizar-templates" class="aura-whatsapp-btn">Sincronizar templates</button>
+</div>
+
+<div class="aura-whatsapp-card">
+<h3>Qualidade</h3>
+<p id="whatsapp-card-qualidade-valor">—</p>
+<p id="whatsapp-card-qualidade-limite" class="aura-whatsapp-card-sub"></p>
+</div>
+
+<div class="aura-whatsapp-card">
+<h3>Diagnóstico</h3>
+<p id="whatsapp-card-diagnostico-versao">—</p>
+<p id="whatsapp-card-diagnostico-validacao" class="aura-whatsapp-card-sub"></p>
+<p id="whatsapp-card-diagnostico-erro" class="aura-whatsapp-card-sub">Nenhum erro recente</p>
+</div>
+
+</div>
+
+<p class="aura-whatsapp-aviso-cobranca">Mensagens podem gerar cobrança conforme a tabela vigente da Meta.</p>
+
+<div class="aura-whatsapp-acoes-finais">
+<button type="button" id="whatsapp-btn-abrir-atendimento" class="aura-whatsapp-btn">Abrir Central de Atendimento</button>
+<button type="button" id="whatsapp-btn-copiar-checklist" class="aura-whatsapp-btn">Copiar checklist de configuração</button>
 </div>
 </div>
 

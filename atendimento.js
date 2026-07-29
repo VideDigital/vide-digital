@@ -297,8 +297,70 @@ export function descreverEventoAtendimento(evento) {
 export const CANAIS_CONVERSA = Object.freeze({
     loja_publica: "Loja pública",
     interno: "Interno",
-    whatsapp_futuro: "WhatsApp (futuro)"
+    whatsapp_futuro: "WhatsApp (futuro)",
+    whatsapp: "WhatsApp"
 });
+
+// ---------- WhatsApp Oficial V1: helpers puros reaproveitados pela UI ----------
+// Nunca confia no relógio do navegador pra decidir se a janela está
+// aberta — quem chama sempre passa agoraMs vindo de Date.now() no
+// momento da renderização; o servidor é quem realmente decide (Cloud
+// Functions), isto aqui só REFLETE o estado pra UI nunca prometer o que
+// o backend vai negar.
+export function janelaAtendimentoWhatsapp(conversa, agoraMs = Date.now()) {
+    const ate = Number(conversa?.whatsappJanelaAtendimentoAte);
+    if (!Number.isFinite(ate) || ate <= 0) return { aberta: false, restanteMs: 0 };
+    const restanteMs = ate - agoraMs;
+    return { aberta: restanteMs > 0, restanteMs: Math.max(0, restanteMs) };
+}
+
+export function formatarRestanteJanela(restanteMs) {
+    const totalMinutos = Math.floor(restanteMs / 60000);
+    if (totalMinutos <= 0) return "menos de 1 min";
+    const horas = Math.floor(totalMinutos / 60);
+    const minutos = totalMinutos % 60;
+    if (horas <= 0) return `${minutos} min`;
+    return `${horas}h ${minutos}min`;
+}
+
+// Nunca mostra o número completo na lista/cabeçalho — só os 4 últimos
+// dígitos, mesmo padrão de mascaramento usado pro token da conexão.
+export function mascararNumeroWhatsapp(waId) {
+    const digitos = String(waId || "").replace(/\D/g, "");
+    if (digitos.length < 4) return "••••";
+    return `•••• ${digitos.slice(-4)}`;
+}
+
+const ROTULO_STATUS_ENTREGA_WHATSAPP = Object.freeze({
+    queued: "Enviando…",
+    accepted: "Enviando…",
+    sent: "Enviada",
+    delivered: "Entregue",
+    read: "Lida",
+    failed: "Falhou"
+});
+
+export function rotuloStatusEntregaWhatsapp(status) {
+    return ROTULO_STATUS_ENTREGA_WHATSAPP[status] || "";
+}
+
+const ROTULO_TIPO_MENSAGEM_WHATSAPP = Object.freeze({
+    image: "[Imagem recebida]",
+    document: "[Documento recebido]",
+    audio: "[Áudio recebido]",
+    video: "[Vídeo recebido]",
+    sticker: "[Figurinha recebida]",
+    location: "[Localização recebida]",
+    contacts: "[Contato recebido]",
+    reaction: "[Reação a uma mensagem]",
+    unknown: "[Mensagem em um formato não suportado ainda]"
+});
+
+// Mídia nunca é baixada automaticamente nesta fase — só um rótulo
+// profissional no lugar do texto, até a V1.1 (ver docs/WHATSAPP_OFICIAL.md).
+export function rotuloTipoMensagemWhatsapp(messageType) {
+    return ROTULO_TIPO_MENSAGEM_WHATSAPP[messageType] || "";
+}
 
 // Modelo, categorias, variáveis e validação de templates evoluíram pra um
 // módulo próprio (Fase "Templates Avançados de Atendimento") — ver
@@ -473,7 +535,14 @@ function salvarPreferenciaLocal(chave, valor) {
 // funções do SDK e notificador) pra ficar testável sem navegador real,
 // no mesmo formato de central-ia.js / base-conhecimento-ia.js.
 export function criarAtendimentoController(deps) {
-    const { db, context, firestore, notify = () => {}, onAbrirDadosCliente = () => {} } = deps;
+    const {
+        db, context, firestore, notify = () => {}, onAbrirDadosCliente = () => {},
+        // WhatsApp Oficial V1 — envio real passa pelo servidor (nunca
+        // escrita direta), porque só ele decide janela/template/token.
+        chamarWhatsappSendText = null,
+        chamarWhatsappSendTemplate = null,
+        chamarWhatsappMarkRead = null
+    } = deps;
     const {
         collection, doc, getDoc, getDocs, setDoc, query, where, orderBy, limit, startAfter,
         serverTimestamp, onSnapshot, writeBatch, increment
@@ -526,7 +595,14 @@ export function criarAtendimentoController(deps) {
         // Preferência de exibição da timeline — só local (localStorage),
         // nunca gravada no documento do chat (Fase 6).
         mostrarEventos: lerPreferenciaLocal("vh_atend_mostrar_eventos", true),
-        filtroTimelineCategoria: lerPreferenciaLocal("vh_atend_timeline_categoria", "todos")
+        filtroTimelineCategoria: lerPreferenciaLocal("vh_atend_timeline_categoria", "todos"),
+        // WhatsApp Oficial V1 — templates aprovados da Meta (distintos dos
+        // templates internos acima) e seleção ativa no picker.
+        whatsappTemplates: [],
+        whatsappTemplatesCarregados: false,
+        whatsappTemplatesCarregando: false,
+        whatsappTemplateSelecionadoId: "",
+        whatsappEnviandoTemplate: false
     };
 
     function el(id) {
@@ -623,6 +699,7 @@ export function criarAtendimentoController(deps) {
                         <span class="atend-item-meta">
                             <span class="atend-chip is-status-${escaparHtml(conversa.status || "aberta")}">${escaparHtml(STATUS_CONVERSA[conversa.status] || "Aberta")}</span>
                             ${conversa.canal ? `<span class="atend-chip is-canal">${escaparHtml(CANAIS_CONVERSA[conversa.canal] || conversa.canal)}</span>` : ""}
+                            ${conversa.canal === "whatsapp" && conversa.whatsappWaId ? `<span class="atend-chip is-whatsapp-numero">${escaparHtml(mascararNumeroWhatsapp(conversa.whatsappWaId))}</span>` : ""}
                             ${conversa.atribuidoPara ? `<span class="atend-chip is-responsavel">Atribuída</span>` : `<span class="atend-chip is-sem-responsavel">Sem responsável</span>`}
                         </span>
                     </span>
@@ -714,6 +791,27 @@ export function criarAtendimentoController(deps) {
         renderOpcoesResponsavel();
         const selectResponsavel = el("atend-responsavel-select");
         if (selectResponsavel) selectResponsavel.value = conversa.atribuidoPara || "";
+        renderJanelaWhatsapp(conversa);
+        renderComposerWhatsapp(conversa);
+    }
+
+    // Indicador de janela de 24h — só aparece pra conversas do canal
+    // WhatsApp. Nunca decide sozinho se pode enviar (isso é o servidor,
+    // ver renderComposerWhatsapp/enviarResposta) — é só um reflexo visual.
+    function renderJanelaWhatsapp(conversa) {
+        const bloco = el("atend-detalhe-janela-whatsapp");
+        if (!bloco) return;
+        if (conversa.canal !== "whatsapp") {
+            bloco.hidden = true;
+            return;
+        }
+        bloco.hidden = false;
+        const { aberta, restanteMs } = janelaAtendimentoWhatsapp(conversa);
+        bloco.classList.toggle("is-aberta", aberta);
+        bloco.classList.toggle("is-fechada", !aberta);
+        bloco.textContent = aberta
+            ? `Janela aberta · ${formatarRestanteJanela(restanteMs)} restantes`
+            : "Janela encerrada · use um template aprovado";
     }
 
     // Prioridade e métricas dependem do histórico (eventos), que carrega
@@ -1190,17 +1288,32 @@ export function criarAtendimentoController(deps) {
         await inserirTemplateNaResposta(templateId);
     }
 
+    // Ticks de entrega (relógio/1 check/2 checks/2 checks destacados/alerta)
+    // — nunca só cor, sempre com texto/aria-label também (acessibilidade).
+    function tickStatusEntregaWhatsapp(status) {
+        const rotulo = rotuloStatusEntregaWhatsapp(status);
+        if (!rotulo) return "";
+        return `<span class="atend-whatsapp-tick is-${escaparHtml(status || "queued")}" title="${escaparHtml(rotulo)}" aria-label="${escaparHtml(rotulo)}"></span>`;
+    }
+
     function itemMensagemHtml(msg) {
         const doAdmin = msg.sender === "admin";
         const autorLabel = doAdmin
             ? `${escaparHtml(msg.autorNome || "Equipe")} · Resposta do ${msg.autorTipo === "proprietario" ? "dono" : "funcionário"}`
             : "Cliente";
         const horario = new Date(normalizarMs(msg.timestamp) || Date.now()).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+        const ehWhatsapp = msg.canal === "whatsapp";
+        const corpo = msg.texto || (ehWhatsapp ? rotuloTipoMensagemWhatsapp(msg.messageType) : "") || "";
+        const falhou = ehWhatsapp && msg.providerStatus === "failed";
         return `
-            <div class="atend-mensagem ${doAdmin ? "is-admin" : "is-cliente"}">
+            <div class="atend-mensagem ${doAdmin ? "is-admin" : "is-cliente"} ${falhou ? "is-falha-whatsapp" : ""}">
                 <span class="atend-mensagem-autor">${autorLabel}</span>
-                <div class="atend-mensagem-bolha">${escaparHtml(msg.texto)}</div>
-                <span class="atend-mensagem-hora" title="Enviada às ${horario}">${horario}</span>
+                <div class="atend-mensagem-bolha">${escaparHtml(corpo)}</div>
+                ${falhou ? `<span class="atend-whatsapp-falha-aviso">Não entregue${msg.failedTitle ? `: ${escaparHtml(msg.failedTitle)}` : ""}</span>` : ""}
+                <span class="atend-mensagem-hora" title="Enviada às ${horario}">
+                    ${horario}
+                    ${doAdmin && ehWhatsapp ? tickStatusEntregaWhatsapp(msg.providerStatus) : ""}
+                </span>
             </div>
         `;
     }
@@ -1540,6 +1653,162 @@ export function criarAtendimentoController(deps) {
         }
     }
 
+    // ---------- WhatsApp Oficial V1: composer e template picker ----------
+    // Alterna entre o compositor de texto livre normal e o picker de
+    // templates aprovados — nunca deixa o textarea visível fora da janela
+    // de 24h (o servidor rejeitaria mesmo, mas a UI não promete o que não
+    // pode cumprir). Chamado toda vez que o cabeçalho é renderizado.
+    function renderComposerWhatsapp(conversa) {
+        const form = el("atend-form-resposta");
+        const picker = el("atend-whatsapp-template-picker");
+        if (!form || !picker) return;
+
+        if (conversa.canal !== "whatsapp") {
+            form.hidden = false;
+            picker.hidden = true;
+            return;
+        }
+
+        const { aberta } = janelaAtendimentoWhatsapp(conversa);
+        if (aberta) {
+            form.hidden = false;
+            picker.hidden = true;
+            return;
+        }
+
+        form.hidden = true;
+        picker.hidden = false;
+        if (!state.whatsappTemplatesCarregados && !state.whatsappTemplatesCarregando) {
+            carregarTemplatesWhatsapp();
+        } else {
+            renderWhatsappTemplatePicker();
+        }
+    }
+
+    async function carregarTemplatesWhatsapp() {
+        state.whatsappTemplatesCarregando = true;
+        renderWhatsappTemplatePicker();
+        try {
+            const snap = await getDocs(query(
+                collection(db, "whatsapp_templates"),
+                where("ownerUid", "==", storeUid()),
+                where("status", "==", "APPROVED")
+            ));
+            state.whatsappTemplates = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+            state.whatsappTemplatesCarregados = true;
+        } catch (error) {
+            console.error("[Atendimento] Falha ao carregar templates do WhatsApp:", error?.code, error?.message);
+            state.whatsappTemplates = [];
+        } finally {
+            state.whatsappTemplatesCarregando = false;
+            renderWhatsappTemplatePicker();
+        }
+    }
+
+    function montarFormularioTemplateWhatsapp(template) {
+        const schema = Array.isArray(template.parameterSchema) ? template.parameterSchema : [];
+        const campos = schema.map(campo => `
+            <label class="atend-whatsapp-campo">
+                <span>Parâmetro ${escaparHtml(campo.name)}</span>
+                <input type="text" data-atend-whatsapp-param="${escaparHtml(campo.name)}" maxlength="1000">
+            </label>
+        `).join("");
+        return `
+            <div class="atend-whatsapp-picker-form">
+                <p><strong>${escaparHtml(template.name)}</strong></p>
+                ${campos || `<p class="atend-whatsapp-picker-aviso">Este template não tem parâmetros.</p>`}
+                <div class="atend-whatsapp-picker-acoes">
+                    <button type="button" class="atend-btn" data-atend-acao="whatsapp-cancelar-template">Voltar</button>
+                    <button type="button" class="atend-btn atend-btn-primario" data-atend-acao="whatsapp-enviar-template" ${state.whatsappEnviandoTemplate ? "disabled" : ""}>${state.whatsappEnviandoTemplate ? "Enviando…" : "Enviar template"}</button>
+                </div>
+            </div>
+        `;
+    }
+
+    function renderWhatsappTemplatePicker() {
+        const picker = el("atend-whatsapp-template-picker");
+        if (!picker || picker.hidden) return;
+
+        if (state.whatsappTemplatesCarregando) {
+            picker.innerHTML = `<p class="atend-whatsapp-picker-aviso">Carregando templates aprovados…</p>`;
+            return;
+        }
+
+        if (state.whatsappTemplateSelecionadoId) {
+            const template = state.whatsappTemplates.find(t => t.id === state.whatsappTemplateSelecionadoId);
+            if (template) {
+                picker.innerHTML = montarFormularioTemplateWhatsapp(template);
+                return;
+            }
+        }
+
+        if (state.whatsappTemplates.length === 0) {
+            picker.innerHTML = `<p class="atend-whatsapp-picker-aviso">A janela de 24h encerrou e não há template aprovado disponível. Sincronize os templates na tela "WhatsApp Oficial".</p>`;
+            return;
+        }
+
+        picker.innerHTML = `
+            <p class="atend-whatsapp-picker-aviso">Janela de 24h encerrada. Escolha um template aprovado para continuar.</p>
+            <div class="atend-whatsapp-picker-lista">
+                ${state.whatsappTemplates.map(t => `
+                    <button type="button" class="atend-btn" data-atend-whatsapp-template="${escaparHtml(t.id)}">${escaparHtml(t.name)} <span class="atend-whatsapp-picker-lang">${escaparHtml(t.language || "")}</span></button>
+                `).join("")}
+            </div>
+        `;
+    }
+
+    function selecionarTemplateWhatsapp(templateId) {
+        state.whatsappTemplateSelecionadoId = templateId;
+        renderWhatsappTemplatePicker();
+    }
+
+    function cancelarSelecaoTemplateWhatsapp() {
+        state.whatsappTemplateSelecionadoId = "";
+        renderWhatsappTemplatePicker();
+    }
+
+    // Nunca escreve em Firestore direto — só o servidor decide se a
+    // janela ainda está aberta e tem o token pra falar com a Meta.
+    async function enviarTextoWhatsapp(conversa, mensagem) {
+        if (typeof chamarWhatsappSendText !== "function") {
+            notify("Envio de WhatsApp indisponível no momento.", "error");
+            return;
+        }
+        state.enviando = true;
+        try {
+            await chamarWhatsappSendText({ chatId: conversa.id, texto: mensagem });
+        } catch (error) {
+            notify(error?.message || "Não foi possível enviar a mensagem pelo WhatsApp.", "error");
+        } finally {
+            state.enviando = false;
+        }
+    }
+
+    async function enviarTemplateWhatsapp() {
+        const conversa = conversaSelecionada();
+        const template = state.whatsappTemplates.find(t => t.id === state.whatsappTemplateSelecionadoId);
+        if (!conversa || !template || typeof chamarWhatsappSendTemplate !== "function" || state.whatsappEnviandoTemplate) return;
+
+        const picker = el("atend-whatsapp-template-picker");
+        const valores = {};
+        picker?.querySelectorAll("[data-atend-whatsapp-param]").forEach(input => {
+            valores[input.getAttribute("data-atend-whatsapp-param")] = input.value;
+        });
+
+        state.whatsappEnviandoTemplate = true;
+        renderWhatsappTemplatePicker();
+        try {
+            await chamarWhatsappSendTemplate({ chatId: conversa.id, templateId: template.id, valores });
+            state.whatsappTemplateSelecionadoId = "";
+            notify("Template enviado.", "success");
+        } catch (error) {
+            notify(error?.message || "Não foi possível enviar o template.", "error");
+        } finally {
+            state.whatsappEnviandoTemplate = false;
+            renderWhatsappTemplatePicker();
+        }
+    }
+
     async function enviarResposta(texto) {
         const conversa = conversaSelecionada();
         const mensagem = String(texto || "").trim();
@@ -1554,6 +1823,14 @@ export function criarAtendimentoController(deps) {
         }
         if (conversa.status === "arquivada") {
             notify("Reabra a conversa antes de responder.", "error");
+            return;
+        }
+        // Canal WhatsApp nunca escreve direto no Firestore — só o servidor
+        // (whatsappSendText) sabe se a janela de 24h ainda está aberta e
+        // tem o token pra falar de verdade com a Meta. Bloquear aqui é só
+        // UX; quem decide de verdade é a Cloud Function.
+        if (conversa.canal === "whatsapp") {
+            await enviarTextoWhatsapp(conversa, mensagem);
             return;
         }
         // Nunca deixa {{variavel}} sair como texto literal pro cliente —
@@ -1844,6 +2121,21 @@ export function criarAtendimentoController(deps) {
             state.templatesFiltro.aba = botao.getAttribute("data-atend-template-aba");
             renderSeletorTemplates();
         });
+        el("atend-whatsapp-template-picker")?.addEventListener("click", event => {
+            const alvoTemplate = event.target.closest("[data-atend-whatsapp-template]");
+            if (alvoTemplate) {
+                selecionarTemplateWhatsapp(alvoTemplate.getAttribute("data-atend-whatsapp-template"));
+                return;
+            }
+            if (event.target.closest("[data-atend-acao='whatsapp-cancelar-template']")) {
+                cancelarSelecaoTemplateWhatsapp();
+                return;
+            }
+            if (event.target.closest("[data-atend-acao='whatsapp-enviar-template']")) {
+                enviarTemplateWhatsapp();
+            }
+        });
+
         el("atend-templates-busca")?.addEventListener("input", event => {
             state.templatesFiltro.busca = event.target.value;
             renderSeletorTemplates();

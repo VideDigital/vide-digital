@@ -57,7 +57,15 @@ export const VideFunctions = Object.freeze({
     // Centralizada V1 é 100% server-side via Firestore triggers — ver
     // docs/AUDITORIA_CENTRALIZADA.md.
     sendAdminChatMessage: (payload) => callFunction("sendAdminChatMessage", payload),
-    askBusinessAI: (payload) => callFunction("askBusinessAI", payload)
+    askBusinessAI: (payload) => callFunction("askBusinessAI", payload),
+    // WhatsApp Oficial V1 — whatsappWebhook é onRequest (a Meta chama
+    // direto, nunca o dashboard), por isso não entra aqui.
+    whatsappSendText: (payload) => callFunction("whatsappSendText", payload),
+    whatsappSendTemplate: (payload) => callFunction("whatsappSendTemplate", payload),
+    whatsappMarkRead: (payload) => callFunction("whatsappMarkRead", payload),
+    whatsappSyncTemplates: (payload) => callFunction("whatsappSyncTemplates", payload),
+    whatsappConnectionStatus: (payload) => callFunction("whatsappConnectionStatus", payload),
+    whatsappValidateConnection: (payload) => callFunction("whatsappValidateConnection", payload)
 });
 
 export default VideFunctions;

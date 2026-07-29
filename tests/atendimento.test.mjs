@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import {
+    CANAIS_CONVERSA,
     CATEGORIAS_EVENTO_ATENDIMENTO,
     LIMITES_TIMELINE_ATENDIMENTO,
     STATUS_CONVERSA,
@@ -14,13 +15,18 @@ import {
     descreverEventoAtendimento,
     conversaPrecisaResposta,
     filtrarConversas,
+    formatarRestanteJanela,
     funcionarioPodeAtender,
     funcionariosElegiveisAtendimento,
     iniciaisNome,
+    janelaAtendimentoWhatsapp,
+    mascararNumeroWhatsapp,
     mesclarDocumentosTimeline,
     mesclarItensTimeline,
     ordenarConversas,
     podeTransicionarStatus,
+    rotuloStatusEntregaWhatsapp,
+    rotuloTipoMensagemWhatsapp,
     tipoEventoValido,
     validarPayloadDadosEvento
 } from "../atendimento.js";
@@ -415,5 +421,54 @@ describe("timeline paginada de atendimento", () => {
             mesclarItensTimeline({ eventos, mostrarEventos: false }).map(item => item.dado.id),
             []
         );
+    });
+});
+
+describe("WhatsApp Oficial V1: helpers puros de UI", () => {
+    it("CANAIS_CONVERSA inclui o canal whatsapp real, preservando o legado", () => {
+        assert.equal(CANAIS_CONVERSA.whatsapp, "WhatsApp");
+        assert.equal(CANAIS_CONVERSA.whatsapp_futuro, "WhatsApp (futuro)");
+        assert.equal(CANAIS_CONVERSA.loja_publica, "Loja pública");
+    });
+
+    it("janelaAtendimentoWhatsapp: aberta quando ainda não expirou", () => {
+        const agora = 1_700_000_000_000;
+        const conversa = { whatsappJanelaAtendimentoAte: agora + 60_000 };
+        const resultado = janelaAtendimentoWhatsapp(conversa, agora);
+        assert.equal(resultado.aberta, true);
+        assert.equal(resultado.restanteMs, 60_000);
+    });
+
+    it("janelaAtendimentoWhatsapp: fechada quando expirou ou não existe", () => {
+        const agora = 1_700_000_000_000;
+        assert.equal(janelaAtendimentoWhatsapp({ whatsappJanelaAtendimentoAte: agora - 1000 }, agora).aberta, false);
+        assert.equal(janelaAtendimentoWhatsapp({}, agora).aberta, false);
+        assert.equal(janelaAtendimentoWhatsapp(null, agora).aberta, false);
+    });
+
+    it("formatarRestanteJanela mostra horas+minutos ou só minutos", () => {
+        assert.equal(formatarRestanteJanela(90 * 60_000), "1h 30min");
+        assert.equal(formatarRestanteJanela(5 * 60_000), "5 min");
+        assert.equal(formatarRestanteJanela(30_000), "menos de 1 min");
+    });
+
+    it("mascararNumeroWhatsapp nunca mostra o número completo", () => {
+        assert.equal(mascararNumeroWhatsapp("5511999990000"), "•••• 0000");
+        assert.equal(mascararNumeroWhatsapp("12"), "••••");
+        assert.equal(mascararNumeroWhatsapp(""), "••••");
+    });
+
+    it("rotuloStatusEntregaWhatsapp cobre os 6 estados conhecidos", () => {
+        assert.equal(rotuloStatusEntregaWhatsapp("sent"), "Enviada");
+        assert.equal(rotuloStatusEntregaWhatsapp("delivered"), "Entregue");
+        assert.equal(rotuloStatusEntregaWhatsapp("read"), "Lida");
+        assert.equal(rotuloStatusEntregaWhatsapp("failed"), "Falhou");
+        assert.equal(rotuloStatusEntregaWhatsapp("bogus"), "");
+    });
+
+    it("rotuloTipoMensagemWhatsapp nunca baixa mídia — só um rótulo seguro", () => {
+        assert.equal(rotuloTipoMensagemWhatsapp("image"), "[Imagem recebida]");
+        assert.equal(rotuloTipoMensagemWhatsapp("unknown"), "[Mensagem em um formato não suportado ainda]");
+        assert.equal(rotuloTipoMensagemWhatsapp("text"), "");
     });
 });
