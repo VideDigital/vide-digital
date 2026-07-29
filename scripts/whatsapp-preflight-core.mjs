@@ -88,22 +88,21 @@ export function avaliarProjetoSelecionado(projetoAtual, projetoEsperado) {
 // ---------- VERSÃO DA GRAPH API ----------
 //
 // developers.facebook.com bloqueado neste ambiente (403 confirmado via
-// WebFetch, duas tentativas, ver docs/WHATSAPP_OFICIAL.md). Pesquisa
-// indireta (WebSearch) encontrou evidência forte e específica — não uma
-// dedução vaga — de que a Meta parou de aceitar chamadas a versões
-// anteriores a v22.0 a partir de 9 de setembro de 2025, o que tornaria
-// v21.0 (a versão hardcoded hoje em constants.js) já inativa. Mas a
-// missão exige NUNCA trocar a versão baseado só em busca indireta —
-// então este check é SEMPRE BLOCKED por design: é um Gate Manual
-// obrigatório, nunca um PASS automático, mesmo que a versão pareça OK.
+// WebFetch, ver docs/WHATSAPP_OFICIAL.md). Em 2026-07-29 a constante foi
+// atualizada de v21.0 para v25.0 com confirmação DIRETA do usuário (fonte
+// oficial Meta), corroborada pelo Meta Business SDK 25.0.0/25.0.1 — ver
+// docs/WHATSAPP_OFICIAL.md para o histórico completo. Mesmo assim, este
+// check continua SEMPRE BLOCKED por design: é um Gate Manual permanente,
+// não um resultado de uma verificação pontual — a versão vigente da Meta
+// pode mudar de novo a qualquer momento, então cada deploy real exige
+// reconfirmação humana direta na fonte oficial, nunca um PASS automático.
 export function avaliarVersaoGraphApi(versaoAtual) {
   return criarCheck(
     "Versão da Graph API (Gate Manual)",
     STATUS.BLOCKED,
-    `Código usa ${versaoAtual}. developers.facebook.com bloqueado neste ambiente — não foi possível confirmar direto na fonte oficial. ` +
-      "Evidência indireta (busca web, não documentação oficial lida diretamente) sugere que a Meta parou de aceitar versões anteriores a v22.0 desde 09/09/2025 — " +
-      "ou seja, a versão atual do código pode já estar inativa. OBRIGATÓRIO: confirmar a versão vigente em " +
-      "https://developers.facebook.com/docs/graph-api/changelog antes de qualquer deploy real e, se necessário, atualizar SÓ a constante " +
+    `Código usa ${versaoAtual}. developers.facebook.com bloqueado neste ambiente — não é possível confirmar automaticamente direto na fonte oficial a cada execução. ` +
+      "OBRIGATÓRIO antes de qualquer deploy real: confirmar a versão vigente em " +
+      "https://developers.facebook.com/docs/graph-api/changelog (ou fonte oficial equivalente) e, se necessário, atualizar SÓ a constante " +
       "WHATSAPP_GRAPH_VERSION em functions/src/whatsapp/constants.js."
   );
 }

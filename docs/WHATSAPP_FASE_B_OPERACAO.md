@@ -74,13 +74,12 @@ inteira.**
     diretamente em
     [developers.facebook.com/docs/graph-api/changelog](https://developers.facebook.com/docs/graph-api/changelog).
     **Gate Manual obrigatório** — este runbook não avança sozinho aqui: o
-    código atual usa `v21.0` (`functions/src/whatsapp/constants.js`), e uma
-    pesquisa indireta (não uma leitura direta da fonte oficial, que ficou
-    bloqueada no ambiente de desenvolvimento) encontrou indícios fortes de
-    que a Meta parou de aceitar chamadas a versões anteriores a `v22.0`
-    desde **09/09/2025**. Isso significa que `v21.0` pode já estar
-    inativa. **Confirme pessoalmente no link acima antes de prosseguir.**
-    Se a versão vigente for diferente, atualize **só** a constante
+    código atual usa `v25.0` (`functions/src/whatsapp/constants.js`),
+    atualizada em 2026-07-29 a partir de confirmação **direta** do usuário
+    na fonte oficial (não busca indireta). Ainda assim, a versão da Meta
+    pode ter mudado de novo desde então — **confirme pessoalmente no link
+    acima antes de prosseguir**, sempre, a cada deploy real. Se a versão
+    vigente for diferente, atualize **só** a constante
     `WHATSAPP_GRAPH_VERSION` em `functions/src/whatsapp/constants.js`,
     rode os testes de novo (`pnpm run test:functions`) e faça um commit
     separado antes do deploy.

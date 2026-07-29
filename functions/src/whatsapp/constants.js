@@ -4,7 +4,10 @@
 // deste módulo deve hardcodar a versão da Graph API ou os nomes de
 // coleção/erro — tudo referencia este arquivo. Ver docs/WHATSAPP_OFICIAL.md
 // para a data/fonte da pesquisa que definiu WHATSAPP_GRAPH_VERSION.
-const WHATSAPP_GRAPH_VERSION = "v21.0";
+// Atualizada de v21.0 para v25.0 em 2026-07-29, com confirmação direta do
+// usuário (fonte oficial Meta), corroborada pelo Meta Business SDK 25.0.0
+// (10/03/2026) e 25.0.1 (30/03/2026) — ver docs/WHATSAPP_OFICIAL.md.
+const WHATSAPP_GRAPH_VERSION = "v25.0";
 const GRAPH_BASE_URL = "https://graph.facebook.com";
 
 function graphUrl(path) {
