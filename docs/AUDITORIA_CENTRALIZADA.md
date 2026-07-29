@@ -6,9 +6,11 @@ reais do Vide Hub. Substitui a ambição original do callable `auditWrite`
 Context) que observam as coleções certas e derivam autoria/tenant do próprio
 evento — nunca de um payload que o cliente poderia forjar.
 
-**Fase A** (este commit): código, triggers, Rules, índices, UI, testes. **Fase B**
-(depende de confirmação do usuário, não incluída aqui): deploy real dos triggers
-e teste em produção — ver `PUBLICAÇÃO` no fim deste documento.
+**Fase A**: código, triggers, Rules, índices, UI e testes. **Estado atual em
+produção**: Rules/índices e os 15 triggers foram publicados com sucesso,
+conforme confirmação operacional do usuário após IAM manual. A Auditoria
+Centralizada V1 continua **PARCIAL** porque ainda falta o teste manual real em
+produção — ver `PUBLICAÇÃO` no fim deste documento.
 
 ## Arquitetura
 
@@ -354,18 +356,21 @@ publicar, `--only` com a lista explícita dos 15 nomes de trigger (nunca
 toca `askBusinessAI`/`askPublicBusinessAI` nem qualquer Function legada de
 `admin`/`employees`/`public`.
 
-## Publicação (Fase B — não executada nesta entrega)
+## Publicação e validação final
 
-1. Deploy Firebase Spark (Rules + índices) — precisa ir ANTES dos triggers,
-   porque eles escrevem em `auditoria/{eventId}` e a leitura da UI depende das
-   Rules novas já estarem em produção.
-2. Deploy Firebase Functions — Auditoria (este workflow, `DEPLOY_AUDIT`).
-3. Alterar um pedido de teste em produção.
-4. Alterar um produto de teste em produção.
-5. Abrir a Central de Auditoria como o dono real.
-6. Confirmar ator, tenant e ausência de PII nos dois eventos.
-7. Confirmar que outro tenant (outra loja de teste) não vê esses eventos.
-8. Só então marcar "Auditoria centralizada pós-Functions" como CONCLUÍDO no
+Deploy Firebase Spark (Rules + índices) e Deploy Firebase Functions — Auditoria
+(os 15 triggers) foram concluídos com sucesso, conforme confirmação operacional
+do usuário. Não inventamos run ID aqui porque este documento não registra um
+identificador confiável do run de deploy.
+
+Ainda falta a validação manual real em produção:
+
+1. Alterar um pedido de teste em produção.
+2. Alterar um produto de teste em produção.
+3. Abrir a Central de Auditoria como o dono real.
+4. Confirmar ator, tenant e ausência de PII nos dois eventos.
+5. Confirmar que outro tenant (outra loja de teste) não vê esses eventos.
+6. Só então marcar "Auditoria centralizada pós-Functions" como CONCLUÍDO no
    Roadmap — não antes, e sem criar logs retroativos falsos: os registros
    começam a partir da ativação real dos triggers em produção, nunca de
    escritas anteriores a esse momento.

@@ -126,13 +126,11 @@ não abre mais um chat novo.
   dedicado, piloto).
 - **Auditoria Centralizada V1 em produção** — o código está pronto (Fase A:
   15 Firestore triggers server-side com Auth Context, Central de Auditoria
-  owner-only no dashboard, ver `docs/AUDITORIA_CENTRALIZADA.md`), mas os
-  triggers ainda não foram publicados nem testados com dados reais de
-  produção (Fase B, depende de confirmação do usuário). Até lá, continua
-  valendo o que já existia por escopo: `chats/{id}/eventos` (por conversa) e
-  `clientes/{id}/eventos` (por cliente) — nenhum dos dois é um log
-  centralizado entre tenants/módulos, que é exatamente a lacuna que a
-  Auditoria Centralizada fecha.
+  owner-only no dashboard, ver `docs/AUDITORIA_CENTRALIZADA.md`) e, conforme
+  confirmação operacional do usuário, Rules/índices e triggers foram
+  publicados com sucesso. O status continua **PARCIAL** porque ainda falta o
+  teste manual real em produção: alterar pedido e produto de teste, confirmar
+  eventos, ator/tenant, ausência de PII e isolamento entre tenants.
 
 Cloud Functions continuam reservadas para quando existir segredo real,
 integração externa, operação administrativa privilegiada, rate limit
