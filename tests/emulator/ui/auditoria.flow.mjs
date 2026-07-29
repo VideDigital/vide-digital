@@ -94,7 +94,10 @@ async function flowAuditoriaOwner(page) {
     const avisoDrawer = await page.textContent("#audit-drawer-conteudo");
     assert.ok(avisoDrawer.includes("Dados sensíveis são omitidos deste registro."), "Drawer deveria mostrar o aviso de PII omitida");
     await page.click("#audit-drawer-fechar");
-    await page.waitForSelector("#audit-drawer.hidden", { timeout: 5000 });
+    // state padrão do waitForSelector é "visible" — aqui o seletor já
+    // exige a classe "hidden", então o estado certo a esperar é
+    // "attached" (só presente no DOM), nunca "visible" (contradição).
+    await page.waitForSelector("#audit-drawer.hidden", { state: "attached", timeout: 5000 });
 
     // Filtro por módulo — só confirma que a consulta refeita não quebra.
     await page.selectOption("#audit-filtro-campo", "modulo");
