@@ -118,7 +118,12 @@ não abre mais um chat novo.
 ## O que ainda não está aqui
 
 - IA real (nenhum provedor externo é chamado; nenhuma chave no frontend).
-- WhatsApp oficial.
+- **WhatsApp Oficial V1 em produção** — o código está pronto (Fase A:
+  webhook com assinatura HMAC validada, token por tenant no Secret
+  Manager, janela de 24h server-autoritativa, ver
+  `docs/WHATSAPP_OFICIAL.md`), mas nenhuma conexão real com a Meta foi
+  configurada (Fase B, depende do usuário: App, WABA, secrets, deploy
+  dedicado, piloto).
 - **Auditoria Centralizada V1 em produção** — o código está pronto (Fase A:
   15 Firestore triggers server-side com Auth Context, Central de Auditoria
   owner-only no dashboard, ver `docs/AUDITORIA_CENTRALIZADA.md`), mas os

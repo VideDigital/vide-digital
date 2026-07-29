@@ -42,7 +42,16 @@ está envolvida aqui.
   clienteNome: "até 120",
   statusAdmin: "pendente" | "respondido",   // contrato legado, mantido
   status: "nova" | "aberta" | "aguardando_cliente" | "aguardando_equipe" | "resolvida" | "arquivada",
-  canal: "loja_publica" | "interno" | "whatsapp_futuro",
+  canal: "loja_publica" | "interno" | "whatsapp_futuro" | "whatsapp",
+  // Campos abaixo só existem em chats do canal "whatsapp" — nunca escritos
+  // pelo cliente, sempre pelas Cloud Functions do módulo (ver
+  // docs/WHATSAPP_OFICIAL.md):
+  whatsappPhoneNumberId: "string (opcional)",
+  whatsappWaId: "string (opcional, nunca exibido por inteiro na UI)",
+  whatsappProfileName: "string (opcional)",
+  whatsappUltimaMensagemClienteEm: "number (opcional)",
+  whatsappJanelaAtendimentoAte: "number (opcional) — janela de 24h",
+  whatsappConnectionOwnerUid: "string (opcional)",
   setor: "até 80 (opcional)",
   atribuidoPara: "{authUid do dono ou funcionário} | \"\"",
   atribuidoPor: "{authUid}",
@@ -79,12 +88,30 @@ documento dedicado.
   criadoEm: number,
   autorTipo: "cliente" | "funcionario" | "proprietario",
   autorUid: "{authUid}",          // só em mensagens 'admin'; sempre == request.auth.uid
-  autorNome: "até 120 (opcional)" // derivado do funcionário/dono autenticado, nunca de um campo de formulário
+  autorNome: "até 120 (opcional)", // derivado do funcionário/dono autenticado, nunca de um campo de formulário
+  // Campos opcionais do canal WhatsApp (nunca quebram loja_publica/interno,
+  // ver docs/WHATSAPP_OFICIAL.md):
+  canal: "whatsapp (opcional)",
+  direction: "inbound | outbound (opcional)",
+  provider: "meta_whatsapp_cloud (opcional)",
+  providerMessageId: "string (opcional) — wamid da Meta",
+  providerStatus: "queued | accepted | sent | delivered | read | failed (opcional)",
+  providerTimestamp: "number (opcional) — timestamp da própria Meta",
+  providerReplyToId: "string (opcional)",
+  messageType: "text | image | document | ... (opcional)",
+  templateName: "string (opcional)",
+  templateLanguage: "string (opcional)",
+  mediaMetadata: "objeto (opcional) — só metadados seguros, nunca baixa o arquivo"
 }
 ```
 
 `autorUid`/`autorTipo`/`autorNome` nunca vêm de um `<input>` — o controller e
 `enviarRespostaChatLead` sempre os derivam de `VideHubContext.getSnapshot()`.
+Mensagens do canal WhatsApp nunca passam por escrita direta do cliente —
+sempre pelas Cloud Functions `whatsappSendText`/`whatsappSendTemplate` (envio)
+ou `whatsappWebhook` (recebimento); `autorUid` de uma mensagem enviada pela
+equipe ainda vem do VideHubContext real, mas a persistência final é
+server-side.
 
 ## Transições de status
 
@@ -171,6 +198,33 @@ compositor, e ainda precisa clicar "Enviar". Permissão própria
 documento dedicado, incluindo o que fica de fora desta fase (nenhum
 provedor externo, nenhuma chave de IA em lugar nenhum, nenhuma automação
 total).
+
+## WhatsApp Oficial
+
+Desde a Fase A de "WhatsApp Oficial V1" (`docs/WHATSAPP_OFICIAL.md`), o
+canal `"whatsapp"` passa a ser um canal real da mesma Central de
+Atendimento — mesma lista, mesmo painel de conversa, mesmo CRM 360,
+mesmas permissões. Diferenças pontuais só onde a integração exige:
+
+- Envio (texto/template) do canal WhatsApp **nunca** escreve direto no
+  Firestore — sempre via `whatsappSendText`/`whatsappSendTemplate`
+  (Cloud Functions), porque só o servidor sabe se a janela de
+  atendimento de 24h ainda está aberta e tem acesso ao token da Meta.
+  Isso é diferente do canal legado (`interno`/`loja_publica`), que
+  continua escrevendo direto, protegido pelas Rules.
+- Fora da janela de 24h, o compositor de texto livre é substituído por
+  um picker de templates aprovados da Meta (`whatsapp_templates`,
+  distintos dos templates internos de `templates-atendimento.js`).
+- O número do cliente nunca aparece por inteiro na tela — só os 4
+  últimos dígitos (`mascararNumeroWhatsapp()`).
+- Nova view de conexão (`view-whatsapp-oficial`, `whatsapp-oficial-v1.js`)
+  fora da Central de Atendimento — status da conexão, número, webhook,
+  templates, qualidade, diagnóstico. Onboarding é só piloto assistido
+  por script administrativo, nunca um botão que finge conectar.
+
+Ver `docs/WHATSAPP_OFICIAL.md` para o modelo completo (segurança do
+webhook, idempotência, segredos, Rules, testes, checklist de conexão
+real).
 
 ## Limitações conhecidas
 
