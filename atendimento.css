@@ -318,6 +318,11 @@
     padding: 14px 16px;
     border-top: 1px solid var(--at-border);
 }
+/* O seletor de ID acima vence o [hidden] padrão do navegador (maior
+   especificidade) — sem isto, form.hidden = true no JS (usado pro canal
+   WhatsApp esconder o compositor fora da janela de 24h) não escondia
+   nada de verdade, só mudava o atributo sem efeito visual. */
+#atend-form-resposta[hidden] { display: none; }
 #atend-resposta-input {
     flex: 1;
     min-height: 44px;
