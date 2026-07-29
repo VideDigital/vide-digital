@@ -11483,9 +11483,16 @@ window.moderarAvaliacao = async function(id, status) {
             // O container é substituído (esqueleto → dados reais) durante o
             // carregamento; isso pode reduzir a altura da página e fazer o
             // navegador "puxar" o scroll pro topo. Preservamos a posição.
-            const scrollYAntesDoCarregamento = window.scrollY;
+            // O scroll real do painel acontece dentro do <main> (overflow-y:
+            // auto, layout de app shell) — não em window/document, que ficam
+            // fixos (md:h-screen).
+            const scrollContainerProdutos = document.querySelector("main");
+            const scrollTopAntesDoCarregamento = scrollContainerProdutos?.scrollTop ?? 0;
             const restaurarScrollProdutos = () => {
-                requestAnimationFrame(() => window.scrollTo(window.scrollX, scrollYAntesDoCarregamento));
+                if (!scrollContainerProdutos) return;
+                requestAnimationFrame(() => {
+                    scrollContainerProdutos.scrollTop = scrollTopAntesDoCarregamento;
+                });
             };
             try {
                 // Esqueleto enquanto o catálogo carrega (some assim que os

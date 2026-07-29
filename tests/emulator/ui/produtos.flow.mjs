@@ -199,13 +199,14 @@ async function main() {
 
         // C) Filtros: nunca navegam, nunca mudam URL/hash, nunca jogam a
         // página pro topo — e o resultado é imediato (sem nova leitura ao
-        // Firestore por clique).
+        // Firestore por clique). O scroll real acontece dentro do <main>
+        // (overflow-y: auto, app shell), não em window/document.
         const urlAntesDosFiltros = page.url();
 
-        await page.evaluate(() => window.scrollTo(0, 600));
+        await page.evaluate(() => { document.querySelector("main").scrollTop = 600; });
         await page.waitForTimeout(50);
-        const scrollAntesDoFiltro = await page.evaluate(() => window.scrollY);
-        assert.ok(scrollAntesDoFiltro > 0, "Pré-condição: a página precisa estar rolada antes do clique no filtro");
+        const scrollAntesDoFiltro = await page.evaluate(() => document.querySelector("main").scrollTop);
+        assert.ok(scrollAntesDoFiltro > 0, "Pré-condição: o painel precisa estar rolado antes do clique no filtro");
 
         // Clique programático (não page.click): evita que o próprio
         // Playwright role a página pra trazer o botão pra viewport antes de
@@ -224,10 +225,10 @@ async function main() {
         assert.equal(ariaTodos, "false", "O filtro Todos deve deixar de estar pressionado");
 
         await page.waitForTimeout(150);
-        const scrollDepoisDoFiltro = await page.evaluate(() => window.scrollY);
+        const scrollDepoisDoFiltro = await page.evaluate(() => document.querySelector("main").scrollTop);
         assert.ok(
             Math.abs(scrollDepoisDoFiltro - scrollAntesDoFiltro) < 50,
-            `O clique no filtro não deveria jogar a página pro topo (antes: ${scrollAntesDoFiltro}, depois: ${scrollDepoisDoFiltro})`
+            `O clique no filtro não deveria jogar o painel pro topo (antes: ${scrollAntesDoFiltro}, depois: ${scrollDepoisDoFiltro})`
         );
 
         await page.evaluate(() => document.getElementById("filtro-digitais").click());
