@@ -14,6 +14,10 @@ import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
     adicionarItemPedido, removerItemPedido, atualizarQuantidadeItem
 } from "./pedidos-estruturados.js";
+import {
+    normalizarTextoCatalogo, produtoCorrespondeBusca, calcularResumoCatalogoDeCards,
+    valorBuscaCatalogoEhAutofillIndevido, buscaCatalogoSemResultados
+} from "./catalogo-produtos-core.js";
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -11085,10 +11089,6 @@ window._catalogoSelecionados = window._catalogoSelecionados || new Set();
 window._catalogoSelecaoAtiva = false;
 window._catalogoModoVisual = localStorage.getItem("catalogoModoVisual") || "grade";
 
-function normalizarTextoCatalogo(valor) {
-    return String(valor || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
-}
-
 function obterCardsCatalogo() {
     return [...document.querySelectorAll("#produtos-container .aura-commerce-card")];
 }
@@ -11100,12 +11100,25 @@ function formatarMoedaCatalogo(valor) {
 window.aplicarFerramentasCatalogo = function() {
     const container = document.getElementById("produtos-container");
     if (!container) return;
-    const termo = normalizarTextoCatalogo(document.getElementById("catalogo-busca")?.value);
+    const campoBusca = document.getElementById("catalogo-busca");
+    if (campoBusca && valorBuscaCatalogoEhAutofillIndevido({
+        valorAtual: campoBusca.value,
+        emailAutenticado: usuarioEmail,
+        houveDigitacaoHumana: window._catalogoBuscaDigitadaPeloUsuario
+    })) {
+        campoBusca.value = "";
+    }
+    const termo = normalizarTextoCatalogo(campoBusca?.value);
     const ordenacao = document.getElementById("catalogo-ordenacao")?.value || "recentes";
     const cards = obterCardsCatalogo();
     cards.forEach(card => {
-        const conteudo = normalizarTextoCatalogo([card.dataset.nome, card.dataset.descricao, card.dataset.categoria, card.dataset.tipo].join(" "));
-        card.classList.toggle("catalogo-filtrado-oculto", Boolean(termo) && !conteudo.includes(termo));
+        const corresponde = produtoCorrespondeBusca({
+            nome: card.dataset.nome,
+            descricao: card.dataset.descricao,
+            categoria: card.dataset.categoria,
+            tipo: card.dataset.tipo
+        }, termo);
+        card.classList.toggle("catalogo-filtrado-oculto", !corresponde);
     });
     const compararTexto = (a,b) => String(a||"").localeCompare(String(b||""),"pt-BR",{sensitivity:"base"});
     cards.sort((a,b) => {
@@ -11125,19 +11138,47 @@ window.aplicarFerramentasCatalogo = function() {
 };
 
 window.atualizarResumoCatalogo = function() {
-    const cards = obterCardsCatalogo().filter(card => !card.classList.contains("catalogo-filtrado-oculto"));
-    const precos = cards.map(card => Number(card.dataset.preco||0)).filter(Number.isFinite);
-    const precoMedio = precos.length ? precos.reduce((a,b)=>a+b,0)/precos.length : 0;
-    const estoqueBaixo = cards.filter(card => card.dataset.estoque !== "" && Number.isFinite(Number(card.dataset.estoque)) && Number(card.dataset.estoque) <= 5).length;
-    const comDesconto = cards.filter(card => Number(card.dataset.desconto||0)>0).length;
+    const todosCards = obterCardsCatalogo();
+    const cards = todosCards.filter(card => !card.classList.contains("catalogo-filtrado-oculto"));
+    const resumo = calcularResumoCatalogoDeCards(cards.map(card => ({
+        preco: card.dataset.preco,
+        estoque: card.dataset.estoque,
+        desconto: card.dataset.desconto
+    })));
     const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=v;};
-    setText("catalogo-resumo-total",cards.length);
-    setText("catalogo-resumo-preco",formatarMoedaCatalogo(precoMedio));
-    setText("catalogo-resumo-estoque",estoqueBaixo);
-    setText("catalogo-resumo-descontos",comDesconto);
-    setText("catalogo-resultados-visiveis",cards.length===1?"1 produto visível":`${cards.length} produtos visíveis`);
+    setText("catalogo-resumo-total",resumo.total);
+    setText("catalogo-resumo-preco",formatarMoedaCatalogo(resumo.precoMedio));
+    setText("catalogo-resumo-estoque",resumo.estoqueBaixo);
+    setText("catalogo-resumo-descontos",resumo.comDesconto);
+    setText("catalogo-resultados-visiveis",resumo.total===1?"1 produto visível":`${resumo.total} produtos visíveis`);
     const busca=document.getElementById("catalogo-busca");
     document.getElementById("catalogo-limpar-busca")?.classList.toggle("is-visible",Boolean(busca?.value.trim()));
+
+    const container = document.getElementById("produtos-container");
+    const avisoExistente = container?.querySelector('[data-catalogo-busca-vazia="true"]') || null;
+    const semResultadoDeBusca = buscaCatalogoSemResultados({
+        totalCardsRenderizados: todosCards.length,
+        totalCardsVisiveis: cards.length,
+        termoBusca: busca?.value
+    });
+    if (semResultadoDeBusca) {
+        if (!avisoExistente && container) {
+            const aviso = document.createElement("div");
+            aviso.className = "aura-products-empty col-span-full";
+            aviso.setAttribute("data-catalogo-busca-vazia", "true");
+            aviso.innerHTML = `
+                <div class="aura-products-empty-icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
+                </div>
+                <p class="aura-products-empty-eyebrow">Catálogo</p>
+                <h4 class="aura-products-empty-title">Nenhum produto encontrado para esta busca</h4>
+                <p class="aura-products-empty-description">Tente outro termo ou limpe a pesquisa para ver todos os produtos cadastrados.</p>
+            `;
+            container.appendChild(aviso);
+        }
+    } else if (avisoExistente) {
+        avisoExistente.remove();
+    }
 };
 
 window.alternarVisualCatalogo = function(modo) {
@@ -11243,6 +11284,11 @@ window.sincronizarCatalogoAvancado = function() {
         const busca=document.getElementById("catalogo-busca");
         const ordem=document.getElementById("catalogo-ordenacao");
         let timer=null;
+        // Só um evento de teclado/colagem real do usuário conta como
+        // digitação humana — autofill do navegador nunca dispara keydown.
+        const marcarDigitacaoHumana=()=>{window._catalogoBuscaDigitadaPeloUsuario=true;};
+        busca?.addEventListener("keydown",marcarDigitacaoHumana);
+        busca?.addEventListener("paste",marcarDigitacaoHumana);
         busca?.addEventListener("input",()=>{clearTimeout(timer);timer=setTimeout(()=>window.aplicarFerramentasCatalogo(),90);});
         ordem?.addEventListener("change",()=>window.aplicarFerramentasCatalogo());
         window.alternarVisualCatalogo(window._catalogoModoVisual);
@@ -11434,6 +11480,13 @@ window.moderarAvaliacao = async function(id, status) {
 };
 
         async function carregarProdutos() {
+            // O container é substituído (esqueleto → dados reais) durante o
+            // carregamento; isso pode reduzir a altura da página e fazer o
+            // navegador "puxar" o scroll pro topo. Preservamos a posição.
+            const scrollYAntesDoCarregamento = window.scrollY;
+            const restaurarScrollProdutos = () => {
+                requestAnimationFrame(() => window.scrollTo(window.scrollX, scrollYAntesDoCarregamento));
+            };
             try {
                 // Esqueleto enquanto o catálogo carrega (some assim que os
                 // produtos reais chegam logo abaixo).
@@ -11565,6 +11618,7 @@ if (
                     window._catalogoSelecionados.clear();
                     window.atualizarResumoCatalogo();
                     window.atualizarSelecaoCatalogo();
+                    restaurarScrollProdutos();
 
                     return;
                 }
@@ -11976,6 +12030,7 @@ produtosContainer.appendChild(card);
                     });
 
                 window.sincronizarCatalogoAvancado();
+                restaurarScrollProdutos();
 
             } catch (err) {
                 console.error(err);
@@ -12009,6 +12064,7 @@ produtosContainer.appendChild(card);
 
                     </div>
                 `;
+                restaurarScrollProdutos();
             }
         }
 

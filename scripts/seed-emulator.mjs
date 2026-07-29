@@ -172,9 +172,25 @@ await setDoc("produtos/prod-local-1", {
   criadoPor: "owner-pro",
   nome: "Produto Local",
   preco: 99,
+  tipo: "fisico",
+  estoque: 10,
   statusProduto: "ativo",
   destaque: true,
   ordem: 1
+});
+
+// Segundo produto do mesmo tenant — existe pra exercer o catálogo com mais
+// de um item real: filtro físico/digital, preço médio de verdade (não um
+// único valor) e a Central Inteligente de Catálogo (busca/KPIs).
+await setDoc("produtos/prod-local-2", {
+  criadoPor: "owner-pro",
+  nome: "Produto Digital Local",
+  descricao: "Segundo produto de teste do catálogo",
+  preco: 49,
+  precoDe: 70,
+  tipo: "digital",
+  statusProduto: "ativo",
+  ordem: 2
 });
 
 await setDoc("leads/lead-local-1", {

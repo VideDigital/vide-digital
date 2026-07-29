@@ -1057,6 +1057,8 @@ id="contador-produtos">
 <div class="aura-product-filters">
 
 <button id="filtro-todos"
+type="button"
+aria-pressed="true"
 class="aura-product-filter bg-white/5 text-white border border-white/10">
 
 <svg viewBox="0 0 24 24"
@@ -1075,6 +1077,8 @@ stroke="currentColor">
 </button>
 
 <button id="filtro-fisicos"
+type="button"
+aria-pressed="false"
 class="aura-product-filter text-gray-400 hover:text-white">
 
 <svg viewBox="0 0 24 24"
@@ -1092,6 +1096,8 @@ stroke="currentColor">
 </button>
 
 <button id="filtro-digitais"
+type="button"
+aria-pressed="false"
 class="aura-product-filter text-gray-400 hover:text-white">
 
 <svg viewBox="0 0 24 24"
@@ -1108,6 +1114,8 @@ stroke="currentColor">
 </button>
 
 <button id="filtro-rascunhos"
+type="button"
+aria-pressed="false"
 class="aura-product-filter text-gray-400 hover:text-white">
 
 <svg viewBox="0 0 24 24"
@@ -1181,7 +1189,7 @@ stroke="currentColor">
 <div class="aura-catalog-tools">
 <label class="aura-catalog-search">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-<input type="search" id="catalogo-busca" placeholder="Pesquisar nome, categoria, descrição ou tipo..." autocomplete="off">
+<input type="search" id="catalogo-busca" placeholder="Pesquisar nome, categoria, descrição ou tipo..." autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="search" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
 <button type="button" id="catalogo-limpar-busca" onclick="limparBuscaCatalogo()" aria-label="Limpar pesquisa">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m7 7 10 10"></path><path d="M17 7 7 17"></path></svg>
 </button>
