@@ -331,6 +331,31 @@ export function mascararNumeroWhatsapp(waId) {
     return `•••• ${digitos.slice(-4)}`;
 }
 
+// ---------- Multiconexão (Fase 5): identificação do número de origem ----------
+// whatsappDisplayPhoneNumber é o número OFICIAL da loja (não é dado
+// pessoal de cliente) — mostrado por inteiro, nunca mascarado, diferente
+// de whatsappWaId (número do cliente, sempre mascarado acima).
+export function formatarNumeroWhatsappOrigem(numero) {
+    const valor = String(numero || "").trim();
+    if (!valor) return "";
+    return /^\d+$/.test(valor) ? `+${valor}` : valor;
+}
+
+// Lista os números de origem distintos entre as conversas do WhatsApp —
+// usada pra popular o filtro "Número" na Central sem depender de uma
+// leitura extra em whatsapp_connections (o chat já guarda o número que o
+// recebeu, gravado uma única vez na criação — ver webhook.js).
+export function numerosWhatsappDistintos(conversas) {
+    const vistos = new Map();
+    for (const conversa of conversas || []) {
+        if (conversa?.canal !== "whatsapp") continue;
+        const numero = String(conversa?.whatsappDisplayPhoneNumber || "").trim();
+        if (!numero || vistos.has(numero)) continue;
+        vistos.set(numero, { numero, rotulo: formatarNumeroWhatsappOrigem(numero) });
+    }
+    return Array.from(vistos.values()).sort((a, b) => a.numero.localeCompare(b.numero));
+}
+
 const ROTULO_STATUS_ENTREGA_WHATSAPP = Object.freeze({
     queued: "Enviando…",
     accepted: "Enviando…",
@@ -436,6 +461,7 @@ export function filtrarConversas(conversas, {
     busca = "",
     status = "todas",
     canal = "todos",
+    numero = "todos",
     apenasMinhas = false,
     apenasSemResponsavel = false,
     authUid = ""
@@ -444,6 +470,11 @@ export function filtrarConversas(conversas, {
     return (conversas || []).filter(conversa => {
         if (status !== "todas" && conversa.status !== status) return false;
         if (canal !== "todos" && conversa.canal !== canal) return false;
+        // Filtro por número/conexão de origem — só se aplica a conversas
+        // do WhatsApp; nunca esconde conversas de outros canais quando um
+        // número específico está selecionado (o filtro de canal já cuida
+        // disso separadamente).
+        if (numero !== "todos" && conversa.canal === "whatsapp" && conversa.whatsappDisplayPhoneNumber !== numero) return false;
         if (apenasMinhas && conversa.atribuidoPara !== authUid) return false;
         if (apenasSemResponsavel && conversa.atribuidoPara) return false;
         if (!termo) return true;
@@ -629,7 +660,7 @@ export function criarAtendimentoController(deps) {
         atalhoSugestoes: [],
         // Gestão de templates (Fase 8: criar/editar/duplicar/arquivar).
         gestaoTemplates: { aberta: false, editandoId: "", salvando: false, erro: "" },
-        filtro: { busca: "", status: "todas", canal: "todos", apenasMinhas: false, apenasSemResponsavel: false },
+        filtro: { busca: "", status: "todas", canal: "todos", numero: "todos", apenasMinhas: false, apenasSemResponsavel: false },
         enviando: false,
         unsubscribeMensagens: null,
         // Navegação em etapas no mobile (a mesma marcação de 3 colunas do
@@ -729,10 +760,33 @@ export function criarAtendimentoController(deps) {
         }
     }
 
+    // Fase 5 (multiconexão): popula o filtro "Número" com os números de
+    // origem realmente vistos nas conversas do WhatsApp deste tenant —
+    // nunca uma lista inventada, nunca lê whatsapp_connections direto
+    // (o chat já carrega o número, ver numerosWhatsappDistintos).
+    function renderFiltroNumeroWhatsapp() {
+        const select = el("atend-filtro-numero");
+        if (!select) return;
+        const numeros = numerosWhatsappDistintos(state.conversas);
+        if (numeros.length === 0) {
+            select.hidden = true;
+            return;
+        }
+        select.hidden = false;
+        const valorAtual = state.filtro.numero;
+        select.innerHTML = [
+            `<option value="todos">Todos os números</option>`,
+            ...numeros.map(n => `<option value="${escaparHtml(n.numero)}">${escaparHtml(n.rotulo)}</option>`)
+        ].join("");
+        select.value = numeros.some(n => n.numero === valorAtual) ? valorAtual : "todos";
+        if (select.value !== valorAtual) state.filtro.numero = select.value;
+    }
+
     function renderListaConversas() {
         const lista = el("atend-lista-conversas");
         if (!lista) return;
         renderStatusSincronizacaoConversas();
+        renderFiltroNumeroWhatsapp();
 
         if (state.erro) {
             lista.innerHTML = `
@@ -793,6 +847,7 @@ export function criarAtendimentoController(deps) {
                             <span class="atend-chip is-status-${escaparHtml(conversa.status || "aberta")}">${escaparHtml(STATUS_CONVERSA[conversa.status] || "Aberta")}</span>
                             ${conversa.canal ? `<span class="atend-chip is-canal">${iconeCanal(conversa.canal)}${escaparHtml(CANAIS_CONVERSA[conversa.canal] || conversa.canal)}</span>` : ""}
                             ${conversa.canal === "whatsapp" && conversa.whatsappWaId ? `<span class="atend-chip is-whatsapp-numero">${escaparHtml(mascararNumeroWhatsapp(conversa.whatsappWaId))}</span>` : ""}
+                            ${conversa.canal === "whatsapp" && conversa.whatsappDisplayPhoneNumber ? `<span class="atend-chip is-whatsapp-origem" title="Recebida no número da loja">${escaparHtml(formatarNumeroWhatsappOrigem(conversa.whatsappDisplayPhoneNumber))}</span>` : ""}
                             ${janela ? `<span class="atend-chip ${janela.aberta ? "is-janela-aberta" : "is-janela-fechada"}" title="${janela.aberta ? "Janela de 24h aberta" : "Janela de 24h encerrada"}">${janela.aberta ? "Janela aberta" : "Janela fechada"}</span>` : ""}
                             ${conversa.atribuidoPara ? `<span class="atend-chip is-responsavel">Atribuída</span>` : `<span class="atend-chip is-sem-responsavel">Sem responsável</span>`}
                         </span>
@@ -881,6 +936,15 @@ export function criarAtendimentoController(deps) {
             const mostrarNumero = conversa.canal === "whatsapp" && conversa.whatsappWaId;
             numero.hidden = !mostrarNumero;
             numero.textContent = mostrarNumero ? mascararNumeroWhatsapp(conversa.whatsappWaId) : "";
+        }
+        // Fase 5 (multiconexão): número da LOJA que recebeu esta conversa
+        // — nunca mascarado (não é dado de cliente), sempre o mesmo que
+        // criou a conversa (nunca muda, mesmo que a conexão padrão mude).
+        const numeroOrigem = el("atend-detalhe-numero-origem");
+        if (numeroOrigem) {
+            const mostrar = conversa.canal === "whatsapp" && conversa.whatsappDisplayPhoneNumber;
+            numeroOrigem.hidden = !mostrar;
+            numeroOrigem.textContent = mostrar ? `Recebida em ${formatarNumeroWhatsappOrigem(conversa.whatsappDisplayPhoneNumber)}` : "";
         }
         if (el("atend-detalhe-setor")) el("atend-detalhe-setor").textContent = conversa.setor || "Sem setor";
         if (el("atend-detalhe-inicio")) {
@@ -2274,6 +2338,10 @@ export function criarAtendimentoController(deps) {
         });
         el("atend-filtro-canal")?.addEventListener("change", event => {
             state.filtro.canal = event.target.value;
+            renderListaConversas();
+        });
+        el("atend-filtro-numero")?.addEventListener("change", event => {
+            state.filtro.numero = event.target.value;
             renderListaConversas();
         });
         el("atend-filtro-minhas")?.addEventListener("change", event => {

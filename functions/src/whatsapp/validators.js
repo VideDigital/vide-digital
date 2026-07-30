@@ -192,12 +192,17 @@ function extrairEventosDoPayload(body) {
       if (mudanca?.field !== "messages") continue;
       const valor = mudanca?.value || {};
       const phoneNumberId = String(valor?.metadata?.phone_number_id || "");
+      // display_phone_number vem pronto no próprio payload da Meta (nunca
+      // precisa de uma leitura extra em whatsapp_connections só pra
+      // mostrar o número de origem na Central de Atendimento — ver
+      // docs/WHATSAPP_MODULO_MULTICONEXAO.md).
+      const displayPhoneNumber = String(valor?.metadata?.display_phone_number || "").slice(0, 40);
       const contato = Array.isArray(valor?.contacts) ? valor.contacts[0] : null;
       const profileName = typeof contato?.profile?.name === "string" ? contato.profile.name.slice(0, 120) : "";
       const waIdContato = normalizarWaId(contato?.wa_id);
 
       for (const msg of Array.isArray(valor?.messages) ? valor.messages : []) {
-        eventos.push(normalizarMensagemInbound(msg, { phoneNumberId, profileName, waIdContato }));
+        eventos.push(normalizarMensagemInbound(msg, { phoneNumberId, displayPhoneNumber, profileName, waIdContato }));
       }
       for (const status of Array.isArray(valor?.statuses) ? valor.statuses : []) {
         eventos.push(normalizarStatusOutbound(status, { phoneNumberId }));
@@ -209,7 +214,7 @@ function extrairEventosDoPayload(body) {
 
 const TIPOS_MIDIA_CONHECIDOS = new Set(["image", "document", "audio", "video", "sticker", "location", "contacts"]);
 
-function normalizarMensagemInbound(msg, { phoneNumberId, profileName, waIdContato }) {
+function normalizarMensagemInbound(msg, { phoneNumberId, displayPhoneNumber, profileName, waIdContato }) {
   const wamid = String(msg?.id || "");
   const waIdRemetente = normalizarWaId(msg?.from) || waIdContato;
   const timestampSegundos = Number(msg?.timestamp);
@@ -220,6 +225,7 @@ function normalizarMensagemInbound(msg, { phoneNumberId, profileName, waIdContat
   const base = {
     categoria: "mensagem",
     phoneNumberId,
+    displayPhoneNumber: displayPhoneNumber || "",
     waId: waIdRemetente,
     profileName,
     wamid,

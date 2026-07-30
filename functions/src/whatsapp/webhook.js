@@ -34,7 +34,7 @@ const ALREADY_EXISTS_CODE = 6; // grpc status ALREADY_EXISTS (usado por doc.crea
 // computarEventoAuditoria em functions/src/audit/triggers.js. Recebem
 // dados já lidos e devolvem só o que gravar; quem chama (funções abaixo)
 // faz a leitura/escrita real e junta os valores de servidor (FieldValue).
-function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId }) {
+function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, displayPhoneNumber, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId }) {
   const janelaAte = calcularExpiracaoJanela(providerTimestamp);
 
   if (contatoExistente?.chatId) {
@@ -68,6 +68,13 @@ function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, co
       naoLidasLoja: 1,
       naoLidasCliente: 0,
       whatsappPhoneNumberId: phoneNumberId,
+      // Vem direto do metadata do payload da Meta (nunca de uma leitura
+      // extra em whatsapp_connections) — a Central de Atendimento usa
+      // isto pra identificar visualmente o número de origem no cabeçalho
+      // e na lista, sem nunca expor tokenSecretResource. Gravado só na
+      // criação — a conversa nunca troca de número (ver whatsappConnectionId
+      // logo abaixo, mesma regra).
+      whatsappDisplayPhoneNumber: displayPhoneNumber || "",
       whatsappWaId: waId,
       whatsappProfileName: profileName || "",
       whatsappUltimaMensagemClienteEm: providerTimestamp,
@@ -180,14 +187,14 @@ async function tentarVincularClienteCRM(db, ownerUid, waId) {
   }
 }
 
-async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumberId, connectionId, providerTimestamp }) {
+async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumberId, displayPhoneNumber, connectionId, providerTimestamp }) {
   const contactHash = hashContato(ownerUid, waId);
   const contactRef = db.doc(`${COLLECTIONS.CONTACT_MAP}/${ownerUid}_${contactHash}`);
   const contactSnap = await contactRef.get();
   const contatoExistente = contactSnap.exists ? contactSnap.data() : null;
   const clienteEncontradoId = contatoExistente?.chatId ? "" : await tentarVincularClienteCRM(db, ownerUid, waId);
 
-  const plano = montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId });
+  const plano = montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, displayPhoneNumber, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId });
 
   if (!plano.novoChat) {
     await contactRef.set({ ...plano.contactUpdate, lastSeenAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -242,6 +249,7 @@ async function processarMensagemInbound(db, ownerUid, evento, connectionId) {
     waId,
     profileName: evento.profileName,
     phoneNumberId: evento.phoneNumberId,
+    displayPhoneNumber: evento.displayPhoneNumber,
     connectionId,
     providerTimestamp: evento.providerTimestamp
   });

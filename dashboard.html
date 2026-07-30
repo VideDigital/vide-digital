@@ -3470,6 +3470,12 @@ Voltar
 <option value="whatsapp">WhatsApp</option>
 </select>
 </div>
+<div class="atend-filtro-grupo" id="atend-filtro-grupo-numero">
+<label for="atend-filtro-numero">Número (WhatsApp)</label>
+<select id="atend-filtro-numero" class="atend-select" hidden>
+<option value="todos">Todos os números</option>
+</select>
+</div>
 <div class="atend-filtro-grupo">
 <label class="atend-checkbox-linha"><input type="checkbox" id="atend-filtro-minhas"> Minhas conversas</label>
 <label class="atend-checkbox-linha"><input type="checkbox" id="atend-filtro-sem-responsavel"> Sem responsável</label>
@@ -3501,6 +3507,7 @@ Filtros
 <span id="atend-detalhe-status">Aberta</span>
 <span id="atend-detalhe-canal">—</span>
 <span id="atend-detalhe-numero" hidden></span>
+<span id="atend-detalhe-numero-origem" class="atend-chip-numero-origem" hidden></span>
 <span id="atend-detalhe-janela-whatsapp" class="atend-chip-janela-whatsapp" hidden></span>
 <span id="atend-detalhe-setor">Sem setor</span>
 <span>Início: <span id="atend-detalhe-inicio">—</span></span>
@@ -5523,6 +5530,7 @@ Carregando equipe...
 </div>
 
 </div>
+<p class="aura-whatsapp-nota-status-lida">Uma mensagem enviada pode ficar em "Entregue" e nunca virar "Lida" — isso não é um erro do sistema. As causas mais comuns são: o destinatário desativou as confirmações de leitura nas configurações do WhatsApp dele, ou o número usado é um número de teste da Meta (que tem limitações conhecidas de status). A Central de Atendimento nunca marca uma mensagem como lida por conta própria — só reflete o que a Meta realmente informar.</p>
 </div>
 
 <!-- 6. Equipe e roteamento -->

@@ -180,6 +180,26 @@ describe("whatsapp/webhook — montarPlanoChatInbound", () => {
         });
         assert.equal(plano.chatCreate.clienteNome, "WhatsApp 0000");
     });
+
+    it("grava whatsappDisplayPhoneNumber na criação (vem do metadata do payload, nunca de uma leitura extra)", () => {
+        const plano = webhook.montarPlanoChatInbound({
+            ownerUid: "owner-1", waId: "5511999990000", profileName: "Maria",
+            phoneNumberId: "1000", displayPhoneNumber: "5511900000000", providerTimestamp: 1_700_000_000_000,
+            contatoExistente: null, clienteEncontradoId: ""
+        });
+        assert.equal(plano.chatCreate.whatsappDisplayPhoneNumber, "5511900000000");
+    });
+
+    it("segunda mensagem do mesmo contato NUNCA reescreve whatsappDisplayPhoneNumber/whatsappConnectionId (conversa nunca troca de número)", () => {
+        const plano = webhook.montarPlanoChatInbound({
+            ownerUid: "owner-1", waId: "5511999990000", profileName: "Maria",
+            phoneNumberId: "1000", displayPhoneNumber: "5511900000000", connectionId: "conn-novo",
+            providerTimestamp: 1_700_000_100_000,
+            contatoExistente: { chatId: "chat-existente", profileName: "Maria" }, clienteEncontradoId: ""
+        });
+        assert.equal("whatsappDisplayPhoneNumber" in plano.chatUpdate, false);
+        assert.equal("whatsappConnectionId" in plano.chatUpdate, false);
+    });
 });
 
 describe("whatsapp/webhook — decidirAtualizacaoStatus", () => {
@@ -200,6 +220,37 @@ describe("whatsapp/webhook — decidirAtualizacaoStatus", () => {
             evento: { providerStatus: "delivered" }
         });
         assert.equal(decisao.aplicar, false);
+    });
+
+    it("Fase 6: aplica 'read' vindo de 'delivered' — a mensagem realmente pode chegar a 'lida'", () => {
+        const decisao = webhook.decidirAtualizacaoStatus({
+            dadosAtuais: { ownerUid: "owner-1", providerStatus: "delivered", chatId: "c1", messageId: "m1" },
+            ownerUid: "owner-1",
+            evento: { providerStatus: "read" }
+        });
+        assert.equal(decisao.aplicar, true);
+        assert.equal(decisao.providerStatus, "read");
+        assert.equal(decisao.chatId, "c1");
+        assert.equal(decisao.messageId, "m1");
+    });
+
+    it("Fase 6: aceita 'read' fora de ordem (direto de 'sent', sem 'delivered' ter chegado) — nunca bloqueia por causa disso", () => {
+        const decisao = webhook.decidirAtualizacaoStatus({
+            dadosAtuais: { ownerUid: "owner-1", providerStatus: "sent", chatId: "c1", messageId: "m1" },
+            ownerUid: "owner-1",
+            evento: { providerStatus: "read" }
+        });
+        assert.equal(decisao.aplicar, true);
+    });
+
+    it("Fase 6: reentrega do mesmo 'read' é idempotente — nunca falha nem duplica notificação", () => {
+        const decisao = webhook.decidirAtualizacaoStatus({
+            dadosAtuais: { ownerUid: "owner-1", providerStatus: "read", chatId: "c1", messageId: "m1" },
+            ownerUid: "owner-1",
+            evento: { providerStatus: "read" }
+        });
+        assert.equal(decisao.aplicar, true);
+        assert.equal(decisao.notificarFalha, false);
     });
 
     it("mensagem desconhecida não aplica nada", () => {

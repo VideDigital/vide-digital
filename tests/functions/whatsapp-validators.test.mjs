@@ -152,6 +152,15 @@ describe("whatsapp/validators — podeAtualizarStatusMensagem (nunca regride)", 
         assert.equal(validators.podeAtualizarStatusMensagem("delivered", "delivered"), true);
     });
 
+    it("Fase 6: aceita 'read' chegando fora de ordem, direto de 'sent' (a Meta não garante 'delivered' antes)", () => {
+        assert.equal(validators.podeAtualizarStatusMensagem("sent", "read"), true);
+        assert.equal(validators.podeAtualizarStatusMensagem("accepted", "read"), true);
+    });
+
+    it("Fase 6: 'read' repetido (reentrega do webhook) nunca é tratado como regressão", () => {
+        assert.equal(validators.podeAtualizarStatusMensagem("read", "read"), true);
+    });
+
     it("aceita failed antes de delivered/read, rejeita depois", () => {
         assert.equal(validators.podeAtualizarStatusMensagem("sent", "failed"), true);
         assert.equal(validators.podeAtualizarStatusMensagem("delivered", "failed"), false);
@@ -235,6 +244,23 @@ describe("whatsapp/validators — extrairEventosDoPayload (parsing do payload da
         assert.equal(eventos[0].texto, "Olá!");
         assert.equal(eventos[0].waId, "5511999990000");
         assert.equal(eventos[0].profileName, "Fulano");
+    });
+
+    it("extrai displayPhoneNumber do metadata (sem precisar consultar whatsapp_connections)", () => {
+        const payload = {
+            entry: [{
+                changes: [{
+                    field: "messages",
+                    value: {
+                        metadata: { phone_number_id: "1000", display_phone_number: "5511900000000" },
+                        contacts: [{ profile: { name: "Fulano" }, wa_id: "5511999990000" }],
+                        messages: [{ id: "wamid.DISP", from: "5511999990000", timestamp: "1700000009", type: "text", text: { body: "oi" } }]
+                    }
+                }]
+            }]
+        };
+        const eventos = validators.extrairEventosDoPayload(payload);
+        assert.equal(eventos[0].displayPhoneNumber, "5511900000000");
     });
 
     it("extrai status de mensagem outbound", () => {

@@ -19,8 +19,10 @@ import {
     funcionarioPodeAtender,
     funcionariosElegiveisAtendimento,
     iniciaisNome,
+    formatarNumeroWhatsappOrigem,
     janelaAtendimentoWhatsapp,
     mascararNumeroWhatsapp,
+    numerosWhatsappDistintos,
     mesclarDocumentosTimeline,
     mesclarItensTimeline,
     ordenarConversas,
@@ -92,6 +94,17 @@ describe("filtro e ordenação de conversas", () => {
     it("filtra por busca no nome do cliente", () => {
         const conversas = [conversaFixture({ clienteNome: "Maria Silva" }), conversaFixture({ id: "c2", clienteNome: "João Souza" })];
         assert.equal(filtrarConversas(conversas, { busca: "maria" }).length, 1);
+    });
+
+    it("filtra por número de origem do WhatsApp (Fase 5, multiconexão) sem esconder outros canais", () => {
+        const conversas = [
+            conversaFixture({ id: "c1", canal: "whatsapp", whatsappDisplayPhoneNumber: "5511900000001" }),
+            conversaFixture({ id: "c2", canal: "whatsapp", whatsappDisplayPhoneNumber: "5511900000002" }),
+            conversaFixture({ id: "c3", canal: "interno" })
+        ];
+        const filtradas = filtrarConversas(conversas, { numero: "5511900000001" });
+        assert.deepEqual(filtradas.map(c => c.id), ["c1", "c3"]);
+        assert.equal(filtrarConversas(conversas, { numero: "todos" }).length, 3);
     });
 
     it("ordena por mais recente primeiro", () => {
@@ -456,6 +469,24 @@ describe("WhatsApp Oficial V1: helpers puros de UI", () => {
         assert.equal(mascararNumeroWhatsapp("5511999990000"), "•••• 0000");
         assert.equal(mascararNumeroWhatsapp("12"), "••••");
         assert.equal(mascararNumeroWhatsapp(""), "••••");
+    });
+
+    it("formatarNumeroWhatsappOrigem mostra o número da LOJA por inteiro (não é dado de cliente)", () => {
+        assert.equal(formatarNumeroWhatsappOrigem("5511900000000"), "+5511900000000");
+        assert.equal(formatarNumeroWhatsappOrigem("+55 11 90000-0000"), "+55 11 90000-0000");
+        assert.equal(formatarNumeroWhatsappOrigem(""), "");
+    });
+
+    it("numerosWhatsappDistintos lista só números do WhatsApp, sem duplicar, ordenado", () => {
+        const conversas = [
+            conversaFixture({ id: "c1", canal: "whatsapp", whatsappDisplayPhoneNumber: "5511900000002" }),
+            conversaFixture({ id: "c2", canal: "whatsapp", whatsappDisplayPhoneNumber: "5511900000001" }),
+            conversaFixture({ id: "c3", canal: "whatsapp", whatsappDisplayPhoneNumber: "5511900000001" }),
+            conversaFixture({ id: "c4", canal: "interno" }),
+            conversaFixture({ id: "c5", canal: "whatsapp" })
+        ];
+        const numeros = numerosWhatsappDistintos(conversas);
+        assert.deepEqual(numeros.map(n => n.numero), ["5511900000001", "5511900000002"]);
     });
 
     it("rotuloStatusEntregaWhatsapp cobre os 6 estados conhecidos", () => {
