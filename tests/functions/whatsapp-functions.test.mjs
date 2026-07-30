@@ -11,6 +11,7 @@ import send from "../../functions/src/whatsapp/send.js";
 import templates from "../../functions/src/whatsapp/templates.js";
 import connections from "../../functions/src/whatsapp/connections.js";
 import onboarding from "../../functions/src/whatsapp/onboarding.js";
+import secrets from "../../functions/src/whatsapp/secrets.js";
 import whatsappIndex from "../../functions/src/whatsapp/index.js";
 import { ERROR_CODES } from "../../functions/src/whatsapp/constants.js";
 
@@ -413,6 +414,43 @@ describe("whatsapp/onboarding — Fase 7: só contratos, nada real implementado"
         assert.deepEqual(Object.keys(onboarding.CONTRATO_ONBOARDING_FUNCTIONS).sort(), ["whatsappCompleteOnboarding", "whatsappStartOnboarding"]);
         assert.equal("whatsappStartOnboarding" in whatsappIndex, false);
         assert.equal("whatsappCompleteOnboarding" in whatsappIndex, false);
+    });
+});
+
+describe("whatsapp/secrets — validarTokenSecretResource (revisão: nunca aceita secret arbitrário)", () => {
+    const RECURSO_VALIDO_LEGADO = `projects/vide-digital-saas/secrets/vide-whatsapp-token-${"a".repeat(24)}`;
+    const RECURSO_VALIDO_NUMERICO = `projects/123456789012/secrets/vide-whatsapp-token-${"0123456789abcdef".repeat(2).slice(0, 24)}`;
+
+    it("aceita o recurso BASE (sem versão) no formato esperado", () => {
+        assert.equal(secrets.validarTokenSecretResource(RECURSO_VALIDO_LEGADO).valido, true);
+    });
+
+    it("aceita o projeto representado como NÚMERO (formato real devolvido pelo Secret Manager)", () => {
+        assert.equal(secrets.validarTokenSecretResource(RECURSO_VALIDO_NUMERICO).valido, true);
+    });
+
+    it("aceita a versão 'latest' explícita, rejeita uma versão numérica fixa", () => {
+        assert.equal(secrets.validarTokenSecretResource(`${RECURSO_VALIDO_LEGADO}/versions/latest`).valido, true);
+        const fixa = secrets.validarTokenSecretResource(`${RECURSO_VALIDO_LEGADO}/versions/3`);
+        assert.equal(fixa.valido, false);
+        assert.equal(fixa.motivo, "versao_fixa_nao_permitida");
+    });
+
+    it("rejeita um secretId que não segue o prefixo/hash esperado (nunca aceita secret arbitrário)", () => {
+        const resultado = secrets.validarTokenSecretResource("projects/vide-digital-saas/secrets/algum-outro-secret-do-projeto");
+        assert.equal(resultado.valido, false);
+        assert.equal(resultado.motivo, "prefixo_invalido");
+    });
+
+    it("rejeita um formato completamente fora do padrão projects/X/secrets/Y", () => {
+        assert.equal(secrets.validarTokenSecretResource("../../etc/passwd").valido, false);
+        assert.equal(secrets.validarTokenSecretResource("").valido, false);
+        assert.equal(secrets.validarTokenSecretResource(undefined).valido, false);
+    });
+
+    it("rejeita um segmento de projeto vazio ou com caractere inválido", () => {
+        assert.equal(secrets.validarTokenSecretResource(`projects//secrets/vide-whatsapp-token-${"a".repeat(24)}`).valido, false);
+        assert.equal(secrets.validarTokenSecretResource(`projects/proj!/secrets/vide-whatsapp-token-${"a".repeat(24)}`).valido, false);
     });
 });
 

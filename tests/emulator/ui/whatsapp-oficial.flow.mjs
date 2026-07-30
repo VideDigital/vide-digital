@@ -103,21 +103,46 @@ async function flowConectado(page) {
     console.log("whatsapp-oficial.flow: OK (conectado) — status real via Cloud Function, token sempre mascarado, módulo separado com Minhas conexões/Adicionar conexão corretos.");
 }
 
-async function flowFuncionarioLeitura(page, baseUrl) {
-    await loginReal(page, baseUrl, {
-        email: "employee.read@local.test",
-        senha: "Local123!read"
-    });
+// Revisão: este fluxo reusava a MESMA página do owner (que acabara de
+// navegar pra view-atendimento em flowInboxWhatsapp). loginReal navega
+// pra login.html -> dashboard.html na mesma página/contexto, sem limpar
+// localStorage — a última aba ativa (view-atendimento) ficava salva e a
+// restauração assíncrona dela concorria com o ativarView() programático
+// logo em seguida, causando um timeout intermitente esperando
+// #whatsapp-estado-conteudo. Um contexto de navegador ISOLADO (própria
+// aba, cookies e localStorage do zero) elimina a corrida — mesmo padrão
+// já usado em loja-chat-publico.flow.mjs pra simular usuários diferentes.
+async function flowFuncionarioLeitura(browser, baseUrl) {
+    const contexto = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await contexto.newPage();
+    const erros = coletarErrosConsole(page);
+    try {
+        await loginReal(page, baseUrl, {
+            email: "employee.read@local.test",
+            senha: "Local123!read"
+        });
 
-    const ativou = await ativarView(page, "view-whatsapp-oficial", "#whatsapp-estado-conteudo");
-    assert.equal(ativou, true, "Funcionário com permissão de ver 'whatsapp' deveria conseguir abrir a tela");
+        const ativou = await ativarView(page, "view-whatsapp-oficial", "#whatsapp-estado-conteudo");
+        assert.equal(ativou, true, "Funcionário com permissão de ver 'whatsapp' deveria conseguir abrir a tela");
 
-    const btnValidar = page.locator("#whatsapp-btn-validar");
-    await page.waitForSelector("#whatsapp-btn-validar", { state: "attached", timeout: 10000 });
-    const desabilitado = await btnValidar.isDisabled();
-    assert.equal(desabilitado, true, "Só o dono pode validar a conexão — funcionário deveria ver o botão desabilitado");
+        const btnValidar = page.locator("#whatsapp-btn-validar");
+        await page.waitForSelector("#whatsapp-btn-validar", { state: "attached", timeout: 10000 });
+        const desabilitado = await btnValidar.isDisabled();
+        assert.equal(desabilitado, true, "Só o dono pode validar a conexão — funcionário deveria ver o botão desabilitado");
 
-    console.log("whatsapp-oficial.flow: OK (funcionário leitor) — vê o status, não pode validar.");
+        const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
+        if (errosRelevantes.length > 0) {
+            throw new Error(`erros de JS: ${JSON.stringify(errosRelevantes)}`);
+        }
+
+        console.log("whatsapp-oficial.flow: OK (funcionário leitor) — vê o status, não pode validar.");
+    } catch (error) {
+        await captureDiagnostics(page, "whatsapp-funcionario-flow", erros.filter(erro => !ehErroDeRedeExterno(erro)));
+        throw error;
+    } finally {
+        await page.close();
+        await contexto.close();
+    }
 }
 
 async function flowInboxWhatsapp(page) {
@@ -229,15 +254,11 @@ async function main() {
             }
         }
 
-        erros.length = 0;
+        // Contexto/página ISOLADOS do owner (ver comentário em
+        // flowFuncionarioLeitura) — não reusa `page`/`erros` daqui.
         try {
-            await flowFuncionarioLeitura(page, baseUrl);
-            const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
-            if (errosRelevantes.length > 0) {
-                throw new Error(`erros de JS: ${JSON.stringify(errosRelevantes)}`);
-            }
+            await flowFuncionarioLeitura(browser, baseUrl);
         } catch (error) {
-            await captureDiagnostics(page, "whatsapp-funcionario-flow", erros.filter(erro => !ehErroDeRedeExterno(erro)));
             falhas.push(`whatsapp-funcionario: ${error.message}`);
             console.error("whatsapp-funcionario.flow: FALHOU —", error.message);
         }

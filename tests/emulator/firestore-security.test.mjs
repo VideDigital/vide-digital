@@ -2634,17 +2634,23 @@ describe("WhatsApp Oficial V1: coleções privadas — só leitura autorizada, e
     });
   }
 
-  it("dono lê a própria conexão", async () => {
+  // Revisão (multiconexão): leitura direta do documento foi DESATIVADA de
+  // propósito (o documento inclui tokenSecretResource) — inclusive pra
+  // quem antes conseguia ler (dono, funcionário com "whatsapp"). Todo
+  // acesso legítimo passa pelas Cloud Functions
+  // whatsappConnectionStatus/whatsappListConnections, que nunca devolvem
+  // esse campo.
+  it("nem o dono lê o documento direto — só via Cloud Function (whatsappConnectionStatus)", async () => {
     await semear();
-    await assertSucceeds(getDoc(doc(authed("ownerA"), "whatsapp_connections", "ownerA")));
+    await assertFails(getDoc(doc(authed("ownerA"), "whatsapp_connections", "ownerA")));
   });
 
-  it("funcionário com permissão própria \"whatsapp\" lê a conexão do próprio tenant", async () => {
+  it("nem funcionário com permissão própria \"whatsapp\" lê o documento direto", async () => {
     await semear();
-    await assertSucceeds(getDoc(doc(authed("employeeWhatsappVer"), "whatsapp_connections", "ownerA")));
+    await assertFails(getDoc(doc(authed("employeeWhatsappVer"), "whatsapp_connections", "ownerA")));
   });
 
-  it("funcionário com permissão de atendimento (sem \"whatsapp\") não lê mais a conexão — módulo é separado", async () => {
+  it("funcionário com permissão de atendimento (sem \"whatsapp\") não lê a conexão — módulo é separado", async () => {
     await semear();
     await assertFails(getDoc(doc(authed("employeeAtendimentoVer"), "whatsapp_connections", "ownerA")));
   });
