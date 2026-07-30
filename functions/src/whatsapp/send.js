@@ -11,7 +11,7 @@ const { assertRateLimit } = require("../shared/rateLimit");
 const { normalizeString, publicText } = require("../shared/validators");
 const { writeAudit } = require("../audit");
 const { REGION, COLLECTIONS, ERROR_CODES, ERROR_MESSAGES, RATE_LIMITS } = require("./constants");
-const secrets = require("./secrets");
+const resolver = require("./resolver");
 const { criarMetaClient } = require("./metaClient");
 const { janelaAberta, identificadorRateLimit, safeWamid, mascararSegredo, validarParametrosTemplate } = require("./validators");
 
@@ -46,12 +46,16 @@ function avaliarTemplate(template, ownerUid) {
   return { ok: true };
 }
 
-async function carregarConexao(db, ownerUid) {
-  const snap = await db.doc(`${COLLECTIONS.CONNECTIONS}/${ownerUid}`).get();
-  const conexao = snap.exists ? snap.data() || {} : null;
-  const avaliacao = avaliarConexao(conexao);
+// Nunca lê whatsapp_connections/{ownerUid} direto de novo — passa pelo
+// resolver.js, que decide entre a conexão explícita do chat (connectionId),
+// a conexão default nova, ou o piloto legado (nesta ordem, sem nunca
+// escolher aleatoriamente). Devolve a conexão resolvida INTEIRA (não só
+// os dados) pra quem chamar poder pedir o token certo depois.
+async function carregarConexaoResolvida(db, { ownerUid, connectionId }) {
+  const resolvido = await resolver.resolverConexao(db, { ownerUid, connectionId });
+  const avaliacao = avaliarConexao(resolvido.connection);
   if (!avaliacao.ok) throw erroPublico(avaliacao.code);
-  return conexao;
+  return resolvido;
 }
 
 async function carregarChatDoTenant(db, chatId, ownerUid) {
@@ -91,14 +95,18 @@ const whatsappSendText = onCall({ region: REGION }, async (request) => {
   });
 
   const db = getFirestore();
-  const conexao = await carregarConexao(db, context.ownerUid);
   const { chatRef, chat } = await carregarChatDoTenant(db, chatId, context.ownerUid);
+  // Sempre a conexão de ORIGEM da conversa (chat.whatsappConnectionId) —
+  // nunca a conexão default do momento, que pode ter mudado desde que a
+  // conversa foi criada (ver docs/WHATSAPP_MODULO_MULTICONEXAO.md).
+  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId: chat.whatsappConnectionId });
+  const conexao = resolvido.connection;
 
   if (!janelaAberta(chat.whatsappJanelaAtendimentoAte)) throw erroPublico(ERROR_CODES.WINDOW_CLOSED);
 
   let accessToken;
   try {
-    accessToken = await secrets.accessTenantToken(context.ownerUid);
+    accessToken = await resolver.resolverToken(resolvido);
   } catch (erro) {
     throw mapearErroMeta(erro);
   }
@@ -129,7 +137,7 @@ const whatsappSendText = onCall({ region: REGION }, async (request) => {
     });
   } catch (erro) {
     await marcarMensagemFalha(mensagemRef, erro);
-    if (erro?.code === ERROR_CODES.TOKEN_REVOKED) secrets.limparCacheToken(context.ownerUid);
+    if (erro?.code === ERROR_CODES.TOKEN_REVOKED) resolver.limparCacheTokenResolvido(resolvido);
     throw mapearErroMeta(erro);
   }
 
@@ -174,8 +182,9 @@ const whatsappSendTemplate = onCall({ region: REGION }, async (request) => {
   });
 
   const db = getFirestore();
-  const conexao = await carregarConexao(db, context.ownerUid);
   const { chatRef, chat } = await carregarChatDoTenant(db, chatId, context.ownerUid);
+  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId: chat.whatsappConnectionId });
+  const conexao = resolvido.connection;
 
   const templateSnap = await db.doc(`${COLLECTIONS.TEMPLATES}/${templateId}`).get();
   const template = templateSnap.exists ? templateSnap.data() || {} : null;
@@ -192,7 +201,7 @@ const whatsappSendTemplate = onCall({ region: REGION }, async (request) => {
 
   let accessToken;
   try {
-    accessToken = await secrets.accessTenantToken(context.ownerUid);
+    accessToken = await resolver.resolverToken(resolvido);
   } catch (erro) {
     throw mapearErroMeta(erro);
   }
@@ -224,7 +233,7 @@ const whatsappSendTemplate = onCall({ region: REGION }, async (request) => {
     });
   } catch (erro) {
     await marcarMensagemFalha(mensagemRef, erro);
-    if (erro?.code === ERROR_CODES.TOKEN_REVOKED) secrets.limparCacheToken(context.ownerUid);
+    if (erro?.code === ERROR_CODES.TOKEN_REVOKED) resolver.limparCacheTokenResolvido(resolvido);
     throw mapearErroMeta(erro);
   }
 
@@ -278,8 +287,9 @@ const whatsappMarkRead = onCall({ region: REGION }, async (request) => {
   });
 
   const db = getFirestore();
-  const conexao = await carregarConexao(db, context.ownerUid);
-  const { chatRef } = await carregarChatDoTenant(db, chatId, context.ownerUid);
+  const { chatRef, chat } = await carregarChatDoTenant(db, chatId, context.ownerUid);
+  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId: chat.whatsappConnectionId });
+  const conexao = resolvido.connection;
 
   const mensagemRef = chatRef.collection("mensagens").doc(mensagemId);
   const mensagemSnap = await mensagemRef.get();
@@ -289,7 +299,7 @@ const whatsappMarkRead = onCall({ region: REGION }, async (request) => {
 
   let accessToken;
   try {
-    accessToken = await secrets.accessTenantToken(context.ownerUid);
+    accessToken = await resolver.resolverToken(resolvido);
   } catch (erro) {
     throw mapearErroMeta(erro);
   }
@@ -304,29 +314,55 @@ const whatsappMarkRead = onCall({ region: REGION }, async (request) => {
   return { ok: true };
 });
 
-// Só permissões de leitura de "atendimento" ou "configuracoes" — decisão
-// documentada em docs/WHATSAPP_OFICIAL.md.
+// Permissão própria do módulo WhatsApp ("whatsapp", ver/editar — mesmo
+// padrão de "atendimento"/"crm"). O dono sempre pode; um funcionário
+// precisa da permissão explícita, nunca herda de "atendimento" ou
+// "configuracoes" mais (separação de propósito desta missão — ver
+// docs/WHATSAPP_MODULO_MULTICONEXAO.md). "Ver" mostra metadados seguros;
+// só "gerenciar" (editar) pode validar conexão, mudar o padrão ou
+// futuramente iniciar/concluir onboarding.
+const PERMISSAO_MODULO_WHATSAPP = "whatsapp";
+
 function podeVerConexao(context) {
   if (context.isAdmin || context.isOwner) return true;
   const ver = context.permissions?.ver || [];
   const editar = context.permissions?.editar || [];
-  return ver.includes("atendimento") || editar.includes("atendimento")
-    || ver.includes("configuracoes") || editar.includes("configuracoes");
+  return ver.includes(PERMISSAO_MODULO_WHATSAPP) || editar.includes(PERMISSAO_MODULO_WHATSAPP);
+}
+
+function podeGerenciarConexao(context) {
+  if (context.isAdmin || context.isOwner) return true;
+  const editar = context.permissions?.editar || [];
+  return editar.includes(PERMISSAO_MODULO_WHATSAPP);
+}
+
+// Ref real do documento resolvido — nunca escreve num id inventado; usa
+// exatamente o mesmo documento que resolver.js encontrou (legado por
+// ownerUid, ou novo por connectionId).
+function refConexaoResolvida(db, resolvido, ownerUid) {
+  const id = resolvido.legacy ? ownerUid : resolvido.connectionId;
+  return db.doc(`${COLLECTIONS.CONNECTIONS}/${id}`);
 }
 
 const whatsappConnectionStatus = onCall({ region: REGION }, async (request) => {
   const context = await resolveCallerContext(request);
   if (!podeVerConexao(context)) throw new HttpsError("permission-denied", "Permissão insuficiente.");
 
+  const connectionId = normalizeString(request.data?.connectionId, 200);
   const db = getFirestore();
-  const snap = await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).get();
-  if (!snap.exists) return { ok: true, connected: false, status: "disconnected" };
+  const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId });
+  if (!resolvido.connection) return { ok: true, connected: false, status: "disconnected" };
 
-  const dados = snap.data() || {};
+  const dados = resolvido.connection;
   // Nunca devolve tokenSecretResource (nome do recurso do Secret Manager)
   // nem qualquer campo de segredo — só o que a UI precisa mostrar.
   return {
     ok: true,
+    connectionId: resolvido.connectionId,
+    legacy: resolvido.legacy,
+    label: dados.label || "",
+    isDefault: resolvido.legacy ? true : Boolean(dados.isDefault),
+    providerMode: dados.providerMode || "",
     connected: dados.status === "connected",
     status: dados.status || "disconnected",
     displayPhoneNumber: dados.displayPhoneNumber || "",
@@ -345,7 +381,7 @@ const whatsappConnectionStatus = onCall({ region: REGION }, async (request) => {
 
 const whatsappValidateConnection = onCall({ region: REGION }, async (request) => {
   const context = await resolveCallerContext(request);
-  if (!context.isOwner && !context.isAdmin) throw new HttpsError("permission-denied", "Somente o dono da loja pode validar a conexão.");
+  if (!podeGerenciarConexao(context)) throw new HttpsError("permission-denied", "Permissão insuficiente para validar a conexão.");
 
   await assertRateLimit({
     scope: "whatsappValidateConnection",
@@ -353,21 +389,23 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
     max: RATE_LIMITS.CONNECTION_VALIDATE_PER_MIN
   });
 
+  const connectionId = normalizeString(request.data?.connectionId, 200);
   const db = getFirestore();
-  const conexao = await carregarConexao(db, context.ownerUid);
+  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId });
+  const conexaoRef = refConexaoResolvida(db, resolvido, context.ownerUid);
 
   let accessToken;
   try {
-    accessToken = await secrets.accessTenantToken(context.ownerUid);
+    accessToken = await resolver.resolverToken(resolvido);
   } catch (erro) {
     throw mapearErroMeta(erro);
   }
 
   let dadosNumero;
   try {
-    dadosNumero = await metaClient.getPhoneNumber({ accessToken, phoneNumberId: conexao.phoneNumberId });
+    dadosNumero = await metaClient.getPhoneNumber({ accessToken, phoneNumberId: resolvido.connection.phoneNumberId });
   } catch (erro) {
-    await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).set({
+    await conexaoRef.set({
       status: erro?.code === ERROR_CODES.TOKEN_REVOKED ? "revoked" : "degraded",
       lastErrorCode: erro?.code || ERROR_CODES.PROVIDER_UNAVAILABLE,
       lastErrorAt: FieldValue.serverTimestamp(),
@@ -377,7 +415,7 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
     throw mapearErroMeta(erro);
   }
 
-  await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).set({
+  await conexaoRef.set({
     status: "connected",
     displayPhoneNumber: dadosNumero?.display_phone_number || "",
     verifiedName: dadosNumero?.verified_name || "",
@@ -393,10 +431,12 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
     ownerUid: context.ownerUid,
     authUid: context.authUid,
     module: "atendimento",
-    targetId: context.ownerUid,
+    targetId: resolvido.legacy ? context.ownerUid : resolvido.connectionId,
     action: "whatsapp.conexao_validada",
     risk: "medium",
-    summary: "Conexão do WhatsApp Oficial validada manualmente.",
+    summary: resolvido.legacy
+      ? "Conexão do WhatsApp Oficial (piloto legado) validada manualmente."
+      : `Conexão do WhatsApp Oficial "${resolvido.connection.label || resolvido.connectionId}" validada manualmente.`,
     source: "function"
   });
 
@@ -412,5 +452,6 @@ module.exports = {
   avaliarConexao,
   avaliarTemplate,
   montarComponentesEnvio,
-  podeVerConexao
+  podeVerConexao,
+  podeGerenciarConexao
 };

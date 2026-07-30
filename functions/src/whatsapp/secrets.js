@@ -35,6 +35,18 @@ const WHATSAPP_WEBHOOK_VERIFY_TOKEN = defineSecret("WHATSAPP_WEBHOOK_VERIFY_TOKE
 const TENANT_SECRET_PREFIX = "vide-whatsapp-token-";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
+// ---------- Multiconexão (Fase 2) ----------
+// Um secret por CONEXÃO (não mais só por tenant): "vide-whatsapp-token-
+// <hash ownerUid+connectionId>". O secret legado (tenantSecretId, hash só
+// de ownerUid) nunca é apagado nem reescrito por esta função — continua
+// existindo em paralelo pro piloto atual, ver resolver.js pra qual dos
+// dois é realmente usado em cada operação.
+function tenantConnectionSecretId(ownerUid, connectionId) {
+  const chave = `${String(ownerUid || "")}:${String(connectionId || "")}`;
+  const hash = crypto.createHash("sha256").update(chave).digest("hex").slice(0, 24);
+  return `${TENANT_SECRET_PREFIX}${hash}`;
+}
+
 let clientSingleton = null;
 function client() {
   if (!clientSingleton) clientSingleton = new SecretManagerServiceClient();
@@ -63,22 +75,28 @@ function secretResource(secretId) {
 // Cache local ao processo — nunca sobrevive a um cold start, nunca é
 // escrito em disco/Firestore. Só existe pra evitar uma leitura no Secret
 // Manager a cada mensagem enviada dentro da mesma instância "quente".
-const cacheTokens = new Map(); // secretId -> { value, expiresAt }
+// Chave = nome completo do recurso da VERSÃO ("projects/…/secrets/…/
+// versions/…") — assim accessTenantToken/accessConnectionToken/
+// accessTokenByResource nunca colidem nem duplicam cache mesmo quando
+// apontam pro mesmo secret físico (mesma versão resolvida = mesma chave).
+const cacheTokens = new Map(); // versionResource -> { value, expiresAt }
 
-async function accessTenantToken(ownerUid) {
-  const secretId = tenantSecretId(ownerUid);
+// Núcleo compartilhado por qualquer secret de tenant/conexão — legado ou
+// novo, a mecânica de acesso/cache/erro é idêntica; só o nome do recurso
+// da versão muda.
+async function acessarTokenPorVersao(versionResource) {
   const agora = Date.now();
-  const emCache = cacheTokens.get(secretId);
+  const emCache = cacheTokens.get(versionResource);
   if (emCache && emCache.expiresAt > agora) return emCache.value;
 
   try {
-    const [versao] = await client().accessSecretVersion({ name: secretVersionResource(secretId) });
+    const [versao] = await client().accessSecretVersion({ name: versionResource });
     const valor = versao?.payload?.data ? versao.payload.data.toString("utf8") : "";
     if (!valor) throw new Error("empty-secret-payload");
-    cacheTokens.set(secretId, { value: valor, expiresAt: agora + CACHE_TTL_MS });
+    cacheTokens.set(versionResource, { value: valor, expiresAt: agora + CACHE_TTL_MS });
     return valor;
   } catch (erroOriginal) {
-    cacheTokens.delete(secretId);
+    cacheTokens.delete(versionResource);
     const notFound = erroOriginal?.code === 5; // grpc NOT_FOUND
     const erro = new Error(notFound ? "Conexão WhatsApp não encontrada." : "Não foi possível acessar as credenciais do WhatsApp.");
     erro.code = notFound ? "WHATSAPP_NOT_CONNECTED" : "WHATSAPP_PROVIDER_UNAVAILABLE";
@@ -86,11 +104,51 @@ async function accessTenantToken(ownerUid) {
   }
 }
 
+async function accessTenantToken(ownerUid) {
+  return acessarTokenPorVersao(secretVersionResource(tenantSecretId(ownerUid)));
+}
+
+// Token da conexão NOVA (ownerUid + connectionId) — usado só na hora de
+// PROVISIONAR de verdade uma conexão nova com seu próprio secret (fora do
+// escopo desta missão). O resolver.js normal usa accessTokenByResource,
+// que lê o secret que o próprio documento da conexão já aponta — nunca
+// recalcula o nome do secret a partir de ownerUid/connectionId.
+async function accessConnectionToken({ ownerUid, connectionId }) {
+  return acessarTokenPorVersao(secretVersionResource(tenantConnectionSecretId(ownerUid, connectionId)));
+}
+
+// Lê um secret por um resource name explícito (projects/X/secrets/Y,
+// com ou sem /versions/N já incluído) — usado pelo resolver.js a partir
+// do campo tokenSecretResource já gravado no documento da conexão
+// (legada ou nova). Preserva 100% do comportamento de migração: uma
+// conexão migrada do piloto legado pode continuar apontando pro MESMO
+// secret legado (nunca precisa copiar o valor do token pra isso).
+async function accessTokenByResource(resourceName) {
+  const recurso = String(resourceName || "");
+  if (!recurso) throw Object.assign(new Error("Conexão WhatsApp não encontrada."), { code: "WHATSAPP_NOT_CONNECTED" });
+  const versionResource = /\/versions\/[^/]+$/.test(recurso) ? recurso : `${recurso}/versions/latest`;
+  return acessarTokenPorVersao(versionResource);
+}
+
 // Chamado quando um envio falha por token inválido/revogado, ou quando a
 // conexão é desconectada — nunca deixa uma leitura seguinte reusar um
 // valor que já sabemos estar ruim.
 function limparCacheToken(ownerUid) {
-  cacheTokens.delete(tenantSecretId(ownerUid));
+  cacheTokens.delete(secretVersionResource(tenantSecretId(ownerUid)));
+}
+
+function limparCacheTokenConexao(ownerUid, connectionId) {
+  cacheTokens.delete(secretVersionResource(tenantConnectionSecretId(ownerUid, connectionId)));
+}
+
+// Limpa o cache pelo mesmo resource name usado por accessTokenByResource
+// — é o que o resolver.js realmente usa no caminho normal (conexão
+// legada ou nova, ambas por tokenSecretResource).
+function limparCacheTokenPorResource(resourceName) {
+  const recurso = String(resourceName || "");
+  if (!recurso) return;
+  const versionResource = /\/versions\/[^/]+$/.test(recurso) ? recurso : `${recurso}/versions/latest`;
+  cacheTokens.delete(versionResource);
 }
 
 // ---------- Só para os scripts administrativos (provision/disconnect) ----------
@@ -138,8 +196,14 @@ module.exports = {
   WHATSAPP_APP_SECRET,
   WHATSAPP_WEBHOOK_VERIFY_TOKEN,
   tenantSecretId,
+  tenantConnectionSecretId,
+  secretResource,
   accessTenantToken,
+  accessConnectionToken,
+  accessTokenByResource,
   limparCacheToken,
+  limparCacheTokenConexao,
+  limparCacheTokenPorResource,
   secretTenantExiste,
   adicionarVersaoTokenTenant,
   desabilitarUltimaVersaoTenant

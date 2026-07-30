@@ -2603,6 +2603,13 @@ describe("WhatsApp Oficial V1: coleções privadas — só leitura autorizada, e
   async function semear() {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       const db = context.firestore();
+      // Permissão própria "whatsapp" (Fase 2/4 da multiconexão) — nunca
+      // mais herdada de "atendimento"/"configuracoes" sozinha.
+      await setDoc(doc(db, "funcionarios", "employeeWhatsappVer"), {
+        donoUID: "ownerA",
+        status: "ativo",
+        permissoes: { ver: ["whatsapp"], editar: [] }
+      });
       await setDoc(doc(db, "funcionarios", "employeeAtendimentoVer"), {
         donoUID: "ownerA",
         status: "ativo",
@@ -2632,12 +2639,17 @@ describe("WhatsApp Oficial V1: coleções privadas — só leitura autorizada, e
     await assertSucceeds(getDoc(doc(authed("ownerA"), "whatsapp_connections", "ownerA")));
   });
 
-  it("funcionário com permissão de ver atendimento lê a conexão do próprio tenant", async () => {
+  it("funcionário com permissão própria \"whatsapp\" lê a conexão do próprio tenant", async () => {
     await semear();
-    await assertSucceeds(getDoc(doc(authed("employeeAtendimentoVer"), "whatsapp_connections", "ownerA")));
+    await assertSucceeds(getDoc(doc(authed("employeeWhatsappVer"), "whatsapp_connections", "ownerA")));
   });
 
-  it("funcionário sem permissão de atendimento/configuracoes não lê a conexão", async () => {
+  it("funcionário com permissão de atendimento (sem \"whatsapp\") não lê mais a conexão — módulo é separado", async () => {
+    await semear();
+    await assertFails(getDoc(doc(authed("employeeAtendimentoVer"), "whatsapp_connections", "ownerA")));
+  });
+
+  it("funcionário sem nenhuma permissão relevante não lê a conexão", async () => {
     await semear();
     await assertFails(getDoc(doc(authed("employeeRead"), "whatsapp_connections", "ownerA")));
   });

@@ -34,7 +34,7 @@ const ALREADY_EXISTS_CODE = 6; // grpc status ALREADY_EXISTS (usado por doc.crea
 // computarEventoAuditoria em functions/src/audit/triggers.js. Recebem
 // dados já lidos e devolvem só o que gravar; quem chama (funções abaixo)
 // faz a leitura/escrita real e junta os valores de servidor (FieldValue).
-function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, providerTimestamp, contatoExistente, clienteEncontradoId }) {
+function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId }) {
   const janelaAte = calcularExpiracaoJanela(providerTimestamp);
 
   if (contatoExistente?.chatId) {
@@ -49,6 +49,9 @@ function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, pr
         ultimaMensagem: "",
         status: "aguardando_equipe",
         statusAdmin: "pendente"
+        // Nunca reatribui whatsappConnectionId numa conversa já
+        // existente — a conversa mantém a conexão que a criou pra
+        // sempre responder pela mesma (ver docs/WHATSAPP_MODULO_MULTICONEXAO.md).
       }
     };
   }
@@ -70,6 +73,9 @@ function montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, pr
       whatsappUltimaMensagemClienteEm: providerTimestamp,
       whatsappJanelaAtendimentoAte: janelaAte,
       whatsappConnectionOwnerUid: ownerUid,
+      // "" (conexão legada) nunca é gravado como campo — omitido, pra
+      // nunca confundir com uma string vazia de verdade.
+      ...(connectionId ? { whatsappConnectionId: connectionId } : {}),
       ...(clienteEncontradoId ? { clienteId: clienteEncontradoId } : {}),
       timestamp: Date.now()
     },
@@ -121,13 +127,19 @@ function decidirAtualizacaoStatus({ dadosAtuais, ownerUid, evento }) {
   };
 }
 
-async function resolverOwnerUidPorPhoneNumberId(db, phoneNumberId) {
-  if (!phoneNumberId) return "";
+// Devolve { ownerUid, connectionId } — connectionId vem do próprio
+// documento de rota quando ele já foi migrado/criado pro modelo novo
+// (Fase 2); "" quando a rota ainda é do piloto legado (rota só com
+// ownerUid, sem connectionId — resolver.js cai pro documento legado
+// nesse caso). Nunca confia em nada além deste documento pra decidir o
+// tenant — o payload da Meta nunca é fonte de verdade pra isso.
+async function resolverRotaPorPhoneNumberId(db, phoneNumberId) {
+  if (!phoneNumberId) return { ownerUid: "", connectionId: "" };
   const snap = await db.doc(`${COLLECTIONS.PHONE_ROUTES}/${phoneNumberId}`).get();
-  if (!snap.exists) return "";
+  if (!snap.exists) return { ownerUid: "", connectionId: "" };
   const dados = snap.data() || {};
-  if (dados.connectionStatus === "revoked") return "";
-  return String(dados.ownerUid || "");
+  if (dados.connectionStatus === "revoked") return { ownerUid: "", connectionId: "" };
+  return { ownerUid: String(dados.ownerUid || ""), connectionId: String(dados.connectionId || "") };
 }
 
 // Dedupe leve — a mesma reentrega de webhook da Meta (mesmo wamid/status,
@@ -168,14 +180,14 @@ async function tentarVincularClienteCRM(db, ownerUid, waId) {
   }
 }
 
-async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumberId, providerTimestamp }) {
+async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumberId, connectionId, providerTimestamp }) {
   const contactHash = hashContato(ownerUid, waId);
   const contactRef = db.doc(`${COLLECTIONS.CONTACT_MAP}/${ownerUid}_${contactHash}`);
   const contactSnap = await contactRef.get();
   const contatoExistente = contactSnap.exists ? contactSnap.data() : null;
   const clienteEncontradoId = contatoExistente?.chatId ? "" : await tentarVincularClienteCRM(db, ownerUid, waId);
 
-  const plano = montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, providerTimestamp, contatoExistente, clienteEncontradoId });
+  const plano = montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId });
 
   if (!plano.novoChat) {
     await contactRef.set({ ...plano.contactUpdate, lastSeenAt: FieldValue.serverTimestamp() }, { merge: true });
@@ -204,7 +216,7 @@ async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumbe
   return chatRef.id;
 }
 
-async function processarMensagemInbound(db, ownerUid, evento) {
+async function processarMensagemInbound(db, ownerUid, evento, connectionId) {
   const waId = normalizarWaId(evento.waId);
   if (!waIdValido(waId) || !evento.wamid) return;
 
@@ -230,6 +242,7 @@ async function processarMensagemInbound(db, ownerUid, evento) {
     waId,
     profileName: evento.profileName,
     phoneNumberId: evento.phoneNumberId,
+    connectionId,
     providerTimestamp: evento.providerTimestamp
   });
 
@@ -296,7 +309,7 @@ async function processarEventosWebhook(body) {
 
   for (const evento of eventos) {
     try {
-      const ownerUid = await resolverOwnerUidPorPhoneNumberId(db, evento.phoneNumberId);
+      const { ownerUid, connectionId } = await resolverRotaPorPhoneNumberId(db, evento.phoneNumberId);
       if (!ownerUid) continue; // número não roteado a nenhum tenant conectado — descarta
 
       const chaveDedupe = hashEventoWebhook({
@@ -308,7 +321,7 @@ async function processarEventosWebhook(body) {
       if (await jaProcessado(db, chaveDedupe)) continue;
 
       if (evento.categoria === "mensagem") {
-        await processarMensagemInbound(db, ownerUid, evento);
+        await processarMensagemInbound(db, ownerUid, evento, connectionId);
       } else if (evento.categoria === "status") {
         await processarStatusOutbound(db, ownerUid, evento);
       }
@@ -375,5 +388,6 @@ module.exports = {
   processarEventosWebhook,
   montarPlanoChatInbound,
   montarMensagemInboundDoc,
-  decidirAtualizacaoStatus
+  decidirAtualizacaoStatus,
+  resolverRotaPorPhoneNumberId
 };

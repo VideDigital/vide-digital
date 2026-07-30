@@ -286,15 +286,29 @@ describe("whatsapp/send — montarComponentesEnvio", () => {
     });
 });
 
-describe("whatsapp/send — podeVerConexao (permissões da conexão)", () => {
-    it("dono sempre pode ver", () => {
+describe("whatsapp/send — podeVerConexao / podeGerenciarConexao (permissão própria 'whatsapp')", () => {
+    it("dono sempre pode ver e gerenciar", () => {
         assert.equal(send.podeVerConexao({ isOwner: true, permissions: {} }), true);
+        assert.equal(send.podeGerenciarConexao({ isOwner: true, permissions: {} }), true);
     });
-    it("funcionário com ver/editar atendimento pode ver", () => {
-        assert.equal(send.podeVerConexao({ permissions: { ver: ["atendimento"], editar: [] } }), true);
+    it("admin sempre pode ver e gerenciar", () => {
+        assert.equal(send.podeVerConexao({ isAdmin: true, permissions: {} }), true);
+        assert.equal(send.podeGerenciarConexao({ isAdmin: true, permissions: {} }), true);
     });
-    it("funcionário sem nenhuma das duas permissões não pode ver", () => {
+    it("funcionário com ver 'whatsapp' pode ver, mas não gerenciar", () => {
+        assert.equal(send.podeVerConexao({ permissions: { ver: ["whatsapp"], editar: [] } }), true);
+        assert.equal(send.podeGerenciarConexao({ permissions: { ver: ["whatsapp"], editar: [] } }), false);
+    });
+    it("funcionário com editar 'whatsapp' pode ver e gerenciar", () => {
+        assert.equal(send.podeVerConexao({ permissions: { ver: [], editar: ["whatsapp"] } }), true);
+        assert.equal(send.podeGerenciarConexao({ permissions: { ver: [], editar: ["whatsapp"] } }), true);
+    });
+    it("permissão de 'atendimento' sozinha NÃO dá mais acesso ao módulo WhatsApp (separação da Fase 4)", () => {
+        assert.equal(send.podeVerConexao({ permissions: { ver: ["atendimento"], editar: ["atendimento"] } }), false);
+    });
+    it("funcionário sem nenhuma permissão não pode ver nem gerenciar", () => {
         assert.equal(send.podeVerConexao({ permissions: { ver: ["produtos"], editar: [] } }), false);
+        assert.equal(send.podeGerenciarConexao({ permissions: { ver: ["produtos"], editar: [] } }), false);
     });
 });
 

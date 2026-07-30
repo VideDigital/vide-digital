@@ -10,9 +10,10 @@ const { resolveCallerContext, requireEdit } = require("../shared/context");
 const { assertRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
 const { REGION, COLLECTIONS, ERROR_CODES, ERROR_MESSAGES, RATE_LIMITS } = require("./constants");
-const secrets = require("./secrets");
+const resolver = require("./resolver");
 const { criarMetaClient } = require("./metaClient");
 const { identificadorRateLimit } = require("./validators");
+const { normalizeString } = require("../shared/validators");
 
 const metaClient = criarMetaClient();
 
@@ -68,15 +69,16 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
     max: RATE_LIMITS.TEMPLATE_SYNC_PER_HOUR
   });
 
+  const connectionId = normalizeString(request.data?.connectionId, 200);
   const db = getFirestore();
-  const conexaoSnap = await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).get();
-  if (!conexaoSnap.exists) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
-  const conexao = conexaoSnap.data() || {};
+  const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId });
+  if (!resolvido.connection) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
+  const conexao = resolvido.connection;
   if (!conexao.wabaId) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
 
   let accessToken;
   try {
-    accessToken = await secrets.accessTenantToken(context.ownerUid);
+    accessToken = await resolver.resolverToken(resolvido);
   } catch (erro) {
     throw erroPublico(erro?.code || ERROR_CODES.NOT_CONNECTED);
   }
@@ -102,7 +104,8 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
   }
   if (sincronizados > 0) await batch.commit();
 
-  await db.doc(`${COLLECTIONS.CONNECTIONS}/${context.ownerUid}`).set({
+  const conexaoRef = db.doc(`${COLLECTIONS.CONNECTIONS}/${resolvido.legacy ? context.ownerUid : resolvido.connectionId}`);
+  await conexaoRef.set({
     lastTemplateSyncAt: FieldValue.serverTimestamp(),
     updatedAt: FieldValue.serverTimestamp(),
     updatedBy: context.authUid

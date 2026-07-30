@@ -1754,13 +1754,16 @@ allow update: if (
     // mapa de idempotência, dedupe de webhook, contato/consentimento)
     // precisa ser decidido pelo servidor, nunca aceito do navegador. Ver
     // docs/WHATSAPP_OFICIAL.md.
-    match /whatsapp_connections/{ownerUid} {
-      // Decisão documentada: dono sempre; funcionário só se tiver
-      // permissão de ver OU editar "atendimento" OU "configuracoes"
-      // (mesma checagem de podeVerConexao() em functions/src/whatsapp/send.js).
-      allow read: if isBackendAdmin()
-        || canViewTenant(ownerUid, "atendimento")
-        || canViewTenant(ownerUid, "configuracoes");
+    // Fase 2 (multiconexão): o ID do documento NÃO é mais sempre o
+    // ownerUid — o modelo novo usa um connectionId aleatório (o piloto
+    // legado continua com ID = ownerUid, nunca reescrito). Por isso a
+    // checagem usa resource.data.ownerUid (campo, presente nos dois
+    // modelos) em vez do id do documento — funciona igual pros dois.
+    // Permissão própria "whatsapp" (ver/editar) — nunca mais herdada de
+    // "atendimento"/"configuracoes" (separação de módulo desta missão,
+    // ver docs/WHATSAPP_MODULO_MULTICONEXAO.md).
+    match /whatsapp_connections/{connectionDocId} {
+      allow read: if isBackendAdmin() || canViewTenant(resource.data.ownerUid, "whatsapp");
       allow write: if false;
     }
 

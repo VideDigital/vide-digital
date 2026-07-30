@@ -32,6 +32,40 @@ const CONNECTION_STATUS = Object.freeze([
 ]);
 const CONNECTION_STATUS_SET = new Set(CONNECTION_STATUS);
 
+// ---------- Multiconexão (Fase 2) ----------
+// provider é sempre meta_cloud_api nesta missão — nenhum outro provedor
+// (WhatsApp Web não oficial, etc.) é ou será suportado, ver
+// docs/WHATSAPP_MODULO_MULTICONEXAO.md.
+const CONNECTION_PROVIDER = Object.freeze(["meta_cloud_api"]);
+const CONNECTION_PROVIDER_SET = new Set(CONNECTION_PROVIDER);
+
+// official_cloud = número dedicado só à Cloud API (piloto atual).
+// official_coexistence = número existente também usado no app WhatsApp
+// Business normal, via Coexistência oficial da Meta — arquitetura
+// preparada nesta missão, fluxo real fica pra uma missão futura (ver
+// onboarding.js).
+const CONNECTION_PROVIDER_MODE = Object.freeze(["official_cloud", "official_coexistence"]);
+const CONNECTION_PROVIDER_MODE_SET = new Set(CONNECTION_PROVIDER_MODE);
+
+// piloto_assistido = como a conexão legada (V1) foi criada, por um
+// script administrativo. embedded_signup = fluxo self-service futuro
+// (Fase 7 — só contrato, não implementado).
+const CONNECTION_ONBOARDING_MODE = Object.freeze(["piloto_assistido", "embedded_signup"]);
+const CONNECTION_ONBOARDING_MODE_SET = new Set(CONNECTION_ONBOARDING_MODE);
+
+// connectionVersion distingue o documento legado (1, chave = ownerUid,
+// nunca reescrito por esta missão) do modelo novo multiconexão (2, chave
+// = connectionId aleatório) — nunca inferido por heurística de formato de
+// ID, sempre este campo explícito. Ver resolver.js.
+const CONNECTION_VERSION_LEGACY = 1;
+const CONNECTION_VERSION_MULTI = 2;
+
+// Limite duro da V1 — central, nunca hardcodado em outro arquivo. Preparo
+// consciente pra um limite por plano no futuro (ver
+// docs/WHATSAPP_MODULO_MULTICONEXAO.md), mas nenhuma integração de
+// cobrança/plano real existe ainda, então o limite é fixo por enquanto.
+const MAX_CONNECTIONS_PER_OWNER = 2;
+
 const MESSAGE_STATUS = Object.freeze(["queued", "accepted", "sent", "delivered", "read", "failed"]);
 const MESSAGE_STATUS_SET = new Set(MESSAGE_STATUS);
 // Ordem de progresso normal — usada por podeAtualizarStatusMensagem() pra
@@ -105,6 +139,15 @@ module.exports = {
   WINDOW_MS,
   CONNECTION_STATUS,
   CONNECTION_STATUS_SET,
+  CONNECTION_PROVIDER,
+  CONNECTION_PROVIDER_SET,
+  CONNECTION_PROVIDER_MODE,
+  CONNECTION_PROVIDER_MODE_SET,
+  CONNECTION_ONBOARDING_MODE,
+  CONNECTION_ONBOARDING_MODE_SET,
+  CONNECTION_VERSION_LEGACY,
+  CONNECTION_VERSION_MULTI,
+  MAX_CONNECTIONS_PER_OWNER,
   MESSAGE_STATUS,
   MESSAGE_STATUS_SET,
   MESSAGE_STATUS_RANK,
