@@ -1,8 +1,9 @@
-# Deploy dedicado só pras 7 Functions do WhatsApp Oficial V1 — SEPARADO
-# de "Deploy Firebase Functions (IA de Negócio)" (askBusinessAI/
+# Deploy dedicado só pras 9 Functions do WhatsApp (7 da V1 + 2 da Fase 4
+# multiconexão: whatsappListConnections/whatsappSetDefaultConnection) —
+# SEPARADO de "Deploy Firebase Functions (IA de Negócio)" (askBusinessAI/
 # askPublicBusinessAI), de "Deploy Firebase Functions — Auditoria" (os
 # 15 triggers) e de "Deploy Firebase Spark" (esse nunca publica
-# Functions). Publica SÓ as 7 Functions do WhatsApp
+# Functions). Publica SÓ as Functions do WhatsApp
 # (--only functions:whatsapp...), nunca "todas as functions" — nenhuma
 # outra Function é tocada por este workflow.
 #
@@ -32,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  WHATSAPP_FUNCTIONS: "functions:whatsappWebhook,functions:whatsappSendText,functions:whatsappSendTemplate,functions:whatsappMarkRead,functions:whatsappSyncTemplates,functions:whatsappConnectionStatus,functions:whatsappValidateConnection"
+  WHATSAPP_FUNCTIONS: "functions:whatsappWebhook,functions:whatsappSendText,functions:whatsappSendTemplate,functions:whatsappMarkRead,functions:whatsappSyncTemplates,functions:whatsappConnectionStatus,functions:whatsappValidateConnection,functions:whatsappListConnections,functions:whatsappSetDefaultConnection"
 
 jobs:
   validate-and-test:

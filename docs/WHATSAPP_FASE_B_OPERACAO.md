@@ -239,7 +239,9 @@ estarem verdes.
 5. `confirm_production`: `DEPLOY_WHATSAPP` (exatamente essa string).
 6. Aguarde terminar verde.
 
-Isso publica **só** as 7 Functions do WhatsApp
+Isso publica **só** as 9 Functions do WhatsApp (7 da V1 +
+`whatsappListConnections`/`whatsappSetDefaultConnection` da multiconexão,
+ver `docs/WHATSAPP_MODULO_MULTICONEXAO.md`)
 (`.github/workflows/firebase-deploy-whatsapp.yml`, `--only` explícito) —
 nunca `askBusinessAI`, `askPublicBusinessAI`, nem os 15 triggers da
 Auditoria Centralizada.
@@ -400,7 +402,8 @@ Em qualquer etapa, se algo der errado:
    ```bash
    gcloud functions delete whatsappWebhook whatsappSendText whatsappSendTemplate \
      whatsappMarkRead whatsappSyncTemplates whatsappConnectionStatus \
-     whatsappValidateConnection --project=vide-digital-saas --region=southamerica-east1
+     whatsappValidateConnection whatsappListConnections whatsappSetDefaultConnection \
+     --project=vide-digital-saas --region=southamerica-east1
    ```
    **Nunca** apague nenhuma outra Function (nem `askBusinessAI`,
    `askPublicBusinessAI`, nem os 15 triggers de auditoria) neste passo.

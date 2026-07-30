@@ -12,6 +12,13 @@ continuam funcionando sem alteração.
 CI real. Conexão real com a Meta depende de configuração externa (Fase B,
 fora deste repositório) — ver checklist no fim deste documento.
 
+**Atualização (multiconexão)**: a área de configuração da conexão saiu da
+Central de Atendimento e virou um módulo próprio no dashboard ("WhatsApp"),
+e o modelo passa a suportar até 2 conexões por loja, mantendo este piloto
+(V1, uma conexão por loja) 100% funcional sem nenhuma alteração — ver
+`docs/WHATSAPP_MODULO_MULTICONEXAO.md` para o modelo novo, o resolver
+retrocompatível e o script de migração (nunca executado em produção).
+
 ## Fontes oficiais consultadas
 
 `developers.facebook.com` retornou 403 Forbidden tanto a `WebFetch` quanto
