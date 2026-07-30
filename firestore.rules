@@ -1762,8 +1762,16 @@ allow update: if (
     // Permissão própria "whatsapp" (ver/editar) — nunca mais herdada de
     // "atendimento"/"configuracoes" (separação de módulo desta missão,
     // ver docs/WHATSAPP_MODULO_MULTICONEXAO.md).
+    // Revisão (multiconexão): leitura direta pelo cliente foi DESATIVADA
+    // de propósito — o documento inclui tokenSecretResource (o caminho do
+    // secret no Secret Manager, nunca o valor, mas ainda assim nunca deve
+    // chegar ao navegador). Todo acesso legítimo (dono, funcionário com a
+    // permissão "whatsapp", ou o console administrativo) passa pelas
+    // Cloud Functions whatsappConnectionStatus/whatsappListConnections,
+    // que devolvem só metadados seguros e nunca esse campo. Nenhum código
+    // do frontend depende de leitura direta desta coleção.
     match /whatsapp_connections/{connectionDocId} {
-      allow read: if isBackendAdmin() || canViewTenant(resource.data.ownerUid, "whatsapp");
+      allow read: if false;
       allow write: if false;
     }
 

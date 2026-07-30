@@ -32,16 +32,32 @@ import { initializeApp, applicationDefault, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
 import { construirPlanoMigracao, construirPlanoRollback, formatarRelatorio } from "./whatsapp-migrate-core.mjs";
 
+const ALREADY_EXISTS_CODE = 6; // grpc status ALREADY_EXISTS
+
 async function executarAcoesMigracao(db, acoes) {
   for (const acao of acoes) {
     if (acao.tipo === "criarConexao") {
-      await db.doc(`${acao.colecao}/${acao.id}`).create({
-        ...acao.dados,
-        createdAt: FieldValue.serverTimestamp(),
-        updatedAt: FieldValue.serverTimestamp(),
-        lastValidatedAt: FieldValue.serverTimestamp(),
-        updatedBy: "migrate-whatsapp-multiconexao-script"
-      });
+      try {
+        await db.doc(`${acao.colecao}/${acao.id}`).create({
+          ...acao.dados,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+          lastValidatedAt: FieldValue.serverTimestamp(),
+          updatedBy: "migrate-whatsapp-multiconexao-script"
+        });
+      } catch (erro) {
+        // connectionId é determinístico — duas execuções concorrentes
+        // (ou uma reexecução exatamente na janela entre a checagem de
+        // "já existe?" e esta escrita) podem colidir aqui. .create()
+        // nunca sobrescreve silenciosamente: se o documento já existe,
+        // a migração já foi aplicada por outra execução — trata como
+        // sucesso idempotente, nunca como erro fatal.
+        if (erro?.code === ALREADY_EXISTS_CODE) {
+          console.log(`Conexão ${acao.id} já existia (criada por outra execução concorrente) — seguindo sem duplicar.`);
+          continue;
+        }
+        throw erro;
+      }
     } else if (acao.tipo === "atualizarRota") {
       await db.doc(`${acao.colecao}/${acao.id}`).set({ ...acao.dados, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
     } else {
