@@ -2,10 +2,14 @@
 
 // WhatsApp Oficial V1 — Secrets: dois tipos de segredo bem separados.
 //
-// 1) Globais (mesmo valor pra todo o projeto): WHATSAPP_APP_SECRET,
-//    WHATSAPP_WEBHOOK_VERIFY_TOKEN, META_APP_ID — usam defineSecret() do
-//    Firebase Functions (mesmo padrão de GEMINI_API_KEY em ai/index.js),
-//    porque são valores únicos fixados no deploy.
+// 1) Globais (mesmo valor pra todo o projeto): WHATSAPP_APP_SECRET e
+//    WHATSAPP_WEBHOOK_VERIFY_TOKEN — usam defineSecret() do Firebase
+//    Functions (mesmo padrão de GEMINI_API_KEY em ai/index.js), porque são
+//    valores únicos fixados no deploy. Nunca declarar aqui um defineSecret()
+//    que nenhuma Function realmente usa em seu array `secrets: [...]` — o
+//    Firebase CLI detecta QUALQUER defineSecret() carregado durante a
+//    análise do código (mesmo sem uso real) e pede interativamente pra criar
+//    o secret, travando um deploy --non-interactive.
 //
 // 2) Por tenant (um token de acesso diferente por loja conectada): NÃO
 //    cabem em defineSecret (que é global/estático). Ficam direto no
@@ -27,7 +31,6 @@ const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
 
 const WHATSAPP_APP_SECRET = defineSecret("WHATSAPP_APP_SECRET");
 const WHATSAPP_WEBHOOK_VERIFY_TOKEN = defineSecret("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
-const META_APP_ID = defineSecret("META_APP_ID");
 
 const TENANT_SECRET_PREFIX = "vide-whatsapp-token-";
 const CACHE_TTL_MS = 5 * 60 * 1000;
@@ -134,7 +137,6 @@ async function desabilitarUltimaVersaoTenant(ownerUid) {
 module.exports = {
   WHATSAPP_APP_SECRET,
   WHATSAPP_WEBHOOK_VERIFY_TOKEN,
-  META_APP_ID,
   tenantSecretId,
   accessTenantToken,
   limparCacheToken,

@@ -108,10 +108,14 @@ cliente; o dashboard só mostra `"•••••••• conectado"`.
 
 Dois tipos, nunca confundidos:
 
-1. **Globais** (`WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`,
-   `META_APP_ID` opcional) — `defineSecret()` do Firebase Functions, mesmo
-   padrão de `GEMINI_API_KEY` (`functions/src/ai/index.js`). Um valor só,
-   fixado no deploy.
+1. **Globais** (`WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`) —
+   `defineSecret()` do Firebase Functions, mesmo padrão de `GEMINI_API_KEY`
+   (`functions/src/ai/index.js`). Um valor só, fixado no deploy. `META_APP_ID`
+   não existe como secret — nenhuma Function usa esse valor hoje, e o
+   Firebase CLI trata QUALQUER `defineSecret()` carregado durante a análise
+   do código como obrigatório (trava um deploy `--non-interactive` pedindo
+   pra criá-lo), então declarar um `defineSecret()` sem uso real é sempre
+   um risco, não só um detalhe cosmético.
 2. **Por tenant** (token de acesso) — não cabem em `defineSecret` (é
    global/estático). Ficam no Google Secret Manager sob
    `vide-whatsapp-token-<hash-sha256-do-ownerUid>` (nunca o `ownerUid`
@@ -390,8 +394,9 @@ PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
 5. Criar/associar a WhatsApp Business Account (WABA) e o número de
    telefone.
 6. Criar os secrets globais no Secret Manager:
-   `WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`
-   (e opcionalmente `META_APP_ID`) — nunca com valor de exemplo.
+   `WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` — nunca com
+   valor de exemplo. Não criar `META_APP_ID` — nenhuma Function usa esse
+   valor.
 7. Rodar `.github/workflows/firebase-deploy-whatsapp.yml` com
    `confirm_production=DEPLOY_WHATSAPP`.
 8. Configurar o webhook no painel da Meta com a URL publicada e o

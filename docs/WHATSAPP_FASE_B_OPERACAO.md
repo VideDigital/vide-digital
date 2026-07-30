@@ -159,20 +159,11 @@ printf '%s' "$WHATSAPP_VERIFY_TOKEN_VALUE" | gcloud secrets create WHATSAPP_WEBH
 unset WHATSAPP_VERIFY_TOKEN_VALUE
 ```
 
-`META_APP_ID` (opcional — o código só usa se você optar por preenchê-lo;
-não é sensível como os dois acima, é só o ID numérico do App, mas ainda
-assim siga o mesmo padrão de `defineSecret` se decidir usá-lo):
-
-```bash
-set -euo pipefail
-gcloud config set project vide-digital-saas
-printf "Cole o Meta App ID e pressione Enter: "
-read -r META_APP_ID_VALUE
-printf '%s' "$META_APP_ID_VALUE" | gcloud secrets create META_APP_ID \
-  --data-file=- --replication-policy=automatic || \
-  printf '%s' "$META_APP_ID_VALUE" | gcloud secrets versions add META_APP_ID --data-file=-
-unset META_APP_ID_VALUE
-```
+**Não crie um secret `META_APP_ID`.** Nenhuma Function usa esse valor
+hoje — o código nunca declara `defineSecret("META_APP_ID")`
+propositalmente, porque o Firebase CLI trata qualquer `defineSecret()`
+carregado durante a análise do código como obrigatório e trava um deploy
+`--non-interactive` pedindo pra criá-lo mesmo sem nenhuma Function usá-lo.
 
 ### B.4 — Token por tenant (piloto)
 
@@ -195,9 +186,6 @@ for SECRET_NAME in WHATSAPP_APP_SECRET WHATSAPP_WEBHOOK_VERIFY_TOKEN; do
     --role="roles/secretmanager.secretAccessor"
 done
 ```
-
-Se você optou por criar `META_APP_ID`, repita o mesmo `add-iam-policy-binding`
-pra ele também.
 
 **Nunca** conceda `roles/owner`, `roles/editor` ou
 `roles/secretmanager.admin` pra essa service account — só
