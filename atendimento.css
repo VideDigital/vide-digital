@@ -82,6 +82,13 @@
     background: rgba(255, 255, 255, 0.03);
     color: #f7f8fc;
     font-size: 13px;
+    transition: border-color .15s ease, background .15s ease;
+}
+.atend-input:focus-visible,
+.atend-select:focus-visible {
+    outline: none;
+    border-color: color-mix(in srgb, var(--sys-primaria, #5b3df5) 55%, transparent);
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .atend-checkbox-linha {
@@ -121,8 +128,45 @@
 }
 
 /* Coluna 2: lista de conversas */
-.atend-lista-topo { padding: 14px 16px; border-bottom: 1px solid var(--at-border); }
-#atend-lista-conversas { flex: 1; overflow-y: auto; padding: 8px; }
+.atend-lista-topo {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--at-border);
+}
+.atend-lista-topo-titulo { font-size: 13px; font-weight: 800; }
+#atend-lista-conversas { flex: 1; overflow-y: auto; padding: 8px; scroll-behavior: smooth; }
+
+/* Indicador discreto de sincronização — nunca substitui a tela, só um
+   rótulo pequeno com um ponto pulsante junto do título da coluna. */
+.atend-sync-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10.5px;
+    font-weight: 700;
+    color: var(--at-muted);
+    white-space: nowrap;
+}
+.atend-sync-status::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--at-muted);
+    flex: 0 0 auto;
+}
+.atend-sync-status.is-carregando::before {
+    background: var(--sys-destaque, #00d4ff);
+    animation: atend-pulso 1.1s ease-in-out infinite;
+}
+.atend-sync-status.is-erro { color: #fca5a5; }
+.atend-sync-status.is-erro::before { background: #f87171; }
+@keyframes atend-pulso {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: .35; transform: scale(.7); }
+}
 
 .atend-item-conversa {
     width: 100%;
@@ -138,8 +182,10 @@
     cursor: pointer;
     position: relative;
     margin-bottom: 4px;
+    transition: background .15s ease, border-color .15s ease;
 }
 .atend-item-conversa:hover { background: rgba(255, 255, 255, 0.04); }
+.atend-item-conversa:focus-visible { outline: 2px solid color-mix(in srgb, var(--sys-destaque, #00d4ff) 60%, transparent); outline-offset: -2px; }
 .atend-item-conversa.is-selecionada { background: color-mix(in srgb, var(--sys-primaria, #5b3df5) 16%, transparent); border-color: color-mix(in srgb, var(--sys-primaria, #5b3df5) 35%, transparent); }
 .atend-item-conversa.is-precisa-resposta::before {
     content: "";
@@ -175,6 +221,7 @@
 .atend-chip {
     display: inline-flex;
     align-items: center;
+    gap: 4px;
     padding: 2px 8px;
     border-radius: 999px;
     font-size: 10px;
@@ -182,13 +229,17 @@
     border: 1px solid rgba(148, 163, 184, .2);
     background: rgba(148, 163, 184, .08);
     color: #cbd5e1;
+    line-height: 1.6;
 }
+.atend-chip svg { flex: 0 0 auto; opacity: .85; }
 .atend-chip.is-status-nova { border-color: rgba(0, 212, 255, .35); background: rgba(0, 212, 255, .12); color: #7fe3ff; }
 .atend-chip.is-status-aguardando_equipe { border-color: rgba(251, 191, 36, .35); background: rgba(251, 191, 36, .12); color: #fcd34d; }
 .atend-chip.is-status-aguardando_cliente { border-color: rgba(148, 163, 184, .3); background: rgba(148, 163, 184, .1); color: #cbd5e1; }
 .atend-chip.is-status-resolvida { border-color: rgba(52, 211, 153, .3); background: rgba(52, 211, 153, .1); color: #6ee7b7; }
 .atend-chip.is-status-arquivada { border-color: rgba(148, 163, 184, .2); background: rgba(148, 163, 184, .06); color: #94a3b8; }
 .atend-chip.is-sem-responsavel { color: #fca5a5; border-color: rgba(248, 113, 113, .25); background: rgba(248, 113, 113, .08); }
+.atend-chip.is-janela-aberta { border-color: rgba(52, 211, 153, .3); background: rgba(52, 211, 153, .1); color: #6ee7b7; }
+.atend-chip.is-janela-fechada { border-color: rgba(148, 163, 184, .2); background: rgba(148, 163, 184, .06); color: #94a3b8; }
 
 .atend-badge-nao-lida {
     flex: 0 0 auto;
@@ -222,8 +273,37 @@
 .atend-detalhe.is-vazio .atend-detalhe-cabecalho { display: none; }
 .atend-detalhe.is-vazio #atend-form-resposta { display: none; }
 
-#atend-detalhe-corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; }
-#atend-mensagens { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+#atend-detalhe-corpo { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+#atend-mensagens { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; scroll-behavior: smooth; }
+
+/* Pill flutuante: some por padrão, aparece só quando um item novo chega
+   fora da área visível (usuário rolado pra cima lendo histórico). Nunca
+   força a rolagem sozinho — clicar nele é que desce até o fim. */
+.atend-nova-mensagem-aviso {
+    position: absolute;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 5;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 7px 14px;
+    border-radius: 999px;
+    border: 0;
+    color: white;
+    font-size: 11.5px;
+    font-weight: 700;
+    cursor: pointer;
+    background: linear-gradient(135deg, var(--sys-primaria, #5b3df5), var(--sys-destaque, #00d4ff));
+    box-shadow: 0 12px 30px color-mix(in srgb, var(--sys-primaria, #5b3df5) 40%, transparent);
+    animation: atend-flutuar .25s ease;
+}
+.atend-nova-mensagem-aviso[hidden] { display: none; }
+@keyframes atend-flutuar {
+    from { opacity: 0; transform: translate(-50%, 8px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
 
 .atend-historico-anterior,
 .atend-historico-fim {
@@ -245,13 +325,32 @@
     line-height: 1.3;
 }
 
+/* Separador de dia — "Hoje"/"Ontem"/data, só agrupamento visual. */
+.atend-dia-separador {
+    align-self: center;
+    display: flex;
+    justify-content: center;
+    width: 100%;
+    margin: 6px 0;
+}
+.atend-dia-separador span {
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--at-muted);
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+}
+
 .atend-mensagem { display: flex; flex-direction: column; max-width: 78%; }
 .atend-mensagem.is-admin { align-self: flex-end; align-items: flex-end; }
 .atend-mensagem.is-cliente { align-self: flex-start; align-items: flex-start; }
 .atend-mensagem-autor { font-size: 10.5px; color: var(--at-muted); margin-bottom: 3px; }
-.atend-mensagem-bolha { padding: 9px 13px; border-radius: 14px; font-size: 13px; line-height: 1.5; word-break: break-word; }
-.atend-mensagem.is-admin .atend-mensagem-bolha { background: color-mix(in srgb, var(--sys-primaria, #5b3df5) 30%, transparent); border-top-right-radius: 3px; color: #f1f0ff; }
-.atend-mensagem.is-cliente .atend-mensagem-bolha { background: rgba(255, 255, 255, 0.06); border-top-left-radius: 3px; }
+.atend-mensagem-bolha { padding: 9px 13px; border-radius: 14px; font-size: 13px; line-height: 1.5; word-break: break-word; box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14); }
+.atend-mensagem.is-admin .atend-mensagem-bolha { background: linear-gradient(135deg, color-mix(in srgb, var(--sys-primaria, #5b3df5) 42%, transparent), color-mix(in srgb, var(--sys-destaque, #00d4ff) 22%, transparent)); border-top-right-radius: 3px; color: #f1f0ff; }
+.atend-mensagem.is-cliente .atend-mensagem-bolha { background: rgba(255, 255, 255, 0.07); border-top-left-radius: 3px; }
 .atend-mensagem-hora { font-size: 9.5px; color: var(--at-muted); margin-top: 3px; }
 
 /* Barra de prioridade/métricas + filtro do histórico de eventos */

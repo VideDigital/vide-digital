@@ -3478,8 +3478,9 @@ Voltar
 </div>
 
 <div class="atend-coluna atend-col-lista">
-<div class="atend-lista-topo" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
-<strong style="font-size:13px;">Conversas</strong>
+<div class="atend-lista-topo">
+<strong class="atend-lista-topo-titulo">Conversas</strong>
+<span id="atend-sync-status" class="atend-sync-status" hidden></span>
 <button type="button" class="atend-btn atend-mobile-voltar" data-atend-acao="abrir-filtros" aria-label="Abrir filtros">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="14" height="14" aria-hidden="true"><path d="M4 6h16M7 12h10M10 18h4"/></svg>
 Filtros
@@ -3499,6 +3500,7 @@ Filtros
 <div class="atend-detalhe-meta-linha">
 <span id="atend-detalhe-status">Aberta</span>
 <span id="atend-detalhe-canal">—</span>
+<span id="atend-detalhe-numero" hidden></span>
 <span id="atend-detalhe-janela-whatsapp" class="atend-chip-janela-whatsapp" hidden></span>
 <span id="atend-detalhe-setor">Sem setor</span>
 <span>Início: <span id="atend-detalhe-inicio">—</span></span>
@@ -3538,6 +3540,10 @@ Filtros
 
 <div id="atend-detalhe-corpo">
 <div id="atend-mensagens" role="log" aria-live="polite" aria-label="Histórico da conversa"></div>
+<button type="button" id="atend-nova-mensagem-aviso" class="atend-nova-mensagem-aviso" hidden aria-label="Ir para as mensagens mais recentes">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="13" height="13" aria-hidden="true"><path d="M12 5v14"/><path d="M19 12l-7 7-7-7"/></svg>
+Nova mensagem
+</button>
 <div id="atend-detalhe-vazio" class="atend-vazio atend-vazio-detalhe" hidden>
 <strong>Selecione uma conversa</strong>
 <p>Escolha uma conversa na lista ao lado para ver o histórico e responder.</p>

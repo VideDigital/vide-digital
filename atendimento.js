@@ -513,6 +513,24 @@ function tempoRelativo(ms) {
     return new Date(ms).toLocaleDateString("pt-BR");
 }
 
+// Rótulo do separador de dia da timeline — "Hoje"/"Ontem" ou a data por
+// extenso, nunca um campo persistido (só agrupamento visual local).
+function mesmoDia(a, b) {
+    return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+}
+
+function rotuloDia(ms) {
+    if (!ms) return "";
+    const data = new Date(ms);
+    const hoje = new Date();
+    if (mesmoDia(data, hoje)) return "Hoje";
+    const ontem = new Date(hoje);
+    ontem.setDate(hoje.getDate() - 1);
+    if (mesmoDia(data, ontem)) return "Ontem";
+    const mesmoAno = data.getFullYear() === hoje.getFullYear();
+    return data.toLocaleDateString("pt-BR", mesmoAno ? { day: "2-digit", month: "long" } : { day: "2-digit", month: "long", year: "numeric" });
+}
+
 // Preferência só de exibição (filtro/mostrar-ocultar da timeline) — nunca
 // vai pro documento do chat, só localStorage do próprio navegador.
 function lerPreferenciaLocal(chave, padrao) {
@@ -550,6 +568,27 @@ export function criarAtendimentoController(deps) {
 
     const state = {
         conversas: [],
+        // Lista de conversas em tempo real (chats/*, filtrado por
+        // donoUID/emailDono): duas queries (dono direto + convite por
+        // e-mail) alimentam o MESMO mapa por id, nunca duas listas
+        // paralelas — evita duplicar uma conversa que bata nas duas.
+        // unsubscribe* != null enquanto a tela ficou aberta ao menos uma
+        // vez nesta sessão (mesmo padrão do listener de pedidos em
+        // orders-engine-v1.js: vive pelo tenant/sessão, não por
+        // ativação de aba — trocar de aba e voltar nunca cria um
+        // segundo par de listeners, só load({force:true}) reabre).
+        mapaConversas: new Map(),
+        unsubscribeConversasPorDono: null,
+        unsubscribeConversasPorEmail: null,
+        conversasInscrito: false,
+        conversasCarregando: false,
+        // Erro "leve": um dos dois listeners falhou, mas a lista já
+        // tinha dado carregada — mostra um aviso discreto sem trocar a
+        // tela inteira pelo estado de erro (esse é só pra quando NADA
+        // carregou ainda, ver state.erro).
+        conversasErro: false,
+        funcionariosCarregadosUmaVez: false,
+        templatesCarregadosUmaVez: false,
         eventos: [],
         eventosCarregando: false,
         eventosErro: false,
@@ -571,6 +610,10 @@ export function criarAtendimentoController(deps) {
         temMaisMensagens: false,
         historicoAnteriorCarregando: false,
         historicoAnteriorErro: false,
+        // Quando um item novo chega enquanto o usuário está lendo
+        // histórico antigo (rolado pra cima), nunca puxa a rolagem à
+        // força — só acende esse aviso, que ao ser clicado desce e some.
+        novoItemForaDaVista: false,
         funcionarios: [],
         templates: [],
         templatesCarregando: false,
@@ -655,9 +698,41 @@ export function criarAtendimentoController(deps) {
         return contadores;
     }
 
+    const ICONE_CANAL_WHATSAPP = '<svg viewBox="0 0 24 24" fill="currentColor" width="10" height="10" aria-hidden="true"><path d="M12.04 2C6.58 2 2.13 6.45 2.13 11.91c0 1.79.47 3.45 1.29 4.9L2 22l5.35-1.4a9.87 9.87 0 0 0 4.69 1.19h.01c5.46 0 9.9-4.45 9.9-9.91C22 6.45 17.55 2 12.04 2Zm5.8 14.03c-.24.68-1.4 1.3-1.93 1.35-.5.05-1.02.24-3.43-.72-2.9-1.16-4.76-4.1-4.9-4.29-.14-.19-1.17-1.56-1.17-2.98 0-1.42.75-2.11 1.01-2.4.26-.28.57-.35.76-.35.19 0 .38 0 .55.01.18.01.42-.07.66.5.24.58.82 2 .89 2.15.07.14.12.31.02.5-.1.19-.15.31-.3.48-.15.17-.31.38-.44.51-.15.15-.3.31-.13.6.17.29.75 1.25 1.62 2.02 1.11.99 2.05 1.3 2.34 1.45.29.14.46.12.63-.07.17-.19.72-.84.92-1.13.19-.29.38-.24.65-.14.26.1 1.67.79 1.96.93.29.14.48.21.55.33.07.12.07.68-.17 1.36Z"/></svg>';
+    const ICONE_CANAL_INTERNO = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" aria-hidden="true"><path d="M12 2 2 7l10 5 10-5-10-5Z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>';
+    const ICONE_CANAL_LOJA = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="10" height="10" aria-hidden="true"><path d="M3 9l1-5h16l1 5"/><path d="M4 9v10a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1V9"/><path d="M9 20v-6h6v6"/></svg>';
+
+    function iconeCanal(canal) {
+        if (canal === "whatsapp") return ICONE_CANAL_WHATSAPP;
+        if (canal === "interno") return ICONE_CANAL_INTERNO;
+        return ICONE_CANAL_LOJA;
+    }
+
+    // Estado discreto de sincronização — nunca troca a tela inteira, só um
+    // rótulo pequeno junto do topo da coluna de conversas (carregando na
+    // primeira assinatura, erro se um dos dois listeners caiu, ou nada
+    // quando está tudo ao vivo e estável).
+    function renderStatusSincronizacaoConversas() {
+        const badge = el("atend-sync-status");
+        if (!badge) return;
+        if (state.conversasCarregando) {
+            badge.hidden = false;
+            badge.className = "atend-sync-status is-carregando";
+            badge.textContent = "Sincronizando…";
+        } else if (state.conversasErro) {
+            badge.hidden = false;
+            badge.className = "atend-sync-status is-erro";
+            badge.textContent = "Conexão instável — tentando reconectar";
+        } else {
+            badge.hidden = true;
+            badge.textContent = "";
+        }
+    }
+
     function renderListaConversas() {
         const lista = el("atend-lista-conversas");
         if (!lista) return;
+        renderStatusSincronizacaoConversas();
 
         if (state.erro) {
             lista.innerHTML = `
@@ -665,6 +740,17 @@ export function criarAtendimentoController(deps) {
                     <strong>Não deu pra carregar as conversas</strong>
                     <p>Verifique sua conexão e tente novamente.</p>
                     <button type="button" class="atend-btn atend-btn-primario" data-atend-acao="recarregar">Tentar novamente</button>
+                </div>
+            `;
+            return;
+        }
+
+        if (state.conversasCarregando && state.conversas.length === 0) {
+            lista.innerHTML = `
+                <div class="atend-mensagens-skel" aria-label="Carregando conversas">
+                    <span class="aura-skel" style="width:100%;height:56px"></span>
+                    <span class="aura-skel" style="width:100%;height:56px"></span>
+                    <span class="aura-skel" style="width:100%;height:56px"></span>
                 </div>
             `;
             return;
@@ -683,12 +769,19 @@ export function criarAtendimentoController(deps) {
             return;
         }
 
+        // A lista inteira é reconstruída a cada snapshot (simples e
+        // suficiente até ~300 conversas), mas a posição de rolagem do
+        // usuário nunca é — sem isso, cada mensagem nova em QUALQUER
+        // conversa (mesmo fora da tela) empurraria quem está lendo mais
+        // pra baixo na lista de volta pro topo.
+        const scrollAnterior = lista.scrollTop;
         lista.innerHTML = visiveis.map(conversa => {
             const selecionada = conversa.id === state.conversaSelecionadaId;
             const precisaResposta = conversaPrecisaResposta(conversa);
             const naoLidas = Number(conversa.naoLidasLoja) || 0;
+            const janela = conversa.canal === "whatsapp" ? janelaAtendimentoWhatsapp(conversa) : null;
             return `
-                <button type="button" class="atend-item-conversa ${selecionada ? "is-selecionada" : ""} ${precisaResposta ? "is-precisa-resposta" : ""}" data-atend-conversa-id="${escaparHtml(conversa.id)}">
+                <button type="button" class="atend-item-conversa ${selecionada ? "is-selecionada" : ""} ${precisaResposta ? "is-precisa-resposta" : ""}" data-atend-conversa-id="${escaparHtml(conversa.id)}" role="listitem">
                     <span class="atend-avatar">${escaparHtml(iniciaisNome(conversa.clienteNome))}</span>
                     <span class="atend-item-corpo">
                         <span class="atend-item-topo">
@@ -698,8 +791,9 @@ export function criarAtendimentoController(deps) {
                         <span class="atend-item-preview">${escaparHtml(conversa.ultimaMensagem || "Sem mensagens ainda")}</span>
                         <span class="atend-item-meta">
                             <span class="atend-chip is-status-${escaparHtml(conversa.status || "aberta")}">${escaparHtml(STATUS_CONVERSA[conversa.status] || "Aberta")}</span>
-                            ${conversa.canal ? `<span class="atend-chip is-canal">${escaparHtml(CANAIS_CONVERSA[conversa.canal] || conversa.canal)}</span>` : ""}
+                            ${conversa.canal ? `<span class="atend-chip is-canal">${iconeCanal(conversa.canal)}${escaparHtml(CANAIS_CONVERSA[conversa.canal] || conversa.canal)}</span>` : ""}
                             ${conversa.canal === "whatsapp" && conversa.whatsappWaId ? `<span class="atend-chip is-whatsapp-numero">${escaparHtml(mascararNumeroWhatsapp(conversa.whatsappWaId))}</span>` : ""}
+                            ${janela ? `<span class="atend-chip ${janela.aberta ? "is-janela-aberta" : "is-janela-fechada"}" title="${janela.aberta ? "Janela de 24h aberta" : "Janela de 24h encerrada"}">${janela.aberta ? "Janela aberta" : "Janela fechada"}</span>` : ""}
                             ${conversa.atribuidoPara ? `<span class="atend-chip is-responsavel">Atribuída</span>` : `<span class="atend-chip is-sem-responsavel">Sem responsável</span>`}
                         </span>
                     </span>
@@ -707,6 +801,7 @@ export function criarAtendimentoController(deps) {
                 </button>
             `;
         }).join("");
+        lista.scrollTop = scrollAnterior;
     }
 
     function renderPainelVazio() {
@@ -781,6 +876,12 @@ export function criarAtendimentoController(deps) {
         if (el("atend-detalhe-avatar")) el("atend-detalhe-avatar").textContent = iniciaisNome(conversa.clienteNome);
         if (el("atend-detalhe-status")) el("atend-detalhe-status").textContent = STATUS_CONVERSA[conversa.status] || "Aberta";
         if (el("atend-detalhe-canal")) el("atend-detalhe-canal").textContent = CANAIS_CONVERSA[conversa.canal] || "—";
+        const numero = el("atend-detalhe-numero");
+        if (numero) {
+            const mostrarNumero = conversa.canal === "whatsapp" && conversa.whatsappWaId;
+            numero.hidden = !mostrarNumero;
+            numero.textContent = mostrarNumero ? mascararNumeroWhatsapp(conversa.whatsappWaId) : "";
+        }
         if (el("atend-detalhe-setor")) el("atend-detalhe-setor").textContent = conversa.setor || "Sem setor";
         if (el("atend-detalhe-inicio")) {
             const ms = normalizarMs(conversa.criadoEm) || normalizarMs(conversa.timestamp);
@@ -1391,11 +1492,40 @@ export function criarAtendimentoController(deps) {
             : "";
 
         const pertoDoFim = box.scrollHeight - box.scrollTop - box.clientHeight < 80;
-        box.innerHTML = historicoAnteriorHtml + eventosErroAviso + itens.map(item => item.tipoItem === "mensagem" ? itemMensagemHtml(item.dado) : itemEventoHtml(item.dado)).join("");
+        const ultimoItem = itens[itens.length - 1];
+        const chaveUltimoItem = ultimoItem ? `${ultimoItem.tipoItem}:${ultimoItem.dado.id}` : "";
+        const chegouItemNovo = Boolean(box.dataset.atendUltimoItemChave) && box.dataset.atendUltimoItemChave !== chaveUltimoItem;
+
+        // Um separador "Hoje/Ontem/data" antes do primeiro item de cada
+        // dia — só um agrupamento visual, nunca um campo novo persistido.
+        let diaAnterior = "";
+        const itensHtml = itens.map(item => {
+            const dia = rotuloDia(item.ms);
+            const separador = dia && dia !== diaAnterior ? `<div class="atend-dia-separador"><span>${escaparHtml(dia)}</span></div>` : "";
+            diaAnterior = dia || diaAnterior;
+            return separador + (item.tipoItem === "mensagem" ? itemMensagemHtml(item.dado) : itemEventoHtml(item.dado));
+        }).join("");
+
+        box.innerHTML = historicoAnteriorHtml + eventosErroAviso + itensHtml;
+
         if (pertoDoFim || !box.dataset.atendJaRenderizou) {
             box.scrollTop = box.scrollHeight;
+            state.novoItemForaDaVista = false;
+        } else if (chegouItemNovo) {
+            // Usuário está lendo histórico antigo (rolado pra cima) e um
+            // item novo chegou pelo listener — nunca puxa a rolagem à
+            // força, só acende o aviso clicável (ver renderAvisoNovoItem).
+            state.novoItemForaDaVista = true;
         }
         box.dataset.atendJaRenderizou = "1";
+        box.dataset.atendUltimoItemChave = chaveUltimoItem;
+        renderAvisoNovoItem();
+    }
+
+    function renderAvisoNovoItem() {
+        const aviso = el("atend-nova-mensagem-aviso");
+        if (!aviso) return;
+        aviso.hidden = !state.novoItemForaDaVista;
     }
 
     function renderFiltros() {
@@ -1411,6 +1541,18 @@ export function criarAtendimentoController(deps) {
         if (layout) layout.setAttribute("data-atend-etapa", state.etapaMobile);
     }
 
+    // Trava o compositor de texto livre durante um envio em voo — nunca
+    // deixa clicar "Enviar" duas vezes nem editar o texto enquanto o
+    // batch/Cloud Function ainda está em trânsito. Não mexe no picker de
+    // templates do WhatsApp (esse já trava o próprio botão via
+    // renderWhatsappTemplatePicker/state.whatsappEnviandoTemplate).
+    function renderEstadoEnvio() {
+        const input = el("atend-resposta-input");
+        if (input) input.disabled = state.enviando;
+        const botaoEnviar = document.querySelector("#atend-form-resposta button[type='submit']");
+        if (botaoEnviar) botaoEnviar.disabled = state.enviando;
+    }
+
     async function render() {
         renderContadores();
         renderFiltros();
@@ -1421,6 +1563,7 @@ export function criarAtendimentoController(deps) {
             renderCabecalhoConversa(conversa);
             renderFiltroTimeline();
             renderTimelineConversa();
+            renderEstadoEnvio();
         } else {
             renderPainelVazio();
         }
@@ -1437,30 +1580,109 @@ export function criarAtendimentoController(deps) {
         }
     }
 
+    function pararEscutaConversas() {
+        if (typeof state.unsubscribeConversasPorDono === "function") state.unsubscribeConversasPorDono();
+        if (typeof state.unsubscribeConversasPorEmail === "function") state.unsubscribeConversasPorEmail();
+        state.unsubscribeConversasPorDono = null;
+        state.unsubscribeConversasPorEmail = null;
+        state.conversasInscrito = false;
+    }
+
+    // Aplica docChanges (added/modified/removed) direto no mapa
+    // compartilhado — nunca substitui o mapa inteiro por um array novo a
+    // cada evento, pra uma conversa que não mudou não perder identidade
+    // (mesma ideia de mesclarDocumentosTimeline, aplicada por id aqui).
+    function aplicarDocChangesConversas(mapa, docChanges) {
+        (docChanges || []).forEach(change => {
+            if (change.type === "removed") {
+                mapa.delete(change.doc.id);
+            } else {
+                mapa.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+            }
+        });
+    }
+
+    // Duas queries em tempo real (donoUID direto + emailDono, convite por
+    // e-mail) alimentando o mesmo mapa por id — nunca um getDocs pontual.
+    // Resolve a Promise só depois que AMBAS entregarem seu primeiro
+    // snapshot (mesmo que vazio), pra abrirConversaPorId/load continuarem
+    // podendo confiar que "await load()" terminou com os dados no ar.
+    // Chamadas repetidas sem force são no-op (idempotente) — trocar de
+    // aba e voltar pra Atendimento nunca cria um segundo par de listeners.
+    function escutarConversas({ force = false } = {}) {
+        if (state.conversasInscrito && !force) return Promise.resolve();
+        pararEscutaConversas();
+        state.mapaConversas = new Map();
+        state.conversasInscrito = true;
+        state.conversasCarregando = true;
+        state.conversasErro = false;
+
+        return new Promise(resolve => {
+            let pendentes = 2;
+            let jaResolvido = false;
+            const finalizarPrimeiraCarga = () => {
+                pendentes = Math.max(0, pendentes - 1);
+                if (pendentes === 0 && !jaResolvido) {
+                    jaResolvido = true;
+                    state.conversasCarregando = false;
+                    state.carregado = true;
+                    resolve();
+                }
+            };
+            const aplicarSnapshot = snap => {
+                aplicarDocChangesConversas(state.mapaConversas, snap.docChanges());
+                state.conversas = Array.from(state.mapaConversas.values());
+                state.erro = false;
+                render();
+            };
+
+            state.unsubscribeConversasPorDono = onSnapshot(
+                query(collection(db, "chats"), where("donoUID", "==", storeUid()), limit(300)),
+                snap => { aplicarSnapshot(snap); finalizarPrimeiraCarga(); },
+                error => {
+                    console.error("[Atendimento] Falha ao ouvir conversas (donoUID):", codigoErroFirebase(error), error?.message);
+                    state.conversasErro = true;
+                    if (state.conversas.length === 0) state.erro = true;
+                    finalizarPrimeiraCarga();
+                    render();
+                }
+            );
+
+            state.unsubscribeConversasPorEmail = onSnapshot(
+                query(collection(db, "chats"), where("emailDono", "==", storeUid()), limit(300)),
+                snap => { aplicarSnapshot(snap); finalizarPrimeiraCarga(); },
+                error => {
+                    console.error("[Atendimento] Falha ao ouvir conversas (emailDono):", codigoErroFirebase(error), error?.message);
+                    state.conversasErro = true;
+                    if (state.conversas.length === 0) state.erro = true;
+                    finalizarPrimeiraCarga();
+                    render();
+                }
+            );
+        });
+    }
+
+    // Sempre chamado quando a aba de Atendimento é ativada. Nunca
+    // reconsulta getDocs: a primeira chamada assina os listeners em
+    // tempo real (e espera o primeiro snapshot de cada um); chamadas
+    // seguintes só re-renderizam o estado já ao vivo — idempotente por
+    // causa da guarda dentro de escutarConversas. force:true (botão
+    // "Atualizar" ou "Tentar novamente") derruba e reabre os listeners
+    // do zero, sem nunca recarregar a página inteira.
     async function load({ force = false } = {}) {
         if (!storeUid() || !podeVer()) return;
         if (state.carregando) return;
-        if (state.carregado && !force) {
-            await render();
-            return;
-        }
         state.carregando = true;
         try {
-            const [porDono, porEmail] = await Promise.all([
-                getDocs(query(collection(db, "chats"), where("donoUID", "==", storeUid()), limit(300))),
-                getDocs(query(collection(db, "chats"), where("emailDono", "==", storeUid()), limit(300)))
-            ]);
-            const mapa = new Map();
-            porDono.forEach(d => mapa.set(d.id, { id: d.id, ...d.data() }));
-            porEmail.forEach(d => mapa.set(d.id, { id: d.id, ...d.data() }));
-            state.conversas = Array.from(mapa.values());
-            state.erro = false;
-            state.carregado = true;
-            await carregarFuncionarios();
-            await carregarTemplatesAtendimento();
-        } catch (error) {
-            console.error("[Atendimento] Falha ao carregar conversas:", codigoErroFirebase(error), error?.message);
-            state.erro = true;
+            await escutarConversas({ force });
+            if (!state.funcionariosCarregadosUmaVez || force) {
+                await carregarFuncionarios();
+                state.funcionariosCarregadosUmaVez = true;
+            }
+            if (!state.templatesCarregadosUmaVez || force) {
+                await carregarTemplatesAtendimento();
+                state.templatesCarregadosUmaVez = true;
+            }
         } finally {
             state.carregando = false;
         }
@@ -1518,8 +1740,12 @@ export function criarAtendimentoController(deps) {
         state.temMaisEventos = false;
         state.historicoAnteriorCarregando = false;
         state.historicoAnteriorErro = false;
+        state.novoItemForaDaVista = false;
         const box = el("atend-mensagens");
-        if (box) delete box.dataset.atendJaRenderizou;
+        if (box) {
+            delete box.dataset.atendJaRenderizou;
+            delete box.dataset.atendUltimoItemChave;
+        }
     }
 
     async function selecionarConversa(id) {
@@ -1775,12 +2001,14 @@ export function criarAtendimentoController(deps) {
             return;
         }
         state.enviando = true;
+        renderEstadoEnvio();
         try {
             await chamarWhatsappSendText({ chatId: conversa.id, texto: mensagem });
         } catch (error) {
             notify(error?.message || "Não foi possível enviar a mensagem pelo WhatsApp.", "error");
         } finally {
             state.enviando = false;
+            renderEstadoEnvio();
         }
     }
 
@@ -1841,6 +2069,7 @@ export function criarAtendimentoController(deps) {
             return;
         }
         state.enviando = true;
+        renderEstadoEnvio();
         const templateUsadoId = state.templateUsadoId;
         const templateUsadoTitulo = state.templateUsadoTitulo;
         const primeiraResposta = !state.mensagens.some(m => m.sender === "admin");
@@ -1931,6 +2160,7 @@ export function criarAtendimentoController(deps) {
             })).catch(() => {});
         } finally {
             state.enviando = false;
+            renderEstadoEnvio();
         }
     }
 
@@ -2103,6 +2333,13 @@ export function criarAtendimentoController(deps) {
             if (event.target.closest("[data-atend-acao='carregar-historico-anterior']")) {
                 carregarHistoricoAnterior();
             }
+        });
+
+        el("atend-nova-mensagem-aviso")?.addEventListener("click", () => {
+            const box = el("atend-mensagens");
+            if (box) box.scrollTop = box.scrollHeight;
+            state.novoItemForaDaVista = false;
+            renderAvisoNovoItem();
         });
 
         // O painel de dados do cliente evoluiu pro CRM 360 (crm360.js) —
