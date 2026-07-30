@@ -286,8 +286,13 @@ export function criarWhatsappOficialController({
         lista.innerHTML = state.conexoes.map((c) => {
             const idAcao = c.legacy ? "" : c.connectionId;
             const emAcao = state.conexaoEmAcao === (idAcao || "legacy");
+            // data-legacy explícito — nunca deixa o clique num card legado
+            // mandar connectionId="" pro backend como se fosse "sem
+            // preferência" (o que poderia silenciosamente validar/tornar
+            // padrão OUTRA conexão que virou default). Achado real da
+            // revisão: ver docs/WHATSAPP_MODULO_MULTICONEXAO.md.
             const botaoValidar = gerenciar
-                ? `<button type="button" class="aura-whatsapp-btn" data-acao="validar" data-connection-id="${escaparHtml(idAcao)}" ${emAcao ? "disabled" : ""}>Validar</button>`
+                ? `<button type="button" class="aura-whatsapp-btn" data-acao="validar" data-connection-id="${escaparHtml(idAcao)}" data-legacy="${c.legacy ? "true" : "false"}" ${emAcao ? "disabled" : ""}>Validar</button>`
                 : "";
             const botaoPadrao = (gerenciar && !c.legacy && !c.isDefault)
                 ? `<button type="button" class="aura-whatsapp-btn" data-acao="tornar-padrao" data-connection-id="${escaparHtml(idAcao)}" ${emAcao ? "disabled" : ""}>Tornar padrão</button>`
@@ -352,7 +357,13 @@ export function criarWhatsappOficialController({
         state.validando = true;
         renderDiagnostico();
         try {
-            await chamarValidateConnection({ connectionId: state.conexao?.legacy ? "" : (state.conexao?.connectionId || "") });
+            // legacy explícito quando o estado carregado É a legada — nunca
+            // manda connectionId="" (ambíguo entre "sem preferência" e
+            // "quero a legada"), ver validarConexaoCartao/tornarPadrao.
+            const params = state.conexao?.legacy
+                ? { legacy: true }
+                : { connectionId: state.conexao?.connectionId || "" };
+            await chamarValidateConnection(params);
             notify("Conexão validada com sucesso.", "success");
             await load({ force: true });
         } catch (erro) {
@@ -363,7 +374,7 @@ export function criarWhatsappOficialController({
         }
     }
 
-    async function validarConexaoCartao(connectionId) {
+    async function validarConexaoCartao(connectionId, legacy) {
         if (typeof chamarValidateConnection !== "function") return;
         if (!podeGerenciar()) {
             notify("Você não tem permissão para gerenciar o WhatsApp desta loja.", "error");
@@ -372,7 +383,8 @@ export function criarWhatsappOficialController({
         state.conexaoEmAcao = connectionId || "legacy";
         renderConexoes();
         try {
-            await chamarValidateConnection({ connectionId: connectionId || "" });
+            const params = legacy ? { legacy: true } : { connectionId: connectionId || "" };
+            await chamarValidateConnection(params);
             notify("Conexão validada com sucesso.", "success");
             await load({ force: true });
         } catch (erro) {
@@ -467,7 +479,8 @@ export function criarWhatsappOficialController({
             if (!botao) return;
             const acao = botao.getAttribute("data-acao");
             const connectionId = botao.getAttribute("data-connection-id") || "";
-            if (acao === "validar") validarConexaoCartao(connectionId);
+            const legacy = botao.getAttribute("data-legacy") === "true";
+            if (acao === "validar") validarConexaoCartao(connectionId, legacy);
             if (acao === "tornar-padrao") tornarPadrao(connectionId);
         });
     }

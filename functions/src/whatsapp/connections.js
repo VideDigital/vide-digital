@@ -77,6 +77,51 @@ const whatsappListConnections = onCall({ region: REGION }, async (request) => {
   };
 });
 
+// Revisão: ler o estado atual e depois escrever num batch separado tem
+// uma corrida real — duas chamadas concorrentes (cada uma escolhendo uma
+// conexão default DIFERENTE) podem ler o mesmo "quem é default agora"
+// antes de qualquer uma escrever, e as duas commitam, deixando DUAS
+// conexões com isDefault:true. Uma transação resolve isso: o Firestore
+// serializa transações que leem/escrevem os mesmos documentos, então a
+// segunda chamada sempre vê o resultado já aplicado pela primeira (ou
+// tenta de novo automaticamente). Extraído com "db" injetável (mesmo
+// padrão de carregarConexaoResolvida em send.js) pra ser testável com um
+// Firestore fake, sem emulador.
+async function aplicarConexaoPadrao(db, { ownerUid, connectionId, authUid }) {
+  const alvoRef = db.doc(`${COLLECTIONS.CONNECTIONS}/${connectionId}`);
+
+  return db.runTransaction(async (tx) => {
+    const alvoSnap = await tx.get(alvoRef);
+    const alvo = alvoSnap.exists ? alvoSnap.data() || {} : null;
+
+    // Só aceita uma conexão do MODELO NOVO, deste tenant — nunca a
+    // conexão legada (que não tem conceito de isDefault; ela já É o
+    // fallback quando nenhuma conexão nova é default, ver resolver.js) e
+    // nunca de outro ownerUid, mesmo que o connectionId "pareça" válido.
+    if (!alvo || alvo.ownerUid !== ownerUid || alvo.connectionVersion !== CONNECTION_VERSION_MULTI) {
+      throw new HttpsError("not-found", "Conexão não encontrada para esta loja.");
+    }
+    if (alvo.status === "revoked" || alvo.status === "disconnected") {
+      throw new HttpsError("failed-precondition", "Não é possível tornar padrão uma conexão desconectada.");
+    }
+
+    const outrasDefaultSnap = await tx.get(
+      db.collection(COLLECTIONS.CONNECTIONS)
+        .where("ownerUid", "==", ownerUid)
+        .where("connectionVersion", "==", CONNECTION_VERSION_MULTI)
+        .where("isDefault", "==", true)
+    );
+
+    for (const doc of outrasDefaultSnap.docs) {
+      if (doc.id === connectionId) continue;
+      tx.set(doc.ref, { isDefault: false, updatedAt: FieldValue.serverTimestamp(), updatedBy: authUid }, { merge: true });
+    }
+    tx.set(alvoRef, { isDefault: true, updatedAt: FieldValue.serverTimestamp(), updatedBy: authUid }, { merge: true });
+
+    return { label: alvo.label || connectionId };
+  });
+}
+
 const whatsappSetDefaultConnection = onCall({ region: REGION }, async (request) => {
   const context = await resolveCallerContext(request);
   if (!podeGerenciarConexao(context)) throw new HttpsError("permission-denied", "Permissão insuficiente para alterar a conexão padrão.");
@@ -91,34 +136,7 @@ const whatsappSetDefaultConnection = onCall({ region: REGION }, async (request) 
   if (!connectionId) throw new HttpsError("invalid-argument", "Informe a conexão que deve ser a padrão.");
 
   const db = getFirestore();
-  const alvoRef = db.doc(`${COLLECTIONS.CONNECTIONS}/${connectionId}`);
-  const alvoSnap = await alvoRef.get();
-  const alvo = alvoSnap.exists ? alvoSnap.data() || {} : null;
-
-  // Só aceita uma conexão do MODELO NOVO, deste tenant — nunca a conexão
-  // legada (que não tem conceito de isDefault; ela já É o fallback quando
-  // nenhuma conexão nova é default, ver resolver.js) e nunca de outro
-  // ownerUid, mesmo que o connectionId "pareça" válido.
-  if (!alvo || alvo.ownerUid !== context.ownerUid || alvo.connectionVersion !== CONNECTION_VERSION_MULTI) {
-    throw new HttpsError("not-found", "Conexão não encontrada para esta loja.");
-  }
-  if (alvo.status === "revoked" || alvo.status === "disconnected") {
-    throw new HttpsError("failed-precondition", "Não é possível tornar padrão uma conexão desconectada.");
-  }
-
-  const outrasDefaultSnap = await db.collection(COLLECTIONS.CONNECTIONS)
-    .where("ownerUid", "==", context.ownerUid)
-    .where("connectionVersion", "==", CONNECTION_VERSION_MULTI)
-    .where("isDefault", "==", true)
-    .get();
-
-  const batch = db.batch();
-  for (const doc of outrasDefaultSnap.docs) {
-    if (doc.id === connectionId) continue;
-    batch.set(doc.ref, { isDefault: false, updatedAt: FieldValue.serverTimestamp(), updatedBy: context.authUid }, { merge: true });
-  }
-  batch.set(alvoRef, { isDefault: true, updatedAt: FieldValue.serverTimestamp(), updatedBy: context.authUid }, { merge: true });
-  await batch.commit();
+  const { label } = await aplicarConexaoPadrao(db, { ownerUid: context.ownerUid, connectionId, authUid: context.authUid });
 
   // Só muda qual conexão é usada em conversas NOVAS sem connectionId
   // explícito — conversas existentes mantêm chat.whatsappConnectionId
@@ -131,7 +149,7 @@ const whatsappSetDefaultConnection = onCall({ region: REGION }, async (request) 
     targetId: connectionId,
     action: "whatsapp.conexao_padrao_alterada",
     risk: "medium",
-    summary: `Conexão "${alvo.label || connectionId}" definida como padrão do WhatsApp.`,
+    summary: `Conexão "${label}" definida como padrão do WhatsApp.`,
     source: "function"
   });
 
@@ -142,5 +160,6 @@ module.exports = {
   whatsappListConnections,
   whatsappSetDefaultConnection,
   paraResumoSeguro,
-  montarListaConexoes
+  montarListaConexoes,
+  aplicarConexaoPadrao
 };

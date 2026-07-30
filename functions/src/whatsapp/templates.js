@@ -75,8 +75,14 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
   });
 
   const connectionId = normalizeString(request.data?.connectionId, 200);
+  const legacy = Boolean(request.data?.legacy);
   const db = getFirestore();
-  const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId });
+  const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId, legacy });
+  // connectionId/legacy explícitos que não resolveram NUNCA sincronizam a
+  // WABA de outra conexão silenciosamente — erro específico, nunca cai
+  // no genérico NOT_CONNECTED (que sugeriria "nenhuma conexão existe",
+  // quando na verdade existe(m) outra(s), só não a pedida).
+  if (resolvido.connectionIdInvalido) throw erroPublico(ERROR_CODES.CONNECTION_MISMATCH);
   if (!resolvido.connection) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
   const conexao = resolvido.connection;
   if (!conexao.wabaId) throw erroPublico(ERROR_CODES.NOT_CONNECTED);

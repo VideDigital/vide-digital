@@ -117,6 +117,44 @@ async function accessConnectionToken({ ownerUid, connectionId }) {
   return acessarTokenPorVersao(secretVersionResource(tenantConnectionSecretId(ownerUid, connectionId)));
 }
 
+const TENANT_SECRET_ID_PATTERN = new RegExp(`^${TENANT_SECRET_PREFIX}[0-9a-f]{24}$`);
+// GCP aceita tanto o project ID (string) quanto o project NUMBER
+// (numérico) num resource name — e a própria API do Secret Manager
+// costuma normalizar a resposta pro NÚMERO, mesmo quando a chamada usa a
+// string. Validar igualdade exata contra process.env.GOOGLE_CLOUD_PROJECT
+// (sempre a string) quebraria secrets legítimos sem nenhum ganho real de
+// segurança — por isso só valida que o segmento do projeto tem a FORMA
+// esperada (nunca vazio, nunca com caractere fora do alfabeto de
+// project ID/number do GCP), não a igualdade exata. Isso ainda impede um
+// resource apontando pra um formato claramente inválido/injetado.
+const GCP_PROJECT_SEGMENT_PATTERN = /^([a-z][a-z0-9-]{4,28}[a-z0-9]|\d{1,20})$/;
+
+// Revisão (multiconexão) — pura, testável sem Secret Manager: nunca
+// aceita um tokenSecretResource arbitrário, mesmo vindo de um campo já
+// gravado no Firestore (documento de conexão). Valida a FORMA do projeto
+// (nunca a igualdade exata — ver comentário acima), o prefixo/formato de
+// secret de tenant (TENANT_SECRET_PREFIX + hash hexadecimal — este SIM é
+// uma igualdade exata, sempre correta independente de como o GCP
+// representa o projeto), e — se tiver uma versão explícita — só aceita
+// "latest", nunca uma versão numérica fixa (o contrato de
+// tokenSecretResource é sempre o recurso BASE; a versão é sempre
+// resolvida em runtime). Isso impede que um documento corrompido/
+// malicioso faça o backend ler um secret com nome arbitrário ou uma
+// versão antiga fixada, sem arriscar rejeitar um secret legítimo por
+// causa de uma diferença de representação do projeto que este código não
+// tem como confirmar sem acesso a um projeto real (fora do escopo desta
+// missão).
+function validarTokenSecretResource(resourceName) {
+  const recurso = String(resourceName || "");
+  const match = recurso.match(/^projects\/([^/]+)\/secrets\/([^/]+)(?:\/versions\/([^/]+))?$/);
+  if (!match) return { valido: false, motivo: "formato_invalido" };
+  const [, projeto, secretId, versao] = match;
+  if (!GCP_PROJECT_SEGMENT_PATTERN.test(projeto)) return { valido: false, motivo: "projeto_invalido" };
+  if (!TENANT_SECRET_ID_PATTERN.test(secretId)) return { valido: false, motivo: "prefixo_invalido" };
+  if (versao && versao !== "latest") return { valido: false, motivo: "versao_fixa_nao_permitida" };
+  return { valido: true, motivo: "" };
+}
+
 // Lê um secret por um resource name explícito (projects/X/secrets/Y,
 // com ou sem /versions/N já incluído) — usado pelo resolver.js a partir
 // do campo tokenSecretResource já gravado no documento da conexão
@@ -126,6 +164,12 @@ async function accessConnectionToken({ ownerUid, connectionId }) {
 async function accessTokenByResource(resourceName) {
   const recurso = String(resourceName || "");
   if (!recurso) throw Object.assign(new Error("Conexão WhatsApp não encontrada."), { code: "WHATSAPP_NOT_CONNECTED" });
+  const validacao = validarTokenSecretResource(recurso);
+  if (!validacao.valido) {
+    // Nunca expõe o recurso completo (nem no throw, nem em log) — só um
+    // código seguro de diagnóstico.
+    throw Object.assign(new Error("Conexão WhatsApp com configuração inválida."), { code: "WHATSAPP_PROVIDER_UNAVAILABLE" });
+  }
   const versionResource = /\/versions\/[^/]+$/.test(recurso) ? recurso : `${recurso}/versions/latest`;
   return acessarTokenPorVersao(versionResource);
 }
@@ -201,6 +245,7 @@ module.exports = {
   accessTenantToken,
   accessConnectionToken,
   accessTokenByResource,
+  validarTokenSecretResource,
   limparCacheToken,
   limparCacheTokenConexao,
   limparCacheTokenPorResource,

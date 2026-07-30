@@ -86,7 +86,14 @@ const ERROR_CODES = Object.freeze({
   RATE_LIMITED: "WHATSAPP_RATE_LIMITED",
   PROVIDER_UNAVAILABLE: "WHATSAPP_PROVIDER_UNAVAILABLE",
   INVALID_RECIPIENT: "WHATSAPP_INVALID_RECIPIENT",
-  MESSAGE_FAILED: "WHATSAPP_MESSAGE_FAILED"
+  MESSAGE_FAILED: "WHATSAPP_MESSAGE_FAILED",
+  // Revisão (multiconexão): um connectionId explícito que não existe, não
+  // pertence ao tenant, ou uma solicitação explícita de "legada" que não
+  // tem documento legado — nunca cai silenciosamente pro default/legado
+  // (ver resolver.js). Distinto de NOT_CONNECTED (nenhuma conexão
+  // configurada) porque aqui existe pelo menos UMA conexão — só não é a
+  // que foi pedida.
+  CONNECTION_MISMATCH: "WHATSAPP_CONNECTION_MISMATCH"
 });
 
 // Mensagens amigáveis em português — nunca expor detalhe técnico/PII na UI.
@@ -100,6 +107,7 @@ const ERROR_MESSAGES = Object.freeze({
   [ERROR_CODES.RATE_LIMITED]: "Muitas requisições em pouco tempo. Tente novamente em instantes.",
   [ERROR_CODES.PROVIDER_UNAVAILABLE]: "O WhatsApp está indisponível no momento. Tente novamente em instantes.",
   [ERROR_CODES.INVALID_RECIPIENT]: "Não foi possível identificar o destinatário desta conversa.",
+  [ERROR_CODES.CONNECTION_MISMATCH]: "Esta conexão não foi encontrada para esta loja.",
   [ERROR_CODES.MESSAGE_FAILED]: "Não foi possível enviar esta mensagem."
 });
 

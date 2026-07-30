@@ -75,10 +75,29 @@ function safeWamid(wamid) {
   return crypto.createHash("sha256").update(valor).digest("hex");
 }
 
-// Hash de contato — nunca usar wa_id cru como ID de documento (é PII
-// operacional). Inclui ownerUid pra nunca colidir entre tenants diferentes.
+// Hash de contato (legado, V1 — uma conexão por tenant) — nunca usar
+// wa_id cru como ID de documento (é PII operacional). Inclui ownerUid pra
+// nunca colidir entre tenants diferentes. MANTIDO sem alteração (mesmo
+// algoritmo) para os contatos já existentes continuarem resolvendo pro
+// mesmo chat depois desta revisão — nunca usar isto sozinho pra decidir
+// um NOVO contato quando o tenant tem multiconexão (ver
+// hashContatoPorNumero abaixo e webhook.js: resolverOuCriarChat).
 function hashContato(ownerUid, waId) {
   const chave = `${String(ownerUid ?? "")}:${normalizarWaId(waId)}`;
+  return crypto.createHash("sha256").update(chave).digest("hex").slice(0, 40);
+}
+
+// Revisão (multiconexão): hash de contato POR NÚMERO DE ORIGEM
+// (phoneNumberId) — o mesmo cliente (mesmo wa_id) falando com dois
+// números empresariais diferentes da mesma loja NUNCA pode cair no mesmo
+// chat (achado real da revisão: hashContato sozinho não distinguia
+// números, então uma segunda conexão "roubava" a conversa da primeira).
+// Este é o hash usado para CRIAR/ENCONTRAR contatos a partir de agora;
+// hashContato (sem phoneNumberId) continua existindo só para reconhecer
+// contatos que já foram criados por ele antes desta revisão (compatibi-
+// lidade — ver resolverOuCriarChat).
+function hashContatoPorNumero(ownerUid, phoneNumberId, waId) {
+  const chave = `${String(ownerUid ?? "")}:${String(phoneNumberId ?? "")}:${normalizarWaId(waId)}`;
   return crypto.createHash("sha256").update(chave).digest("hex").slice(0, 40);
 }
 
@@ -303,6 +322,7 @@ module.exports = {
   waIdValido,
   safeWamid,
   hashContato,
+  hashContatoPorNumero,
   hashEventoWebhook,
   calcularExpiracaoJanela,
   janelaAberta,

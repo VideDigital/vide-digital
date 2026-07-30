@@ -51,11 +51,37 @@ function avaliarTemplate(template, ownerUid) {
 // a conexão default nova, ou o piloto legado (nesta ordem, sem nunca
 // escolher aleatoriamente). Devolve a conexão resolvida INTEIRA (não só
 // os dados) pra quem chamar poder pedir o token certo depois.
-async function carregarConexaoResolvida(db, { ownerUid, connectionId }) {
-  const resolvido = await resolver.resolverConexao(db, { ownerUid, connectionId });
+//
+// Revisão: um alvo EXPLÍCITO (connectionId ou legacy:true) que não
+// resolve NUNCA vira "usa a default então" — vira erro
+// (WHATSAPP_CONNECTION_MISMATCH), distinto de NOT_CONNECTED (que
+// significa "não existe nenhuma conexão configurada"). Isso fecha o
+// achado real da revisão: antes, pedir uma conexão específica que não
+// existia mais fazia o backend silenciosamente operar sobre outra
+// conexão (validar/sincronizar/enviar pelo número ERRADO).
+async function carregarConexaoResolvida(db, { ownerUid, connectionId, legacy }) {
+  const resolvido = await resolver.resolverConexao(db, { ownerUid, connectionId, legacy });
+  if (resolvido.connectionIdInvalido) throw erroPublico(ERROR_CODES.CONNECTION_MISMATCH);
   const avaliacao = avaliarConexao(resolvido.connection);
   if (!avaliacao.ok) throw erroPublico(avaliacao.code);
   return resolvido;
+}
+
+// Resolve a conexão de ORIGEM de um chat já existente — nunca a conexão
+// "atual" default do tenant, que pode ter mudado depois que a conversa
+// foi criada. chat.whatsappConnectionId só existe pra chats criados pelo
+// modelo novo; um chat sem esse campo foi criado pelo piloto legado (a
+// única forma de inbound antes da multiconexão) — pede a legada
+// EXPLICITAMENTE (legacy:true), nunca deixa cair no fallback normal, que
+// poderia silenciosamente escolher uma conexão nova que virou default
+// depois. Achado real da revisão: sem isso, uma conversa legada passava a
+// responder por um número DIFERENTE assim que uma segunda conexão fosse
+// adicionada e definida como padrão.
+async function carregarConexaoDoChat(db, { ownerUid, chat }) {
+  if (chat.whatsappConnectionId) {
+    return carregarConexaoResolvida(db, { ownerUid, connectionId: chat.whatsappConnectionId });
+  }
+  return carregarConexaoResolvida(db, { ownerUid, legacy: true });
 }
 
 async function carregarChatDoTenant(db, chatId, ownerUid) {
@@ -96,10 +122,10 @@ const whatsappSendText = onCall({ region: REGION }, async (request) => {
 
   const db = getFirestore();
   const { chatRef, chat } = await carregarChatDoTenant(db, chatId, context.ownerUid);
-  // Sempre a conexão de ORIGEM da conversa (chat.whatsappConnectionId) —
-  // nunca a conexão default do momento, que pode ter mudado desde que a
-  // conversa foi criada (ver docs/WHATSAPP_MODULO_MULTICONEXAO.md).
-  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId: chat.whatsappConnectionId });
+  // Sempre a conexão de ORIGEM da conversa — nunca a conexão default do
+  // momento, que pode ter mudado desde que a conversa foi criada (ver
+  // docs/WHATSAPP_MODULO_MULTICONEXAO.md).
+  const resolvido = await carregarConexaoDoChat(db, { ownerUid: context.ownerUid, chat });
   const conexao = resolvido.connection;
 
   if (!janelaAberta(chat.whatsappJanelaAtendimentoAte)) throw erroPublico(ERROR_CODES.WINDOW_CLOSED);
@@ -183,7 +209,7 @@ const whatsappSendTemplate = onCall({ region: REGION }, async (request) => {
 
   const db = getFirestore();
   const { chatRef, chat } = await carregarChatDoTenant(db, chatId, context.ownerUid);
-  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId: chat.whatsappConnectionId });
+  const resolvido = await carregarConexaoDoChat(db, { ownerUid: context.ownerUid, chat });
   const conexao = resolvido.connection;
 
   const templateSnap = await db.doc(`${COLLECTIONS.TEMPLATES}/${templateId}`).get();
@@ -288,7 +314,7 @@ const whatsappMarkRead = onCall({ region: REGION }, async (request) => {
 
   const db = getFirestore();
   const { chatRef, chat } = await carregarChatDoTenant(db, chatId, context.ownerUid);
-  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId: chat.whatsappConnectionId });
+  const resolvido = await carregarConexaoDoChat(db, { ownerUid: context.ownerUid, chat });
   const conexao = resolvido.connection;
 
   const mensagemRef = chatRef.collection("mensagens").doc(mensagemId);
@@ -349,8 +375,9 @@ const whatsappConnectionStatus = onCall({ region: REGION }, async (request) => {
   if (!podeVerConexao(context)) throw new HttpsError("permission-denied", "Permissão insuficiente.");
 
   const connectionId = normalizeString(request.data?.connectionId, 200);
+  const legacy = Boolean(request.data?.legacy);
   const db = getFirestore();
-  const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId });
+  const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId, legacy });
   if (!resolvido.connection) return { ok: true, connected: false, status: "disconnected" };
 
   const dados = resolvido.connection;
@@ -390,8 +417,9 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
   });
 
   const connectionId = normalizeString(request.data?.connectionId, 200);
+  const legacy = Boolean(request.data?.legacy);
   const db = getFirestore();
-  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId });
+  const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId, legacy });
   const conexaoRef = refConexaoResolvida(db, resolvido, context.ownerUid);
 
   let accessToken;
@@ -453,5 +481,7 @@ module.exports = {
   avaliarTemplate,
   montarComponentesEnvio,
   podeVerConexao,
-  podeGerenciarConexao
+  podeGerenciarConexao,
+  carregarConexaoResolvida,
+  carregarConexaoDoChat
 };

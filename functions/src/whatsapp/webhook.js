@@ -21,6 +21,7 @@ const {
   waIdValido,
   safeWamid,
   hashContato,
+  hashContatoPorNumero,
   hashEventoWebhook,
   calcularExpiracaoJanela,
   podeAtualizarStatusMensagem,
@@ -187,17 +188,51 @@ async function tentarVincularClienteCRM(db, ownerUid, waId) {
   }
 }
 
+// Revisão (multiconexão) — achado real: o mesmo cliente (mesmo wa_id)
+// falando com DOIS números empresariais diferentes da mesma loja caía no
+// MESMO chat, porque o contato era identificado só por ownerUid+wa_id
+// (hashContato), sem o número de origem. Agora a identidade do contato
+// inclui o phoneNumberId (hashContatoPorNumero) — números diferentes
+// nunca mais colidem. Contatos criados ANTES desta revisão (hash antigo,
+// sem phoneNumberId) continuam resolvendo pro MESMO chat de sempre — mas
+// só depois de confirmar contra o próprio chat (whatsappPhoneNumberId,
+// gravado desde a V1) que o número de origem realmente bate. Nunca
+// assume "sem phoneNumberId gravado" como sinônimo de "é este número".
 async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumberId, displayPhoneNumber, connectionId, providerTimestamp }) {
-  const contactHash = hashContato(ownerUid, waId);
-  const contactRef = db.doc(`${COLLECTIONS.CONTACT_MAP}/${ownerUid}_${contactHash}`);
-  const contactSnap = await contactRef.get();
-  const contatoExistente = contactSnap.exists ? contactSnap.data() : null;
+  const contactRefNovo = db.doc(`${COLLECTIONS.CONTACT_MAP}/${ownerUid}_${hashContatoPorNumero(ownerUid, phoneNumberId, waId)}`);
+  const contactSnapNovo = await contactRefNovo.get();
+
+  let contactRef = contactRefNovo;
+  let contatoExistente = contactSnapNovo.exists ? contactSnapNovo.data() : null;
+
+  if (!contatoExistente) {
+    const contactRefAntigo = db.doc(`${COLLECTIONS.CONTACT_MAP}/${ownerUid}_${hashContato(ownerUid, waId)}`);
+    const snapAntigo = await contactRefAntigo.get();
+    const dadosAntigos = snapAntigo.exists ? snapAntigo.data() : null;
+    if (dadosAntigos?.chatId) {
+      let numeroBate = dadosAntigos.phoneNumberId === phoneNumberId;
+      if (!dadosAntigos.phoneNumberId) {
+        const chatAntigoSnap = await db.doc(`chats/${dadosAntigos.chatId}`).get();
+        const numeroDoChatAntigo = chatAntigoSnap.exists ? String(chatAntigoSnap.data()?.whatsappPhoneNumberId || "") : "";
+        numeroBate = Boolean(numeroDoChatAntigo) && numeroDoChatAntigo === String(phoneNumberId || "");
+      }
+      if (numeroBate) {
+        contactRef = contactRefAntigo;
+        contatoExistente = dadosAntigos;
+      }
+    }
+  }
+
   const clienteEncontradoId = contatoExistente?.chatId ? "" : await tentarVincularClienteCRM(db, ownerUid, waId);
 
   const plano = montarPlanoChatInbound({ ownerUid, waId, profileName, phoneNumberId, displayPhoneNumber, connectionId, providerTimestamp, contatoExistente, clienteEncontradoId });
 
   if (!plano.novoChat) {
-    await contactRef.set({ ...plano.contactUpdate, lastSeenAt: FieldValue.serverTimestamp() }, { merge: true });
+    // phoneNumberId sempre mesclado — se o contato veio do hash antigo
+    // (compatibilidade) sem esse campo, esta escrita o autopreenche
+    // (self-heal), evitando repetir a leitura extra do chat nas próximas
+    // mensagens.
+    await contactRef.set({ ...plano.contactUpdate, phoneNumberId, lastSeenAt: FieldValue.serverTimestamp() }, { merge: true });
     await db.doc(`chats/${plano.chatId}`).set({
       ...plano.chatUpdate,
       naoLidasLoja: FieldValue.increment(1),
@@ -206,15 +241,17 @@ async function resolverOuCriarChat(db, { ownerUid, waId, profileName, phoneNumbe
     return plano.chatId;
   }
 
+  // Chat novo — SEMPRE cria o contato com o hash NOVO (por número), nunca
+  // o antigo, pra nunca voltar a criar um registro ambíguo.
   const chatRef = db.collection("chats").doc();
   await chatRef.set({
     ...plano.chatCreate,
     criadoEm: FieldValue.serverTimestamp(),
     atualizadoEm: FieldValue.serverTimestamp()
   });
-  await contactRef.set({
+  await contactRefNovo.set({
     ...plano.contactCreate,
-    contactHash,
+    phoneNumberId,
     chatId: chatRef.id,
     firstSeenAt: FieldValue.serverTimestamp(),
     lastSeenAt: FieldValue.serverTimestamp()
@@ -397,5 +434,6 @@ module.exports = {
   montarPlanoChatInbound,
   montarMensagemInboundDoc,
   decidirAtualizacaoStatus,
-  resolverRotaPorPhoneNumberId
+  resolverRotaPorPhoneNumberId,
+  resolverOuCriarChat
 };

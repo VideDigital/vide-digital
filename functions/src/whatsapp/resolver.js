@@ -51,34 +51,59 @@ async function buscarConexaoLegado(db, ownerUid) {
   return { id: snap.id, ...snap.data() };
 }
 
-// Devolve { connection, connectionId, legacy } — connection é null quando
-// não há NENHUMA conexão (nem nova nem legada) pra este ownerUid.
-// connectionId é "" pra conexão legada (documento não tem um id de
-// conexão de verdade, é o próprio ownerUid).
-async function resolverConexao(db, { ownerUid, connectionId } = {}) {
-  if (!ownerUid) return { connection: null, connectionId: "", legacy: false };
+// Devolve { connection, connectionId, legacy, connectionIdInvalido } —
+// connection é null quando não há NENHUMA conexão resolvida (seja porque
+// não existe nenhuma pra este ownerUid, seja porque um alvo EXPLÍCITO
+// (connectionId ou legacy:true) foi pedido e não existe/não pertence ao
+// tenant). connectionId é "" pra conexão legada (documento não tem um id
+// de conexão de verdade, é o próprio ownerUid).
+//
+// connectionIdInvalido é true SÓ quando o chamador pediu um alvo
+// EXPLÍCITO (connectionId ou legacy:true) que não resolveu — nesse caso
+// NUNCA cai silenciosamente pro default ou pra outra conexão. Quem chama
+// (send.js/templates.js) deve tratar isso como falha (WHATSAPP_
+// CONNECTION_MISMATCH), nunca prosseguir com a conexão errada. Revisão:
+// a versão anterior caía pro default sempre que o connectionId pedido não
+// batia — o que permitia validar/sincronizar/enviar pela conexão ERRADA
+// silenciosamente quando o alvo pedido não existia mais (ex.: card legado
+// clicado com connectionId="" enquanto uma conexão nova já é default).
+async function resolverConexao(db, { ownerUid, connectionId, legacy } = {}) {
+  if (!ownerUid) return { connection: null, connectionId: "", legacy: false, connectionIdInvalido: false };
+
+  // Alvo explícito "conexão legada" — nunca aceita a conexão nova default
+  // no lugar, mesmo que ela exista. Usado pelas ações do card legado na UI
+  // (ver whatsapp-oficial-v1.js), que precisam distinguir "sem preferência"
+  // de "quero especificamente a legada".
+  if (legacy) {
+    const legado = await buscarConexaoLegado(db, ownerUid);
+    if (legado) return { connection: legado, connectionId: "", legacy: true, connectionIdInvalido: false };
+    return { connection: null, connectionId: "", legacy: false, connectionIdInvalido: true };
+  }
 
   if (connectionId) {
     const candidata = await buscarConexaoPorId(db, connectionId);
-    // Só aceita se pertencer de verdade a este tenant — um connectionId
-    // que não bate (ou de outro owner) nunca é usado silenciosamente;
-    // cai pro mesmo caminho de "sem connectionId" abaixo.
+    // Só aceita se pertencer de verdade a este tenant.
     if (candidata && candidata.ownerUid === ownerUid) {
-      return { connection: candidata, connectionId: candidata.id, legacy: false };
+      return { connection: candidata, connectionId: candidata.id, legacy: false, connectionIdInvalido: false };
     }
+    // connectionId explícito mas inválido/inexistente/de outro tenant —
+    // nunca cai pro default nem pro legado. Quem chama decide o erro.
+    return { connection: null, connectionId: "", legacy: false, connectionIdInvalido: true };
   }
 
+  // Sem alvo explícito — fallback normal (default do modelo novo, senão
+  // o legado, senão nada).
   const defaultNovo = await buscarConexaoDefault(db, ownerUid);
   if (defaultNovo) {
-    return { connection: defaultNovo, connectionId: defaultNovo.id, legacy: false };
+    return { connection: defaultNovo, connectionId: defaultNovo.id, legacy: false, connectionIdInvalido: false };
   }
 
   const legado = await buscarConexaoLegado(db, ownerUid);
   if (legado) {
-    return { connection: legado, connectionId: "", legacy: true };
+    return { connection: legado, connectionId: "", legacy: true, connectionIdInvalido: false };
   }
 
-  return { connection: null, connectionId: "", legacy: false };
+  return { connection: null, connectionId: "", legacy: false, connectionIdInvalido: false };
 }
 
 // Token de acesso da conexão já resolvida — sempre por tokenSecretResource
