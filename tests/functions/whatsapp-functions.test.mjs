@@ -10,6 +10,7 @@ import webhook from "../../functions/src/whatsapp/webhook.js";
 import send from "../../functions/src/whatsapp/send.js";
 import templates from "../../functions/src/whatsapp/templates.js";
 import connections from "../../functions/src/whatsapp/connections.js";
+import onboarding from "../../functions/src/whatsapp/onboarding.js";
 import whatsappIndex from "../../functions/src/whatsapp/index.js";
 import { ERROR_CODES } from "../../functions/src/whatsapp/constants.js";
 
@@ -377,6 +378,41 @@ describe("whatsapp/templates — derivarParameterSchema", () => {
     it("sem componente BODY, devolve vazio sem lançar", () => {
         assert.deepEqual(templates.derivarParameterSchema([]), []);
         assert.deepEqual(templates.derivarParameterSchema(undefined), []);
+    });
+});
+
+describe("whatsapp/onboarding — Fase 7: só contratos, nada real implementado", () => {
+    it("EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO é sempre false nesta missão", () => {
+        assert.equal(onboarding.EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO, false);
+    });
+
+    it("ONBOARDING_STATE começa em 'nao_iniciado' e termina em 'concluido'/'falhou'", () => {
+        assert.equal(onboarding.ONBOARDING_STATE[0], "nao_iniciado");
+        assert.ok(onboarding.ONBOARDING_STATE.includes("concluido"));
+        assert.ok(onboarding.ONBOARDING_STATE.includes("falhou"));
+    });
+
+    it("estadoOnboardingValido só aceita estados do vocabulário documentado", () => {
+        assert.equal(onboarding.estadoOnboardingValido("nao_iniciado"), true);
+        assert.equal(onboarding.estadoOnboardingValido("concluido"), true);
+        assert.equal(onboarding.estadoOnboardingValido("estado_inventado"), false);
+        assert.equal(onboarding.estadoOnboardingValido(""), false);
+    });
+
+    it("CONTRATO_PROVIDER_ADAPTER documenta as 5 operações do adapter futuro, todas como string (nunca uma função de verdade)", () => {
+        const chaves = Object.keys(onboarding.CONTRATO_PROVIDER_ADAPTER);
+        assert.deepEqual(chaves.sort(), [
+            "assinarWaba", "descobrirPhoneNumberId", "descobrirWabaCompartilhada", "registrarNumero", "trocarCodigoPorToken"
+        ].sort());
+        for (const valor of Object.values(onboarding.CONTRATO_PROVIDER_ADAPTER)) {
+            assert.equal(typeof valor, "string");
+        }
+    });
+
+    it("CONTRATO_ONBOARDING_FUNCTIONS documenta os 2 onCall futuros — nenhum é exportado por index.js", () => {
+        assert.deepEqual(Object.keys(onboarding.CONTRATO_ONBOARDING_FUNCTIONS).sort(), ["whatsappCompleteOnboarding", "whatsappStartOnboarding"]);
+        assert.equal("whatsappStartOnboarding" in whatsappIndex, false);
+        assert.equal("whatsappCompleteOnboarding" in whatsappIndex, false);
     });
 });
 

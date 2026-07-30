@@ -45,7 +45,70 @@ function formatoEsperadoCallbackEmbeddedSignup() {
 // "Disponível após aprovação da integração", nunca finge sucesso.
 const EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO = false;
 
+// ---------- Fase 7 (multiconexão) — só contratos, nada implementado ----------
+// Tudo abaixo é documentação executável (constantes/formas de dados) pra
+// uma missão FUTURA implementar o Embedded Signup real. Nenhuma função
+// aqui faz uma chamada de rede, grava Firestore ou é exportada como Cloud
+// Function — ver módulo/index.js (nunca importa este arquivo).
+
+// Estados possíveis de um onboarding em andamento — nunca persistido
+// nesta fase (não existe coleção pra isso ainda), só o vocabulário que a
+// missão futura vai usar pra rastrear o progresso do fluxo assistido pelo
+// usuário no navegador (FB.login() -> troca de code -> descoberta de
+// WABA/número -> assinatura -> validação).
+const ONBOARDING_STATE = Object.freeze([
+  "nao_iniciado",
+  "aguardando_facebook_login",
+  "trocando_code_por_token",
+  "descobrindo_waba",
+  "descobrindo_phone_number_id",
+  "assinando_waba",
+  "validando_conexao",
+  "concluido",
+  "falhou"
+]);
+const ONBOARDING_STATE_SET = new Set(ONBOARDING_STATE);
+
+// Contrato de um adapter de provedor — hoje só meta_cloud_api (official_cloud
+// e official_coexistence, ver constants.js CONNECTION_PROVIDER_MODE), mas
+// desenhado pra nunca acoplar o resto do código a uma implementação
+// concreta. Cada método aqui é só a ASSINATURA esperada (nome + parâmetros
+// + retorno documentado) — nenhum tem corpo real; um adapter de verdade
+// seria implementado numa missão futura e teria que seguir este contrato.
+const CONTRATO_PROVIDER_ADAPTER = Object.freeze({
+  trocarCodigoPorToken: "async ({ code, redirectUri }) => { tokenSecretResource }",
+  descobrirWabaCompartilhada: "async ({ accessToken }) => { wabaId, businessId }",
+  descobrirPhoneNumberId: "async ({ accessToken, wabaId }) => { phoneNumberId, displayPhoneNumber, verifiedName }",
+  assinarWaba: "async ({ accessToken, wabaId }) => { subscribed: boolean }",
+  registrarNumero: "async ({ accessToken, phoneNumberId, pin }) => { registered: boolean }"
+});
+
+// Contrato dos onCall futuros (nomes/formato de payload e resposta) —
+// documentado aqui pra a missão futura ter um ponto único de referência,
+// nunca implementado nem registrado em index.js nesta fase.
+const CONTRATO_ONBOARDING_FUNCTIONS = Object.freeze({
+  whatsappStartOnboarding: {
+    payload: "{ providerMode: 'official_cloud' | 'official_coexistence' }",
+    resposta: "{ onboardingId, state: ONBOARDING_STATE[0] }",
+    observacao: "Nunca cria whatsapp_connections aqui — só inicia o rastreio do fluxo."
+  },
+  whatsappCompleteOnboarding: {
+    payload: "{ onboardingId, code }",
+    resposta: "{ state: 'concluido' | 'falhou', connectionId? }",
+    observacao: "Só aqui (numa missão futura) um whatsapp_connections/{connectionId} novo seria criado — sempre respeitando MAX_CONNECTIONS_PER_OWNER."
+  }
+});
+
+function estadoOnboardingValido(estado) {
+  return ONBOARDING_STATE_SET.has(estado);
+}
+
 module.exports = {
   EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO,
-  formatoEsperadoCallbackEmbeddedSignup
+  formatoEsperadoCallbackEmbeddedSignup,
+  ONBOARDING_STATE,
+  ONBOARDING_STATE_SET,
+  CONTRATO_PROVIDER_ADAPTER,
+  CONTRATO_ONBOARDING_FUNCTIONS,
+  estadoOnboardingValido
 };
