@@ -65,7 +65,10 @@ export const VideFunctions = Object.freeze({
     whatsappMarkRead: (payload) => callFunction("whatsappMarkRead", payload),
     whatsappSyncTemplates: (payload) => callFunction("whatsappSyncTemplates", payload),
     whatsappConnectionStatus: (payload) => callFunction("whatsappConnectionStatus", payload),
-    whatsappValidateConnection: (payload) => callFunction("whatsappValidateConnection", payload)
+    whatsappValidateConnection: (payload) => callFunction("whatsappValidateConnection", payload),
+    // Fase 4 (multiconexão) — módulo WhatsApp separado no dashboard.
+    whatsappListConnections: (payload) => callFunction("whatsappListConnections", payload),
+    whatsappSetDefaultConnection: (payload) => callFunction("whatsappSetDefaultConnection", payload)
 });
 
 export default VideFunctions;

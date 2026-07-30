@@ -77,10 +77,30 @@ async function flowConectado(page) {
 
     // Nenhum campo de segredo (token, secret, authorization) aparece em
     // nenhum lugar da tela — nem no card, nem em nenhum atributo escondido.
+    // Também nunca existe um formulário manual pedindo token/WABA
+    // ID/App Secret (Fase 4: onboarding continua só piloto assistido).
     const html = await page.content();
     assert.equal(/EAAG[a-zA-Z0-9]/.test(html), false, "Nenhum token real deveria aparecer no HTML renderizado");
+    assert.equal(/tokenSecretResource/i.test(html), false, "O caminho completo do secret nunca deveria aparecer na UI");
+    assert.equal(/input[^>]*(waba|access.?token|app.?secret)/i.test(html), false, "Nunca deveria existir um input manual de token/WABA ID/App Secret");
 
-    console.log("whatsapp-oficial.flow: OK (conectado) — status real via Cloud Function, token sempre mascarado.");
+    // Fase 4: "Minhas conexões" mostra a conexão legada migrando como
+    // card, marcada como padrão (é o fallback do resolver).
+    await page.waitForFunction(() => {
+        const lista = document.getElementById("whatsapp-conexoes-lista");
+        return Boolean(lista) && lista.textContent.includes("+55 11 90000-0000");
+    }, { timeout: 15000 });
+    const conexoesTexto = await page.textContent("#whatsapp-conexoes-lista");
+    assert.ok(conexoesTexto.includes("Padrão"), "A conexão legada conectada deveria aparecer como padrão em Minhas conexões");
+
+    // Fase 4: "Adicionar conexão" nunca oferece um fluxo real — só CTAs
+    // desabilitados com "Configuração em preparação".
+    const secaoAdicionar = await page.textContent("#whatsapp-secao-adicionar");
+    assert.ok(secaoAdicionar.includes("Configuração em preparação"), "As opções de adicionar conexão deveriam estar marcadas como 'Configuração em preparação'");
+    const botoesAdicionarDesabilitados = await page.$$eval("#whatsapp-secao-adicionar button", (botoes) => botoes.every((b) => b.disabled));
+    assert.equal(botoesAdicionarDesabilitados, true, "Nenhum botão de adicionar conexão pode estar clicável nesta missão");
+
+    console.log("whatsapp-oficial.flow: OK (conectado) — status real via Cloud Function, token sempre mascarado, módulo separado com Minhas conexões/Adicionar conexão corretos.");
 }
 
 async function flowFuncionarioLeitura(page, baseUrl) {
@@ -90,7 +110,7 @@ async function flowFuncionarioLeitura(page, baseUrl) {
     });
 
     const ativou = await ativarView(page, "view-whatsapp-oficial", "#whatsapp-estado-conteudo");
-    assert.equal(ativou, true, "Funcionário com permissão de ver 'atendimento' deveria conseguir abrir a tela");
+    assert.equal(ativou, true, "Funcionário com permissão de ver 'whatsapp' deveria conseguir abrir a tela");
 
     const btnValidar = page.locator("#whatsapp-btn-validar");
     await page.waitForSelector("#whatsapp-btn-validar", { state: "attached", timeout: 10000 });

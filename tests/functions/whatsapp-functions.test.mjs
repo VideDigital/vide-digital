@@ -9,6 +9,7 @@ import { criarMetaClient } from "../../functions/src/whatsapp/metaClient.js";
 import webhook from "../../functions/src/whatsapp/webhook.js";
 import send from "../../functions/src/whatsapp/send.js";
 import templates from "../../functions/src/whatsapp/templates.js";
+import connections from "../../functions/src/whatsapp/connections.js";
 import whatsappIndex from "../../functions/src/whatsapp/index.js";
 import { ERROR_CODES } from "../../functions/src/whatsapp/constants.js";
 
@@ -328,13 +329,58 @@ describe("whatsapp/templates — derivarParameterSchema", () => {
     });
 });
 
-describe("whatsapp/index — exporta as 7 Functions esperadas", () => {
-    it("exporta exatamente os 7 nomes do contrato", () => {
+describe("whatsapp/index — exporta as 9 Functions esperadas", () => {
+    it("exporta exatamente os 9 nomes do contrato (7 da V1 + 2 da Fase 4 multiconexão)", () => {
         const esperado = [
             "whatsappWebhook", "whatsappSendText", "whatsappSendTemplate",
             "whatsappMarkRead", "whatsappSyncTemplates", "whatsappConnectionStatus",
-            "whatsappValidateConnection"
+            "whatsappValidateConnection", "whatsappListConnections", "whatsappSetDefaultConnection"
         ];
         assert.deepEqual(Object.keys(whatsappIndex).sort(), esperado.sort());
+    });
+});
+
+describe("whatsapp/connections — montarListaConexoes (ordenação pura)", () => {
+    it("conexão default do modelo novo vem primeiro", () => {
+        const naoDefault = { connectionId: "b", isDefault: false };
+        const padrao = { connectionId: "a", isDefault: true };
+        const lista = connections.montarListaConexoes([naoDefault, padrao], null);
+        assert.deepEqual(lista.map((c) => c.connectionId), ["a", "b"]);
+    });
+
+    it("conexão legada sempre vai por último, atrás de qualquer conexão nova", () => {
+        const nova = { connectionId: "a", isDefault: false };
+        const legado = { connectionId: "", legacy: true };
+        const lista = connections.montarListaConexoes([nova], legado);
+        assert.deepEqual(lista.map((c) => c.legacy || false), [false, true]);
+    });
+
+    it("sem nenhuma conexão nova nem legada, devolve lista vazia", () => {
+        assert.deepEqual(connections.montarListaConexoes([], null), []);
+    });
+
+    it("sem nenhuma conexão nova, só a legada, devolve só ela", () => {
+        const legado = { connectionId: "", legacy: true };
+        assert.deepEqual(connections.montarListaConexoes([], legado), [legado]);
+    });
+});
+
+describe("whatsapp/connections — paraResumoSeguro (nunca inclui tokenSecretResource)", () => {
+    it("nunca inclui tokenSecretResource nem qualquer campo de segredo no resumo", () => {
+        const dados = {
+            label: "Principal",
+            status: "connected",
+            tokenSecretResource: "projects/p/secrets/vide-whatsapp-token-abc",
+            isDefault: true
+        };
+        const resumo = connections.paraResumoSeguro("conn-1", dados);
+        assert.equal("tokenSecretResource" in resumo, false);
+    });
+
+    it("conexão legada sempre aparece como isDefault:true (é o fallback do resolver)", () => {
+        const resumo = connections.paraResumoSeguro("owner-1", { status: "connected" }, { legacy: true });
+        assert.equal(resumo.isDefault, true);
+        assert.equal(resumo.connectionId, "");
+        assert.equal(resumo.legacy, true);
     });
 });

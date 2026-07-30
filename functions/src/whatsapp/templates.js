@@ -6,7 +6,7 @@
 // fora daqui) — só lista/espelha o que já existe lá.
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { resolveCallerContext, requireEdit } = require("../shared/context");
+const { resolveCallerContext } = require("../shared/context");
 const { assertRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
 const { REGION, COLLECTIONS, ERROR_CODES, ERROR_MESSAGES, RATE_LIMITS } = require("./constants");
@@ -14,6 +14,7 @@ const resolver = require("./resolver");
 const { criarMetaClient } = require("./metaClient");
 const { identificadorRateLimit } = require("./validators");
 const { normalizeString } = require("../shared/validators");
+const { podeGerenciarConexao } = require("./send");
 
 const metaClient = criarMetaClient();
 
@@ -61,7 +62,11 @@ function normalizarTemplateMeta(ownerUid, wabaId, templateMeta) {
 
 const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
   const context = await resolveCallerContext(request);
-  requireEdit(context, "atendimento");
+  // Sincronizar templates é uma ação do MÓDULO WhatsApp (Fase 4), não da
+  // Central de Atendimento — mesma permissão própria "whatsapp" de
+  // podeVerConexao/podeGerenciarConexao em send.js, nunca mais herdada de
+  // "atendimento".
+  if (!podeGerenciarConexao(context)) throw new HttpsError("permission-denied", "Permissão insuficiente para sincronizar templates.");
 
   await assertRateLimit({
     scope: "whatsappSyncTemplates",
@@ -114,7 +119,7 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
   await writeAudit({
     ownerUid: context.ownerUid,
     authUid: context.authUid,
-    module: "atendimento",
+    module: "whatsapp",
     targetId: context.ownerUid,
     action: "whatsapp.templates_sincronizados",
     risk: "low",

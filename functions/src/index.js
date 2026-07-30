@@ -69,3 +69,6 @@ exports.whatsappMarkRead = whatsapp.whatsappMarkRead;
 exports.whatsappSyncTemplates = whatsapp.whatsappSyncTemplates;
 exports.whatsappConnectionStatus = whatsapp.whatsappConnectionStatus;
 exports.whatsappValidateConnection = whatsapp.whatsappValidateConnection;
+// Fase 4 (multiconexão) — módulo WhatsApp separado no dashboard.
+exports.whatsappListConnections = whatsapp.whatsappListConnections;
+exports.whatsappSetDefaultConnection = whatsapp.whatsappSetDefaultConnection;

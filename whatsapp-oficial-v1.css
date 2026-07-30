@@ -115,6 +115,58 @@
 
 .aura-whatsapp-acoes-finais { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 
+/* ---------- Módulo separado (Fase 4): 7 seções em cards premium ---------- */
+.aura-whatsapp-section {
+    padding: 20px;
+    border-radius: 14px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, .02), rgba(255, 255, 255, .005));
+    border: 1px solid rgba(148, 163, 184, .12);
+}
+.aura-whatsapp-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.aura-whatsapp-section-header h3 {
+    font-size: .95rem;
+    font-weight: 700;
+    color: #f1f5f9;
+    margin: 0;
+}
+.aura-whatsapp-section-intro { color: #94a3b8; font-size: .82rem; margin: 0 0 12px; }
+
+.aura-whatsapp-vazio {
+    padding: 16px;
+    border-radius: 10px;
+    background: rgba(148, 163, 184, .05);
+    border: 1px dashed rgba(148, 163, 184, .2);
+    color: #94a3b8;
+    font-size: .85rem;
+    text-align: center;
+}
+
+.aura-whatsapp-avisos {
+    list-style: none;
+    margin: 12px 0 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.aura-whatsapp-avisos li {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: rgba(251, 191, 36, .08);
+    border: 1px solid rgba(251, 191, 36, .2);
+    color: #fcd34d;
+    font-size: .8rem;
+}
+
+.aura-whatsapp-card h3 { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
 /* ---------- Extensões da Central de Atendimento ---------- */
 .atend-chip.is-whatsapp-numero {
     font-family: "JetBrains Mono", monospace;

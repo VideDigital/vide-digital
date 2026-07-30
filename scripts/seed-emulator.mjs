@@ -114,7 +114,11 @@ await setDoc("funcionarios/employee-read", {
   status: "ativo",
   cargo: "Atendimento",
   permissoes: {
-    ver: ["dashboard", "produtos", "leads", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia"],
+    // "whatsapp" incluída de propósito: o módulo WhatsApp (separado da
+    // Central de Atendimento na Fase 4 da multiconexão) tem permissão
+    // própria — este perfil "leitor" precisa dela pra o smoke de
+    // whatsapp-oficial.flow.mjs continuar validando "vê mas não edita".
+    ver: ["dashboard", "produtos", "leads", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "whatsapp"],
     editar: []
   }
 });
@@ -129,8 +133,8 @@ await setDoc("funcionarios/employee-edit", {
     // "ia-copilot" só no editor, nunca no leitor: valida no UI/Rules que a
     // permissão do copiloto de IA é concedida à parte de "atendimento",
     // nunca implícita nele.
-    ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot"],
-    editar: ["produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot"]
+    ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot", "whatsapp"],
+    editar: ["produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot", "whatsapp"]
   }
 });
 

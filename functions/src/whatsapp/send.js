@@ -430,7 +430,7 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
   await writeAudit({
     ownerUid: context.ownerUid,
     authUid: context.authUid,
-    module: "atendimento",
+    module: "whatsapp",
     targetId: resolvido.legacy ? context.ownerUid : resolvido.connectionId,
     action: "whatsapp.conexao_validada",
     risk: "medium",

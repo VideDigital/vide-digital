@@ -754,7 +754,11 @@ dicas: ["Pergunte de forma específica (\"quais produtos venderam mais este mês
             // Atendimento não dá acesso ao copiloto de IA automaticamente.
             { key: "ia-copilot", label: "Copiloto de IA (Atendimento)" },
             { key: "landing-pages", label: "Landing Pages / Studio" },
-            { key: "funcionarios", label: "Funcionários" }
+            { key: "funcionarios", label: "Funcionários" },
+            // Módulo separado da Central de Atendimento (Fase 4 da
+            // multiconexão) — administra a(s) conexão(ões) oficial(is) do
+            // WhatsApp; nunca mais herdada de "atendimento" sozinha.
+            { key: "whatsapp", label: "WhatsApp" }
         ];
 
         async function carregarFuncionarios() {
@@ -3277,7 +3281,9 @@ abrirDepois(
             "view-crm360": "crm",
             "view-funcionarios": "funcionarios",
             "view-auditoria": "auditoria",
-            "view-whatsapp-oficial": "atendimento",
+            // Fase 4 (multiconexão) — módulo separado da Central de
+            // Atendimento, permissão própria "whatsapp".
+            "view-whatsapp-oficial": "whatsapp",
             "view-landing-pages": "landing-pages"
         };
 
@@ -3583,9 +3589,13 @@ btn.classList.add("opacity-40");
         const whatsappOficialController = criarWhatsappOficialController({
             context: VideHubContext,
             notify: showToast,
+            db,
+            firestore: { collection, query, where, getDocs },
             chamarConnectionStatus: VideFunctions.whatsappConnectionStatus,
             chamarValidateConnection: VideFunctions.whatsappValidateConnection,
-            chamarSyncTemplates: VideFunctions.whatsappSyncTemplates
+            chamarSyncTemplates: VideFunctions.whatsappSyncTemplates,
+            chamarListConnections: VideFunctions.whatsappListConnections,
+            chamarSetDefaultConnection: VideFunctions.whatsappSetDefaultConnection
         });
         whatsappOficialController.bindEventos();
         window.whatsappOficialController = whatsappOficialController;

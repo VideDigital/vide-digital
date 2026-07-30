@@ -124,7 +124,8 @@ const RATE_LIMITS = Object.freeze({
   SEND_TEMPLATE_PER_MIN: 20,
   TEMPLATE_SYNC_PER_HOUR: 6,
   CONNECTION_VALIDATE_PER_MIN: 5,
-  MARK_READ_PER_MIN: 60
+  MARK_READ_PER_MIN: 60,
+  SET_DEFAULT_CONNECTION_PER_MIN: 10
 });
 
 // TTL do dedupe leve de eventos de webhook (whatsapp_webhook_events) —
