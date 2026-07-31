@@ -182,6 +182,7 @@ function publicError(error) {
     ASSET_NOT_FOUND: "A Meta não compartilhou uma conta ou número compatível com esta conexão.",
     ASSET_AMBIGUOUS: "A Meta retornou mais de uma opção e não foi possível confirmar com segurança qual foi escolhida.",
     REGISTRATION_OUTCOME_UNKNOWN: "A Meta não confirmou se o número foi registrado. A tentativa foi preservada para análise segura.",
+    REGISTERED_CONNECTION_INCOMPLETE: "O número foi registrado, mas a conexão não terminou. A tentativa foi preservada para recuperação segura.",
     ROUTE_CONFLICT: "Este número já está conectado a outra loja.",
     CONNECTION_LIMIT: "Sua loja já possui o limite de duas conexões.",
     TOKEN_REVOKED: "A Meta informou que a autorização não é mais válida.",

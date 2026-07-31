@@ -216,6 +216,13 @@ describe("WhatsApp Embedded Signup — ciclo seguro do PIN (revisão 2026-07-31)
     assert.equal(JSON.stringify(publicFailure).includes("pinSecretResourcePending"), false);
   });
 
+  it("falha posterior a registro confirmado também exige recuperação sem expor PIN", () => {
+    const publicFailure = core.publicError({ code: "REGISTERED_CONNECTION_INCOMPLETE" });
+    assert.equal(publicFailure.code, "REGISTERED_CONNECTION_INCOMPLETE");
+    assert.match(publicFailure.message, /registrado.*não terminou.*recuperação segura/i);
+    assert.equal(JSON.stringify(publicFailure).includes("projects/"), false);
+  });
+
   it("status requires_action nunca retorna referência do PIN, token ou valor secreto", () => {
     const response = onboarding.safeAttemptResponse({
       attemptId: "waon_teste",

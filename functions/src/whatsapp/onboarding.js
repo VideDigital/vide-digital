@@ -119,7 +119,7 @@ async function updateAttempt(db, attemptId, patch) {
 
 async function failAttempt(db, attempt, error) {
   const publicFailure = core.publicError(error);
-  const requiresAction = ["ASSET_AMBIGUOUS", "REGISTRATION_OUTCOME_UNKNOWN"].includes(publicFailure.code);
+  const requiresAction = ["ASSET_AMBIGUOUS", "REGISTRATION_OUTCOME_UNKNOWN", "REGISTERED_CONNECTION_INCOMPLETE"].includes(publicFailure.code);
   await db.runTransaction(async (tx) => {
     const attemptRef = db.doc(`${COLLECTIONS.ONBOARDING_ATTEMPTS}/${attempt.attemptId}`);
     const lockRef = db.doc(`${COLLECTIONS.ONBOARDING_LOCKS}/${attempt.ownerUid}`);
@@ -129,6 +129,9 @@ async function failAttempt(db, attempt, error) {
       lastErrorCode: publicFailure.code,
       lastErrorMessageSanitized: publicFailure.message,
       recoveryRequired: requiresAction,
+      ...(["unknown", "registered"].includes(error?.registrationOutcome)
+        ? { registrationOutcome: error.registrationOutcome }
+        : {}),
       finishedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
@@ -600,7 +603,14 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
         }));
       }
     }
-    const failure = await failAttempt(db, { ...attempt, step: "complete" }, error);
+    const finalError = phoneRegistrationOutcome === "registered" && !connectionCommitted
+      ? Object.assign(new Error("registered_connection_incomplete"), {
+        code: "REGISTERED_CONNECTION_INCOMPLETE",
+        registrationOutcome: "registered",
+        recoveryRequired: true
+      })
+      : error;
+    const failure = await failAttempt(db, { ...attempt, step: "complete" }, finalError);
     await writeAudit({ ownerUid: context.ownerUid, authUid: context.authUid, module: "whatsapp", targetId: attemptId, action: "whatsapp.onboarding_falhou", risk: "high", summary: `Onboarding do WhatsApp não concluído (${failure.code}).`, source: "function", ok: false, correlationId: attempt.correlationId, origin: attempt.origin, code: failure.code });
     throw new HttpsError("failed-precondition", failure.message, { code: failure.code, supportCode: attempt.correlationId });
   }
