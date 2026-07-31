@@ -233,6 +233,63 @@ de `unsubscribe`, então não há comportamento novo pra exercitar. Os
 testes de frontend/segredos pré-existentes (`whatsapp-management-qr-security.test.mjs`,
 seção "ausência de credenciais") continuam válidos e passam.
 
+## Auditoria do restante da conclusão do onboarding (ponto 7 da missão)
+
+Revisão completa de `whatsappStartOnboarding`, `whatsappCompleteOnboarding`,
+`whatsappGetOnboardingStatus` e `whatsappCancelOnboarding` além dos 3
+bloqueadores — nenhum gap novo encontrado, tudo já correto (trabalho
+pré-existente do checkpoint recebido):
+- Token exchange/scopes/App ID validados via `debugToken` (`is_valid`,
+  `app_id` == config.appId, todos os `META_PERMISSIONS` presentes).
+- WABA/número: descoberta 100% server-side (`extractWabaTargets` a partir
+  de `granular_scopes`), hints do frontend só usados como desempate
+  quando já pertencem ao conjunto verificado (`selectVerifiedAsset`).
+- Conflito de `phoneNumberId` global: checado 2x — pré-checagem fora da
+  transação e checagem real dentro da MESMA transação atômica que escreve
+  a rota (`whatsapp_phone_routes`), por isso livre de corrida entre duas
+  contas tentando o mesmo número ao mesmo tempo.
+- Limite de 2 conexões: checado 2x (no início e de novo dentro da
+  transação final) — mesma proteção contra corrida.
+- Tentativa repetida: bloqueada por `attempt.status !== "awaiting_meta"`
+  em `whatsappCompleteOnboarding` (nunca reprocessa uma tentativa já
+  concluída/em andamento).
+- Lock expirado: reclamável (`lock.expiresAt` comparado com `now`).
+- Sync de templates: falha vira `templateWarning`/`templateSyncStatus:
+  "failed"` recuperável — nunca desfaz a conexão já commitada.
+- Correlation ID propagado em logs/auditoria/erro público; nenhuma
+  mensagem crua da Meta ou stack chega ao cliente (`core.publicError`).
+- `whatsappCancelOnboarding` só permite cancelar em `starting`/
+  `awaiting_meta` (nunca depois de `connected`), sempre tenant-scoped.
+- `whatsappGetOnboardingStatus` sempre valida `ownerUid`/`initiatedByUid`
+  antes de devolver qualquer dado (nunca cross-tenant).
+
+## Feature flags e checklist do frontend (confirmado, sem gaps)
+
+- `functions/src/whatsapp/config.js`: todas as flags de produção
+  (`embeddedSignup`, `coexistence`, `secondConnection`, `qrCodes`,
+  `reconnect`, `disconnect`) e `shouldEnforceAppCheck()` continuam com
+  fallback `false` fora do Emulator — nada foi alterado neste arquivo
+  nesta revisão. `docs/meta-whatsapp/production-readiness.md` já orienta
+  "Mantenha as flags desligadas".
+- Revisão completa de `whatsapp-oficial-v1.js` contra o checklist de 18
+  itens da missão — nenhum gap encontrado, nenhuma mudança necessária:
+  botão de conectar desabilitado quando a plataforma não está disponível;
+  popup só abre depois de `whatsappStartOnboarding` confirmar
+  disponibilidade (revalidada no backend); polling de status limitado a
+  ~24s sem loop infinito; cancelamento bloqueado durante a "zona crítica"
+  (`state.onboardingAtual.critical`, inclusive intercepta o Esc do
+  `<dialog>`); popup bloqueado tratado com mensagem específica;
+  listener `message` sempre limpo (`cleanup()`) em todos os caminhos;
+  nenhum ID técnico cru exibido (só campos mascarados em
+  `adminDiagnostics`, e esse bloco só existe na resposta quando
+  `context.isAdmin`, ver `send.js:415`); nenhum segredo no frontend
+  (confirmado pelo teste existente); funcionário sem permissão nunca vê
+  botões de ação (`podeGerenciar()`); reconectar só aparece pra conexões
+  `disconnected`/`revoked`, nunca pra uma já `connected`; limite físico
+  de conexões vem direto do backend (que já exclui `disconnected`/
+  `revoked` da contagem); cancelar depois de concluído nunca chama o
+  backend (attemptId já foi limpo nesse ponto).
+
 ## Próximos passos (em ordem)
 
 1. Auditoria do restante da conclusão do onboarding (token exchange,
