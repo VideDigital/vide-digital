@@ -65,20 +65,41 @@
 12. Organizar commits, push, PR Draft, Quality Gate remoto até verde.
 13. Relatório final no chat.
 
-## Testes ainda necessários (a marcar conforme execução)
+## Testes locais (resultado final na diff atual)
 
-- [ ] `pnpm run check`
-- [ ] lint das Functions
-- [ ] `pnpm run test:functions`
-- [ ] `pnpm run test:unit`
-- [ ] `pnpm run test:rules`
-- [ ] `pnpm run test:frontend:emulator`
-- [ ] `pnpm run test:ui:login`
-- [ ] `pnpm run test:ui:flows`
-- [ ] `pnpm run test:ui:responsive`
-- [ ] `git diff --check`
-- [ ] varredura de credenciais/segredos
-- [ ] verificação das Functions exportadas (index.js)
+- [x] `pnpm run check` — todos os `node --check` passam.
+- [x] lint das Functions (`functions && npm run lint`) — passa.
+- [x] `pnpm run test:functions` — 234/234 passam, 0 falhas.
+- [x] `pnpm run test:unit` — 20/20 no último subteste da cadeia, exit 0,
+      0 `not ok` em toda a saída (todas as sub-suítes encadeadas).
+- [x] `pnpm run test:rules` — 246/246 (241 Firestore + 5 Storage), 0
+      falhas.
+- [x] `pnpm run test:frontend:emulator` — inclui o novo
+      `whatsapp-hardening.smoke.mjs`; exit 0, todas as asserções passam.
+- [ ] `pnpm run test:ui:login` / `test:ui:flows` / `test:ui:responsive` —
+      **FALHAM neste sandbox por limitação de ambiente, não por defeito
+      de código**: o Playwright não consegue abrir `login.html` através
+      do proxy da rede deste ambiente remoto (`net::ERR_TUNNEL_CONNECTION_FAILED`
+      em todo recurso externo). Esta é a MESMA limitação já documentada em
+      missões anteriores desta mesma sessão (ver histórico) — validação
+      real dessas suítes historicamente precisa rodar no GitHub Actions
+      (que tem egress real), não neste sandbox. Não é um item pendente
+      desta revisão, é um gate externo ao ambiente de desenvolvimento.
+- [x] `git diff --check` (contra a base `8ff652d...`) — sem erros de
+      whitespace.
+- [x] Parsing YAML dos workflows alterados — OK.
+- [x] Varredura de credenciais no diff completo vs. a base — nenhum
+      padrão real de segredo encontrado (o único hit foi o placeholder
+      de teste pré-existente `"EAAG"`/`"EAAG2"` em
+      `whatsapp-management-qr-security.test.mjs`, mesmo padrão usado em
+      `whatsapp-functions.test.mjs` com `"token-fake"` — nunca um token
+      real).
+- [x] Verificação das 19 Functions exportadas por
+      `functions/src/whatsapp/index.js` — confere exatamente com a lista
+      esperada (mesma do teste `whatsapp/index — exporta somente as 19
+      Functions do módulo`).
+- [x] Nenhum arquivo não rastreado (`git status --untracked-files=all`
+      vazio).
 
 ## Status atual (atualizado após os 3 bloqueadores)
 
