@@ -166,16 +166,30 @@ em `scripts/whatsapp-migrate-core.mjs`.
 - Validação de tenant/IDs antes de qualquer plano: `ownerUid` e
   `phoneNumberId` no formato esperado, `ownerUid` do documento legado
   batendo com o solicitado, rota (se existir) pertencendo ao mesmo tenant.
+- **`graphVersion` da conexão V2 vem sempre da versão atual centralizada**
+  em `functions/src/whatsapp/constants.js` (`WHATSAPP_GRAPH_VERSION`),
+  importada pelo orquestrador — **nunca** copiada de `legado.graphVersion`.
+  `graphVersionAtual` é obrigatória em `construirPlanoMigracao` (formato
+  `vMAJOR.MINOR`); ausente ou inválida bloqueia com status `invalida` e
+  zero ações, mesmo em dry-run. Se o legado tiver uma versão diferente da
+  atual, o relatório mostra um aviso seguro (sem UID/IDs/token) — o legado
+  nunca é alterado por causa disso. Achado real (2026-07-31): o primeiro
+  dry-run real no Cloud Shell mostrou a conexão V2 seria criada com
+  `graphVersion="v25.0"` (copiado do legado) enquanto o código já estava em
+  `v26.0` — por isso nenhum `--apply` foi autorizado; corrigido nesta
+  missão.
 - Falha de autenticação nunca imprime token, caminho de credencial nem
   recomenda criar/baixar uma chave JSON — só instrui `gcloud auth
   application-default login` e `set-quota-project vide-digital-saas`.
-- Testado com 61 testes unitários da lógica pura e do orquestrador (planos
+- Testado com 70 testes unitários da lógica pura e do orquestrador (planos
   de migração/rollback, geração de `connectionId`, validação, relatório
   nunca expõe token, flags/modos/gates de confirmação, prova de que
-  dry-run nunca invoca escrita) — `pnpm run test:whatsapp-migrate`.
-- **Não foi executado nesta missão** — nem em dry-run contra um projeto
-  real, nem contra produção. A liberação do dry-run real fica para uma
-  autorização explícita separada, no Cloud Shell.
+  dry-run nunca invoca escrita, `graphVersion` sempre da versão atual)
+  — `pnpm run test:whatsapp-migrate`.
+- **Nenhum dry-run real, `--apply` ou `--rollback` foi executado nesta
+  missão** — só a correção do `graphVersion` e os testes locais/CI. A
+  repetição do dry-run real no Cloud Shell fica para uma autorização
+  explícita separada.
 
 ### Fluxo seguro no Cloud Shell
 

@@ -56,6 +56,16 @@ import {
   validarOwnerUid,
   MODOS
 } from "./whatsapp-migrate-core.mjs";
+// Versão atual da Graph API, centralizada em functions/src/whatsapp/
+// constants.js — a conexão V2 usa SEMPRE este valor, nunca
+// legado.graphVersion (que é só histórico do piloto). Import direto de um
+// módulo CJS a partir de ESM (mesmo padrão já usado por
+// scripts/provision-whatsapp-pilot.mjs e
+// scripts/whatsapp-production-preflight.mjs) — funciona porque
+// functions/package.json não declara "type": "module", então o Node
+// resolve constants.js como CommonJS e expõe seus exports nomeados via
+// interoperabilidade padrão.
+import { WHATSAPP_GRAPH_VERSION } from "../functions/src/whatsapp/constants.js";
 
 const PRODUCTION_PROJECT_ID = "vide-digital-saas";
 const ALREADY_EXISTS_CODE = 6; // grpc status ALREADY_EXISTS
@@ -208,14 +218,14 @@ async function main() {
   // final — mas o connectionId só é conhecido depois de validar o legado.
   // Resolvido em duas etapas: primeiro um plano "seco" (sem novoExistente)
   // só pra obter o connectionId determinístico, depois o plano real.
-  const planoParaId = construirPlanoMigracao({ ownerUid, legado, rota, novoExistente: false });
+  const planoParaId = construirPlanoMigracao({ ownerUid, legado, rota, novoExistente: false, graphVersionAtual: WHATSAPP_GRAPH_VERSION });
   let novoExistente = false;
   if (planoParaId.connectionId) {
     const novoSnap = await db.doc(`whatsapp_connections/${planoParaId.connectionId}`).get();
     novoExistente = novoSnap.exists;
   }
 
-  const plano = construirPlanoMigracao({ ownerUid, legado, rota, novoExistente });
+  const plano = construirPlanoMigracao({ ownerUid, legado, rota, novoExistente, graphVersionAtual: WHATSAPP_GRAPH_VERSION });
   console.log(formatarRelatorio(plano, { modo: "migracao", apply: apply_ }));
 
   if (deveExecutarEscrita(resolucaoModo.modo, plano.status)) {

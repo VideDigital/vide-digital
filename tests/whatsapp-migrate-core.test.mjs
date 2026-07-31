@@ -7,6 +7,7 @@ import {
     gerarConnectionIdMigracao,
     validarOwnerUid,
     validarPhoneNumberId,
+    validarGraphVersionAtual,
     construirPlanoMigracao,
     construirPlanoRollback,
     formatarRelatorio,
@@ -19,6 +20,14 @@ import {
     montarConfiguracaoSegura,
     formatarInstrucaoErroAutenticacao
 } from "../scripts/whatsapp-migrate-core.mjs";
+
+// LEGADO_OK.graphVersion ("v25.0") representa deliberadamente uma versão
+// DIFERENTE de GRAPH_VERSION_ATUAL_TESTE ("v26.0") — exatamente o cenário
+// real encontrado no dry-run (2026-07-31): legado registrado com uma
+// versão antiga da Graph API, e o código atual (functions/src/whatsapp/
+// constants.js) já em outra. A conexão V2 nunca deve copiar
+// legado.graphVersion; sempre usa a versão atual passada pelo chamador.
+const GRAPH_VERSION_ATUAL_TESTE = "v26.0";
 
 const LEGADO_OK = Object.freeze({
     ownerUid: "owner-1",
@@ -72,43 +81,43 @@ describe("validarOwnerUid / validarPhoneNumberId", () => {
 
 describe("construirPlanoMigracao", () => {
     it("sem documento legado -> status sem_legado, nenhuma ação", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: null, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: null, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.SEM_LEGADO);
         assert.deepEqual(plano.acoes, []);
     });
 
     it("ownerUid inválido -> status invalida, nenhuma ação", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "", legado: LEGADO_OK, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
         assert.deepEqual(plano.acoes, []);
     });
 
     it("ownerUid do documento legado divergente -> invalida, nunca migra dado incerto", () => {
         const legadoDivergente = { ...LEGADO_OK, ownerUid: "owner-OUTRO" };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoDivergente, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoDivergente, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
     });
 
     it("connectionVersion inesperado no legado -> invalida", () => {
         const legadoErrado = { ...LEGADO_OK, connectionVersion: 2 };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoErrado, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoErrado, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
     });
 
     it("phoneNumberId inválido no legado -> invalida", () => {
         const legadoSemFone = { ...LEGADO_OK, phoneNumberId: "" };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoSemFone, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoSemFone, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
     });
 
     it("sem tokenSecretResource -> invalida, nunca infere/copia token", () => {
         const legadoSemToken = { ...LEGADO_OK, tokenSecretResource: "" };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoSemToken, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoSemToken, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
     });
 
     it("conexão nova já existe -> ja_migrada, idempotente, nenhuma ação", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: true });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: true, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.JA_MIGRADA);
         assert.deepEqual(plano.acoes, []);
         assert.ok(plano.connectionId);
@@ -116,12 +125,12 @@ describe("construirPlanoMigracao", () => {
 
     it("rota de outro ownerUid -> invalida, abortado por segurança", () => {
         const rotaAlheia = { ownerUid: "owner-INVASOR", connectionStatus: "connected" };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: rotaAlheia, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: rotaAlheia, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
     });
 
     it("caminho feliz -> pronta, com as 2 ações esperadas, nunca inclui valor de token", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.PRONTA);
         assert.equal(plano.acoes.length, 2);
 
@@ -142,21 +151,103 @@ describe("construirPlanoMigracao", () => {
 
     it("rota já existente sem connectionId -> sem aviso de conflito, mas atualiza normalmente", () => {
         const rotaExistente = { ownerUid: "owner-1", connectionStatus: "connected" };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: rotaExistente, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: rotaExistente, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.PRONTA);
     });
 
     it("rota já aponta pra outro connectionId -> aviso de sobrescrita, mas ainda pronta", () => {
         const rotaComOutroId = { ownerUid: "owner-1", connectionId: "conn-outro", connectionStatus: "connected" };
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: rotaComOutroId, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: rotaComOutroId, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano.status, STATUS_MIGRACAO.PRONTA);
         assert.ok(plano.avisos.some((a) => a.includes("connectionId diferente")));
     });
 
     it("rodar duas vezes sobre o mesmo legado sempre produz o mesmo connectionId (idempotência)", () => {
-        const plano1 = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false });
-        const plano2 = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false });
+        const plano1 = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
+        const plano2 = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         assert.equal(plano1.connectionId, plano2.connectionId);
+    });
+});
+
+// Revisão (2026-07-31): achado do dry-run real — a conexão V2 estava
+// sendo criada com graphVersion="v25.0" (copiado de legado.graphVersion)
+// mesmo com o código já em WHATSAPP_GRAPH_VERSION="v26.0". A V2 nunca deve
+// copiar a versão do legado; sempre usa a versão atual, passada pelo
+// chamador via graphVersionAtual. Nenhum apply foi autorizado nesse
+// dry-run — por isso este é o único ajuste desta missão.
+describe("construirPlanoMigracao — graphVersion vem sempre da versão atual, nunca do legado", () => {
+    it("legado v25.0 + atual v26.0 -> V2 usa v26.0 (nunca copia do legado)", () => {
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
+        assert.equal(plano.status, STATUS_MIGRACAO.PRONTA);
+        const acaoConexao = plano.acoes.find((a) => a.tipo === "criarConexao");
+        assert.equal(acaoConexao.dados.graphVersion, GRAPH_VERSION_ATUAL_TESTE);
+        assert.notEqual(acaoConexao.dados.graphVersion, LEGADO_OK.graphVersion);
+    });
+
+    it("legado e atual divergentes -> aviso seguro, sem UID, IDs ou token", () => {
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
+        const aviso = plano.avisos.find((a) => a.includes("Graph API"));
+        assert.ok(aviso, "esperava um aviso de divergência de versão");
+        assert.match(aviso, /v25\.0/);
+        assert.match(aviso, /v26\.0/);
+        assert.match(aviso, /inalterado/);
+        assert.ok(!aviso.includes("owner-1"));
+        assert.ok(!aviso.includes(LEGADO_OK.phoneNumberId));
+        assert.ok(!aviso.includes(LEGADO_OK.tokenSecretResource));
+    });
+
+    it("legado v26.0 + atual v26.0 -> V2 v26.0, sem aviso de divergência (mesma versão)", () => {
+        const legadoMesmaVersao = { ...LEGADO_OK, graphVersion: GRAPH_VERSION_ATUAL_TESTE };
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoMesmaVersao, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
+        assert.equal(plano.status, STATUS_MIGRACAO.PRONTA);
+        const acaoConexao = plano.acoes.find((a) => a.tipo === "criarConexao");
+        assert.equal(acaoConexao.dados.graphVersion, GRAPH_VERSION_ATUAL_TESTE);
+        assert.ok(!plano.avisos.some((a) => a.includes("Graph API")));
+    });
+
+    it("legado sem graphVersion + atual v26.0 -> V2 v26.0, sem aviso, não bloqueia", () => {
+        const legadoSemVersao = { ...LEGADO_OK };
+        delete legadoSemVersao.graphVersion;
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: legadoSemVersao, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
+        assert.equal(plano.status, STATUS_MIGRACAO.PRONTA);
+        const acaoConexao = plano.acoes.find((a) => a.tipo === "criarConexao");
+        assert.equal(acaoConexao.dados.graphVersion, GRAPH_VERSION_ATUAL_TESTE);
+        assert.ok(!plano.avisos.some((a) => a.includes("Graph API")));
+    });
+
+    it("graphVersionAtual ausente -> invalida, zero ações", () => {
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false });
+        assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA);
+        assert.deepEqual(plano.acoes, []);
+    });
+
+    it("graphVersionAtual em formato inválido -> invalida, zero ações", () => {
+        for (const invalida of ["", "26.0", "v26", "vX.Y", "v26.0.1", null, undefined, 26]) {
+            const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: invalida });
+            assert.equal(plano.status, STATUS_MIGRACAO.INVALIDA, `esperava invalida para graphVersionAtual=${JSON.stringify(invalida)}`);
+            assert.deepEqual(plano.acoes, []);
+        }
+    });
+
+    it("documento legado nunca sofre mutação (mesmo estando congelado)", () => {
+        const antes = JSON.stringify(LEGADO_OK);
+        construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
+        assert.equal(JSON.stringify(LEGADO_OK), antes);
+    });
+});
+
+describe("validarGraphVersionAtual", () => {
+    it("aceita o formato vMAJOR.MINOR", () => {
+        assert.equal(validarGraphVersionAtual("v26.0"), true);
+        assert.equal(validarGraphVersionAtual("v3.1"), true);
+    });
+
+    it("rejeita ausente, vazio ou formato divergente", () => {
+        assert.equal(validarGraphVersionAtual(undefined), false);
+        assert.equal(validarGraphVersionAtual(""), false);
+        assert.equal(validarGraphVersionAtual("26.0"), false);
+        assert.equal(validarGraphVersionAtual("v26"), false);
+        assert.equal(validarGraphVersionAtual("v26.0.1"), false);
     });
 });
 
@@ -206,7 +297,7 @@ describe("construirPlanoRollback", () => {
 
 describe("formatarRelatorio", () => {
     it("nunca inclui o valor de um token — só o resource path, e mesmo assim como string do documento", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         const relatorio = formatarRelatorio(plano, { modo: "migracao", apply: false });
         assert.match(relatorio, /dry-run/);
         assert.match(relatorio, /tokenSecretResource=\(recurso preservado, valor nunca lido\)/);
@@ -214,13 +305,13 @@ describe("formatarRelatorio", () => {
     });
 
     it("relatório de aplicação real diz APLICANDO", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: LEGADO_OK, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         const relatorio = formatarRelatorio(plano, { modo: "migracao", apply: true });
         assert.match(relatorio, /APLICANDO/);
     });
 
     it("plano sem ações relata 'Nenhuma ação a executar'", () => {
-        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: null, rota: null, novoExistente: false });
+        const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: null, rota: null, novoExistente: false, graphVersionAtual: GRAPH_VERSION_ATUAL_TESTE });
         const relatorio = formatarRelatorio(plano, { modo: "migracao", apply: false });
         assert.match(relatorio, /Nenhuma ação a executar/);
     });

@@ -50,15 +50,35 @@ export function validarPhoneNumberId(phoneNumberId) {
   return typeof phoneNumberId === "string" && /^\d{5,32}$/.test(phoneNumberId);
 }
 
+// A versão da Graph API da conexão migrada nunca vem do documento legado —
+// vem sempre da versão atual centralizada em
+// functions/src/whatsapp/constants.js (WHATSAPP_GRAPH_VERSION), passada
+// pelo chamador. Isto é só o formato ("v" + major.minor); o chamador é
+// responsável por passar o valor correto.
+export function validarGraphVersionAtual(graphVersionAtual) {
+  return typeof graphVersionAtual === "string" && /^v\d+\.\d+$/.test(graphVersionAtual);
+}
+
 // legado/rota/novoExistente já lidos por fora (Admin SDK) — esta função só
 // decide, nunca escreve. Devolve sempre { status, motivo, connectionId?,
 // acoes: [...], avisos: [...] }. "acoes" é uma lista pequena e explícita de
 // operações Firestore que o script chamador deve executar (só se --apply).
-export function construirPlanoMigracao({ ownerUid, legado, rota, novoExistente }) {
+export function construirPlanoMigracao({ ownerUid, legado, rota, novoExistente, graphVersionAtual }) {
   const avisos = [];
 
   if (!validarOwnerUid(ownerUid)) {
     return { status: STATUS_MIGRACAO.INVALIDA, motivo: `ownerUid inválido: "${ownerUid}".`, acoes: [], avisos };
+  }
+  // graphVersionAtual é uma precondição do chamador (igual ownerUid) — checada
+  // antes de olhar o legado, para nunca deixar a migração seguir sem saber
+  // qual versão da Graph API a conexão V2 vai usar.
+  if (!validarGraphVersionAtual(graphVersionAtual)) {
+    return {
+      status: STATUS_MIGRACAO.INVALIDA,
+      motivo: `graphVersionAtual ausente ou em formato inválido: "${graphVersionAtual}" — a migração exige a versão atual da Graph API centralizada em functions/src/whatsapp/constants.js (WHATSAPP_GRAPH_VERSION), nunca copiada do documento legado.`,
+      acoes: [],
+      avisos
+    };
   }
   if (!legado) {
     return {
@@ -129,6 +149,13 @@ export function construirPlanoMigracao({ ownerUid, legado, rota, novoExistente }
     avisos.push(`whatsapp_phone_routes/${phoneNumberId} já tinha um connectionId diferente (${rota.connectionId}) — será atualizado para ${connectionId}.`);
   }
 
+  // legado.graphVersion NUNCA é copiado — é só histórico. Se existir e
+  // divergir da versão atual, avisamos (sem UID/IDs/token) que o legado
+  // permanece intocado e a V2 usa a versão atual.
+  if (legado.graphVersion && String(legado.graphVersion) !== graphVersionAtual) {
+    avisos.push(`Legado registra Graph API ${legado.graphVersion}; a conexão V2 usará a versão atual (${graphVersionAtual}); o documento legado permanecerá inalterado.`);
+  }
+
   const novaConexao = {
     ownerUid,
     connectionId,
@@ -144,7 +171,7 @@ export function construirPlanoMigracao({ ownerUid, legado, rota, novoExistente }
     qualityRating: String(legado.qualityRating || ""),
     isDefault: true,
     connectionVersion: CONNECTION_VERSION_MULTI,
-    graphVersion: String(legado.graphVersion || ""),
+    graphVersion: graphVersionAtual,
     tokenSecretResource: legado.tokenSecretResource,
     lastErrorCode: "",
     migratedFromLegacyOwnerUid: ownerUid
