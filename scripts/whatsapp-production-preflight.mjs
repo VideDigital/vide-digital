@@ -60,7 +60,9 @@ const FUNCTIONS_ESPERADAS = [
     "whatsappMarkRead",
     "whatsappSyncTemplates",
     "whatsappConnectionStatus",
-    "whatsappValidateConnection"
+    "whatsappValidateConnection",
+    "whatsappListConnections",
+    "whatsappSetDefaultConnection"
 ];
 
 function rodarComandoSeguro(comando, args) {

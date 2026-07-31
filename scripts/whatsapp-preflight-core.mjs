@@ -152,15 +152,18 @@ export function avaliarPapeisIamRuntime(papeis) {
 }
 
 export function avaliarFunctionsPublicadas(nomesEsperados, nomesExistentes) {
+  const esperadas = nomesEsperados || [];
+  const total = esperadas.length;
+  const nomeCheck = `${total} Functions do WhatsApp já publicadas`;
   const existentesSet = new Set(nomesExistentes || []);
-  const jaPublicadas = (nomesEsperados || []).filter((nome) => existentesSet.has(nome));
+  const jaPublicadas = esperadas.filter((nome) => existentesSet.has(nome));
   if (jaPublicadas.length === 0) {
-    return criarCheck("7 Functions do WhatsApp já publicadas", STATUS.WARN, "Nenhuma ainda publicada — esperado antes do primeiro deploy.");
+    return criarCheck(nomeCheck, STATUS.WARN, "Nenhuma ainda publicada — esperado antes do primeiro deploy.");
   }
-  if (jaPublicadas.length === (nomesEsperados || []).length) {
-    return criarCheck("7 Functions do WhatsApp já publicadas", STATUS.PASS, "As 7 Functions já estão publicadas (redeploy).");
+  if (jaPublicadas.length === total) {
+    return criarCheck(nomeCheck, STATUS.PASS, `As ${total} Functions já estão publicadas (redeploy).`);
   }
-  return criarCheck("7 Functions do WhatsApp já publicadas", STATUS.WARN, `${jaPublicadas.length}/${(nomesEsperados || []).length} já publicadas (${jaPublicadas.join(", ")}) — deploy parcial anterior?`);
+  return criarCheck(nomeCheck, STATUS.WARN, `${jaPublicadas.length}/${total} já publicadas (${jaPublicadas.join(", ")}) — deploy parcial anterior?`);
 }
 
 // A missão é explícita: nunca declarar Rules publicadas só porque o

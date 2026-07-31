@@ -77,7 +77,7 @@ functions/src/whatsapp/
   send.js        — whatsappSendText/SendTemplate/MarkRead/ConnectionStatus/ValidateConnection
   templates.js   — whatsappSyncTemplates + normalização dos templates da Meta
   onboarding.js  — só arquitetura do Embedded Signup (não liberado)
-  index.js       — agrega as 7 Functions exportadas
+  index.js       — agrega as 9 Functions exportadas
 ```
 
 Mesmo padrão pure-function-first da Auditoria Centralizada
@@ -319,7 +319,7 @@ nem exposto como Function nesta V1.
   (conexão válida, template aprovado/cross-tenant, montagem dos
   parâmetros do template, permissão de ver a conexão); `templates.js`
   (derivação do schema de parâmetros); `index.js` exporta exatamente as
-  7 Functions esperadas.
+  9 Functions esperadas.
 - **Rules** (`tests/emulator/firestore-security.test.mjs`, 15 cenários
   novos): dono lê a própria conexão, funcionário com permissão lê,
   funcionário sem permissão não lê, outro tenant nunca lê, cliente nunca
@@ -359,7 +359,7 @@ que a regra base).
 `check` (sintaxe), `test:unit` (inclui os novos testes puros de
 `atendimento.js`), `test:functions` (77 testes puros do WhatsApp),
 `test:rules` (15 cenários novos + regressão completa), `test:frontend:emulator`
-(Functions Emulator real sobe as 7 Functions sem erro) — todos verdes
+(Functions Emulator real sobe as 9 Functions sem erro) — todos verdes
 localmente antes de cada commit. `test:ui:flows` (Playwright) não pôde
 rodar localmente (rede do sandbox), mas rodou e passou em CI real após o
 fix do bug de CSS acima.
@@ -370,7 +370,7 @@ fix do bug de CSS acima.
 disparado nesta missão. `workflow_dispatch` manual, projeto fixo
 `vide-digital-saas`, `confirm_production` precisa ser exatamente
 `DEPLOY_WHATSAPP`, testes locais antes do deploy, `--only` explícito
-listando só as 7 Functions do WhatsApp (nunca toca `askBusinessAI`,
+listando só as 9 Functions do WhatsApp (nunca toca `askBusinessAI`,
 `askPublicBusinessAI` nem os 15 triggers de auditoria), Node 22.
 
 ## Runbook e preflight (Fase B)
@@ -385,7 +385,7 @@ checklist de 24 itens de teste real, e rollback.
 leitura antes do deploy real: Node/pnpm/Firebase CLI/gcloud/Java, worktree
 limpo, autenticação Google, projeto GCP correto, APIs habilitadas,
 existência dos secrets globais (metadados, nunca valor), papéis IAM da
-service account de runtime, quais das 7 Functions já estão publicadas, e
+service account de runtime, quais das 9 Functions já estão publicadas, e
 opcionalmente uma validação real de conexão com a Meta. Nunca cria
 secret, nunca escreve no Firestore, nunca faz deploy. Saída: tabela
 PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
@@ -423,7 +423,7 @@ PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
 
 Reverter os 3 commits desta entrega em ordem inversa é seguro — nenhum
 deles altera `askBusinessAI`, `askPublicBusinessAI` ou os triggers de
-auditoria. Se já houver deploy real (Fase B): apagar só as 7 Functions
+auditoria. Se já houver deploy real (Fase B): apagar só as 9 Functions
 do WhatsApp (nunca as legadas), marcar a conexão como `revoked` via
 `scripts/disconnect-whatsapp-pilot.mjs`, desabilitar a versão do secret
 — **nunca apagar** `chats`/`mensagens`/`clientes`/histórico de conversa,

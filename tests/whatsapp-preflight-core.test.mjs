@@ -163,20 +163,71 @@ describe("avaliarPapeisIamRuntime", () => {
 });
 
 describe("avaliarFunctionsPublicadas", () => {
-    const esperadas = ["whatsappWebhook", "whatsappSendText", "whatsappSendTemplate", "whatsappMarkRead", "whatsappSyncTemplates", "whatsappConnectionStatus", "whatsappValidateConnection"];
+    // 9 Functions reais do módulo (ver functions/src/whatsapp/index.js): as
+    // 7 originais da V1 + as 2 da multiconexão (whatsappListConnections,
+    // whatsappSetDefaultConnection). Contagem sempre derivada de
+    // nomesEsperados.length — nunca hardcoded — pra nunca voltar a
+    // divergir da arquitetura real quando uma Function nova for somada.
+    const esperadas = [
+        "whatsappWebhook",
+        "whatsappSendText",
+        "whatsappSendTemplate",
+        "whatsappMarkRead",
+        "whatsappSyncTemplates",
+        "whatsappConnectionStatus",
+        "whatsappValidateConnection",
+        "whatsappListConnections",
+        "whatsappSetDefaultConnection"
+    ];
 
     it("WARN quando nenhuma publicada ainda (primeiro deploy)", () => {
-        assert.equal(avaliarFunctionsPublicadas(esperadas, []).status, STATUS.WARN);
+        const check = avaliarFunctionsPublicadas(esperadas, []);
+        assert.equal(check.status, STATUS.WARN);
+        assert.ok(check.nome.includes("9"));
     });
 
-    it("PASS quando as 7 já publicadas", () => {
-        assert.equal(avaliarFunctionsPublicadas(esperadas, esperadas).status, STATUS.PASS);
+    it("PASS quando as 9 já publicadas", () => {
+        const check = avaliarFunctionsPublicadas(esperadas, esperadas);
+        assert.equal(check.status, STATUS.PASS);
+        assert.ok(check.detalhe.includes("9"));
     });
 
-    it("WARN em deploy parcial", () => {
+    it("WARN em deploy parcial (2/9)", () => {
         const check = avaliarFunctionsPublicadas(esperadas, ["whatsappWebhook", "whatsappSendText"]);
         assert.equal(check.status, STATUS.WARN);
-        assert.ok(check.detalhe.includes("2/7"));
+        assert.ok(check.detalhe.includes("2/9"));
+    });
+
+    it("nunca menciona '7' em nenhum lugar quando o esperado é 9 (nome, detalhe)", () => {
+        for (const check of [
+            avaliarFunctionsPublicadas(esperadas, []),
+            avaliarFunctionsPublicadas(esperadas, esperadas),
+            avaliarFunctionsPublicadas(esperadas, ["whatsappWebhook"])
+        ]) {
+            assert.ok(!check.nome.includes("7"), `nome não deveria conter "7": ${check.nome}`);
+            assert.ok(!check.detalhe.includes("7"), `detalhe não deveria conter "7": ${check.detalhe}`);
+        }
+    });
+
+    it("prova de ausência de hardcode: funciona com qualquer quantidade, ex. lista artificial de 3", () => {
+        const tres = ["fnA", "fnB", "fnC"];
+        const semNenhuma = avaliarFunctionsPublicadas(tres, []);
+        assert.ok(semNenhuma.nome.includes("3"));
+
+        const todasPublicadas = avaliarFunctionsPublicadas(tres, tres);
+        assert.equal(todasPublicadas.status, STATUS.PASS);
+        assert.ok(todasPublicadas.detalhe.includes("3"));
+        assert.ok(!todasPublicadas.detalhe.includes("9"));
+
+        const parcial = avaliarFunctionsPublicadas(tres, ["fnA"]);
+        assert.ok(parcial.detalhe.includes("1/3"));
+    });
+
+    it("saída nunca inclui dado sensível (token, secret, credencial) — só nomes de Function", () => {
+        const check = avaliarFunctionsPublicadas(esperadas, esperadas.slice(0, 3));
+        const textoCompleto = `${check.nome} ${check.detalhe}`;
+        assert.ok(!/EAAG[a-zA-Z0-9]{20,}/.test(textoCompleto));
+        assert.ok(!/secret|token|credential|password/i.test(textoCompleto));
     });
 });
 
