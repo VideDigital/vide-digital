@@ -1,11 +1,15 @@
 // WhatsApp Oficial — Fase 3 (multiconexão): script de migração do piloto
 // legado (whatsapp_connections/{ownerUid}) para o modelo novo
-// (whatsapp_connections/{connectionId}). Roda LOCALMENTE por um humano com
-// acesso de administrador ao projeto Firebase/GCP — NUNCA automático,
-// nunca chamado pelo dashboard/Cloud Functions, nunca em CI.
+// (whatsapp_connections/{connectionId}). Roda LOCALMENTE (ou no Cloud
+// Shell) por um humano com acesso de administrador ao projeto Firebase/GCP
+// — NUNCA automático, nunca chamado pelo dashboard/Cloud Functions, nunca
+// em CI.
 //
 // Regras de segurança (ver docs/WHATSAPP_MODULO_MULTICONEXAO.md):
-//   - Dry-run por padrão. Só escreve com a flag --apply.
+//   - Dry-run por padrão. Só escreve com --apply E a confirmação certa
+//     (WHATSAPP_MIGRATION_CONFIRM_APPLY=APPLY_WHATSAPP_MIGRATION).
+//   - Rollback real exige --rollback --apply E
+//     WHATSAPP_MIGRATION_CONFIRM_ROLLBACK=APPLY_WHATSAPP_ROLLBACK.
 //   - Nunca lê nem imprime o VALOR de um token — só o nome do recurso do
 //     Secret Manager (tokenSecretResource), que é apenas um PONTEIRO.
 //     A conexão migrada aponta pro MESMO secret físico do piloto legado.
@@ -13,28 +17,50 @@
 //   - Idempotente: o connectionId é determinístico (ver
 //     whatsapp-migrate-core.mjs); rodar de novo sobre um tenant já migrado
 //     não duplica nada.
-//   - Rollback disponível via --rollback (some com --apply pra executar de
-//     verdade) — reverte só o que a PRÓPRIA migração criou, nunca o legado.
+//   - Projeto sempre fixo (vide-digital-saas) — WHATSAPP_MIGRATION_PROJECT
+//     precisa confirmar isso explicitamente antes de QUALQUER leitura,
+//     inclusive dry-run.
+//   - Autenticação via Application Default Credentials (ADC) — nunca exige
+//     chave JSON de service account. No Cloud Shell:
+//       gcloud auth application-default login
+//       gcloud auth application-default set-quota-project vide-digital-saas
+//     GOOGLE_APPLICATION_CREDENTIALS continua funcionando normalmente se já
+//     estiver definida (ex.: numa máquina com uma chave própria), mas nunca
+//     é exigida nem recomendada.
 //
 // Uso (dry-run, só relatório, nada é escrito):
-//   GOOGLE_APPLICATION_CREDENTIALS=/caminho/chave.json \
-//   GOOGLE_CLOUD_PROJECT=vide-digital-saas \
-//   WHATSAPP_OWNER_UID=uid-da-loja \
-//     node scripts/migrate-whatsapp-multiconexao.mjs
+//   export WHATSAPP_MIGRATION_PROJECT=vide-digital-saas
+//   export WHATSAPP_OWNER_UID=uid-da-loja
+//   node scripts/migrate-whatsapp-multiconexao.mjs
 //
 // Uso (aplicar de verdade):
-//   ...mesmas envs... node scripts/migrate-whatsapp-multiconexao.mjs --apply
+//   ...mesmas envs... WHATSAPP_MIGRATION_CONFIRM_APPLY=APPLY_WHATSAPP_MIGRATION \
+//     node scripts/migrate-whatsapp-multiconexao.mjs --apply
 //
 // Uso (rollback — dry-run e depois aplicar):
 //   ...mesmas envs... node scripts/migrate-whatsapp-multiconexao.mjs --rollback
-//   ...mesmas envs... node scripts/migrate-whatsapp-multiconexao.mjs --rollback --apply
+//   ...mesmas envs... WHATSAPP_MIGRATION_CONFIRM_ROLLBACK=APPLY_WHATSAPP_ROLLBACK \
+//     node scripts/migrate-whatsapp-multiconexao.mjs --rollback --apply
 import { initializeApp, applicationDefault, getApps } from "firebase-admin/app";
 import { getFirestore, FieldValue } from "firebase-admin/firestore";
-import { construirPlanoMigracao, construirPlanoRollback, formatarRelatorio } from "./whatsapp-migrate-core.mjs";
+import {
+  construirPlanoMigracao,
+  construirPlanoRollback,
+  formatarRelatorio,
+  interpretarFlags,
+  resolverModo,
+  deveExecutarEscrita,
+  validarProjeto,
+  montarConfiguracaoSegura,
+  formatarInstrucaoErroAutenticacao,
+  validarOwnerUid,
+  MODOS
+} from "./whatsapp-migrate-core.mjs";
 
+const PRODUCTION_PROJECT_ID = "vide-digital-saas";
 const ALREADY_EXISTS_CODE = 6; // grpc status ALREADY_EXISTS
 
-async function executarAcoesMigracao(db, acoes) {
+export async function executarAcoesMigracao(db, acoes) {
   for (const acao of acoes) {
     if (acao.tipo === "criarConexao") {
       try {
@@ -66,7 +92,7 @@ async function executarAcoesMigracao(db, acoes) {
   }
 }
 
-async function executarAcoesRollback(db, acoes) {
+export async function executarAcoesRollback(db, acoes) {
   for (const acao of acoes) {
     if (acao.tipo === "removerConexao") {
       await db.doc(`${acao.colecao}/${acao.id}`).delete();
@@ -80,25 +106,59 @@ async function executarAcoesRollback(db, acoes) {
 
 async function main() {
   const argv = process.argv.slice(2);
-  const apply = argv.includes("--apply");
-  const rollback = argv.includes("--rollback");
-  const ownerUid = String(process.env.WHATSAPP_OWNER_UID || "").trim();
+  const { apply, rollback, flagsDesconhecidas } = interpretarFlags(argv);
 
+  const resolucaoModo = resolverModo({
+    apply,
+    rollback,
+    flagsDesconhecidas,
+    confirmApply: process.env.WHATSAPP_MIGRATION_CONFIRM_APPLY,
+    confirmRollback: process.env.WHATSAPP_MIGRATION_CONFIRM_ROLLBACK
+  });
+
+  if (resolucaoModo.modo === MODOS.BLOQUEADO) {
+    console.error(resolucaoModo.motivo);
+    process.exit(1);
+  }
+
+  const ownerUid = String(process.env.WHATSAPP_OWNER_UID || "").trim();
   if (!ownerUid) {
     console.error("Defina WHATSAPP_OWNER_UID.");
     process.exit(1);
   }
-  if (!process.env.GOOGLE_APPLICATION_CREDENTIALS) {
-    console.error("Defina GOOGLE_APPLICATION_CREDENTIALS apontando para a chave JSON da conta de serviço.");
-    process.exit(1);
-  }
-  if (!process.env.GOOGLE_CLOUD_PROJECT && !process.env.GCLOUD_PROJECT) {
-    console.error("Defina GOOGLE_CLOUD_PROJECT=vide-digital-saas (necessário para resolver o Firestore correto).");
+  if (!validarOwnerUid(ownerUid)) {
+    console.error(`WHATSAPP_OWNER_UID em formato inválido: "${ownerUid}".`);
     process.exit(1);
   }
 
-  if (!getApps().length) initializeApp({ credential: applicationDefault() });
+  // Confirmação de projeto OBRIGATÓRIA antes de qualquer leitura, mesmo em
+  // dry-run — nunca configurável para outro projeto (ver validarProjeto).
+  const validacaoProjeto = validarProjeto({
+    projetoExplicito: process.env.WHATSAPP_MIGRATION_PROJECT,
+    diagnosticosEnv: {
+      GOOGLE_CLOUD_PROJECT: process.env.GOOGLE_CLOUD_PROJECT,
+      GCLOUD_PROJECT: process.env.GCLOUD_PROJECT,
+      CLOUDSDK_CORE_PROJECT: process.env.CLOUDSDK_CORE_PROJECT
+    }
+  });
+  if (!validacaoProjeto.ok) {
+    console.error(validacaoProjeto.motivo);
+    process.exit(1);
+  }
+
+  console.log(JSON.stringify(montarConfiguracaoSegura({ projeto: validacaoProjeto.projeto, modo: resolucaoModo.modo, ownerUidPresente: true })));
+  console.log(resolucaoModo.motivo);
+
+  // GOOGLE_APPLICATION_CREDENTIALS continua funcionando se já estiver
+  // definida (applicationDefault() a usa naturalmente) — nunca exigida
+  // nem checada explicitamente aqui. Projeto sempre explícito e fixo,
+  // nunca inferido só da credencial.
+  if (!getApps().length) {
+    initializeApp({ credential: applicationDefault(), projectId: PRODUCTION_PROJECT_ID });
+  }
   const db = getFirestore();
+
+  const apply_ = resolucaoModo.modo === MODOS.APPLY_MIGRACAO || resolucaoModo.modo === MODOS.APPLY_ROLLBACK;
 
   if (rollback) {
     const connectionIdArg = String(process.env.WHATSAPP_CONNECTION_ID || "").trim();
@@ -106,25 +166,38 @@ async function main() {
       console.error("Rollback exige WHATSAPP_CONNECTION_ID (o connectionId gerado pela migração a ser revertida).");
       process.exit(1);
     }
-    const novoSnap = await db.doc(`whatsapp_connections/${connectionIdArg}`).get();
+
+    let novoSnap;
+    try {
+      novoSnap = await db.doc(`whatsapp_connections/${connectionIdArg}`).get();
+    } catch {
+      console.error(formatarInstrucaoErroAutenticacao());
+      process.exit(1);
+    }
     const novo = novoSnap.exists ? { id: novoSnap.id, ...novoSnap.data() } : null;
     const phoneNumberId = novo?.phoneNumberId || "";
     const rotaSnap = phoneNumberId ? await db.doc(`whatsapp_phone_routes/${phoneNumberId}`).get() : null;
     const rota = rotaSnap && rotaSnap.exists ? { id: rotaSnap.id, ...rotaSnap.data() } : null;
 
     const plano = construirPlanoRollback({ ownerUid, connectionId: connectionIdArg, novo, rota });
-    console.log(formatarRelatorio(plano, { modo: "rollback", apply }));
+    console.log(formatarRelatorio(plano, { modo: "rollback", apply: apply_ }));
 
-    if (apply && plano.status === "pronto") {
+    if (deveExecutarEscrita(resolucaoModo.modo, plano.status)) {
       await executarAcoesRollback(db, plano.acoes);
       console.log("Rollback aplicado.");
-    } else if (apply) {
+    } else if (apply_) {
       console.log("Nada aplicado (status não é 'pronto').");
     }
     process.exit(0);
   }
 
-  const legadoSnap = await db.doc(`whatsapp_connections/${ownerUid}`).get();
+  let legadoSnap;
+  try {
+    legadoSnap = await db.doc(`whatsapp_connections/${ownerUid}`).get();
+  } catch {
+    console.error(formatarInstrucaoErroAutenticacao());
+    process.exit(1);
+  }
   const legado = legadoSnap.exists ? legadoSnap.data() : null;
 
   const phoneNumberId = legado?.phoneNumberId ? String(legado.phoneNumberId) : "";
@@ -143,19 +216,26 @@ async function main() {
   }
 
   const plano = construirPlanoMigracao({ ownerUid, legado, rota, novoExistente });
-  console.log(formatarRelatorio(plano, { modo: "migracao", apply }));
+  console.log(formatarRelatorio(plano, { modo: "migracao", apply: apply_ }));
 
-  if (apply && plano.status === "pronta") {
+  if (deveExecutarEscrita(resolucaoModo.modo, plano.status)) {
     await executarAcoesMigracao(db, plano.acoes);
     console.log("Migração aplicada. Documento legado preservado sem alteração.");
-    console.log(`Rollback, se precisar: WHATSAPP_OWNER_UID=${ownerUid} WHATSAPP_CONNECTION_ID=${plano.connectionId} node scripts/migrate-whatsapp-multiconexao.mjs --rollback --apply`);
-  } else if (apply) {
+    console.log(`Rollback, se precisar: WHATSAPP_OWNER_UID=${ownerUid} WHATSAPP_CONNECTION_ID=${plano.connectionId} WHATSAPP_MIGRATION_PROJECT=${PRODUCTION_PROJECT_ID} WHATSAPP_MIGRATION_CONFIRM_ROLLBACK=APPLY_WHATSAPP_ROLLBACK node scripts/migrate-whatsapp-multiconexao.mjs --rollback --apply`);
+  } else if (apply_) {
     console.log("Nada aplicado (status não é 'pronta').");
   }
   process.exit(0);
 }
 
-main().catch((erro) => {
-  console.error("Erro inesperado:", erro?.message || erro);
-  process.exit(1);
-});
+// Só roda main() quando o arquivo é executado diretamente (node
+// scripts/migrate-whatsapp-multiconexao.mjs) — nunca quando importado
+// (ex.: pelos testes, que importam executarAcoesMigracao/executarAcoesRollback
+// com um Firestore fake, sem nunca disparar uma conexão real).
+const executadoDiretamente = process.argv[1] && import.meta.url === `file://${process.argv[1]}`;
+if (executadoDiretamente) {
+  main().catch((erro) => {
+    console.error("Erro inesperado:", erro?.message || erro);
+    process.exit(1);
+  });
+}

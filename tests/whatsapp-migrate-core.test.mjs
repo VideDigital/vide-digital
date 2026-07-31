@@ -3,12 +3,21 @@ import { describe, it } from "node:test";
 import {
     STATUS_MIGRACAO,
     STATUS_ROLLBACK,
+    MODOS,
     gerarConnectionIdMigracao,
     validarOwnerUid,
     validarPhoneNumberId,
     construirPlanoMigracao,
     construirPlanoRollback,
-    formatarRelatorio
+    formatarRelatorio,
+    interpretarFlags,
+    confirmacaoApplyValida,
+    confirmacaoRollbackValida,
+    resolverModo,
+    deveExecutarEscrita,
+    validarProjeto,
+    montarConfiguracaoSegura,
+    formatarInstrucaoErroAutenticacao
 } from "../scripts/whatsapp-migrate-core.mjs";
 
 const LEGADO_OK = Object.freeze({
@@ -214,5 +223,193 @@ describe("formatarRelatorio", () => {
         const plano = construirPlanoMigracao({ ownerUid: "owner-1", legado: null, rota: null, novoExistente: false });
         const relatorio = formatarRelatorio(plano, { modo: "migracao", apply: false });
         assert.match(relatorio, /Nenhuma ação a executar/);
+    });
+});
+
+// Revisão (2026-07-31): Cloud Shell/ADC — flags, modos, gates de
+// confirmação, projeto fixo e mensagens de erro seguras. Achado real: o
+// script bloqueava incondicionalmente sem GOOGLE_APPLICATION_CREDENTIALS,
+// forçando uma chave JSON mesmo quando applicationDefault() já aceita ADC
+// de usuário (gcloud auth application-default login) — o caminho
+// recomendado e mais seguro no Cloud Shell.
+describe("interpretarFlags", () => {
+    it("sem flags -> nem apply nem rollback, sem desconhecidas", () => {
+        const r = interpretarFlags([]);
+        assert.equal(r.apply, false);
+        assert.equal(r.rollback, false);
+        assert.deepEqual(r.flagsDesconhecidas, []);
+    });
+
+    it("reconhece --apply e --rollback juntos", () => {
+        const r = interpretarFlags(["--rollback", "--apply"]);
+        assert.equal(r.apply, true);
+        assert.equal(r.rollback, true);
+        assert.deepEqual(r.flagsDesconhecidas, []);
+    });
+
+    it("flag desconhecida é listada, nunca silenciosamente ignorada", () => {
+        const r = interpretarFlags(["--apply", "--bogus"]);
+        assert.deepEqual(r.flagsDesconhecidas, ["--bogus"]);
+    });
+});
+
+describe("confirmacaoApplyValida / confirmacaoRollbackValida", () => {
+    it("só aceita exatamente a string esperada", () => {
+        assert.equal(confirmacaoApplyValida("APPLY_WHATSAPP_MIGRATION"), true);
+        assert.equal(confirmacaoApplyValida("apply_whatsapp_migration"), false);
+        assert.equal(confirmacaoApplyValida(""), false);
+        assert.equal(confirmacaoApplyValida(undefined), false);
+        assert.equal(confirmacaoApplyValida("APPLY_WHATSAPP_MIGRATION "), false);
+    });
+
+    it("rollback tem sua PRÓPRIA confirmação, nunca aceita a de apply", () => {
+        assert.equal(confirmacaoRollbackValida("APPLY_WHATSAPP_ROLLBACK"), true);
+        assert.equal(confirmacaoRollbackValida("APPLY_WHATSAPP_MIGRATION"), false);
+        assert.equal(confirmacaoRollbackValida(""), false);
+    });
+});
+
+describe("resolverModo", () => {
+    it("sem flags = dry-run de migração", () => {
+        const r = resolverModo({ apply: false, rollback: false, flagsDesconhecidas: [] });
+        assert.equal(r.modo, MODOS.DRY_RUN_MIGRACAO);
+        assert.match(r.motivo, /DRY-RUN/);
+    });
+
+    it("--apply sem confirmação = bloqueado, nunca vira modo de escrita", () => {
+        const r = resolverModo({ apply: true, rollback: false, flagsDesconhecidas: [], confirmApply: "" });
+        assert.equal(r.modo, MODOS.BLOQUEADO);
+    });
+
+    it("--apply com confirmação correta = permitido pela configuração pura", () => {
+        const r = resolverModo({ apply: true, rollback: false, flagsDesconhecidas: [], confirmApply: "APPLY_WHATSAPP_MIGRATION" });
+        assert.equal(r.modo, MODOS.APPLY_MIGRACAO);
+        assert.match(r.motivo, /APPLY/);
+    });
+
+    it("confirmação presente MAS sem --apply = continua dry-run (confirmação sozinha nunca escreve)", () => {
+        const r = resolverModo({ apply: false, rollback: false, flagsDesconhecidas: [], confirmApply: "APPLY_WHATSAPP_MIGRATION" });
+        assert.equal(r.modo, MODOS.DRY_RUN_MIGRACAO);
+    });
+
+    it("--rollback sozinho = rollback dry-run", () => {
+        const r = resolverModo({ apply: false, rollback: true, flagsDesconhecidas: [] });
+        assert.equal(r.modo, MODOS.DRY_RUN_ROLLBACK);
+        assert.match(r.motivo, /ROLLBACK DRY-RUN/);
+    });
+
+    it("--rollback --apply sem confirmação PRÓPRIA de rollback = bloqueado", () => {
+        const r = resolverModo({ apply: true, rollback: true, flagsDesconhecidas: [], confirmApply: "APPLY_WHATSAPP_MIGRATION" });
+        assert.equal(r.modo, MODOS.BLOQUEADO);
+    });
+
+    it("--rollback --apply com confirmação correta = permitido pela configuração pura", () => {
+        const r = resolverModo({ apply: true, rollback: true, flagsDesconhecidas: [], confirmRollback: "APPLY_WHATSAPP_ROLLBACK" });
+        assert.equal(r.modo, MODOS.APPLY_ROLLBACK);
+        assert.match(r.motivo, /ROLLBACK APPLY/);
+    });
+
+    it("flags desconhecidas = bloqueado, mesmo com confirmações corretas presentes", () => {
+        const r = resolverModo({
+            apply: true,
+            rollback: false,
+            flagsDesconhecidas: ["--bogus"],
+            confirmApply: "APPLY_WHATSAPP_MIGRATION"
+        });
+        assert.equal(r.modo, MODOS.BLOQUEADO);
+    });
+});
+
+describe("deveExecutarEscrita — prova de que dry-run NUNCA escreve", () => {
+    it("dry-run de migração nunca escreve, mesmo com status pronta", () => {
+        assert.equal(deveExecutarEscrita(MODOS.DRY_RUN_MIGRACAO, STATUS_MIGRACAO.PRONTA), false);
+    });
+
+    it("rollback dry-run nunca escreve, mesmo com status pronto", () => {
+        assert.equal(deveExecutarEscrita(MODOS.DRY_RUN_ROLLBACK, STATUS_ROLLBACK.PRONTO), false);
+    });
+
+    it("modo bloqueado nunca escreve, em nenhuma hipótese", () => {
+        assert.equal(deveExecutarEscrita(MODOS.BLOQUEADO, STATUS_MIGRACAO.PRONTA), false);
+        assert.equal(deveExecutarEscrita(MODOS.BLOQUEADO, STATUS_ROLLBACK.PRONTO), false);
+    });
+
+    it("apply autorizado só escreve quando o plano está realmente pronto", () => {
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_MIGRACAO, STATUS_MIGRACAO.PRONTA), true);
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_MIGRACAO, STATUS_MIGRACAO.JA_MIGRADA), false);
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_MIGRACAO, STATUS_MIGRACAO.SEM_LEGADO), false);
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_MIGRACAO, STATUS_MIGRACAO.INVALIDA), false);
+    });
+
+    it("rollback apply autorizado só escreve quando o plano está realmente pronto", () => {
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_ROLLBACK, STATUS_ROLLBACK.PRONTO), true);
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_ROLLBACK, STATUS_ROLLBACK.NADA_A_REVERTER), false);
+        assert.equal(deveExecutarEscrita(MODOS.APPLY_ROLLBACK, STATUS_ROLLBACK.INVALIDO), false);
+    });
+});
+
+describe("validarProjeto", () => {
+    it("projeto ausente/vazio bloqueia, mesmo em dry-run", () => {
+        assert.equal(validarProjeto({ projetoExplicito: "" }).ok, false);
+        assert.equal(validarProjeto({ projetoExplicito: undefined }).ok, false);
+    });
+
+    it("projeto explícito correto passa", () => {
+        const r = validarProjeto({ projetoExplicito: "vide-digital-saas" });
+        assert.equal(r.ok, true);
+        assert.equal(r.projeto, "vide-digital-saas");
+    });
+
+    it("projeto divergente bloqueia — nunca aceita outro projeto, nem demo/staging", () => {
+        assert.equal(validarProjeto({ projetoExplicito: "demo-vide-hub" }).ok, false);
+        assert.equal(validarProjeto({ projetoExplicito: "vide-digital-saas-staging" }).ok, false);
+        assert.equal(validarProjeto({ projetoExplicito: "outro-projeto" }).ok, false);
+    });
+
+    it("env do gcloud (GOOGLE_CLOUD_PROJECT/GCLOUD_PROJECT/CLOUDSDK_CORE_PROJECT) divergente bloqueia quando definida explicitamente", () => {
+        const r = validarProjeto({
+            projetoExplicito: "vide-digital-saas",
+            diagnosticosEnv: { GOOGLE_CLOUD_PROJECT: "outro-projeto" }
+        });
+        assert.equal(r.ok, false);
+    });
+
+    it("env do gcloud ausente ou igual ao projeto não bloqueia", () => {
+        const semEnv = validarProjeto({ projetoExplicito: "vide-digital-saas", diagnosticosEnv: {} });
+        assert.equal(semEnv.ok, true);
+        const envIgual = validarProjeto({
+            projetoExplicito: "vide-digital-saas",
+            diagnosticosEnv: { GOOGLE_CLOUD_PROJECT: "vide-digital-saas", GCLOUD_PROJECT: "", CLOUDSDK_CORE_PROJECT: "vide-digital-saas" }
+        });
+        assert.equal(envIgual.ok, true);
+    });
+
+    it("a validação de projeto não depende de GOOGLE_APPLICATION_CREDENTIALS de forma alguma — a função nem aceita esse parâmetro", () => {
+        // Prova estrutural: passar qualquer coisa a mais não muda o resultado,
+        // porque validarProjeto só olha projetoExplicito/diagnosticosEnv.
+        const r = validarProjeto({ projetoExplicito: "vide-digital-saas", googleApplicationCredentials: undefined });
+        assert.equal(r.ok, true);
+    });
+});
+
+describe("montarConfiguracaoSegura", () => {
+    it("nunca inclui caminho de credencial, token ou qualquer valor de env var além do projeto", () => {
+        const config = montarConfiguracaoSegura({ projeto: "vide-digital-saas", modo: MODOS.DRY_RUN_MIGRACAO, ownerUidPresente: true });
+        const texto = JSON.stringify(config);
+        assert.ok(!/\.json/i.test(texto));
+        assert.ok(!/EAAG[a-zA-Z0-9]{20,}/.test(texto));
+        assert.equal(config.projeto, "vide-digital-saas");
+        assert.equal(config.ownerUidPresente, true);
+    });
+});
+
+describe("formatarInstrucaoErroAutenticacao", () => {
+    it("instrui gcloud auth application-default login, nunca criação de chave JSON, nunca token", () => {
+        const texto = formatarInstrucaoErroAutenticacao();
+        assert.match(texto, /gcloud auth application-default login/);
+        assert.match(texto, /set-quota-project vide-digital-saas/);
+        assert.ok(!/\.json/i.test(texto));
+        assert.ok(!/EAAG[a-zA-Z0-9]{20,}/.test(texto));
+        assert.match(texto, /[Nn]unca crie nem baixe/);
     });
 });

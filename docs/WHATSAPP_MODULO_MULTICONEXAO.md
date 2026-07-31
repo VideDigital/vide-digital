@@ -129,12 +129,27 @@ secret físico do piloto, sem nunca copiar o valor do token.
 
 ## Migração (Fase 3) — `scripts/migrate-whatsapp-multiconexao.mjs`
 
-Script administrativo, roda só localmente por um humano, nunca em CI,
-nunca chamado pelo dashboard. Lógica pura testável separada em
-`scripts/whatsapp-migrate-core.mjs`.
+Script administrativo, roda só localmente ou no Cloud Shell por um humano,
+nunca em CI, nunca chamado pelo dashboard. Lógica pura testável separada
+em `scripts/whatsapp-migrate-core.mjs`.
 
-- **Dry-run por padrão** — só relatório, nenhuma escrita. `--apply` para
-  escrever de verdade.
+- **Dry-run por padrão** — só relatório, nenhuma escrita. Migração real
+  exige `--apply` **e** `WHATSAPP_MIGRATION_CONFIRM_APPLY=APPLY_WHATSAPP_MIGRATION`
+  simultaneamente; sem os dois juntos, continua dry-run ou bloqueia antes
+  de qualquer escrita.
+- **Autenticação via Application Default Credentials (ADC)** — achado
+  corrigido em 2026-07-31: o script bloqueava incondicionalmente sem
+  `GOOGLE_APPLICATION_CREDENTIALS`, forçando uma chave JSON de service
+  account mesmo quando o Admin SDK já aceita ADC de usuário (`gcloud auth
+  application-default login`), o caminho recomendado e mais seguro no
+  Cloud Shell. Agora `GOOGLE_APPLICATION_CREDENTIALS` continua funcionando
+  se já existir, mas nunca é exigida nem recomendada.
+- **Projeto sempre fixo** em `vide-digital-saas` — `WHATSAPP_MIGRATION_PROJECT`
+  precisa confirmar isso explicitamente antes de qualquer leitura, mesmo em
+  dry-run; nunca aceita outro valor. `GOOGLE_CLOUD_PROJECT`/`GCLOUD_PROJECT`/
+  `CLOUDSDK_CORE_PROJECT` podem existir no ambiente (o Cloud Shell às vezes
+  os define sozinho) mas nunca escolhem o projeto — se definidas e
+  divergentes de `vide-digital-saas`, bloqueiam por segurança.
 - `connectionId` de uma migração é **determinístico**:
   `mig-<hash sha256("migracao:" + ownerUid + ":" + phoneNumberId)>` —
   rodar de novo sobre um tenant já migrado não duplica nada (idempotente).
@@ -145,15 +160,63 @@ nunca chamado pelo dashboard. Lógica pura testável separada em
 - `--rollback` (também dry-run por padrão) reverte só o que a própria
   migração criou — identificado pelo campo `migratedFromLegacyOwnerUid`,
   gravado só por este script. Nunca reverte uma conexão que não tenha
-  esse campo (recusa por segurança).
+  esse campo (recusa por segurança). Rollback real exige `--rollback
+  --apply` **e** `WHATSAPP_MIGRATION_CONFIRM_ROLLBACK=APPLY_WHATSAPP_ROLLBACK`
+  simultaneamente — uma confirmação própria, nunca a mesma da migração.
 - Validação de tenant/IDs antes de qualquer plano: `ownerUid` e
   `phoneNumberId` no formato esperado, `ownerUid` do documento legado
   batendo com o solicitado, rota (se existir) pertencendo ao mesmo tenant.
-- Testado com 27 testes unitários da lógica pura (planos de
-  migração/rollback, geração de `connectionId`, validação, relatório
-  nunca expõe token) — `pnpm run test:whatsapp-migrate`.
+- Falha de autenticação nunca imprime token, caminho de credencial nem
+  recomenda criar/baixar uma chave JSON — só instrui `gcloud auth
+  application-default login` e `set-quota-project vide-digital-saas`.
+- Testado com 61 testes unitários da lógica pura e do orquestrador (planos
+  de migração/rollback, geração de `connectionId`, validação, relatório
+  nunca expõe token, flags/modos/gates de confirmação, prova de que
+  dry-run nunca invoca escrita) — `pnpm run test:whatsapp-migrate`.
 - **Não foi executado nesta missão** — nem em dry-run contra um projeto
-  real, nem contra produção.
+  real, nem contra produção. A liberação do dry-run real fica para uma
+  autorização explícita separada, no Cloud Shell.
+
+### Fluxo seguro no Cloud Shell
+
+```bash
+cd ~/vide-digital
+git fetch origin
+git switch main
+git reset --hard origin/main
+
+gcloud auth login
+gcloud auth application-default login
+gcloud auth application-default set-quota-project vide-digital-saas
+gcloud config set project vide-digital-saas
+
+export CLOUDSDK_CORE_PROJECT="vide-digital-saas"
+export GOOGLE_CLOUD_PROJECT="vide-digital-saas"
+export WHATSAPP_MIGRATION_PROJECT="vide-digital-saas"
+export WHATSAPP_OWNER_UID="COLOCAR_UID_REAL_SEM_COMPARTILHAR"
+
+unset GOOGLE_APPLICATION_CREDENTIALS
+unset WHATSAPP_MIGRATION_CONFIRM_APPLY
+unset WHATSAPP_MIGRATION_CONFIRM_ROLLBACK
+
+node scripts/migrate-whatsapp-multiconexao.mjs
+```
+
+- `gcloud auth login` autentica a **CLI** (`gcloud`) — não é usado pelo
+  script em si.
+- `gcloud auth application-default login` autentica as **bibliotecas
+  cliente** (Admin SDK) via Application Default Credentials — é isso que o
+  script usa (`applicationDefault()`), sem precisar de chave JSON.
+- Sem `--apply`, o comando acima é **sempre dry-run**: só leitura e
+  relatório, nenhuma escrita.
+- Nunca compartilhe `WHATSAPP_OWNER_UID` em logs externos, capturas de
+  tela ou qualquer lugar fora do seu próprio terminal.
+- Nunca compartilhe token de acesso, App Secret, Verify Token, ou o
+  arquivo/local de ADC gerado pelo `gcloud auth application-default
+  login`.
+- Não rode `--apply` sem antes revisar o relatório do dry-run com atenção
+  — o relatório lista exatamente quais documentos serão criados/alterados
+  antes de qualquer confirmação real ser exigida.
 
 ## Segurança (Rules e Functions)
 
