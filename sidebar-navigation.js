@@ -57,7 +57,8 @@
                     "view-notificacoes",
                     "view-personalizacao",
                     "view-funcionarios",
-                    "view-auditoria"
+                    "view-auditoria",
+                    "view-whatsapp-oficial"
                 ]
             },
             {
@@ -88,6 +89,7 @@
             "view-personalizacao": { nome: "Personalização Premium", descricao: "Cores, visual e experiência" },
             "view-funcionarios": { nome: "Funcionários", descricao: "Equipe, acessos e permissões" },
             "view-auditoria": { nome: "Auditoria", descricao: "Alterações importantes da sua operação" },
+            "view-whatsapp-oficial": { nome: "WhatsApp", descricao: "Conexões oficiais e templates da Meta" },
             "view-guia": { nome: "Guia do Plano", descricao: "Recursos, limites e orientações" }
         };
 

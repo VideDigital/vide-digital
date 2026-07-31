@@ -37,8 +37,21 @@ async function ativarView(page, viewId, seletorEspera) {
 }
 
 async function flowNaoConfigurado(page) {
-    const ativou = await ativarView(page, "view-whatsapp-oficial", "#whatsapp-estado-conteudo");
-    assert.equal(ativou, true, "A view WhatsApp Oficial deveria ativar para o owner");
+    // Regressão real (2026-07-31): o item "WhatsApp" existia no HTML, no
+    // controller e nas permissões, mas sidebar-navigation.js reagrupa os
+    // botões da navegação usando uma lista fixa (configuracaoGrupos[].alvos)
+    // que nunca tinha sido atualizada com "view-whatsapp-oficial" — o botão
+    // era lido do DOM antes do reagrupamento, nunca reanexado a nenhum
+    // grupo, e desaparecia silenciosamente (nem CSS "hidden": sumia do DOM
+    // de verdade). ativarView()/window.ativarAba() é uma chamada
+    // programática que nunca passa pelo botão real, então não pegava esse
+    // bug. Aqui clicamos no botão de verdade, do jeito que o owner clicaria.
+    const botaoMenu = page.locator('.nav-item[data-target="view-whatsapp-oficial"]');
+    await botaoMenu.waitFor({ state: "visible", timeout: 15000 });
+    const escondido = await botaoMenu.evaluate((el) => el.classList.contains("hidden"));
+    assert.equal(escondido, false, "O item de menu WhatsApp deveria estar visível para o owner");
+    await botaoMenu.click();
+    await page.waitForSelector("#whatsapp-estado-conteudo", { state: "visible", timeout: 15000 });
 
     const badge = await page.textContent("#whatsapp-status-badge");
     assert.equal(badge.trim(), "Não configurado", "Sem conexão seedada, o badge deveria mostrar 'Não configurado'");
