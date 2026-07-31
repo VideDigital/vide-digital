@@ -311,21 +311,12 @@ pré-existente do checkpoint recebido):
   `revoked` da contagem); cancelar depois de concluído nunca chama o
   backend (attemptId já foi limpo nesse ponto).
 
-## Próximos passos (em ordem)
+## Estado final
 
-1. Auditoria do restante da conclusão do onboarding (token exchange,
-   scopes, descoberta WABA/número, idempotência global, estados
-   recuperáveis) — verificar se algo mais precisa de ajuste.
-2. Confirmar feature flags de produção continuam desligadas
-   (`docs/meta-whatsapp/production-readiness.md` / `config.js`).
-3. Revisão do frontend contra o checklist da missão (botões, popup,
-   cancelamento, permissões, sidebar, limite físico de conexões).
-4. ~~Escrever testes cobrindo os 3 bloqueadores~~ — feito (ver seção
-   acima), com lacunas documentadas honestamente.
-5. Rodar suíte completa local (`pnpm run check`, `test:functions`,
-   `test:unit`, `test:rules`, `test:frontend:emulator`, `test:ui:login`,
-   `test:ui:flows`, `test:ui:responsive`).
-6. Varredura de segredos no diff final.
-7. Organizar commits por responsabilidade, push, PR Draft, Quality Gate
-   remoto até verde.
-8. Relatório final no chat.
+Todas as etapas do plano foram concluídas. PR Draft #41 aberto em
+`VideDigital/vide-digital` (`feat/whatsapp-embedded-signup-production`
+-> `main`), Quality Gate remoto **verde nos 4 jobs**
+(https://github.com/VideDigital/vide-digital/actions/runs/30666817828).
+Nenhum merge, nenhum deploy foi realizado. Ver relatório final entregue
+no chat para o detalhamento completo (git state / implementação / testes
+/ Quality Gate / segurança / pendências externas).
