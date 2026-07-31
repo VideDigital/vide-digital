@@ -307,6 +307,7 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
   const provider = config.emulator ? emulatorMeta() : metaClient;
   let tokenSecretVersion = "";
   let pinSecretVersion = "";
+  let phoneRegistered = false;
   let connectionCommitted = false;
   let connectionId = "";
   let supersededCredentialVersions = [];
@@ -344,29 +345,61 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
       }
     }
 
+    // Ciclo seguro do PIN (achado da revisão 2026-07-31): o número NUNCA é
+    // registrado na Meta antes de o PIN já estar persistido no Secret
+    // Manager. Ordem: gerar PIN -> criar versão protegida -> registrar
+    // internamente a referência exata da versão (nunca o valor) -> só
+    // então tentar registerPhone. Se registerPhone falhar, a versão
+    // temporária é desabilitada e a referência pendente é limpa — nenhum
+    // segredo órfão, nenhuma credencial ativa tocada (nenhuma conexão
+    // ainda existe neste ponto). Se registerPhone tiver sucesso, a versão
+    // NUNCA é desabilitada por uma falha posterior de outra etapa — o
+    // número já está de fato registrado na Meta com aquele PIN; descartar
+    // o segredo criaria exatamente o cenário que esta correção evita
+    // (número registrado, PIN perdido). Uma falha depois do registro vira
+    // pendência recuperável (log + auditoria), nunca destruição do PIN.
     const mustRegister = ["PENDING", "UNREGISTERED"].includes(String(phone?.status || "").toUpperCase());
     let pin = "";
     if (mustRegister) {
       await updateAttempt(db, attemptId, { status: "registering", step: "registering" });
       pin = randomPin();
-      await provider.registerPhone({ accessToken, phoneNumberId, pin });
+      if (config.emulator) {
+        pinSecretVersion = emulatorSecrets(context.ownerUid, connectionId).pin.versionResource;
+      } else {
+        const pinSecret = await adicionarVersaoPinConexao({ ownerUid: context.ownerUid, connectionId, pin });
+        pinSecretVersion = pinSecret.versionResource;
+      }
+      // Referência da versão registrada ANTES da chamada à Meta — nunca o
+      // valor do PIN. Permite auditoria/recuperação administrativa mesmo
+      // se a Function cair logo depois do registerPhone.
+      await updateAttempt(db, attemptId, { pinSecretResourcePending: pinSecretVersion });
+      try {
+        await provider.registerPhone({ accessToken, phoneNumberId, pin });
+        phoneRegistered = true;
+      } catch (registerError) {
+        if (!config.emulator) await desabilitarVersaoRecurso(pinSecretVersion);
+        pinSecretVersion = "";
+        await updateAttempt(db, attemptId, { pinSecretResourcePending: "" });
+        throw registerError;
+      }
+      pin = ""; // nunca mais precisa do valor em memória depois do registro
     }
 
+    // Decisão (docs/meta-whatsapp/security-model.md#assinatura-da-waba-webhook):
+    // subscribeWaba é tratada como operação idempotente da plataforma e
+    // NUNCA é desfeita automaticamente por uma falha posterior — uma WABA
+    // pode ser compartilhada entre conexões/tentativas e não há como
+    // provar exclusividade da inscrição com segurança. Desinscrever aqui
+    // arriscaria interromper mensagens válidas de outra conexão.
     await updateAttempt(db, attemptId, { status: "subscribing_webhook", step: "subscribing_webhook" });
     await provider.subscribeWaba({ accessToken, wabaId });
 
     await updateAttempt(db, attemptId, { status: "saving_secret", step: "saving_secret" });
     if (config.emulator) {
-      const fake = emulatorSecrets(context.ownerUid, connectionId);
-      tokenSecretVersion = fake.token.versionResource;
-      if (pin) pinSecretVersion = fake.pin.versionResource;
+      tokenSecretVersion = emulatorSecrets(context.ownerUid, connectionId).token.versionResource;
     } else {
       const tokenSecret = await adicionarVersaoTokenConexao({ ownerUid: context.ownerUid, connectionId, tokenValue: accessToken });
       tokenSecretVersion = tokenSecret.versionResource;
-      if (pin) {
-        const pinSecret = await adicionarVersaoPinConexao({ ownerUid: context.ownerUid, connectionId, pin });
-        pinSecretVersion = pinSecret.versionResource;
-      }
     }
 
     await updateAttempt(db, attemptId, { status: "creating_route", step: "creating_route", connectionId });
@@ -491,7 +524,28 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
     return { ok: true, status: "connected", connectionId, templateWarning, credentialWarning, supportCode: attempt.correlationId };
   } catch (error) {
     if (!connectionCommitted && !config.emulator) {
-      await Promise.allSettled([tokenSecretVersion && desabilitarVersaoRecurso(tokenSecretVersion), pinSecretVersion && desabilitarVersaoRecurso(pinSecretVersion)].filter(Boolean));
+      // tokenSecretVersion nunca corresponde a uma ação irreversível na
+      // Meta — sempre seguro desabilitar se a conexão não foi commitada.
+      // pinSecretVersion só é desabilitado aqui se registerPhone NUNCA
+      // teve sucesso (o bloco de registro já limpa e zera a variável
+      // quando a própria chamada à Meta falha). Se phoneRegistered=true e
+      // uma etapa POSTERIOR falhou, o número já está registrado na Meta
+      // com aquele PIN — descartar o segredo aqui reproduziria o exato
+      // cenário que esta correção evita. Vira pendência recuperável,
+      // nunca um segredo destruído.
+      const cleanups = [tokenSecretVersion && desabilitarVersaoRecurso(tokenSecretVersion)];
+      if (pinSecretVersion && !phoneRegistered) cleanups.push(desabilitarVersaoRecurso(pinSecretVersion));
+      await Promise.allSettled(cleanups.filter(Boolean));
+      if (pinSecretVersion && phoneRegistered) {
+        logger.error("whatsapp.onboarding.phone_registered_connection_incomplete", core.redactForLog({
+          correlationId: attempt.correlationId,
+          attemptId,
+          ownerUid: context.ownerUid,
+          connectionId,
+          pinSecretVersion,
+          note: "Numero registrado na Meta com PIN preservado, mas a conexao nao foi concluida. Requer recuperacao administrativa (nao reexecutar registerPhone)."
+        }));
+      }
     }
     const failure = await failAttempt(db, { ...attempt, step: "complete" }, error);
     await writeAudit({ ownerUid: context.ownerUid, authUid: context.authUid, module: "whatsapp", targetId: attemptId, action: "whatsapp.onboarding_falhou", risk: "high", summary: `Onboarding do WhatsApp não concluído (${failure.code}).`, source: "function", ok: false, correlationId: attempt.correlationId, origin: attempt.origin, code: failure.code });
