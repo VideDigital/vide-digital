@@ -40,17 +40,17 @@ const CONNECTION_STATUS_SET = new Set(CONNECTION_STATUS);
 const CONNECTION_PROVIDER = Object.freeze(["meta_cloud_api"]);
 const CONNECTION_PROVIDER_SET = new Set(CONNECTION_PROVIDER);
 
-// official_cloud = número dedicado só à Cloud API (piloto atual).
+// official_cloud = número dedicado só à Cloud API.
 // official_coexistence = número existente também usado no app WhatsApp
-// Business normal, via Coexistência oficial da Meta — arquitetura
-// preparada nesta missão, fluxo real fica pra uma missão futura (ver
-// onboarding.js).
+// Business normal, via Coexistência oficial da Meta. O contrato existe,
+// mas a liberação continua protegida por feature flag até a aprovação
+// externa correspondente (ver config.js e docs/meta-whatsapp/).
 const CONNECTION_PROVIDER_MODE = Object.freeze(["official_cloud", "official_coexistence"]);
 const CONNECTION_PROVIDER_MODE_SET = new Set(CONNECTION_PROVIDER_MODE);
 
 // piloto_assistido = como a conexão legada (V1) foi criada, por um
-// script administrativo. embedded_signup = fluxo self-service futuro
-// (Fase 7 — só contrato, não implementado).
+// script administrativo. embedded_signup = fluxo self-service oficial,
+// liberado por ambiente somente depois dos gates externos.
 const CONNECTION_ONBOARDING_MODE = Object.freeze(["piloto_assistido", "embedded_signup"]);
 const CONNECTION_ONBOARDING_MODE_SET = new Set(CONNECTION_ONBOARDING_MODE);
 
@@ -120,6 +120,9 @@ const META_PERMISSIONS = Object.freeze(["whatsapp_business_messaging", "whatsapp
 // digitadas soltas em outros arquivos.
 const COLLECTIONS = Object.freeze({
   CONNECTIONS: "whatsapp_connections",
+  ONBOARDING_ATTEMPTS: "whatsapp_onboarding_attempts",
+  ONBOARDING_LOCKS: "whatsapp_onboarding_locks",
+  QR_CODES: "whatsapp_qr_codes",
   TEMPLATES: "whatsapp_templates",
   MESSAGE_MAP: "whatsapp_message_map",
   WEBHOOK_EVENTS: "whatsapp_webhook_events",
@@ -134,7 +137,13 @@ const RATE_LIMITS = Object.freeze({
   TEMPLATE_SYNC_PER_HOUR: 6,
   CONNECTION_VALIDATE_PER_MIN: 5,
   MARK_READ_PER_MIN: 60,
-  SET_DEFAULT_CONNECTION_PER_MIN: 10
+  SET_DEFAULT_CONNECTION_PER_MIN: 10,
+  ONBOARDING_START_PER_MIN: 3,
+  ONBOARDING_COMPLETE_PER_MIN: 3,
+  ONBOARDING_STATUS_PER_MIN: 30,
+  CONNECTION_MANAGEMENT_PER_MIN: 10,
+  QR_CODE_WRITE_PER_MIN: 10,
+  QR_CODE_READ_PER_MIN: 30
 });
 
 // TTL do dedupe leve de eventos de webhook (whatsapp_webhook_events) —

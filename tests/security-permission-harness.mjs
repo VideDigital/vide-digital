@@ -13,7 +13,8 @@ const MODULE_ALIASES = {
     // "crm" é permissão própria, nunca alias de "leads" — espelha
     // core/vide-module-aliases.js e firestore.rules (achado de auditoria
     // da fase "navegação própria do CRM 360").
-    crm: ["crm", "clientes", "crm-360", "crm_360", "observacoes_clientes", "tags_clientes"]
+    crm: ["crm", "clientes", "crm-360", "crm_360", "observacoes_clientes", "tags_clientes"],
+    whatsapp: ["whatsapp"]
 };
 
 const lookup = Object.entries(MODULE_ALIASES).reduce((acc, [canonical, aliases]) => {
@@ -77,6 +78,8 @@ const scenarios = [
     ["employee with crm permission cannot view leads", buildContext("employee", { ver: ["crm"] }), "leads", false, false],
     ["employee read crm through clientes alias", buildContext("employee", { ver: ["clientes"] }), "crm", true, false],
     ["employee read orders", buildContext("employee", { ver: ["pedidos"] }), "pedidos", true, false],
+    ["employee with atendimento cannot view whatsapp", buildContext("employee", { editar: ["atendimento"] }), "whatsapp", false, false],
+    ["employee with whatsapp edit can manage whatsapp", buildContext("employee", { editar: ["whatsapp"] }), "whatsapp", true, true],
     ["employee read AI settings", buildContext("employee", { ver: ["central-ia"] }), "central-ia", true, false],
     ["employee edit AI settings through alias", buildContext("employee", { editar: ["gerenciar_ia"] }), "central-ia", true, true],
     ["settings does not grant landing pages", buildContext("employee", { editar: ["configuracoes"] }), "landing-pages", false, false],

@@ -72,3 +72,13 @@ exports.whatsappValidateConnection = whatsapp.whatsappValidateConnection;
 // Fase 4 (multiconexão) — módulo WhatsApp separado no dashboard.
 exports.whatsappListConnections = whatsapp.whatsappListConnections;
 exports.whatsappSetDefaultConnection = whatsapp.whatsappSetDefaultConnection;
+exports.whatsappStartOnboarding = whatsapp.whatsappStartOnboarding;
+exports.whatsappCompleteOnboarding = whatsapp.whatsappCompleteOnboarding;
+exports.whatsappGetOnboardingStatus = whatsapp.whatsappGetOnboardingStatus;
+exports.whatsappCancelOnboarding = whatsapp.whatsappCancelOnboarding;
+exports.whatsappRenameConnection = whatsapp.whatsappRenameConnection;
+exports.whatsappDisconnectConnection = whatsapp.whatsappDisconnectConnection;
+exports.whatsappListQrCodes = whatsapp.whatsappListQrCodes;
+exports.whatsappCreateQrCode = whatsapp.whatsappCreateQrCode;
+exports.whatsappUpdateQrCode = whatsapp.whatsappUpdateQrCode;
+exports.whatsappDeleteQrCode = whatsapp.whatsappDeleteQrCode;

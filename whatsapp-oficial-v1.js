@@ -1,489 +1,594 @@
 /* =========================================================
-   VIDE HUB — MÓDULO WHATSAPP (multiconexão, Fase 4)
-   Controller da view #view-whatsapp-oficial — SEPARADO da Central de
-   Atendimento: aqui só se administra a(s) conexão(ões) oficial(is) do
-   WhatsApp (nunca envia/recebe mensagem de cliente). Mostra o estado da
-   conexão (nunca o token nem o tokenSecretResource completo), lista as
-   conexões da loja (até 2), permite validar/tornar padrão e sincronizar
-   templates oficiais aprovados. Onboarding V1 continua só piloto
-   assistido (scripts/provision-whatsapp-pilot.mjs, rodado por um
-   administrador) — não existe botão de "conectar" que finja uma conexão
-   real, nem formulário manual de token/ID. Padrão de injeção igual a
-   audit-center-v1.js/central-ia.js: nunca importa Firebase direto.
+   VIDE HUB — WHATSAPP OFICIAL
+   Administração de conexões oficiais da Meta. Nunca recebe token, ID
+   técnico ou segredo digitado pelo cliente; toda ação sensível passa por
+   callables autenticadas e respostas sanitizadas.
    ========================================================= */
 
 const ROTULO_STATUS = Object.freeze({
-    disconnected: "Não configurado",
-    pending_setup: "Aguardando piloto",
-    validating: "Validando",
-    connected: "Conectado",
-    degraded: "Atenção",
-    suspended: "Suspenso",
-    revoked: "Revogado"
+    disconnected: "Não configurado", pending_setup: "Preparando", validating: "Validando",
+    connected: "Conectado", degraded: "Precisa de atenção", suspended: "Suspenso", revoked: "Desconectado"
 });
 
 const DESCRICAO_STATUS = Object.freeze({
-    disconnected: "Nenhuma conexão do WhatsApp está ativa para esta loja.",
-    pending_setup: "Peça a um administrador para provisionar o piloto assistido.",
-    validating: "Validação em andamento.",
-    connected: "A conexão ativa está pronta para enviar/receber mensagens.",
-    degraded: "A última validação encontrou um problema. Valide a conexão novamente.",
-    suspended: "A conexão foi suspensa pela Meta ou pelo token revogado.",
-    revoked: "A conexão foi desconectada. Peça a um administrador para reconectar."
+    disconnected: "Nenhuma conexão ativa nesta loja.",
+    pending_setup: "A conexão ainda está sendo preparada.",
+    validating: "Estamos verificando a conexão.",
+    connected: "A conexão está pronta para receber e enviar mensagens.",
+    degraded: "A conexão continua cadastrada, mas precisa ser validada.",
+    suspended: "A Meta suspendeu temporariamente esta conexão.",
+    revoked: "A autorização desta conexão não está mais válida."
 });
 
 const ROTULO_PROVIDER_MODE = Object.freeze({
-    official_cloud: "Número dedicado (Cloud API)",
-    official_coexistence: "Coexistência (número compartilhado)"
+    official_cloud: "Número dedicado à Cloud API",
+    official_coexistence: "Coexistência oficial"
 });
 
+const META_SDK_ID = "vide-meta-jssdk";
+let metaSdkPromise = null;
+let metaSdkAppId = "";
+
 function escaparHtml(valor) {
-    return String(valor ?? "").replace(/[&<>"']/g, (c) => ({
-        "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
-    }[c]));
+    return String(valor ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 function formatarDataHora(valor) {
     if (!valor) return "—";
     const ms = typeof valor?.toMillis === "function" ? valor.toMillis() : Number(valor);
-    if (!Number.isFinite(ms) || ms <= 0) return "—";
-    return new Date(ms).toLocaleString("pt-BR");
+    return Number.isFinite(ms) && ms > 0 ? new Date(ms).toLocaleString("pt-BR") : "—";
+}
+
+function chaveIdempotencia() {
+    if (globalThis.crypto?.randomUUID) return globalThis.crypto.randomUUID().replace(/-/g, "");
+    const bytes = new Uint8Array(24);
+    globalThis.crypto?.getRandomValues?.(bytes);
+    return Array.from(bytes, (item) => item.toString(16).padStart(2, "0")).join("");
+}
+
+export function carregarMetaSdk({ appId, graphVersion, locale = "pt_BR", documentRef = document, windowRef = window } = {}) {
+    if (!appId) return Promise.reject(new Error("Configuração pública da Meta ausente."));
+    if (windowRef.FB && metaSdkAppId === appId) return Promise.resolve(windowRef.FB);
+    if (metaSdkPromise) return metaSdkPromise;
+    metaSdkPromise = new Promise((resolve, reject) => {
+        const timeout = windowRef.setTimeout(() => {
+            metaSdkPromise = null;
+            reject(new Error("Não foi possível carregar a janela da Meta. Verifique bloqueadores de conteúdo e tente novamente."));
+        }, 15000);
+        const previousInit = windowRef.fbAsyncInit;
+        windowRef.fbAsyncInit = () => {
+            try {
+                previousInit?.();
+                windowRef.FB.init({ appId, autoLogAppEvents: false, xfbml: false, version: graphVersion });
+                metaSdkAppId = appId;
+                windowRef.clearTimeout(timeout);
+                resolve(windowRef.FB);
+            } catch (error) {
+                windowRef.clearTimeout(timeout);
+                metaSdkPromise = null;
+                reject(error);
+            }
+        };
+        const existing = documentRef.getElementById(META_SDK_ID);
+        if (existing) return;
+        const script = documentRef.createElement("script");
+        script.id = META_SDK_ID;
+        script.async = true;
+        script.defer = true;
+        script.crossOrigin = "anonymous";
+        script.src = `https://connect.facebook.net/${encodeURIComponent(locale)}/sdk.js`;
+        script.onerror = () => {
+            windowRef.clearTimeout(timeout);
+            script.remove();
+            metaSdkPromise = null;
+            reject(new Error("O navegador bloqueou o carregamento da Meta. Libere scripts e popups para a Vide Hub."));
+        };
+        documentRef.head.appendChild(script);
+    });
+    return metaSdkPromise;
 }
 
 export function criarWhatsappOficialController({
-    context,
-    notify = () => {},
-    logger = console,
-    root = document,
-    db,
-    firestore,
-    chamarConnectionStatus,
-    chamarValidateConnection,
-    chamarSyncTemplates,
-    chamarListConnections,
-    chamarSetDefaultConnection
+    context, notify = () => {}, logger = console, root = document, db, firestore,
+    chamarConnectionStatus, chamarValidateConnection, chamarSyncTemplates, chamarListConnections,
+    chamarSetDefaultConnection, chamarStartOnboarding, chamarCompleteOnboarding,
+    chamarGetOnboardingStatus, chamarCancelOnboarding, chamarRenameConnection,
+    chamarDisconnectConnection, chamarListQrCodes, chamarCreateQrCode,
+    chamarUpdateQrCode, chamarDeleteQrCode
 } = {}) {
     const state = {
-        carregado: false,
-        carregando: false,
-        erro: false,
-        semPermissao: false,
-        conexao: null,
-        conexoes: [],
-        totalConexoes: 0,
-        maxConexoes: 2,
-        limiteAtingido: false,
-        templates: [],
-        carregandoTemplates: false,
-        validando: false,
-        sincronizando: false,
-        conexaoEmAcao: ""
+        carregado: false, erro: false, semPermissao: false, conexao: null, conexoes: [],
+        totalConexoes: 0, maxConexoes: 2, limiteAtingido: false, templates: [],
+        templateFilter: "ALL", qrCodes: [], onboarding: null, onboardingAtual: null,
+        validando: false, sincronizando: false, conexaoEmAcao: "", acaoAtual: null
     };
 
-    function byId(id) {
-        return root.getElementById(id);
-    }
-
-    function podeGerenciar() {
-        return Boolean(context?.canEdit?.("whatsapp"));
-    }
-
-    function webhookUrl() {
-        // A URL do webhook é fixa por projeto (mesma pra todo tenant) —
-        // publicada no deploy real, nunca inventada aqui. Placeholder
-        // óbvio até o deploy dedicado da Fase B preencher o valor real.
-        return "https://southamerica-east1-vide-digital-saas.cloudfunctions.net/whatsappWebhook";
-    }
+    const byId = (id) => root.getElementById(id);
+    const podeGerenciar = () => Boolean(context?.canEdit?.("whatsapp"));
 
     function mostrarEstado(nome) {
-        const estados = ["carregando", "erro", "sem-permissao", "conteudo"];
-        estados.forEach((estado) => {
-            const elemento = byId(`whatsapp-estado-${estado}`);
-            if (elemento) elemento.classList.toggle("hidden", estado !== nome);
-        });
+        ["carregando", "erro", "sem-permissao", "conteudo"].forEach((estado) => byId(`whatsapp-estado-${estado}`)?.classList.toggle("hidden", estado !== nome));
     }
 
-    async function load({ force = false } = {}) {
-        if (state.carregado && !force) {
-            mostrarEstado(state.semPermissao ? "sem-permissao" : "conteudo");
-            return;
-        }
-        if (typeof chamarConnectionStatus !== "function") {
-            state.erro = true;
-            mostrarEstado("erro");
-            return;
-        }
-        state.carregando = true;
+    async function load({ force = false, transientRetries = 1 } = {}) {
+        if (state.carregado && !force) return mostrarEstado(state.semPermissao ? "sem-permissao" : "conteudo");
         mostrarEstado("carregando");
         try {
-            const [statusResultado] = await Promise.all([
-                chamarConnectionStatus({}),
-                carregarConexoes(),
-                carregarTemplates()
-            ]);
-            state.conexao = statusResultado || { status: "disconnected" };
+            const [status, connections] = await Promise.all([chamarConnectionStatus({}), chamarListConnections({}), carregarTemplates()]);
+            state.conexao = status || { status: "disconnected" };
+            state.conexoes = Array.isArray(connections?.conexoes) ? connections.conexoes : [];
+            state.totalConexoes = Number(connections?.total || 0);
+            state.maxConexoes = Number(connections?.maxConexoes || 2);
+            state.limiteAtingido = Boolean(connections?.limiteAtingido);
+            state.onboarding = connections?.onboarding || status?.onboarding || null;
+            await carregarQrCodes();
             state.carregado = true;
             state.erro = false;
-            state.semPermissao = false;
             renderTudo();
             mostrarEstado("conteudo");
-        } catch (erro) {
-            if (erro?.code === "functions/permission-denied") {
+        } catch (error) {
+            if (error?.code === "functions/permission-denied") {
                 state.semPermissao = true;
                 mostrarEstado("sem-permissao");
+            } else if (transientRetries > 0 && ["functions/deadline-exceeded", "functions/unavailable"].includes(error?.code)) {
+                logger.warn?.("[WhatsApp] Atualização temporariamente indisponível; repetindo uma vez.", error?.code);
+                await new Promise((resolve) => globalThis.setTimeout(resolve, 500));
+                return load({ force: true, transientRetries: transientRetries - 1 });
             } else {
-                logger.error?.("[WhatsApp] Falha ao carregar status:", erro?.code, erro?.message);
+                logger.error?.("[WhatsApp] Falha ao carregar módulo:", error?.code, error?.message);
                 state.erro = true;
                 mostrarEstado("erro");
             }
-        } finally {
-            state.carregando = false;
-        }
-    }
-
-    async function carregarConexoes() {
-        if (typeof chamarListConnections !== "function") return;
-        try {
-            const resultado = await chamarListConnections({});
-            state.conexoes = Array.isArray(resultado?.conexoes) ? resultado.conexoes : [];
-            state.totalConexoes = Number(resultado?.total || 0);
-            state.maxConexoes = Number(resultado?.maxConexoes || 2);
-            state.limiteAtingido = Boolean(resultado?.limiteAtingido);
-        } catch (erro) {
-            // Nunca derruba a view inteira por causa da lista de conexões
-            // — o status principal (chamarConnectionStatus) já garante o
-            // essencial (conexão ativa). Só loga.
-            logger.error?.("[WhatsApp] Falha ao listar conexões:", erro?.code, erro?.message);
-            state.conexoes = [];
         }
     }
 
     async function carregarTemplates() {
-        if (!db || !firestore || typeof firestore.collection !== "function") return;
         const ownerUid = context?.getOwnerUid?.() || "";
-        if (!ownerUid) return;
-        state.carregandoTemplates = true;
+        if (!ownerUid || !firestore?.collection) return;
         try {
-            const { collection, query, where, getDocs } = firestore;
-            const snap = await getDocs(query(
-                collection(db, "whatsapp_templates"),
-                where("ownerUid", "==", ownerUid),
-                where("status", "==", "APPROVED")
-            ));
-            state.templates = snap.docs.map((d) => d.data());
-        } catch (erro) {
-            logger.error?.("[WhatsApp] Falha ao listar templates:", erro?.code, erro?.message);
+            const snap = await firestore.getDocs(firestore.query(firestore.collection(db, "whatsapp_templates"), firestore.where("ownerUid", "==", ownerUid)));
+            state.templates = snap.docs.map((doc) => doc.data());
+        } catch (error) {
+            logger.error?.("[WhatsApp] Falha ao listar templates:", error?.code, error?.message);
             state.templates = [];
-        } finally {
-            state.carregandoTemplates = false;
         }
     }
+
+    async function carregarQrCodes() {
+        if (typeof chamarListQrCodes !== "function" || !podeGerenciar() || state.onboarding?.flags?.qrCodes === false) return;
+        try {
+            const result = await chamarListQrCodes({});
+            state.qrCodes = Array.isArray(result?.qrCodes) ? result.qrCodes : [];
+        } catch (error) {
+            if (error?.code !== "functions/failed-precondition") logger.error?.("[WhatsApp] Falha ao listar QR Codes:", error?.code, error?.message);
+            state.qrCodes = [];
+        }
+    }
+
+    function conexaoPadrao() { return state.conexoes.find((connection) => connection.isDefault) || null; }
+    function conexoesAtivas() { return state.conexoes.filter((connection) => connection.status === "connected"); }
 
     function renderTudo() {
-        renderDiagnostico();
         renderVisaoGeral();
-        renderConexoes();
         renderAdicionar();
+        renderConexoes();
         renderTemplates();
-        renderEquipe();
-    }
-
-    function renderDiagnostico() {
-        const conexao = state.conexao || { status: "disconnected" };
-        const status = conexao.status || "disconnected";
-
-        const badge = byId("whatsapp-status-badge");
-        if (badge) {
-            badge.textContent = ROTULO_STATUS[status] || status;
-            badge.className = `aura-whatsapp-badge is-status-${escaparHtml(status)}`;
-        }
-        const descricao = byId("whatsapp-status-descricao");
-        if (descricao) descricao.textContent = DESCRICAO_STATUS[status] || "";
-
-        const numero = byId("whatsapp-card-numero-valor");
-        if (numero) numero.textContent = conexao.displayPhoneNumber || "—";
-        const nomeVerificado = byId("whatsapp-card-numero-nome");
-        if (nomeVerificado) nomeVerificado.textContent = conexao.verifiedName ? `Nome verificado: ${conexao.verifiedName}` : "";
-
-        const tokenEl = byId("whatsapp-card-conexao-token");
-        if (tokenEl) tokenEl.textContent = conexao.connected ? (conexao.tokenMasked || "•••••••• conectado") : "Nenhum token conectado";
-
-        const webhookEl = byId("whatsapp-card-webhook-status");
-        if (webhookEl) webhookEl.textContent = conexao.webhookSubscribed ? "Inscrito e recebendo eventos" : "Ainda não confirmado";
-        const webhookUltimo = byId("whatsapp-card-webhook-ultimo");
-        if (webhookUltimo) webhookUltimo.textContent = `Último evento: ${formatarDataHora(conexao.lastWebhookAt)}`;
-        const webhookInput = byId("whatsapp-webhook-url");
-        if (webhookInput) webhookInput.value = webhookUrl();
-
-        const qualidadeEl = byId("whatsapp-card-qualidade-valor");
-        if (qualidadeEl) qualidadeEl.textContent = conexao.qualityRating || "—";
-        const limiteEl = byId("whatsapp-card-qualidade-limite");
-        if (limiteEl) limiteEl.textContent = conexao.messagingLimitTier ? `Limite de mensagens: ${conexao.messagingLimitTier}` : "";
-
-        const diagVersao = byId("whatsapp-card-diagnostico-versao");
-        if (diagVersao) diagVersao.textContent = conexao.graphVersion ? `Graph API ${conexao.graphVersion}` : "—";
-        const diagErro = byId("whatsapp-card-diagnostico-erro");
-        if (diagErro) diagErro.textContent = conexao.lastErrorCode ? `Último erro: ${conexao.lastErrorCode}` : "Nenhum erro recente";
-        const diagValidacao = byId("whatsapp-card-diagnostico-validacao");
-        if (diagValidacao) diagValidacao.textContent = `Última validação: ${formatarDataHora(conexao.lastValidatedAt)}`;
-
-        const btnValidar = byId("whatsapp-btn-validar");
-        if (btnValidar) btnValidar.disabled = !podeGerenciar() || state.validando;
-
-        const acoesPiloto = byId("whatsapp-acoes-piloto-nao-conectado");
-        if (acoesPiloto) acoesPiloto.hidden = status === "connected" || status === "degraded";
-    }
-
-    function conexaoPadrao() {
-        return state.conexoes.find((c) => c.isDefault) || null;
+        renderDiagnostico();
+        renderQrCodes();
     }
 
     function renderVisaoGeral() {
-        const totalEl = byId("whatsapp-visao-total-conexoes");
-        if (totalEl) totalEl.textContent = String(state.totalConexoes || (state.conexao?.connected ? 1 : 0));
-        const limiteEl = byId("whatsapp-visao-limite");
-        if (limiteEl) limiteEl.textContent = String(state.maxConexoes || 2);
-
-        const padrao = conexaoPadrao();
-        const padraoLabel = byId("whatsapp-visao-padrao-label");
-        if (padraoLabel) padraoLabel.textContent = padrao ? (padrao.label || (padrao.legacy ? "Piloto (conexão legada)" : "Conexão")) : "Nenhuma conexão ativa";
-        const padraoNumero = byId("whatsapp-visao-padrao-numero");
-        if (padraoNumero) padraoNumero.textContent = padrao?.displayPhoneNumber || "";
-
-        const ultimoDiag = byId("whatsapp-visao-ultimo-diagnostico");
-        if (ultimoDiag) ultimoDiag.textContent = formatarDataHora(state.conexao?.lastValidatedAt);
-
-        const avisosEl = byId("whatsapp-visao-avisos");
-        if (avisosEl) {
-            const avisos = [];
-            if (state.conexoes.length === 0 && !state.conexao?.connected) {
-                avisos.push("Nenhuma conexão configurada ainda para esta loja.");
-            }
-            if (state.limiteAtingido) {
-                avisos.push(`Limite de ${state.maxConexoes} conexões atingido — não é possível adicionar outra agora.`);
-            }
-            if (state.conexao?.status === "degraded" || state.conexao?.status === "suspended" || state.conexao?.status === "revoked") {
-                avisos.push("A conexão ativa precisa de atenção — veja o Diagnóstico abaixo.");
-            }
-            avisosEl.innerHTML = avisos.map((a) => `<li>${escaparHtml(a)}</li>`).join("");
-            avisosEl.classList.toggle("hidden", avisos.length === 0);
-        }
+        const status = state.conexao?.status || "disconnected";
+        const badge = byId("whatsapp-status-badge");
+        if (badge) { badge.textContent = ROTULO_STATUS[status] || status; badge.className = `aura-whatsapp-badge is-status-${escaparHtml(status)}`; }
+        if (byId("whatsapp-status-descricao")) byId("whatsapp-status-descricao").textContent = DESCRICAO_STATUS[status] || "";
+        if (byId("whatsapp-visao-total-conexoes")) byId("whatsapp-visao-total-conexoes").textContent = String(state.totalConexoes);
+        if (byId("whatsapp-visao-limite")) byId("whatsapp-visao-limite").textContent = String(state.maxConexoes);
+        const standard = conexaoPadrao();
+        if (byId("whatsapp-visao-padrao-label")) byId("whatsapp-visao-padrao-label").textContent = standard?.label || "Nenhuma";
+        if (byId("whatsapp-visao-padrao-numero")) byId("whatsapp-visao-padrao-numero").textContent = standard?.displayPhoneNumber || "Conexão padrão";
+        if (byId("whatsapp-visao-ultimo-diagnostico")) byId("whatsapp-visao-ultimo-diagnostico").textContent = formatarDataHora(state.conexao?.lastValidatedAt);
+        const warnings = [];
+        if (state.limiteAtingido) warnings.push("Sua loja atingiu o limite de duas conexões.");
+        if (["degraded", "suspended", "revoked"].includes(status)) warnings.push("A conexão padrão precisa de atenção. Use Validar conexão ou Reconectar.");
+        const list = byId("whatsapp-visao-avisos");
+        if (list) { list.innerHTML = warnings.map((warning) => `<li>${escaparHtml(warning)}</li>`).join(""); list.classList.toggle("hidden", !warnings.length); }
     }
 
-    function renderConexoes() {
-        const lista = byId("whatsapp-conexoes-lista");
-        const vazio = byId("whatsapp-conexoes-vazio");
-        if (!lista) return;
-
-        if (state.conexoes.length === 0) {
-            lista.innerHTML = "";
-            if (vazio) vazio.classList.remove("hidden");
-            return;
-        }
-        if (vazio) vazio.classList.add("hidden");
-
-        const gerenciar = podeGerenciar();
-        lista.innerHTML = state.conexoes.map((c) => {
-            const idAcao = c.legacy ? "" : c.connectionId;
-            const emAcao = state.conexaoEmAcao === (idAcao || "legacy");
-            // data-legacy explícito — nunca deixa o clique num card legado
-            // mandar connectionId="" pro backend como se fosse "sem
-            // preferência" (o que poderia silenciosamente validar/tornar
-            // padrão OUTRA conexão que virou default). Achado real da
-            // revisão: ver docs/WHATSAPP_MODULO_MULTICONEXAO.md.
-            const botaoValidar = gerenciar
-                ? `<button type="button" class="aura-whatsapp-btn" data-acao="validar" data-connection-id="${escaparHtml(idAcao)}" data-legacy="${c.legacy ? "true" : "false"}" ${emAcao ? "disabled" : ""}>Validar</button>`
-                : "";
-            const botaoPadrao = (gerenciar && !c.legacy && !c.isDefault)
-                ? `<button type="button" class="aura-whatsapp-btn" data-acao="tornar-padrao" data-connection-id="${escaparHtml(idAcao)}" ${emAcao ? "disabled" : ""}>Tornar padrão</button>`
-                : "";
-            return `
-<div class="aura-whatsapp-card">
-<h3>${escaparHtml(c.label || (c.legacy ? "Piloto (conexão legada)" : "Conexão"))} ${c.isDefault ? '<span class="aura-whatsapp-badge is-status-connected">Padrão</span>' : '<span class="aura-whatsapp-badge is-status-disconnected">Secundária</span>'}</h3>
-<p>${escaparHtml(c.displayPhoneNumber || "—")}</p>
-<p class="aura-whatsapp-card-sub">${escaparHtml(ROTULO_PROVIDER_MODE[c.providerMode] || c.providerMode || "—")}</p>
-<p class="aura-whatsapp-card-sub">Status: ${escaparHtml(ROTULO_STATUS[c.status] || c.status || "—")}${c.qualityRating ? ` · Qualidade: ${escaparHtml(c.qualityRating)}` : ""}</p>
-<p class="aura-whatsapp-card-sub">Última validação: ${formatarDataHora(c.lastValidatedAt)}</p>
-<div class="aura-whatsapp-acoes-finais">${botaoValidar}${botaoPadrao}</div>
-</div>`;
-        }).join("");
+    function availabilityMessage() {
+        if (!podeGerenciar()) return "Seu perfil pode consultar, mas não alterar conexões.";
+        if (state.limiteAtingido) return "Limite de duas conexões atingido.";
+        if (state.totalConexoes > 0 && state.onboarding?.flags?.secondConnection === false) return "A segunda conexão está em liberação progressiva. Sua conexão atual continua funcionando normalmente.";
+        const reason = state.onboarding?.reason;
+        if (state.onboarding?.available) return "A janela oficial da Meta será aberta somente após sua confirmação.";
+        if (reason === "platform_configuration_missing") return "A configuração externa da Meta ainda está sendo preparada. Suas conexões atuais continuam funcionando.";
+        if (reason === "not_in_rollout") return "O novo fluxo está em liberação progressiva e ainda não está disponível para esta conta.";
+        return "Novas conexões estão temporariamente indisponíveis. As conexões atuais continuam funcionando.";
     }
 
     function renderAdicionar() {
-        const aviso = byId("whatsapp-adicionar-limite-aviso");
-        if (aviso) aviso.classList.toggle("hidden", !state.limiteAtingido);
+        const button = byId("whatsapp-btn-conectar");
+        if (button) {
+            button.disabled = !podeGerenciar() || state.limiteAtingido || !state.onboarding?.available || (state.totalConexoes > 0 && state.onboarding?.flags?.secondConnection === false);
+            button.textContent = state.totalConexoes === 1 ? "Adicionar segundo número" : "Conectar meu WhatsApp";
+        }
+        if (byId("whatsapp-onboarding-disponibilidade")) byId("whatsapp-onboarding-disponibilidade").textContent = availabilityMessage();
+        byId("whatsapp-adicionar-limite-aviso")?.classList.toggle("hidden", !state.limiteAtingido);
+    }
+
+    function connectionActions(connection) {
+        if (!podeGerenciar()) return "";
+        const id = connection.legacy ? "" : connection.connectionId;
+        const legacy = connection.legacy ? "true" : "false";
+        const disabled = state.conexaoEmAcao === (id || "legacy") ? "disabled" : "";
+        const connected = connection.status === "connected";
+        const operational = ["connected", "degraded", "suspended"].includes(connection.status);
+        const disconnected = ["disconnected", "revoked"].includes(connection.status);
+        const actions = [
+            operational ? `<button type="button" class="aura-whatsapp-btn" data-acao="validar" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}" ${disabled}>Validar conexão</button>` : "",
+            operational && !connection.legacy && !connection.isDefault ? `<button type="button" class="aura-whatsapp-btn" data-acao="tornar-padrao" data-connection-id="${escaparHtml(id)}" ${disabled}>Tornar padrão</button>` : "",
+            !connection.legacy ? `<button type="button" class="aura-whatsapp-btn" data-acao="renomear" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "")}">Renomear</button>` : "",
+            disconnected && !connection.legacy && state.onboarding?.flags?.reconnect ? `<button type="button" class="aura-whatsapp-btn" data-acao="reconectar" data-connection-id="${escaparHtml(id)}">Reconectar</button>` : "",
+            connected && state.onboarding?.flags?.qrCodes ? `<button type="button" class="aura-whatsapp-btn" data-acao="qr" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}">Criar QR Code</button>` : "",
+            !disconnected && !connection.legacy && state.onboarding?.flags?.disconnect ? `<button type="button" class="aura-whatsapp-btn" data-acao="desconectar" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "Conexão")}">Desconectar</button>` : ""
+        ];
+        return actions.filter(Boolean).join("");
+    }
+
+    function renderConexoes() {
+        const list = byId("whatsapp-conexoes-lista");
+        const empty = byId("whatsapp-conexoes-vazio");
+        if (!list) return;
+        empty?.classList.toggle("hidden", state.conexoes.length > 0);
+        list.innerHTML = state.conexoes.map((connection) => `
+<article class="aura-whatsapp-card" data-connection-card="${escaparHtml(connection.connectionId || "legacy")}">
+<h3>${escaparHtml(connection.label || (connection.legacy ? "Conexão legada" : "Conexão"))} <span class="aura-whatsapp-badge ${connection.isDefault ? "is-status-connected" : "is-status-disconnected"}">${connection.isDefault ? "Padrão" : "Secundária"}</span></h3>
+<p>${escaparHtml(connection.displayPhoneNumber || "Número não informado")}</p>
+<p class="aura-whatsapp-card-sub">${escaparHtml(connection.verifiedName || ROTULO_PROVIDER_MODE[connection.providerMode] || "Conexão oficial")}</p>
+<p class="aura-whatsapp-card-sub">Status: ${escaparHtml(ROTULO_STATUS[connection.status] || connection.status || "—")} · Última validação: ${formatarDataHora(connection.lastValidatedAt)}</p>
+<p class="aura-whatsapp-card-sub">Templates: ${Number(connection.templateCount || 0)} · Última sincronização: ${formatarDataHora(connection.lastTemplateSyncAt)}</p>
+<div class="aura-whatsapp-acoes-finais">${connectionActions(connection)}</div>
+</article>`).join("");
     }
 
     function renderTemplates() {
-        const syncEl = byId("whatsapp-card-templates-sync");
-        if (syncEl) syncEl.textContent = `Última sincronização: ${formatarDataHora(state.conexao?.lastTemplateSyncAt)}`;
-
-        const btnSync = byId("whatsapp-btn-sincronizar-templates");
-        if (btnSync) btnSync.disabled = !podeGerenciar() || !state.conexao?.connected || state.sincronizando;
-
-        const lista = byId("whatsapp-templates-lista");
-        const vazio = byId("whatsapp-templates-vazio");
-        if (!lista) return;
-        if (state.templates.length === 0) {
-            lista.innerHTML = "";
-            if (vazio) vazio.classList.remove("hidden");
-            return;
-        }
-        if (vazio) vazio.classList.add("hidden");
-        lista.innerHTML = state.templates.map((t) => `
-<div class="aura-whatsapp-card">
-<h3>${escaparHtml(t.name || "—")}</h3>
-<p class="aura-whatsapp-card-sub">Idioma: ${escaparHtml(t.language || "—")} · Categoria: ${escaparHtml(t.category || "—")}</p>
-<p class="aura-whatsapp-card-sub">Status: ${escaparHtml(t.status || "—")}</p>
-</div>`).join("");
+        const counts = state.templates.reduce((acc, item) => { const key = String(item.status || "UNKNOWN").toUpperCase(); acc[key] = (acc[key] || 0) + 1; return acc; }, {});
+        const selected = state.templateFilter;
+        const filtered = selected === "ALL" ? state.templates : state.templates.filter((item) => String(item.status).toUpperCase() === selected);
+        byId("whatsapp-template-filtros")?.querySelectorAll("button").forEach((button) => {
+            const filter = button.dataset.templateFilter;
+            button.classList.toggle("is-active", filter === selected);
+            const base = { ALL: "Todos", APPROVED: "Aprovados", PENDING: "Pendentes", REJECTED: "Rejeitados" }[filter] || filter;
+            button.textContent = `${base} (${filter === "ALL" ? state.templates.length : counts[filter] || 0})`;
+        });
+        if (byId("whatsapp-card-templates-sync")) byId("whatsapp-card-templates-sync").textContent = `Última sincronização: ${formatarDataHora(state.conexao?.lastTemplateSyncAt)}`;
+        const sync = byId("whatsapp-btn-sincronizar-templates");
+        if (sync) sync.disabled = !podeGerenciar() || !state.conexao?.connected || state.sincronizando;
+        const list = byId("whatsapp-templates-lista");
+        const empty = byId("whatsapp-templates-vazio");
+        if (!list) return;
+        empty?.classList.toggle("hidden", filtered.length > 0);
+        list.innerHTML = filtered.map((template) => `<article class="aura-whatsapp-card"><h3>${escaparHtml(template.name || "Template")}</h3><p>${escaparHtml(template.language || "Idioma não informado")}</p><p class="aura-whatsapp-card-sub">${escaparHtml(template.category || "Categoria não informada")} · ${escaparHtml(template.status || "—")}</p></article>`).join("");
     }
 
-    function renderEquipe() {
-        const padrao = conexaoPadrao();
-        const label = byId("whatsapp-equipe-padrao-label");
-        if (label) {
-            label.textContent = padrao
-                ? `${padrao.label || (padrao.legacy ? "Piloto (conexão legada)" : "Conexão")}${padrao.displayPhoneNumber ? ` — ${padrao.displayPhoneNumber}` : ""}`
-                : "Nenhuma conexão padrão definida";
+    function renderDiagnostico() {
+        const connection = state.conexao || {};
+        const connected = connection.status === "connected";
+        if (byId("whatsapp-diag-conexao")) byId("whatsapp-diag-conexao").textContent = connected ? "Sim" : "Não";
+        if (byId("whatsapp-diag-webhook")) byId("whatsapp-diag-webhook").textContent = connection.lastWebhookAt ? `Último evento ${formatarDataHora(connection.lastWebhookAt)}` : (connection.webhookSubscribed ? "Configurado; aguardando evento real" : "Ainda não confirmado");
+        if (byId("whatsapp-card-numero-valor")) byId("whatsapp-card-numero-valor").textContent = connection.displayPhoneNumber || "—";
+        if (byId("whatsapp-card-numero-nome")) byId("whatsapp-card-numero-nome").textContent = connection.verifiedName ? `Nome verificado: ${connection.verifiedName}` : "";
+        if (byId("whatsapp-diag-templates")) byId("whatsapp-diag-templates").textContent = connection.lastTemplateSyncAt ? `${state.templates.length} sincronizados` : "Não sincronizados";
+        if (byId("whatsapp-card-qualidade-valor")) byId("whatsapp-card-qualidade-valor").textContent = connection.qualityRating || "—";
+        if (byId("whatsapp-card-diagnostico-validacao")) byId("whatsapp-card-diagnostico-validacao").textContent = `Última validação: ${formatarDataHora(connection.lastValidatedAt)}`;
+        if (byId("whatsapp-card-diagnostico-erro")) byId("whatsapp-card-diagnostico-erro").textContent = connection.lastErrorCode ? "Ação necessária; use Validar conexão." : "Nenhum erro recente";
+        if (byId("whatsapp-card-diagnostico-versao")) byId("whatsapp-card-diagnostico-versao").textContent = connection.graphVersion ? `Versão da integração: ${connection.graphVersion}` : "";
+        const adminDetails = connection.adminDiagnostics || null;
+        byId("whatsapp-diagnostico-admin")?.classList.toggle("hidden", !adminDetails);
+        const adminList = byId("whatsapp-diagnostico-admin-lista");
+        if (adminList) {
+            const fields = adminDetails ? [
+                ["Conexão", adminDetails.connectionId || "—"],
+                ["Número técnico", adminDetails.phoneNumberIdMasked || "—"],
+                ["Conta empresarial", adminDetails.wabaIdMasked || "—"],
+                ["Schema", String(adminDetails.schemaVersion || "—")],
+                ["Credencial protegida", adminDetails.secretConfigured ? "Sim" : "Não"],
+                ["Rota esperada", adminDetails.routeExpected ? "Sim" : "Não"],
+                ["Graph API", adminDetails.graphVersion || "—"]
+            ] : [];
+            adminList.innerHTML = fields.map(([label, value]) => `<div><dt>${escaparHtml(label)}</dt><dd>${escaparHtml(value)}</dd></div>`).join("");
+        }
+        const validate = byId("whatsapp-btn-validar");
+        if (validate) validate.disabled = !podeGerenciar() || !state.conexoes.length || state.validando;
+    }
+
+    function renderQrCodes() {
+        const active = conexoesAtivas();
+        const unavailable = byId("whatsapp-qr-indisponivel");
+        unavailable?.classList.toggle("hidden", active.length > 0);
+        const newButton = byId("whatsapp-btn-novo-qr");
+        if (newButton) newButton.disabled = !podeGerenciar() || !active.length || state.onboarding?.flags?.qrCodes === false;
+        const list = byId("whatsapp-qr-lista");
+        if (!list) return;
+        list.innerHTML = state.qrCodes.map((qr) => `<article class="aura-whatsapp-card"><h3>${escaparHtml(qr.label)}</h3>${qr.qrImageUrl ? `<img class="aura-whatsapp-qr-image" src="${escaparHtml(qr.qrImageUrl)}" alt="QR Code ${escaparHtml(qr.label)}">` : ""}<p class="aura-whatsapp-card-sub">${escaparHtml(qr.message)}</p><div class="aura-whatsapp-acoes-finais"><button type="button" class="aura-whatsapp-btn" data-qr-acao="copiar" data-qr-id="${escaparHtml(qr.id)}">Copiar link</button><a class="aura-whatsapp-btn" href="${escaparHtml(qr.deepLinkUrl)}" target="_blank" rel="noopener noreferrer">Abrir link</a>${qr.qrImageUrl ? `<a class="aura-whatsapp-btn" href="${escaparHtml(qr.qrImageUrl)}" download="qr-whatsapp-${escaparHtml(qr.id)}.${qr.format === "PNG" ? "png" : "svg"}">Baixar ${escaparHtml(qr.format || "SVG")}</a>` : ""}<button type="button" class="aura-whatsapp-btn" data-qr-acao="editar" data-qr-id="${escaparHtml(qr.id)}">Editar</button><button type="button" class="aura-whatsapp-btn" data-qr-acao="imprimir" data-qr-id="${escaparHtml(qr.id)}">Imprimir</button><button type="button" class="aura-whatsapp-btn" data-qr-acao="excluir" data-qr-id="${escaparHtml(qr.id)}">Excluir</button></div></article>`).join("");
+    }
+
+    function setOnboardingStep(step, message) {
+        const order = ["preparing", "meta", "verifying", "configuring", "protecting", "templates", "done"];
+        const current = Math.max(0, order.indexOf(step));
+        byId("whatsapp-onboarding-passos")?.querySelectorAll("li").forEach((item, index) => {
+            item.classList.toggle("is-current", index === current);
+            item.classList.toggle("is-done", index < current);
+        });
+        if (message && byId("whatsapp-onboarding-mensagem")) byId("whatsapp-onboarding-mensagem").textContent = message;
+    }
+
+    function onboardingError(message) {
+        const box = byId("whatsapp-onboarding-erro");
+        if (box) { box.textContent = message; box.classList.remove("hidden"); }
+    }
+
+    function mapBackendStep(step) {
+        const value = String(step || "");
+        if (["starting", "awaiting_meta"].includes(value)) return ["meta", "Aguardando a autorização oficial da Meta."];
+        if (["processing", "exchanging_code", "discovering_assets"].includes(value)) return ["verifying", "Confirmando sua autorização e os ativos compartilhados diretamente com a Meta."];
+        if (["registering", "subscribing_webhook", "creating_route", "validating"].includes(value)) return ["configuring", "Configurando o número, o recebimento e o roteamento seguro para sua loja."];
+        if (value === "saving_secret") return ["protecting", "Protegendo a credencial da conexão fora do navegador e do banco de dados."];
+        if (value === "syncing_templates") return ["templates", "Sincronizando os templates oficiais já disponíveis na conta."];
+        if (value === "connected") return ["done", "Conexão concluída. Seu número já aparece na Vide Hub."];
+        return null;
+    }
+
+    async function acompanharOnboarding(attemptId, control) {
+        if (!attemptId || typeof chamarGetOnboardingStatus !== "function") return;
+        for (let attempt = 0; attempt < 20 && !control.done; attempt += 1) {
+            await new Promise((resolve) => window.setTimeout(resolve, 1200));
+            if (control.done) return;
+            try {
+                const current = await chamarGetOnboardingStatus({ onboardingAttemptId: attemptId });
+                const mapped = mapBackendStep(current?.step || current?.status);
+                if (mapped) setOnboardingStep(mapped[0], mapped[1]);
+                if (["connected", "failed", "cancelled", "expired", "requires_action"].includes(current?.status)) return;
+            } catch {
+                return;
+            }
         }
     }
 
-    async function validarConexao() {
-        if (typeof chamarValidateConnection !== "function" || state.validando) return;
-        if (!podeGerenciar()) {
-            notify("Você não tem permissão para gerenciar o WhatsApp desta loja.", "error");
-            return;
+    function openOnboarding({ mode = "new", connectionId = "" } = {}) {
+        if (!podeGerenciar() || !state.onboarding?.available) return notify(availabilityMessage(), "error");
+        if (mode === "new" && state.totalConexoes > 0 && state.onboarding?.flags?.secondConnection === false) return notify(availabilityMessage(), "error");
+        state.onboardingAtual = { mode, connectionId, critical: false, attemptId: "" };
+        byId("whatsapp-onboarding-erro")?.classList.add("hidden");
+        byId("whatsapp-onboarding-iniciar").disabled = false;
+        byId("whatsapp-onboarding-cancelar").disabled = false;
+        byId("whatsapp-onboarding-cancelar").textContent = "Cancelar";
+        setOnboardingStep("preparing", mode === "reconnect" ? "Vamos renovar a autorização sem interromper a conexão atual." : "Vamos preparar a conexão e abrir uma janela oficial da Meta.");
+        byId("whatsapp-onboarding-modal")?.showModal();
+    }
+
+    async function requestMetaAuthorization(start) {
+        if (start.emulatorMock) return { code: "EMULATOR_META_AUTHORIZATION_CODE", sessionInfo: { waba_id: "900000000001", phone_number_id: "900000000002", business_id: "900000000003" } };
+        const FB = await carregarMetaSdk({ appId: start.appId, graphVersion: start.graphVersion, locale: start.locale });
+        return new Promise((resolve, reject) => {
+            let sessionInfo = {};
+            let code = "";
+            let settleTimer = null;
+            const cleanup = () => { window.removeEventListener("message", onMessage); if (settleTimer) window.clearTimeout(settleTimer); };
+            const finish = () => { if (!code) return; cleanup(); resolve({ code, sessionInfo }); };
+            const onMessage = (event) => {
+                if (!["https://www.facebook.com", "https://web.facebook.com"].includes(event.origin)) return;
+                try {
+                    const payload = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
+                    if (payload?.type !== "WA_EMBEDDED_SIGNUP") return;
+                    if (payload.event === "CANCEL") { cleanup(); reject(Object.assign(new Error("A conexão foi cancelada antes de terminar. Nenhuma alteração foi feita."), { cancelled: true })); return; }
+                    if (payload.event === "ERROR") { cleanup(); reject(new Error("A Meta não conseguiu concluir esta etapa. Confira sua permissão administrativa e tente novamente.")); return; }
+                    if (payload.event === "FINISH") { sessionInfo = payload.data || {}; if (code) finish(); }
+                } catch { /* mensagens externas que não são do fluxo são ignoradas */ }
+            };
+            window.addEventListener("message", onMessage);
+            try {
+                FB.login((response) => {
+                    code = response?.authResponse?.code || "";
+                    if (!code) { cleanup(); reject(new Error("A janela da Meta foi fechada ou não concluiu a autorização.")); return; }
+                    settleTimer = window.setTimeout(finish, 800);
+                    if (sessionInfo.waba_id || sessionInfo.phone_number_id) finish();
+                }, { config_id: start.configurationId, response_type: "code", override_default_response_type: true, extras: { version: "v3" } });
+            } catch (error) {
+                cleanup();
+                reject(new Error(error?.message || "Seu navegador bloqueou a janela da Meta. Permita popups e tente novamente."));
+            }
+        });
+    }
+
+    async function startOnboarding() {
+        if (!state.onboardingAtual || typeof chamarStartOnboarding !== "function") return;
+        const button = byId("whatsapp-onboarding-iniciar");
+        let progressControl = null;
+        button.disabled = true;
+        byId("whatsapp-onboarding-erro")?.classList.add("hidden");
+        try {
+            const start = await chamarStartOnboarding({ providerMode: "official_cloud", mode: state.onboardingAtual.mode, connectionId: state.onboardingAtual.connectionId, idempotencyKey: chaveIdempotencia() });
+            state.onboardingAtual.attemptId = start.onboardingAttemptId;
+            setOnboardingStep("meta", "Uma janela oficial da Meta será aberta. Não feche esta página durante o processo.");
+            const authorization = await requestMetaAuthorization(start);
+            state.onboardingAtual.critical = true;
+            byId("whatsapp-onboarding-cancelar").disabled = true;
+            setOnboardingStep("verifying", "Autorização recebida. A Vide Hub está confirmando os ativos compartilhados diretamente com a Meta.");
+            progressControl = { done: false };
+            const progressPromise = acompanharOnboarding(start.onboardingAttemptId, progressControl);
+            const result = await chamarCompleteOnboarding({ onboardingAttemptId: start.onboardingAttemptId, state: start.state, code: authorization.code, sessionInfo: authorization.sessionInfo });
+            progressControl.done = true;
+            await progressPromise;
+            setOnboardingStep("done", result.templateWarning ? "Conexão concluída. A sincronização de templates poderá ser repetida pelo painel." : "Conexão concluída. Seu número já aparece na Vide Hub.");
+            state.onboardingAtual.critical = false;
+            state.onboardingAtual.attemptId = "";
+            byId("whatsapp-onboarding-cancelar").disabled = false;
+            byId("whatsapp-onboarding-cancelar").textContent = "Fechar";
+            notify("WhatsApp conectado com sucesso.", "success");
+            await load({ force: true });
+        } catch (error) {
+            if (progressControl) progressControl.done = true;
+            state.onboardingAtual.critical = false;
+            byId("whatsapp-onboarding-cancelar").disabled = false;
+            button.disabled = false;
+            onboardingError(error?.message || "Não foi possível concluir a conexão agora.");
         }
+    }
+
+    async function cancelOnboarding() {
+        if (state.onboardingAtual?.critical) return;
+        if (state.onboardingAtual?.attemptId && typeof chamarCancelOnboarding === "function") {
+            try { await chamarCancelOnboarding({ onboardingAttemptId: state.onboardingAtual.attemptId }); } catch { /* tentativa pode já ter terminado */ }
+        }
+        byId("whatsapp-onboarding-modal")?.close();
+        state.onboardingAtual = null;
+    }
+
+    async function validarConexao(connectionId = "", legacy = false) {
+        if (!podeGerenciar() || state.validando) return;
         state.validando = true;
-        renderDiagnostico();
-        try {
-            // legacy explícito quando o estado carregado É a legada — nunca
-            // manda connectionId="" (ambíguo entre "sem preferência" e
-            // "quero a legada"), ver validarConexaoCartao/tornarPadrao.
-            const params = state.conexao?.legacy
-                ? { legacy: true }
-                : { connectionId: state.conexao?.connectionId || "" };
-            await chamarValidateConnection(params);
-            notify("Conexão validada com sucesso.", "success");
-            await load({ force: true });
-        } catch (erro) {
-            notify(erro?.message || "Não foi possível validar a conexão agora.", "error");
-        } finally {
-            state.validando = false;
-            renderDiagnostico();
-        }
-    }
-
-    async function validarConexaoCartao(connectionId, legacy) {
-        if (typeof chamarValidateConnection !== "function") return;
-        if (!podeGerenciar()) {
-            notify("Você não tem permissão para gerenciar o WhatsApp desta loja.", "error");
-            return;
-        }
         state.conexaoEmAcao = connectionId || "legacy";
-        renderConexoes();
-        try {
-            const params = legacy ? { legacy: true } : { connectionId: connectionId || "" };
-            await chamarValidateConnection(params);
-            notify("Conexão validada com sucesso.", "success");
-            await load({ force: true });
-        } catch (erro) {
-            notify(erro?.message || "Não foi possível validar esta conexão agora.", "error");
-        } finally {
-            state.conexaoEmAcao = "";
-            renderConexoes();
-        }
+        renderTudo();
+        try { await chamarValidateConnection(legacy ? { legacy: true } : { connectionId }); notify("Conexão validada com sucesso.", "success"); await load({ force: true }); }
+        catch (error) { notify(error?.message || "Não foi possível validar esta conexão.", "error"); }
+        finally { state.validando = false; state.conexaoEmAcao = ""; renderTudo(); }
     }
 
     async function tornarPadrao(connectionId) {
-        if (typeof chamarSetDefaultConnection !== "function" || !connectionId) return;
-        if (!podeGerenciar()) {
-            notify("Você não tem permissão para gerenciar o WhatsApp desta loja.", "error");
-            return;
-        }
-        state.conexaoEmAcao = connectionId;
-        renderConexoes();
-        try {
-            await chamarSetDefaultConnection({ connectionId });
-            notify("Conexão padrão atualizada.", "success");
-            await load({ force: true });
-        } catch (erro) {
-            notify(erro?.message || "Não foi possível alterar a conexão padrão agora.", "error");
-        } finally {
-            state.conexaoEmAcao = "";
-            renderConexoes();
-        }
+        state.conexaoEmAcao = connectionId; renderConexoes();
+        try { await chamarSetDefaultConnection({ connectionId }); notify("Conexão padrão atualizada. As conversas antigas permanecem no número original.", "success"); await load({ force: true }); }
+        catch (error) { notify(error?.message || "Não foi possível alterar a conexão padrão.", "error"); }
+        finally { state.conexaoEmAcao = ""; renderConexoes(); }
     }
 
     async function sincronizarTemplates() {
-        if (typeof chamarSyncTemplates !== "function" || state.sincronizando) return;
-        if (!podeGerenciar()) {
-            notify("Você não tem permissão para gerenciar o WhatsApp desta loja.", "error");
-            return;
-        }
-        state.sincronizando = true;
-        renderTemplates();
+        if (state.sincronizando) return;
+        state.sincronizando = true; renderTemplates();
+        try { const result = await chamarSyncTemplates({}); notify(`Templates sincronizados (${result?.sincronizados || 0}).`, "success"); await load({ force: true }); }
+        catch (error) { notify(error?.message || "Não foi possível sincronizar os templates.", "error"); }
+        finally { state.sincronizando = false; renderTemplates(); }
+    }
+
+    function openActionModal(type, connectionId, label) {
+        state.acaoAtual = { type, connectionId };
+        const disconnect = type === "disconnect";
+        byId("whatsapp-acao-titulo").textContent = disconnect ? "Desconectar WhatsApp" : "Renomear conexão";
+        byId("whatsapp-acao-descricao").textContent = disconnect ? `O histórico de "${label}" será preservado, mas novas mensagens deixarão de ser processadas por esta conexão.` : "Use um nome fácil para sua equipe reconhecer este número.";
+        byId("whatsapp-acao-label-box").classList.toggle("hidden", disconnect);
+        byId("whatsapp-acao-confirmacao-box").classList.toggle("hidden", !disconnect);
+        byId("whatsapp-acao-label").value = label || "";
+        byId("whatsapp-acao-confirmacao").value = "";
+        byId("whatsapp-acao-confirmar").textContent = disconnect ? "Desconectar" : "Salvar nome";
+        byId("whatsapp-acao-erro").classList.add("hidden");
+        byId("whatsapp-acao-modal").showModal();
+    }
+
+    async function submitAction(event) {
+        event.preventDefault();
+        const action = state.acaoAtual;
+        if (!action) return;
+        const errorBox = byId("whatsapp-acao-erro");
         try {
-            const resultado = await chamarSyncTemplates({});
-            notify(`Templates sincronizados (${resultado?.sincronizados ?? 0}).`, "success");
+            if (action.type === "disconnect") await chamarDisconnectConnection({ connectionId: action.connectionId, confirmation: byId("whatsapp-acao-confirmacao").value.trim() });
+            else await chamarRenameConnection({ connectionId: action.connectionId, label: byId("whatsapp-acao-label").value.trim() });
+            byId("whatsapp-acao-modal").close();
+            notify(action.type === "disconnect" ? "Conexão desconectada. O histórico foi preservado." : "Nome da conexão atualizado.", "success");
             await load({ force: true });
-        } catch (erro) {
-            notify(erro?.message || "Não foi possível sincronizar os templates agora.", "error");
-        } finally {
-            state.sincronizando = false;
-            renderTemplates();
+        } catch (error) { errorBox.textContent = error?.message || "Não foi possível concluir esta ação."; errorBox.classList.remove("hidden"); }
+    }
+
+    function connectionOptionValue(connection) { return connection.legacy ? "legacy" : connection.connectionId; }
+    function openQrModal(qr = null, preferredConnection = "") {
+        const select = byId("whatsapp-qr-conexao");
+        const active = conexoesAtivas();
+        select.innerHTML = active.map((connection) => `<option value="${escaparHtml(connectionOptionValue(connection))}">${escaparHtml(connection.label || connection.displayPhoneNumber || "Conexão")}</option>`).join("");
+        const selected = qr ? (qr.legacy ? "legacy" : qr.connectionId) : preferredConnection;
+        if (selected) select.value = selected;
+        select.disabled = Boolean(qr);
+        byId("whatsapp-qr-id").value = qr?.id || "";
+        byId("whatsapp-qr-label").value = qr?.label || "";
+        byId("whatsapp-qr-mensagem").value = qr?.message || "";
+        byId("whatsapp-qr-modal-titulo").textContent = qr ? "Editar QR Code" : "Criar QR Code de atendimento";
+        byId("whatsapp-qr-form").querySelector('button[type="submit"]').textContent = qr ? "Salvar alterações" : "Criar QR Code";
+        byId("whatsapp-qr-erro").classList.add("hidden");
+        byId("whatsapp-qr-modal").showModal();
+    }
+
+    async function submitQr(event) {
+        event.preventDefault();
+        const qrId = byId("whatsapp-qr-id").value;
+        const selected = byId("whatsapp-qr-conexao").value;
+        const payload = { qrId, connectionId: selected === "legacy" ? "" : selected, legacy: selected === "legacy", label: byId("whatsapp-qr-label").value.trim(), message: byId("whatsapp-qr-mensagem").value.trim(), format: "SVG" };
+        const errorBox = byId("whatsapp-qr-erro");
+        try {
+            if (qrId) await chamarUpdateQrCode(payload); else await chamarCreateQrCode(payload);
+            byId("whatsapp-qr-modal").close(); notify(qrId ? "QR Code atualizado." : "QR Code criado.", "success"); await load({ force: true });
+        } catch (error) { errorBox.textContent = error?.message || "Não foi possível salvar o QR Code."; errorBox.classList.remove("hidden"); }
+    }
+
+    async function qrAction(action, qrId) {
+        const qr = state.qrCodes.find((item) => item.id === qrId);
+        if (!qr) return;
+        if (action === "copiar") return copiar(qr.deepLinkUrl, "Link do QR Code copiado.");
+        if (action === "editar") return openQrModal(qr);
+        if (action === "imprimir") return window.open(qr.qrImageUrl || qr.deepLinkUrl, "_blank", "noopener,noreferrer");
+        if (action === "excluir") {
+            state.acaoAtual = { type: "delete-qr", qrId };
+            byId("whatsapp-acao-titulo").textContent = "Excluir QR Code";
+            byId("whatsapp-acao-descricao").textContent = `O QR Code "${qr.label}" deixará de funcionar. Esta ação não desconecta o WhatsApp.`;
+            byId("whatsapp-acao-label-box").classList.add("hidden");
+            byId("whatsapp-acao-confirmacao-box").classList.add("hidden");
+            byId("whatsapp-acao-confirmar").textContent = "Excluir QR Code";
+            byId("whatsapp-acao-modal").showModal();
         }
     }
 
-    function copiarParaAreaTransferencia(texto, mensagemSucesso) {
-        if (!navigator.clipboard?.writeText) {
-            notify("Não foi possível copiar automaticamente — selecione o texto manualmente.", "error");
-            return;
-        }
-        navigator.clipboard.writeText(texto)
-            .then(() => notify(mensagemSucesso, "success"))
-            .catch(() => notify("Não foi possível copiar automaticamente.", "error"));
+    function copiar(text, success) {
+        if (!text || !navigator.clipboard?.writeText) return notify("Não foi possível copiar automaticamente.", "error");
+        navigator.clipboard.writeText(text).then(() => notify(success, "success")).catch(() => notify("Não foi possível copiar automaticamente.", "error"));
     }
 
-    function montarChecklist() {
-        return [
-            "Checklist de configuração do WhatsApp Oficial (Meta):",
-            "1. Criar/usar um Meta App em modo Business.",
-            "2. Configurar um Business Portfolio verificado.",
-            "3. Solicitar Advanced Access para whatsapp_business_messaging e whatsapp_business_management.",
-            "4. Criar/associar a WhatsApp Business Account (WABA) e o número de telefone.",
-            `5. Configurar o webhook: ${webhookUrl()}`,
-            "6. Definir o Verify Token no Secret Manager (WHATSAPP_WEBHOOK_VERIFY_TOKEN).",
-            "7. Gerar um token de sistema de longa duração e guardá-lo com segurança.",
-            "8. Rodar scripts/provision-whatsapp-pilot.mjs com um administrador."
-        ].join("\n");
+    async function submitActionWithQr(event) {
+        if (state.acaoAtual?.type !== "delete-qr") return submitAction(event);
+        event.preventDefault();
+        const qrId = state.acaoAtual.qrId;
+        try { await chamarDeleteQrCode({ qrId }); byId("whatsapp-acao-modal").close(); notify("QR Code excluído.", "success"); await load({ force: true }); }
+        catch (error) { byId("whatsapp-acao-erro").textContent = error?.message || "Não foi possível excluir o QR Code."; byId("whatsapp-acao-erro").classList.remove("hidden"); }
     }
 
     function bindEventos() {
-        byId("whatsapp-btn-validar")?.addEventListener("click", validarConexao);
-        byId("whatsapp-btn-sincronizar-templates")?.addEventListener("click", sincronizarTemplates);
-        byId("whatsapp-btn-abrir-atendimento")?.addEventListener("click", () => {
-            if (typeof window.ativarAba === "function") window.ativarAba("view-atendimento");
-        });
-        byId("whatsapp-btn-copiar-webhook")?.addEventListener("click", () => {
-            copiarParaAreaTransferencia(webhookUrl(), "URL do webhook copiada.");
-        });
-        byId("whatsapp-btn-copiar-checklist")?.addEventListener("click", () => {
-            copiarParaAreaTransferencia(montarChecklist(), "Checklist copiado.");
-        });
         byId("whatsapp-btn-atualizar")?.addEventListener("click", () => load({ force: true }));
         byId("whatsapp-btn-tentar-novamente")?.addEventListener("click", () => load({ force: true }));
-
-        byId("whatsapp-conexoes-lista")?.addEventListener("click", (evento) => {
-            const botao = evento.target.closest("button[data-acao]");
-            if (!botao) return;
-            const acao = botao.getAttribute("data-acao");
-            const connectionId = botao.getAttribute("data-connection-id") || "";
-            const legacy = botao.getAttribute("data-legacy") === "true";
-            if (acao === "validar") validarConexaoCartao(connectionId, legacy);
-            if (acao === "tornar-padrao") tornarPadrao(connectionId);
+        byId("whatsapp-btn-conectar")?.addEventListener("click", () => openOnboarding());
+        byId("whatsapp-onboarding-iniciar")?.addEventListener("click", startOnboarding);
+        byId("whatsapp-onboarding-cancelar")?.addEventListener("click", cancelOnboarding);
+        byId("whatsapp-onboarding-fechar")?.addEventListener("click", cancelOnboarding);
+        byId("whatsapp-btn-abrir-atendimento")?.addEventListener("click", () => window.ativarAba?.("view-atendimento"));
+        byId("whatsapp-btn-sincronizar-templates")?.addEventListener("click", sincronizarTemplates);
+        byId("whatsapp-btn-validar")?.addEventListener("click", () => {
+            const standard = conexaoPadrao() || state.conexoes[0];
+            if (standard) validarConexao(standard.connectionId || "", Boolean(standard.legacy));
         });
+        byId("whatsapp-template-filtros")?.addEventListener("click", (event) => { const button = event.target.closest("button[data-template-filter]"); if (button) { state.templateFilter = button.dataset.templateFilter; renderTemplates(); } });
+        byId("whatsapp-conexoes-lista")?.addEventListener("click", (event) => {
+            const button = event.target.closest("button[data-acao]"); if (!button) return;
+            const action = button.dataset.acao; const connectionId = button.dataset.connectionId || ""; const legacy = button.dataset.legacy === "true"; const label = button.dataset.label || "";
+            if (action === "validar") validarConexao(connectionId, legacy);
+            if (action === "tornar-padrao") tornarPadrao(connectionId);
+            if (action === "renomear") openActionModal("rename", connectionId, label);
+            if (action === "reconectar") openOnboarding({ mode: "reconnect", connectionId });
+            if (action === "desconectar") openActionModal("disconnect", connectionId, label);
+            if (action === "qr") openQrModal(null, legacy ? "legacy" : connectionId);
+        });
+        byId("whatsapp-acao-form")?.addEventListener("submit", submitActionWithQr);
+        ["whatsapp-acao-cancelar", "whatsapp-acao-fechar"].forEach((id) => byId(id)?.addEventListener("click", () => byId("whatsapp-acao-modal")?.close()));
+        byId("whatsapp-btn-novo-qr")?.addEventListener("click", () => openQrModal());
+        byId("whatsapp-qr-form")?.addEventListener("submit", submitQr);
+        ["whatsapp-qr-cancelar", "whatsapp-qr-fechar"].forEach((id) => byId(id)?.addEventListener("click", () => byId("whatsapp-qr-modal")?.close()));
+        byId("whatsapp-qr-lista")?.addEventListener("click", (event) => { const button = event.target.closest("[data-qr-acao]"); if (button) qrAction(button.dataset.qrAcao, button.dataset.qrId); });
+        byId("whatsapp-onboarding-modal")?.addEventListener("cancel", (event) => { if (state.onboardingAtual?.critical) event.preventDefault(); });
     }
 
-    return { load, bindEventos };
+    return { load, bindEventos, openOnboarding };
 }

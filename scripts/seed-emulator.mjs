@@ -45,6 +45,7 @@ const users = [
   { uid: "owner-pro", email: "owner.pro@local.test", password: "Local123!pro", displayName: "Owner Pro" },
   { uid: "employee-read", email: "employee.read@local.test", password: "Local123!read", displayName: "Funcionário Leitura" },
   { uid: "employee-edit", email: "employee.edit@local.test", password: "Local123!edit", displayName: "Funcionário Editor" },
+  { uid: "employee-no-whatsapp", email: "employee.no.whatsapp@local.test", password: "Local123!nowhatsapp", displayName: "Funcionário sem WhatsApp" },
   { uid: "employee-inactive", email: "employee.inactive@local.test", password: "Local123!inactive", displayName: "Funcionário Inativo" },
   { uid: "admin-claim", email: "admin.claim@local.test", password: "Local123!admin", displayName: "Admin Claim" },
   { uid: "admin-doc-only", email: "admin.doc.only@local.test", password: "Local123!doc", displayName: "Admin Sem Claim" }
@@ -135,6 +136,18 @@ await setDoc("funcionarios/employee-edit", {
     // nunca implícita nele.
     ver: ["dashboard", "produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot", "whatsapp"],
     editar: ["produtos", "leads", "funcionarios", "central-ia", "atendimento", "crm", "pedidos", "templates", "base-conhecimento-ia", "ia-copilot", "whatsapp"]
+  }
+});
+
+await setDoc("funcionarios/employee-no-whatsapp", {
+  donoUID: "owner-pro",
+  email: "employee.no.whatsapp@local.test",
+  nome: "Funcionário sem WhatsApp",
+  status: "ativo",
+  cargo: "Atendimento",
+  permissoes: {
+    ver: ["dashboard", "atendimento"],
+    editar: ["atendimento"]
   }
 });
 

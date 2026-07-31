@@ -1,5 +1,10 @@
 # WhatsApp Oficial V1 — Fase B: Runbook de Operação
 
+> **Atualização 2026-07-31:** este runbook descreve o piloto legado. Para o
+> Embedded Signup e a superfície atual de 19 Functions, siga primeiro
+> `docs/meta-whatsapp/README.md`. Nenhum gate externo é considerado aprovado
+> apenas porque o código foi implementado.
+
 Guia passo a passo para levar o WhatsApp Oficial V1 de "código pronto" (Fase
 A, já em `main`) para uma conexão real, segura e testada em produção. Escrito
 para ser seguido por alguém com pouco conhecimento técnico — cada etapa é
@@ -250,9 +255,9 @@ estarem verdes.
 5. `confirm_production`: `DEPLOY_WHATSAPP` (exatamente essa string).
 6. Aguarde terminar verde.
 
-Isso publica **só** as 9 Functions do WhatsApp (7 da V1 +
-`whatsappListConnections`/`whatsappSetDefaultConnection` da multiconexão,
-ver `docs/WHATSAPP_MODULO_MULTICONEXAO.md`)
+Isso publica **só** as 19 Functions do WhatsApp (9 da base existente e 10 de
+Embedded Signup, gerenciamento e QR oficial; ver
+`docs/meta-whatsapp/README.md`)
 (`.github/workflows/firebase-deploy-whatsapp.yml`, `--only` explícito) —
 nunca `askBusinessAI`, `askPublicBusinessAI`, nem os 15 triggers da
 Auditoria Centralizada.

@@ -1,5 +1,13 @@
 # Known Limitations — Vide Hub V1 Hardening
 
+> **WhatsApp — atualização 2026-07-31:** Embedded Signup, reconexão,
+> desligamento seguro, segunda conexão e QR oficial estão implementados e
+> testáveis no emulador, mas desligados por padrão em produção. Permanecem
+> pendentes App/Configuration ID, App Review/Advanced Access, webhook real,
+> IAM mínimo, secrets, TTL e teste real. Coexistência exige confirmação
+> externa. Veja `docs/meta-whatsapp/production-readiness.md`. O item histórico
+> mais abaixo que chama o onboarding de “piloto” foi substituído por este.
+
 ## P1
 
 - **[RESOLVIDO nesta rodada]** Notificações estavam quebradas para todo owner/funcionário (só admin backend conseguia ler) — `dashboard-app.js` fazia `getDocs(collection(db, "notificacoes"))` sem filtro, e o Firestore recusa `list()` não filtrada quando a regra depende de `resource.data`. Corrigido com uma query `or()` espelhando exatamente os 3 formatos que a regra aceita (`destinatarios == "todos"`, `destinatarios array-contains uid`, `uid == uid`) e a regra ganhou um ramo explícito pro broadcast "todos" (antes o operador `in` fazia teste de substring numa string, não conferia com a intenção). Testado com 4 casos novos em `tests/emulator/firestore-security.test.mjs` (owner vê broadcast + o dele, não o de outra loja; admin continua vendo tudo; anônimo não lista nada) e confirmado ao vivo no navegador: console limpo pro dono da loja.

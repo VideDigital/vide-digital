@@ -14,7 +14,7 @@
 <link rel="stylesheet" href="./business-modules.css">
 <link rel="stylesheet" href="./central-ia.css">
 <link rel="stylesheet" href="./atendimento.css">
-<link rel="stylesheet" href="./whatsapp-oficial-v1.css">
+<link rel="stylesheet" href="./whatsapp-oficial-v1.css?v=embedded-signup-1">
 <link rel="stylesheet" href="./ia-copilot.css">
 <link rel="stylesheet" href="./ia-negocio.css">
 <link rel="stylesheet" href="./editor-and-modals.css">
@@ -313,7 +313,7 @@ Guia do Plano
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
 <span class="flex-1">Auditoria</span>
 </button>
-<button data-target="view-whatsapp-oficial" data-module-permission="whatsapp" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+<button data-target="view-whatsapp-oficial" data-module-permission="whatsapp" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 11.5a8.38 8.38 0 01-.9 3.8 8.5 8.5 0 01-7.6 4.7 8.38 8.38 0 01-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 01-.9-3.8 8.5 8.5 0 014.7-7.6 8.38 8.38 0 013.8-.9h.5a8.48 8.48 0 018 8v.5z"></path></svg>
 <span class="flex-1">WhatsApp</span>
 </button>
@@ -5393,173 +5393,90 @@ Carregando equipe...
 </section>
 
 <section id="view-whatsapp-oficial" class="view-section space-y-6 max-w-6xl mx-auto aura-whatsapp-view">
-
-<div class="aura-whatsapp-hero">
+<header class="aura-whatsapp-hero">
 <div>
-<h2>WhatsApp</h2>
-<p>Conecte e administre os números oficiais do WhatsApp da sua loja — separado da Central de Atendimento, que é onde você conversa.</p>
+<span class="aura-whatsapp-eyebrow">Canal de atendimento</span>
+<h2>WhatsApp Oficial</h2>
+<p>Conecte o WhatsApp da sua empresa à Central de Atendimento da Vide Hub.</p>
 </div>
-<div class="aura-whatsapp-badges">
-<span class="aura-whatsapp-badge">API oficial da Meta</span>
-<span class="aura-whatsapp-badge">Até 2 conexões por loja</span>
-<span class="aura-whatsapp-badge">Webhook seguro</span>
-</div>
-</div>
+<div class="aura-whatsapp-badges"><span class="aura-whatsapp-badge">Integração oficial da Meta</span></div>
+</header>
 
-<div id="whatsapp-estado-carregando">Carregando o status da conexão…</div>
-<div id="whatsapp-estado-erro" class="hidden">Não foi possível carregar o status do WhatsApp agora. <button type="button" id="whatsapp-btn-tentar-novamente">Tentar novamente</button></div>
-<div id="whatsapp-estado-sem-permissao" class="hidden">Você não tem permissão para ver o módulo WhatsApp desta loja.</div>
+<div id="whatsapp-estado-carregando" role="status" aria-live="polite">Carregando suas conexões…</div>
+<div id="whatsapp-estado-erro" class="hidden" role="alert">Não foi possível carregar o WhatsApp agora. <button type="button" id="whatsapp-btn-tentar-novamente" class="aura-whatsapp-btn">Tentar novamente</button></div>
+<div id="whatsapp-estado-sem-permissao" class="hidden" role="alert">Você não tem permissão para acessar este módulo.</div>
 
 <div id="whatsapp-estado-conteudo" class="hidden space-y-6">
+<section class="aura-whatsapp-section" aria-labelledby="whatsapp-como-funciona-titulo">
+<div class="aura-whatsapp-section-header"><h3 id="whatsapp-como-funciona-titulo">Como funciona</h3><button type="button" id="whatsapp-btn-atualizar" class="aura-whatsapp-btn is-secondary">Atualizar</button></div>
+<div class="aura-whatsapp-steps">
+<article><span>1</span><h4>Conecte sua empresa</h4><p>Entre com sua conta Meta e escolha a empresa, a conta do WhatsApp e o número.</p></article>
+<article><span>2</span><h4>A Vide Hub configura tudo</h4><p>Nós validamos o número, protegemos a conexão e preparamos o recebimento das mensagens.</p></article>
+<article><span>3</span><h4>Atenda seus clientes</h4><p>As conversas aparecerão na Central de Atendimento para sua equipe responder.</p></article>
+</div>
+</section>
 
-<!-- 1. Visão geral -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-visao-geral">
-<div class="aura-whatsapp-section-header">
-<h3>Visão geral</h3>
-<button type="button" id="whatsapp-btn-atualizar" class="aura-whatsapp-btn">Atualizar</button>
+<section class="aura-whatsapp-section" id="whatsapp-secao-adicionar" aria-labelledby="whatsapp-adicionar-titulo">
+<div class="aura-whatsapp-section-header"><h3 id="whatsapp-adicionar-titulo">Conectar um número</h3></div>
+<div class="aura-whatsapp-check-grid">
+<div><h4>Antes de começar</h4><ul><li>Tenha acesso de administrador ao portfólio empresarial da Meta.</li><li>Tenha acesso ao número que deseja conectar.</li><li>Dependendo da conta, a Meta poderá pedir SMS, ligação ou verificação da empresa.</li><li>Os custos da Meta são separados da mensalidade da Vide Hub.</li></ul></div>
+<div class="aura-whatsapp-security"><h4>Seus dados de conexão ficam protegidos</h4><p>Você nunca precisa copiar tokens ou IDs. As credenciais não aparecem nesta tela e cada loja permanece isolada.</p></div>
 </div>
-<div class="aura-whatsapp-status-linha">
-<span id="whatsapp-status-badge" class="aura-whatsapp-badge is-status-disconnected">Não configurado</span>
-<p id="whatsapp-status-descricao"></p>
+<div class="aura-whatsapp-connect-options">
+<article class="aura-whatsapp-connect-card is-available">
+<span class="aura-whatsapp-option-status">Disponível conforme liberação</span><h4>Número dedicado à Vide Hub</h4><p>Use um número conectado oficialmente à Cloud API para atender pela Central de Atendimento.</p>
+<button type="button" id="whatsapp-btn-conectar" class="aura-whatsapp-btn is-primary">Conectar meu WhatsApp</button>
+<p id="whatsapp-onboarding-disponibilidade" class="aura-whatsapp-card-sub" role="status" aria-live="polite"></p>
+</article>
+<article class="aura-whatsapp-connect-card is-coming"><span class="aura-whatsapp-option-status">Em preparação</span><h4>Número que já uso no WhatsApp Business</h4><p>A coexistência oficial permitirá usar um número compatível no aplicativo e na Vide Hub. Esta opção permanece desativada até validação da Meta.</p><button type="button" class="aura-whatsapp-btn" disabled>Indisponível no momento</button></article>
 </div>
-<div class="aura-whatsapp-cards">
-<div class="aura-whatsapp-card">
-<h3>Conexões</h3>
-<p id="whatsapp-visao-total-conexoes">—</p>
-<p class="aura-whatsapp-card-sub">Limite desta loja: <span id="whatsapp-visao-limite">2</span></p>
-</div>
-<div class="aura-whatsapp-card">
-<h3>Conexão padrão</h3>
-<p id="whatsapp-visao-padrao-label">—</p>
-<p id="whatsapp-visao-padrao-numero" class="aura-whatsapp-card-sub"></p>
-</div>
-<div class="aura-whatsapp-card">
-<h3>Último diagnóstico</h3>
-<p id="whatsapp-visao-ultimo-diagnostico">—</p>
-</div>
-</div>
+<p id="whatsapp-adicionar-limite-aviso" class="aura-whatsapp-callout hidden">Limite de duas conexões atingido.</p>
+</section>
+
+<section class="aura-whatsapp-section" id="whatsapp-secao-visao-geral" aria-labelledby="whatsapp-visao-titulo">
+<div class="aura-whatsapp-section-header"><h3 id="whatsapp-visao-titulo">Visão geral</h3></div>
+<div class="aura-whatsapp-status-linha"><span id="whatsapp-status-badge" class="aura-whatsapp-badge is-status-disconnected">Não configurado</span><p id="whatsapp-status-descricao"></p></div>
+<div class="aura-whatsapp-summary-grid"><article><strong id="whatsapp-visao-total-conexoes">0</strong><span>conexões de <span id="whatsapp-visao-limite">2</span></span></article><article><strong id="whatsapp-visao-padrao-label">Nenhuma</strong><span id="whatsapp-visao-padrao-numero">Conexão padrão</span></article><article><strong id="whatsapp-visao-ultimo-diagnostico">—</strong><span>Última validação</span></article></div>
 <ul id="whatsapp-visao-avisos" class="aura-whatsapp-avisos"></ul>
-<div id="whatsapp-acoes-piloto-nao-conectado" class="aura-whatsapp-piloto-aviso">
-<p>A conexão real é feita por um administrador via piloto assistido (nunca por um clique no dashboard — a integração ainda depende de aprovação da Meta e de segredos configurados fora daqui).</p>
-</div>
-</div>
+</section>
 
-<!-- 2. Minhas conexões -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-conexoes">
-<div class="aura-whatsapp-section-header">
-<h3>Minhas conexões</h3>
-</div>
-<div id="whatsapp-conexoes-vazio" class="aura-whatsapp-vazio hidden">Nenhuma conexão configurada ainda.</div>
+<section class="aura-whatsapp-section" id="whatsapp-secao-conexoes" aria-labelledby="whatsapp-conexoes-titulo">
+<div class="aura-whatsapp-section-header"><h3 id="whatsapp-conexoes-titulo">Minhas conexões</h3></div>
+<div id="whatsapp-conexoes-vazio" class="aura-whatsapp-vazio hidden">Quando um número for conectado, ele aparecerá aqui.</div>
 <div id="whatsapp-conexoes-lista" class="aura-whatsapp-cards"></div>
-</div>
+</section>
 
-<!-- 3. Adicionar conexão -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-adicionar">
-<div class="aura-whatsapp-section-header">
-<h3>Adicionar conexão</h3>
-</div>
-<p class="aura-whatsapp-section-intro">Nenhum dado é pedido aqui — este V1 nunca solicita ID/token manualmente nem inicia uma conexão fingida. As opções abaixo mostram o que está planejado para uma missão futura.</p>
-<div class="aura-whatsapp-cards">
-<div class="aura-whatsapp-card">
-<h3>A. Número dedicado (Cloud API)</h3>
-<p>Um número novo, usado só pela API oficial da Meta — mesmo modelo do piloto atual.</p>
-<button type="button" class="aura-whatsapp-btn" disabled>Configuração em preparação</button>
-</div>
-<div class="aura-whatsapp-card">
-<h3>B. Número que já existe no WhatsApp Business (Coexistência)</h3>
-<p>Mantém o app WhatsApp Business normal funcionando junto com a API oficial, via Coexistência da Meta. Ainda não disponível nesta versão.</p>
-<button type="button" class="aura-whatsapp-btn" disabled>Configuração em preparação</button>
-</div>
-</div>
-<p id="whatsapp-adicionar-limite-aviso" class="aura-whatsapp-card-sub hidden">Esta loja já está no limite de 2 conexões — não é possível adicionar outra agora.</p>
-</div>
+<section class="aura-whatsapp-section aura-whatsapp-info-grid" aria-label="Orientações de uso">
+<article><h3>Onde responder</h3><p>Este módulo conecta e administra seus números. As mensagens são respondidas na Central de Atendimento.</p><button type="button" id="whatsapp-btn-abrir-atendimento" class="aura-whatsapp-btn is-primary">Ir para a Central de Atendimento</button></article>
+<article><h3>Janela de atendimento</h3><p>Depois que o cliente escreve, sua equipe pode responder normalmente durante 24 horas. Após esse período, a Meta exige um template aprovado para iniciar novo contato.</p></article>
+<article><h3>Como funciona a cobrança</h3><p>A Vide Hub cobra pelo sistema conforme seu plano. A Meta pode cobrar separadamente pelo uso do WhatsApp, conforme regras e valores definidos por ela.</p><a class="aura-whatsapp-link" href="https://business.whatsapp.com/products/platform-pricing" target="_blank" rel="noopener noreferrer">Consultar preços oficiais da Meta</a></article>
+</section>
 
-<!-- 4. Templates oficiais -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-templates">
-<div class="aura-whatsapp-section-header">
-<h3>Templates oficiais</h3>
-<button type="button" id="whatsapp-btn-sincronizar-templates" class="aura-whatsapp-btn">Sincronizar templates</button>
-</div>
-<p class="aura-whatsapp-section-intro">Templates aprovados pela Meta na sua conta — diferentes dos templates internos de texto usados na Central de Atendimento.</p>
-<p id="whatsapp-card-templates-sync" class="aura-whatsapp-card-sub">Última sincronização: —</p>
-<div id="whatsapp-templates-vazio" class="aura-whatsapp-vazio hidden">Nenhum template sincronizado ainda.</div>
-<div id="whatsapp-templates-lista" class="aura-whatsapp-cards"></div>
-</div>
+<section class="aura-whatsapp-section" id="whatsapp-secao-templates" aria-labelledby="whatsapp-templates-titulo">
+<div class="aura-whatsapp-section-header"><div><h3 id="whatsapp-templates-titulo">Templates oficiais</h3><p class="aura-whatsapp-section-intro">Templates são mensagens aprovadas pela Meta para iniciar contato quando a janela de atendimento está encerrada.</p></div><button type="button" id="whatsapp-btn-sincronizar-templates" class="aura-whatsapp-btn">Sincronizar templates</button></div>
+<div id="whatsapp-template-filtros" class="aura-whatsapp-filtros" role="group" aria-label="Filtrar templates"><button type="button" data-template-filter="ALL" class="is-active">Todos</button><button type="button" data-template-filter="APPROVED">Aprovados</button><button type="button" data-template-filter="PENDING">Pendentes</button><button type="button" data-template-filter="REJECTED">Rejeitados</button></div>
+<p id="whatsapp-card-templates-sync" class="aura-whatsapp-card-sub">Última sincronização: —</p><div id="whatsapp-templates-vazio" class="aura-whatsapp-vazio hidden">Nenhum template sincronizado ainda.</div><div id="whatsapp-templates-lista" class="aura-whatsapp-cards"></div>
+</section>
 
-<!-- 5. Diagnóstico -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-diagnostico">
-<div class="aura-whatsapp-section-header">
-<h3>Diagnóstico</h3>
-</div>
-<p class="aura-whatsapp-section-intro">Só dados seguros — nunca App Secret, Verify Token, access token ou o caminho completo do segredo no Secret Manager.</p>
-<div class="aura-whatsapp-cards">
+<section class="aura-whatsapp-section" id="whatsapp-secao-qr" aria-labelledby="whatsapp-qr-titulo">
+<div class="aura-whatsapp-section-header"><div><h3 id="whatsapp-qr-titulo">QR Code de atendimento</h3><p class="aura-whatsapp-section-intro">Crie um QR Code para seus clientes iniciarem uma conversa. Ele não conecta WhatsApp Web.</p></div><button type="button" id="whatsapp-btn-novo-qr" class="aura-whatsapp-btn">Criar QR Code</button></div>
+<div id="whatsapp-qr-indisponivel" class="aura-whatsapp-vazio hidden">Conecte um número ativo para criar QR Codes.</div><div id="whatsapp-qr-lista" class="aura-whatsapp-cards"></div>
+</section>
 
-<div class="aura-whatsapp-card">
-<h3>Conexão</h3>
-<p id="whatsapp-card-conexao-token">Nenhum token conectado</p>
-<button type="button" id="whatsapp-btn-validar" class="aura-whatsapp-btn">Validar conexão</button>
-</div>
+<section class="aura-whatsapp-section" id="whatsapp-secao-diagnostico" aria-labelledby="whatsapp-diagnostico-titulo">
+<div class="aura-whatsapp-section-header"><h3 id="whatsapp-diagnostico-titulo">Diagnóstico da conexão</h3><button type="button" id="whatsapp-btn-validar" class="aura-whatsapp-btn">Validar conexão</button></div>
+<div class="aura-whatsapp-diagnostic-list"><p><span>Conexão ativa</span><strong id="whatsapp-diag-conexao">Não</strong></p><p><span>Recebimento de mensagens</span><strong id="whatsapp-diag-webhook">Ainda não confirmado</strong></p><p><span>Número</span><strong id="whatsapp-card-numero-valor">—</strong></p><p><span>Templates</span><strong id="whatsapp-diag-templates">Não sincronizados</strong></p><p><span>Qualidade</span><strong id="whatsapp-card-qualidade-valor">—</strong></p></div>
+<details id="whatsapp-detalhes-seguros"><summary>Ver detalhes</summary><p id="whatsapp-card-numero-nome"></p><p id="whatsapp-card-diagnostico-validacao"></p><p id="whatsapp-card-diagnostico-erro"></p><p id="whatsapp-card-diagnostico-versao"></p></details>
+<details id="whatsapp-diagnostico-admin" class="hidden"><summary>Diagnóstico administrativo seguro</summary><dl id="whatsapp-diagnostico-admin-lista" class="aura-whatsapp-admin-diagnostics"></dl></details>
+</section>
 
-<div class="aura-whatsapp-card">
-<h3>Número</h3>
-<p id="whatsapp-card-numero-valor">—</p>
-<p id="whatsapp-card-numero-nome" class="aura-whatsapp-card-sub"></p>
-</div>
+<dialog id="whatsapp-onboarding-modal" class="aura-whatsapp-modal" aria-labelledby="whatsapp-onboarding-titulo">
+<form method="dialog" class="aura-whatsapp-modal-card"><div class="aura-whatsapp-modal-head"><div><span class="aura-whatsapp-eyebrow">Conexão oficial</span><h3 id="whatsapp-onboarding-titulo">Conectar meu WhatsApp</h3></div><button type="button" id="whatsapp-onboarding-fechar" class="aura-whatsapp-icon-btn" aria-label="Fechar assistente">×</button></div><p id="whatsapp-onboarding-mensagem" aria-live="polite">Vamos preparar a conexão e abrir uma janela oficial da Meta.</p><ol id="whatsapp-onboarding-passos" class="aura-whatsapp-progress"><li data-step="preparing">Preparando conexão</li><li data-step="meta">Autorização na Meta</li><li data-step="verifying">Verificando sua conta</li><li data-step="configuring">Configurando o número</li><li data-step="protecting">Protegendo a conexão</li><li data-step="templates">Sincronizando templates</li><li data-step="done">Concluído</li></ol><div id="whatsapp-onboarding-erro" class="aura-whatsapp-callout is-error hidden" role="alert"></div><div class="aura-whatsapp-modal-actions"><button type="button" id="whatsapp-onboarding-cancelar" class="aura-whatsapp-btn">Cancelar</button><button type="button" id="whatsapp-onboarding-iniciar" class="aura-whatsapp-btn is-primary">Continuar com a Meta</button></div></form>
+</dialog>
 
-<div class="aura-whatsapp-card">
-<h3>Webhook</h3>
-<p id="whatsapp-card-webhook-status">Ainda não confirmado</p>
-<p id="whatsapp-card-webhook-ultimo" class="aura-whatsapp-card-sub"></p>
-<div class="aura-whatsapp-webhook-copiar">
-<input type="text" id="whatsapp-webhook-url" readonly aria-label="URL do webhook">
-<button type="button" id="whatsapp-btn-copiar-webhook" class="aura-whatsapp-btn">Copiar URL</button>
-</div>
-</div>
+<dialog id="whatsapp-acao-modal" class="aura-whatsapp-modal" aria-labelledby="whatsapp-acao-titulo"><form id="whatsapp-acao-form" class="aura-whatsapp-modal-card"><div class="aura-whatsapp-modal-head"><h3 id="whatsapp-acao-titulo">Editar conexão</h3><button type="button" id="whatsapp-acao-fechar" class="aura-whatsapp-icon-btn" aria-label="Fechar">×</button></div><p id="whatsapp-acao-descricao"></p><label id="whatsapp-acao-label-box">Nome amigável<input id="whatsapp-acao-label" maxlength="60" autocomplete="off"></label><label id="whatsapp-acao-confirmacao-box" class="hidden">Digite DESCONECTAR<input id="whatsapp-acao-confirmacao" autocomplete="off"></label><div id="whatsapp-acao-erro" class="aura-whatsapp-callout is-error hidden" role="alert"></div><div class="aura-whatsapp-modal-actions"><button type="button" id="whatsapp-acao-cancelar" class="aura-whatsapp-btn">Cancelar</button><button type="submit" id="whatsapp-acao-confirmar" class="aura-whatsapp-btn is-primary">Salvar</button></div></form></dialog>
 
-<div class="aura-whatsapp-card">
-<h3>Qualidade</h3>
-<p id="whatsapp-card-qualidade-valor">—</p>
-<p id="whatsapp-card-qualidade-limite" class="aura-whatsapp-card-sub"></p>
-</div>
-
-<div class="aura-whatsapp-card">
-<h3>Versão e erros</h3>
-<p id="whatsapp-card-diagnostico-versao">—</p>
-<p id="whatsapp-card-diagnostico-validacao" class="aura-whatsapp-card-sub"></p>
-<p id="whatsapp-card-diagnostico-erro" class="aura-whatsapp-card-sub">Nenhum erro recente</p>
-</div>
-
-</div>
-<p class="aura-whatsapp-nota-status-lida">Uma mensagem enviada pode ficar em "Entregue" e nunca virar "Lida" — isso não é um erro do sistema. As causas mais comuns são: o destinatário desativou as confirmações de leitura nas configurações do WhatsApp dele, ou o número usado é um número de teste da Meta (que tem limitações conhecidas de status). A Central de Atendimento nunca marca uma mensagem como lida por conta própria — só reflete o que a Meta realmente informar.</p>
-</div>
-
-<!-- 6. Equipe e roteamento -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-equipe">
-<div class="aura-whatsapp-section-header">
-<h3>Equipe e roteamento</h3>
-</div>
-<p class="aura-whatsapp-section-intro">Uma conversa recebida por um número sempre é respondida pelo mesmo número — trocar a conexão padrão não afeta conversas já existentes, só qual conexão atende uma conversa nova sem número específico.</p>
-<div class="aura-whatsapp-cards">
-<div class="aura-whatsapp-card">
-<h3>Conexão padrão atual</h3>
-<p id="whatsapp-equipe-padrao-label">—</p>
-<p class="aura-whatsapp-card-sub">Para trocar, use o botão "Tornar padrão" em Minhas conexões.</p>
-</div>
-</div>
-</div>
-
-<!-- 7. Custos -->
-<div class="aura-whatsapp-section" id="whatsapp-secao-custos">
-<div class="aura-whatsapp-section-header">
-<h3>Custos</h3>
-</div>
-<p class="aura-whatsapp-section-intro">Mensagens fora da janela gratuita de 24h podem gerar cobrança da Meta, conforme a tabela vigente dela — este V1 não estima nem exibe nenhum valor, para nunca mostrar um número desatualizado ou incorreto. Consulte a Central de Ajuda oficial da Meta para os valores atuais.</p>
-</div>
-
-<div class="aura-whatsapp-acoes-finais">
-<button type="button" id="whatsapp-btn-abrir-atendimento" class="aura-whatsapp-btn">Abrir Central de Atendimento</button>
-<button type="button" id="whatsapp-btn-copiar-checklist" class="aura-whatsapp-btn">Copiar checklist de configuração</button>
-</div>
+<dialog id="whatsapp-qr-modal" class="aura-whatsapp-modal" aria-labelledby="whatsapp-qr-modal-titulo"><form id="whatsapp-qr-form" class="aura-whatsapp-modal-card"><div class="aura-whatsapp-modal-head"><h3 id="whatsapp-qr-modal-titulo">QR Code de atendimento</h3><button type="button" id="whatsapp-qr-fechar" class="aura-whatsapp-icon-btn" aria-label="Fechar">×</button></div><input type="hidden" id="whatsapp-qr-id"><label>Conexão<select id="whatsapp-qr-conexao" required></select></label><label>Finalidade<input id="whatsapp-qr-label" maxlength="60" placeholder="Ex.: Balcão" required></label><label>Mensagem inicial<textarea id="whatsapp-qr-mensagem" maxlength="320" rows="4" placeholder="Olá! Gostaria de saber mais." required></textarea></label><div id="whatsapp-qr-erro" class="aura-whatsapp-callout is-error hidden" role="alert"></div><div class="aura-whatsapp-modal-actions"><button type="button" id="whatsapp-qr-cancelar" class="aura-whatsapp-btn">Cancelar</button><button type="submit" class="aura-whatsapp-btn is-primary">Criar QR Code</button></div></form></dialog>
 </div>
 
 </section>
@@ -9451,7 +9368,7 @@ Confirmar
 </div>
 
 <script src="./runtime-guard.js"></script>
-<script type="module" src="./dashboard-app.js?v=studio-shell-2"></script>
+<script type="module" src="./dashboard-app.js?v=whatsapp-embedded-signup-1"></script>
 <!-- Editor de Landing Pages (Aura Studio): carregado sob demanda por
      studio-loader.js só quando o usuário abre o editor (editarLP), em vez de
      em toda carga do painel. Ver studio-loader.js para a lista/ordem completa. -->

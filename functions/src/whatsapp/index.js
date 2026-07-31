@@ -1,9 +1,8 @@
 "use strict";
 
-// WhatsApp Oficial — agrega as 9 Functions exportadas deste módulo (7 da
-// V1 + whatsappListConnections/whatsappSetDefaultConnection da Fase 4,
-// multiconexão). onboarding.js não aparece aqui de propósito: é só
-// arquitetura, ainda não liberado como Function real (ver onboarding.js).
+// WhatsApp Oficial — ponto único de exportação do módulo. O fluxo de
+// Embedded Signup permanece protegido por feature flag e App Check; a
+// simples presença das Functions não libera onboarding em produção.
 const { whatsappWebhook } = require("./webhook");
 const {
   whatsappSendText,
@@ -14,6 +13,14 @@ const {
 } = require("./send");
 const { whatsappSyncTemplates } = require("./templates");
 const { whatsappListConnections, whatsappSetDefaultConnection } = require("./connections");
+const {
+  whatsappStartOnboarding,
+  whatsappCompleteOnboarding,
+  whatsappGetOnboardingStatus,
+  whatsappCancelOnboarding
+} = require("./onboarding");
+const { whatsappRenameConnection, whatsappDisconnectConnection } = require("./management");
+const { whatsappListQrCodes, whatsappCreateQrCode, whatsappUpdateQrCode, whatsappDeleteQrCode } = require("./qr");
 
 module.exports = {
   whatsappWebhook,
@@ -24,5 +31,15 @@ module.exports = {
   whatsappConnectionStatus,
   whatsappValidateConnection,
   whatsappListConnections,
-  whatsappSetDefaultConnection
+  whatsappSetDefaultConnection,
+  whatsappStartOnboarding,
+  whatsappCompleteOnboarding,
+  whatsappGetOnboardingStatus,
+  whatsappCancelOnboarding,
+  whatsappRenameConnection,
+  whatsappDisconnectConnection,
+  whatsappListQrCodes,
+  whatsappCreateQrCode,
+  whatsappUpdateQrCode,
+  whatsappDeleteQrCode
 };

@@ -9,6 +9,8 @@ const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { resolveCallerContext } = require("../shared/context");
 const { assertRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
+const onboardingCore = require("./onboarding-core");
+const { readWhatsappPublicConfig } = require("./config");
 const { REGION, COLLECTIONS, ERROR_CODES, ERROR_MESSAGES, RATE_LIMITS } = require("./constants");
 const resolver = require("./resolver");
 const { criarMetaClient } = require("./metaClient");
@@ -87,16 +89,13 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
   const conexao = resolvido.connection;
   if (!conexao.wabaId) throw erroPublico(ERROR_CODES.NOT_CONNECTED);
 
-  let accessToken;
-  try {
-    accessToken = await resolver.resolverToken(resolvido);
-  } catch (erro) {
-    throw erroPublico(erro?.code || ERROR_CODES.NOT_CONNECTED);
-  }
-
   let resposta;
   try {
-    resposta = await metaClient.listTemplates({ accessToken, wabaId: conexao.wabaId });
+    if (readWhatsappPublicConfig().emulator) resposta = { data: [] };
+    else {
+      const accessToken = await resolver.resolverToken(resolvido);
+      resposta = await metaClient.listTemplates({ accessToken, wabaId: conexao.wabaId });
+    }
   } catch (erro) {
     throw erroPublico(erro?.code || ERROR_CODES.PROVIDER_UNAVAILABLE);
   }
@@ -110,7 +109,11 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
   for (const templateMeta of templatesMeta) {
     if (!templateMeta?.id) continue;
     const ref = db.doc(`${COLLECTIONS.TEMPLATES}/${context.ownerUid}_${templateMeta.id}`);
-    batch.set(ref, normalizarTemplateMeta(context.ownerUid, conexao.wabaId, templateMeta), { merge: true });
+    batch.set(ref, {
+      ...normalizarTemplateMeta(context.ownerUid, conexao.wabaId, templateMeta),
+      connectionId: resolvido.connectionId,
+      phoneNumberId: conexao.phoneNumberId || ""
+    }, { merge: true });
     sincronizados += 1;
   }
   if (sincronizados > 0) await batch.commit();
@@ -130,7 +133,10 @@ const whatsappSyncTemplates = onCall({ region: REGION }, async (request) => {
     action: "whatsapp.templates_sincronizados",
     risk: "low",
     summary: `Sincronização manual de templates do WhatsApp (${sincronizados} template(s)).`,
-    source: "function"
+    source: "function",
+    correlationId: onboardingCore.createCorrelationId("watemplates"),
+    origin: onboardingCore.sanitizeOrigin(request.rawRequest?.headers?.origin),
+    code: "SYNCED"
   });
 
   return { ok: true, sincronizados };

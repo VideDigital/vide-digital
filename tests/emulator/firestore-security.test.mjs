@@ -2631,6 +2631,9 @@ describe("WhatsApp Oficial V1: coleções privadas — só leitura autorizada, e
       await setDoc(doc(db, "whatsapp_phone_routes", "1000"), { ownerUid: "ownerA", connectionStatus: "connected" });
       await setDoc(doc(db, "whatsapp_contact_map", "ownerA_contactHash1"), { ownerUid: "ownerA", waId: "5511999990000" });
       await setDoc(doc(db, "whatsapp_consents", "ownerA_contactHash1"), { ownerUid: "ownerA", status: "granted" });
+      await setDoc(doc(db, "whatsapp_onboarding_attempts", "waon_private1"), { ownerUid: "ownerA", stateHash: "private-hash", status: "awaiting_meta" });
+      await setDoc(doc(db, "whatsapp_onboarding_locks", "ownerA"), { activeAttemptId: "waon_private1" });
+      await setDoc(doc(db, "whatsapp_qr_codes", "waqr_private1"), { ownerUid: "ownerA", code: "PRIVATECODE", deepLinkUrl: "https://wa.me/message/PRIVATECODE" });
     });
   }
 
@@ -2712,11 +2715,26 @@ describe("WhatsApp Oficial V1: coleções privadas — só leitura autorizada, e
     await assertFails(setDoc(doc(authed("ownerA"), "whatsapp_consents", "ownerA_contactHash2"), { ownerUid: "ownerA", status: "granted" }));
   });
 
+  it("tentativas, locks e QR Codes nunca têm acesso direto, nem por dono ou admin", async () => {
+    await semear();
+    for (const [collectionName, documentId] of [
+      ["whatsapp_onboarding_attempts", "waon_private1"],
+      ["whatsapp_onboarding_locks", "ownerA"],
+      ["whatsapp_qr_codes", "waqr_private1"]
+    ]) {
+      await assertFails(getDoc(doc(authed("ownerA"), collectionName, documentId)));
+      await assertFails(getDoc(doc(authed("admin", { videAdmin: true }), collectionName, documentId)));
+      await assertFails(setDoc(doc(authed("ownerA"), collectionName, `${documentId}_new`), { ownerUid: "ownerA" }));
+    }
+  });
+
   it("anônimo não lê nenhuma coleção do WhatsApp Oficial", async () => {
     await semear();
     await assertFails(getDoc(doc(anon(), "whatsapp_connections", "ownerA")));
     await assertFails(getDoc(doc(anon(), "whatsapp_templates", "ownerA_tpl1")));
     await assertFails(getDoc(doc(anon(), "whatsapp_contact_map", "ownerA_contactHash1")));
+    await assertFails(getDoc(doc(anon(), "whatsapp_onboarding_attempts", "waon_private1")));
+    await assertFails(getDoc(doc(anon(), "whatsapp_qr_codes", "waqr_private1")));
   });
 });
 

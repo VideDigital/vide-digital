@@ -18,13 +18,11 @@
 //    é logado, cacheado em disco ou devolvido para o cliente — só um
 //    cache curto em memória do processo, limpo em qualquer erro.
 //
-// Provisionamento (criar/atualizar/desabilitar secret por tenant) só
-// acontece via scripts/provision-whatsapp-pilot.mjs e
-// scripts/disconnect-whatsapp-pilot.mjs — nunca por uma Cloud Function
-// pública. A concessão de IAM (roles/secretmanager.secretAccessor) para a
-// service account de runtime das Functions é administrativa/fora de banda
-// (ver docs/WHATSAPP_OFICIAL.md) — este código nunca pede permissão
-// Secret Manager Admin em runtime.
+// O piloto legado continua provisionado pelos scripts administrativos.
+// No Embedded Signup, Functions autenticadas e autorizadas criam versões
+// por conexão e desabilitam somente a versão exata no desligamento. IAM
+// continua administrativo/fora de banda: o código nunca concede permissão
+// nem altera políticas (ver docs/meta-whatsapp/security-model.md).
 const crypto = require("crypto");
 const { defineSecret } = require("firebase-functions/params");
 const { SecretManagerServiceClient } = require("@google-cloud/secret-manager");
@@ -33,6 +31,7 @@ const WHATSAPP_APP_SECRET = defineSecret("WHATSAPP_APP_SECRET");
 const WHATSAPP_WEBHOOK_VERIFY_TOKEN = defineSecret("WHATSAPP_WEBHOOK_VERIFY_TOKEN");
 
 const TENANT_SECRET_PREFIX = "vide-whatsapp-token-";
+const CONNECTION_PIN_SECRET_PREFIX = "vide-whatsapp-pin-";
 const CACHE_TTL_MS = 5 * 60 * 1000;
 
 // ---------- Multiconexão (Fase 2) ----------
@@ -45,6 +44,12 @@ function tenantConnectionSecretId(ownerUid, connectionId) {
   const chave = `${String(ownerUid || "")}:${String(connectionId || "")}`;
   const hash = crypto.createHash("sha256").update(chave).digest("hex").slice(0, 24);
   return `${TENANT_SECRET_PREFIX}${hash}`;
+}
+
+function connectionPinSecretId(ownerUid, connectionId) {
+  const chave = `${String(ownerUid || "")}:${String(connectionId || "")}:pin`;
+  const hash = crypto.createHash("sha256").update(chave).digest("hex").slice(0, 24);
+  return `${CONNECTION_PIN_SECRET_PREFIX}${hash}`;
 }
 
 let clientSingleton = null;
@@ -144,14 +149,25 @@ const GCP_PROJECT_SEGMENT_PATTERN = /^([a-z][a-z0-9-]{4,28}[a-z0-9]|\d{1,20})$/;
 // causa de uma diferença de representação do projeto que este código não
 // tem como confirmar sem acesso a um projeto real (fora do escopo desta
 // missão).
-function validarTokenSecretResource(resourceName) {
+function validarTokenSecretResource(resourceName, { ownerUid, connectionId, legacy = false, allowLegacySecret = false } = {}) {
   const recurso = String(resourceName || "");
   const match = recurso.match(/^projects\/([^/]+)\/secrets\/([^/]+)(?:\/versions\/([^/]+))?$/);
   if (!match) return { valido: false, motivo: "formato_invalido" };
   const [, projeto, secretId, versao] = match;
   if (!GCP_PROJECT_SEGMENT_PATTERN.test(projeto)) return { valido: false, motivo: "projeto_invalido" };
   if (!TENANT_SECRET_ID_PATTERN.test(secretId)) return { valido: false, motivo: "prefixo_invalido" };
-  if (versao && versao !== "latest") return { valido: false, motivo: "versao_fixa_nao_permitida" };
+  if (versao && versao !== "latest" && !/^\d+$/.test(versao)) return { valido: false, motivo: "versao_invalida" };
+  if (ownerUid) {
+    const expected = legacy
+      ? tenantSecretId(ownerUid)
+      : tenantConnectionSecretId(ownerUid, connectionId);
+    // Migrações V2 antigas podem reutilizar o secret legado, mas somente
+    // quando a própria conexão declara explicitamente legacySecret:true.
+    const legacyExpected = !legacy && allowLegacySecret ? tenantSecretId(ownerUid) : "";
+    if (secretId !== expected && (!legacyExpected || secretId !== legacyExpected)) {
+      return { valido: false, motivo: "tenant_ou_conexao_incompativel" };
+    }
+  }
   return { valido: true, motivo: "" };
 }
 
@@ -161,10 +177,10 @@ function validarTokenSecretResource(resourceName) {
 // (legada ou nova). Preserva 100% do comportamento de migração: uma
 // conexão migrada do piloto legado pode continuar apontando pro MESMO
 // secret legado (nunca precisa copiar o valor do token pra isso).
-async function accessTokenByResource(resourceName) {
+async function accessTokenByResource(resourceName, expected = {}) {
   const recurso = String(resourceName || "");
   if (!recurso) throw Object.assign(new Error("Conexão WhatsApp não encontrada."), { code: "WHATSAPP_NOT_CONNECTED" });
-  const validacao = validarTokenSecretResource(recurso);
+  const validacao = validarTokenSecretResource(recurso, expected);
   if (!validacao.valido) {
     // Nunca expõe o recurso completo (nem no throw, nem em log) — só um
     // código seguro de diagnóstico.
@@ -172,6 +188,62 @@ async function accessTokenByResource(resourceName) {
   }
   const versionResource = /\/versions\/[^/]+$/.test(recurso) ? recurso : `${recurso}/versions/latest`;
   return acessarTokenPorVersao(versionResource);
+}
+
+async function secretExiste(secretId) {
+  try {
+    await client().getSecret({ name: secretResource(secretId) });
+    return true;
+  } catch (error) {
+    if (error?.code === 5) return false;
+    throw error;
+  }
+}
+
+async function criarSecret(secretId) {
+  await client().createSecret({
+    parent: `projects/${projectId()}`,
+    secretId,
+    secret: {
+      replication: { automatic: {} },
+      labels: { application: "vide-hub", module: "whatsapp" }
+    }
+  });
+}
+
+async function adicionarVersaoSegredo(secretId, value) {
+  if (!await secretExiste(secretId)) await criarSecret(secretId);
+  const [version] = await client().addSecretVersion({
+    parent: secretResource(secretId),
+    payload: { data: Buffer.from(String(value || ""), "utf8") }
+  });
+  return version?.name || "";
+}
+
+async function adicionarVersaoTokenConexao({ ownerUid, connectionId, tokenValue }) {
+  const secretId = tenantConnectionSecretId(ownerUid, connectionId);
+  const versionResource = await adicionarVersaoSegredo(secretId, tokenValue);
+  limparCacheTokenConexao(ownerUid, connectionId);
+  return { secretResource: secretResource(secretId), versionResource };
+}
+
+async function adicionarVersaoPinConexao({ ownerUid, connectionId, pin }) {
+  const secretId = connectionPinSecretId(ownerUid, connectionId);
+  const versionResource = await adicionarVersaoSegredo(secretId, pin);
+  return { secretResource: secretResource(secretId), versionResource };
+}
+
+async function desabilitarVersaoRecurso(versionResource) {
+  const resource = String(versionResource || "");
+  if (!/^projects\/[^/]+\/secrets\/[^/]+\/versions\/\d+$/.test(resource)) return false;
+  try {
+    await client().disableSecretVersion({ name: resource });
+    cacheTokens.delete(resource);
+    return true;
+  } catch (error) {
+    if (error?.code === 5 || error?.code === 9) return false;
+    throw error;
+  }
 }
 
 // Chamado quando um envio falha por token inválido/revogado, ou quando a
@@ -241,6 +313,7 @@ module.exports = {
   WHATSAPP_WEBHOOK_VERIFY_TOKEN,
   tenantSecretId,
   tenantConnectionSecretId,
+  connectionPinSecretId,
   secretResource,
   accessTenantToken,
   accessConnectionToken,
@@ -251,5 +324,8 @@ module.exports = {
   limparCacheTokenPorResource,
   secretTenantExiste,
   adicionarVersaoTokenTenant,
-  desabilitarUltimaVersaoTenant
+  desabilitarUltimaVersaoTenant,
+  adicionarVersaoTokenConexao,
+  adicionarVersaoPinConexao,
+  desabilitarVersaoRecurso
 };

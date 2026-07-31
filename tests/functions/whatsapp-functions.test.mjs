@@ -382,38 +382,26 @@ describe("whatsapp/templates — derivarParameterSchema", () => {
     });
 });
 
-describe("whatsapp/onboarding — Fase 7: só contratos, nada real implementado", () => {
-    it("EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO é sempre false nesta missão", () => {
-        assert.equal(onboarding.EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO, false);
-    });
-
-    it("ONBOARDING_STATE começa em 'nao_iniciado' e termina em 'concluido'/'falhou'", () => {
-        assert.equal(onboarding.ONBOARDING_STATE[0], "nao_iniciado");
-        assert.ok(onboarding.ONBOARDING_STATE.includes("concluido"));
-        assert.ok(onboarding.ONBOARDING_STATE.includes("falhou"));
-    });
-
-    it("estadoOnboardingValido só aceita estados do vocabulário documentado", () => {
-        assert.equal(onboarding.estadoOnboardingValido("nao_iniciado"), true);
-        assert.equal(onboarding.estadoOnboardingValido("concluido"), true);
-        assert.equal(onboarding.estadoOnboardingValido("estado_inventado"), false);
-        assert.equal(onboarding.estadoOnboardingValido(""), false);
-    });
-
-    it("CONTRATO_PROVIDER_ADAPTER documenta as 5 operações do adapter futuro, todas como string (nunca uma função de verdade)", () => {
-        const chaves = Object.keys(onboarding.CONTRATO_PROVIDER_ADAPTER);
-        assert.deepEqual(chaves.sort(), [
-            "assinarWaba", "descobrirPhoneNumberId", "descobrirWabaCompartilhada", "registrarNumero", "trocarCodigoPorToken"
-        ].sort());
-        for (const valor of Object.values(onboarding.CONTRATO_PROVIDER_ADAPTER)) {
-            assert.equal(typeof valor, "string");
+describe("whatsapp/onboarding — Embedded Signup oficial", () => {
+    it("exporta start, complete, status e cancel como callables reais", () => {
+        for (const name of ["whatsappStartOnboarding", "whatsappCompleteOnboarding", "whatsappGetOnboardingStatus", "whatsappCancelOnboarding"]) {
+            assert.equal(typeof onboarding[name], "function");
+            assert.equal(typeof whatsappIndex[name], "function");
         }
     });
 
-    it("CONTRATO_ONBOARDING_FUNCTIONS documenta os 2 onCall futuros — nenhum é exportado por index.js", () => {
-        assert.deepEqual(Object.keys(onboarding.CONTRATO_ONBOARDING_FUNCTIONS).sort(), ["whatsappCompleteOnboarding", "whatsappStartOnboarding"]);
-        assert.equal("whatsappStartOnboarding" in whatsappIndex, false);
-        assert.equal("whatsappCompleteOnboarding" in whatsappIndex, false);
+    it("gera connectionId estável por tenant e número, sem expor os valores crus", () => {
+        const first = onboarding.buildConnectionId("owner-a", "1234567890");
+        assert.equal(first, onboarding.buildConnectionId("owner-a", "1234567890"));
+        assert.notEqual(first, onboarding.buildConnectionId("owner-b", "1234567890"));
+        assert.match(first, /^wac_[0-9a-f]{32}$/);
+        assert.equal(first.includes("owner-a"), false);
+    });
+
+    it("conta números físicos distintos sem duplicar uma conexão legada migrada", () => {
+        assert.equal(onboarding.physicalConnectionCount([{ phoneNumberId: "1", status: "connected" }], { phoneNumberId: "1", status: "connected" }), 1);
+        assert.equal(onboarding.physicalConnectionCount([{ phoneNumberId: "1", status: "connected" }], { phoneNumberId: "2", status: "connected" }), 2);
+        assert.equal(onboarding.physicalConnectionCount([{ phoneNumberId: "1", status: "disconnected" }], null), 0);
     });
 });
 
@@ -429,11 +417,9 @@ describe("whatsapp/secrets — validarTokenSecretResource (revisão: nunca aceit
         assert.equal(secrets.validarTokenSecretResource(RECURSO_VALIDO_NUMERICO).valido, true);
     });
 
-    it("aceita a versão 'latest' explícita, rejeita uma versão numérica fixa", () => {
+    it("aceita versão latest e versão numérica exata para rotação/rollback seguro", () => {
         assert.equal(secrets.validarTokenSecretResource(`${RECURSO_VALIDO_LEGADO}/versions/latest`).valido, true);
-        const fixa = secrets.validarTokenSecretResource(`${RECURSO_VALIDO_LEGADO}/versions/3`);
-        assert.equal(fixa.valido, false);
-        assert.equal(fixa.motivo, "versao_fixa_nao_permitida");
+        assert.equal(secrets.validarTokenSecretResource(`${RECURSO_VALIDO_LEGADO}/versions/3`).valido, true);
     });
 
     it("rejeita um secretId que não segue o prefixo/hash esperado (nunca aceita secret arbitrário)", () => {
@@ -454,12 +440,15 @@ describe("whatsapp/secrets — validarTokenSecretResource (revisão: nunca aceit
     });
 });
 
-describe("whatsapp/index — exporta as 9 Functions esperadas", () => {
-    it("exporta exatamente os 9 nomes do contrato (7 da V1 + 2 da Fase 4 multiconexão)", () => {
+describe("whatsapp/index — exporta somente as 19 Functions do módulo", () => {
+    it("exporta exatamente os nomes aprovados do contrato", () => {
         const esperado = [
             "whatsappWebhook", "whatsappSendText", "whatsappSendTemplate",
             "whatsappMarkRead", "whatsappSyncTemplates", "whatsappConnectionStatus",
-            "whatsappValidateConnection", "whatsappListConnections", "whatsappSetDefaultConnection"
+            "whatsappValidateConnection", "whatsappListConnections", "whatsappSetDefaultConnection",
+            "whatsappStartOnboarding", "whatsappCompleteOnboarding", "whatsappGetOnboardingStatus",
+            "whatsappCancelOnboarding", "whatsappRenameConnection", "whatsappDisconnectConnection",
+            "whatsappListQrCodes", "whatsappCreateQrCode", "whatsappUpdateQrCode", "whatsappDeleteQrCode"
         ];
         assert.deepEqual(Object.keys(whatsappIndex).sort(), esperado.sort());
     });
@@ -486,7 +475,7 @@ describe("whatsapp/connections — montarListaConexoes (ordenação pura)", () =
 
     it("sem nenhuma conexão nova, só a legada, devolve só ela", () => {
         const legado = { connectionId: "", legacy: true };
-        assert.deepEqual(connections.montarListaConexoes([], legado), [legado]);
+        assert.deepEqual(connections.montarListaConexoes([], legado), [{ ...legado, isDefault: true }]);
     });
 });
 

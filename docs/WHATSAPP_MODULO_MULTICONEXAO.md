@@ -1,5 +1,12 @@
 # WhatsApp — Módulo separado + Multiconexão
 
+> **Atualização 2026-07-31:** o Embedded Signup dedicado está implementado,
+> assim como reconexão, desligamento seguro e QR oficial. Todos permanecem
+> protegidos por flags desligadas em produção até os gates externos da Meta
+> e do Firebase. Consulte `docs/meta-whatsapp/README.md`. As seções chamadas
+> “preparação” abaixo registram o desenho anterior e foram substituídas pela
+> implementação atual.
+
 Evolução do WhatsApp Oficial V1 (`docs/WHATSAPP_OFICIAL.md`) em duas frentes,
 executadas juntas nesta missão porque uma depende da outra:
 
@@ -21,8 +28,8 @@ no fim.
 imita o WhatsApp Web (nada de whatsapp-web.js/Baileys/Venom/WPPConnect/
 open-wa/Puppeteer controlando o WhatsApp Web ou equivalente). A única
 alternativa a um número dedicado é a **Coexistência oficial da Meta**
-(`providerMode: "official_coexistence"`), cujo fluxo real é preparado
-(Fase 7, ver abaixo) mas não implementado nesta missão.
+(`providerMode: "official_coexistence"`). O contrato/UI existe, mas a flag
+continua desligada até elegibilidade e aprovação externas serem confirmadas.
 
 ## Módulo WhatsApp × Central de Atendimento
 
@@ -280,28 +287,20 @@ própria seção "Diagnóstico" do módulo (nunca inventando uma causa
 específica sem confirmação). Nenhuma "correção" foi aplicada porque não
 há nada de errado no código para corrigir.
 
-## Preparação para o Embedded Signup (Fase 7 — nunca implementado)
+## Embedded Signup (implementado; liberação externa pendente)
 
-`functions/src/whatsapp/onboarding.js` documenta, como **contratos
-executáveis** (sem nenhuma chamada de rede/Firestore, sem nenhuma Function
-exportada):
+`functions/src/whatsapp/onboarding.js` implementa quatro callables para
+iniciar, concluir, consultar e cancelar uma tentativa. A troca do code,
+validação do token, descoberta de ativos, registro, assinatura do WABA,
+persistência versionada e sincronização inicial ocorrem no backend. App
+Review/Advanced Access e a configuração real permanecem gates externos.
 
-- `ONBOARDING_STATE`: vocabulário dos estágios de um onboarding futuro
-  (`nao_iniciado` → ... → `concluido`/`falhou`).
-- `CONTRATO_PROVIDER_ADAPTER`: assinatura das 5 operações que um adapter
-  de provedor real precisaria (`trocarCodigoPorToken`,
-  `descobrirWabaCompartilhada`, `descobrirPhoneNumberId`, `assinarWaba`,
-  `registrarNumero`) — hoje só descrição, nenhuma implementação.
-- `CONTRATO_ONBOARDING_FUNCTIONS`: formato de payload/resposta dos 2
-  onCall futuros (`whatsappStartOnboarding`/`whatsappCompleteOnboarding`).
+As tentativas expiram em 15 minutos, têm state/identidade HMAC,
+idempotência, trava por tenant e proteção contra replay. A UI carrega o SDK
+oficial de forma tardia e valida a origem das mensagens. Veja o runbook em
+`docs/meta-whatsapp/embedded-signup-setup.md`.
 
-Itens explicitamente deixados para uma missão futura, nunca assumidos sem
-fonte oficial: chamada real ao Facebook Login/FB SDK, troca do `code` de
-autorização por token, descoberta de WABA compartilhada, descoberta de
-Phone Number ID, registro do número, assinatura da WABA, sincronização
-inicial de templates, App Review/Advanced Access.
-
-## Preparação para a Coexistência (nunca implementado)
+## Preparação para a Coexistência (protegida por flag)
 
 `providerMode: "official_coexistence"` já existe no enum
 (`CONNECTION_PROVIDER_MODE`) e a UI do módulo ("Adicionar conexão", opção

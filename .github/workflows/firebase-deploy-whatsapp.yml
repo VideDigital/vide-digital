@@ -1,5 +1,5 @@
-# Deploy dedicado só pras 9 Functions do WhatsApp (7 da V1 + 2 da Fase 4
-# multiconexão: whatsappListConnections/whatsappSetDefaultConnection) —
+# Deploy dedicado só pras 19 Functions do WhatsApp (as 9 já existentes e
+# as 10 do Embedded Signup, gerenciamento e QR Code oficial) —
 # SEPARADO de "Deploy Firebase Functions (IA de Negócio)" (askBusinessAI/
 # askPublicBusinessAI), de "Deploy Firebase Functions — Auditoria" (os
 # 15 triggers) e de "Deploy Firebase Spark" (esse nunca publica
@@ -33,7 +33,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  WHATSAPP_FUNCTIONS: "functions:whatsappWebhook,functions:whatsappSendText,functions:whatsappSendTemplate,functions:whatsappMarkRead,functions:whatsappSyncTemplates,functions:whatsappConnectionStatus,functions:whatsappValidateConnection,functions:whatsappListConnections,functions:whatsappSetDefaultConnection"
+  WHATSAPP_FUNCTIONS: "functions:whatsappWebhook,functions:whatsappSendText,functions:whatsappSendTemplate,functions:whatsappMarkRead,functions:whatsappSyncTemplates,functions:whatsappConnectionStatus,functions:whatsappValidateConnection,functions:whatsappListConnections,functions:whatsappSetDefaultConnection,functions:whatsappStartOnboarding,functions:whatsappCompleteOnboarding,functions:whatsappGetOnboardingStatus,functions:whatsappCancelOnboarding,functions:whatsappRenameConnection,functions:whatsappDisconnectConnection,functions:whatsappListQrCodes,functions:whatsappCreateQrCode,functions:whatsappUpdateQrCode,functions:whatsappDeleteQrCode"
 
 jobs:
   validate-and-test:
@@ -121,14 +121,14 @@ jobs:
       - name: Testar unitários (inclui os helpers novos de atendimento.js)
         run: pnpm run test:unit
 
-      - name: Testar regras no Emulator Suite (inclui as 7 coleções novas do WhatsApp)
+      - name: Testar regras no Emulator Suite (inclui coleções privadas do onboarding e QR)
         run: pnpm run test:rules
 
-      - name: Smoke test do frontend no Emulator Suite (as 7 Functions sobem sem erro)
+      - name: Smoke test do frontend no Emulator Suite (as 19 Functions sobem sem erro)
         run: pnpm run test:frontend:emulator
 
   deploy:
-    name: Publicar as 7 Functions do WhatsApp Oficial
+    name: Publicar as 19 Functions do WhatsApp Oficial
     needs: validate-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -159,9 +159,9 @@ jobs:
 
       # Mesmo detector de autenticação dos outros workflows de deploy —
       # nenhum secret novo é introduzido por este workflow. Os secrets
-      # do WhatsApp (WHATSAPP_APP_SECRET, WHATSAPP_WEBHOOK_VERIFY_TOKEN,
-      # META_APP_ID) são administrados fora daqui, no Secret Manager —
-      # ver docs/WHATSAPP_OFICIAL.md.
+      # do WhatsApp (WHATSAPP_APP_SECRET e WHATSAPP_WEBHOOK_VERIFY_TOKEN)
+      # são administrados fora daqui, no Secret Manager. META_APP_ID e o
+      # Configuration ID são configuração pública controlada por ambiente.
       - name: Detectar método de autenticação disponível
         id: auth-method
         shell: bash
@@ -210,7 +210,7 @@ jobs:
       # --only recebe a lista explícita (env WHATSAPP_FUNCTIONS acima) —
       # nunca "--only functions" sozinho, que publicaria toda Function
       # legada, a IA e os triggers de auditoria junto.
-      - name: Publicar as 7 Functions do WhatsApp Oficial
+      - name: Publicar as 19 Functions do WhatsApp Oficial
         shell: bash
         env:
           PROJECT_ID: ${{ inputs.project_id }}

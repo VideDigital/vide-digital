@@ -11,7 +11,8 @@ const MODULES = new Set([
   "funcionarios",
   "configuracoes",
   "central-ia",
-  "landing-pages"
+  "landing-pages",
+  "whatsapp"
 ]);
 
 const MODULE_ALIASES = new Map([
