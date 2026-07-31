@@ -88,22 +88,38 @@ export function avaliarProjetoSelecionado(projetoAtual, projetoEsperado) {
 // ---------- VERSÃO DA GRAPH API ----------
 //
 // developers.facebook.com bloqueado neste ambiente (403 confirmado via
-// WebFetch, ver docs/WHATSAPP_OFICIAL.md). Em 2026-07-29 a constante foi
-// atualizada de v21.0 para v25.0 com confirmação DIRETA do usuário (fonte
-// oficial Meta), corroborada pelo Meta Business SDK 25.0.0/25.0.1 — ver
-// docs/WHATSAPP_OFICIAL.md para o histórico completo. Mesmo assim, este
-// check continua SEMPRE BLOCKED por design: é um Gate Manual permanente,
-// não um resultado de uma verificação pontual — a versão vigente da Meta
-// pode mudar de novo a qualquer momento, então cada deploy real exige
-// reconfirmação humana direta na fonte oficial, nunca um PASS automático.
-export function avaliarVersaoGraphApi(versaoAtual) {
+// WebFetch, ver docs/WHATSAPP_OFICIAL.md) — este script nunca consegue
+// confirmar a versão vigente sozinho, direto na fonte oficial. Gate Manual
+// permanente por design: em vez de um BLOCKED incondicional (que forçaria
+// reler manualmente a mesma mensagem toda hora sem nunca poder confirmar
+// nada), a confirmação humana é explícita e só vale para ESTA execução —
+// via a variável de ambiente WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION,
+// nunca persistida em arquivo/commit/secret/Firestore. Contrato: sem a
+// variável, ou vazia/só espaço → BLOCKED (nenhuma confirmação); variável
+// igual à constante do código → PASS; variável diferente (inclusive lixo)
+// → BLOCKED. Nunca consulta nenhuma fonte automaticamente — a confirmação
+// tem que vir de um humano que acabou de olhar a fonte oficial.
+export function avaliarVersaoGraphApi(versaoAtual, versaoConfirmada) {
+  const confirmada = String(versaoConfirmada ?? "").trim();
+  const nome = "Versão da Graph API (Gate Manual)";
+
+  if (!confirmada) {
+    return criarCheck(
+      nome,
+      STATUS.BLOCKED,
+      `Código usa ${versaoAtual}. Nenhuma confirmação para esta execução — ` +
+        "defina WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION com a versão que você mesmo acabou de confirmar " +
+        "na fonte oficial (https://developers.facebook.com/docs/graph-api/changelog ou equivalente) antes de qualquer deploy real."
+    );
+  }
+  if (confirmada === versaoAtual) {
+    return criarCheck(nome, STATUS.PASS, `Confirmado nesta execução: código usa ${versaoAtual}, confirmação da fonte oficial bate.`);
+  }
   return criarCheck(
-    "Versão da Graph API (Gate Manual)",
+    nome,
     STATUS.BLOCKED,
-    `Código usa ${versaoAtual}. developers.facebook.com bloqueado neste ambiente — não é possível confirmar automaticamente direto na fonte oficial a cada execução. ` +
-      "OBRIGATÓRIO antes de qualquer deploy real: confirmar a versão vigente em " +
-      "https://developers.facebook.com/docs/graph-api/changelog (ou fonte oficial equivalente) e, se necessário, atualizar SÓ a constante " +
-      "WHATSAPP_GRAPH_VERSION em functions/src/whatsapp/constants.js."
+    `Divergência: código usa ${versaoAtual}, mas a confirmação desta execução foi "${confirmada}". ` +
+      "Atualize WHATSAPP_GRAPH_VERSION em functions/src/whatsapp/constants.js ou refaça a confirmação corretamente antes de prosseguir."
   );
 }
 
@@ -149,6 +165,40 @@ export function avaliarPapeisIamRuntime(papeis) {
     return criarCheck("IAM da service account de runtime", STATUS.WARN, `secretAccessor presente, mas também tem papel(éis) amplo(s) demais: ${papeisAmplos.join(", ")} — nunca usar Owner/Editor/Secret Manager Admin como solução.`);
   }
   return criarCheck("IAM da service account de runtime", STATUS.PASS, "roles/secretmanager.secretAccessor presente, sem papel administrativo amplo.");
+}
+
+// Achado real (2026-07-31, confirmado no Cloud Shell): avaliarPapeisIamRuntime
+// acima só olha a política GERAL do projeto — mas o Secret Manager também
+// aceita (e é a prática recomendada) um binding de IAM DIRETO no próprio
+// secret, sem nenhum binding equivalente na política do projeto. Isso fazia
+// o preflight reportar BLOCKED mesmo quando a SA de runtime já tinha acesso
+// de verdade, só que via o secret — falso positivo. Esta função audita cada
+// secret individualmente, combinando o binding direto do secret com o
+// binding (se houver) no projeto como fallback informativo, nunca o
+// contrário. runtimeSA/papéis são só metadados (nomes de papel, e-mail da
+// SA) — nunca o valor do secret.
+export function avaliarIamPorSecret(nomeSecret, { runtimeSA, papeisSecretDireto, papeisProjeto, erroLeitura } = {}) {
+  const nome = `IAM do secret: ${nomeSecret}`;
+  const sa = runtimeSA || "SA de runtime desconhecida";
+
+  if (erroLeitura) {
+    return criarCheck(nome, STATUS.WARN, `Não foi possível ler a política IAM diretamente do secret (${sa}) — confirme manualmente antes do deploy; nunca presumir PASS sem confirmar.`);
+  }
+
+  const diretos = Array.isArray(papeisSecretDireto) ? papeisSecretDireto : [];
+  const doProjeto = Array.isArray(papeisProjeto) ? papeisProjeto : [];
+  const papeisAmplos = [...new Set([...diretos, ...doProjeto].filter((p) => PAPEIS_AMPLOS_DEMAIS.has(p)))];
+
+  if (papeisAmplos.length > 0) {
+    return criarCheck(nome, STATUS.WARN, `${sa} tem papel(éis) amplo(s) demais: ${papeisAmplos.join(", ")} — nunca usar Owner/Editor/Secret Manager Admin como solução, mesmo com secretAccessor também presente.`);
+  }
+  if (diretos.includes("roles/secretmanager.secretAccessor")) {
+    return criarCheck(nome, STATUS.PASS, `Binding direto de roles/secretmanager.secretAccessor confirmado no secret, para ${sa}.`);
+  }
+  if (doProjeto.includes("roles/secretmanager.secretAccessor")) {
+    return criarCheck(nome, STATUS.WARN, `Sem binding direto no secret, mas ${sa} tem secretAccessor a nível de projeto — funciona, porém o binding direto no secret é a prática recomendada (menor privilégio).`);
+  }
+  return criarCheck(nome, STATUS.BLOCKED, `Nenhum binding de roles/secretmanager.secretAccessor encontrado (nem direto no secret, nem no projeto) para ${sa} — o deploy real vai falhar ao ler este secret.`);
 }
 
 export function avaliarFunctionsPublicadas(nomesEsperados, nomesExistentes) {

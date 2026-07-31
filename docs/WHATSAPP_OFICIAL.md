@@ -54,16 +54,30 @@ alta confiança mesmo sem acesso direto à doc nesta sessão.
 **Atualização (Fase 2 — confirmação direta do usuário, 2026-07-29)**: com
 `developers.facebook.com` ainda bloqueado neste ambiente, o usuário
 confirmou pessoalmente, direto na fonte oficial da Meta, que a versão
-vigente é `v25.0` — corroborado por evidência adicional dos repositórios
+vigente era `v25.0` — corroborado por evidência adicional dos repositórios
 oficiais do Meta Business SDK (release `25.0.0` em 10/03/2026 e correção
 `25.0.1` em 30/03/2026). A constante `WHATSAPP_GRAPH_VERSION` foi
 atualizada de `v21.0` para `v25.0` em `functions/src/whatsapp/constants.js`
 com base nessa confirmação direta — não em busca indireta. Não há
 confirmação oficial de uma data exata em que `v21.0` deixou de ser aceita
-pela Meta, então essa data não é registrada aqui como fato. O Gate Manual
-em `scripts/whatsapp-preflight-core.mjs` (`avaliarVersaoGraphApi`)
-continua sempre BLOCKED por design — cada deploy real exige reconfirmação
-humana direta na fonte oficial, independente do que a constante já diga.
+pela Meta, então essa data não é registrada aqui como fato.
+
+**Atualização (2026-07-31 — nova confirmação direta, v25.0 → v26.0)**: com
+`developers.facebook.com` continuando bloqueado neste ambiente, o usuário
+abriu diretamente a fonte oficial da Meta e confirmou que a versão vigente
+passou a ser `v26.0`. A constante `WHATSAPP_GRAPH_VERSION` foi atualizada
+de `v25.0` para `v26.0` em `functions/src/whatsapp/constants.js` com base
+nessa confirmação. `v25.0` fica registrada aqui só como a versão anterior
+— **a versão vigente não é mais `v25.0`**. O Gate Manual deixou de ser um
+BLOCKED incondicional e passou a exigir uma confirmação explícita, válida
+só para a execução atual, via a variável de ambiente
+`WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION` (nunca persistida em
+arquivo/commit/secret/Firestore) — ver `avaliarVersaoGraphApi` em
+`scripts/whatsapp-preflight-core.mjs`: sem a variável, ou com um valor
+diferente da constante do código, o check continua BLOCKED; só quando a
+variável bate exatamente com `WHATSAPP_GRAPH_VERSION` é que vira PASS —
+e mesmo assim, cada deploy real continua exigindo reconfirmação humana
+direta na fonte oficial antes de definir a variável de novo.
 
 ## Arquitetura
 
@@ -441,8 +455,10 @@ mesmo ao desconectar.
   piloto assistido por script.
 - Criação de template via API não implementada — só sincronização de
   templates já existentes no WhatsApp Manager.
-- A versão da Graph API (`v25.0`) foi confirmada diretamente pelo usuário
-  na fonte oficial da Meta (2026-07-29), não por leitura direta da
-  documentação oficial pelo agente (bloqueada neste ambiente) — o Gate
-  Manual do preflight exige reconfirmação humana a cada deploy real,
-  independente disso.
+- A versão da Graph API (`v26.0`) foi confirmada diretamente pelo usuário
+  na fonte oficial da Meta (2026-07-31, atualizando a confirmação anterior
+  de `v25.0` em 2026-07-29), não por leitura direta da documentação
+  oficial pelo agente (bloqueada neste ambiente) — o Gate Manual do
+  preflight exige reconfirmação humana explícita, via a variável de
+  ambiente `WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION`, a cada execução
+  antes de qualquer deploy real, independente do que a constante já diga.

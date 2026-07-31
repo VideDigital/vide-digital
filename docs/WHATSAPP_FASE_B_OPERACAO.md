@@ -74,15 +74,21 @@ inteira.**
     diretamente em
     [developers.facebook.com/docs/graph-api/changelog](https://developers.facebook.com/docs/graph-api/changelog).
     **Gate Manual obrigatório** — este runbook não avança sozinho aqui: o
-    código atual usa `v25.0` (`functions/src/whatsapp/constants.js`),
-    atualizada em 2026-07-29 a partir de confirmação **direta** do usuário
-    na fonte oficial (não busca indireta). Ainda assim, a versão da Meta
-    pode ter mudado de novo desde então — **confirme pessoalmente no link
-    acima antes de prosseguir**, sempre, a cada deploy real. Se a versão
-    vigente for diferente, atualize **só** a constante
-    `WHATSAPP_GRAPH_VERSION` em `functions/src/whatsapp/constants.js`,
-    rode os testes de novo (`pnpm run test:functions`) e faça um commit
-    separado antes do deploy.
+    código atual usa `v26.0` (`functions/src/whatsapp/constants.js`),
+    atualizada em 2026-07-31 a partir de confirmação **direta** do usuário
+    na fonte oficial (não busca indireta; `v25.0` era a versão anterior,
+    confirmada em 2026-07-29). Ainda assim, a versão da Meta pode ter
+    mudado de novo desde então — **confirme pessoalmente no link acima
+    antes de prosseguir**, sempre, a cada deploy real. O preflight
+    (`scripts/whatsapp-production-preflight.mjs`) exige essa confirmação
+    explicitamente: defina `WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION`
+    com a versão que você acabou de confirmar (ex.: `v26.0`) antes de
+    rodar — sem isso, ou com um valor diferente da constante do código, o
+    check continua BLOCKED, nunca um PASS automático. Se a versão vigente
+    for diferente, atualize **só** a constante `WHATSAPP_GRAPH_VERSION` em
+    `functions/src/whatsapp/constants.js`, rode os testes de novo
+    (`pnpm run test:functions`) e faça um commit separado antes do
+    deploy.
 
 **Diferença Piloto/Teste vs. Produção real** (não afirmar que funciona
 igual para todo tipo de conta — confirme sempre no painel atual da Meta):
@@ -195,7 +201,12 @@ dentro do script de provisionamento (ele já grava o secret sob o projeto
 certo; a concessão de IAM pra service account de runtime nesses secrets
 por tenant específicos também precisa ser feita uma vez por tenant — o
 preflight (`whatsapp:preflight` com `WHATSAPP_PREFLIGHT_PROJECT` definido)
-avisa se a service account não tiver o papel certo).
+avisa se a service account não tiver o papel certo). **Achado corrigido
+em 2026-07-31**: o preflight checava só a política GERAL do projeto e por
+isso dava um falso `BLOCKED` mesmo com o binding direto acima já feito
+corretamente — agora ele lê `gcloud secrets get-iam-policy` de cada
+secret individualmente (nunca escreve nada), então o binding direto feito
+neste passo já é reconhecido como `PASS`.
 
 ---
 

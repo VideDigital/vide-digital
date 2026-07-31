@@ -13,6 +13,7 @@ import {
     avaliarApisHabilitadas,
     avaliarSecretGlobal,
     avaliarPapeisIamRuntime,
+    avaliarIamPorSecret,
     avaliarFunctionsPublicadas,
     avaliarRulesPublicadas,
     avaliarConexaoMeta,
@@ -103,16 +104,39 @@ describe("avaliarAutenticacaoGoogle / avaliarProjetoSelecionado", () => {
     });
 });
 
-describe("avaliarVersaoGraphApi", () => {
-    it("é SEMPRE BLOCKED (Gate Manual obrigatório) — nunca aprova a versão sozinho", () => {
-        const check = avaliarVersaoGraphApi("v21.0");
+describe("avaliarVersaoGraphApi (Gate Manual explícito por variável de ambiente)", () => {
+    it("BLOCKED sem nenhuma confirmação informada (gate ausente)", () => {
+        const check = avaliarVersaoGraphApi("v26.0", "");
         assert.equal(check.status, STATUS.BLOCKED);
-        assert.ok(check.detalhe.includes("v21.0"));
-        assert.ok(check.detalhe.toLowerCase().includes("developers.facebook.com"));
+        assert.ok(check.detalhe.includes("v26.0"));
+        assert.ok(check.detalhe.includes("WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION"));
     });
 
-    it("nunca muda de status mesmo com outra versão informada — é um gate, não uma validação de formato", () => {
-        assert.equal(avaliarVersaoGraphApi("v25.0").status, STATUS.BLOCKED);
+    it("BLOCKED com undefined (mesmo contrato de ausência)", () => {
+        assert.equal(avaliarVersaoGraphApi("v26.0", undefined).status, STATUS.BLOCKED);
+    });
+
+    it("PASS quando a confirmação bate exatamente com a versão do código", () => {
+        const check = avaliarVersaoGraphApi("v26.0", "v26.0");
+        assert.equal(check.status, STATUS.PASS);
+        assert.ok(check.detalhe.includes("v26.0"));
+    });
+
+    it("BLOCKED quando a confirmação diverge da versão do código", () => {
+        const check = avaliarVersaoGraphApi("v26.0", "v25.0");
+        assert.equal(check.status, STATUS.BLOCKED);
+        assert.ok(check.detalhe.includes("v26.0"));
+        assert.ok(check.detalhe.includes("v25.0"));
+    });
+
+    it("BLOCKED com valor inválido/lixo — nunca aceita algo que não seja exatamente a versão do código", () => {
+        assert.equal(avaliarVersaoGraphApi("v26.0", "qualquer-coisa").status, STATUS.BLOCKED);
+        assert.equal(avaliarVersaoGraphApi("v26.0", "   ").status, STATUS.BLOCKED);
+    });
+
+    it("é dinâmico — funciona igual pra qualquer versão futura do código, nunca hardcoded", () => {
+        assert.equal(avaliarVersaoGraphApi("v99.0", "v99.0").status, STATUS.PASS);
+        assert.equal(avaliarVersaoGraphApi("v99.0", "v98.0").status, STATUS.BLOCKED);
     });
 });
 
@@ -159,6 +183,93 @@ describe("avaliarPapeisIamRuntime", () => {
         const check = avaliarPapeisIamRuntime(["roles/secretmanager.secretAccessor", "roles/editor"]);
         assert.equal(check.status, STATUS.WARN);
         assert.ok(check.detalhe.includes("roles/editor"));
+    });
+});
+
+describe("avaliarIamPorSecret (revisão 2026-07-31: binding direto no secret, não só a política do projeto)", () => {
+    const SA = "891590456336-compute@developer.gserviceaccount.com";
+
+    it("PASS quando o binding de secretAccessor está direto no secret (caso confirmado no Cloud Shell)", () => {
+        const check = avaliarIamPorSecret("WHATSAPP_APP_SECRET", {
+            runtimeSA: SA,
+            papeisSecretDireto: ["roles/secretmanager.secretAccessor"],
+            papeisProjeto: [],
+            erroLeitura: false
+        });
+        assert.equal(check.status, STATUS.PASS);
+        assert.ok(check.detalhe.includes(SA));
+    });
+
+    it("achado real: binding direto em AMBOS os secrets nunca é confundido com o achado antigo do projeto vazio", () => {
+        for (const nomeSecret of ["WHATSAPP_APP_SECRET", "WHATSAPP_WEBHOOK_VERIFY_TOKEN"]) {
+            const check = avaliarIamPorSecret(nomeSecret, {
+                runtimeSA: SA,
+                papeisSecretDireto: ["roles/secretmanager.secretAccessor"],
+                papeisProjeto: [], // política do projeto vazia — o antigo check falso-positivo diria BLOCKED aqui
+                erroLeitura: false
+            });
+            assert.equal(check.status, STATUS.PASS, `${nomeSecret} deveria ser PASS com binding direto, mesmo sem nada no projeto`);
+        }
+    });
+
+    it("BLOCKED quando falta o binding em um dos secrets (o outro continua PASS)", () => {
+        const comBinding = avaliarIamPorSecret("WHATSAPP_APP_SECRET", { runtimeSA: SA, papeisSecretDireto: ["roles/secretmanager.secretAccessor"], papeisProjeto: [], erroLeitura: false });
+        const semBinding = avaliarIamPorSecret("WHATSAPP_WEBHOOK_VERIFY_TOKEN", { runtimeSA: SA, papeisSecretDireto: [], papeisProjeto: [], erroLeitura: false });
+        assert.equal(comBinding.status, STATUS.PASS);
+        assert.equal(semBinding.status, STATUS.BLOCKED);
+    });
+
+    it("WARN quando não há binding direto no secret, mas a SA tem secretAccessor a nível de projeto", () => {
+        const check = avaliarIamPorSecret("WHATSAPP_APP_SECRET", {
+            runtimeSA: SA,
+            papeisSecretDireto: [],
+            papeisProjeto: ["roles/secretmanager.secretAccessor"],
+            erroLeitura: false
+        });
+        assert.equal(check.status, STATUS.WARN);
+    });
+
+    it("WARN quando há papel amplo demais (Owner/Editor/Secret Manager Admin), mesmo com secretAccessor direto presente", () => {
+        const check = avaliarIamPorSecret("WHATSAPP_APP_SECRET", {
+            runtimeSA: SA,
+            papeisSecretDireto: ["roles/secretmanager.secretAccessor", "roles/owner"],
+            papeisProjeto: [],
+            erroLeitura: false
+        });
+        assert.equal(check.status, STATUS.WARN);
+        assert.ok(check.detalhe.includes("roles/owner"));
+    });
+
+    it("WARN (nunca PASS) quando a política não pôde ser lida", () => {
+        const check = avaliarIamPorSecret("WHATSAPP_APP_SECRET", { runtimeSA: SA, erroLeitura: true });
+        assert.equal(check.status, STATUS.WARN);
+        assert.notEqual(check.status, STATUS.PASS);
+    });
+
+    it("BLOCKED quando o binding existe, mas pra uma service account DIFERENTE da de runtime", () => {
+        // Simula o filtro por membro já ter sido aplicado no chamador (produção
+        // real filtra por `serviceAccount:${runtimeSA}` antes de chegar aqui) —
+        // papeisSecretDireto vazio representa "nenhum binding para ESTA SA".
+        const check = avaliarIamPorSecret("WHATSAPP_APP_SECRET", {
+            runtimeSA: SA,
+            papeisSecretDireto: [],
+            papeisProjeto: [],
+            erroLeitura: false
+        });
+        assert.equal(check.status, STATUS.BLOCKED);
+        assert.ok(check.detalhe.includes(SA));
+    });
+
+    it("saída nunca inclui valor de secret, token ou credencial — só nomes de papel e e-mail de SA", () => {
+        const checks = [
+            avaliarIamPorSecret("WHATSAPP_APP_SECRET", { runtimeSA: SA, papeisSecretDireto: ["roles/secretmanager.secretAccessor"], papeisProjeto: [], erroLeitura: false }),
+            avaliarIamPorSecret("WHATSAPP_WEBHOOK_VERIFY_TOKEN", { runtimeSA: SA, papeisSecretDireto: [], papeisProjeto: [], erroLeitura: false })
+        ];
+        for (const check of checks) {
+            const texto = `${check.nome} ${check.detalhe}`;
+            assert.ok(!/EAAG[a-zA-Z0-9]{20,}/.test(texto));
+            assert.ok(!/valor|value=/i.test(texto));
+        }
     });
 });
 

@@ -13,6 +13,12 @@
 //   WHATSAPP_PREFLIGHT_PROJECT=vide-digital-saas \
 //     node scripts/whatsapp-production-preflight.mjs
 //
+// Gate Manual da versão da Graph API: sempre BLOCKED nesta execução a menos
+// que você mesmo tenha acabado de abrir a fonte oficial da Meta e confirme
+// explicitamente, só para esta rodada (nunca persistido em arquivo/commit):
+//   WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION=v26.0 \
+//     node scripts/whatsapp-production-preflight.mjs
+//
 // Com validação real de conexão com a Meta (opcional, só quando você já
 // tem IDs e um token à mão — nunca obrigatório):
 //   WHATSAPP_PREFLIGHT_PROJECT=vide-digital-saas \
@@ -31,8 +37,8 @@ import {
     avaliarConexaoMeta,
     avaliarFunctionsPublicadas,
     avaliarHeadEsperado,
+    avaliarIamPorSecret,
     avaliarNodeVersion,
-    avaliarPapeisIamRuntime,
     avaliarProjetoSelecionado,
     avaliarRulesPublicadas,
     avaliarSecretGlobal,
@@ -147,24 +153,44 @@ function checksFirebaseGcp(habilitado) {
         checks.push(avaliarSecretGlobal(nomeSecret, { existe, versoesHabilitadas }));
     }
 
-    // Papéis da service account de runtime padrão (a mesma usada pelas
-    // Cloud Functions v2 quando nenhuma outra é configurada) — filtro
-    // read-only da IAM policy do projeto, nunca escrita.
-    const policyRaw = rodarComandoSeguro("gcloud", ["projects", "get-iam-policy", projeto, "--format=json"]);
-    if (policyRaw) {
+    // Achado real (2026-07-31): checar só a política GERAL do projeto é um
+    // falso positivo — o Secret Manager aceita (e recomenda) um binding de
+    // IAM DIRETO em cada secret, sem nenhum binding equivalente na política
+    // do projeto. Por isso o IAM é checado por secret, individualmente, via
+    // `gcloud secrets get-iam-policy` (nunca comando de escrita). A política
+    // do projeto ainda é lida, mas só como fallback informativo dentro de
+    // avaliarIamPorSecret — nunca a fonte primária da decisão.
+    const numeroProjeto = rodarComandoSeguro("gcloud", ["projects", "describe", projeto, "--format=value(projectNumber)"]);
+    const runtimeSA = numeroProjeto ? `${numeroProjeto}-compute@developer.gserviceaccount.com` : "";
+
+    let papeisProjeto = [];
+    const policyProjetoRaw = rodarComandoSeguro("gcloud", ["projects", "get-iam-policy", projeto, "--format=json"]);
+    if (policyProjetoRaw) {
         try {
-            const policy = JSON.parse(policyRaw);
-            const numeroProjeto = rodarComandoSeguro("gcloud", ["projects", "describe", projeto, "--format=value(projectNumber)"]);
-            const runtimeSA = numeroProjeto ? `${numeroProjeto}-compute@developer.gserviceaccount.com` : "";
-            const papeis = (policy.bindings || [])
+            const policyProjeto = JSON.parse(policyProjetoRaw);
+            papeisProjeto = (policyProjeto.bindings || [])
                 .filter((b) => runtimeSA && (b.members || []).includes(`serviceAccount:${runtimeSA}`))
                 .map((b) => b.role);
-            checks.push(avaliarPapeisIamRuntime(papeis));
         } catch {
-            checks.push(criarCheck("IAM da service account de runtime", STATUS.WARN, "Não foi possível interpretar a política IAM retornada."));
+            // Sem política do projeto legível — segue só com o binding direto de cada secret.
         }
-    } else {
-        checks.push(criarCheck("IAM da service account de runtime", STATUS.WARN, "Não foi possível ler a política IAM (permissão insuficiente ou gcloud indisponível)."));
+    }
+
+    for (const nomeSecret of SECRETS_GLOBAIS) {
+        const policySecretRaw = rodarComandoSeguro("gcloud", ["secrets", "get-iam-policy", nomeSecret, "--project", projeto, "--format=json"]);
+        let papeisSecretDireto = [];
+        let erroLeitura = policySecretRaw === null;
+        if (!erroLeitura) {
+            try {
+                const policySecret = JSON.parse(policySecretRaw);
+                papeisSecretDireto = (policySecret.bindings || [])
+                    .filter((b) => runtimeSA && (b.members || []).includes(`serviceAccount:${runtimeSA}`))
+                    .map((b) => b.role);
+            } catch {
+                erroLeitura = true;
+            }
+        }
+        checks.push(avaliarIamPorSecret(nomeSecret, { runtimeSA, papeisSecretDireto, papeisProjeto, erroLeitura }));
     }
 
     const functionsRaw = rodarComandoSeguro("gcloud", ["functions", "list", "--project", projeto, "--regions=southamerica-east1", "--format=value(name)"]);
@@ -235,7 +261,7 @@ async function checkOpcionalMeta() {
 async function main() {
     const checks = [];
     checks.push(...checksLocais());
-    checks.push(avaliarVersaoGraphApi(WHATSAPP_GRAPH_VERSION));
+    checks.push(avaliarVersaoGraphApi(WHATSAPP_GRAPH_VERSION, process.env.WHATSAPP_PREFLIGHT_CONFIRMED_GRAPH_VERSION || ""));
     checks.push(...checksFirebaseGcp(String(process.env.WHATSAPP_PREFLIGHT_PROJECT || "").toLowerCase() === PROJETO_ESPERADO));
     checks.push(await checkOpcionalMeta());
 
