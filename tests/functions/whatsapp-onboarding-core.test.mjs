@@ -129,6 +129,26 @@ describe("WhatsApp Embedded Signup — descoberta server-side e sanitização", 
   });
 });
 
+describe("WhatsApp Embedded Signup — ciclo seguro do PIN (revisão 2026-07-31)", () => {
+  it("sem versão de PIN criada (falha antes do registro), nunca há o que limpar", () => {
+    assert.equal(core.decidePinSecretCleanup({ pinSecretVersion: "", phoneRegistered: false }), "none");
+  });
+
+  it("registerPhone falhou (número NUNCA foi registrado) -> desabilita a versão temporária", () => {
+    assert.equal(core.decidePinSecretCleanup({
+      pinSecretVersion: "projects/p/secrets/vide-whatsapp-pin-abc/versions/1",
+      phoneRegistered: false
+    }), "disable");
+  });
+
+  it("registerPhone teve sucesso mas uma etapa POSTERIOR falhou -> preserva o PIN, nunca destrói", () => {
+    assert.equal(core.decidePinSecretCleanup({
+      pinSecretVersion: "projects/p/secrets/vide-whatsapp-pin-abc/versions/1",
+      phoneRegistered: true
+    }), "preserve_pending_recovery");
+  });
+});
+
 describe("WhatsApp Embedded Signup — feature flags e App Check progressivo", () => {
   it("mantém tudo desativado por padrão em produção", () => {
     productionEnv();

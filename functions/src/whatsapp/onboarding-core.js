@@ -142,6 +142,20 @@ function supersededCredentialVersions(previous = {}, current = {}) {
     .map(([oldResource]) => oldResource);
 }
 
+// Decisão pura do ciclo seguro do PIN (revisão 2026-07-31): dado que uma
+// tentativa de onboarding falhou ANTES da conexão ser commitada, decide o
+// que fazer com a versão temporária do PIN no Secret Manager. Extraída
+// como função pura (mesmo espírito de avaliarConexao/decidirAtualizacaoStatus
+// em send.js/webhook.js) para poder testar a decisão sem precisar de
+// Firestore/Secret Manager reais. Nunca decide destruir o segredo quando o
+// número já foi registrado na Meta com aquele PIN — só quando o registro
+// nunca aconteceu (ou o registro em si já limpou a variável antes de
+// chegar aqui, ver whatsappCompleteOnboarding).
+function decidePinSecretCleanup({ pinSecretVersion, phoneRegistered }) {
+  if (!pinSecretVersion) return "none";
+  return phoneRegistered ? "preserve_pending_recovery" : "disable";
+}
+
 function publicError(error) {
   const code = sanitizeSupportCode(error?.code) || "INTERNAL";
   const mapping = {
@@ -178,6 +192,7 @@ module.exports = {
   TERMINAL_STATUSES,
   createCorrelationId,
   createAttemptIdentity,
+  decidePinSecretCleanup,
   extractWabaTargets,
   normalizeIdempotencyKey,
   normalizeNumericId,

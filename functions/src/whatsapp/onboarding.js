@@ -533,10 +533,11 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
       // com aquele PIN — descartar o segredo aqui reproduziria o exato
       // cenário que esta correção evita. Vira pendência recuperável,
       // nunca um segredo destruído.
+      const pinCleanup = core.decidePinSecretCleanup({ pinSecretVersion, phoneRegistered });
       const cleanups = [tokenSecretVersion && desabilitarVersaoRecurso(tokenSecretVersion)];
-      if (pinSecretVersion && !phoneRegistered) cleanups.push(desabilitarVersaoRecurso(pinSecretVersion));
+      if (pinCleanup === "disable") cleanups.push(desabilitarVersaoRecurso(pinSecretVersion));
       await Promise.allSettled(cleanups.filter(Boolean));
-      if (pinSecretVersion && phoneRegistered) {
+      if (pinCleanup === "preserve_pending_recovery") {
         logger.error("whatsapp.onboarding.phone_registered_connection_incomplete", core.redactForLog({
           correlationId: attempt.correlationId,
           attemptId,

@@ -157,6 +157,82 @@ Nenhum código precisou ser revertido — o comportamento atual (nunca
 desinscrever) já era o padrão antes desta revisão; a mudança real foi
 decidir e documentar isso deliberadamente, não uma correção de bug.
 
+## Testes escritos para os 3 bloqueadores (atualizado)
+
+### PIN (Bloqueador 1)
+
+Extraída a decisão pura de limpeza do PIN pra `onboarding-core.js`
+(`decidePinSecretCleanup({ pinSecretVersion, phoneRegistered })`, mesmo
+espírito de `avaliarConexao`/`decidirAtualizacaoStatus` já usados no
+projeto) e `onboarding.js` passou a chamá-la em vez da lógica inline.
+Testada em `tests/functions/whatsapp-onboarding-core.test.mjs` (3 casos
+novos, os 19 testes do arquivo passam):
+- sem versão de PIN (falha antes do registro) -> `"none"`.
+- registerPhone nunca teve sucesso -> `"disable"` (desabilita a versão
+  temporária).
+- registerPhone teve sucesso, falha posterior -> `"preserve_pending_recovery"`
+  (nunca desabilita).
+
+**Lacuna documentada honestamente**: não existe um teste de integração
+que force `registerPhone` a lançar de verdade (a chamada "durante o
+registro" que dispara a limpeza inline logo abaixo dela). `emulatorMeta()`
+não tem um hook de falha injetável e `metaClient` (usado fora do Emulator)
+não é injetável a partir de `onboarding.js` — só o é dentro de
+`metaClient.js` via `fetchImpl`, que `onboarding.js` não expõe. Construir
+esse hook exigiria uma nova costura de injeção de dependência só para
+teste, o que foi avaliado como desproporcional para esta revisão (ver
+instrução da missão contra arquitetura excessiva). Essa parte específica
+(o `try/catch` ao redor de `provider.registerPhone` que desabilita a
+versão e limpa `pinSecretResourcePending` antes de relançar) é simples o
+bastante (sem ramificação condicional) para ficar coberta por revisão de
+código + `node --check`, mas não por um teste automatizado nesta entrega.
+"Reconexão preservando a credencial anterior" já tinha teste pré-existente
+(`supersededCredentialVersions`), não duplicado.
+
+### QR Code (Bloqueador 2)
+
+Novo `tests/emulator/whatsapp-hardening.smoke.mjs`, adicionado à cadeia
+de `pnpm run test:frontend:emulator` (Functions+Firestore Emulator local,
+sem Playwright, mesmo estilo de `frontend-emulator-smoke.mjs`). Rodado
+localmente com sucesso (`Script exited successfully (code 0)`), cobre:
+onboarding mockado cria conexão -> criação de QR idempotente (mesma
+`idempotencyKey` nunca chama a Meta duas vezes, `reused: true` na
+segunda) -> update com `expectedUpdatedAtMs` desatualizado rejeitado
+(`failed-precondition`) -> lock de operação em andamento rejeita update
+concorrente (`aborted`) -> lock expirado é reclamado normalmente (não
+trava o recurso pra sempre) -> delete idempotente (segunda exclusão
+devolve `alreadyDeleted: true`) -> update depois de delete rejeitado
+(`not-found`).
+
+**Decisão de design do teste de concorrência**: a primeira tentativa
+(duas chamadas HTTP disparadas via `Promise.allSettled`) se mostrou
+não-determinística — as duas terminaram tarde o bastante pra nunca
+colidirem de verdade no mesmo lock (2 sucessos em vez de 1+1). Corrigido
+simulando o lock diretamente via Admin SDK (grava `operationLock` como o
+próprio `acquireQrDocLock` gravaria, ignorando Rules) antes de chamar a
+callable — testa a garantia real ("lock ativo rejeita") de forma
+determinística, sem depender de vencer uma corrida de rede local.
+
+**Lacunas documentadas honestamente**: (1) falha do Firestore *depois* da
+criação remota (caminho de compensação) não é exercida por teste
+automatizado — forçar essa falha exigiria injetar uma falha no SDK do
+Firestore, não tentado nesta revisão; protegido só por revisão de código
+do `try/catch` em `whatsappCreateQrCode` (compensa via
+`deleteMessageQrCode`, marca `compensation_pending` se não conseguir
+confirmar). (2) QR de outro tenant e conexão desconectada não têm teste
+dedicado nesta revisão — a validação (`ownerUid` no doc, `resolvedConnection`
+exigindo `status === "connected"`) é a mesma já validada por
+`whatsapp-management-qr-security.test.mjs`/Rules pré-existentes para o
+restante do módulo; não widened aqui por proporcionalidade, mas é um alvo
+razoável para uma revisão futura se o QR crescer em uso.
+
+### WABA (Bloqueador 3)
+
+Nenhum teste novo necessário — a decisão foi não adicionar nenhum código
+de `unsubscribe`, então não há comportamento novo pra exercitar. Os
+testes de frontend/segredos pré-existentes (`whatsapp-management-qr-security.test.mjs`,
+seção "ausência de credenciais") continuam válidos e passam.
+
 ## Próximos passos (em ordem)
 
 1. Auditoria do restante da conclusão do onboarding (token exchange,
@@ -166,11 +242,8 @@ decidir e documentar isso deliberadamente, não uma correção de bug.
    (`docs/meta-whatsapp/production-readiness.md` / `config.js`).
 3. Revisão do frontend contra o checklist da missão (botões, popup,
    cancelamento, permissões, sidebar, limite físico de conexões).
-4. Escrever testes cobrindo os 3 bloqueadores (PIN: falha antes/durante/
-   depois do registro, repetição, limpeza; QR: criação normal, repetição
-   idempotente, falha do Firestore pós-criação remota, compensação
-   sucesso/falha, update concorrente, update após delete, dois deletes,
-   QR de outro tenant, conexão desconectada).
+4. ~~Escrever testes cobrindo os 3 bloqueadores~~ — feito (ver seção
+   acima), com lacunas documentadas honestamente.
 5. Rodar suíte completa local (`pnpm run check`, `test:functions`,
    `test:unit`, `test:rules`, `test:frontend:emulator`, `test:ui:login`,
    `test:ui:flows`, `test:ui:responsive`).
