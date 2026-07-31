@@ -5,6 +5,83 @@
 > arquivo (mais o relatório entregue no chat) é a fonte da verdade para
 > retomar o trabalho.
 
+## Revisão independente reaberta — 2026-07-31
+
+- **Branch**: `feat/whatsapp-embedded-signup-production`.
+- **HEAD inicial desta sessão**: `d7271044c719a958224f6145a101604dd9ef7760`
+  (confirmado igual ao remoto depois de `fetch` + `pull --ff-only`).
+- **PR**: [#41](https://github.com/VideDigital/vide-digital/pull/41), aberto
+  como Draft para `main` no HEAD inicial acima.
+- **Worktree inicial**: limpo; nenhuma operação Git em andamento.
+- **Stashes**: os três stashes locais existentes foram identificados e não
+  serão aplicados, removidos ou modificados nesta missão.
+
+### Bloqueadores reabertos
+
+1. **Resultado ambíguo de `registerPhone`**: timeout, falha de transporte,
+   erro 5xx ou erro sem status confiável podem acontecer depois de a Meta ter
+   registrado o número. Nesses casos, a versão pendente do PIN deve ser
+   preservada, a tentativa deve virar `requires_action` e nenhuma repetição
+   automática de `registerPhone` pode ocorrer.
+2. **Concorrência e consistência do QR Code**: a versão esperada precisa ser
+   validada na mesma transação que adquire o lock; update/delete só podem
+   finalizar se ainda possuírem o token; criação local e consolidação do lock
+   precisam ser atômicas; perda do lock ou falha de compensação nunca pode
+   retornar sucesso falso.
+
+### Arquivos previstos nesta revisão
+
+- `functions/src/whatsapp/onboarding.js`
+- `functions/src/whatsapp/onboarding-core.js`
+- `functions/src/whatsapp/metaClient.js` (somente se a classificação exigir
+  metadados de erro adicionais)
+- `functions/src/whatsapp/qr.js`
+- `tests/functions/whatsapp-onboarding-core.test.mjs`
+- `tests/functions/whatsapp-management-qr-security.test.mjs`
+- `tests/emulator/whatsapp-hardening.smoke.mjs`
+- `docs/meta-whatsapp/IMPLEMENTATION_CHECKPOINT.md`
+- documentação de segurança diretamente relacionada, somente se necessário.
+
+### Testes planejados
+
+- Testes focados do core de onboarding e do hardening do QR.
+- `pnpm run check` e lint das Functions.
+- `pnpm run test:functions`, `pnpm run test:unit`, `pnpm run test:rules` e
+  `pnpm run test:frontend:emulator`.
+- `pnpm run test:ui:login`, `pnpm run test:ui:flows` e
+  `pnpm run test:ui:responsive`.
+- `pnpm run test:release`, se disponível e aplicável.
+- `git diff --check`, parsing de YAML, varredura de credenciais, conferência
+  dos exports e das 19 Functions WhatsApp.
+
+**Estado desta revisão**: em andamento. O resultado verde anterior não é
+considerado suficiente para estes dois bloqueadores até os novos cenários
+serem implementados e validados.
+
+### Etapa 1 — resultado ambíguo de `registerPhone`: implementada localmente
+
+- Criada a decisão pura `decideRegisterPhoneFailureRecovery()` com os
+  resultados `disable_pin_confirmed_not_registered` e
+  `preserve_pin_registration_unknown`.
+- `registerPhone` não executa retry automático. Timeout, rede, 5xx, auth,
+  rate limit e erros sem resposta confiável preservam o PIN pendente.
+- Somente resposta 4xx recebida e marcada pelo adaptador da Meta como
+  rejeição definitiva permite desabilitar a nova versão temporária.
+- Resultado ambíguo grava apenas `registrationOutcome: "unknown"`,
+  `recoveryRequired: true`, IDs operacionais e código de suporte; nunca PIN,
+  token ou caminho de segredo em resposta pública/log.
+- A tentativa passa para `requires_action`; o lock do tenant permanece com
+  `recoveryRequired: true`, impedindo novo onboarding/reexecução silenciosa.
+- Conclusão confirmada limpa apenas a referência pendente da tentativa e
+  mantém a versão ativa ligada à conexão.
+- Teste focado: `node --test tests/functions/whatsapp-onboarding-core.test.mjs`
+  — **26/26 aprovados**.
+- Lint/syntax das Functions: aprovado.
+- `git diff --check`: aprovado.
+
+Próxima etapa: fechar as janelas de concorrência/finalização/compensação de
+QR antes de executar as suítes completas.
+
 ## Branch e estado recebido
 
 - **Branch**: `feat/whatsapp-embedded-signup-production`

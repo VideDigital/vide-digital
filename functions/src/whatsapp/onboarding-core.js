@@ -151,9 +151,29 @@ function supersededCredentialVersions(previous = {}, current = {}) {
 // número já foi registrado na Meta com aquele PIN — só quando o registro
 // nunca aconteceu (ou o registro em si já limpou a variável antes de
 // chegar aqui, ver whatsappCompleteOnboarding).
-function decidePinSecretCleanup({ pinSecretVersion, phoneRegistered }) {
+const REGISTER_PHONE_FAILURE_RECOVERY = Object.freeze({
+  DISABLE_CONFIRMED_NOT_REGISTERED: "disable_pin_confirmed_not_registered",
+  PRESERVE_REGISTRATION_UNKNOWN: "preserve_pin_registration_unknown"
+});
+
+// A chamada de registro não é idempotente do ponto de vista do PIN. Uma
+// exceção de transporte só informa que a resposta não chegou; ela não prova
+// que a Meta deixou de aplicar o registro. Por isso, qualquer dúvida preserva
+// a versão pendente. A limpeza só é permitida antes de a chamada começar ou
+// quando o adaptador da Meta marca explicitamente uma resposta como rejeição
+// definitiva e verificada.
+function decideRegisterPhoneFailureRecovery({ callStarted = false, error } = {}) {
+  const confirmedNotRegistered = error?.registrationOutcome === "confirmed_not_registered"
+    && error?.registrationOutcomeVerified === true;
+  return !callStarted || confirmedNotRegistered
+    ? REGISTER_PHONE_FAILURE_RECOVERY.DISABLE_CONFIRMED_NOT_REGISTERED
+    : REGISTER_PHONE_FAILURE_RECOVERY.PRESERVE_REGISTRATION_UNKNOWN;
+}
+
+function decidePinSecretCleanup({ pinSecretVersion, registrationOutcome, phoneRegistered }) {
   if (!pinSecretVersion) return "none";
-  return phoneRegistered ? "preserve_pending_recovery" : "disable";
+  const outcome = registrationOutcome || (phoneRegistered ? "registered" : "not_started");
+  return ["registered", "unknown"].includes(outcome) ? "preserve_pending_recovery" : "disable";
 }
 
 function publicError(error) {
@@ -161,6 +181,7 @@ function publicError(error) {
   const mapping = {
     ASSET_NOT_FOUND: "A Meta não compartilhou uma conta ou número compatível com esta conexão.",
     ASSET_AMBIGUOUS: "A Meta retornou mais de uma opção e não foi possível confirmar com segurança qual foi escolhida.",
+    REGISTRATION_OUTCOME_UNKNOWN: "A Meta não confirmou se o número foi registrado. A tentativa foi preservada para análise segura.",
     ROUTE_CONFLICT: "Este número já está conectado a outra loja.",
     CONNECTION_LIMIT: "Sua loja já possui o limite de duas conexões.",
     TOKEN_REVOKED: "A Meta informou que a autorização não é mais válida.",
@@ -189,9 +210,11 @@ module.exports = {
   ATTEMPT_TTL_MS,
   MAX_CODE_LENGTH,
   ONBOARDING_STATUSES,
+  REGISTER_PHONE_FAILURE_RECOVERY,
   TERMINAL_STATUSES,
   createCorrelationId,
   createAttemptIdentity,
+  decideRegisterPhoneFailureRecovery,
   decidePinSecretCleanup,
   extractWabaTargets,
   normalizeIdempotencyKey,

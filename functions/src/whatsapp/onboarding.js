@@ -44,6 +44,10 @@ function timestampMillis(value) {
 }
 
 function safeAttemptResponse(data) {
+  const registrationOutcome = ["unknown", "registered", "confirmed_not_registered", "not_required"]
+    .includes(String(data.registrationOutcome || ""))
+    ? String(data.registrationOutcome)
+    : "";
   return {
     attemptId: String(data.attemptId || ""),
     status: String(data.status || "starting"),
@@ -52,6 +56,8 @@ function safeAttemptResponse(data) {
     connectionId: String(data.connectionId || ""),
     expiresAt: timestampMillis(data.expiresAt),
     supportCode: core.sanitizeSupportCode(data.correlationId),
+    registrationOutcome,
+    recoveryRequired: data.recoveryRequired === true,
     error: data.lastErrorCode ? core.publicError({ code: data.lastErrorCode }) : null
   };
 }
@@ -113,18 +119,22 @@ async function updateAttempt(db, attemptId, patch) {
 
 async function failAttempt(db, attempt, error) {
   const publicFailure = core.publicError(error);
+  const requiresAction = ["ASSET_AMBIGUOUS", "REGISTRATION_OUTCOME_UNKNOWN"].includes(publicFailure.code);
   await db.runTransaction(async (tx) => {
     const attemptRef = db.doc(`${COLLECTIONS.ONBOARDING_ATTEMPTS}/${attempt.attemptId}`);
     const lockRef = db.doc(`${COLLECTIONS.ONBOARDING_LOCKS}/${attempt.ownerUid}`);
     tx.set(attemptRef, {
-      status: publicFailure.code === "ASSET_AMBIGUOUS" ? "requires_action" : "failed",
-      step: "failed",
+      status: requiresAction ? "requires_action" : "failed",
+      step: requiresAction ? "requires_action" : "failed",
       lastErrorCode: publicFailure.code,
       lastErrorMessageSanitized: publicFailure.message,
+      recoveryRequired: requiresAction,
       finishedAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp()
     }, { merge: true });
-    tx.set(lockRef, { activeAttemptId: "", expiresAt: Timestamp.fromMillis(0), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(lockRef, requiresAction
+      ? { activeAttemptId: attempt.attemptId, recoveryRequired: true, updatedAt: FieldValue.serverTimestamp() }
+      : { activeAttemptId: "", recoveryRequired: false, expiresAt: Timestamp.fromMillis(0), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   });
   logger.error("whatsapp.onboarding.failed", core.redactForLog({
     correlationId: attempt.correlationId,
@@ -212,6 +222,9 @@ const whatsappStartOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => {
     }
 
     const lock = lockSnap.exists ? lockSnap.data() || {} : {};
+    if (lock.activeAttemptId && lock.recoveryRequired === true) {
+      throw new HttpsError("failed-precondition", "Existe uma tentativa que requer análise segura antes de iniciar outra conexão.");
+    }
     if (lock.activeAttemptId && timestampMillis(lock.expiresAt) > now && lock.activeAttemptId !== identity.attemptId) {
       throw new HttpsError("already-exists", "Já existe uma conexão sendo preparada para esta loja.");
     }
@@ -253,7 +266,7 @@ const whatsappStartOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => {
       createdAt: FieldValue.serverTimestamp(),
       updatedAt: FieldValue.serverTimestamp()
     });
-    tx.set(lockRef, { activeAttemptId: identity.attemptId, expiresAt: Timestamp.fromMillis(expiresAt), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    tx.set(lockRef, { activeAttemptId: identity.attemptId, recoveryRequired: false, expiresAt: Timestamp.fromMillis(expiresAt), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
   });
 
   const response = {
@@ -308,6 +321,7 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
   let tokenSecretVersion = "";
   let pinSecretVersion = "";
   let phoneRegistered = false;
+  let phoneRegistrationOutcome = "not_started";
   let connectionCommitted = false;
   let connectionId = "";
   let supersededCredentialVersions = [];
@@ -349,10 +363,10 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
     // registrado na Meta antes de o PIN já estar persistido no Secret
     // Manager. Ordem: gerar PIN -> criar versão protegida -> registrar
     // internamente a referência exata da versão (nunca o valor) -> só
-    // então tentar registerPhone. Se registerPhone falhar, a versão
-    // temporária é desabilitada e a referência pendente é limpa — nenhum
-    // segredo órfão, nenhuma credencial ativa tocada (nenhuma conexão
-    // ainda existe neste ponto). Se registerPhone tiver sucesso, a versão
+    // então tentar registerPhone. Se a Meta provar que rejeitou a chamada,
+    // a versão temporária pode ser desabilitada. Timeout, rede, 5xx ou erro
+    // sem resposta confiável preservam a referência pendente e exigem ação
+    // administrativa. Se registerPhone tiver sucesso, a versão
     // NUNCA é desabilitada por uma falha posterior de outra etapa — o
     // número já está de fato registrado na Meta com aquele PIN; descartar
     // o segredo criaria exatamente o cenário que esta correção evita
@@ -373,15 +387,52 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
       // valor do PIN. Permite auditoria/recuperação administrativa mesmo
       // se a Function cair logo depois do registerPhone.
       await updateAttempt(db, attemptId, { pinSecretResourcePending: pinSecretVersion });
+      let registerCallStarted = false;
       try {
+        registerCallStarted = true;
+        phoneRegistrationOutcome = "unknown";
         await provider.registerPhone({ accessToken, phoneNumberId, pin });
         phoneRegistered = true;
+        phoneRegistrationOutcome = "registered";
       } catch (registerError) {
-        if (!config.emulator) await desabilitarVersaoRecurso(pinSecretVersion);
-        pinSecretVersion = "";
-        await updateAttempt(db, attemptId, { pinSecretResourcePending: "" });
-        throw registerError;
+        const recovery = core.decideRegisterPhoneFailureRecovery({ callStarted: registerCallStarted, error: registerError });
+        if (recovery === core.REGISTER_PHONE_FAILURE_RECOVERY.DISABLE_CONFIRMED_NOT_REGISTERED) {
+          phoneRegistrationOutcome = "confirmed_not_registered";
+          if (!config.emulator) await desabilitarVersaoRecurso(pinSecretVersion);
+          pinSecretVersion = "";
+          await updateAttempt(db, attemptId, {
+            pinSecretResourcePending: "",
+            registrationOutcome: "confirmed_not_registered",
+            recoveryRequired: false
+          });
+          throw registerError;
+        }
+
+        phoneRegistrationOutcome = "unknown";
+        const unknownError = Object.assign(new Error("registration_outcome_unknown"), {
+          code: "REGISTRATION_OUTCOME_UNKNOWN",
+          registrationOutcome: "unknown",
+          recoveryRequired: true
+        });
+        try {
+          await updateAttempt(db, attemptId, {
+            connectionId,
+            phoneNumberId,
+            registrationOutcome: "unknown",
+            recoveryRequired: true,
+            lastErrorCode: "REGISTRATION_OUTCOME_UNKNOWN"
+          });
+        } catch {
+          logger.error("whatsapp.onboarding.registration_recovery_state_write_failed", {
+            correlationId: attempt.correlationId,
+            attemptId,
+            ownerUid: context.ownerUid,
+            connectionId
+          });
+        }
+        throw unknownError;
       }
+      await updateAttempt(db, attemptId, { registrationOutcome: "registered", recoveryRequired: false });
       pin = ""; // nunca mais precisa do valor em memória depois do registro
     }
 
@@ -518,7 +569,7 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
     }
 
     const credentialWarning = credentialCleanupPending ? "credential_cleanup_pending" : "";
-    await updateAttempt(db, attemptId, { status: "connected", step: "connected", connectionId, templateWarning, credentialWarning, finishedAt: FieldValue.serverTimestamp(), lastErrorCode: "" });
+    await updateAttempt(db, attemptId, { status: "connected", step: "connected", connectionId, templateWarning, credentialWarning, finishedAt: FieldValue.serverTimestamp(), lastErrorCode: "", pinSecretResourcePending: "", registrationOutcome: phoneRegistered ? "registered" : "not_required", recoveryRequired: false });
     await writeAudit({ ownerUid: context.ownerUid, authUid: context.authUid, module: "whatsapp", targetId: connectionId, action: attempt.mode === "reconnect" ? "whatsapp.reconexao_concluida" : "whatsapp.onboarding_concluido", risk: "high", summary: attempt.mode === "reconnect" ? "Reconexão oficial do WhatsApp concluída." : "Conexão oficial do WhatsApp concluída.", source: "function", correlationId: attempt.correlationId, origin: attempt.origin, code: credentialWarning || templateWarning || "CONNECTED" });
     logger.info("whatsapp.onboarding.connected", { correlationId: attempt.correlationId, attemptId, ownerUid: context.ownerUid, connectionId, templateWarning, credentialCleanupPending });
     return { ok: true, status: "connected", connectionId, templateWarning, credentialWarning, supportCode: attempt.correlationId };
@@ -533,7 +584,7 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
       // com aquele PIN — descartar o segredo aqui reproduziria o exato
       // cenário que esta correção evita. Vira pendência recuperável,
       // nunca um segredo destruído.
-      const pinCleanup = core.decidePinSecretCleanup({ pinSecretVersion, phoneRegistered });
+      const pinCleanup = core.decidePinSecretCleanup({ pinSecretVersion, phoneRegistered, registrationOutcome: phoneRegistrationOutcome });
       const cleanups = [tokenSecretVersion && desabilitarVersaoRecurso(tokenSecretVersion)];
       if (pinCleanup === "disable") cleanups.push(desabilitarVersaoRecurso(pinSecretVersion));
       await Promise.allSettled(cleanups.filter(Boolean));
@@ -543,7 +594,8 @@ const whatsappCompleteOnboarding = onCall(APP_CHECK_OPTIONS, async (request) => 
           attemptId,
           ownerUid: context.ownerUid,
           connectionId,
-          pinSecretVersion,
+          registrationOutcome: phoneRegistrationOutcome,
+          recoveryRequired: true,
           note: "Numero registrado na Meta com PIN preservado, mas a conexao nao foi concluida. Requer recuperacao administrativa (nao reexecutar registerPhone)."
         }));
       }

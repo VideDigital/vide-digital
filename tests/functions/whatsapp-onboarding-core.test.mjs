@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { afterEach, describe, it } from "node:test";
 import config from "../../functions/src/whatsapp/config.js";
+import { ERROR_CODES } from "../../functions/src/whatsapp/constants.js";
+import { criarMetaClient } from "../../functions/src/whatsapp/metaClient.js";
 import core from "../../functions/src/whatsapp/onboarding-core.js";
 
 const ORIGINAL_ENV = { ...process.env };
@@ -131,21 +133,86 @@ describe("WhatsApp Embedded Signup — descoberta server-side e sanitização", 
 
 describe("WhatsApp Embedded Signup — ciclo seguro do PIN (revisão 2026-07-31)", () => {
   it("sem versão de PIN criada (falha antes do registro), nunca há o que limpar", () => {
-    assert.equal(core.decidePinSecretCleanup({ pinSecretVersion: "", phoneRegistered: false }), "none");
+    assert.equal(core.decidePinSecretCleanup({ pinSecretVersion: "", registrationOutcome: "not_started" }), "none");
   });
 
-  it("registerPhone falhou (número NUNCA foi registrado) -> desabilita a versão temporária", () => {
-    assert.equal(core.decidePinSecretCleanup({
-      pinSecretVersion: "projects/p/secrets/vide-whatsapp-pin-abc/versions/1",
-      phoneRegistered: false
-    }), "disable");
+  it("falha antes da chamada permite limpar somente a versão temporária", () => {
+    assert.equal(core.decideRegisterPhoneFailureRecovery({ callStarted: false }),
+      core.REGISTER_PHONE_FAILURE_RECOVERY.DISABLE_CONFIRMED_NOT_REGISTERED);
   });
 
-  it("registerPhone teve sucesso mas uma etapa POSTERIOR falhou -> preserva o PIN, nunca destrói", () => {
+  it("sucesso de registerPhone preserva o PIN para continuar o onboarding", async () => {
+    let calls = 0;
+    const client = criarMetaClient({ fetchImpl: async () => {
+      calls += 1;
+      return { ok: true, status: 200, json: async () => ({ success: true }) };
+    } });
+    await client.registerPhone({ accessToken: "token-de-teste", phoneNumberId: "12345", pin: "0".repeat(6) });
+    assert.equal(calls, 1);
     assert.equal(core.decidePinSecretCleanup({
       pinSecretVersion: "projects/p/secrets/vide-whatsapp-pin-abc/versions/1",
-      phoneRegistered: true
+      registrationOutcome: "registered"
     }), "preserve_pending_recovery");
+  });
+
+  for (const [name, error] of [
+    ["timeout", { name: "AbortError", code: ERROR_CODES.PROVIDER_UNAVAILABLE }],
+    ["falha de rede", { code: ERROR_CODES.PROVIDER_UNAVAILABLE, providerStatus: null }],
+    ["erro 5xx", { code: ERROR_CODES.PROVIDER_UNAVAILABLE, providerStatus: 503 }],
+    ["erro desconhecido", new Error("falha-sem-classificacao")]
+  ]) {
+    it(`${name} preserva o PIN porque o resultado do registro é ambíguo`, () => {
+      assert.equal(core.decideRegisterPhoneFailureRecovery({ callStarted: true, error }),
+        core.REGISTER_PHONE_FAILURE_RECOVERY.PRESERVE_REGISTRATION_UNKNOWN);
+      assert.equal(core.decidePinSecretCleanup({
+        pinSecretVersion: "projects/p/secrets/vide-whatsapp-pin-abc/versions/1",
+        registrationOutcome: "unknown"
+      }), "preserve_pending_recovery");
+    });
+  }
+
+  it("registerPhone não repete timeout/5xx automaticamente e mantém resultado desconhecido", async () => {
+    let calls = 0;
+    const client = criarMetaClient({ fetchImpl: async () => {
+      calls += 1;
+      return { ok: false, status: 503, json: async () => ({ error: { type: "ServiceUnavailable" } }) };
+    } });
+    await assert.rejects(
+      client.registerPhone({ accessToken: "token-de-teste", phoneNumberId: "12345", pin: "0".repeat(6) }),
+      (error) => {
+        assert.equal(error.code, ERROR_CODES.PROVIDER_UNAVAILABLE);
+        assert.equal(error.providerStatus, 503);
+        assert.equal(core.decideRegisterPhoneFailureRecovery({ callStarted: true, error }),
+          core.REGISTER_PHONE_FAILURE_RECOVERY.PRESERVE_REGISTRATION_UNKNOWN);
+        return true;
+      }
+    );
+    assert.equal(calls, 1);
+  });
+
+  it("rejeição 4xx comprovada pela Meta permite desabilitar a versão temporária", async () => {
+    const client = criarMetaClient({ fetchImpl: async () => ({
+      ok: false,
+      status: 400,
+      json: async () => ({ error: { code: 100, type: "OAuthException" } })
+    }) });
+    await assert.rejects(
+      client.registerPhone({ accessToken: "token-de-teste", phoneNumberId: "12345", pin: "0".repeat(6) }),
+      (error) => {
+        assert.equal(error.registrationOutcomeVerified, true);
+        assert.equal(core.decideRegisterPhoneFailureRecovery({ callStarted: true, error }),
+          core.REGISTER_PHONE_FAILURE_RECOVERY.DISABLE_CONFIRMED_NOT_REGISTERED);
+        return true;
+      }
+    );
+  });
+
+  it("mensagem pública de resultado desconhecido é controlada e não contém segredo", () => {
+    const publicFailure = core.publicError({ code: "REGISTRATION_OUTCOME_UNKNOWN" });
+    assert.equal(publicFailure.code, "REGISTRATION_OUTCOME_UNKNOWN");
+    assert.match(publicFailure.message, /não confirmou.*preservada.*análise segura/i);
+    assert.equal(JSON.stringify(publicFailure).includes("projects/"), false);
+    assert.equal(JSON.stringify(publicFailure).includes("pinSecretResourcePending"), false);
   });
 });
 
