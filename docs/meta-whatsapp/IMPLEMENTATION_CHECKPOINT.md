@@ -82,7 +82,44 @@ serem implementados e validados.
 Próxima etapa: fechar as janelas de concorrência/finalização/compensação de
 QR antes de executar as suítes completas.
 
-## Branch e estado recebido
+### Etapa 2 — concorrência e consistência do QR: implementada localmente
+
+- `expectedUpdatedAtMs` passou para a mesma transação que adquire o lock.
+- Locks de update/delete contêm token, `operationType`, início, expiração e
+  `baseUpdatedAtMs`; somente o token atual pode finalizar ou liberar.
+- Finalização de update e delete retorna `{ applied, reason }`. Perda do lock
+  não altera o estado local, não remove o lock novo e retorna erro controlado.
+- Criação grava QR e lock `active` na mesma transação. Estados remotos
+  ambíguos não são reclamados automaticamente com a mesma idempotency key.
+- Falha local após criação remota tenta compensação; falha da compensação
+  preserva `remoteCodePendingCleanup` em `whatsapp_qr_locks`.
+- Divergência Meta/Firestore gera reconciliação privada sanitizada, sem token,
+  PIN, segredo ou header de autorização.
+- Escritas QR no Meta Client não executam retry automático.
+- Testes focados de Functions: **37/37 aprovados**.
+- `pnpm run test:frontend:emulator`: aprovado, incluindo criação atômica,
+  versão dentro do lock, lock perdido, update concorrente, lock expirado,
+  delete com lock perdido, delete idempotente, tenant diferente e conexão
+  desconectada. Nenhuma chamada à Meta real.
+
+Próxima etapa: revisão final do diff e execução de todas as suítes obrigatórias.
+
+### Commits locais desta revisão até aqui
+
+- `cf8838b` — `fix(whatsapp): preserve PIN on ambiguous registration result`
+- `dadfaaa` — `fix(whatsapp): close QR concurrency windows`
+- `fd654c4` — `test(whatsapp): cover recovery and lost-lock scenarios`
+
+O push ainda não foi feito. As suítes completas e o Quality Gate remoto ainda
+estão pendentes; este documento não declara o PR pronto neste ponto.
+
+## Histórico da sessão anterior (não representa o estado atual)
+
+As seções abaixo preservam o relatório que acompanhou o HEAD `d7271044`,
+antes da revisão independente reaberta no início deste documento. Onde houver
+divergência, prevalecem as etapas 1 e 2 acima e os resultados do HEAD atual.
+
+### Branch e estado recebido naquela sessão
 
 - **Branch**: `feat/whatsapp-embedded-signup-production`
 - **Base esperada (confirmada)**: `8ff652d5d564c4bcdd3b1d4fc9466511008a76af`

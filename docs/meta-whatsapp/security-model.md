@@ -54,8 +54,8 @@ desta entrega modifica IAM.
 Cada conexão nova recebe secrets determinísticos por hash opaco e uma nova
 versão. O Firestore guarda somente resource names validados e versões exatas.
 Em falha antes do commit, a compensação desabilita as versões recém-criadas
-— **exceto o PIN quando o número já foi registrado na Meta** (ver seção
-seguinte). Após uma reconexão confirmada e gravada, as versões exatas
+— **exceto o PIN quando o número foi registrado ou o resultado da chamada é
+ambíguo** (ver seção seguinte). Após uma reconexão confirmada e gravada, as versões exatas
 substituídas são desabilitadas; falhas nessa limpeza geram
 `credentialCleanupPending` sem invalidar a nova conexão.
 Ao desconectar, apenas as versões exatas daquela conexão são desabilitadas;
@@ -78,25 +78,36 @@ estrita e nunca invertida:
    depois;
 4. só então o número é registrado na Meta com esse PIN.
 
-Se o registro na Meta falhar, a versão criada é desabilitada e a referência
-pendente é limpa — nenhum segredo órfão, nenhuma credencial ativa é tocada
-(nenhuma conexão existe ainda nesse ponto). Se o registro tiver sucesso mas
-uma etapa **posterior** falhar (assinatura do webhook, gravação da conexão,
-etc.), o PIN **nunca** é desabilitado — o número já está de fato registrado
-na Meta com aquele valor; descartar o segredo reproduziria exatamente o
-cenário que esta correção evita (número registrado, PIN perdido). Esse caso
-vira uma pendência recuperável: log estruturado
-(`whatsapp.onboarding.phone_registered_connection_incomplete`), auditoria e
-intervenção administrativa — nunca destruição automática do PIN.
+`registerPhone` não recebe retry automático. Timeout, falha de rede, resposta
+5xx, auth/rate limit ou erro sem `providerStatus` confiável não provam que a
+Meta deixou de aplicar o registro. Nesses casos:
+
+- a versão e `pinSecretResourcePending` são preservadas;
+- a tentativa fica `requires_action`, com `registrationOutcome: "unknown"`
+  e `recoveryRequired: true`;
+- o lock do tenant impede novo onboarding e novo PIN até intervenção
+  administrativa;
+- retorno público, erro e logs contêm somente código de suporte e metadados
+  operacionais sanitizados — nunca o PIN ou caminho do segredo.
+
+Somente uma resposta 4xx recebida diretamente da Meta e marcada pelo
+adaptador como rejeição definitiva (`confirmed_not_registered`) permite
+desabilitar a nova versão temporária e limpar a referência pendente. Uma
+falha antes de a chamada começar também é segura para limpeza. Em qualquer
+dúvida, o comportamento é preservar.
+
+Se o registro tiver sucesso mas uma etapa **posterior** falhar (assinatura do
+webhook, gravação da conexão etc.), o PIN também nunca é desabilitado. Esse
+caso vira pendência recuperável e exige intervenção administrativa.
 
 **Limitação conhecida**: se a própria invocação da Cloud Function morrer
 (crash do processo, não um erro JS capturável) exatamente entre o registro
 bem-sucedido e a gravação final da conexão, o fluxo atual não retoma
 automaticamente essa tentativa — uma nova chamada de `whatsappCompleteOnboarding`
 com o mesmo `attemptId` é rejeitada (`"Esta tentativa já foi processada"`),
-o que impede duplo registro/PIN, mas exige que o usuário inicie uma nova
-tentativa e um administrador recupere a anterior usando o log estruturado
-acima. Retomada automática de uma tentativa parcialmente executada
+  o que impede duplo registro/PIN. O lock com `recoveryRequired` também
+  impede iniciar outra tentativa silenciosamente; um administrador precisa
+  reconciliar o estado antes de liberar novo onboarding. Retomada automática de uma tentativa parcialmente executada
 exigiria transformar `whatsappCompleteOnboarding` numa máquina de estados
 resumível — fora do escopo desta correção (evita reescrever o fluxo
 inteiro por um risco residual de janela muito estreita, já mitigado pela
@@ -134,6 +145,27 @@ o comportamento destrutivo não foi inventado.
 - Recuperação manual (revisão de assinaturas ativas via Graph API,
   eventual desinscrição deliberada) continua possível fora de banda por um
   administrador, mas nunca automatizada por este código.
+
+## Consistência e reconciliação dos QR Codes
+
+- `expectedUpdatedAtMs` é conferido na mesma transação que valida tenant,
+  verifica o lock anterior e grava o novo `operationLock`.
+- O lock registra token, tipo da operação, início, expiração e versão-base.
+  O TTL é superior ao timeout das escritas do Meta Client, que não fazem
+  retry automático.
+- Update e delete finalizam em transação separada e só aplicam se o token
+  ainda pertencer à operação. Perda do lock retorna `aborted`, nunca sucesso.
+- Release também devolve `{ applied, reason }` e nunca remove o token de
+  outra operação.
+- Depois da criação remota, o documento `whatsapp_qr_codes/{qrId}` e o lock
+  `active` com o mesmo `qrId` são gravados na mesma transação.
+- Falha de consolidação tenta excluir o QR remoto. Falha dessa compensação
+  mantém `compensation_pending` e `remoteCodePendingCleanup` na coleção
+  privada `whatsapp_qr_locks`.
+- Update/delete com resultado remoto ambíguo ou perda do token registram
+  `reconciliation_pending` somente com owner, conexão, QR, operação,
+  correlation ID, motivo sanitizado e timestamps. Tokens e segredos nunca
+  entram nessa coleção.
 
 ## App Check
 
