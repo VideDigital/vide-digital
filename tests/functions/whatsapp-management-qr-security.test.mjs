@@ -70,6 +70,29 @@ describe("WhatsApp Meta client — endpoints oficiais de Embedded Signup e QR", 
     assert.equal(JSON.parse(fetchImpl.calls[1].options.body).code, "ABCD1234");
     assert.equal(fetchImpl.calls[2].options.method, "DELETE");
   });
+
+  it("não repete automaticamente escritas QR com resultado remoto ambíguo", async () => {
+    let calls = 0;
+    const client = criarMetaClient({ fetchImpl: async () => {
+      calls += 1;
+      return { ok: false, status: 503, json: async () => ({ error: { type: "ServiceUnavailable" } }) };
+    } });
+    await assert.rejects(client.createMessageQrCode({
+      accessToken: "fake",
+      phoneNumberId: "12345",
+      message: "Olá",
+      format: "SVG"
+    }));
+    assert.equal(calls, 1);
+  });
+
+  it("compensação informa explicitamente sucesso ou pendência sem expor credenciais", async () => {
+    const compensated = await qr.__test.compensateRemoteQr({ emulator: false, deleteRemote: async () => ({ success: true }) });
+    const pending = await qr.__test.compensateRemoteQr({ emulator: false, deleteRemote: async () => { throw new Error("network"); } });
+    assert.deepEqual(compensated, { compensated: true, status: "failed" });
+    assert.deepEqual(pending, { compensated: false, status: "compensation_pending" });
+    assert.ok(qr.__test.LOCK_TTL_MS >= 60_000, "TTL precisa superar com folga o timeout sem retry do Meta Client");
+  });
 });
 
 describe("WhatsApp frontend — ausência de credenciais e integração não oficial", () => {

@@ -4,6 +4,7 @@ import config from "../../functions/src/whatsapp/config.js";
 import { ERROR_CODES } from "../../functions/src/whatsapp/constants.js";
 import { criarMetaClient } from "../../functions/src/whatsapp/metaClient.js";
 import core from "../../functions/src/whatsapp/onboarding-core.js";
+import onboarding from "../../functions/src/whatsapp/onboarding.js";
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -213,6 +214,30 @@ describe("WhatsApp Embedded Signup — ciclo seguro do PIN (revisão 2026-07-31)
     assert.match(publicFailure.message, /não confirmou.*preservada.*análise segura/i);
     assert.equal(JSON.stringify(publicFailure).includes("projects/"), false);
     assert.equal(JSON.stringify(publicFailure).includes("pinSecretResourcePending"), false);
+  });
+
+  it("status requires_action nunca retorna referência do PIN, token ou valor secreto", () => {
+    const response = onboarding.safeAttemptResponse({
+      attemptId: "waon_teste",
+      status: "requires_action",
+      step: "requires_action",
+      connectionId: "wac_teste",
+      correlationId: "wa_support",
+      registrationOutcome: "unknown",
+      recoveryRequired: true,
+      lastErrorCode: "REGISTRATION_OUTCOME_UNKNOWN",
+      pinSecretResourcePending: "projects/p/secrets/pin/versions/7",
+      tokenSecretResource: "projects/p/secrets/token/versions/8",
+      pin: "0".repeat(6)
+    });
+    assert.equal(response.status, "requires_action");
+    assert.equal(response.registrationOutcome, "unknown");
+    assert.equal(response.recoveryRequired, true);
+    const serialized = JSON.stringify(response);
+    assert.equal(serialized.includes("projects/"), false);
+    assert.equal(serialized.includes("pinSecretResourcePending"), false);
+    assert.equal(serialized.includes("tokenSecretResource"), false);
+    assert.equal(serialized.includes("0".repeat(6)), false);
   });
 });
 

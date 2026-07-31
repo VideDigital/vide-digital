@@ -12,6 +12,7 @@ import { connectFirestoreEmulator, getFirestore } from "firebase/firestore";
 import { connectFunctionsEmulator, getFunctions, httpsCallable } from "firebase/functions";
 import { getApps as getAdminApps, initializeApp as initializeAdminApp } from "firebase-admin/app";
 import { getFirestore as getAdminFirestore, Timestamp as AdminTimestamp } from "firebase-admin/firestore";
+import qrModule from "../../functions/src/whatsapp/qr.js";
 
 const PROJECT_ID = "demo-vide-hub";
 
@@ -88,6 +89,30 @@ assert.equal(second.qrCode.id, first.qrCode.id, "repetir a mesma idempotencyKey 
 console.log("whatsapp-hardening: criação idempotente de QR OK.");
 
 const qrId = first.qrCode.id;
+const qrRef = adminDb().doc(`whatsapp_qr_codes/${qrId}`);
+
+// ---------- QR: documento + lock active são consolidados juntos ----------
+const createdQrSnap = await qrRef.get();
+assert.equal(createdQrSnap.exists, true);
+const lockQuery = await adminDb().collection("whatsapp_qr_locks").where("qrId", "==", qrId).get();
+const activeCreationLock = lockQuery.docs.find((doc) => doc.data()?.status === "active");
+assert.ok(activeCreationLock, "criação consolidada precisa ter lock active com o mesmo qrId");
+assert.equal(activeCreationLock.data().remoteCodePendingCleanup || "", "");
+console.log("whatsapp-hardening: QR + lock active consolidados atomicamente OK.");
+
+// ---------- QR: versão esperada é verificada dentro da aquisição ----------
+const versionBeforeRace = createdQrSnap.data().updatedAt.toMillis();
+await qrRef.set({ updatedAt: AdminTimestamp.fromMillis(versionBeforeRace + 1) }, { merge: true });
+await assert.rejects(
+  qrModule.__test.acquireQrDocLock(adminDb(), qrRef, {
+    ownerUid: auth.currentUser.uid,
+    expectedUpdatedAtMs: versionBeforeRace,
+    operationType: "update"
+  }),
+  (error) => error?.code === "failed-precondition"
+);
+assert.equal((await qrRef.get()).data().operationLock, undefined, "versão antiga não pode adquirir lock");
+console.log("whatsapp-hardening: expectedUpdatedAtMs validado atomicamente na aquisição OK.");
 
 // ---------- QR: update com expectedUpdatedAtMs desatualizado é rejeitado ----------
 let staleRejected = false;
@@ -105,7 +130,6 @@ console.log("whatsapp-hardening: rejeição de versão otimista desatualizada OK
 // Emulator local é inerentemente não-determinística (timing de I/O), então
 // simulamos o lock diretamente via Admin SDK (mesmo estado que
 // acquireQrDocLock() gravaria) em vez de tentar vencer uma corrida.
-const qrRef = adminDb().doc(`whatsapp_qr_codes/${qrId}`);
 await qrRef.set({ operationLock: { token: "lock-simulado-teste", expiresAt: AdminTimestamp.fromMillis(Date.now() + 60000) } }, { merge: true });
 let concurrentRejected = false;
 try {
@@ -117,11 +141,95 @@ try {
 assert.equal(concurrentRejected, true, "update com lock ativo em andamento deveria ser rejeitado, nunca aceito silenciosamente");
 console.log("whatsapp-hardening: lock de operação em andamento rejeita update concorrente OK.");
 
+// ---------- QR: operação antiga nunca finaliza depois de perder o token ----------
+await qrRef.set({ operationLock: { token: "", expiresAt: AdminTimestamp.fromMillis(0) } }, { merge: true });
+const acquiredForLostLock = await qrModule.__test.acquireQrDocLock(adminDb(), qrRef, {
+  ownerUid: auth.currentUser.uid,
+  expectedUpdatedAtMs: (await qrRef.get()).data().updatedAt.toMillis(),
+  operationType: "update"
+});
+await qrRef.set({
+  operationLock: {
+    token: "novo-lock-concorrente",
+    operationType: "update",
+    startedAt: AdminTimestamp.now(),
+    expiresAt: AdminTimestamp.fromMillis(Date.now() + 60000),
+    baseUpdatedAtMs: acquiredForLostLock.baseUpdatedAtMs
+  }
+}, { merge: true });
+const labelBeforeLostFinish = (await qrRef.get()).data().label;
+const lostUpdateFinish = await qrModule.__test.finalizeQrUpdate(adminDb(), qrRef, {
+  ownerUid: auth.currentUser.uid,
+  token: acquiredForLostLock.token,
+  patch: { label: "Operação antiga não pode vencer" }
+});
+assert.deepEqual(lostUpdateFinish, { applied: false, reason: "lock_lost" });
+assert.equal((await qrRef.get()).data().label, labelBeforeLostFinish, "operação antiga não pode alterar o estado local");
+const oldRelease = await qrModule.__test.releaseQrDocLock(adminDb(), qrRef, acquiredForLostLock.token);
+assert.deepEqual(oldRelease, { applied: false, reason: "lock_lost" });
+console.log("whatsapp-hardening: operação que perdeu o token não finaliza nem remove lock novo OK.");
+
 // ---------- QR: lock expirado é reclamável (não trava o recurso pra sempre) ----------
 await qrRef.set({ operationLock: { token: "lock-expirado-teste", expiresAt: AdminTimestamp.fromMillis(Date.now() - 1000) } }, { merge: true });
 const afterExpiredLock = await call("whatsappUpdateQrCode", { qrId, label: "Depois do lock expirar", message: "Deve funcionar normalmente" });
 assert.equal(afterExpiredLock.ok, true, "um lock expirado nunca deveria travar o recurso permanentemente");
 console.log("whatsapp-hardening: lock expirado é reclamado normalmente (não trava o recurso pra sempre) OK.");
+
+// ---------- QR: finalização de delete também exige o mesmo token ----------
+const deleteLock = await qrModule.__test.acquireQrDocLock(adminDb(), qrRef, {
+  ownerUid: auth.currentUser.uid,
+  operationType: "delete"
+});
+await qrRef.set({
+  operationLock: {
+    token: "delete-lock-substituto",
+    operationType: "delete",
+    startedAt: AdminTimestamp.now(),
+    expiresAt: AdminTimestamp.fromMillis(Date.now() + 60000)
+  }
+}, { merge: true });
+const lostDeleteFinish = await qrModule.__test.finalizeQrDelete(adminDb(), qrRef, {
+  ownerUid: auth.currentUser.uid,
+  token: deleteLock.token
+});
+assert.deepEqual(lostDeleteFinish, { applied: false, reason: "lock_lost" });
+assert.equal((await qrRef.get()).exists, true, "delete sem o token atual nunca exclui o documento");
+console.log("whatsapp-hardening: delete que perdeu o lock não remove o documento local OK.");
+
+// ---------- QR: outro tenant não descobre nem altera o recurso ----------
+await qrRef.set({ operationLock: { token: "lock-expirado-tenant", expiresAt: AdminTimestamp.fromMillis(Date.now() - 1000) } }, { merge: true });
+await signOut(auth);
+await signInWithEmailAndPassword(auth, "owner.basic@local.test", "Local123!basic");
+let crossTenantRejected = false;
+try {
+  await call("whatsappUpdateQrCode", { qrId, label: "Outro tenant", message: "Não deve alterar" });
+} catch (error) {
+  crossTenantRejected = true;
+  assert.ok(["functions/not-found", "functions/permission-denied"].includes(error.code), `tenant diferente recebeu ${error.code}`);
+}
+assert.equal(crossTenantRejected, true);
+await signOut(auth);
+await signInWithEmailAndPassword(auth, "owner.pro@local.test", "Local123!pro");
+console.log("whatsapp-hardening: isolamento cross-tenant do QR OK.");
+
+// ---------- QR: conexão desconectada rejeita criação antes da Meta ----------
+const connectionRef = adminDb().doc(`whatsapp_connections/${connectionId}`);
+await connectionRef.set({ status: "disconnected" }, { merge: true });
+let disconnectedRejected = false;
+try {
+  await call("whatsappCreateQrCode", {
+    connectionId,
+    label: "Conexão inativa",
+    message: "Não deve criar",
+    idempotencyKey: randomIdempotencyKey("disconnected")
+  });
+} catch (error) {
+  disconnectedRejected = true;
+  assert.equal(error.code, "functions/failed-precondition");
+}
+assert.equal(disconnectedRejected, true);
+await connectionRef.set({ status: "connected" }, { merge: true });
+console.log("whatsapp-hardening: conexão desconectada rejeitada antes da criação QR OK.");
 
 // ---------- QR: delete é idempotente (segunda exclusão do mesmo QR não falha) ----------
 const del1 = await call("whatsappDeleteQrCode", { qrId });
