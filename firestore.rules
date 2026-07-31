@@ -1799,6 +1799,14 @@ allow update: if (
       allow read, write: if false;
     }
 
+    // Lock de idempotência de criação (chave = hash de ownerUid+idempotencyKey)
+    // e lock de operação em andamento (compartilha a mesma coleção,
+    // chaveado por qrId nesse caso) — nunca lido nem escrito pelo
+    // dashboard, só pelas callables de QR Code.
+    match /whatsapp_qr_locks/{lockId} {
+      allow read, write: if false;
+    }
+
     // Idempotência/roteamento/dedupe — nunca lidos pelo dashboard,
     // sempre resolvidos server-side. Negar leitura evita inclusive que
     // um cliente descubra por tentativa/erro quais wamid/telefone já

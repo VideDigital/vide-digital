@@ -522,7 +522,19 @@ export function criarWhatsappOficialController({
         const payload = { qrId, connectionId: selected === "legacy" ? "" : selected, legacy: selected === "legacy", label: byId("whatsapp-qr-label").value.trim(), message: byId("whatsapp-qr-mensagem").value.trim(), format: "SVG" };
         const errorBox = byId("whatsapp-qr-erro");
         try {
-            if (qrId) await chamarUpdateQrCode(payload); else await chamarCreateQrCode(payload);
+            if (qrId) {
+                // Versão otimista: envia o updatedAt que a tela tinha ao abrir o
+                // modal — se outra sessão já alterou este QR nesse meio-tempo, o
+                // backend rejeita em vez de sobrescrever silenciosamente.
+                const conhecido = state.qrCodes.find((item) => item.id === qrId);
+                if (conhecido?.updatedAt) payload.expectedUpdatedAtMs = conhecido.updatedAt;
+                await chamarUpdateQrCode(payload);
+            } else {
+                // Identificador idempotente por tentativa de criação — um duplo
+                // clique ou um retry de rede nunca cria dois QR Codes na Meta.
+                payload.idempotencyKey = (crypto.randomUUID ? crypto.randomUUID() : `qr-${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, "").padEnd(20, "0");
+                await chamarCreateQrCode(payload);
+            }
             byId("whatsapp-qr-modal").close(); notify(qrId ? "QR Code atualizado." : "QR Code criado.", "success"); await load({ force: true });
         } catch (error) { errorBox.textContent = error?.message || "Não foi possível salvar o QR Code."; errorBox.classList.remove("hidden"); }
     }

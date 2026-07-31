@@ -123,6 +123,7 @@ const COLLECTIONS = Object.freeze({
   ONBOARDING_ATTEMPTS: "whatsapp_onboarding_attempts",
   ONBOARDING_LOCKS: "whatsapp_onboarding_locks",
   QR_CODES: "whatsapp_qr_codes",
+  QR_LOCKS: "whatsapp_qr_locks",
   TEMPLATES: "whatsapp_templates",
   MESSAGE_MAP: "whatsapp_message_map",
   WEBHOOK_EVENTS: "whatsapp_webhook_events",
