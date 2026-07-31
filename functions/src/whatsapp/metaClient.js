@@ -290,18 +290,20 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
       return chamarGraphApi(`${phoneNumberId}/message_qrdls`, {
         accessToken,
         method: "POST",
-        body: { prefilled_message: message, generate_qr_image: format === "PNG" ? "PNG" : "SVG" }
+        body: { prefilled_message: message, generate_qr_image: format === "PNG" ? "PNG" : "SVG" },
+        maxRetries: 0
       });
     },
     async updateMessageQrCode({ accessToken, phoneNumberId, code, message }) {
       return chamarGraphApi(`${phoneNumberId}/message_qrdls`, {
         accessToken,
         method: "POST",
-        body: { code, prefilled_message: message }
+        body: { code, prefilled_message: message },
+        maxRetries: 0
       });
     },
     async deleteMessageQrCode({ accessToken, phoneNumberId, code }) {
-      return chamarGraphApi(`${phoneNumberId}/message_qrdls/${code}`, { accessToken, method: "DELETE" });
+      return chamarGraphApi(`${phoneNumberId}/message_qrdls/${code}`, { accessToken, method: "DELETE", maxRetries: 0 });
     },
     async getMediaMetadata({ accessToken, mediaId }) {
       return chamarGraphApi(`${mediaId}`, { accessToken });

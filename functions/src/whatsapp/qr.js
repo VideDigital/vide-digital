@@ -22,8 +22,8 @@ const metaClient = criarMetaClient();
 // (chave = hash de ownerUid+idempotencyKey do cliente) que registra o
 // progresso preparing -> creating_remote -> saving_local -> active, ou
 // failed/compensation_pending em caso de erro. Update/delete usam um lock
-// curto de operação NO PRÓPRIO documento do QR (nunca em torno da chamada
-// externa — só protege a leitura/escrita local), com expiração, e um
+// curto de operação NO PRÓPRIO documento do QR, mantido durante a chamada
+// externa e sempre revalidado por token antes da finalização local, com um
 // checkpoint opcional de versão otimista via updatedAt.
 const LOCK_TTL_MS = 2 * 60 * 1000;
 
@@ -96,37 +96,175 @@ function newLockToken() {
   return crypto.randomBytes(12).toString("hex");
 }
 
-// Lock curto DENTRO de uma transação (nunca em torno de uma chamada
-// externa) — só serializa quem pode ler/escrever o documento local a
-// seguir. Se já houver um lock ativo e não expirado, rejeita
-// explicitamente em vez de aceitar a segunda operação silenciosamente.
-async function acquireQrDocLock(db, ref, ownerUid) {
+// A aquisição valida existência, tenant, versão otimista e lock anterior na
+// MESMA transação. A chamada externa acontece somente depois do commit.
+async function acquireQrDocLock(db, ref, { ownerUid, expectedUpdatedAtMs, operationType, allowMissing = false }) {
   const token = newLockToken();
   const now = Date.now();
-  await db.runTransaction(async (tx) => {
+  return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    if (!snap.exists) throw new HttpsError("not-found", "QR Code não encontrado.");
+    if (!snap.exists) {
+      if (allowMissing) return { alreadyDeleted: true, token: "", current: null, baseUpdatedAtMs: 0 };
+      throw new HttpsError("not-found", "QR Code não encontrado.");
+    }
     const data = snap.data() || {};
     if (data.ownerUid !== ownerUid) throw new HttpsError("not-found", "QR Code não encontrado.");
+    const baseUpdatedAtMs = millisOf(data.updatedAt);
+    if (Number.isFinite(expectedUpdatedAtMs) && expectedUpdatedAtMs > 0 && baseUpdatedAtMs !== expectedUpdatedAtMs) {
+      throw new HttpsError("failed-precondition", "Este QR Code foi alterado em outra sessão. Atualize a página e tente novamente.");
+    }
     const lock = data.operationLock;
     if (lock && millisOf(lock.expiresAt) > now) {
       throw new HttpsError("aborted", "Já existe uma operação em andamento para este QR Code. Tente novamente em instantes.");
     }
-    tx.set(ref, { operationLock: { token, expiresAt: Timestamp.fromMillis(now + LOCK_TTL_MS) } }, { merge: true });
+    tx.set(ref, {
+      operationLock: {
+        token,
+        operationType,
+        startedAt: Timestamp.fromMillis(now),
+        expiresAt: Timestamp.fromMillis(now + LOCK_TTL_MS),
+        baseUpdatedAtMs
+      }
+    }, { merge: true });
+    return { alreadyDeleted: false, token, current: data, baseUpdatedAtMs };
   });
-  return token;
 }
 
-// Libera o lock só se ele ainda pertencer a este token — evita que uma
-// operação atrasada (já expirada e reclamada por outra) sobrescreva o
-// progresso de quem assumiu depois.
-async function releaseQrDocLock(db, ref, token, extra = {}) {
-  await db.runTransaction(async (tx) => {
+async function finalizeQrUpdate(db, ref, { ownerUid, token, patch }) {
+  return db.runTransaction(async (tx) => {
     const snap = await tx.get(ref);
-    if (!snap.exists) return;
+    if (!snap.exists) return { applied: false, reason: "not_found" };
     const current = snap.data() || {};
-    if (current.operationLock?.token !== token) return;
-    tx.set(ref, { ...extra, operationLock: FieldValue.delete(), updatedAt: extra.updatedAt || FieldValue.serverTimestamp() }, { merge: true });
+    if (current.ownerUid !== ownerUid) return { applied: false, reason: "owner_mismatch" };
+    if (current.operationLock?.token !== token) return { applied: false, reason: "lock_lost" };
+    tx.set(ref, { ...patch, operationLock: FieldValue.delete(), updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    return { applied: true, reason: "updated" };
+  });
+}
+
+async function finalizeQrDelete(db, ref, { ownerUid, token }) {
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { applied: false, reason: "not_found" };
+    const current = snap.data() || {};
+    if (current.ownerUid !== ownerUid) return { applied: false, reason: "owner_mismatch" };
+    if (current.operationLock?.token !== token) return { applied: false, reason: "lock_lost" };
+    tx.delete(ref);
+    return { applied: true, reason: "deleted" };
+  });
+}
+
+// Libera somente o próprio token e sempre informa ao chamador se aplicou.
+async function releaseQrDocLock(db, ref, token) {
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(ref);
+    if (!snap.exists) return { applied: false, reason: "not_found" };
+    const current = snap.data() || {};
+    if (current.operationLock?.token !== token) return { applied: false, reason: "lock_lost" };
+    tx.set(ref, { operationLock: FieldValue.delete() }, { merge: true });
+    return { applied: true, reason: "released" };
+  });
+}
+
+async function recordQrReconciliation(db, {
+  ownerUid, connectionId, qrId, operationType, status = "reconciliation_pending",
+  remoteCodePendingCleanup = "", correlationId, reason
+}) {
+  const safeReason = core.sanitizeSupportCode(reason) || "LOCAL_FINALIZATION_FAILED";
+  const id = `reconcile_${core.sha256(`${ownerUid}:${qrId}:${operationType}:${correlationId}`).slice(0, 40)}`;
+  await db.doc(`${COLLECTIONS.QR_LOCKS}/${id}`).set({
+    ownerUid,
+    connectionId: String(connectionId || "").slice(0, 120),
+    qrId: String(qrId || "").slice(0, 80),
+    operationType,
+    status,
+    remoteCodePendingCleanup: safeCode(remoteCodePendingCleanup),
+    correlationId: core.sanitizeSupportCode(correlationId),
+    reason: safeReason,
+    recoveryRequired: status !== "compensated",
+    createdAt: FieldValue.serverTimestamp(),
+    updatedAt: FieldValue.serverTimestamp()
+  }, { merge: true });
+  return id;
+}
+
+async function compensateRemoteQr({ emulator, deleteRemote }) {
+  if (emulator) return { compensated: true, status: "failed" };
+  try {
+    await deleteRemote();
+    return { compensated: true, status: "failed" };
+  } catch {
+    return { compensated: false, status: "compensation_pending" };
+  }
+}
+
+async function acquireQrCreateLock(db, lockRef, { ownerUid, connectionId, idempotencyKey, correlationId }) {
+  const token = newLockToken();
+  const now = Date.now();
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(lockRef);
+    const lock = snap.exists ? snap.data() || {} : {};
+    if (snap.exists && lock.ownerUid !== ownerUid) throw new HttpsError("permission-denied", "Solicitação inválida.");
+    if (lock.status === "active" && lock.qrId) return { reused: true, qrId: lock.qrId, token: "" };
+    if (lock.status === "active") {
+      throw new HttpsError("failed-precondition", "O resultado ativo desta criação requer reconciliação.");
+    }
+    if (["creating_remote", "saving_local", "compensation_pending", "reconciliation_pending"].includes(lock.status)) {
+      throw new HttpsError("failed-precondition", "Esta criação de QR Code requer reconciliação antes de ser repetida.");
+    }
+    if (millisOf(lock.expiresAt) > now) {
+      throw new HttpsError("already-exists", "Uma criação de QR Code já está em andamento para esta solicitação.");
+    }
+    tx.set(lockRef, {
+      ownerUid,
+      connectionId,
+      idempotencyHash: core.sha256(idempotencyKey),
+      token,
+      operationType: "create",
+      status: "preparing",
+      qrId: "",
+      correlationId,
+      recoveryRequired: false,
+      remoteCodePendingCleanup: "",
+      startedAt: Timestamp.fromMillis(now),
+      expiresAt: Timestamp.fromMillis(now + LOCK_TTL_MS),
+      createdAt: snap.exists ? lock.createdAt || FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { reused: false, qrId: "", token };
+  });
+}
+
+async function transitionQrCreateLock(db, lockRef, { ownerUid, token, status, patch = {} }) {
+  return db.runTransaction(async (tx) => {
+    const snap = await tx.get(lockRef);
+    if (!snap.exists) return { applied: false, reason: "not_found" };
+    const current = snap.data() || {};
+    if (current.ownerUid !== ownerUid) return { applied: false, reason: "owner_mismatch" };
+    if (current.token !== token) return { applied: false, reason: "lock_lost" };
+    tx.set(lockRef, { ...patch, status, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+    return { applied: true, reason: status };
+  });
+}
+
+async function finalizeQrCreation(db, { lockRef, qrRef, ownerUid, token, qrId, data }) {
+  return db.runTransaction(async (tx) => {
+    const [lockSnap, qrSnap] = await Promise.all([tx.get(lockRef), tx.get(qrRef)]);
+    if (!lockSnap.exists) return { applied: false, reason: "lock_not_found" };
+    const lock = lockSnap.data() || {};
+    if (lock.ownerUid !== ownerUid) return { applied: false, reason: "owner_mismatch" };
+    if (lock.token !== token) return { applied: false, reason: "lock_lost" };
+    if (qrSnap.exists) return { applied: false, reason: "qr_already_exists" };
+    tx.set(qrRef, data, { merge: false });
+    tx.set(lockRef, {
+      status: "active",
+      qrId,
+      token: "",
+      recoveryRequired: false,
+      remoteCodePendingCleanup: "",
+      updatedAt: FieldValue.serverTimestamp()
+    }, { merge: true });
+    return { applied: true, reason: "created" };
   });
 }
 
@@ -150,56 +288,95 @@ const whatsappCreateQrCode = onCall({ region: REGION, enforceAppCheck: shouldEnf
   const { db, resolved, accessToken } = await resolvedConnection(context, request.data);
   const config = readWhatsappPublicConfig();
 
-  // Identificador interno idempotente: uma tentativa repetida (duplo
-  // clique, retry de rede) com a MESMA idempotencyKey nunca chama a Meta
-  // duas vezes — ou reaproveita o resultado já ativo, ou é rejeitada
-  // enquanto a primeira tentativa ainda está em andamento.
+  // Identificador interno idempotente: uma tentativa repetida com a MESMA
+  // chave só reaproveita um resultado consolidado. Estados remotos ambíguos
+  // nunca são reclamados automaticamente.
   const lockId = `create_${core.sha256(`${context.ownerUid}:${idempotencyKey}`).slice(0, 40)}`;
   const lockRef = db.doc(`${COLLECTIONS.QR_LOCKS}/${lockId}`);
-  const now = Date.now();
-  let reuseQrId = "";
-  await db.runTransaction(async (tx) => {
-    const snap = await tx.get(lockRef);
-    if (snap.exists) {
-      const lock = snap.data() || {};
-      if (lock.ownerUid !== context.ownerUid) throw new HttpsError("permission-denied", "Solicitação inválida.");
-      if (lock.status === "active" && lock.qrId) { reuseQrId = lock.qrId; return; }
-      if (millisOf(lock.expiresAt) > now) {
-        throw new HttpsError("already-exists", "Uma criação de QR Code já está em andamento para esta solicitação.");
-      }
-      // Expirado sem concluir (preparing/creating_remote/saving_local) ou
-      // marcado failed/compensation_pending — permite reclamar o lock e
-      // tentar de novo com uma nova janela de expiração.
-    }
-    tx.set(lockRef, {
-      ownerUid: context.ownerUid,
-      idempotencyHash: core.sha256(idempotencyKey),
-      status: "preparing",
-      qrId: "",
-      expiresAt: Timestamp.fromMillis(now + LOCK_TTL_MS),
-      createdAt: snap.exists ? snap.data().createdAt || FieldValue.serverTimestamp() : FieldValue.serverTimestamp(),
-      updatedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
+  const correlationId = core.createCorrelationId("waqrcreate");
+  const acquisition = await acquireQrCreateLock(db, lockRef, {
+    ownerUid: context.ownerUid,
+    connectionId: resolved.connectionId,
+    idempotencyKey,
+    correlationId
   });
 
-  if (reuseQrId) {
-    const existingSnap = await db.doc(`${COLLECTIONS.QR_CODES}/${reuseQrId}`).get();
-    if (existingSnap.exists) {
-      return { ok: true, qrCode: safeQrSummary(reuseQrId, existingSnap.data() || {}), reused: true };
+  if (acquisition.reused) {
+    const existingSnap = await db.doc(`${COLLECTIONS.QR_CODES}/${acquisition.qrId}`).get();
+    const existing = existingSnap.exists ? existingSnap.data() || {} : null;
+    if (existing && existing.ownerUid === context.ownerUid) {
+      return { ok: true, qrCode: safeQrSummary(acquisition.qrId, existing), reused: true };
     }
-    // Referência ativa aponta pra um doc que não existe mais (ex.: já foi
-    // excluído depois) — segue e cria um novo, tratando como se não
-    // houvesse reaproveitamento.
+    await recordQrReconciliation(db, {
+      ownerUid: context.ownerUid,
+      connectionId: resolved.connectionId,
+      qrId: acquisition.qrId,
+      operationType: "create",
+      correlationId,
+      reason: "ACTIVE_QR_DOCUMENT_MISSING"
+    });
+    throw new HttpsError("failed-precondition", "O QR Code requer reconciliação antes de ser criado novamente.");
   }
 
-  await lockRef.set({ status: "creating_remote", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-  const result = config.emulator
-    ? emulatorQr({ message: input.message, format })
-    : await metaClient.createMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, message: input.message, format });
+  const createToken = acquisition.token;
+  const remoteStart = await transitionQrCreateLock(db, lockRef, {
+    ownerUid: context.ownerUid,
+    token: createToken,
+    status: "creating_remote"
+  });
+  if (!remoteStart.applied) throw new HttpsError("aborted", "A criação perdeu o lock antes de chamar a Meta.");
+
+  let result;
+  try {
+    result = config.emulator
+      ? emulatorQr({ message: input.message, format })
+      : await metaClient.createMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, message: input.message, format });
+  } catch (error) {
+    await Promise.allSettled([
+      transitionQrCreateLock(db, lockRef, {
+        ownerUid: context.ownerUid,
+        token: createToken,
+        status: "compensation_pending",
+        patch: { recoveryRequired: true, failureReason: "REMOTE_OUTCOME_UNKNOWN" }
+      }),
+      recordQrReconciliation(db, {
+        ownerUid: context.ownerUid,
+        connectionId: resolved.connectionId,
+        qrId: "",
+        operationType: "create",
+        status: "compensation_pending",
+        correlationId,
+        reason: "REMOTE_OUTCOME_UNKNOWN"
+      })
+    ]);
+    logger.error("whatsapp.qr.create_remote_outcome_unknown", {
+      correlationId,
+      ownerUid: context.ownerUid,
+      connectionId: resolved.connectionId,
+      code: core.sanitizeSupportCode(error?.code)
+    });
+    throw new HttpsError("unavailable", "A Meta não confirmou a criação do QR Code. A tentativa foi preservada para análise segura.");
+  }
   const code = safeCode(result?.code);
   if (!code) {
-    await lockRef.set({ status: "failed", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
-    throw new HttpsError("unavailable", "A Meta não devolveu um QR Code válido. Tente novamente.");
+    await Promise.allSettled([
+      transitionQrCreateLock(db, lockRef, {
+        ownerUid: context.ownerUid,
+        token: createToken,
+        status: "compensation_pending",
+        patch: { recoveryRequired: true, failureReason: "REMOTE_CODE_MISSING" }
+      }),
+      recordQrReconciliation(db, {
+        ownerUid: context.ownerUid,
+        connectionId: resolved.connectionId,
+        qrId: "",
+        operationType: "create",
+        status: "compensation_pending",
+        correlationId,
+        reason: "REMOTE_CODE_MISSING"
+      })
+    ]);
+    throw new HttpsError("unavailable", "A Meta não devolveu um QR Code válido. A tentativa requer análise segura.");
   }
   const id = `waqr_${core.sha256(`${context.ownerUid}:${code}`).slice(0, 32)}`;
   const data = {
@@ -219,44 +396,68 @@ const whatsappCreateQrCode = onCall({ region: REGION, enforceAppCheck: shouldEnf
     updatedAt: FieldValue.serverTimestamp()
   };
 
-  await lockRef.set({ status: "saving_local", updatedAt: FieldValue.serverTimestamp() }, { merge: true });
+  const savingLocal = await transitionQrCreateLock(db, lockRef, {
+    ownerUid: context.ownerUid,
+    token: createToken,
+    status: "saving_local",
+    patch: { qrId: id, remoteCodePendingCleanup: code, recoveryRequired: true }
+  });
+  let finalization = { applied: false, reason: savingLocal.reason };
   try {
-    await db.doc(`${COLLECTIONS.QR_CODES}/${id}`).set(data, { merge: false });
-  } catch (saveError) {
-    // A Meta JÁ criou o QR remoto, mas a gravação local falhou — nunca
-    // deixa o recurso remoto órfão silenciosamente. Tenta compensar
-    // (excluir na Meta); se não conseguir confirmar a exclusão, marca
-    // compensation_pending com os dados mínimos pra recuperação
-    // administrativa, sem ocultar o problema.
-    let compensated = false;
-    if (!config.emulator) {
-      try {
-        await metaClient.deleteMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, code });
-        compensated = true;
-      } catch {
-        compensated = false;
-      }
-    } else {
-      compensated = true;
+    if (savingLocal.applied) {
+      finalization = await finalizeQrCreation(db, {
+        lockRef,
+        qrRef: db.doc(`${COLLECTIONS.QR_CODES}/${id}`),
+        ownerUid: context.ownerUid,
+        token: createToken,
+        qrId: id,
+        data
+      });
     }
-    await lockRef.set({
-      status: compensated ? "failed" : "compensation_pending",
-      remoteCodePendingCleanup: compensated ? "" : code,
-      connectionId: resolved.connectionId,
-      updatedAt: FieldValue.serverTimestamp()
-    }, { merge: true });
-    logger.error(compensated ? "whatsapp.qr.create_local_save_failed_compensated" : "whatsapp.qr.create_orphan_remote_resource", core.redactForLog({
+  } catch {
+    finalization = { applied: false, reason: "transaction_failed" };
+  }
+
+  if (!finalization.applied) {
+    const compensation = await compensateRemoteQr({
+      emulator: config.emulator,
+      deleteRemote: () => metaClient.deleteMessageQrCode({
+        accessToken,
+        phoneNumberId: resolved.connection.phoneNumberId,
+        code
+      })
+    });
+    const lockOutcome = await transitionQrCreateLock(db, lockRef, {
+      ownerUid: context.ownerUid,
+      token: createToken,
+      status: compensation.status,
+      patch: {
+        recoveryRequired: !compensation.compensated,
+        remoteCodePendingCleanup: compensation.compensated ? "" : code,
+        failureReason: core.sanitizeSupportCode(finalization.reason)
+      }
+    }).catch(() => ({ applied: false, reason: "lock_write_failed" }));
+    await recordQrReconciliation(db, {
       ownerUid: context.ownerUid,
       connectionId: resolved.connectionId,
-      lockId,
-      compensated,
-      note: compensated ? "" : "QR remoto criado na Meta mas gravacao local e compensacao falharam. Requer recuperacao administrativa (whatsapp_qr_locks)."
-    }));
-    throw new HttpsError("internal", "Não foi possível salvar o QR Code agora. Tente novamente.");
+      qrId: id,
+      operationType: "create",
+      status: compensation.compensated ? "compensated" : "compensation_pending",
+      remoteCodePendingCleanup: compensation.compensated ? "" : code,
+      correlationId,
+      reason: lockOutcome.applied ? finalization.reason : `${finalization.reason}_LOCK_LOST`
+    }).catch(() => "");
+    logger.error(compensation.compensated ? "whatsapp.qr.create_local_save_failed_compensated" : "whatsapp.qr.create_orphan_remote_resource", {
+      correlationId,
+      ownerUid: context.ownerUid,
+      connectionId: resolved.connectionId,
+      qrId: id,
+      finalizationReason: core.sanitizeSupportCode(finalization.reason),
+      compensationStatus: compensation.status
+    });
+    throw new HttpsError(finalization.reason === "lock_lost" ? "aborted" : "internal", "A criação remota não pôde ser consolidada localmente. A tentativa foi preservada para reconciliação.");
   }
-  await lockRef.set({ status: "active", qrId: id, updatedAt: FieldValue.serverTimestamp() }, { merge: true });
 
-  const correlationId = core.createCorrelationId("waqrcreate");
   const origin = core.sanitizeOrigin(request.rawRequest?.headers?.origin);
   await writeAudit({ ownerUid: context.ownerUid, authUid: context.authUid, module: "whatsapp", targetId: id, action: "whatsapp.qr_criado", risk: "low", summary: `QR Code de atendimento "${input.label}" criado.`, source: "function", correlationId, origin, code: "CREATED" });
   logger.info("whatsapp.qr.created", { correlationId, ownerUid: context.ownerUid, connectionId: resolved.connectionId, qrId: id });
@@ -273,41 +474,85 @@ const whatsappUpdateQrCode = onCall({ region: REGION, enforceAppCheck: shouldEnf
   if (!qrId) throw new HttpsError("invalid-argument", "QR Code inválido.");
   const db = getFirestore();
   const ref = db.doc(`${COLLECTIONS.QR_CODES}/${qrId}`);
-
-  const preSnap = await ref.get();
-  const preData = preSnap.exists ? preSnap.data() || {} : null;
-  if (!preData || preData.ownerUid !== context.ownerUid) throw new HttpsError("not-found", "QR Code não encontrado.");
-
-  // Versão otimista: se o cliente informar o updatedAt que leu, uma
-  // edição baseada em dado desatualizado é rejeitada explicitamente em
-  // vez de sobrescrever silenciosamente uma alteração mais recente.
   const expectedUpdatedAtMs = Number(request.data?.expectedUpdatedAtMs);
-  if (Number.isFinite(expectedUpdatedAtMs) && expectedUpdatedAtMs > 0) {
-    const currentUpdatedAtMs = millisOf(preData.updatedAt);
-    if (currentUpdatedAtMs && currentUpdatedAtMs !== expectedUpdatedAtMs) {
-      throw new HttpsError("failed-precondition", "Este QR Code foi alterado em outra sessão. Atualize a página e tente novamente.");
-    }
-  }
-
-  const lockToken = await acquireQrDocLock(db, ref, context.ownerUid);
-  let released = false;
+  const lock = await acquireQrDocLock(db, ref, {
+    ownerUid: context.ownerUid,
+    expectedUpdatedAtMs,
+    operationType: "update"
+  });
+  const lockToken = lock.token;
+  const current = lock.current;
+  const correlationId = core.createCorrelationId("waqrupdate");
+  let finalized = false;
   try {
-    const current = (await ref.get()).data() || {};
     const code = safeCode(current.code);
     const { resolved, accessToken } = await resolvedConnection(context, current);
-    const result = readWhatsappPublicConfig().emulator
-      ? emulatorQr({ code, message: input.message, format: current.format })
-      : await metaClient.updateMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, code, message: input.message });
-    const patch = { label: input.label, message: input.message, deepLinkUrl: safeHttpsUrl(result.deep_link_url) || current.deepLinkUrl || "", qrImageUrl: safeHttpsUrl(result.qr_image_url) || current.qrImageUrl || "", updatedByUid: context.authUid, updatedAt: FieldValue.serverTimestamp() };
-    await releaseQrDocLock(db, ref, lockToken, patch);
-    released = true;
-    const correlationId = core.createCorrelationId("waqrupdate");
+    let result;
+    try {
+      result = readWhatsappPublicConfig().emulator
+        ? emulatorQr({ code, message: input.message, format: current.format })
+        : await metaClient.updateMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, code, message: input.message });
+    } catch (error) {
+      await recordQrReconciliation(db, {
+        ownerUid: context.ownerUid,
+        connectionId: resolved.connectionId,
+        qrId,
+        operationType: "update",
+        correlationId,
+        reason: "REMOTE_OUTCOME_UNKNOWN"
+      }).catch(() => "");
+      logger.error("whatsapp.qr.update_remote_outcome_unknown", {
+        correlationId,
+        ownerUid: context.ownerUid,
+        connectionId: resolved.connectionId,
+        qrId,
+        code: core.sanitizeSupportCode(error?.code)
+      });
+      throw new HttpsError("unavailable", "A Meta não confirmou a atualização. O estado foi preservado para reconciliação.");
+    }
+    const patch = {
+      label: input.label,
+      message: input.message,
+      deepLinkUrl: safeHttpsUrl(result.deep_link_url) || current.deepLinkUrl || "",
+      qrImageUrl: safeHttpsUrl(result.qr_image_url) || current.qrImageUrl || "",
+      updatedByUid: context.authUid
+    };
+    let finish;
+    try {
+      finish = await finalizeQrUpdate(db, ref, { ownerUid: context.ownerUid, token: lockToken, patch });
+    } catch {
+      finish = { applied: false, reason: "transaction_failed" };
+    }
+    if (!finish.applied) {
+      await recordQrReconciliation(db, {
+        ownerUid: context.ownerUid,
+        connectionId: resolved.connectionId,
+        qrId,
+        operationType: "update",
+        correlationId,
+        reason: finish.reason
+      }).catch(() => "");
+      throw new HttpsError("aborted", "A atualização remota terminou, mas o lock local foi perdido. A operação requer reconciliação.");
+    }
+    finalized = true;
     const origin = core.sanitizeOrigin(request.rawRequest?.headers?.origin);
     await writeAudit({ ownerUid: context.ownerUid, authUid: context.authUid, module: "whatsapp", targetId: qrId, action: "whatsapp.qr_atualizado", risk: "low", summary: `QR Code de atendimento "${input.label}" atualizado.`, source: "function", correlationId, origin, code: "UPDATED" });
     logger.info("whatsapp.qr.updated", { correlationId, ownerUid: context.ownerUid, connectionId: resolved.connectionId, qrId });
-    return { ok: true, qrCode: safeQrSummary(qrId, { ...current, ...patch }) };
+    const finalSnap = await ref.get();
+    return { ok: true, qrCode: safeQrSummary(qrId, finalSnap.data() || { ...current, ...patch }) };
   } finally {
-    if (!released) await releaseQrDocLock(db, ref, lockToken);
+    if (!finalized) {
+      const released = await releaseQrDocLock(db, ref, lockToken).catch(() => ({ applied: false, reason: "release_failed" }));
+      if (!released.applied) {
+        logger.warn("whatsapp.qr.lock_release_not_applied", {
+          correlationId,
+          ownerUid: context.ownerUid,
+          qrId,
+          operationType: "update",
+          reason: core.sanitizeSupportCode(released.reason)
+        });
+      }
+    }
   }
 });
 
@@ -319,30 +564,76 @@ const whatsappDeleteQrCode = onCall({ region: REGION, enforceAppCheck: shouldEnf
   if (!qrId) throw new HttpsError("invalid-argument", "QR Code inválido.");
   const db = getFirestore();
   const ref = db.doc(`${COLLECTIONS.QR_CODES}/${qrId}`);
+  const lock = await acquireQrDocLock(db, ref, {
+    ownerUid: context.ownerUid,
+    operationType: "delete",
+    allowMissing: true
+  });
+  if (lock.alreadyDeleted) return { ok: true, qrId, alreadyDeleted: true };
 
-  const preSnap = await ref.get();
-  if (!preSnap.exists) return { ok: true, qrId, alreadyDeleted: true }; // idempotente: já não existe
-  if (preSnap.data()?.ownerUid !== context.ownerUid) throw new HttpsError("not-found", "QR Code não encontrado.");
-
-  const lockToken = await acquireQrDocLock(db, ref, context.ownerUid);
-  let deleted = false;
+  const lockToken = lock.token;
+  const current = lock.current;
+  const correlationId = core.createCorrelationId("waqrdelete");
+  let finalized = false;
   try {
-    const currentSnap = await ref.get();
-    if (!currentSnap.exists) { deleted = true; return { ok: true, qrId, alreadyDeleted: true }; }
-    const current = currentSnap.data() || {};
     const { resolved, accessToken } = await resolvedConnection(context, current);
     if (!readWhatsappPublicConfig().emulator) {
-      await metaClient.deleteMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, code: safeCode(current.code) });
+      try {
+        await metaClient.deleteMessageQrCode({ accessToken, phoneNumberId: resolved.connection.phoneNumberId, code: safeCode(current.code) });
+      } catch (error) {
+        await recordQrReconciliation(db, {
+          ownerUid: context.ownerUid,
+          connectionId: resolved.connectionId,
+          qrId,
+          operationType: "delete",
+          correlationId,
+          reason: "REMOTE_OUTCOME_UNKNOWN"
+        }).catch(() => "");
+        logger.error("whatsapp.qr.delete_remote_outcome_unknown", {
+          correlationId,
+          ownerUid: context.ownerUid,
+          connectionId: resolved.connectionId,
+          qrId,
+          code: core.sanitizeSupportCode(error?.code)
+        });
+        throw new HttpsError("unavailable", "A Meta não confirmou a exclusão. O estado foi preservado para reconciliação.");
+      }
     }
-    await ref.delete();
-    deleted = true;
-    const correlationId = core.createCorrelationId("waqrdelete");
+    let finish;
+    try {
+      finish = await finalizeQrDelete(db, ref, { ownerUid: context.ownerUid, token: lockToken });
+    } catch {
+      finish = { applied: false, reason: "transaction_failed" };
+    }
+    if (!finish.applied) {
+      await recordQrReconciliation(db, {
+        ownerUid: context.ownerUid,
+        connectionId: resolved.connectionId,
+        qrId,
+        operationType: "delete",
+        correlationId,
+        reason: finish.reason
+      }).catch(() => "");
+      throw new HttpsError("aborted", "A exclusão remota terminou, mas o lock local foi perdido. A operação requer reconciliação.");
+    }
+    finalized = true;
     const origin = core.sanitizeOrigin(request.rawRequest?.headers?.origin);
     await writeAudit({ ownerUid: context.ownerUid, authUid: context.authUid, module: "whatsapp", targetId: qrId, action: "whatsapp.qr_excluido", risk: "medium", summary: `QR Code de atendimento "${String(current.label || "").slice(0, 60)}" excluído.`, source: "function", correlationId, origin, code: "DELETED" });
     logger.info("whatsapp.qr.deleted", { correlationId, ownerUid: context.ownerUid, connectionId: resolved.connectionId, qrId });
     return { ok: true, qrId };
   } finally {
-    if (!deleted) await releaseQrDocLock(db, ref, lockToken);
+    if (!finalized) {
+      const released = await releaseQrDocLock(db, ref, lockToken).catch(() => ({ applied: false, reason: "release_failed" }));
+      if (!released.applied) {
+        logger.warn("whatsapp.qr.lock_release_not_applied", {
+          correlationId,
+          ownerUid: context.ownerUid,
+          qrId,
+          operationType: "delete",
+          reason: core.sanitizeSupportCode(released.reason)
+        });
+      }
+    }
   }
 });
 
@@ -353,5 +644,17 @@ module.exports = {
   whatsappDeleteQrCode,
   safeCode,
   safeHttpsUrl,
-  safeQrSummary
+  safeQrSummary,
+  __test: Object.freeze({
+    LOCK_TTL_MS,
+    acquireQrCreateLock,
+    acquireQrDocLock,
+    compensateRemoteQr,
+    finalizeQrCreation,
+    finalizeQrDelete,
+    finalizeQrUpdate,
+    recordQrReconciliation,
+    releaseQrDocLock,
+    transitionQrCreateLock
+  })
 };
