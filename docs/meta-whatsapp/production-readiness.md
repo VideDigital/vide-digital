@@ -65,4 +65,9 @@ O responsável pela liberação deve coletar evidência atual de cada gate.
 - repetir em celular sem overflow horizontal.
 
 Falha em qualquer gate interrompe a liberação e aciona o
-[rollback](rollback.md). Nenhum workflow deve ser executado implicitamente.
+[rollback](rollback.md). Os workflows de deploy Firebase não devem ser
+executados implicitamente. O GitHub Pages, porém, está configurado fora dos
+YAMLs do repositório em modo `legacy`, usando `main` e a pasta `/`: qualquer
+push ou merge em `main` publica o frontend automaticamente e não espera o
+Quality Gate terminar. Por isso, não faça merge enquanto o frontend depender
+de Functions ou Rules que ainda não estejam compatíveis em produção.

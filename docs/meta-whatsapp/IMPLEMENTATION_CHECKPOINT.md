@@ -5,6 +5,193 @@
 > arquivo (mais o relatório entregue no chat) é a fonte da verdade para
 > retomar o trabalho.
 
+## Auditoria pré-merge e impacto da `main` — 2026-07-31
+
+- **Estado**: auditoria técnica concluída; validação e publicação somente do
+  checkpoint documental em andamento. Esta seção não autoriza merge nem
+  deploy.
+- **PR**: [#41](https://github.com/VideDigital/vide-digital/pull/41), Draft,
+  `feat/whatsapp-embedded-signup-production` -> `main`.
+- **HEAD inicial da auditoria**:
+  `69b89e662488c36ee5ba1b376f0395a17386380a`, igual ao remoto.
+- **`origin/main` e merge-base confirmados**:
+  `8ff652d5d564c4bcdd3b1d4fc9466511008a76af`.
+- **Divergência inicial**: 0 commits atrás e 15 à frente da `main`;
+  worktree limpo, sem arquivo não rastreado e sem operação Git em andamento.
+- **Escopo em revisão**: todos os workflows e seus gatilhos, GitHub Pages,
+  Firebase, flags e visibilidade do frontend, compatibilidade com a `main`,
+  proteção de branch/environment, checks e conteúdo completo do PR.
+- **Restrições preservadas**: nenhum merge, deploy, workflow manual,
+  migração, alteração de Meta/IAM/secrets ou ativação de feature flag.
+
+### Achados confirmados durante a auditoria
+
+- Workflows versionados analisados integralmente:
+  `firebase-deploy.yml`, `firebase-deploy-audit.yml`,
+  `firebase-deploy-functions.yml`, `firebase-deploy-whatsapp.yml` e
+  `quality-gate.yml`.
+- Os quatro workflows Firebase usam somente `workflow_dispatch`; nenhum
+  deles roda por `push`, `pull_request`, `workflow_run`, tag, release ou
+  conclusão do Quality Gate. Todos exigem `main`, projeto exato
+  `vide-digital-saas`, confirmação literal e testes antes da autenticação.
+- `quality-gate.yml` roda em `pull_request`, `push` para `main` e disparo
+  manual. Ele não autentica, não publica e não aciona outro workflow ao
+  terminar.
+- A API e os runs reais do GitHub confirmaram um sexto workflow implícito,
+  `pages-build-deployment`: GitHub Pages está público, em modo `legacy`,
+  com fonte `main` e pasta `/`. Um push/merge em `main` inicia build e deploy
+  do frontend independentemente do Quality Gate.
+- O merge publicaria `dashboard.html`, `dashboard-app.js`,
+  `whatsapp-oficial-v1.js` e `whatsapp-oficial-v1.css` automaticamente. O
+  cache busting está presente, mas não impede a publicação.
+- Com as nove Functions atuais, `whatsappListConnections` não devolve
+  `onboarding.flags`. O frontend novo trata a ausência de `qrCodes` como
+  diferente de `false` e tenta chamar `whatsappListQrCodes` ao abrir o
+  módulo para owner/editor. Essa Function só existe no conjunto novo de
+  19 e não é publicada pelo merge; a falha é capturada, porém causa chamada
+  incompatível e degradação visível em console.
+- As 19 Functions do workflow WhatsApp correspondem exatamente aos 19
+  exports reais. O workflow não usa `--only functions` amplo, mas não tem
+  `environment: production` nem aprovação por Environment; sem credenciais
+  ele falha antes de publicar.
+- A `main` não possui branch protection nem ruleset. Não há required checks,
+  reviews, resolução obrigatória de conversas ou bloqueios configurados de
+  force push/deleção/linear history/signed commits/merge queue. O único
+  Environment remoto é `github-pages`, sem revisor obrigatório.
+- A `main` remota não avançou desde a base, o merge-base continua
+  `8ff652d5d564c4bcdd3b1d4fc9466511008a76af` e a simulação não encontrou
+  conflito.
+- PR #41 continua Draft, mergeable, sem reviews, reviewers solicitados,
+  comentários ou threads; os quatro jobs do Quality Gate estavam verdes no
+  HEAD inicial. Não foram encontrados caminhos locais, arquivos temporários
+  ou assinaturas de credenciais reais no conteúdo do PR.
+
+**Decisão final da auditoria**: `NÃO FAZER MERGE`, devido à publicação automática
+do frontend pelo Pages, à incompatibilidade frontend/backend acima e à
+ausência de proteções obrigatórias na `main`.
+
+### Matriz dos workflows
+
+| Workflow | Gatilhos e filtros | Jobs/dependências | Publicação e proteção |
+| --- | --- | --- | --- |
+| `.github/workflows/quality-gate.yml` — **Quality Gate** | `pull_request` (tipos padrão: opened/synchronize/reopened, qualquer branch), `push` somente em `main` e `workflow_dispatch`; sem `paths`, `paths-ignore`, tags, schedule ou `workflow_run` | `static-and-unit` e `security` independentes; `frontend-emulator` e `ui-login` dependem de `static-and-unit`; artifact somente em falha de UI | Nenhum deploy e nenhum secret; `contents: read`; concurrency por workflow/ref com cancelamento do run anterior |
+| `.github/workflows/firebase-deploy.yml` — **Deploy Firebase Spark** | somente `workflow_dispatch`; valida internamente `main`, projeto e confirmação `DEPLOY` | `validate-and-test` -> `deploy` | Rules Firestore -> Rules Storage -> índices Firestore, em passos separados; nunca Functions/Hosting; projeto exato `vide-digital-saas`; sem Environment/revisor |
+| `.github/workflows/firebase-deploy-functions.yml` — **Deploy Firebase Functions (IA de Negócio)** | somente `workflow_dispatch`; valida `main`, projeto e `DEPLOY_FUNCTIONS` | `validate-and-test` -> `deploy` | somente `askBusinessAI` e `askPublicBusinessAI`; sem Environment/revisor |
+| `.github/workflows/firebase-deploy-audit.yml` — **Deploy Firebase Functions — Auditoria** | somente `workflow_dispatch`; valida `main`, projeto e `DEPLOY_AUDIT` | `validate-and-test` -> `deploy` | lista explícita dos 15 triggers `audit*`; sem Environment/revisor |
+| `.github/workflows/firebase-deploy-whatsapp.yml` — **Deploy Firebase Functions — WhatsApp Oficial** | somente `workflow_dispatch`; valida `main`, projeto e `DEPLOY_WHATSAPP` | `validate-and-test` -> `deploy`; não há `if` no job de deploy, apenas `needs`; os dois passos de autenticação têm `if` pelo método detectado | lista explícita e exata das 19 Functions; sem Environment/revisor; alteração do próprio YAML não o dispara |
+| `dynamic/pages/pages-build-deployment` — **pages-build-deployment** (gerado pelo GitHub, não versionado) | atualização da fonte Pages `main`/`/`; runs reais aparecem como evento `dynamic` | `build` -> `deploy`, mais `report-build-status` | publica todo o site no Environment `github-pages`; não espera o Quality Gate e não tem revisor obrigatório |
+
+Os quatro workflows Firebase usam `contents: read` e `id-token: write`,
+concurrency própria sem cancelamento e a mesma preferência de autenticação:
+`GCP_WORKLOAD_IDENTITY_PROVIDER` + `GCP_SERVICE_ACCOUNT` (WIF), ou
+`FIREBASE_SERVICE_ACCOUNT` (JSON). `FIREBASE_TOKEN` não é usado. Sem um dos
+dois métodos, o job falha no detector e não publica. Não há
+`environment: production` em nenhum deles.
+
+### Mapa de disparos
+
+| Cenário | Execução automática | Efeito de produção |
+| --- | --- | --- |
+| Abrir/reabrir ou atualizar PR | Quality Gate, com quatro jobs | nenhum deploy |
+| Marcar Ready for Review | nenhum evento listado no YAML; `ready_for_review` não foi incluído | nenhum deploy |
+| Merge do PR em `main` | Quality Gate por `push` e Pages dinâmico em paralelo | frontend publicado automaticamente; nenhum Firebase automático |
+| Push direto em `main` | mesmo comportamento do merge | frontend publicado automaticamente sem proteção de branch |
+| Execução manual | o workflow escolhido; Firebase só segue após branch/projeto/confirmação/testes/autenticação | pode publicar o escopo explícito do workflow; não há aprovação por Environment |
+| Criar tag ou release | nenhum dos workflows versionados e nenhuma publicação Pages causada apenas pela tag/release | nenhum deploy identificado |
+| Concluir Quality Gate | nenhum `workflow_run` escuta a conclusão | não publica nem libera o Pages |
+
+### Frontend, Firebase e flags
+
+- Pages usa a URL pública `https://videdigital.github.io/vide-digital/`,
+  sem CNAME/domínio customizado, a raiz do repositório e HTTPS obrigatório.
+  `firebase.json` não contém `hosting`, redirect ou rewrite; não existe
+  workflow de Firebase Hosting.
+- `dashboard-app.js?v=whatsapp-embedded-signup-1` e os assets WhatsApp usam
+  query de cache busting compatível. Não foi encontrado risco de import
+  ausente no conteúdo do PR.
+- A navegação nasce com classe `hidden`, mas o contexto a revela para
+  owner/admin e funcionário com permissão dedicada `whatsapp`; funcionário
+  sem essa permissão não vê o módulo. Perfil somente leitura vê conteúdo,
+  mas não ações de gestão. O dashboard exige autenticação, portanto não é
+  uma tela pública anônima.
+- O botão de onboarding fica desabilitado quando a disponibilidade não vem
+  do backend. Não há risco de popup da Meta abrir com as flags padrão, mas
+  existe a chamada antecipada a `whatsappListQrCodes` descrita acima; uma
+  conexão multiconexão também exibiria `Renomear`, cuja nova Function ainda
+  não estaria publicada.
+- Defaults de produção confirmados: Embedded Signup, segunda conexão, QR,
+  reconexão, desconexão, coexistência e App Check obrigatório = `false`;
+  audience = `disabled`; UIDs de teste/origens = listas vazias; App ID e
+  Configuration ID = vazios. Valores inválidos não ativam booleanos nem
+  audience. O backend reforça disponibilidade/origem, segunda conexão,
+  coexistência, reconexão, QR e desconexão; o frontend recebe somente a
+  configuração pública sanitizada.
+- No Emulator, Embedded Signup, segunda conexão, QR, reconexão e desconexão
+  ficam ativos com App/Configuration IDs falsos e UIDs de teste; coexistência
+  e App Check obrigatório permanecem desligados. A separação usa
+  `FUNCTIONS_EMULATOR=true` ou projeto iniciado por `demo-`.
+- Não existe `.firebaserc` real versionado; `.firebaserc.example` aponta
+  somente para `demo-vide-hub`, enquanto todos os deploys bloqueiam `demo`
+  e exigem `vide-digital-saas`. Os scripts `package.json` usam `demo` apenas
+  para emuladores.
+- O merge não publica Functions, Rules, índices, Storage, Hosting, extensões,
+  migração ou script administrativo. `firestore.rules` muda no PR, mas só
+  será publicado manualmente. Sem essa publicação, funcionário com somente
+  permissão `whatsapp` pode receber negação ao ler templates pela regra antiga;
+  o frontend captura a falha, mas a lista fica vazia.
+- Scripts de migração/provisionamento não são chamados por workflow nem por
+  lifecycle do `package.json`; aplicação real exige comando e confirmação
+  explícitos. Nenhum script real foi executado nesta auditoria.
+
+### Proteções, PR e pendências externas
+
+- Consulta autenticada à API: branch protection da `main` retornou 404
+  (`Branch not protected`) e a lista de rulesets está vazia. Logo não há
+  required status checks/reviews, stale approval dismissal, resolução de
+  conversas, linear history, signed commits, merge queue ou bloqueios de
+  force push/deleção configurados.
+- O Environment `github-pages` aceita somente a branch `main`, permite
+  bypass de administradores e não contém reviewer/wait timer. Não existe
+  Environment `production` remoto.
+- O PR tinha 15 commits e 53 arquivos no HEAD inicial, todos coerentes com
+  frontend, backend, Rules, testes, workflow e documentação do WhatsApp.
+  Não há `.env`, chave privada, service account, token de alta entropia,
+  credencial real, arquivo temporário ou link para caminho local absoluto.
+- Continuam externos e não validados nesta auditoria: Meta App/Business,
+  Configuration ID, domínios/redirect URIs, App Review/Advanced Access,
+  webhook e assinatura, WABA/número real, secrets globais, IAM mínimo e
+  permissões de criação/versão por conexão, TTL, App Check e valores reais
+  das variáveis/flags no ambiente de produção.
+
+### Próximo procedimento seguro
+
+1. Manter o PR Draft e não fazer merge.
+2. Tornar o frontend retrocompatível por padrão ausente, exigindo capability
+   explicitamente igual a `true`, e cobrir a resposta antiga das nove
+   Functions.
+3. Definir uma sequência backend-first: separar mudanças que podem entrar na
+   `main` sem expor UI incompatível, publicar Rules e as 19 Functions
+   manualmente com flags desligadas e só então publicar o frontend.
+4. Proteger a `main` com Quality Gate e revisão obrigatórios; adicionar
+   aprovação real a um Environment de produção antes de qualquer deploy
+   Firebase; decidir se o Pages deve aguardar um gate em vez de publicar em
+   paralelo.
+5. Reexecutar a auditoria no novo HEAD e somente então reconsiderar Ready ou
+   merge.
+
+### Validações desta atualização documental
+
+- Parsing dos cinco YAMLs: aprovado.
+- `pnpm run check`: aprovado.
+- `pnpm run test:whatsapp-preflight`: **53/53 aprovados**.
+- `pnpm run test:functions`: **245/245 aprovados**; nenhum acesso à Meta,
+  Firebase de produção ou Secret Manager real.
+- Varreduras de caminhos locais, arquivos de credencial e assinaturas de
+  segredo: aprovadas.
+- `git diff --check`: aprovado após a consolidação desta seção.
+- Quality Gate remoto: será reexecutado automaticamente após o push do
+  commit documental e precisa ficar verde no novo HEAD.
+
 ## Revisão independente reaberta — 2026-07-31
 
 - **Branch**: `feat/whatsapp-embedded-signup-production`.
