@@ -92,10 +92,42 @@ jobs:
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
 
+      - name: Montar pacote público do site
+        shell: bash
+        run: |
+          mkdir -p _site
+
+          rsync -a ./ _site/ \
+            --exclude '_site/' \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude '.firebase/' \
+            --exclude '.firebaserc' \
+            --exclude '.gitignore' \
+            --exclude '.env*' \
+            --exclude 'node_modules/' \
+            --exclude 'functions/' \
+            --exclude 'tests/' \
+            --exclude 'scripts/' \
+            --exclude 'docs/' \
+            --exclude 'test-results/' \
+            --exclude 'package.json' \
+            --exclude 'pnpm-lock.yaml' \
+            --exclude 'firebase.json' \
+            --exclude 'firestore.rules' \
+            --exclude 'firestore.indexes.json' \
+            --exclude 'storage.rules' \
+            --exclude '*.md' \
+            --exclude '*-debug.log' \
+            --exclude 'emulator-*.log' \
+            --exclude 'gha-creds-*.json'
+
+          touch _site/.nojekyll
+
       - name: Preparar artefato do site
         uses: actions/upload-pages-artifact@v4
         with:
-          path: "."
+          path: "_site"
 
   publicar:
     name: Publicar site
