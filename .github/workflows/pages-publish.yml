@@ -42,8 +42,10 @@ jobs:
 
       - name: Exigir confirmação explícita
         shell: bash
+        env:
+          CONFIRMACAO: ${{ inputs.confirmacao }}
         run: |
-          if [ "${{ inputs.confirmacao }}" != "PUBLICAR" ]; then
+          if [ "$CONFIRMACAO" != "PUBLICAR" ]; then
             echo "Confirmação inválida. Digite exatamente PUBLICAR."
             exit 1
           fi
