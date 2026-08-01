@@ -106,6 +106,12 @@ export function criarWhatsappOficialController({
     const byId = (id) => root.getElementById(id);
     const podeGerenciar = () => Boolean(context?.canEdit?.("whatsapp"));
 
+    // Recursos novos permanecem desligados quando o backend antigo não
+    // devolve onboarding.flags. Somente o valor booleano true habilita
+    // uma funcionalidade e permite chamar sua respectiva Function.
+    const recursoHabilitado = (nome) => state.onboarding?.flags?.[nome] === true;
+    const onboardingDisponivel = () => state.onboarding?.available === true;
+
     function mostrarEstado(nome) {
         ["carregando", "erro", "sem-permissao", "conteudo"].forEach((estado) => byId(`whatsapp-estado-${estado}`)?.classList.toggle("hidden", estado !== nome));
     }
@@ -155,7 +161,14 @@ export function criarWhatsappOficialController({
     }
 
     async function carregarQrCodes() {
-        if (typeof chamarListQrCodes !== "function" || !podeGerenciar() || state.onboarding?.flags?.qrCodes === false) return;
+        if (
+            typeof chamarListQrCodes !== "function"
+            || !podeGerenciar()
+            || !recursoHabilitado("qrCodes")
+        ) {
+            state.qrCodes = [];
+            return;
+        }
         try {
             const result = await chamarListQrCodes({});
             state.qrCodes = Array.isArray(result?.qrCodes) ? result.qrCodes : [];
@@ -198,10 +211,9 @@ export function criarWhatsappOficialController({
     function availabilityMessage() {
         if (!podeGerenciar()) return "Seu perfil pode consultar, mas não alterar conexões.";
         if (state.limiteAtingido) return "Limite de duas conexões atingido.";
-        if (state.totalConexoes > 0 && state.onboarding?.flags?.secondConnection === false) return "A segunda conexão está em liberação progressiva. Sua conexão atual continua funcionando normalmente.";
-        const reason = state.onboarding?.reason;
-        if (state.onboarding?.available) return "A janela oficial da Meta será aberta somente após sua confirmação.";
-        if (reason === "platform_configuration_missing") return "A configuração externa da Meta ainda está sendo preparada. Suas conexões atuais continuam funcionando.";
+        if (state.totalConexoes > 0 && !recursoHabilitado("secondConnection")) return "A segunda conexão está em liberação progressiva. Sua conexão atual continua funcionando normalmente.";        const reason = state.onboarding?.reason;
+        if (onboardingDisponivel()) return "A janela oficial da Meta será aberta somente após sua confirmação.";
+       if (reason === "platform_configuration_missing") return "A configuração externa da Meta ainda está sendo preparada. Suas conexões atuais continuam funcionando.";
         if (reason === "not_in_rollout") return "O novo fluxo está em liberação progressiva e ainda não está disponível para esta conta.";
         return "Novas conexões estão temporariamente indisponíveis. As conexões atuais continuam funcionando.";
     }
@@ -209,8 +221,11 @@ export function criarWhatsappOficialController({
     function renderAdicionar() {
         const button = byId("whatsapp-btn-conectar");
         if (button) {
-            button.disabled = !podeGerenciar() || state.limiteAtingido || !state.onboarding?.available || (state.totalConexoes > 0 && state.onboarding?.flags?.secondConnection === false);
-            button.textContent = state.totalConexoes === 1 ? "Adicionar segundo número" : "Conectar meu WhatsApp";
+            button.disabled =
+                !podeGerenciar()
+                || state.limiteAtingido
+                || !onboardingDisponivel()
+                || (state.totalConexoes > 0 && !recursoHabilitado("secondConnection"));            button.textContent = state.totalConexoes === 1 ? "Adicionar segundo número" : "Conectar meu WhatsApp";
         }
         if (byId("whatsapp-onboarding-disponibilidade")) byId("whatsapp-onboarding-disponibilidade").textContent = availabilityMessage();
         byId("whatsapp-adicionar-limite-aviso")?.classList.toggle("hidden", !state.limiteAtingido);
@@ -228,9 +243,9 @@ export function criarWhatsappOficialController({
             operational ? `<button type="button" class="aura-whatsapp-btn" data-acao="validar" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}" ${disabled}>Validar conexão</button>` : "",
             operational && !connection.legacy && !connection.isDefault ? `<button type="button" class="aura-whatsapp-btn" data-acao="tornar-padrao" data-connection-id="${escaparHtml(id)}" ${disabled}>Tornar padrão</button>` : "",
             !connection.legacy ? `<button type="button" class="aura-whatsapp-btn" data-acao="renomear" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "")}">Renomear</button>` : "",
-            disconnected && !connection.legacy && state.onboarding?.flags?.reconnect ? `<button type="button" class="aura-whatsapp-btn" data-acao="reconectar" data-connection-id="${escaparHtml(id)}">Reconectar</button>` : "",
-            connected && state.onboarding?.flags?.qrCodes ? `<button type="button" class="aura-whatsapp-btn" data-acao="qr" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}">Criar QR Code</button>` : "",
-            !disconnected && !connection.legacy && state.onboarding?.flags?.disconnect ? `<button type="button" class="aura-whatsapp-btn" data-acao="desconectar" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "Conexão")}">Desconectar</button>` : ""
+            disconnected && !connection.legacy && recursoHabilitado("reconnect") ? `<button type="button" class="aura-whatsapp-btn" data-acao="reconectar" data-connection-id="${escaparHtml(id)}">Reconectar</button>` : "",
+            connected && recursoHabilitado("qrCodes") ? `<button type="button" class="aura-whatsapp-btn" data-acao="qr" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}">Criar QR Code</button>` : "",
+            !disconnected && !connection.legacy && recursoHabilitado("disconnect") ? `<button type="button" class="aura-whatsapp-btn" data-acao="desconectar" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "Conexão")}">Desconectar</button>` : ""
         ];
         return actions.filter(Boolean).join("");
     }
@@ -307,7 +322,12 @@ export function criarWhatsappOficialController({
         const unavailable = byId("whatsapp-qr-indisponivel");
         unavailable?.classList.toggle("hidden", active.length > 0);
         const newButton = byId("whatsapp-btn-novo-qr");
-        if (newButton) newButton.disabled = !podeGerenciar() || !active.length || state.onboarding?.flags?.qrCodes === false;
+                if (newButton) {
+            newButton.disabled =
+                !podeGerenciar()
+                || !active.length
+                || !recursoHabilitado("qrCodes");
+        }
         const list = byId("whatsapp-qr-lista");
         if (!list) return;
         list.innerHTML = state.qrCodes.map((qr) => `<article class="aura-whatsapp-card"><h3>${escaparHtml(qr.label)}</h3>${qr.qrImageUrl ? `<img class="aura-whatsapp-qr-image" src="${escaparHtml(qr.qrImageUrl)}" alt="QR Code ${escaparHtml(qr.label)}">` : ""}<p class="aura-whatsapp-card-sub">${escaparHtml(qr.message)}</p><div class="aura-whatsapp-acoes-finais"><button type="button" class="aura-whatsapp-btn" data-qr-acao="copiar" data-qr-id="${escaparHtml(qr.id)}">Copiar link</button><a class="aura-whatsapp-btn" href="${escaparHtml(qr.deepLinkUrl)}" target="_blank" rel="noopener noreferrer">Abrir link</a>${qr.qrImageUrl ? `<a class="aura-whatsapp-btn" href="${escaparHtml(qr.qrImageUrl)}" download="qr-whatsapp-${escaparHtml(qr.id)}.${qr.format === "PNG" ? "png" : "svg"}">Baixar ${escaparHtml(qr.format || "SVG")}</a>` : ""}<button type="button" class="aura-whatsapp-btn" data-qr-acao="editar" data-qr-id="${escaparHtml(qr.id)}">Editar</button><button type="button" class="aura-whatsapp-btn" data-qr-acao="imprimir" data-qr-id="${escaparHtml(qr.id)}">Imprimir</button><button type="button" class="aura-whatsapp-btn" data-qr-acao="excluir" data-qr-id="${escaparHtml(qr.id)}">Excluir</button></div></article>`).join("");
@@ -356,8 +376,21 @@ export function criarWhatsappOficialController({
     }
 
     function openOnboarding({ mode = "new", connectionId = "" } = {}) {
-        if (!podeGerenciar() || !state.onboarding?.available) return notify(availabilityMessage(), "error");
-        if (mode === "new" && state.totalConexoes > 0 && state.onboarding?.flags?.secondConnection === false) return notify(availabilityMessage(), "error");
+        if (!podeGerenciar() || !onboardingDisponivel()) {
+            return notify(availabilityMessage(), "error");
+        }
+
+        if (
+            mode === "new"
+            && state.totalConexoes > 0
+            && !recursoHabilitado("secondConnection")
+        ) {
+            return notify(availabilityMessage(), "error");
+        }
+
+        if (mode === "reconnect" && !recursoHabilitado("reconnect")) {
+            return notify("A reconexão ainda não está disponível para esta conta.", "error");
+        }
         state.onboardingAtual = { mode, connectionId, critical: false, attemptId: "" };
         byId("whatsapp-onboarding-erro")?.classList.add("hidden");
         byId("whatsapp-onboarding-iniciar").disabled = false;
