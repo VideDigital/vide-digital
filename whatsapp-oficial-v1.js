@@ -211,10 +211,15 @@ export function criarWhatsappOficialController({
     function availabilityMessage() {
         if (!podeGerenciar()) return "Seu perfil pode consultar, mas não alterar conexões.";
         if (state.limiteAtingido) return "Limite de duas conexões atingido.";
-        if (state.totalConexoes > 0 && !recursoHabilitado("secondConnection")) return "A segunda conexão está em liberação progressiva. Sua conexão atual continua funcionando normalmente.";        const reason = state.onboarding?.reason;
+        if (state.totalConexoes > 0 && !recursoHabilitado("secondConnection")) {
+            return "A segunda conexão está em liberação progressiva. Sua conexão atual continua funcionando normalmente.";
+        }
+
+        const reason = state.onboarding?.reason;
         if (onboardingDisponivel()) return "A janela oficial da Meta será aberta somente após sua confirmação.";
-       if (reason === "platform_configuration_missing") return "A configuração externa da Meta ainda está sendo preparada. Suas conexões atuais continuam funcionando.";
-        if (reason === "not_in_rollout") return "O novo fluxo está em liberação progressiva e ainda não está disponível para esta conta.";
+        if (reason === "platform_configuration_missing") {
+            return "A configuração externa da Meta ainda está sendo preparada. Suas conexões atuais continuam funcionando.";
+        }        if (reason === "not_in_rollout") return "O novo fluxo está em liberação progressiva e ainda não está disponível para esta conta.";
         return "Novas conexões estão temporariamente indisponíveis. As conexões atuais continuam funcionando.";
     }
 
@@ -225,8 +230,12 @@ export function criarWhatsappOficialController({
                 !podeGerenciar()
                 || state.limiteAtingido
                 || !onboardingDisponivel()
-                || (state.totalConexoes > 0 && !recursoHabilitado("secondConnection"));            button.textContent = state.totalConexoes === 1 ? "Adicionar segundo número" : "Conectar meu WhatsApp";
-        }
+                || (state.totalConexoes > 0 && !recursoHabilitado("secondConnection"));
+
+            button.textContent =
+                state.totalConexoes === 1
+                    ? "Adicionar segundo número"
+                    : "Conectar meu WhatsApp";        }
         if (byId("whatsapp-onboarding-disponibilidade")) byId("whatsapp-onboarding-disponibilidade").textContent = availabilityMessage();
         byId("whatsapp-adicionar-limite-aviso")?.classList.toggle("hidden", !state.limiteAtingido);
     }
@@ -322,7 +331,7 @@ export function criarWhatsappOficialController({
         const unavailable = byId("whatsapp-qr-indisponivel");
         unavailable?.classList.toggle("hidden", active.length > 0);
         const newButton = byId("whatsapp-btn-novo-qr");
-                if (newButton) {
+                        if (newButton) {
             newButton.disabled =
                 !podeGerenciar()
                 || !active.length
