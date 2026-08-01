@@ -360,8 +360,8 @@ export function criarWhatsappOficialController({
         const unavailable = byId("whatsapp-qr-indisponivel");
         unavailable?.classList.toggle("hidden", active.length > 0);
         const newButton = byId("whatsapp-btn-novo-qr");
-        if (newButton) {  
-           newButton.disabled =
+        if (newButton) {
+            newButton.disabled =
                 !podeGerenciar()
                 || !active.length
                 || !recursoHabilitado("qrCodes");
