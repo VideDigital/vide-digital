@@ -54,9 +54,8 @@
 - `git diff --check`, parsing de YAML, varredura de credenciais, conferência
   dos exports e das 19 Functions WhatsApp.
 
-**Estado desta revisão**: em andamento. O resultado verde anterior não é
-considerado suficiente para estes dois bloqueadores até os novos cenários
-serem implementados e validados.
+**Estado desta revisão**: implementação e validação local concluídas. O push
+e a validação do Quality Gate remoto no novo HEAD ainda estão pendentes.
 
 ### Etapa 1 — resultado ambíguo de `registerPhone`: implementada localmente
 
@@ -74,8 +73,11 @@ serem implementados e validados.
   `recoveryRequired: true`, impedindo novo onboarding/reexecução silenciosa.
 - Conclusão confirmada limpa apenas a referência pendente da tentativa e
   mantém a versão ativa ligada à conexão.
+- Se uma etapa posterior falhar depois de registro confirmado, o código
+  `REGISTERED_CONNECTION_INCOMPLETE` também mantém `requires_action` e o lock
+  de recuperação; novo PIN/onboarding não é liberado silenciosamente.
 - Teste focado: `node --test tests/functions/whatsapp-onboarding-core.test.mjs`
-  — **26/26 aprovados**.
+  — **28/28 aprovados**.
 - Lint/syntax das Functions: aprovado.
 - `git diff --check`: aprovado.
 
@@ -104,14 +106,42 @@ QR antes de executar as suítes completas.
 
 Próxima etapa: revisão final do diff e execução de todas as suítes obrigatórias.
 
+### Etapa 3 — validação local final: concluída
+
+- `pnpm run test:release`: **aprovado com exit 0**. O comando executou
+  `check`, todas as suítes unitárias e de segurança, smoke de frontend e
+  hardening, login, perfis, dez fluxos Playwright e responsividade.
+- `pnpm run test:functions`: **245/245 aprovados**.
+- `pnpm run test:rules`: **241/241 Firestore + 5/5 Storage aprovados** com
+  Java 21 ativo somente no ambiente local de testes.
+- `pnpm run test:frontend:emulator`: aprovado; o hardening validou criação
+  QR+lock atômica, versão dentro da aquisição, perda de token, concorrência,
+  lock expirado, isolamento entre lojas e delete idempotente.
+- `pnpm run test:ui:login`: aprovado; login real no emulador e três perfis
+  com navegação/permissões corretas.
+- `pnpm run test:ui:flows`: aprovado dentro do `test:release`, incluindo o
+  fluxo oficial do WhatsApp de ponta a ponta e o fluxo de produtos.
+- `pnpm run test:ui:responsive`: **5 telas x 5 viewports**, sem overflow
+  horizontal.
+- Uma primeira execução isolada de `test:ui:flows` excedeu o timeout de
+  carregamento do WhatsApp porque o callable local `whatsappListQrCodes`
+  ficou pendente por mais de 20 segundos após oito fluxos pesados. O mesmo
+  fluxo passou isoladamente e voltou a passar na execução completa do
+  `test:release`, com resposta em menos de meio segundo. Nenhum timeout ou
+  asserção foi enfraquecido.
+- Nenhuma chamada à Meta real, deploy, migração, alteração de IAM/secrets
+  ou ativação de feature flag ocorreu.
+
 ### Commits locais desta revisão até aqui
 
 - `cf8838b` — `fix(whatsapp): preserve PIN on ambiguous registration result`
 - `dadfaaa` — `fix(whatsapp): close QR concurrency windows`
 - `fd654c4` — `test(whatsapp): cover recovery and lost-lock scenarios`
+- `6ae9a88` — `docs(whatsapp): document ambiguous outcomes and reconciliation`
+- `44e9323` — `fix(whatsapp): keep incomplete registrations locked`
 
-O push ainda não foi feito. As suítes completas e o Quality Gate remoto ainda
-estão pendentes; este documento não declara o PR pronto neste ponto.
+O push ainda não foi feito. As suítes locais completas estão verdes; o
+Quality Gate remoto ainda está pendente e este documento não autoriza merge.
 
 ## Histórico da sessão anterior (não representa o estado atual)
 

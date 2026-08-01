@@ -98,7 +98,8 @@ dúvida, o comportamento é preservar.
 
 Se o registro tiver sucesso mas uma etapa **posterior** falhar (assinatura do
 webhook, gravação da conexão etc.), o PIN também nunca é desabilitado. Esse
-caso vira pendência recuperável e exige intervenção administrativa.
+caso usa `REGISTERED_CONNECTION_INCOMPLETE`, mantém o tenant em
+`requires_action` e exige intervenção administrativa.
 
 **Limitação conhecida**: se a própria invocação da Cloud Function morrer
 (crash do processo, não um erro JS capturável) exatamente entre o registro
