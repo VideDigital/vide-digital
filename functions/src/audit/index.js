@@ -56,6 +56,11 @@ async function writeAudit(entry) {
   await db.doc(`auditoria/${eventId}`).set({
     ...auditEvent,
     ok: entry.ok !== false,
+    operationalContext: {
+      correlationId: normalizeString(entry.correlationId, 80),
+      origin: normalizeString(entry.origin, 240),
+      resultCode: normalizeString(entry.code, 80)
+    },
     createdAt: FieldValue.serverTimestamp()
   });
 }

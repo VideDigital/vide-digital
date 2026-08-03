@@ -116,7 +116,12 @@ async function resolverToken(resolvido) {
     erro.code = "WHATSAPP_NOT_CONNECTED";
     throw erro;
   }
-  return secrets.accessTokenByResource(recurso);
+  return secrets.accessTokenByResource(recurso, {
+    ownerUid: resolvido.connection.ownerUid,
+    connectionId: resolvido.connectionId,
+    legacy: Boolean(resolvido.legacy),
+    allowLegacySecret: Boolean(resolvido.connection.legacySecret || resolvido.connection.migratedFromLegacy)
+  });
 }
 
 function limparCacheTokenResolvido(resolvido) {

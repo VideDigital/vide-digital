@@ -14,8 +14,15 @@ const { REGION, COLLECTIONS, ERROR_CODES, ERROR_MESSAGES, RATE_LIMITS } = requir
 const resolver = require("./resolver");
 const { criarMetaClient } = require("./metaClient");
 const { janelaAberta, identificadorRateLimit, safeWamid, mascararSegredo, validarParametrosTemplate } = require("./validators");
+const { availabilityForContext, readWhatsappPublicConfig } = require("./config");
+const onboardingCore = require("./onboarding-core");
 
 const metaClient = criarMetaClient();
+
+function mascararIdentificador(value) {
+  const text = String(value || "");
+  return text ? `${"•".repeat(Math.min(8, Math.max(4, text.length - 4)))}${text.slice(-4)}` : "";
+}
 
 function erroPublico(code, mensagemExtra) {
   const mensagem = mensagemExtra || ERROR_MESSAGES[code] || "Erro ao falar com o WhatsApp.";
@@ -346,7 +353,7 @@ const whatsappMarkRead = onCall({ region: REGION }, async (request) => {
 // "configuracoes" mais (separação de propósito desta missão — ver
 // docs/WHATSAPP_MODULO_MULTICONEXAO.md). "Ver" mostra metadados seguros;
 // só "gerenciar" (editar) pode validar conexão, mudar o padrão ou
-// futuramente iniciar/concluir onboarding.
+// iniciar/concluir onboarding.
 const PERMISSAO_MODULO_WHATSAPP = "whatsapp";
 
 function podeVerConexao(context) {
@@ -377,8 +384,9 @@ const whatsappConnectionStatus = onCall({ region: REGION }, async (request) => {
   const connectionId = normalizeString(request.data?.connectionId, 200);
   const legacy = Boolean(request.data?.legacy);
   const db = getFirestore();
+  const onboarding = availabilityForContext(context, readWhatsappPublicConfig());
   const resolvido = await resolver.resolverConexao(db, { ownerUid: context.ownerUid, connectionId, legacy });
-  if (!resolvido.connection) return { ok: true, connected: false, status: "disconnected" };
+  if (!resolvido.connection) return { ok: true, connected: false, status: "disconnected", onboarding };
 
   const dados = resolvido.connection;
   // Nunca devolve tokenSecretResource (nome do recurso do Secret Manager)
@@ -402,7 +410,19 @@ const whatsappConnectionStatus = onCall({ region: REGION }, async (request) => {
     lastTemplateSyncAt: dados.lastTemplateSyncAt || null,
     lastErrorCode: dados.lastErrorCode || "",
     graphVersion: dados.graphVersion || "",
-    tokenMasked: mascararSegredo()
+    tokenMasked: mascararSegredo(),
+    onboarding,
+    ...(context.isAdmin ? {
+      adminDiagnostics: {
+        connectionId: resolvido.connectionId,
+        phoneNumberIdMasked: mascararIdentificador(dados.phoneNumberId),
+        wabaIdMasked: mascararIdentificador(dados.wabaId),
+        schemaVersion: Number(dados.schemaVersion || dados.connectionVersion || 1),
+        secretConfigured: Boolean(dados.tokenSecretResource),
+        routeExpected: Boolean(dados.phoneNumberId),
+        graphVersion: dados.graphVersion || ""
+      }
+    } : {})
   };
 });
 
@@ -422,16 +442,20 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
   const resolvido = await carregarConexaoResolvida(db, { ownerUid: context.ownerUid, connectionId, legacy });
   const conexaoRef = refConexaoResolvida(db, resolvido, context.ownerUid);
 
-  let accessToken;
-  try {
-    accessToken = await resolver.resolverToken(resolvido);
-  } catch (erro) {
-    throw mapearErroMeta(erro);
-  }
-
   let dadosNumero;
   try {
-    dadosNumero = await metaClient.getPhoneNumber({ accessToken, phoneNumberId: resolvido.connection.phoneNumberId });
+    if (readWhatsappPublicConfig().emulator) {
+      dadosNumero = {
+        id: resolvido.connection.phoneNumberId,
+        display_phone_number: resolvido.connection.displayPhoneNumber || "+55 11 97777-0000",
+        verified_name: resolvido.connection.verifiedName || "Loja Emulator",
+        quality_rating: resolvido.connection.qualityRating || "GREEN",
+        messaging_limit_tier: resolvido.connection.messagingLimitTier || "TIER_1K"
+      };
+    } else {
+      const accessToken = await resolver.resolverToken(resolvido);
+      dadosNumero = await metaClient.getPhoneNumber({ accessToken, phoneNumberId: resolvido.connection.phoneNumberId });
+    }
   } catch (erro) {
     await conexaoRef.set({
       status: erro?.code === ERROR_CODES.TOKEN_REVOKED ? "revoked" : "degraded",
@@ -455,6 +479,8 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
     updatedBy: context.authUid
   }, { merge: true });
 
+  const correlationId = onboardingCore.createCorrelationId("wavalidate");
+
   await writeAudit({
     ownerUid: context.ownerUid,
     authUid: context.authUid,
@@ -465,7 +491,10 @@ const whatsappValidateConnection = onCall({ region: REGION }, async (request) =>
     summary: resolvido.legacy
       ? "Conexão do WhatsApp Oficial (piloto legado) validada manualmente."
       : `Conexão do WhatsApp Oficial "${resolvido.connection.label || resolvido.connectionId}" validada manualmente.`,
-    source: "function"
+    source: "function",
+    correlationId,
+    origin: onboardingCore.sanitizeOrigin(request.rawRequest?.headers?.origin),
+    code: "VALIDATED"
   });
 
   return { ok: true, status: "connected" };

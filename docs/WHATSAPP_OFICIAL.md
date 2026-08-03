@@ -1,5 +1,13 @@
 # WhatsApp Oficial V1
 
+> **Atualização 2026-07-31 — Embedded Signup:** o fluxo oficial agora está
+> implementado no código, protegido por flags desligadas em produção. A
+> superfície dedicada passou de 9 para 19 Functions e inclui onboarding,
+> reconexão/desconexão e QR Codes oficiais. Configuração do app Meta, App
+> Review, webhook, IAM, secrets e liberação continuam externas e pendentes.
+> Para o estado atual e a ordem operacional, use `docs/meta-whatsapp/README.md`.
+> Trechos abaixo sobre o piloto/Fase A permanecem como histórico da V1.
+
 Integração com o WhatsApp Business Cloud API oficial da Meta, dobrada por
 inteiro dentro da Central de Atendimento já existente (`chats/{chatId}`,
 `chats/{chatId}/mensagens`, `chats/{chatId}/eventos`, CRM 360, atribuição,
@@ -90,8 +98,10 @@ functions/src/whatsapp/
   webhook.js     — whatsappWebhook (GET verify + POST eventos)
   send.js        — whatsappSendText/SendTemplate/MarkRead/ConnectionStatus/ValidateConnection
   templates.js   — whatsappSyncTemplates + normalização dos templates da Meta
-  onboarding.js  — só arquitetura do Embedded Signup (não liberado)
-  index.js       — agrega as 9 Functions exportadas
+  onboarding.js  — Embedded Signup/reconexão oficial, idempotente e protegido por flags
+  management.js  — renomear/desconectar, preservando histórico
+  qr.js          — CRUD dos QR Codes oficiais da Meta
+  index.js       — agrega as 19 Functions exportadas
 ```
 
 Mesmo padrão pure-function-first da Auditoria Centralizada
@@ -131,23 +141,23 @@ Dois tipos, nunca confundidos:
 
 1. **Globais** (`WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN`) —
    `defineSecret()` do Firebase Functions, mesmo padrão de `GEMINI_API_KEY`
-   (`functions/src/ai/index.js`). Um valor só, fixado no deploy. `META_APP_ID`
-   não existe como secret — nenhuma Function usa esse valor hoje, e o
+   (`functions/src/ai/index.js`). Um valor só, fixado no deploy. O App ID
+   usado pelo SDK é configuração pública por ambiente, não um secret, e o
    Firebase CLI trata QUALQUER `defineSecret()` carregado durante a análise
    do código como obrigatório (trava um deploy `--non-interactive` pedindo
    pra criá-lo), então declarar um `defineSecret()` sem uso real é sempre
    um risco, não só um detalhe cosmético.
-2. **Por tenant** (token de acesso) — não cabem em `defineSecret` (é
+2. **Por conexão** (token de acesso e PIN) — não cabem em `defineSecret` (é
    global/estático). Ficam no Google Secret Manager sob
-   `vide-whatsapp-token-<hash-sha256-do-ownerUid>` (nunca o `ownerUid`
-   cru no nome), acessados dinamicamente por
+   `vide-whatsapp-token-<hash>`/`vide-whatsapp-pin-<hash>` (nunca o
+   `ownerUid` cru no nome), acessados dinamicamente por
    `functions/src/whatsapp/secrets.js`. Cache curto (5 min) só na
    memória do processo, nunca em disco/Firestore, limpo em qualquer erro
-   de autenticação. A service account de runtime das Functions só
-   precisa de `roles/secretmanager.secretAccessor` nos segredos que
-   realmente usa — nunca Secret Manager Admin. Provisionamento
-   (criar/atualizar secret) só acontece nos scripts administrativos, nunca
-   em runtime de produção.
+   de autenticação. O piloto legado continua nos scripts administrativos;
+   o Embedded Signup cria/adiciona/desabilita versões exatas em runtime.
+   A conta precisa de uma função IAM customizada com create/add/access/
+   disable estritamente necessários — nunca Secret Manager Admin. Veja
+   `docs/meta-whatsapp/security-model.md`.
 
 `YOUR_META_APP_SECRET`/similares em qualquer exemplo deste repositório
 são placeholders óbvios — nunca um valor real, nunca commitado em `.env`.
@@ -309,10 +319,11 @@ O botão de conexão no dashboard (`view-whatsapp-oficial`) mostra o aviso
 de piloto assistido enquanto não conectado — nunca um clique que finge
 sucesso.
 
-Embedded Signup (fluxo de auto-conexão real via SDK do Facebook) está
-documentado como arquitetura em `functions/src/whatsapp/onboarding.js`
-(`EMBEDDED_SIGNUP_LIBERADO_EM_PRODUCAO = false`) — não implementado
-nem exposto como Function nesta V1.
+O Embedded Signup oficial está implementado e exportado, mas nasce
+indisponível em produção. App ID, Configuration ID, audience e flags são
+controlados por ambiente; o SDK entrega somente um code temporário e toda
+troca/validação de credencial acontece no backend. Consulte
+`docs/meta-whatsapp/embedded-signup-setup.md`.
 
 ## Testes
 
@@ -331,9 +342,9 @@ nem exposto como Function nesta V1.
   erro; planos puros do webhook (chat novo vs. existente, vínculo de
   CRM, decisão de atualização de status); decisões puras do `send.js`
   (conexão válida, template aprovado/cross-tenant, montagem dos
-  parâmetros do template, permissão de ver a conexão); `templates.js`
-  (derivação do schema de parâmetros); `index.js` exporta exatamente as
-  9 Functions esperadas.
+  parâmetros do template, permissão de ver a conexão); onboarding,
+  gerenciamento e QR; `templates.js` (derivação do schema de parâmetros);
+  `index.js` exporta exatamente as 19 Functions esperadas.
 - **Rules** (`tests/emulator/firestore-security.test.mjs`, 15 cenários
   novos): dono lê a própria conexão, funcionário com permissão lê,
   funcionário sem permissão não lê, outro tenant nunca lê, cliente nunca
@@ -372,11 +383,10 @@ que a regra base).
 
 `check` (sintaxe), `test:unit` (inclui os novos testes puros de
 `atendimento.js`), `test:functions` (77 testes puros do WhatsApp),
-`test:rules` (15 cenários novos + regressão completa), `test:frontend:emulator`
-(Functions Emulator real sobe as 9 Functions sem erro) — todos verdes
-localmente antes de cada commit. `test:ui:flows` (Playwright) não pôde
-rodar localmente (rede do sandbox), mas rodou e passou em CI real após o
-fix do bug de CSS acima.
+`test:rules` (regressão completa), `test:frontend:emulator` (Functions
+Emulator real sobe as 19 Functions sem erro), Playwright e responsividade
+formam o gate atual. Os resultados do SHA candidato devem ser consultados
+no PR/Quality Gate; não reutilize números históricos como aprovação.
 
 ## Deploy (Fase B — não executada nesta entrega)
 
@@ -384,7 +394,7 @@ fix do bug de CSS acima.
 disparado nesta missão. `workflow_dispatch` manual, projeto fixo
 `vide-digital-saas`, `confirm_production` precisa ser exatamente
 `DEPLOY_WHATSAPP`, testes locais antes do deploy, `--only` explícito
-listando só as 9 Functions do WhatsApp (nunca toca `askBusinessAI`,
+listando só as 19 Functions do WhatsApp (nunca toca `askBusinessAI`,
 `askPublicBusinessAI` nem os 15 triggers de auditoria), Node 22.
 
 ## Runbook e preflight (Fase B)
@@ -399,7 +409,7 @@ checklist de 24 itens de teste real, e rollback.
 leitura antes do deploy real: Node/pnpm/Firebase CLI/gcloud/Java, worktree
 limpo, autenticação Google, projeto GCP correto, APIs habilitadas,
 existência dos secrets globais (metadados, nunca valor), papéis IAM da
-service account de runtime, quais das 9 Functions já estão publicadas, e
+service account de runtime, quais das 19 Functions já estão publicadas, e
 opcionalmente uma validação real de conexão com a Meta. Nunca cria
 secret, nunca escreve no Firestore, nunca faz deploy. Saída: tabela
 PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
@@ -416,8 +426,8 @@ PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
    telefone.
 6. Criar os secrets globais no Secret Manager:
    `WHATSAPP_APP_SECRET`, `WHATSAPP_WEBHOOK_VERIFY_TOKEN` — nunca com
-   valor de exemplo. Não criar `META_APP_ID` — nenhuma Function usa esse
-   valor.
+   valor de exemplo. Configurar App ID/Configuration ID somente como
+   configuração pública do ambiente, nunca como credencial no frontend.
 7. Rodar `.github/workflows/firebase-deploy-whatsapp.yml` com
    `confirm_production=DEPLOY_WHATSAPP`.
 8. Configurar o webhook no painel da Meta com a URL publicada e o
@@ -437,7 +447,7 @@ PASS/WARN/BLOCKED/FAIL; código de saída 0/1/2.
 
 Reverter os 3 commits desta entrega em ordem inversa é seguro — nenhum
 deles altera `askBusinessAI`, `askPublicBusinessAI` ou os triggers de
-auditoria. Se já houver deploy real (Fase B): apagar só as 9 Functions
+auditoria. Se já houver deploy real (Fase B): reverter/despublicar só as 19 Functions
 do WhatsApp (nunca as legadas), marcar a conexão como `revoked` via
 `scripts/disconnect-whatsapp-pilot.mjs`, desabilitar a versão do secret
 — **nunca apagar** `chats`/`mensagens`/`clientes`/histórico de conversa,
@@ -451,8 +461,8 @@ mesmo ao desconectar.
   fica para uma V1.1.
 - Sem envio de mídia outbound nesta fase.
 - Sem broadcast/lista de destinatários — sempre um chat por chamada.
-- Embedded Signup documentado mas não liberado — onboarding V1 é só
-  piloto assistido por script.
+- Embedded Signup implementado, mas desligado por padrão; a liberação real
+  depende dos gates em `docs/meta-whatsapp/production-readiness.md`.
 - Criação de template via API não implementada — só sincronização de
   templates já existentes no WhatsApp Manager.
 - A versão da Graph API (`v26.0`) foi confirmada diretamente pelo usuário

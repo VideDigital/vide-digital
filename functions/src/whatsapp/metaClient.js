@@ -40,7 +40,7 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
     throw new Error("metaClient requer um fetch disponível (nativo ou injetado via fetchImpl).");
   }
 
-  async function chamarGraphApi(path, { method = "GET", accessToken, body, query } = {}) {
+  async function chamarGraphApi(path, { method = "GET", accessToken, body, query, maxRetries = MAX_TENTATIVAS } = {}) {
     let url = graphUrl(path);
     if (query && typeof query === "object") {
       const params = new URLSearchParams();
@@ -52,7 +52,8 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
     }
 
     let ultimoErro = null;
-    for (let tentativa = 0; tentativa <= MAX_TENTATIVAS; tentativa += 1) {
+    const retryLimit = Number.isInteger(maxRetries) && maxRetries >= 0 ? maxRetries : MAX_TENTATIVAS;
+    for (let tentativa = 0; tentativa <= retryLimit; tentativa += 1) {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
       try {
@@ -95,7 +96,7 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
             mensagem: "A Meta limitou as requisições no momento."
           });
         }
-        if (statusRetentavel(status) && tentativa < MAX_TENTATIVAS) {
+        if (statusRetentavel(status) && tentativa < retryLimit) {
           ultimoErro = erroTipado(ERROR_CODES.PROVIDER_UNAVAILABLE, { providerStatus: status });
           await aguardar(BACKOFF_BASE_MS * (tentativa + 1));
           continue;
@@ -117,7 +118,7 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
       } catch (erro) {
         clearTimeout(timeoutId);
         if (erro?.code) throw erro; // já é um erro tipado nosso — propaga
-        if (tentativa < MAX_TENTATIVAS) {
+        if (tentativa < retryLimit) {
           ultimoErro = erro;
           await aguardar(BACKOFF_BASE_MS * (tentativa + 1));
           continue;
@@ -131,7 +132,76 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
     throw ultimoErro || erroTipado(ERROR_CODES.PROVIDER_UNAVAILABLE, { mensagem: "WhatsApp indisponível." });
   }
 
+  // O code do Embedded Signup só é trocado no backend. O App Secret vai
+  // no corpo urlencoded da requisição e nunca compõe log, resposta pública
+  // ou URL exibida ao cliente.
+  async function exchangeEmbeddedSignupCode({ appId, appSecret, code }) {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+    try {
+      const body = new URLSearchParams({
+        client_id: String(appId || ""),
+        client_secret: String(appSecret || ""),
+        code: String(code || "")
+      });
+      const response = await fazerFetch(graphUrl("oauth/access_token"), {
+        method: "POST",
+        signal: controller.signal,
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: body.toString()
+      });
+      let payload = null;
+      try { payload = await response.json(); } catch { payload = null; }
+      if (!response.ok || !payload?.access_token) {
+        const metaError = payload?.error || {};
+        throw erroTipado(response.status === 429 ? ERROR_CODES.RATE_LIMITED : ERROR_CODES.TOKEN_REVOKED, {
+          providerStatus: response.status,
+          metaErrorCode: metaError.code,
+          metaErrorTitle: metaError.error_user_title || metaError.type,
+          mensagem: "A autorização temporária da Meta não pôde ser confirmada."
+        });
+      }
+      return {
+        accessToken: String(payload.access_token),
+        tokenType: String(payload.token_type || ""),
+        expiresIn: Number(payload.expires_in || 0)
+      };
+    } catch (error) {
+      if (error?.code) throw error;
+      throw erroTipado(ERROR_CODES.PROVIDER_UNAVAILABLE, {
+        mensagem: error?.name === "AbortError"
+          ? "Tempo esgotado ao confirmar a autorização da Meta."
+          : "Falha de rede ao confirmar a autorização da Meta."
+      });
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  }
+
   return {
+    exchangeEmbeddedSignupCode,
+    async debugToken({ appId, appSecret, accessToken }) {
+      return chamarGraphApi("debug_token", {
+        accessToken: `${appId}|${appSecret}`,
+        query: { input_token: accessToken }
+      });
+    },
+    async getWaba({ accessToken, wabaId }) {
+      return chamarGraphApi(`${wabaId}`, {
+        accessToken,
+        query: { fields: "id,name,currency,timezone_id,message_template_namespace" }
+      });
+    },
+    async listPhoneNumbers({ accessToken, wabaId, after }) {
+      return chamarGraphApi(`${wabaId}/phone_numbers`, {
+        accessToken,
+        query: {
+          fields: "id,display_phone_number,verified_name,quality_rating,messaging_limit_tier,code_verification_status,status,name_status,platform_type",
+          limit: 100,
+          after
+        }
+      });
+    },
     async validateConnection({ accessToken, phoneNumberId }) {
       return chamarGraphApi(`${phoneNumberId}`, {
         accessToken,
@@ -183,6 +253,57 @@ function criarMetaClient({ fetchImpl, timeoutMs = TIMEOUT_MS_PADRAO } = {}) {
     },
     async subscribeWaba({ accessToken, wabaId }) {
       return chamarGraphApi(`${wabaId}/subscribed_apps`, { accessToken, method: "POST" });
+    },
+    async registerPhone({ accessToken, phoneNumberId, pin }) {
+      try {
+        return await chamarGraphApi(`${phoneNumberId}/register`, {
+          accessToken,
+          method: "POST",
+          body: { messaging_product: "whatsapp", pin: String(pin || "") },
+          // Timeout/rede/5xx deixam o resultado ambíguo. Repetir aqui poderia
+          // registrar outro estado sem controle e nunca é seguro.
+          maxRetries: 0
+        });
+      } catch (error) {
+        // Uma resposta 4xx de rejeição da própria Meta é a única evidência
+        // tratada como definitiva de que esta requisição não foi aplicada.
+        // Auth/rate-limit/timeout/5xx não recebem esta marca.
+        if (error?.code === ERROR_CODES.MESSAGE_FAILED
+          && Number(error?.providerStatus) >= 400
+          && Number(error?.providerStatus) < 500) {
+          error.registrationOutcome = "confirmed_not_registered";
+          error.registrationOutcomeVerified = true;
+        }
+        throw error;
+      }
+    },
+    async listMessageQrCodes({ accessToken, phoneNumberId, code, format = "SVG" }) {
+      return chamarGraphApi(`${phoneNumberId}/message_qrdls`, {
+        accessToken,
+        query: {
+          fields: `code,prefilled_message,deep_link_url,qr_image_url.format(${format === "PNG" ? "PNG" : "SVG"})`,
+          code
+        }
+      });
+    },
+    async createMessageQrCode({ accessToken, phoneNumberId, message, format = "SVG" }) {
+      return chamarGraphApi(`${phoneNumberId}/message_qrdls`, {
+        accessToken,
+        method: "POST",
+        body: { prefilled_message: message, generate_qr_image: format === "PNG" ? "PNG" : "SVG" },
+        maxRetries: 0
+      });
+    },
+    async updateMessageQrCode({ accessToken, phoneNumberId, code, message }) {
+      return chamarGraphApi(`${phoneNumberId}/message_qrdls`, {
+        accessToken,
+        method: "POST",
+        body: { code, prefilled_message: message },
+        maxRetries: 0
+      });
+    },
+    async deleteMessageQrCode({ accessToken, phoneNumberId, code }) {
+      return chamarGraphApi(`${phoneNumberId}/message_qrdls/${code}`, { accessToken, method: "DELETE", maxRetries: 0 });
     },
     async getMediaMetadata({ accessToken, mediaId }) {
       return chamarGraphApi(`${mediaId}`, { accessToken });

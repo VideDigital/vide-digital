@@ -8,7 +8,7 @@ import { ACOES_IA_COPILOT, criarIaCopilotController } from "./ia-copilot.js";
 import { criarIaNegocioController, payloadIaNegocioPublica } from "./ia-negocio.js";
 import { criarGrowthTrackingController } from "./growth-tracking-v1.js";
 import { criarAuditCenterController } from "./audit-center-v1.js";
-import { criarWhatsappOficialController } from "./whatsapp-oficial-v1.js";
+import { criarWhatsappOficialController } from "./whatsapp-oficial-v1.js?v=embedded-signup-1";
 import { VideFunctions } from "./core/vide-functions.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
@@ -3595,7 +3595,17 @@ btn.classList.add("opacity-40");
             chamarValidateConnection: VideFunctions.whatsappValidateConnection,
             chamarSyncTemplates: VideFunctions.whatsappSyncTemplates,
             chamarListConnections: VideFunctions.whatsappListConnections,
-            chamarSetDefaultConnection: VideFunctions.whatsappSetDefaultConnection
+            chamarSetDefaultConnection: VideFunctions.whatsappSetDefaultConnection,
+            chamarStartOnboarding: VideFunctions.whatsappStartOnboarding,
+            chamarCompleteOnboarding: VideFunctions.whatsappCompleteOnboarding,
+            chamarGetOnboardingStatus: VideFunctions.whatsappGetOnboardingStatus,
+            chamarCancelOnboarding: VideFunctions.whatsappCancelOnboarding,
+            chamarRenameConnection: VideFunctions.whatsappRenameConnection,
+            chamarDisconnectConnection: VideFunctions.whatsappDisconnectConnection,
+            chamarListQrCodes: VideFunctions.whatsappListQrCodes,
+            chamarCreateQrCode: VideFunctions.whatsappCreateQrCode,
+            chamarUpdateQrCode: VideFunctions.whatsappUpdateQrCode,
+            chamarDeleteQrCode: VideFunctions.whatsappDeleteQrCode
         });
         whatsappOficialController.bindEventos();
         window.whatsappOficialController = whatsappOficialController;

@@ -32,7 +32,9 @@ export const MODULE_ALIASES = Object.freeze({
     // copiloto de IA automaticamente — precisa de concessão explícita.
     // O dono sempre tem acesso (bypass de isOwner em canEditTenant/
     // canViewTenant, tanto aqui quanto em firestore.rules).
-    "ia-copilot": ["ia-copilot", "ia_copilot", "copiloto", "copiloto-ia", "copiloto_ia"]
+    "ia-copilot": ["ia-copilot", "ia_copilot", "copiloto", "copiloto-ia", "copiloto_ia"],
+    // Permissão dedicada do módulo oficial; não herda atendimento.
+    whatsapp: ["whatsapp"]
 });
 
 const MODULE_ALIAS_LOOKUP = Object.freeze(

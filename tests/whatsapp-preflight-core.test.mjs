@@ -274,9 +274,8 @@ describe("avaliarIamPorSecret (revisão 2026-07-31: binding direto no secret, n�
 });
 
 describe("avaliarFunctionsPublicadas", () => {
-    // 9 Functions reais do módulo (ver functions/src/whatsapp/index.js): as
-    // 7 originais da V1 + as 2 da multiconexão (whatsappListConnections,
-    // whatsappSetDefaultConnection). Contagem sempre derivada de
+    // 19 Functions reais do módulo (ver functions/src/whatsapp/index.js):
+    // as 9 já existentes + 10 de onboarding/gestão/QR. Contagem derivada de
     // nomesEsperados.length — nunca hardcoded — pra nunca voltar a
     // divergir da arquitetura real quando uma Function nova for somada.
     const esperadas = [
@@ -288,35 +287,45 @@ describe("avaliarFunctionsPublicadas", () => {
         "whatsappConnectionStatus",
         "whatsappValidateConnection",
         "whatsappListConnections",
-        "whatsappSetDefaultConnection"
+        "whatsappSetDefaultConnection",
+        "whatsappStartOnboarding",
+        "whatsappCompleteOnboarding",
+        "whatsappGetOnboardingStatus",
+        "whatsappCancelOnboarding",
+        "whatsappRenameConnection",
+        "whatsappDisconnectConnection",
+        "whatsappListQrCodes",
+        "whatsappCreateQrCode",
+        "whatsappUpdateQrCode",
+        "whatsappDeleteQrCode"
     ];
 
     it("WARN quando nenhuma publicada ainda (primeiro deploy)", () => {
         const check = avaliarFunctionsPublicadas(esperadas, []);
         assert.equal(check.status, STATUS.WARN);
-        assert.ok(check.nome.includes("9"));
+        assert.ok(check.nome.includes("19"));
     });
 
-    it("PASS quando as 9 já publicadas", () => {
+    it("PASS quando as 19 já publicadas", () => {
         const check = avaliarFunctionsPublicadas(esperadas, esperadas);
         assert.equal(check.status, STATUS.PASS);
-        assert.ok(check.detalhe.includes("9"));
+        assert.ok(check.detalhe.includes("19"));
     });
 
-    it("WARN em deploy parcial (2/9)", () => {
+    it("WARN em deploy parcial (2/19)", () => {
         const check = avaliarFunctionsPublicadas(esperadas, ["whatsappWebhook", "whatsappSendText"]);
         assert.equal(check.status, STATUS.WARN);
-        assert.ok(check.detalhe.includes("2/9"));
+        assert.ok(check.detalhe.includes("2/19"));
     });
 
-    it("nunca menciona '7' em nenhum lugar quando o esperado é 9 (nome, detalhe)", () => {
+    it("nunca volta à contagem antiga de 9 quando o esperado é 19", () => {
         for (const check of [
             avaliarFunctionsPublicadas(esperadas, []),
             avaliarFunctionsPublicadas(esperadas, esperadas),
             avaliarFunctionsPublicadas(esperadas, ["whatsappWebhook"])
         ]) {
-            assert.ok(!check.nome.includes("7"), `nome não deveria conter "7": ${check.nome}`);
-            assert.ok(!check.detalhe.includes("7"), `detalhe não deveria conter "7": ${check.detalhe}`);
+            assert.ok(!/(^|\D)9(\D|$)/.test(check.nome), `nome não deveria usar a contagem 9: ${check.nome}`);
+            assert.ok(!/(^|\D)9(\D|$)/.test(check.detalhe), `detalhe não deveria usar a contagem 9: ${check.detalhe}`);
         }
     });
 
@@ -328,7 +337,7 @@ describe("avaliarFunctionsPublicadas", () => {
         const todasPublicadas = avaliarFunctionsPublicadas(tres, tres);
         assert.equal(todasPublicadas.status, STATUS.PASS);
         assert.ok(todasPublicadas.detalhe.includes("3"));
-        assert.ok(!todasPublicadas.detalhe.includes("9"));
+        assert.ok(!todasPublicadas.detalhe.includes("19"));
 
         const parcial = avaliarFunctionsPublicadas(tres, ["fnA"]);
         assert.ok(parcial.detalhe.includes("1/3"));

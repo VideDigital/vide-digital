@@ -16,6 +16,8 @@ const { writeAudit } = require("../audit");
 const { REGION, COLLECTIONS, CONNECTION_VERSION_MULTI, MAX_CONNECTIONS_PER_OWNER, RATE_LIMITS } = require("./constants");
 const { identificadorRateLimit } = require("./validators");
 const { podeVerConexao, podeGerenciarConexao } = require("./send");
+const { availabilityForContext, readWhatsappPublicConfig } = require("./config");
+const onboardingCore = require("./onboarding-core");
 
 // Nunca inclui tokenSecretResource nem qualquer campo de segredo — mesmo
 // contrato "seguro" de whatsappConnectionStatus (send.js), só que aqui
@@ -32,7 +34,10 @@ function paraResumoSeguro(id, dados, { legacy = false } = {}) {
     verifiedName: dados.verifiedName || "",
     qualityRating: dados.qualityRating || "",
     lastValidatedAt: dados.lastValidatedAt || null,
-    lastErrorCode: dados.lastErrorCode || ""
+    lastErrorCode: dados.lastErrorCode || "",
+    lastTemplateSyncAt: dados.lastTemplateSyncAt || null,
+    templateCount: Number(dados.templateCount || 0),
+    graphVersion: dados.graphVersion || ""
   };
 }
 
@@ -47,7 +52,10 @@ function montarListaConexoes(conexoesNovas, conexaoLegada) {
     return String(a.connectionId).localeCompare(String(b.connectionId));
   });
   const lista = [...novas];
-  if (conexaoLegada) lista.push(conexaoLegada);
+  if (conexaoLegada) {
+    const existeDefaultNova = novas.some((connection) => connection.isDefault);
+    lista.push({ ...conexaoLegada, isDefault: !existeDefaultNova });
+  }
   return lista;
 }
 
@@ -68,12 +76,25 @@ const whatsappListConnections = onCall({ region: REGION }, async (request) => {
   const conexaoLegada = legadoSnap.exists ? paraResumoSeguro(legadoSnap.id, legadoSnap.data() || {}, { legacy: true }) : null;
 
   const lista = montarListaConexoes(conexoesNovas, conexaoLegada);
+  const activeNewData = novasSnap.docs
+    .map((doc) => doc.data() || {})
+    .filter((data) => !["disconnected", "revoked"].includes(String(data.status || "")));
+  const activeLegacyData = legadoSnap.exists && !["disconnected", "revoked"].includes(String(legadoSnap.data()?.status || ""))
+    ? legadoSnap.data() || {}
+    : null;
+  const phoneIds = new Set([
+    ...activeNewData.map((data) => String(data.phoneNumberId || "")),
+    activeLegacyData ? String(activeLegacyData.phoneNumberId || "") : ""
+  ].filter(Boolean));
+  const activeWithoutPhoneId = activeNewData.filter((data) => !data.phoneNumberId).length + (activeLegacyData && !activeLegacyData.phoneNumberId ? 1 : 0);
+  const totalPhysicalConnections = phoneIds.size + activeWithoutPhoneId;
   return {
     ok: true,
     conexoes: lista,
-    total: conexoesNovas.length,
+    total: totalPhysicalConnections,
     maxConexoes: MAX_CONNECTIONS_PER_OWNER,
-    limiteAtingido: conexoesNovas.length >= MAX_CONNECTIONS_PER_OWNER
+    limiteAtingido: totalPhysicalConnections >= MAX_CONNECTIONS_PER_OWNER,
+    onboarding: availabilityForContext(context, readWhatsappPublicConfig())
   };
 });
 
@@ -137,6 +158,7 @@ const whatsappSetDefaultConnection = onCall({ region: REGION }, async (request) 
 
   const db = getFirestore();
   const { label } = await aplicarConexaoPadrao(db, { ownerUid: context.ownerUid, connectionId, authUid: context.authUid });
+  const correlationId = onboardingCore.createCorrelationId("wadefault");
 
   // Só muda qual conexão é usada em conversas NOVAS sem connectionId
   // explícito — conversas existentes mantêm chat.whatsappConnectionId
@@ -150,7 +172,10 @@ const whatsappSetDefaultConnection = onCall({ region: REGION }, async (request) 
     action: "whatsapp.conexao_padrao_alterada",
     risk: "medium",
     summary: `Conexão "${label}" definida como padrão do WhatsApp.`,
-    source: "function"
+    source: "function",
+    correlationId,
+    origin: onboardingCore.sanitizeOrigin(request.rawRequest?.headers?.origin),
+    code: "DEFAULT_CHANGED"
   });
 
   return { ok: true, connectionId };

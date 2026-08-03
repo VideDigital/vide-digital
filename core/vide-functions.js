@@ -68,7 +68,17 @@ export const VideFunctions = Object.freeze({
     whatsappValidateConnection: (payload) => callFunction("whatsappValidateConnection", payload),
     // Fase 4 (multiconexão) — módulo WhatsApp separado no dashboard.
     whatsappListConnections: (payload) => callFunction("whatsappListConnections", payload),
-    whatsappSetDefaultConnection: (payload) => callFunction("whatsappSetDefaultConnection", payload)
+    whatsappSetDefaultConnection: (payload) => callFunction("whatsappSetDefaultConnection", payload),
+    whatsappStartOnboarding: (payload) => callFunction("whatsappStartOnboarding", payload),
+    whatsappCompleteOnboarding: (payload) => callFunction("whatsappCompleteOnboarding", payload),
+    whatsappGetOnboardingStatus: (payload) => callFunction("whatsappGetOnboardingStatus", payload),
+    whatsappCancelOnboarding: (payload) => callFunction("whatsappCancelOnboarding", payload),
+    whatsappRenameConnection: (payload) => callFunction("whatsappRenameConnection", payload),
+    whatsappDisconnectConnection: (payload) => callFunction("whatsappDisconnectConnection", payload),
+    whatsappListQrCodes: (payload) => callFunction("whatsappListQrCodes", payload),
+    whatsappCreateQrCode: (payload) => callFunction("whatsappCreateQrCode", payload),
+    whatsappUpdateQrCode: (payload) => callFunction("whatsappUpdateQrCode", payload),
+    whatsappDeleteQrCode: (payload) => callFunction("whatsappDeleteQrCode", payload)
 });
 
 export default VideFunctions;

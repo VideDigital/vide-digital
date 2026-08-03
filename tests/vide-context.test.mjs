@@ -7,6 +7,11 @@ import { describe, it } from "node:test";
 import { normalizeModuleKey } from "../core/vide-module-aliases.js";
 
 describe("normalizeModuleKey — separação real entre crm e leads", () => {
+    it("mantém WhatsApp como permissão canônica dedicada", () => {
+        assert.equal(normalizeModuleKey("whatsapp"), "whatsapp");
+        assert.notEqual(normalizeModuleKey("whatsapp"), normalizeModuleKey("atendimento"));
+    });
+
     it("'crm' normaliza pra si mesmo — NUNCA pra 'leads'", () => {
         // Achado de auditoria (fase "navegação própria do CRM 360"): 'crm'
         // já era, nas Rules (firestore.rules, employeeHasModulePermission),

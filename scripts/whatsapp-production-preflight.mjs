@@ -68,7 +68,17 @@ const FUNCTIONS_ESPERADAS = [
     "whatsappConnectionStatus",
     "whatsappValidateConnection",
     "whatsappListConnections",
-    "whatsappSetDefaultConnection"
+    "whatsappSetDefaultConnection",
+    "whatsappStartOnboarding",
+    "whatsappCompleteOnboarding",
+    "whatsappGetOnboardingStatus",
+    "whatsappCancelOnboarding",
+    "whatsappRenameConnection",
+    "whatsappDisconnectConnection",
+    "whatsappListQrCodes",
+    "whatsappCreateQrCode",
+    "whatsappUpdateQrCode",
+    "whatsappDeleteQrCode"
 ];
 
 function rodarComandoSeguro(comando, args) {

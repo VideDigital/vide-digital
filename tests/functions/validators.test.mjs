@@ -10,11 +10,16 @@ describe("function validators", () => {
 
   it("sanitizes permissions to known modules and makes edit imply view", () => {
     const result = validators.sanitizePermissions({
-      ver: ["produtos", "gerenciar_ia", "unknown"],
+      ver: ["produtos", "gerenciar_ia", "whatsapp", "unknown"],
       editar: ["leads", "produtos", "central_ia"]
     });
-    assert.deepEqual(result.ver.sort(), ["central-ia", "leads", "produtos"].sort());
+    assert.deepEqual(result.ver.sort(), ["central-ia", "leads", "produtos", "whatsapp"].sort());
     assert.deepEqual(result.editar.sort(), ["central-ia", "leads", "produtos"].sort());
+  });
+
+  it("preserva a permissão dedicada do WhatsApp ao salvar um funcionário", () => {
+    const result = validators.sanitizePermissions({ editar: ["whatsapp"] });
+    assert.deepEqual(result, { ver: ["whatsapp"], editar: ["whatsapp"] });
   });
 
   it("keeps public text bounded", () => {
