@@ -548,35 +548,183 @@ export function criarWhatsappOficialController({
     }
 
     function openActionModal(type, connectionId, label) {
-        state.acaoAtual = { type, connectionId };
         const disconnect = type === "disconnect";
-        byId("whatsapp-acao-titulo").textContent = disconnect ? "Desconectar WhatsApp" : "Renomear conexão";
-        byId("whatsapp-acao-descricao").textContent = disconnect ? `O histórico de "${label}" será preservado, mas novas mensagens deixarão de ser processadas por esta conexão.` : "Use um nome fácil para sua equipe reconhecer este número.";
-        byId("whatsapp-acao-label-box").classList.toggle("hidden", disconnect);
-        byId("whatsapp-acao-confirmacao-box").classList.toggle("hidden", !disconnect);
+        const rename = type === "rename";
+        const connectionExists = state.conexoes.some(
+            (connection) =>
+                !connection.legacy
+                && connection.connectionId === connectionId
+        );
+
+        if (
+            !podeGerenciar()
+            || !connectionExists
+            || (!disconnect && !rename)
+        ) {
+            return;
+        }
+
+        if (
+            disconnect
+            && (
+                !recursoHabilitado("disconnect")
+                || typeof chamarDisconnectConnection !== "function"
+            )
+        ) {
+            return notify(
+                "A desconexão ainda não está disponível para esta conta.",
+                "error"
+            );
+        }
+
+        if (
+            rename
+            && (
+                !gerenciamentoNovoDisponivel()
+                || typeof chamarRenameConnection !== "function"
+            )
+        ) {
+            return notify(
+                "O gerenciamento desta conexão ainda não está disponível.",
+                "error"
+            );
+        }
+
+        state.acaoAtual = { type, connectionId };
+        byId("whatsapp-acao-titulo").textContent =
+            disconnect ? "Desconectar WhatsApp" : "Renomear conexão";
+        byId("whatsapp-acao-descricao").textContent =
+            disconnect
+                ? `O histórico de "${label}" será preservado, mas novas mensagens deixarão de ser processadas por esta conexão.`
+                : "Use um nome fácil para sua equipe reconhecer este número.";
+        byId("whatsapp-acao-label-box").classList.toggle(
+            "hidden",
+            disconnect
+        );
+        byId("whatsapp-acao-confirmacao-box").classList.toggle(
+            "hidden",
+            !disconnect
+        );
         byId("whatsapp-acao-label").value = label || "";
         byId("whatsapp-acao-confirmacao").value = "";
-        byId("whatsapp-acao-confirmar").textContent = disconnect ? "Desconectar" : "Salvar nome";
+        byId("whatsapp-acao-confirmar").textContent =
+            disconnect ? "Desconectar" : "Salvar nome";
         byId("whatsapp-acao-erro").classList.add("hidden");
         byId("whatsapp-acao-modal").showModal();
     }
 
     async function submitAction(event) {
         event.preventDefault();
+
         const action = state.acaoAtual;
         if (!action) return;
+
         const errorBox = byId("whatsapp-acao-erro");
+
+        const bloquearAcao = (message) => {
+            if (errorBox) {
+                errorBox.textContent = message;
+                errorBox.classList.remove("hidden");
+            } else {
+                notify(message, "error");
+            }
+        };
+
+        if (!podeGerenciar()) {
+            return bloquearAcao(
+                "Seu perfil não pode alterar conexões."
+            );
+        }
+
+        if (action.type === "disconnect") {
+            if (
+                !recursoHabilitado("disconnect")
+                || typeof chamarDisconnectConnection !== "function"
+            ) {
+                return bloquearAcao(
+                    "A desconexão ainda não está disponível para esta conta."
+                );
+            }
+        } else if (action.type === "rename") {
+            if (
+                !gerenciamentoNovoDisponivel()
+                || typeof chamarRenameConnection !== "function"
+            ) {
+                return bloquearAcao(
+                    "O gerenciamento desta conexão ainda não está disponível."
+                );
+            }
+        } else {
+            return bloquearAcao(
+                "Ação de conexão inválida."
+            );
+        }
+
         try {
-            if (action.type === "disconnect") await chamarDisconnectConnection({ connectionId: action.connectionId, confirmation: byId("whatsapp-acao-confirmacao").value.trim() });
-            else await chamarRenameConnection({ connectionId: action.connectionId, label: byId("whatsapp-acao-label").value.trim() });
+            if (action.type === "disconnect") {
+                await chamarDisconnectConnection({
+                    connectionId: action.connectionId,
+                    confirmation:
+                        byId("whatsapp-acao-confirmacao").value.trim()
+                });
+            } else {
+                await chamarRenameConnection({
+                    connectionId: action.connectionId,
+                    label:
+                        byId("whatsapp-acao-label").value.trim()
+                });
+            }
+
             byId("whatsapp-acao-modal").close();
-            notify(action.type === "disconnect" ? "Conexão desconectada. O histórico foi preservado." : "Nome da conexão atualizado.", "success");
+
+            notify(
+                action.type === "disconnect"
+                    ? "Conexão desconectada. O histórico foi preservado."
+                    : "Nome da conexão atualizado.",
+                "success"
+            );
+
             await load({ force: true });
-        } catch (error) { errorBox.textContent = error?.message || "Não foi possível concluir esta ação."; errorBox.classList.remove("hidden"); }
+        } catch (error) {
+            bloquearAcao(
+                error?.message
+                || "Não foi possível concluir esta ação."
+            );
+        }
     }
 
     function connectionOptionValue(connection) { return connection.legacy ? "legacy" : connection.connectionId; }
     function openQrModal(qr = null, preferredConnection = "") {
+        if (
+            !podeGerenciar()
+            || !recursoHabilitado("qrCodes")
+        ) {
+            return notify(
+                "Os QR Codes ainda não estão disponíveis para esta conta.",
+                "error"
+            );
+        }
+
+        if (
+            qr
+            && typeof chamarUpdateQrCode !== "function"
+        ) {
+            return notify(
+                "A edição de QR Codes está temporariamente indisponível.",
+                "error"
+            );
+        }
+
+        if (
+            !qr
+            && typeof chamarCreateQrCode !== "function"
+        ) {
+            return notify(
+                "A criação de QR Codes está temporariamente indisponível.",
+                "error"
+            );
+        }
+
         const select = byId("whatsapp-qr-conexao");
         const active = conexoesAtivas();
         select.innerHTML = active.map((connection) => `<option value="${escaparHtml(connectionOptionValue(connection))}">${escaparHtml(connection.label || connection.displayPhoneNumber || "Conexão")}</option>`).join("");
@@ -594,28 +742,106 @@ export function criarWhatsappOficialController({
 
     async function submitQr(event) {
         event.preventDefault();
-        const qrId = byId("whatsapp-qr-id").value;
-        const selected = byId("whatsapp-qr-conexao").value;
-        const payload = { qrId, connectionId: selected === "legacy" ? "" : selected, legacy: selected === "legacy", label: byId("whatsapp-qr-label").value.trim(), message: byId("whatsapp-qr-mensagem").value.trim(), format: "SVG" };
+
         const errorBox = byId("whatsapp-qr-erro");
+
+        const bloquearQr = (message) => {
+            if (errorBox) {
+                errorBox.textContent = message;
+                errorBox.classList.remove("hidden");
+            } else {
+                notify(message, "error");
+            }
+        };
+
+        if (
+            !podeGerenciar()
+            || !recursoHabilitado("qrCodes")
+        ) {
+            return bloquearQr(
+                "Os QR Codes ainda não estão disponíveis para esta conta."
+            );
+        }
+
+        const qrId = byId("whatsapp-qr-id").value;
+
+        if (
+            qrId
+            && typeof chamarUpdateQrCode !== "function"
+        ) {
+            return bloquearQr(
+                "A edição de QR Codes está temporariamente indisponível."
+            );
+        }
+
+        if (
+            !qrId
+            && typeof chamarCreateQrCode !== "function"
+        ) {
+            return bloquearQr(
+                "A criação de QR Codes está temporariamente indisponível."
+            );
+        }
+
+        const selected = byId("whatsapp-qr-conexao").value;
+
+        const payload = {
+            qrId,
+            connectionId: selected === "legacy" ? "" : selected,
+            legacy: selected === "legacy",
+            label: byId("whatsapp-qr-label").value.trim(),
+            message:
+                byId("whatsapp-qr-mensagem").value.trim(),
+            format: "SVG"
+        };
+
         try {
             if (qrId) {
-                // Versão otimista: envia o updatedAt que a tela tinha ao abrir o
-                // modal — se outra sessão já alterou este QR nesse meio-tempo, o
-                // backend rejeita em vez de sobrescrever silenciosamente.
-                const conhecido = state.qrCodes.find((item) => item.id === qrId);
-                if (conhecido?.updatedAt) payload.expectedUpdatedAtMs = conhecido.updatedAt;
+                // Versão otimista: envia o updatedAt que a tela tinha ao abrir
+                // o modal. Se outra sessão já alterou este QR, o backend
+                // rejeita em vez de sobrescrever silenciosamente.
+                const conhecido = state.qrCodes.find(
+                    (item) => item.id === qrId
+                );
+
+                if (conhecido?.updatedAt) {
+                    payload.expectedUpdatedAtMs =
+                        conhecido.updatedAt;
+                }
+
                 await chamarUpdateQrCode(payload);
             } else {
-                // Identificador idempotente por tentativa de criação — um duplo
-                // clique ou um retry de rede nunca cria dois QR Codes na Meta.
-                payload.idempotencyKey = (crypto.randomUUID ? crypto.randomUUID() : `qr-${Date.now()}-${Math.random().toString(36).slice(2)}`).replace(/[^A-Za-z0-9_-]/g, "").padEnd(20, "0");
+                // Um duplo clique ou retry de rede não cria dois QR Codes.
+                payload.idempotencyKey = (
+                    crypto.randomUUID
+                        ? crypto.randomUUID()
+                        : `qr-${Date.now()}-${Math.random()
+                            .toString(36)
+                            .slice(2)}`
+                )
+                    .replace(/[^A-Za-z0-9_-]/g, "")
+                    .padEnd(20, "0");
+
                 await chamarCreateQrCode(payload);
             }
-            byId("whatsapp-qr-modal").close(); notify(qrId ? "QR Code atualizado." : "QR Code criado.", "success"); await load({ force: true });
-        } catch (error) { errorBox.textContent = error?.message || "Não foi possível salvar o QR Code."; errorBox.classList.remove("hidden"); }
-    }
 
+            byId("whatsapp-qr-modal").close();
+
+            notify(
+                qrId
+                    ? "QR Code atualizado."
+                    : "QR Code criado.",
+                "success"
+            );
+
+            await load({ force: true });
+        } catch (error) {
+            bloquearQr(
+                error?.message
+                || "Não foi possível salvar o QR Code."
+            );
+        }
+    }
     async function qrAction(action, qrId) {
         const qr = state.qrCodes.find((item) => item.id === qrId);
         if (!qr) return;
@@ -639,11 +865,56 @@ export function criarWhatsappOficialController({
     }
 
     async function submitActionWithQr(event) {
-        if (state.acaoAtual?.type !== "delete-qr") return submitAction(event);
+        if (state.acaoAtual?.type !== "delete-qr") {
+            return submitAction(event);
+        }
+
         event.preventDefault();
+
+        const errorBox = byId("whatsapp-acao-erro");
+
+        if (
+            !podeGerenciar()
+            || !recursoHabilitado("qrCodes")
+            || typeof chamarDeleteQrCode !== "function"
+        ) {
+            if (errorBox) {
+                errorBox.textContent =
+                    "A exclusão de QR Codes está temporariamente indisponível.";
+                errorBox.classList.remove("hidden");
+            }
+
+            return;
+        }
+
         const qrId = state.acaoAtual.qrId;
-        try { await chamarDeleteQrCode({ qrId }); byId("whatsapp-acao-modal").close(); notify("QR Code excluído.", "success"); await load({ force: true }); }
-        catch (error) { byId("whatsapp-acao-erro").textContent = error?.message || "Não foi possível excluir o QR Code."; byId("whatsapp-acao-erro").classList.remove("hidden"); }
+        const qrExists = state.qrCodes.some(
+            (item) => item.id === qrId
+        );
+
+        if (!qrId || !qrExists) {
+            if (errorBox) {
+                errorBox.textContent =
+                    "Este QR Code não está mais disponível.";
+                errorBox.classList.remove("hidden");
+            }
+
+            return;
+        }
+
+        try {
+            await chamarDeleteQrCode({ qrId });
+            byId("whatsapp-acao-modal").close();
+            notify("QR Code excluído.", "success");
+            await load({ force: true });
+        } catch (error) {
+            if (errorBox) {
+                errorBox.textContent =
+                    error?.message
+                    || "Não foi possível excluir o QR Code.";
+                errorBox.classList.remove("hidden");
+            }
+        }
     }
 
     function bindEventos() {
