@@ -112,6 +112,12 @@ export function criarWhatsappOficialController({
     const recursoHabilitado = (nome) => state.onboarding?.flags?.[nome] === true;
     const onboardingDisponivel = () => state.onboarding?.available === true;
 
+    // O backend novo sempre devolve embeddedSignup como booleano,
+    // mesmo quando a funcionalidade está desligada. O backend antigo
+    // não devolve onboarding.flags.
+    const gerenciamentoNovoDisponivel = () =>
+        typeof state.onboarding?.flags?.embeddedSignup === "boolean";
+
     function mostrarEstado(nome) {
         ["carregando", "erro", "sem-permissao", "conteudo"].forEach((estado) => byId(`whatsapp-estado-${estado}`)?.classList.toggle("hidden", estado !== nome));
     }
@@ -280,7 +286,7 @@ export function criarWhatsappOficialController({
         const actions = [
             operational ? `<button type="button" class="aura-whatsapp-btn" data-acao="validar" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}" ${disabled}>Validar conexão</button>` : "",
             operational && !connection.legacy && !connection.isDefault ? `<button type="button" class="aura-whatsapp-btn" data-acao="tornar-padrao" data-connection-id="${escaparHtml(id)}" ${disabled}>Tornar padrão</button>` : "",
-            !connection.legacy ? `<button type="button" class="aura-whatsapp-btn" data-acao="renomear" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "")}">Renomear</button>` : "",
+            !connection.legacy && gerenciamentoNovoDisponivel() ? `<button type="button" class="aura-whatsapp-btn" data-acao="renomear" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "")}">Renomear</button>` : "",
             disconnected && !connection.legacy && recursoHabilitado("reconnect") ? `<button type="button" class="aura-whatsapp-btn" data-acao="reconectar" data-connection-id="${escaparHtml(id)}">Reconectar</button>` : "",
             connected && recursoHabilitado("qrCodes") ? `<button type="button" class="aura-whatsapp-btn" data-acao="qr" data-connection-id="${escaparHtml(id)}" data-legacy="${legacy}">Criar QR Code</button>` : "",
             !disconnected && !connection.legacy && recursoHabilitado("disconnect") ? `<button type="button" class="aura-whatsapp-btn" data-acao="desconectar" data-connection-id="${escaparHtml(id)}" data-label="${escaparHtml(connection.label || "Conexão")}">Desconectar</button>` : ""
