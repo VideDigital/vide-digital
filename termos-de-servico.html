@@ -1,0 +1,417 @@
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Termos de Serviço aplicáveis ao uso da plataforma Vide Hub.">
+        <meta name="theme-color" content="#07080b">
+        <title>Termos de Serviço | Vide Hub</title>
+        <style>
+
+        :root {
+            color-scheme: dark;
+            --bg: #07080b;
+            --surface: rgba(255, 255, 255, 0.055);
+            --surface-strong: rgba(255, 255, 255, 0.09);
+            --border: rgba(255, 255, 255, 0.12);
+            --text: #f5f7fb;
+            --muted: #aab2c3;
+            --accent: #a78bfa;
+            --accent-2: #67e8f9;
+            --max: 920px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 0%, rgba(124, 58, 237, 0.18), transparent 32rem),
+                radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.13), transparent 30rem),
+                var(--bg);
+            line-height: 1.7;
+        }
+
+        a { color: var(--accent-2); }
+        a:hover { color: #a5f3fc; }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7, 8, 11, 0.86);
+            backdrop-filter: blur(18px);
+        }
+
+        .header-inner,
+        main,
+        footer {
+            width: min(calc(100% - 32px), var(--max));
+            margin-inline: auto;
+        }
+
+        .header-inner {
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            color: var(--text);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(103, 232, 249, 0.12));
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 12px;
+            font-size: 0.9rem;
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        nav a:hover,
+        nav a[aria-current="page"] {
+            color: var(--text);
+        }
+
+        main { padding: 68px 0 48px; }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--accent-2);
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            max-width: 780px;
+            font-size: clamp(2.2rem, 6vw, 4.4rem);
+            line-height: 1.05;
+            letter-spacing: -0.055em;
+        }
+
+        .lead {
+            max-width: 760px;
+            margin: 24px 0 0;
+            color: var(--muted);
+            font-size: clamp(1rem, 2vw, 1.18rem);
+        }
+
+        .meta {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            margin-top: 26px;
+            padding: 13px 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        article {
+            margin-top: 54px;
+            display: grid;
+            gap: 22px;
+        }
+
+        section {
+            padding: clamp(24px, 4vw, 36px);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: linear-gradient(145deg, var(--surface-strong), var(--surface));
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+        }
+
+        h2 {
+            margin: 0 0 14px;
+            font-size: clamp(1.3rem, 3vw, 1.7rem);
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            margin: 24px 0 10px;
+            font-size: 1.05rem;
+        }
+
+        p { margin: 0 0 14px; color: #d7dce7; }
+        p:last-child { margin-bottom: 0; }
+
+        ul, ol {
+            margin: 12px 0 0;
+            padding-left: 22px;
+            color: #d7dce7;
+        }
+
+        li + li { margin-top: 8px; }
+
+        .notice {
+            border-left: 3px solid var(--accent);
+            padding: 16px 18px;
+            border-radius: 10px;
+            background: rgba(167, 139, 250, 0.08);
+            color: #e9e5ff;
+        }
+
+        .contact-card {
+            display: grid;
+            gap: 8px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.22);
+        }
+
+        .button {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            justify-content: center;
+            margin-top: 12px;
+            padding: 12px 18px;
+            border-radius: 12px;
+            color: #071014;
+            background: linear-gradient(135deg, var(--accent-2), #c4b5fd);
+            text-decoration: none;
+            font-weight: 800;
+        }
+
+        .button:hover { color: #071014; filter: brightness(1.06); }
+
+        footer {
+            padding: 24px 0 46px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 720px) {
+            .header-inner {
+                align-items: flex-start;
+                flex-direction: column;
+                padding-block: 16px;
+            }
+
+            nav { justify-content: flex-start; }
+            main { padding-top: 48px; }
+        }
+
+        </style>
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="header-inner">
+                <a class="brand" href="index.html" aria-label="Voltar ao início da Vide Hub">
+                    <span class="brand-mark" aria-hidden="true">V</span>
+                    <span>VIDE HUB</span>
+                </a>
+                <nav aria-label="Páginas legais">
+                    <a href="politica-de-privacidade.html">Política de Privacidade</a>
+<a href="termos-de-servico.html" aria-current="page">Termos de Serviço</a>
+<a href="exclusao-de-dados.html">Exclusão de Dados</a>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+    <p class="eyebrow">Condições de utilização</p>
+<h1>Termos de Serviço</h1>
+<p class="lead">
+    Estes Termos regulam o acesso e o uso da Vide Hub, plataforma oferecida pela Vide Digital
+    para gestão de lojas, atendimento e integrações empresariais.
+</p>
+<div class="meta">
+    <span>Última atualização: 4 de agosto de 2026</span>
+    <span>Contato: adsvide@gmail.com</span>
+</div>
+
+<article>
+    <section>
+        <h2>1. Aceitação</h2>
+        <p>
+            Ao criar uma conta, acessar ou utilizar a Vide Hub, o usuário declara ter capacidade
+            e autorização para representar a empresa vinculada à conta e concorda com estes Termos
+            e com a <a href="politica-de-privacidade.html">Política de Privacidade</a>.
+        </p>
+    </section>
+
+    <section>
+        <h2>2. O serviço</h2>
+        <p>
+            A Vide Hub fornece recursos digitais de administração, catálogo, atendimento,
+            usuários, permissões e integrações com serviços de terceiros. Funcionalidades,
+            limites e disponibilidade podem variar conforme plano, estágio de liberação,
+            requisitos técnicos e aprovação de provedores externos.
+        </p>
+    </section>
+
+    <section>
+        <h2>3. Conta e segurança</h2>
+        <ul>
+            <li>O usuário deve fornecer informações verdadeiras e manter seus dados atualizados.</li>
+            <li>Credenciais são pessoais e não devem ser compartilhadas de forma insegura.</li>
+            <li>A empresa deve conceder somente as permissões necessárias aos seus funcionários.</li>
+            <li>Atividades realizadas por contas autorizadas serão consideradas ações da empresa, salvo comprovação de uso indevido.</li>
+            <li>Suspeitas de acesso não autorizado devem ser comunicadas imediatamente.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>4. Uso do WhatsApp e serviços da Meta</h2>
+        <p>
+            A integração utiliza recursos oficiais do WhatsApp Business e da Meta. O usuário
+            também deve cumprir os termos, políticas comerciais, regras de mensagens, requisitos
+            de consentimento e cobranças definidos pela Meta.
+        </p>
+        <p>
+            A Vide Digital não controla aprovações, bloqueios, qualidade de número, análise de
+            templates, preços, limites ou indisponibilidades impostos pela Meta.
+        </p>
+    </section>
+
+    <section>
+        <h2>5. Obrigações do usuário</h2>
+        <ul>
+            <li>Usar a plataforma somente para atividades lícitas e autorizadas.</li>
+            <li>Manter base legal e transparência adequadas para tratar dados de clientes.</li>
+            <li>Obter consentimento ou outra autorização válida antes de enviar comunicações quando exigido.</li>
+            <li>Não enviar spam, conteúdo enganoso, abusivo, ilegal ou que viole direitos de terceiros.</li>
+            <li>Não tentar acessar contas, dados, código, infraestrutura ou recursos de outras empresas.</li>
+            <li>Não contornar controles de segurança, limites, flags ou processos de aprovação.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>6. Conteúdo e dados da empresa</h2>
+        <p>
+            A empresa mantém os direitos sobre os dados, marcas, produtos, mensagens e materiais
+            que inserir na plataforma. Ela concede à Vide Digital autorização limitada para
+            processar esses conteúdos na medida necessária para prestar e proteger o serviço.
+        </p>
+    </section>
+
+    <section>
+        <h2>7. Propriedade intelectual</h2>
+        <p>
+            A plataforma, sua interface, marca, código, estrutura e materiais próprios pertencem
+            à Vide Digital ou a seus licenciadores. Estes Termos não transferem titularidade nem
+            autorizam cópia, revenda, engenharia reversa ou exploração não permitida.
+        </p>
+    </section>
+
+    <section>
+        <h2>8. Disponibilidade e alterações</h2>
+        <p>
+            Buscamos manter o serviço disponível e seguro, mas manutenções, falhas de internet,
+            incidentes, limitações de terceiros e eventos fora do controle razoável podem causar
+            interrupções. Recursos poderão ser alterados, substituídos ou descontinuados, com
+            comunicação adequada quando a mudança for relevante.
+        </p>
+    </section>
+
+    <section>
+        <h2>9. Suspensão e encerramento</h2>
+        <p>
+            O acesso poderá ser suspenso ou encerrado em caso de violação destes Termos, risco
+            à segurança, uso ilegal, fraude, inadimplência aplicável, exigência de autoridade ou
+            determinação de provedor integrado. Quando possível, o usuário será informado e terá
+            oportunidade de corrigir o problema.
+        </p>
+    </section>
+
+    <section>
+        <h2>10. Responsabilidade</h2>
+        <p>
+            Cada parte responde por suas próprias ações e obrigações legais. Na extensão permitida
+            pela legislação, a Vide Digital não será responsável por decisões comerciais do usuário,
+            conteúdo enviado, falhas de serviços de terceiros, bloqueios da Meta, perda causada por
+            compartilhamento inseguro de credenciais ou uso contrário às orientações da plataforma.
+        </p>
+        <p>
+            Nada nestes Termos afasta direitos obrigatórios previstos na legislação de proteção ao
+            consumidor ou outras normas aplicáveis.
+        </p>
+    </section>
+
+    <section>
+        <h2>11. Privacidade e exclusão</h2>
+        <p>
+            O tratamento de dados é descrito na
+            <a href="politica-de-privacidade.html">Política de Privacidade</a>.
+            Solicitações de exclusão podem ser feitas conforme a página
+            <a href="exclusao-de-dados.html">Exclusão de Dados</a>.
+        </p>
+    </section>
+
+    <section>
+        <h2>12. Lei aplicável e solução de conflitos</h2>
+        <p>
+            Estes Termos são regidos pelas leis brasileiras. Eventuais conflitos deverão,
+            inicialmente, ser tratados por contato direto e boa-fé. Permanecem preservadas as
+            regras obrigatórias de competência, inclusive o foro do domicílio do consumidor
+            quando aplicável.
+        </p>
+    </section>
+
+    <section>
+        <h2>13. Contato</h2>
+        <div class="contact-card">
+            <strong>Vide Digital — Vide Hub</strong>
+            <a href="mailto:adsvide@gmail.com">adsvide@gmail.com</a>
+        </div>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            <strong>Vide Digital — Vide Hub</strong>
+            <div class="footer-links">
+                <a href="politica-de-privacidade.html">Privacidade</a>
+                <a href="termos-de-servico.html">Termos</a>
+                <a href="exclusao-de-dados.html">Exclusão de dados</a>
+                <a href="mailto:adsvide@gmail.com">Contato</a>
+            </div>
+        </footer>
+    </body>
+    </html>
