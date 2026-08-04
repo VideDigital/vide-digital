@@ -1,0 +1,362 @@
+    <!DOCTYPE html>
+    <html lang="pt-BR">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta name="description" content="Instruções para solicitar a exclusão de dados associados à Vide Hub.">
+        <meta name="theme-color" content="#07080b">
+        <title>Exclusão de Dados | Vide Hub</title>
+        <style>
+
+        :root {
+            color-scheme: dark;
+            --bg: #07080b;
+            --surface: rgba(255, 255, 255, 0.055);
+            --surface-strong: rgba(255, 255, 255, 0.09);
+            --border: rgba(255, 255, 255, 0.12);
+            --text: #f5f7fb;
+            --muted: #aab2c3;
+            --accent: #a78bfa;
+            --accent-2: #67e8f9;
+            --max: 920px;
+        }
+
+        * { box-sizing: border-box; }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+                "Segoe UI", sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(circle at 15% 0%, rgba(124, 58, 237, 0.18), transparent 32rem),
+                radial-gradient(circle at 90% 20%, rgba(6, 182, 212, 0.13), transparent 30rem),
+                var(--bg);
+            line-height: 1.7;
+        }
+
+        a { color: var(--accent-2); }
+        a:hover { color: #a5f3fc; }
+
+        .site-header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 1px solid var(--border);
+            background: rgba(7, 8, 11, 0.86);
+            backdrop-filter: blur(18px);
+        }
+
+        .header-inner,
+        main,
+        footer {
+            width: min(calc(100% - 32px), var(--max));
+            margin-inline: auto;
+        }
+
+        .header-inner {
+            min-height: 72px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .brand {
+            color: var(--text);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 800;
+            letter-spacing: 0.04em;
+        }
+
+        .brand-mark {
+            width: 38px;
+            height: 38px;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            display: grid;
+            place-items: center;
+            background: linear-gradient(135deg, rgba(167, 139, 250, 0.22), rgba(103, 232, 249, 0.12));
+        }
+
+        nav {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+            gap: 12px;
+            font-size: 0.9rem;
+        }
+
+        nav a {
+            color: var(--muted);
+            text-decoration: none;
+        }
+
+        nav a:hover,
+        nav a[aria-current="page"] {
+            color: var(--text);
+        }
+
+        main { padding: 68px 0 48px; }
+
+        .eyebrow {
+            margin: 0 0 10px;
+            color: var(--accent-2);
+            font-size: 0.82rem;
+            font-weight: 800;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+        }
+
+        h1 {
+            margin: 0;
+            max-width: 780px;
+            font-size: clamp(2.2rem, 6vw, 4.4rem);
+            line-height: 1.05;
+            letter-spacing: -0.055em;
+        }
+
+        .lead {
+            max-width: 760px;
+            margin: 24px 0 0;
+            color: var(--muted);
+            font-size: clamp(1rem, 2vw, 1.18rem);
+        }
+
+        .meta {
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 10px 18px;
+            margin-top: 26px;
+            padding: 13px 16px;
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            background: var(--surface);
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        article {
+            margin-top: 54px;
+            display: grid;
+            gap: 22px;
+        }
+
+        section {
+            padding: clamp(24px, 4vw, 36px);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            background: linear-gradient(145deg, var(--surface-strong), var(--surface));
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24);
+        }
+
+        h2 {
+            margin: 0 0 14px;
+            font-size: clamp(1.3rem, 3vw, 1.7rem);
+            letter-spacing: -0.02em;
+        }
+
+        h3 {
+            margin: 24px 0 10px;
+            font-size: 1.05rem;
+        }
+
+        p { margin: 0 0 14px; color: #d7dce7; }
+        p:last-child { margin-bottom: 0; }
+
+        ul, ol {
+            margin: 12px 0 0;
+            padding-left: 22px;
+            color: #d7dce7;
+        }
+
+        li + li { margin-top: 8px; }
+
+        .notice {
+            border-left: 3px solid var(--accent);
+            padding: 16px 18px;
+            border-radius: 10px;
+            background: rgba(167, 139, 250, 0.08);
+            color: #e9e5ff;
+        }
+
+        .contact-card {
+            display: grid;
+            gap: 8px;
+            padding: 20px;
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            background: rgba(0, 0, 0, 0.22);
+        }
+
+        .button {
+            display: inline-flex;
+            width: fit-content;
+            align-items: center;
+            justify-content: center;
+            margin-top: 12px;
+            padding: 12px 18px;
+            border-radius: 12px;
+            color: #071014;
+            background: linear-gradient(135deg, var(--accent-2), #c4b5fd);
+            text-decoration: none;
+            font-weight: 800;
+        }
+
+        .button:hover { color: #071014; filter: brightness(1.06); }
+
+        footer {
+            padding: 24px 0 46px;
+            border-top: 1px solid var(--border);
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 14px;
+            margin-top: 8px;
+        }
+
+        @media (max-width: 720px) {
+            .header-inner {
+                align-items: flex-start;
+                flex-direction: column;
+                padding-block: 16px;
+            }
+
+            nav { justify-content: flex-start; }
+            main { padding-top: 48px; }
+        }
+
+        </style>
+    </head>
+    <body>
+        <header class="site-header">
+            <div class="header-inner">
+                <a class="brand" href="index.html" aria-label="Voltar ao início da Vide Hub">
+                    <span class="brand-mark" aria-hidden="true">V</span>
+                    <span>VIDE HUB</span>
+                </a>
+                <nav aria-label="Páginas legais">
+                    <a href="politica-de-privacidade.html">Política de Privacidade</a>
+<a href="termos-de-servico.html">Termos de Serviço</a>
+<a href="exclusao-de-dados.html" aria-current="page">Exclusão de Dados</a>
+                </nav>
+            </div>
+        </header>
+
+        <main>
+    <p class="eyebrow">Privacidade e controle</p>
+<h1>Exclusão de Dados</h1>
+<p class="lead">
+    Usuários e titulares podem solicitar a exclusão de dados vinculados à Vide Hub,
+    inclusive dados associados ao Login da Meta, observadas as obrigações legais e
+    os procedimentos de verificação de identidade.
+</p>
+<div class="meta">
+    <span>Última atualização: 4 de agosto de 2026</span>
+    <span>Canal: adsvide@gmail.com</span>
+</div>
+
+<article>
+    <section>
+        <h2>Como solicitar</h2>
+        <ol>
+            <li>Envie um e-mail para <a href="mailto:adsvide@gmail.com">adsvide@gmail.com</a>.</li>
+            <li>Use o assunto <strong>Exclusão de dados — Vide Hub</strong>.</li>
+            <li>Informe o e-mail usado na conta e o nome da empresa ou loja vinculada.</li>
+            <li>Descreva se deseja excluir a conta inteira ou dados específicos.</li>
+            <li>Aguarde a confirmação de identidade e as orientações enviadas pela equipe.</li>
+        </ol>
+        <a class="button" href="mailto:adsvide@gmail.com?subject=Exclus%C3%A3o%20de%20dados%20%E2%80%94%20Vide%20Hub">
+            Solicitar exclusão por e-mail
+        </a>
+    </section>
+
+    <section>
+        <h2>Verificação de identidade</h2>
+        <p>
+            Para evitar exclusão indevida, poderemos solicitar confirmação pelo e-mail da conta,
+            autenticação na plataforma ou outras informações mínimas necessárias. Nunca solicitaremos
+            sua senha, App Secret, token do WhatsApp ou chave privada por e-mail.
+        </p>
+    </section>
+
+    <section>
+        <h2>O que poderá ser excluído</h2>
+        <ul>
+            <li>Dados de perfil e cadastro da conta.</li>
+            <li>Configurações, permissões e registros da empresa, conforme a autoridade do solicitante.</li>
+            <li>Dados operacionais, conversas, contatos e integrações que não precisem ser preservados.</li>
+            <li>Vínculos e autorizações associados à integração com a Meta, conforme o procedimento técnico aplicável.</li>
+        </ul>
+    </section>
+
+    <section>
+        <h2>Dados que podem ser preservados</h2>
+        <p>
+            Alguns registros poderão ser mantidos pelo período necessário para cumprir obrigação legal
+            ou regulatória, exercer direitos, prevenir fraude, proteger segurança, comprovar operações
+            e resolver disputas. Quando possível, serão minimizados, bloqueados ou anonimizados.
+        </p>
+    </section>
+
+    <section>
+        <h2>Dados controlados por uma empresa usuária</h2>
+        <p>
+            Quando a Vide Hub tratar dados em nome de uma empresa cliente, essa empresa poderá ser a
+            controladora responsável pela decisão de exclusão. Nesses casos, encaminharemos ou
+            coordenaremos a solicitação com o administrador autorizado da conta.
+        </p>
+    </section>
+
+    <section>
+        <h2>Prazo e confirmação</h2>
+        <p>
+            A solicitação será analisada e respondida em prazo razoável, conforme a complexidade,
+            a necessidade de confirmação de identidade e os prazos previstos na legislação aplicável.
+            Ao final, informaremos a providência adotada ou o fundamento para eventual preservação.
+        </p>
+    </section>
+
+    <section>
+        <h2>Revogação de acesso pela Meta</h2>
+        <p>
+            O usuário também pode revisar ou remover permissões concedidas a aplicativos nas
+            configurações da própria conta Meta/Facebook. Essa ação pode interromper funcionalidades
+            integradas, mas não substitui necessariamente um pedido de exclusão dos dados já armazenados
+            pela Vide Hub.
+        </p>
+    </section>
+
+    <section>
+        <h2>Contato</h2>
+        <div class="contact-card">
+            <strong>Vide Digital — Vide Hub</strong>
+            <span>Canal para privacidade e exclusão:</span>
+            <a href="mailto:adsvide@gmail.com">adsvide@gmail.com</a>
+        </div>
+    </section>
+</article>
+
+        </main>
+
+        <footer>
+            <strong>Vide Digital — Vide Hub</strong>
+            <div class="footer-links">
+                <a href="politica-de-privacidade.html">Privacidade</a>
+                <a href="termos-de-servico.html">Termos</a>
+                <a href="exclusao-de-dados.html">Exclusão de dados</a>
+                <a href="mailto:adsvide@gmail.com">Contato</a>
+            </div>
+        </footer>
+    </body>
+    </html>
