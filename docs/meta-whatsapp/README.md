@@ -10,11 +10,16 @@ de credenciais, descoberta de ativos e persistência acontece no backend.
 - O código do Embedded Signup, reconexão, desconexão, segunda conexão e QR
   Code oficial está implementado.
 - O emulador usa um provedor falso e nunca chama a Meta nem o Secret Manager.
-- Em produção, todos os recursos novos nascem desligados e exigem liberação
-  explícita por ambiente.
+- No código, todos os recursos novos nascem desligados e exigem liberação
+  explícita por ambiente. No estado operacional atual, Embedded Signup e a
+  segunda conexão estão liberados somente em `audience=testers`, para um
+  tester UID restrito; QR Codes, reconexão, desconexão, coexistência e App
+  Check continuam desligados.
 - App da Meta, Configuration ID, acesso avançado, App Review, domínios,
   webhook, IAM e secrets são configurações externas. Este repositório não
-  as cria e esta entrega não afirma que elas já foram aprovadas.
+  as cria. A tela oficial de login da Meta já abriu no piloto, mas uma nova
+  conexão real ainda não foi validada ponta a ponta e a liberação pública
+  continua dependente dos gates externos da Meta.
 - Nenhuma biblioteca de WhatsApp Web ou automação não oficial é usada.
 
 ## Ordem segura de leitura e liberação

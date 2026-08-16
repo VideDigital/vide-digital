@@ -1,11 +1,12 @@
 # WhatsApp — Módulo separado + Multiconexão
 
-> **Atualização 2026-07-31:** o Embedded Signup dedicado está implementado,
-> assim como reconexão, desligamento seguro e QR oficial. Todos permanecem
-> protegidos por flags desligadas em produção até os gates externos da Meta
-> e do Firebase. Consulte `docs/meta-whatsapp/README.md`. As seções chamadas
-> “preparação” abaixo registram o desenho anterior e foram substituídas pela
-> implementação atual.
+> **Estado operacional confirmado:** as 19 Cloud Functions estão publicadas.
+> Embedded Signup está ativo em `audience=testers` para tester UID restrito,
+> e a segunda conexão está habilitada somente nesse piloto controlado. A
+> tela oficial de login da Meta já abriu; uma nova conexão real ainda não
+> foi validada ponta a ponta. QR Codes, reconexão, desconexão, coexistência e
+> App Check continuam desligados. Consulte `docs/meta-whatsapp/README.md`.
+> As seções chamadas “preparação” abaixo registram o desenho anterior.
 
 Evolução do WhatsApp Oficial V1 (`docs/WHATSAPP_OFICIAL.md`) em duas frentes,
 executadas juntas nesta missão porque uma depende da outra:
@@ -287,7 +288,7 @@ própria seção "Diagnóstico" do módulo (nunca inventando uma causa
 específica sem confirmação). Nenhuma "correção" foi aplicada porque não
 há nada de errado no código para corrigir.
 
-## Embedded Signup (implementado; liberação externa pendente)
+## Embedded Signup (piloto `testers`; liberação pública pendente)
 
 `functions/src/whatsapp/onboarding.js` implementa quatro callables para
 iniciar, concluir, consultar e cancelar uma tentativa. A troca do code,

@@ -58,7 +58,8 @@ Mesma sequência de comandos acima.
 Workflow `.github/workflows/quality-gate.yml` (nome "Quality Gate"), separado do deploy. Dispara em `push` para `main`, em `pull_request` e manualmente (`workflow_dispatch`). Quatro jobs, em parte paralelos:
 
 1. **static-and-unit**: `pnpm run check` + `pnpm run test:unit`.
-2. **security**: `pnpm run test:rules` + `pnpm run test:functions` (validadores legados, nenhuma Function publicada).
+2. **security**: `pnpm run test:rules` + `pnpm run test:functions`
+   (validadores legados; esse job testa, mas não publica Functions).
 3. **frontend-emulator**: `pnpm run test:frontend:emulator`.
 4. **ui-login**: instala o Chromium (`pnpm exec playwright install --with-deps chromium`) e roda `test:ui:login` + `test:ui:flows` + `test:ui:responsive`. Em caso de falha, publica os diagnósticos (screenshot/HTML/JSON) como artifact `ui-diagnostics`.
 
