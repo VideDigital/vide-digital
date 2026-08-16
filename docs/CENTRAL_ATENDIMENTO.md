@@ -219,8 +219,9 @@ mesmas permissões. Diferenças pontuais só onde a integração exige:
   últimos dígitos (`mascararNumeroWhatsapp()`).
 - Nova view de conexão (`view-whatsapp-oficial`, `whatsapp-oficial-v1.js`)
   fora da Central de Atendimento — status da conexão, número, webhook,
-  templates, qualidade, diagnóstico. Onboarding é só piloto assistido
-  por script administrativo, nunca um botão que finge conectar.
+  templates, qualidade, diagnóstico. O Embedded Signup oficial está ativo
+  somente no piloto `testers` restrito; o onboarding completo de uma nova
+  conexão real ainda não foi validado ponta a ponta.
 
 Ver `docs/WHATSAPP_OFICIAL.md` para o modelo completo (segurança do
 webhook, idempotência, segredos, Rules, testes, checklist de conexão

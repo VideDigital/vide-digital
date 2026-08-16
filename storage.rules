@@ -1,6 +1,6 @@
-// PROPOSTA NÃO PRONTA PARA PRODUÇÃO.
-// NÃO PUBLICAR antes de Cloud Functions, custom claims, testes no Emulator,
-// migração de base64 para Storage e validação autenticada em staging.
+// Regras de segurança do Firebase Storage versionadas no repositório.
+// Qualquer mudança deve ser validada no Emulator e publicada somente pelo
+// fluxo manual autorizado; este arquivo não comprova o estado do deploy.
 
 rules_version = '2';
 

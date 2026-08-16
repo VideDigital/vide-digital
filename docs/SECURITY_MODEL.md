@@ -23,11 +23,11 @@ a documentação específica linkada em cada seção.
   anônimos/não autenticados, validados campo a campo pelas Rules
   (`leadPublicoValido()`, `avaliacaoPublicaValida()`), nunca por confiança no
   cliente. O **chat público** evoluiu (ver
-  `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`, Fase B — pronta no código, ainda
-  não mesclada/publicada): todo chat novo exige **Firebase Anonymous
-  Auth** — `visitorUid == request.auth.uid` — a criação pelo formato antigo
-  (só "conhecer o id do documento") foi negada; chats criados antes dessa
-  etapa continuam pelo contrato legado de leitura/mensagem/evento, mas nunca
+  `docs/ANONYMOUS_AUTH_CHAT_PUBLICO.md`, Fase B integrada à `main` e ativa
+  em produção): todo chat novo exige **Firebase Anonymous Auth** —
+  `visitorUid == request.auth.uid` — e a criação pelo formato antigo (só
+  "conhecer o id do documento") foi negada. Chats criados antes dessa etapa
+  continuam pelo contrato legado de leitura/mensagem/evento, mas nunca
   voltam a aceitar escrita pública sem identidade uma vez que nasceram com
   `visitorUid`.
 
@@ -117,15 +117,21 @@ conhecido. Chats **V2** (Anonymous Auth, ver
 exige `request.auth` real (anônimo) com `visitorUid` batendo — o id sozinho
 não abre mais um chat novo.
 
-## O que ainda não está aqui
+## Integrações atuais e limites pendentes
 
-- IA real (nenhum provedor externo é chamado; nenhuma chave no frontend).
-- **WhatsApp Oficial V1 em produção** — o código está pronto (Fase A:
-  webhook com assinatura HMAC validada, token por tenant no Secret
-  Manager, janela de 24h server-autoritativa, ver
-  `docs/WHATSAPP_OFICIAL.md`), mas nenhuma conexão real com a Meta foi
-  configurada (Fase B, depende do usuário: App, WABA, secrets, deploy
-  dedicado, piloto).
+- **IA de Negócio** usa Google Gemini por meio das Cloud Functions de
+  backend. A IA pública também chama o backend; nenhuma chave do provedor
+  deve existir ou chegar ao frontend. Isso não muda o Copiloto de IA do
+  Atendimento, que continua sendo um módulo local separado e sem provedor
+  externo.
+- **WhatsApp Oficial** — as 19 Cloud Functions dedicadas foram publicadas.
+  O Embedded Signup está habilitado somente para `audience=testers`, com
+  tester UID restrito, e a segunda conexão está liberada apenas nesse
+  piloto controlado. O fluxo já abriu com sucesso a tela oficial de login
+  da Meta, mas uma nova conexão real ainda não foi validada ponta a ponta.
+  QR Codes, reconexão, desconexão, coexistência e App Check continuam
+  desligados. A liberação pública ainda depende dos gates externos da Meta;
+  ver `docs/meta-whatsapp/production-readiness.md`.
 - **Auditoria Centralizada V1 em produção** — o código está pronto (Fase A:
   15 Firestore triggers server-side com Auth Context, Central de Auditoria
   owner-only no dashboard, ver `docs/AUDITORIA_CENTRALIZADA.md`) e, conforme
@@ -134,7 +140,7 @@ não abre mais um chat novo.
   teste manual real em produção: alterar pedido e produto de teste, confirmar
   eventos, ator/tenant, ausência de PII e isolamento entre tenants.
 
-Cloud Functions continuam reservadas para quando existir segredo real,
-integração externa, operação administrativa privilegiada, rate limit
-confiável ou processamento assíncrono — nada disso foi introduzido no ciclo
-do CRM 360.
+Cloud Functions são usadas quando há segredo real, integração externa,
+operação administrativa privilegiada, rate limit confiável ou processamento
+assíncrono. Rules continuam sendo a autoridade para as escritas diretas que
+permanecem no cliente.

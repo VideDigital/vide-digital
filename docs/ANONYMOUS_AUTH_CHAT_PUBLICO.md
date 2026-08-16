@@ -9,11 +9,11 @@ modal ou uma coleção nova. Rollout em **duas fases** para nunca derrubar o
 chat público durante a migração; este documento cobre o estado ao final da
 **Fase B**.
 
-**Status: Anonymous Auth no Chat Público — Fase B pronta no código,
-aguardando habilitação em produção, publicação das Rules e validação real
-antes do merge.** Esta branch (`feat/anonymous-auth-chat-fase-b`) não foi
-mesclada em `main` e nenhum deploy foi executado — ver "Passos externos
-antes do merge" no fim deste documento.
+**Status atual: Fase B integrada à `main` e ativa em produção.** O Firebase
+Anonymous Auth está habilitado, as Rules necessárias ao fluxo V2 estão
+efetivas e o caminho real visitante anônimo → criação de chat foi validado
+com sucesso. Novos chats não possuem fallback V1; o contrato legado abaixo
+permanece somente para chats criados antes da Fase B.
 
 ## Por que
 
@@ -164,12 +164,10 @@ Rules antigas, rede) mostra uma mensagem única, amigável e recuperável via
 volta a um estado limpo (input/botão liberados, nome digitado preservado)
 pra permitir uma nova tentativa controlada.
 
-**Isso significa que, até a Fase Externa 1 (habilitar Anonymous Auth) e a
-Fase Externa 2 (publicar as Rules desta etapa) serem confirmadas em
-produção, o chat público real fica indisponível para novos visitantes** —
-não é mais um degrade silencioso pra V1, é um erro visível. É a troca
-consciente desta fase: só depois de validar um chat real em produção (ver
-"Passos externos antes do merge") esta branch deve ser mesclada em `main`.
+No estado atual de produção, Anonymous Auth e as Rules V2 já estão ativos e
+o fluxo real de criação foi validado. Se Auth, Rules ou rede falharem, o
+comportamento continua sendo um erro visível e recuperável — nunca um
+degrade silencioso para criar chat V1.
 
 ## Sessão e restauração
 
@@ -223,16 +221,14 @@ ao abrir o widget (`toggleChatWindow`) — idempotente via a flag
   `dashboard.html`) — zero alteração; a Central de Atendimento não sabe (e
   não precisa saber) se um chat é V1 ou V2 pra exibir/responder.
 - Nenhuma Cloud Function nova.
-- Nenhum deploy nesta etapa — ver "Passos externos" em
-  `docs/HANDOFF_2026-07-28.md`.
+- A implementação da fase não adicionou Cloud Function. O rollout externo
+  posterior habilitou Anonymous Auth e tornou efetivas as Rules necessárias
+  ao fluxo V2.
 
 ## Limitações conhecidas desta fase
 
-- **Esta branch não está em produção.** Enquanto Anonymous Auth não for
-  habilitado no Firebase Console e as Rules desta etapa não forem
-  publicadas, o chat público em produção continua rodando o código atual
-  de `main` (ainda com o fallback da Fase A) — nada aqui muda produção até
-  o merge.
+- Chats V1 existentes continuam pelo contrato legado, mas não são criados
+  novos chats V1. Não há migração retroativa automática desses documentos.
 - `restaurarChatSalvo()` não distingue "chat arquivado" de "chat não
   encontrado"/"sessão diferente" na resposta ao chamador — todos viram
   `null` (mesma UI: inicia uma conversa nova). É intencional (não revelar
@@ -243,25 +239,17 @@ ao abrir o widget (`toggleChatWindow`) — idempotente via a flag
   (extensão de privacidade agressiva, política corporativa) não consegue
   mais iniciar um chat novo — antes, na Fase A, ele caía pro V1. É a troca
   consciente desta fase (ver "Fallback transitório removido" acima); não
-  há dado de quantos visitantes reais isso afeta, porque ainda não foi
-  testado em produção.
+  há dado de quantos visitantes reais usam navegadores que bloqueiam esse
+  mecanismo. O teste real concluído usou um navegador com Anonymous Auth
+  disponível.
 
-## Passos externos antes do merge (não executados nesta missão)
+## Estado do rollout externo
 
-Nenhum destes passos foi executado nesta sessão — só o código, os testes e
-a documentação desta fase estão prontos:
+- Fase B integrada à `main`.
+- Anonymous Auth habilitado em produção.
+- Rules V2 efetivas no fluxo validado.
+- Criação real de chat por visitante anônimo confirmada com sucesso.
+- Fallback de criação V1 removido; novos chats usam exclusivamente V2.
 
-1. **Fase Externa 1** — habilitar Anonymous Auth no Firebase Console
-   (`vide-digital-saas` → Authentication → Sign-in method → Anonymous →
-   Enable → Save).
-2. **Fase Externa 2** — rodar o workflow "Deploy Firebase Spark" a partir
-   da `main` atual (que já contém as Rules V2 da Fase A) pra publicar essas
-   Rules em produção — objetivo do deploy é só Rules/Storage/índices, nunca
-   Functions.
-3. **Fase Externa 3** — validação manual real: abrir a loja numa aba
-   anônima, criar um chat, mandar mensagem, recarregar e confirmar a
-   restauração, confirmar que a Central de Atendimento recebe a conversa.
-4. Só depois de 1–3 confirmados: rebasear esta branch sobre a `main`
-   atualizada, revisar o diff de novo, mesclar, e rodar "Deploy Firebase
-   Spark" outra vez pra publicar a Rule desta etapa (nega criação de V1
-   novo) — fechando o rollout.
+O histórico datado das etapas de preparação e publicação permanece nos
+handoffs de julho de 2026; ele não representa o estado operacional atual.

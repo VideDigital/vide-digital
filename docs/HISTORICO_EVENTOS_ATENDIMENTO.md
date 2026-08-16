@@ -46,7 +46,7 @@ chats/{chatId}/eventos/{eventoId}   // id automático, append-only
   clienteId: "opcional, até 200 — quando a conversa já está vinculada",
   tipo: "um dos 33 valores do enum (ver abaixo)",
   categoria: "mensagens | atendimento | vinculos | alteracoes",
-  autorUid: "{authUid} | \"\" (visitante anônimo)",
+  autorUid: "{authUid} | \"\" (somente visitante V1 legado)",
   autorTipo: "proprietario | funcionario | cliente",   // NUNCA \"ia\"/\"sistema\" nesta etapa
   autorNome: "opcional, até 120 — nunca de um <input>, sempre derivado do contexto autenticado",
   origem: "equipe | cliente",
@@ -129,15 +129,17 @@ e uma falha nesse segundo write só vira `console.error`, nunca trava a UI.
 contexto autenticado usado em toda a base) — o mesmo vale do lado do
 servidor: `firestore.rules` exige `data.autorUid == request.auth.uid` e
 `data.autorTipo in ["proprietario", "funcionario"]` no caminho da equipe, e
-`autorUid == "" && autorTipo == "cliente"` no caminho do visitante anônimo.
-**Não existe `autorTipo: "ia"` nem `"sistema"` gravável pelo frontend nesta
-etapa** — IA real e automações ficam para um ciclo futuro, com autoria
-própria a ser definida quando existirem de fato.
+`autorUid == "" && autorTipo == "cliente"` somente no caminho V1 legado. No
+caminho V2, `eventoClienteV2Valido()` exige Anonymous Auth e
+`autorUid == request.auth.uid`. **Não existe `autorTipo: "ia"` nem
+`"sistema"` gravável pelo frontend nesta etapa** — a IA de Negócio que usa
+Gemini é um fluxo separado de backend e não altera esse contrato de autoria.
 
 ## Fase 3 (continuação) — Widget público (`loja.html`)
 
-O chat da loja pública, sem autenticação, só pode gravar 4 tipos (whitelist
-estreita nas Rules — ver Fase 12):
+O chat da loja pública só pode gravar 4 tipos (whitelist estreita nas Rules
+— ver Fase 12), tanto no caminho V2 autenticado quanto para chats V1
+legados já existentes:
 
 - `conversa_criada` — ao registrar o nome e criar o chat.
 - `mensagem_cliente_recebida` — a cada mensagem enviada pelo visitante.
@@ -147,10 +149,10 @@ estreita nas Rules — ver Fase 12):
   era `resolvida` (rastreado num listener próprio no chat, `chatStatusAtual`,
   sem leitura extra por mensagem).
 
-`autorUid` é sempre `""` e `autorTipo` sempre `"cliente"` — o visitante
-público não tem uid real (Anonymous Auth continua não ativado, ver
-`docs/ROADMAP_RD3_STATUS.md`), então forjar qualquer outro autor é
-impossível pelas Rules, não só por convenção no frontend.
+`autorTipo` é sempre `"cliente"`. Em chats V2, `autorUid` é o UID real da
+sessão Anonymous Auth e precisa ser igual a `request.auth.uid`; somente
+chats V1 legados continuam gravando `autorUid == ""`. Forjar outro autor é
+impossível pelas Rules, não apenas por convenção no frontend.
 
 ## Fase 6/7 — Timeline visual + paginação
 
@@ -302,7 +304,7 @@ enum atual, então não foi feito.
 
 ```
 allow read:   isBackendAdmin() || (o chat existe e podeVerChat(chat))
-allow create: eventoAtendimentoStaffValido(chatId) || eventoAtendimentoClientePublicoValido(chatId)
+allow create: eventoAtendimentoStaffValido(chatId) || eventoAtendimentoClientePublicoValido(chatId) || eventoClienteV2Valido(chatId)
 allow update, delete: false   // sempre — nem o dono edita o passado
 ```
 
@@ -318,7 +320,11 @@ allow update, delete: false   // sempre — nem o dono edita o passado
 - **`eventoAtendimentoClientePublicoValido(chatId)`**: chat existente e não
   arquivado, whitelist ainda mais estreita (sem os campos de contexto da
   equipe), tipo restrito aos 4 valores da Fase 3, `autorUid == ""`,
-  `autorTipo == "cliente"`, `origem == "cliente"`.
+  `autorTipo == "cliente"`, `origem == "cliente"`; vale somente para chats
+  V1 legados.
+- **`eventoClienteV2Valido(chatId)`**: exige Anonymous Auth vinculado ao
+  `visitorUid` do chat V2, os mesmos 4 tipos públicos e
+  `autorUid == request.auth.uid`; nunca aceita autoria vazia.
 - **Leitura**: mesma regra de `podeVerChat` já usada em `mensagens` — quem
   pode ver a conversa (ver ou editar `atendimento`/`leads`, do tenant certo,
   ou admin de backend) pode ler o histórico; o visitante público **nunca**

@@ -128,7 +128,7 @@ só passa a existir quando a equipe abre o CRM de uma conversa pela primeira vez
   telefoneNormalizado: "dígitos, formato normalizarTelefone()",
   email: "como a equipe digitou (exibição)",
   emailNormalizado: "formato normalizarEmail()",
-  authUid: "opcional — hoje quase nunca preenchido (sem Anonymous Auth ativo)",
+  authUid: "opcional — o chat V2 possui visitorUid, mas o CRM ainda não o copia automaticamente para este campo",
   origem: "até 120 (opcional)",
   statusRelacionamento: "novo|lead|qualificado|negociacao|cliente|recorrente|inativo|perdido",
   statusAtualizadoPor: "{authUid}",
@@ -371,10 +371,10 @@ perfil. Corrigido junto o achado de auditoria da permissão `crm` (ver Fase
 
 ## Próximas fases sugeridas
 
-1. Ativar Firebase Anonymous Auth no widget público (já listado como bloqueio
-   externo em `docs/ROADMAP_RD3_STATUS.md`) para permitir correspondência por
-   `authUid` desde o primeiro contato, reduzindo o volume de "cliente não
-   identificado".
+1. Propagar com segurança o `visitorUid` já autenticado do chat V2 para o
+   `authUid` do cliente quando houver vínculo inequívoco. Anonymous Auth já
+   está ativo no widget; a integração automática com o cadastro canônico do
+   CRM ainda não existe.
 2. Paginação real na lista de clientes (`carregarListaClientes` usa
    `limit(500)` fixo) para tenants com histórico muito grande — hoje
    suficiente pra qualquer loja em operação normal, mas não escala

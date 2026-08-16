@@ -3,6 +3,16 @@
 Nenhum item desta lista foi automaticamente concluído pela implementação.
 O responsável pela liberação deve coletar evidência atual de cada gate.
 
+## Estado atual do piloto
+
+- As 19 Cloud Functions do WhatsApp estão publicadas.
+- Embedded Signup está ativo em `audience=testers`, com tester UID restrito.
+- A segunda conexão está habilitada somente nesse piloto controlado.
+- A tela oficial de login da Meta já abriu com sucesso.
+- Uma nova conexão real ainda não foi validada ponta a ponta.
+- QR Codes, reconexão, desconexão, coexistência e App Check estão desligados.
+- A liberação pública continua bloqueada pelos gates externos da Meta.
+
 ## Código e qualidade
 
 - [ ] PR aprovado e Quality Gate remoto verde no SHA exato a publicar.

@@ -1,12 +1,14 @@
 # WhatsApp Oficial V1
 
-> **Atualização 2026-07-31 — Embedded Signup:** o fluxo oficial agora está
-> implementado no código, protegido por flags desligadas em produção. A
-> superfície dedicada passou de 9 para 19 Functions e inclui onboarding,
-> reconexão/desconexão e QR Codes oficiais. Configuração do app Meta, App
-> Review, webhook, IAM, secrets e liberação continuam externas e pendentes.
-> Para o estado atual e a ordem operacional, use `docs/meta-whatsapp/README.md`.
-> Trechos abaixo sobre o piloto/Fase A permanecem como histórico da V1.
+> **Estado operacional confirmado:** as 19 Cloud Functions dedicadas estão
+> publicadas. Embedded Signup está ativo em `audience=testers`, com tester
+> UID restrito, e a segunda conexão está habilitada somente nesse piloto
+> controlado. A tela oficial de login da Meta já abriu com sucesso; uma nova
+> conexão real ainda não foi validada ponta a ponta. QR Codes, reconexão,
+> desconexão, coexistência e App Check continuam desligados, e a liberação
+> pública depende dos gates externos da Meta. Para o estado atual e a ordem
+> operacional, use `docs/meta-whatsapp/README.md`. Trechos abaixo sobre o
+> piloto/Fase A permanecem como histórico da V1.
 
 Integração com o WhatsApp Business Cloud API oficial da Meta, dobrada por
 inteiro dentro da Central de Atendimento já existente (`chats/{chatId}`,
@@ -323,7 +325,9 @@ O Embedded Signup oficial está implementado e exportado, mas nasce
 indisponível em produção. App ID, Configuration ID, audience e flags são
 controlados por ambiente; o SDK entrega somente um code temporário e toda
 troca/validação de credencial acontece no backend. Consulte
-`docs/meta-whatsapp/embedded-signup-setup.md`.
+`docs/meta-whatsapp/embedded-signup-setup.md`. A configuração operacional
+atual liberou somente Embedded Signup e segunda conexão para o público
+restrito `testers`; os demais recursos permanecem desligados.
 
 ## Testes
 
@@ -461,8 +465,9 @@ mesmo ao desconectar.
   fica para uma V1.1.
 - Sem envio de mídia outbound nesta fase.
 - Sem broadcast/lista de destinatários — sempre um chat por chamada.
-- Embedded Signup implementado, mas desligado por padrão; a liberação real
-  depende dos gates em `docs/meta-whatsapp/production-readiness.md`.
+- Embedded Signup nasce desligado por padrão no código, mas está liberado
+  atualmente somente para o piloto `testers`; a liberação pública depende
+  dos gates em `docs/meta-whatsapp/production-readiness.md`.
 - Criação de template via API não implementada — só sincronização de
   templates já existentes no WhatsApp Manager.
 - A versão da Graph API (`v26.0`) foi confirmada diretamente pelo usuário
