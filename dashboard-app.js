@@ -11060,11 +11060,23 @@ setTimeout(() => {
             });
         }
 
+        function limparBuscaCatalogoAoAbrirRascunhos() {
+            const campoBusca = document.getElementById("catalogo-busca");
+            if (campoBusca) {
+                campoBusca.value = "";
+            }
+            window._catalogoBuscaDigitadaPeloUsuario = false;
+        }
+
         document.getElementById("filtro-rascunhos").addEventListener("click", (e) => {
 
 e.preventDefault();
 
+filtroLogistico = "todos";
+
 verRascunhos = true;
+
+limparBuscaCatalogoAoAbrirRascunhos();
 
 alternarVisualFiltro('rascunhos');
 

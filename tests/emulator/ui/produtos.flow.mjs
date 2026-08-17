@@ -63,6 +63,15 @@ async function main() {
             statusProduto: "ativo",
             ordem: 2
         }, { merge: true });
+        await db.doc("produtos/prod-local-draft").set({
+            criadoPor: "owner-pro",
+            nome: "Rascunho Fisico Local",
+            descricao: "Produto fisico salvo como rascunho para o fluxo de catalogo",
+            preco: 39,
+            tipo: "fisico",
+            statusProduto: "rascunho",
+            ordem: 3
+        }, { merge: true });
 
         await loginReal(page, baseUrl, {
             email: "owner.pro@local.test",
@@ -242,11 +251,24 @@ async function main() {
         await page.evaluate(() => document.getElementById("filtro-rascunhos").click());
         await page.waitForFunction(() => {
             const contador = document.getElementById("contador-produtos");
-            return contador && /0\s*Rascunho/.test(contador.textContent || "");
+            return contador && /1\s*Rascunho/.test(contador.textContent || "");
         }, { timeout: 10000 });
         const ariaRascunhos = await page.getAttribute("#filtro-rascunhos", "aria-pressed");
         assert.equal(ariaRascunhos, "true");
-        await page.waitForSelector("text=Nenhum rascunho encontrado", { timeout: 10000 });
+        const ariaDigitaisAposRascunhos = await page.getAttribute("#filtro-digitais", "aria-pressed");
+        const ariaFisicosAposRascunhos = await page.getAttribute("#filtro-fisicos", "aria-pressed");
+        assert.equal(ariaDigitaisAposRascunhos, "false", "Rascunhos deve desligar visualmente o filtro Digitais");
+        assert.equal(ariaFisicosAposRascunhos, "false", "Rascunhos deve desligar visualmente o filtro Fisicos");
+
+        const cardsRascunhoAposDigitais = await page.$$eval(
+            "#produtos-container .aura-commerce-card:not(.catalogo-filtrado-oculto)",
+            cards => cards.map(card => ({ nome: card.dataset.nome, status: card.dataset.status }))
+        );
+        assert.deepEqual(
+            cardsRascunhoAposDigitais,
+            [{ nome: "Rascunho Fisico Local", status: "rascunho" }],
+            "Digitais -> Rascunhos deve mostrar o rascunho fisico, sem manter o filtro de tipo invisivel"
+        );
 
         await page.evaluate(() => document.getElementById("filtro-todos").click());
         await page.waitForFunction(() => {
@@ -255,6 +277,40 @@ async function main() {
         }, { timeout: 10000 });
         const ariaTodosFinal = await page.getAttribute("#filtro-todos", "aria-pressed");
         assert.equal(ariaTodosFinal, "true");
+        assert.equal(await page.getAttribute("#filtro-rascunhos", "aria-pressed"), "false");
+        assert.equal(await page.getAttribute("#filtro-digitais", "aria-pressed"), "false");
+        assert.equal(await page.getAttribute("#filtro-fisicos", "aria-pressed"), "false");
+
+        // Uma busca textual ativa nao pode atravessar silenciosamente a troca
+        // para Rascunhos e esconder o unico item daquela aba.
+        await page.fill("#catalogo-busca", "Produto Digital Local");
+        await page.waitForFunction(() => {
+            const total = document.getElementById("catalogo-resumo-total");
+            return total && total.textContent.trim() === "1";
+        }, { timeout: 5000 });
+
+        await page.evaluate(() => document.getElementById("filtro-rascunhos").click());
+        await page.waitForFunction(() => {
+            const busca = document.getElementById("catalogo-busca");
+            const contador = document.getElementById("contador-produtos");
+            const cards = document.querySelectorAll("#produtos-container .aura-commerce-card:not(.catalogo-filtrado-oculto)");
+            return busca?.value === "" && /1\s*Rascunho/.test(contador?.textContent || "") && cards.length === 1;
+        }, { timeout: 10000 });
+        assert.equal(await page.inputValue("#catalogo-busca"), "", "Rascunhos deve limpar a busca textual ativa");
+        assert.equal(await page.getAttribute("#filtro-rascunhos", "aria-pressed"), "true");
+        assert.equal(
+            await page.getAttribute("#produtos-container .aura-commerce-card", "data-nome"),
+            "Rascunho Fisico Local"
+        );
+
+        // Voltar a Todos restaura os dois ativos e sincroniza o estado visual.
+        await page.evaluate(() => document.getElementById("filtro-todos").click());
+        await page.waitForFunction(() => {
+            const contador = document.getElementById("contador-produtos");
+            return contador && /2\s*Ativo/.test(contador.textContent || "");
+        }, { timeout: 10000 });
+        assert.equal(await page.getAttribute("#filtro-todos", "aria-pressed"), "true");
+        assert.equal(await page.getAttribute("#filtro-rascunhos", "aria-pressed"), "false");
 
         // D) Navegação: sair da view e voltar não deve duplicar listeners
         // nem deixar o catálogo em loading infinito.
