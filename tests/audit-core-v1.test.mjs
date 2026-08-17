@@ -5,9 +5,13 @@ import {
     rotuloModulo,
     rotuloOperacao,
     rotuloAtor,
+    rotuloOrigem,
     truncarUid,
     formatarDataHora,
     filtrarEventosLocal,
+    filtrarEventosPorFiltros,
+    contarFiltrosAtivos,
+    criarFiltrosAuditoriaPadrao,
     eventosParaCsv,
     eventosParaJson,
     calcularKpis,
@@ -23,12 +27,42 @@ describe("audit-core-v1 — rótulos", () => {
     });
     it("rotuloModulo e rotuloOperacao têm fallback honesto", () => {
         assert.equal(rotuloModulo("pedidos"), "Pedidos");
+        assert.equal(rotuloModulo("whatsapp"), "WhatsApp Oficial");
+        assert.equal(rotuloModulo("admin"), "Administração");
         assert.equal(rotuloModulo("modulo-novo"), "modulo-novo");
         assert.equal(rotuloOperacao("delete"), "Exclusão");
+        assert.equal(rotuloOrigem("admin-function"), "Função administrativa");
     });
     it("rotuloAtor nunca lança pra tipo desconhecido", () => {
         assert.equal(rotuloAtor("user"), "Usuário");
         assert.equal(rotuloAtor(undefined), "Desconhecido");
+    });
+});
+
+describe("audit-core-v1 — filtros combináveis", () => {
+    const eventos = [
+        { module: "produtos", operation: "update", risk: "medium", source: "firestore-trigger", actorUid: "owner-1", actorType: "user", entityType: "produto", entityId: "prod-1", action: "produto.preco_alterado", summary: "Preço alterado" },
+        { module: "whatsapp", operation: "action", risk: "high", source: "admin-function", actorUid: "admin-2", actorType: "user", entityType: "conexao", entityId: "wa-2", action: "whatsapp.reconectado", summary: "Conexão reconectada" },
+        { module: "admin", operation: "update", risk: "high", source: "admin-function", actorUid: "admin-2", actorType: "user", entityType: "loja", entityId: "store-3", action: "admin.plano_alterado", summary: "Plano alterado" }
+    ];
+
+    it("combina módulo e risco sem descartar um dos filtros", () => {
+        const resultado = filtrarEventosPorFiltros(eventos, { module: "whatsapp", risk: "high" });
+        assert.deepEqual(resultado.map((evento) => evento.entityId), ["wa-2"]);
+    });
+
+    it("combina ator, entidade, ação, operação e origem", () => {
+        const resultado = filtrarEventosPorFiltros(eventos, {
+            actor: "admin-2", entity: "store", action: "plano", operation: "update", source: "admin-function"
+        });
+        assert.deepEqual(resultado.map((evento) => evento.module), ["admin"]);
+    });
+
+    it("limpar volta ao estado padrão e o indicador conta filtros ativos", () => {
+        const padrao = criarFiltrosAuditoriaPadrao();
+        assert.equal(contarFiltrosAtivos(padrao), 0);
+        assert.equal(contarFiltrosAtivos({ ...padrao, module: "produtos", risk: "medium", busca: "preço" }), 3);
+        assert.equal(filtrarEventosPorFiltros(eventos, padrao).length, 3);
     });
 });
 
@@ -101,14 +135,15 @@ describe("audit-core-v1 — exportação (CSV/JSON, limite 1000)", () => {
         const csv = eventosParaCsv(eventos);
         const linhas = csv.split("\n");
         assert.equal(linhas.length, 2);
-        assert.ok(linhas[0].startsWith("eventId,"));
+        assert.ok(linhas[0].startsWith("ID do evento,"));
         assert.ok(linhas[1].includes('""aspas""'));
+        assert.equal(linhas[0].includes("Antes"), false, "Exportação não deve incluir snapshots potencialmente sensíveis");
     });
 
     it("eventosParaJson normaliza createdAt pra ISO string", () => {
         const json = JSON.parse(eventosParaJson(eventos));
-        assert.equal(json[0].createdAtIso, "2026-01-01T00:00:00.000Z");
-        assert.equal(json[0].changedFields, "status|total");
+        assert.equal(json[0]["Data/hora (ISO)"], "2026-01-01T00:00:00.000Z");
+        assert.equal(json[0]["Campos alterados"], "status|total");
     });
 
     it("respeita o limite de exportação (máximo 1000)", () => {

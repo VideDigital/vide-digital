@@ -250,12 +250,12 @@ create/update/delete sempre negados mesmo pro dono e pro admin, consulta por
 
 ## Índices (`firestore.indexes.json`)
 
-Só o necessário pras consultas reais da Central: `ownerUid + createdAt`,
-`ownerUid + module + createdAt`, `ownerUid + risk + createdAt`,
-`ownerUid + operation + createdAt`, `ownerUid + actorUid + createdAt`. A UI
-nunca combina dois filtros categóricos ao mesmo tempo (módulo E risco juntos,
-por exemplo) — só um por vez, junto com o período — exatamente pra não precisar
-de índices compostos de 4+ campos.
+A consulta atual da Central usa somente `ownerUid + createdAt`. Os índices
+históricos `ownerUid + module/risk/operation/actorUid + createdAt` continuam
+preservados no repositório, mas a UI não depende mais deles: módulo, operação,
+risco, origem, ator, entidade, ação e busca são combinados localmente sobre a
+janela já carregada. Assim é possível combinar colunas sem criar uma matriz de
+índices compostos de 4+ campos e sem alterar Rules ou schema.
 
 ## Central de Auditoria (UI)
 
@@ -273,23 +273,30 @@ de índices compostos de 4+ campos.
   — calculados sobre uma consulta própria de "hoje" (limit 200), não sobre a
   paginação principal. É uma aproximação honesta, não uma agregação de
   servidor — documentado no próprio `calcularKpis()`.
-- **Filtros**: período (hoje/7/30/90/personalizado), UM campo categórico por
-  vez (módulo/operação/risco/ator — ator é UID digitado, os outros são
-  `<select>`), busca local por texto (summary/entityId/action/module/
-  entityType) sobre a página já carregada.
+- **Filtros**: período (hoje/7/30/90/personalizado) aplicado no servidor e
+  filtros combináveis de módulo, operação, risco, origem, ator, entidade e
+  ação. A busca livre e todos os filtros de coluna são locais sobre os eventos
+  carregados (50 por página), fato explicado ao lado dos controles. Alterar um
+  filtro preserva os demais; chips e contador mostram o estado ativo; "Limpar
+  filtros" restaura a janela padrão de 7 dias. Os módulos reais `whatsapp` e
+  `admin` também aparecem com rótulos próprios.
 - **Listagem**: tabela no desktop, cards no mobile (`<767px`), sem listener
   permanente — `getDocs()` com `limit(50)` + `startAfter()`, botão "Ver mais".
-- **Drawer**: summary, ator (tipo + UID truncado), horário, módulo, entidade,
-  operação, risco, origem, `changedFields`, `before`/`after` sanitizados,
-  aviso "Dados sensíveis são omitidos deste registro." Link "Abrir em
+- **Drawer**: summary, badges de operação/risco, IDs completos e copiáveis do
+  evento/ator/entidade, horário, módulo, origem, `changedFields` em chips e
+  comparação lado a lado de `before`/`after` sanitizados. Blocos vazios
+  explicam que nenhum campo sanitizado ficou disponível e que dados sensíveis
+  podem ter sido removidos. Link "Abrir em
   Pedidos/CRM 360/Atendimento/Produtos" quando a entidade ainda existe
   (checado com um `getDoc()`); "Entidade não está mais disponível." quando
   não. **Limitação honesta**: o link troca de VIEW, não faz deep-link pro item
   específico — os controllers de destino (`pedidos-estruturados.js`,
   `crm360.js`, `atendimento.js`) não expõem hoje um "abrir por ID" uniforme, e
   criar esse contrato pros quatro seria um escopo maior que esta missão.
-- **Exportação**: CSV/JSON, owner-only, máximo 1000 eventos, dados já
-  sanitizados, nome do arquivo inclui a data.
+- **Exportação**: CSV/JSON, owner-only, máximo 1000 eventos consultados. A mesma
+  função de filtros locais da tela é aplicada antes de gerar o arquivo; as
+  colunas têm nomes legíveis e nunca incluem `before`/`after` ou PII. O nome do
+  arquivo inclui a data.
 - Nunca usa `innerHTML` com dado do evento sem escapar (`escaparHtml()` em
   todo texto interpolado).
 
@@ -317,9 +324,10 @@ efetivamente aconteceram no Firestore disparam o trigger).
   mesmo `event.id` não duplica; `system` actor classificado corretamente;
   chats resolve tenant por `emailDono` quando `donoUID` falta; mudança de
   tenant vira `critical`; produto sem `criadoPor` não gera evento.
-- `tests/audit-core-v1.test.mjs` — 19 testes das funções puras de UI
-  (rótulos, formatação de data/UID, filtro local, exportação CSV/JSON com
-  limite de 1000, KPIs, comparação de dia).
+- `tests/audit-core-v1.test.mjs` — 22 testes das funções puras de UI
+  (rótulos inclusive WhatsApp/Admin/origem, formatação de data/UID, busca,
+  filtros combináveis, estado ativo/limpeza, exportação CSV/JSON filtrável com
+  limite de 1000, KPIs e comparação de dia).
 - `tests/emulator/firestore-security.test.mjs` — 9 testes novos de Rules
   (owner, outro tenant, editor, leitor, videAdmin, create/update/delete
   negados sempre, consulta não vaza tenant). **219/219** Firestore + **5/5**
@@ -327,9 +335,10 @@ efetivamente aconteceram no Firestore disparam o trigger).
 - `tests/emulator/ui/auditoria.flow.mjs` — fluxo real (Playwright + Auth
   Emulator + Functions Emulator): owner altera um produto de verdade via
   Admin SDK (simulando o cliente), o trigger real dispara, a UI busca e
-  mostra o evento, sem PII visível, drawer com o aviso de dados omitidos,
-  filtro por módulo, responsivo em mobile (390px, cards substituem a
-  tabela), e funcionário editor (com todas as outras permissões) não vê nem
+  mostra o evento, sem PII visível, drawer sanitizado com IDs copiáveis,
+  módulo + risco combinados, módulos WhatsApp/Admin, limpeza e indicador de
+  filtros, exportação filtrada, responsivo em mobile (390px, cards substituem
+  a tabela), e funcionário editor (com todas as outras permissões) não vê nem
   acessa a Auditoria. Não pôde ser reexecutado neste sandbox (proxy bloqueia
   o CDN do Firebase no navegador — limitação de rede já documentada em
   `docs/QUALITY_GATE_RELEASE.md`), mas o Functions Emulator LOCAL foi
