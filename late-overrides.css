@@ -1882,6 +1882,34 @@ body.aura-command-open{
 .aura-catalog-view-switch button{ width:40px !important; height:40px !important; }
 .aura-catalog-view-switch svg{ width:17px !important; height:17px !important; }
 
+/* PRODUTOS + CATÁLOGO — duas views, um único workspace e uma única fonte de dados */
+.aura-products-module-header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:20px;
+  padding:22px;border:1px solid var(--aura-border);border-radius:22px;
+  background:linear-gradient(135deg,color-mix(in srgb,var(--aura-primary) 8%,var(--aura-surface)),var(--aura-surface));
+}
+.aura-products-module-header>div:first-child>span{display:block;color:var(--aura-primary);font-size:10px;font-weight:850;letter-spacing:.14em;text-transform:uppercase}
+.aura-products-module-header h1{margin:5px 0 0;color:var(--aura-text);font-size:24px;font-weight:900;letter-spacing:-.03em}
+.aura-products-module-header p{max-width:660px;margin:6px 0 0;color:var(--aura-text-muted);font-size:13px;line-height:1.55}
+.aura-products-module-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+.aura-products-module-actions button{min-height:40px;padding:0 14px;border:1px solid var(--aura-border);border-radius:11px;color:var(--aura-text-secondary);background:var(--aura-surface-soft);font-size:11px;font-weight:800}
+.aura-products-module-actions button.is-primary{border-color:transparent;color:#fff;background:linear-gradient(135deg,var(--aura-primary),var(--aura-accent))}
+.aura-products-workspace-mount:empty{display:none}
+#produtos-workspace[data-produtos-mode="produtos"] [data-catalog-analytics]{display:none!important}
+#produtos-workspace[data-produtos-mode="produtos"] .aura-catalog-command{padding:0!important;border:0!important;background:transparent!important;box-shadow:none!important}
+#produtos-workspace[data-produtos-mode="produtos"] .aura-catalog-tools{display:flex;justify-content:flex-end;margin-top:0}
+#produtos-workspace[data-produtos-mode="catalogo"] [data-produtos-operational],
+#produtos-workspace[data-produtos-mode="catalogo"] [data-product-operations],
+#produtos-workspace[data-produtos-mode="catalogo"] .aura-commerce-edit-button,
+#produtos-workspace[data-produtos-mode="catalogo"] .aura-commerce-manage,
+#produtos-workspace[data-produtos-mode="catalogo"] .aura-catalog-card-selector{display:none!important}
+#produtos-workspace[data-produtos-mode="catalogo"] .aura-commerce-topbar{padding-left:0}
+@media(max-width:760px){
+  .aura-products-module-header{flex-direction:column;padding:17px}
+  .aura-products-module-actions{width:100%;justify-content:stretch}
+  .aura-products-module-actions button{flex:1}
+}
+
 /* ================================================================
    VIDE HUB — SIDEBAR: CORRIGE A GRADE DE #admin-sidebar (V1.0)
    dashboard-modules.css transforma #admin-sidebar num CSS grid com
