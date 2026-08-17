@@ -8,9 +8,10 @@ O Vide Hub é publicado como site estático via GitHub Pages. Esta branch não p
 
 1. Revisar e aprovar Pull Request.
 2. Fazer squash merge em `main`.
-3. Aguardar GitHub Pages publicar.
-4. Limpar cache quando necessário.
-5. Testar:
+3. Em **Actions > Publicar GitHub Pages**, selecionar `main`, informar `PUBLICAR` e iniciar manualmente o workflow.
+4. Aguardar o workflow concluir a publicação no GitHub Pages.
+5. Limpar cache quando necessário.
+6. Testar:
    - `https://videdigital.github.io/vide-digital/dashboard.html`
    - `https://videdigital.github.io/vide-digital/login.html`
    - `https://videdigital.github.io/vide-digital/admin.html`
