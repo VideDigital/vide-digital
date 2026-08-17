@@ -8,6 +8,14 @@
 
 export const RISCOS = ["low", "medium", "high", "critical"];
 export const OPERACOES = ["create", "update", "delete", "action"];
+export const ORIGENS = [
+    "firestore-trigger",
+    "function",
+    "ai-function",
+    "admin-function",
+    "public-function",
+    "system"
+];
 
 export const RISCO_LABEL = Object.freeze({
     low: "Baixo",
@@ -36,7 +44,18 @@ export const MODULO_LABEL = Object.freeze({
     "landing-pages": "Landing Pages",
     ia: "Central de IA",
     "base-conhecimento-ia": "Base de Conhecimento",
-    tracking: "Central de Crescimento"
+    tracking: "Central de Crescimento",
+    whatsapp: "WhatsApp Oficial",
+    admin: "Administração"
+});
+
+export const ORIGEM_LABEL = Object.freeze({
+    "firestore-trigger": "Gatilho do Firestore",
+    function: "Cloud Function",
+    "ai-function": "Função de IA",
+    "admin-function": "Função administrativa",
+    "public-function": "Função pública",
+    system: "Sistema"
 });
 
 export const ATOR_TIPO_LABEL = Object.freeze({
@@ -60,6 +79,10 @@ export function rotuloModulo(module) {
 
 export function rotuloAtor(actorType) {
     return ATOR_TIPO_LABEL[actorType] || "Desconhecido";
+}
+
+export function rotuloOrigem(source) {
+    return ORIGEM_LABEL[source] || String(source || "—");
 }
 
 // Aceita Date, número (ms) ou objeto com toDate() (Firestore Timestamp) —
@@ -112,15 +135,76 @@ function normalizarBusca(texto) {
         .trim();
 }
 
-// Filtro 100% local sobre a página já carregada (nunca substitui a query
-// do servidor — é só o campo de busca por texto livre da mission).
-export function filtrarEventosLocal(eventos, termo) {
-    const alvo = normalizarBusca(termo);
-    if (!alvo) return Array.isArray(eventos) ? eventos : [];
-    return (Array.isArray(eventos) ? eventos : []).filter((evento) => {
-        const campos = [evento?.summary, evento?.entityId, evento?.action, evento?.module, evento?.entityType];
-        return campos.some((campo) => normalizarBusca(campo).includes(alvo));
+export function criarFiltrosAuditoriaPadrao() {
+    return {
+        periodo: "7d",
+        de: "",
+        ate: "",
+        busca: "",
+        module: "",
+        operation: "",
+        risk: "",
+        source: "",
+        actor: "",
+        entity: "",
+        action: ""
+    };
+}
+
+function contem(valor, termo) {
+    return normalizarBusca(valor).includes(normalizarBusca(termo));
+}
+
+// Todos os filtros de coluna e a busca são combinados localmente sobre a
+// janela já carregada. A query do servidor continua limitada por tenant e
+// período, evitando uma explosão de índices compostos.
+export function filtrarEventosPorFiltros(eventos, filtros = {}) {
+    const lista = Array.isArray(eventos) ? eventos : [];
+    return lista.filter((evento) => {
+        if (filtros.module && evento?.module !== filtros.module) return false;
+        if (filtros.operation && evento?.operation !== filtros.operation) return false;
+        if (filtros.risk && evento?.risk !== filtros.risk) return false;
+        if (filtros.source && evento?.source !== filtros.source) return false;
+        if (filtros.actor && ![
+            evento?.actorUid,
+            evento?.actorType,
+            rotuloAtor(evento?.actorType)
+        ].some((valor) => contem(valor, filtros.actor))) return false;
+        if (filtros.entity && ![
+            evento?.entityId,
+            evento?.entityType
+        ].some((valor) => contem(valor, filtros.entity))) return false;
+        if (filtros.action && !contem(evento?.action, filtros.action)) return false;
+
+        const busca = normalizarBusca(filtros.busca);
+        if (!busca) return true;
+        const campos = [
+            evento?.summary,
+            evento?.entityId,
+            evento?.entityType,
+            evento?.action,
+            evento?.module,
+            rotuloModulo(evento?.module),
+            evento?.operation,
+            rotuloOperacao(evento?.operation),
+            evento?.source,
+            rotuloOrigem(evento?.source),
+            evento?.actorUid
+        ];
+        return campos.some((campo) => normalizarBusca(campo).includes(busca));
     });
+}
+
+export function contarFiltrosAtivos(filtros = {}) {
+    const campos = ["module", "operation", "risk", "source", "actor", "entity", "action", "busca"];
+    let total = campos.filter((campo) => String(filtros[campo] || "").trim()).length;
+    if (filtros.periodo && filtros.periodo !== "7d") total += 1;
+    return total;
+}
+
+// Compatibilidade com consumidores da busca livre V1.
+export function filtrarEventosLocal(eventos, termo) {
+    return filtrarEventosPorFiltros(eventos, { busca: termo });
 }
 
 function achatarParaCsv(valor) {
@@ -144,9 +228,9 @@ function escaparCampoCsv(valor) {
 }
 
 const COLUNAS_EXPORTACAO = [
-    "eventId", "createdAtIso", "module", "entityType", "entityId",
-    "operation", "action", "risk", "summary", "actorType", "actorUid",
-    "changedFields"
+    "ID do evento", "Data/hora (ISO)", "Módulo", "Tipo de entidade", "ID da entidade",
+    "Operação", "Ação", "Risco", "Origem", "Resumo", "Tipo de ator", "UID do ator",
+    "Campos alterados"
 ];
 
 // createdAt pode ser Firestore Timestamp — normaliza pra ISO string antes
@@ -154,18 +238,19 @@ const COLUNAS_EXPORTACAO = [
 function normalizarEventoParaExportacao(evento) {
     const data = paraData(evento?.createdAt);
     return {
-        eventId: evento?.eventId || "",
-        createdAtIso: data ? data.toISOString() : "",
-        module: evento?.module || "",
-        entityType: evento?.entityType || "",
-        entityId: evento?.entityId || "",
-        operation: evento?.operation || "",
-        action: evento?.action || "",
-        risk: evento?.risk || "",
-        summary: evento?.summary || "",
-        actorType: evento?.actorType || "",
-        actorUid: evento?.actorUid || "",
-        changedFields: Array.isArray(evento?.changedFields) ? evento.changedFields.join("|") : ""
+        "ID do evento": evento?.eventId || evento?._docId || "",
+        "Data/hora (ISO)": data ? data.toISOString() : "",
+        "Módulo": rotuloModulo(evento?.module),
+        "Tipo de entidade": evento?.entityType || "",
+        "ID da entidade": evento?.entityId || "",
+        "Operação": rotuloOperacao(evento?.operation),
+        "Ação": evento?.action || "",
+        "Risco": rotuloRisco(evento?.risk),
+        "Origem": rotuloOrigem(evento?.source),
+        "Resumo": evento?.summary || "",
+        "Tipo de ator": rotuloAtor(evento?.actorType),
+        "UID do ator": evento?.actorUid || "",
+        "Campos alterados": Array.isArray(evento?.changedFields) ? evento.changedFields.join("|") : ""
     };
 }
 

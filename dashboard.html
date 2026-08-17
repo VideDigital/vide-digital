@@ -5327,7 +5327,14 @@ Carregando equipe...
 </div>
 
 <div class="aura-audit-filtros">
-<div class="aura-audit-periodo">
+<div class="aura-audit-filtros-cabecalho">
+<div>
+<strong>Filtros combináveis</strong>
+<p>Busca e filtros são aplicados somente aos eventos já carregados (50 por página).</p>
+</div>
+<span id="audit-filtros-indicador">Nenhum filtro adicional</span>
+</div>
+<div class="aura-audit-periodo" aria-label="Filtrar período">
 <button type="button" data-audit-period="hoje">Hoje</button>
 <button type="button" data-audit-period="7d" class="is-active">7 dias</button>
 <button type="button" data-audit-period="30d">30 dias</button>
@@ -5339,15 +5346,17 @@ Carregando equipe...
 <input type="date" id="audit-periodo-ate" aria-label="Data final">
 <button type="button" id="audit-aplicar-periodo-personalizado">Aplicar</button>
 </div>
-<select id="audit-filtro-campo" aria-label="Filtrar por">
-<option value="">Sem filtro adicional</option>
-<option value="modulo">Módulo</option>
-<option value="operacao">Operação</option>
-<option value="risco">Risco</option>
-<option value="ator">Ator (UID)</option>
-</select>
-<span id="audit-filtro-valor-container"></span>
-<input type="search" id="audit-busca" class="aura-audit-busca" placeholder="Buscar por resumo, entidade ou ação…" aria-label="Buscar eventos carregados">
+<div class="aura-audit-filtros-grade">
+<label><span>Módulo</span><select id="audit-filtro-modulo"><option value="">Todos os módulos</option></select></label>
+<label><span>Operação</span><select id="audit-filtro-operacao"><option value="">Todas as operações</option></select></label>
+<label><span>Risco</span><select id="audit-filtro-risco"><option value="">Todos os riscos</option></select></label>
+<label><span>Origem</span><select id="audit-filtro-origem"><option value="">Todas as origens</option></select></label>
+<label><span>Ator</span><input type="text" id="audit-filtro-ator" placeholder="UID ou tipo do ator"></label>
+<label><span>Entidade</span><input type="text" id="audit-filtro-entidade" placeholder="Tipo ou ID da entidade"></label>
+<label><span>Ação</span><input type="text" id="audit-filtro-acao" placeholder="Nome da ação"></label>
+<label><span>Busca local</span><input type="search" id="audit-busca" class="aura-audit-busca" placeholder="Resumo, entidade, ação…" aria-label="Buscar nos eventos carregados"></label>
+</div>
+<div id="audit-filtros-ativos" class="aura-audit-filtros-ativos hidden" aria-live="polite"></div>
 <div class="aura-audit-acoes">
 <button type="button" id="audit-atualizar">Atualizar</button>
 <button type="button" id="audit-limpar">Limpar filtros</button>
@@ -5374,6 +5383,7 @@ Carregando equipe...
 <th>Ator</th>
 <th>Módulo</th>
 <th>Ação</th>
+<th>Operação</th>
 <th>Entidade</th>
 <th>Risco</th>
 <th></th>

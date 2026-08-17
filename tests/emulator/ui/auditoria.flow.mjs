@@ -6,7 +6,7 @@
 // acessa a Central de Auditoria — é owner-only na V1.
 import assert from "node:assert/strict";
 import { getApps, initializeApp } from "firebase-admin/app";
-import { getFirestore } from "firebase-admin/firestore";
+import { getFirestore, Timestamp } from "firebase-admin/firestore";
 import {
     captureDiagnostics,
     coletarErrosConsole,
@@ -67,6 +67,48 @@ async function flowAuditoriaOwner(page) {
     // Escrita real que o trigger auditProdutosWrite precisa capturar —
     // preço alterado é classificado como produto.preco_alterado.
     await db.doc("produtos/prod-local-1").set({ preco: 129.9 }, { merge: true });
+    await Promise.all([
+        db.doc("auditoria/ui-whatsapp-event").set({
+            schemaVersion: 1,
+            eventId: "ui-whatsapp-event",
+            ownerUid: "owner-pro",
+            actorUid: "admin-2",
+            actorType: "user",
+            module: "whatsapp",
+            entityType: "conexao",
+            entityId: "wa-test-2",
+            operation: "action",
+            action: "whatsapp.reconectado",
+            risk: "high",
+            summary: "Conexão de teste reconectada",
+            changedFields: ["status"],
+            before: {},
+            after: { status: "active" },
+            source: "admin-function",
+            ok: true,
+            createdAt: Timestamp.now()
+        }),
+        db.doc("auditoria/ui-admin-event").set({
+            schemaVersion: 1,
+            eventId: "ui-admin-event",
+            ownerUid: "owner-pro",
+            actorUid: "admin-2",
+            actorType: "user",
+            module: "admin",
+            entityType: "loja",
+            entityId: "owner-pro",
+            operation: "update",
+            action: "admin.plano_alterado",
+            risk: "high",
+            summary: "Plano de teste alterado",
+            changedFields: ["plano"],
+            before: { plano: "starter" },
+            after: { plano: "pro" },
+            source: "admin-function",
+            ok: true,
+            createdAt: Timestamp.now()
+        })
+    ]);
 
     const ativou = await ativarView(page, "view-auditoria", "#audit-conteudo, #audit-estado-sem-permissao");
     assert.equal(ativou, true, "A view Auditoria deveria ativar para o owner");
@@ -89,21 +131,53 @@ async function flowAuditoriaOwner(page) {
     }
 
     // Abre o drawer no primeiro evento da lista.
-    await page.click("[data-audit-evento]");
+    await page.locator("#audit-tabela-corpo tr", { hasText: "prod-local-1" }).first().click();
     await page.waitForSelector("#audit-drawer:not(.hidden)", { timeout: 10000 });
     const avisoDrawer = await page.textContent("#audit-drawer-conteudo");
-    assert.ok(avisoDrawer.includes("Dados sensíveis são omitidos deste registro."), "Drawer deveria mostrar o aviso de PII omitida");
+    assert.ok(avisoDrawer.includes("somente a versão sanitizada"), "Drawer deveria explicar a sanitização e a omissão de PII");
+    assert.ok(await page.locator("#audit-drawer [data-audit-copy]").count() >= 2, "Drawer deveria oferecer IDs completos copiáveis");
+    assert.match(avisoDrawer, /Campos alterados/i, "Drawer deveria destacar changedFields");
     await page.click("#audit-drawer-fechar");
     // state padrão do waitForSelector é "visible" — aqui o seletor já
     // exige a classe "hidden", então o estado certo a esperar é
     // "attached" (só presente no DOM), nunca "visible" (contradição).
     await page.waitForSelector("#audit-drawer.hidden", { state: "attached", timeout: 5000 });
 
-    // Filtro por módulo — só confirma que a consulta refeita não quebra.
-    await page.selectOption("#audit-filtro-campo", "modulo");
-    await page.waitForSelector("#audit-filtro-valor", { state: "attached", timeout: 5000 });
-    await page.selectOption("#audit-filtro-valor", "produtos");
-    await page.waitForTimeout(1500);
+    // Filtros combináveis: módulo + risco preservam um ao outro e o estado
+    // ativo fica explícito. WhatsApp/Admin são módulos reais selecionáveis.
+    const modulosDisponiveis = await page.locator("#audit-filtro-modulo option").allTextContents();
+    assert.ok(modulosDisponiveis.includes("WhatsApp Oficial"));
+    assert.ok(modulosDisponiveis.includes("Administração"));
+    await page.selectOption("#audit-filtro-modulo", "whatsapp");
+    await page.selectOption("#audit-filtro-risco", "high");
+    await page.waitForFunction(() => document.querySelectorAll("#audit-tabela-corpo tr").length === 1);
+    assert.match(await page.textContent("#audit-tabela-corpo"), /wa-test-2/);
+    assert.match(await page.textContent("#audit-filtros-indicador"), /2 filtro/);
+    assert.equal(await page.inputValue("#audit-filtro-modulo"), "whatsapp");
+
+    // Exportação usa exatamente os mesmos filtros e não inclui outro módulo.
+    await page.evaluate(() => {
+        const original = URL.createObjectURL.bind(URL);
+        window.__auditExportBlob = null;
+        URL.createObjectURL = blob => {
+            window.__auditExportBlob = blob;
+            return original(blob);
+        };
+    });
+    await page.click("#audit-exportar-csv");
+    await page.waitForFunction(() => Boolean(window.__auditExportBlob), null, { timeout: 10000 });
+    const csvFiltrado = await page.evaluate(() => window.__auditExportBlob.text());
+    assert.match(csvFiltrado, /wa-test-2/);
+    assert.equal(csvFiltrado.includes("ui-admin-event"), false);
+
+    await page.click("#audit-limpar");
+    await page.waitForFunction(() => document.getElementById("audit-filtros-indicador")?.textContent.includes("Nenhum filtro"));
+    assert.equal(await page.inputValue("#audit-filtro-modulo"), "");
+    assert.equal(await page.inputValue("#audit-filtro-risco"), "");
+
+    await page.selectOption("#audit-filtro-modulo", "admin");
+    assert.match(await page.textContent("#audit-tabela-corpo"), /owner-pro/);
+    await page.click("#audit-limpar");
     const errosAteAqui = await page.evaluate(() => window.__erros || []);
     void errosAteAqui;
 
@@ -117,6 +191,10 @@ async function flowResponsivoMobile(page) {
 
     const tabelaVisivel = await page.locator(".aura-audit-tabela-wrap").isVisible().catch(() => false);
     assert.equal(tabelaVisivel, false, "A tabela desktop não deveria aparecer em mobile");
+    const colunasFiltro = await page.locator(".aura-audit-filtros-grade").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+    assert.equal(colunasFiltro, 1, "Filtros devem ocupar uma coluna no mobile");
+    const larguraOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+    assert.ok(larguraOverflow <= 1, `Auditoria não deveria criar overflow horizontal global no mobile (${larguraOverflow}px)`);
 
     await page.setViewportSize({ width: 1440, height: 900 });
     console.log("auditoria.flow: OK (mobile) — cards substituem a tabela em 390px.");

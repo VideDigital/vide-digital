@@ -11,30 +11,24 @@ import {
     rotuloOperacao,
     rotuloModulo,
     rotuloAtor,
+    rotuloOrigem,
     formatarDataHora,
     truncarUid,
-    filtrarEventosLocal,
+    filtrarEventosPorFiltros,
+    contarFiltrosAtivos,
+    criarFiltrosAuditoriaPadrao,
     eventosParaCsv,
     eventosParaJson,
     calcularKpis,
     LIMITE_EXPORTACAO,
     RISCOS,
     OPERACOES,
+    ORIGENS,
     MODULO_LABEL
 } from "./audit-core-v1.js";
 
 const PAGE_SIZE = 50;
 const EXPORT_SIZE = LIMITE_EXPORTACAO;
-
-// Campo do formulário -> campo real do documento em auditoria/{eventId}.
-// Só UM destes fica ativo por vez (junto com o período) — evita precisar
-// de índice composto pra cada combinação possível.
-const CAMPO_FIRESTORE = {
-    modulo: "module",
-    operacao: "operation",
-    risco: "risk",
-    ator: "actorUid"
-};
 
 // Navegação "quando seguro" — só troca de view, não faz deep-link pro
 // item específico (os controllers de destino não expõem esse hook hoje;
@@ -73,7 +67,7 @@ export function criarAuditCenterController({
     const state = {
         eventos: [],
         kpis: { eventosHoje: 0, altoRisco: 0, atoresAtivos: 0, modulosAlterados: 0 },
-        filtro: { periodo: "7d", campo: "", valor: "", busca: "", de: "", ate: "" },
+        filtro: criarFiltrosAuditoriaPadrao(),
         ultimoDoc: null,
         temMais: true,
         carregando: false,
@@ -116,10 +110,6 @@ export function criarAuditCenterController({
         const { de, ate } = periodoParaDatas(state.filtro);
         if (de) clausulas.push(where("createdAt", ">=", Timestamp.fromDate(de)));
         if (ate) clausulas.push(where("createdAt", "<=", Timestamp.fromDate(ate)));
-
-        if (state.filtro.campo && state.filtro.valor && CAMPO_FIRESTORE[state.filtro.campo]) {
-            clausulas.push(where(CAMPO_FIRESTORE[state.filtro.campo], "==", state.filtro.valor));
-        }
 
         clausulas.push(orderBy("createdAt", "desc"));
         clausulas.push(limit(paraExportacao ? EXPORT_SIZE : PAGE_SIZE));
@@ -230,7 +220,7 @@ export function criarAuditCenterController({
     }
 
     function eventosVisiveis() {
-        return filtrarEventosLocal(state.eventos, state.filtro.busca);
+        return filtrarEventosPorFiltros(state.eventos, state.filtro);
     }
 
     function linhaTabela(evento) {
@@ -240,6 +230,7 @@ export function criarAuditCenterController({
                 <td>${escaparHtml(rotuloAtor(evento.actorType))}<small>${escaparHtml(truncarUid(evento.actorUid))}</small></td>
                 <td>${escaparHtml(rotuloModulo(evento.module))}</td>
                 <td>${escaparHtml(evento.action || "—")}</td>
+                <td>${escaparHtml(rotuloOperacao(evento.operation))}</td>
                 <td>${escaparHtml(evento.entityType)} <small>${escaparHtml(truncarUid(evento.entityId))}</small></td>
                 <td><span class="audit-badge-risco" data-risco="${escaparHtml(evento.risk)}">${escaparHtml(rotuloRisco(evento.risk))}</span></td>
                 <td class="audit-col-detalhes"><button type="button" data-audit-evento="${escaparHtml(evento._docId)}">Detalhes</button></td>
@@ -256,9 +247,42 @@ export function criarAuditCenterController({
                 </header>
                 <strong>${escaparHtml(evento.summary || evento.action)}</strong>
                 <p>${escaparHtml(rotuloModulo(evento.module))} · ${escaparHtml(evento.entityType)} ${escaparHtml(truncarUid(evento.entityId))}</p>
-                <footer>${escaparHtml(rotuloAtor(evento.actorType))} <small>${escaparHtml(truncarUid(evento.actorUid))}</small></footer>
+                <footer>${escaparHtml(rotuloOperacao(evento.operation))} · ${escaparHtml(rotuloAtor(evento.actorType))} <small>${escaparHtml(truncarUid(evento.actorUid))}</small></footer>
             </article>
         `;
+    }
+
+    function descricaoFiltrosAtivos() {
+        const descricoes = [];
+        if (state.filtro.periodo !== "7d") {
+            const periodos = { hoje: "Hoje", "30d": "30 dias", "90d": "90 dias", personalizado: "Período personalizado" };
+            descricoes.push(periodos[state.filtro.periodo] || state.filtro.periodo);
+        }
+        if (state.filtro.module) descricoes.push(`Módulo: ${rotuloModulo(state.filtro.module)}`);
+        if (state.filtro.operation) descricoes.push(`Operação: ${rotuloOperacao(state.filtro.operation)}`);
+        if (state.filtro.risk) descricoes.push(`Risco: ${rotuloRisco(state.filtro.risk)}`);
+        if (state.filtro.source) descricoes.push(`Origem: ${rotuloOrigem(state.filtro.source)}`);
+        if (state.filtro.actor) descricoes.push(`Ator: ${state.filtro.actor}`);
+        if (state.filtro.entity) descricoes.push(`Entidade: ${state.filtro.entity}`);
+        if (state.filtro.action) descricoes.push(`Ação: ${state.filtro.action}`);
+        if (state.filtro.busca) descricoes.push(`Busca: ${state.filtro.busca}`);
+        return descricoes;
+    }
+
+    function renderFiltrosAtivos() {
+        const total = contarFiltrosAtivos(state.filtro);
+        const indicador = byId("audit-filtros-indicador");
+        const lista = byId("audit-filtros-ativos");
+        if (indicador) {
+            indicador.textContent = total ? `${total} filtro(s) ativo(s)` : "Nenhum filtro adicional";
+            indicador.classList.toggle("is-active", total > 0);
+        }
+        if (lista) {
+            lista.innerHTML = descricaoFiltrosAtivos()
+                .map((texto) => `<span>${escaparHtml(texto)}</span>`)
+                .join("");
+            lista.classList.toggle("hidden", total === 0);
+        }
     }
 
     function renderTabela() {
@@ -273,10 +297,11 @@ export function criarAuditCenterController({
         if (contagem) {
             contagem.textContent = visiveis.length === state.eventos.length
                 ? `${state.eventos.length} evento(s) carregado(s)`
-                : `${visiveis.length} de ${state.eventos.length} evento(s) (filtro de busca ativo)`;
+                : `${visiveis.length} de ${state.eventos.length} evento(s) correspondem aos filtros`;
         }
 
         byId("audit-vazio")?.classList.toggle("hidden", visiveis.length > 0);
+        renderFiltrosAtivos();
         atualizarBotaoVerMais();
     }
 
@@ -293,10 +318,16 @@ export function criarAuditCenterController({
         return `<div class="audit-drawer-linha"><span>${escaparHtml(rotulo)}</span><strong>${escaparHtml(valor)}</strong></div>`;
     }
 
+    function linhaIdCopiavel(rotulo, valor) {
+        const texto = String(valor || "");
+        if (!texto) return linhaChaveValor(rotulo, "—");
+        return `<div class="audit-drawer-linha audit-drawer-id"><span>${escaparHtml(rotulo)}</span><code>${escaparHtml(texto)}</code><button type="button" data-audit-copy="${escaparHtml(texto)}" aria-label="Copiar ${escaparHtml(rotulo)}">Copiar</button></div>`;
+    }
+
     function blocoJson(titulo, objeto) {
         const texto = objeto && Object.keys(objeto).length
             ? JSON.stringify(objeto, null, 2)
-            : "Nenhum dado sanitizado disponível.";
+            : "Nenhum campo sanitizado disponível para esta operação.";
         return `<div class="audit-drawer-bloco"><h4>${escaparHtml(titulo)}</h4><pre></pre></div>`
             .replace("<pre></pre>", `<pre>${escaparHtml(texto)}</pre>`);
     }
@@ -322,17 +353,26 @@ export function criarAuditCenterController({
 
         conteudo.innerHTML = `
             <p class="audit-drawer-summary">${escaparHtml(evento.summary || evento.action)}</p>
-            ${linhaChaveValor("Ator", `${rotuloAtor(evento.actorType)} (${truncarUid(evento.actorUid)})`)}
+            <div class="audit-drawer-badges">
+                <span>${escaparHtml(rotuloOperacao(evento.operation))}</span>
+                <span class="audit-badge-risco" data-risco="${escaparHtml(evento.risk)}">${escaparHtml(rotuloRisco(evento.risk))}</span>
+            </div>
+            ${linhaIdCopiavel("ID do evento", evento.eventId || evento._docId)}
+            ${linhaChaveValor("Tipo de ator", rotuloAtor(evento.actorType))}
+            ${linhaIdCopiavel("UID do ator", evento.actorUid)}
             ${linhaChaveValor("Horário", formatarDataHora(evento.createdAt))}
             ${linhaChaveValor("Módulo", rotuloModulo(evento.module))}
-            ${linhaChaveValor("Entidade", `${evento.entityType} ${truncarUid(evento.entityId)}`)}
-            ${linhaChaveValor("Operação", rotuloOperacao(evento.operation))}
-            ${linhaChaveValor("Risco", rotuloRisco(evento.risk))}
-            ${linhaChaveValor("Origem", evento.source || "—")}
-            ${linhaChaveValor("Campos alterados", (evento.changedFields || []).join(", ") || "—")}
-            ${blocoJson("Antes (sanitizado)", evento.before)}
-            ${blocoJson("Depois (sanitizado)", evento.after)}
-            <p class="audit-drawer-aviso">Dados sensíveis são omitidos deste registro.</p>
+            ${linhaChaveValor("Tipo de entidade", evento.entityType || "—")}
+            ${linhaIdCopiavel("ID da entidade", evento.entityId)}
+            ${linhaChaveValor("Origem", rotuloOrigem(evento.source))}
+            <div class="audit-drawer-campos"><span>Campos alterados</span><div>${(evento.changedFields || []).length
+                ? evento.changedFields.map((campo) => `<code>${escaparHtml(campo)}</code>`).join("")
+                : "<em>Nenhum campo informado</em>"}</div></div>
+            <div class="audit-drawer-comparacao">
+                ${blocoJson("Antes (sanitizado)", evento.before)}
+                ${blocoJson("Depois (sanitizado)", evento.after)}
+            </div>
+            <p class="audit-drawer-aviso">Os blocos acima contêm somente a versão sanitizada. Campos sensíveis podem ter sido removidos por privacidade; um bloco vazio não significa necessariamente ausência de alteração.</p>
             <div id="audit-drawer-entidade"></div>
         `;
 
@@ -373,44 +413,34 @@ export function criarAuditCenterController({
         });
     }
 
-    // O controle de "valor" muda de forma conforme o campo escolhido:
-    // <select> com opções conhecidas para módulo/operação/risco, texto
-    // livre pra ator (UID) — não dá pra enumerar atores sem outra query.
-    function renderFiltroValor() {
-        const container = byId("audit-filtro-valor-container");
-        if (!container) return;
-
-        if (!state.filtro.campo) {
-            container.innerHTML = "";
-            return;
-        }
-
-        if (state.filtro.campo === "ator") {
-            container.innerHTML = `<input type="text" id="audit-filtro-valor" placeholder="UID do ator" aria-label="UID do ator">`;
-            return;
-        }
-
-        const opcoes = state.filtro.campo === "modulo"
-            ? Object.keys(MODULO_LABEL).map((chave) => [chave, rotuloModulo(chave)])
-            : state.filtro.campo === "operacao"
-                ? OPERACOES.map((chave) => [chave, rotuloOperacao(chave)])
-                : RISCOS.map((chave) => [chave, rotuloRisco(chave)]);
-
-        container.innerHTML = `
-            <select id="audit-filtro-valor" aria-label="Valor do filtro">
-                <option value="">Selecione…</option>
-                ${opcoes.map(([valor, rotulo]) => `<option value="${escaparHtml(valor)}">${escaparHtml(rotulo)}</option>`).join("")}
-            </select>
-        `;
+    function preencherOpcoesFiltros() {
+        const preencher = (id, opcoes) => {
+            const select = byId(id);
+            if (!select || select.dataset.auditOpcoes === "true") return;
+            select.insertAdjacentHTML("beforeend", opcoes
+                .map(([valor, rotulo]) => `<option value="${escaparHtml(valor)}">${escaparHtml(rotulo)}</option>`)
+                .join(""));
+            select.dataset.auditOpcoes = "true";
+        };
+        preencher("audit-filtro-modulo", Object.keys(MODULO_LABEL).map((chave) => [chave, rotuloModulo(chave)]));
+        preencher("audit-filtro-operacao", OPERACOES.map((chave) => [chave, rotuloOperacao(chave)]));
+        preencher("audit-filtro-risco", RISCOS.map((chave) => [chave, rotuloRisco(chave)]));
+        preencher("audit-filtro-origem", ORIGENS.map((chave) => [chave, rotuloOrigem(chave)]));
     }
 
     function limparFiltros() {
-        state.filtro = { periodo: "7d", campo: "", valor: "", busca: "", de: "", ate: "" };
-        const campoSelect = byId("audit-filtro-campo");
-        const busca = byId("audit-busca");
-        if (campoSelect) campoSelect.value = "";
-        renderFiltroValor();
-        if (busca) busca.value = "";
+        state.filtro = criarFiltrosAuditoriaPadrao();
+        ["module", "operation", "risk", "source", "actor", "entity", "action", "busca"].forEach((campo) => {
+            const id = campo === "source" ? "audit-filtro-origem"
+                : campo === "busca" ? "audit-busca"
+                    : `audit-filtro-${campo === "module" ? "modulo" : campo === "operation" ? "operacao" : campo === "risk" ? "risco" : campo}`;
+            const elemento = byId(id);
+            if (elemento) elemento.value = "";
+        });
+        const dataDe = byId("audit-periodo-de");
+        const dataAte = byId("audit-periodo-ate");
+        if (dataDe) dataDe.value = "";
+        if (dataAte) dataAte.value = "";
         atualizarBotoesPeriodo();
         populatePeriodoPersonalizado();
         state.ultimoDoc = null;
@@ -445,14 +475,14 @@ export function criarAuditCenterController({
             const q = montarQueryBase({ paraExportacao: true });
             if (!q) return;
             const snap = await getDocs(q);
-            const eventos = snap.docs.map(docParaEvento);
+            const eventos = filtrarEventosPorFiltros(snap.docs.map(docParaEvento), state.filtro);
             const carimbo = new Date().toISOString().slice(0, 10);
             if (formato === "csv") {
                 baixarArquivo(`auditoria-${carimbo}.csv`, eventosParaCsv(eventos), "text/csv;charset=utf-8");
             } else {
                 baixarArquivo(`auditoria-${carimbo}.json`, eventosParaJson(eventos), "application/json;charset=utf-8");
             }
-            notify(`Exportação gerada com ${eventos.length} evento(s) (máximo ${EXPORT_SIZE}).`, "sucesso");
+            notify(`Exportação gerada com ${eventos.length} evento(s) correspondente(s) aos filtros, em uma janela máxima de ${EXPORT_SIZE}.`, "sucesso");
         } catch (error) {
             logger.error?.("[auditoria] Falha ao exportar eventos:", error);
             notify("Não foi possível exportar os eventos agora.", "erro");
@@ -486,6 +516,7 @@ export function criarAuditCenterController({
                 state.filtro.periodo = alvoPeriodo.getAttribute("data-audit-period");
                 atualizarBotoesPeriodo();
                 populatePeriodoPersonalizado();
+                renderFiltrosAtivos();
                 if (state.filtro.periodo !== "personalizado") {
                     state.ultimoDoc = null;
                     state.temMais = true;
@@ -547,46 +578,44 @@ export function criarAuditCenterController({
         });
 
         view.addEventListener("input", (evento) => {
-            if (evento.target.id === "audit-busca") {
-                state.filtro.busca = evento.target.value;
+            const camposTexto = {
+                "audit-busca": "busca",
+                "audit-filtro-ator": "actor",
+                "audit-filtro-entidade": "entity",
+                "audit-filtro-acao": "action"
+            };
+            const campo = camposTexto[evento.target.id];
+            if (campo) {
+                state.filtro[campo] = evento.target.value;
                 renderTabela();
             }
         });
 
         view.addEventListener("change", (evento) => {
-            if (evento.target.id === "audit-filtro-campo") {
-                state.filtro.campo = evento.target.value;
-                state.filtro.valor = "";
-                renderFiltroValor();
-                if (!state.filtro.campo) {
-                    state.ultimoDoc = null;
-                    state.temMais = true;
-                    carregarPagina({ reset: true });
-                }
-                return;
-            }
-            if (evento.target.id === "audit-filtro-valor") {
-                state.filtro.valor = evento.target.value.trim();
-                state.ultimoDoc = null;
-                state.temMais = true;
-                carregarPagina({ reset: true });
-            }
-        });
-
-        // Campo de UID (ator) é texto livre — aplica com Enter, não a cada tecla.
-        view.addEventListener("keydown", (evento) => {
-            if (evento.target.id === "audit-filtro-valor" && evento.key === "Enter") {
-                evento.preventDefault();
-                state.filtro.valor = evento.target.value.trim();
-                state.ultimoDoc = null;
-                state.temMais = true;
-                carregarPagina({ reset: true });
+            const camposSelect = {
+                "audit-filtro-modulo": "module",
+                "audit-filtro-operacao": "operation",
+                "audit-filtro-risco": "risk",
+                "audit-filtro-origem": "source"
+            };
+            const campo = camposSelect[evento.target.id];
+            if (campo) {
+                state.filtro[campo] = evento.target.value;
+                renderTabela();
             }
         });
 
         byId("audit-drawer-fechar")?.addEventListener("click", fecharDrawer);
         byId("audit-drawer")?.addEventListener("click", (evento) => {
             if (evento.target.id === "audit-drawer") fecharDrawer();
+            const copiar = evento.target.closest("[data-audit-copy]");
+            if (copiar) {
+                const valor = copiar.getAttribute("data-audit-copy") || "";
+                navigator.clipboard?.writeText(valor)
+                    .then(() => notify("Identificador copiado.", "sucesso"))
+                    .catch(() => notify("Não foi possível copiar o identificador.", "erro"));
+                return;
+            }
             const abrirEntidade = evento.target.closest("#audit-drawer-abrir-entidade");
             if (abrirEntidade) {
                 const targetView = abrirEntidade.getAttribute("data-audit-view");
@@ -602,6 +631,8 @@ export function criarAuditCenterController({
     }
 
     async function load({ force = false } = {}) {
+        preencherOpcoesFiltros();
+        renderFiltrosAtivos();
         if (state.carregado && !force) {
             renderTabela();
             return;

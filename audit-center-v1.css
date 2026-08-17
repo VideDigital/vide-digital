@@ -76,14 +76,47 @@
 
 #view-auditoria .aura-audit-filtros {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
+    flex-direction: column;
+    align-items: stretch;
     gap: 10px;
     padding: 14px 16px;
     border-radius: 14px;
     background: rgba(255, 255, 255, 0.03);
     border: 1px solid rgba(255, 255, 255, 0.08);
     margin-bottom: 16px;
+}
+
+#view-auditoria .aura-audit-filtros-cabecalho {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+#view-auditoria .aura-audit-filtros-cabecalho strong {
+    display: block;
+    font-size: 13px;
+}
+
+#view-auditoria .aura-audit-filtros-cabecalho p {
+    margin: 3px 0 0;
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+#view-auditoria #audit-filtros-indicador {
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.58);
+}
+
+#view-auditoria #audit-filtros-indicador.is-active {
+    border-color: rgba(0, 212, 255, 0.35);
+    background: rgba(0, 212, 255, 0.1);
+    color: #67e8f9;
 }
 
 #view-auditoria .aura-audit-periodo {
@@ -128,12 +161,55 @@
     background: rgba(255, 255, 255, 0.04);
     color: inherit;
     min-height: 36px;
+    width: 100%;
+}
+
+#view-auditoria .aura-audit-filtros-grade {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+#view-auditoria .aura-audit-filtros-grade label {
+    display: grid;
+    gap: 5px;
+    min-width: 0;
+}
+
+#view-auditoria .aura-audit-filtros-grade label > span {
+    font-size: 10px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: rgba(255, 255, 255, 0.48);
+}
+
+#view-auditoria .aura-audit-filtros-ativos {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+#view-auditoria .aura-audit-filtros-ativos.hidden {
+    display: none;
+}
+
+#view-auditoria .aura-audit-filtros-ativos span {
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    border-radius: 999px;
+    padding: 5px 8px;
+    font-size: 10.5px;
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(255, 255, 255, 0.72);
 }
 
 #view-auditoria .aura-audit-acoes {
     display: flex;
     gap: 8px;
-    margin-left: auto;
+    justify-content: flex-end;
     flex-wrap: wrap;
 }
 
@@ -321,7 +397,7 @@
 }
 
 #audit-drawer .aura-audit-drawer-painel {
-    width: min(420px, 100%);
+    width: min(680px, 100%);
     height: 100%;
     background: #10131c;
     border-left: 1px solid rgba(255, 255, 255, 0.1);
@@ -370,6 +446,72 @@
 
 .audit-drawer-linha span {
     color: rgba(255, 255, 255, 0.5);
+}
+
+.audit-drawer-id {
+    align-items: center;
+}
+
+.audit-drawer-id code {
+    min-width: 0;
+    flex: 1;
+    overflow-wrap: anywhere;
+    text-align: right;
+    font-size: 11px;
+}
+
+.audit-drawer-id button {
+    flex: 0 0 auto;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.04);
+    color: inherit;
+    padding: 4px 7px;
+    font-size: 10px;
+    cursor: pointer;
+}
+
+.audit-drawer-badges,
+.audit-drawer-campos > div {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.audit-drawer-badges {
+    margin-bottom: 10px;
+}
+
+.audit-drawer-badges > span,
+.audit-drawer-campos code {
+    border-radius: 999px;
+    padding: 4px 8px;
+    font-size: 10.5px;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.audit-drawer-campos {
+    display: grid;
+    gap: 7px;
+    margin-top: 14px;
+}
+
+.audit-drawer-campos > span {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.audit-drawer-campos em {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.audit-drawer-comparacao {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
 }
 
 .audit-drawer-bloco {
@@ -443,6 +585,9 @@
 }
 
 @media (max-width: 1023px) {
+    #view-auditoria .aura-audit-filtros-grade {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
     #view-auditoria .aura-audit-acoes {
         margin-left: 0;
         width: 100%;
@@ -450,6 +595,21 @@
 }
 
 @media (max-width: 767px) {
+    #view-auditoria .aura-audit-filtros-cabecalho {
+        flex-direction: column;
+    }
+    #view-auditoria .aura-audit-filtros-grade {
+        grid-template-columns: 1fr;
+    }
+    #view-auditoria .aura-audit-periodo {
+        flex-wrap: nowrap;
+        max-width: 100%;
+        overflow-x: auto;
+        padding-bottom: 3px;
+    }
+    #view-auditoria .aura-audit-periodo button {
+        flex: 0 0 auto;
+    }
     #view-auditoria .aura-audit-kpis {
         grid-template-columns: 1fr 1fr;
         gap: 8px;
@@ -462,6 +622,9 @@
     }
     #audit-drawer .aura-audit-drawer-painel {
         width: 100%;
+    }
+    .audit-drawer-comparacao {
+        grid-template-columns: 1fr;
     }
 }
 
