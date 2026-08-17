@@ -102,10 +102,11 @@ jobs:
             --exclude '.git/' \
             --exclude '.github/' \
             --exclude '.firebase/' \
-            --exclude '.firebaserc' \
+            --exclude '.firebaserc*' \
             --exclude '.gitignore' \
             --exclude '.env*' \
             --exclude 'node_modules/' \
+            --exclude 'firebase/' \
             --exclude 'functions/' \
             --exclude 'tests/' \
             --exclude 'scripts/' \
@@ -113,16 +114,71 @@ jobs:
             --exclude 'test-results/' \
             --exclude 'package.json' \
             --exclude 'pnpm-lock.yaml' \
+            --exclude 'pnpm-workspace.yaml' \
             --exclude 'firebase.json' \
             --exclude 'firestore.rules' \
             --exclude 'firestore.indexes.json' \
             --exclude 'storage.rules' \
+            --exclude 'teste-*.html' \
+            --exclude '*-seed.html' \
             --exclude '*.md' \
             --exclude '*-debug.log' \
             --exclude 'emulator-*.log' \
             --exclude 'gha-creds-*.json'
 
           touch _site/.nojekyll
+
+      - name: Validar escopo do pacote público
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          caminhos_proibidos=(
+            "firebase"
+            "functions"
+            "tests"
+            "scripts"
+            "docs"
+            ".github"
+            "pnpm-workspace.yaml"
+            "teste-lp-seed.html"
+            "firestore.rules"
+            "storage.rules"
+            "firestore.indexes.json"
+          )
+
+          for caminho in "${caminhos_proibidos[@]}"; do
+            if [ -e "_site/$caminho" ]; then
+              echo "::error file=_site/$caminho::Arquivo operacional presente no artefato público."
+              exit 1
+            fi
+          done
+
+          for padrao in '.firebaserc*' '.env*' 'teste-*.html' '*-seed.html'; do
+            encontrado="$(find _site -name "$padrao" -print -quit)"
+            if [ -n "$encontrado" ]; then
+              echo "::error file=$encontrado::Arquivo de configuração presente no artefato público."
+              exit 1
+            fi
+          done
+
+          arquivos_essenciais=(
+            "index.html"
+            "dashboard.html"
+            "dashboard-app.js"
+            "audit-center-v1.js"
+            "audit-center-v1.css"
+            "audit-core-v1.js"
+            "loja.html"
+            "login.html"
+          )
+
+          for arquivo in "${arquivos_essenciais[@]}"; do
+            if [ ! -f "_site/$arquivo" ]; then
+              echo "::error file=_site/$arquivo::Arquivo essencial ausente do artefato público."
+              exit 1
+            fi
+          done
 
       - name: Preparar artefato do site
         uses: actions/upload-pages-artifact@v4
