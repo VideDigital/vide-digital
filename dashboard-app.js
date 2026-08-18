@@ -15481,6 +15481,9 @@ async function() {
             const status =
                 document.getElementById("ped-status");
 
+            const statusPagamento =
+                document.getElementById("ped-pagamento-status");
+
             const observacao =
                 document.getElementById("ped-obs");
 
@@ -15490,7 +15493,8 @@ async function() {
             if (cliente) cliente.value = "";
             if (produtos) { produtos.value = ""; delete produtos.dataset.pedEditadoManual; }
             if (valor) { valor.value = ""; delete valor.dataset.pedEditadoManual; }
-            if (status) status.value = "aguardando";
+            if (status) status.value = "novo";
+            if (statusPagamento) statusPagamento.value = "pendente";
             if (observacao) observacao.value = "";
             if (prazoEntrega) prazoEntrega.value = "";
 
@@ -15528,6 +15532,9 @@ async function() {
             const status =
                 document.getElementById("ped-status");
 
+            const statusPagamento =
+                document.getElementById("ped-pagamento-status");
+
             const observacao =
                 document.getElementById("ped-obs");
 
@@ -15537,7 +15544,8 @@ async function() {
             if (cliente) cliente.value = "";
             if (produtos) produtos.value = "";
             if (valor) valor.value = "";
-            if (status) status.value = "aguardando";
+            if (status) status.value = "novo";
+            if (statusPagamento) statusPagamento.value = "pendente";
             if (observacao) observacao.value = "";
             if (prazoEntrega) prazoEntrega.value = "";
             window._itensPedidoAtual = [];
@@ -15550,7 +15558,8 @@ async function() {
             const cliente = document.getElementById("ped-cliente").value.trim();
             const produtos = document.getElementById("ped-produtos").value.trim();
             const valor = parseFloat(document.getElementById("ped-valor").value || 0);
-            const status = document.getElementById("ped-status").value;
+            const statusPedido = document.getElementById("ped-status").value;
+            const statusPagamento = document.getElementById("ped-pagamento-status").value;
             const obs = document.getElementById("ped-obs").value.trim();
             const prazoEntregaInput = document.getElementById("ped-prazo-entrega")?.value || "";
             const itens = window._itensPedidoAtual || [];
@@ -15558,8 +15567,20 @@ async function() {
             const erroItens = validarItensPedido(itens);
             if (erroItens) return showToast(erroItens, "error");
             try {
+                // O campo legado continua alimentando relatórios antigos,
+                // mas a UI e os campos canônicos não misturam mais etapa
+                // operacional com pagamento.
+                const status = statusPedido === "cancelado"
+                    ? "cancelado"
+                    : statusPagamento === "pago"
+                        ? "pago"
+                        : statusPedido === "novo"
+                            ? "aguardando"
+                            : "confirmado";
                 const payload = {
                     cliente, produtos, valor, status, obs,
+                    statusPedido,
+                    statusPagamento,
                     criadoPor: usuarioUID,
                     data: Date.now()
                 };

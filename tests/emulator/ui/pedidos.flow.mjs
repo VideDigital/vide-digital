@@ -3,6 +3,8 @@
 // criar pedido, preservar campos editados manualmente, localizar o novo
 // pedido na tabela atual, abrir o detalhe e alterar o status.
 import assert from "node:assert/strict";
+import { getApps, initializeApp } from "firebase-admin/app";
+import { getFirestore } from "firebase-admin/firestore";
 import {
     captureDiagnostics,
     coletarErrosConsole,
@@ -11,6 +13,22 @@ import {
     loginReal,
     startStaticServer
 } from "./_helpers.mjs";
+
+const PROJECT_ID = "demo-vide-hub";
+
+function adminDb() {
+    if (!getApps().length) initializeApp({ projectId: PROJECT_ID });
+    return getFirestore();
+}
+
+async function esperarCondicao(verificar, mensagem, tentativas = 30) {
+    for (let tentativa = 0; tentativa < tentativas; tentativa += 1) {
+        const resultado = await verificar();
+        if (resultado) return resultado;
+        await new Promise(resolve => setTimeout(resolve, 500));
+    }
+    throw new Error(mensagem);
+}
 
 async function main() {
     const { baseUrl, close } = await startStaticServer();
@@ -48,6 +66,144 @@ async function main() {
 
         await page.waitForLoadState("networkidle").catch(() => {});
 
+        // ===== Contrato real: Pedido x Pagamento x Lead =====
+        // O documento legado começa exatamente como o caso observado em
+        // produção (`status: pago`), enquanto o Lead já guarda os conceitos
+        // separados. A alteração é feita pela UI autenticada, nunca pelo
+        // Admin SDK; o Admin abaixo só prepara/lê o Emulator.
+        const db = adminDb();
+        const pedidoSincronizadoId = "pedido-pagamento-auditoria";
+        await db.doc(`pedidos/${pedidoSincronizadoId}`).set({
+            cliente: "Cliente Pagamento QA",
+            produtos: "1x Produto Local",
+            valor: 99,
+            status: "pago",
+            obs: "",
+            criadoPor: "owner-pro",
+            data: Date.now()
+        });
+        await db.doc(`leads/${pedidoSincronizadoId}`).set({
+            criadoPor: "owner-pro",
+            nome: "Cliente Pagamento QA",
+            tipoRegistro: "pedido",
+            pedidoVinculadoId: pedidoSincronizadoId,
+            numeroPedido: "PED-PAGAMENTO-QA",
+            pedidoStatus: "confirmado",
+            pagamentoStatus: "pago",
+            statusLead: "em_contato",
+            status: "em_contato",
+            pipelineStage: "em_contato",
+            pedidoSnapshot: {
+                clienteNome: "Cliente Pagamento QA",
+                itens: [{ produtoId: "prod-local-1", nomeSnapshot: "Produto Local", precoSnapshot: 99, quantidade: 1 }],
+                subtotal: 99,
+                total: 99,
+                statusPedido: "confirmado",
+                statusPagamento: "pago",
+                tipoRecebimento: "retirada"
+            },
+            pedidoHistorico: [],
+            pedidoCriadoEm: Date.now(),
+            pedidoAtualizadoEm: Date.now(),
+            valorOportunidade: 99
+        });
+
+        const pedidoCanonicoId = "pedido-pagamento-canonico";
+        await db.doc(`pedidos/${pedidoCanonicoId}`).set({
+            cliente: "Cliente Canônico QA",
+            produtos: "1x Produto Local",
+            valor: 99,
+            status: "pago",
+            statusPedido: "confirmado",
+            statusPagamento: "pendente",
+            obs: "",
+            criadoPor: "owner-pro",
+            data: Date.now()
+        });
+
+        await page.waitForFunction(id => Array.from(document.querySelectorAll("[data-open-order]"))
+            .some(elemento => elemento.getAttribute("data-open-order") === id), pedidoCanonicoId, { timeout: 20000 });
+        await page.click(`[data-open-order="${pedidoCanonicoId}"]`);
+        await page.waitForSelector("#aura-orders-v1-detail-payment", { state: "visible", timeout: 15000 });
+        assert.equal(await page.inputValue("#aura-orders-v1-detail-status"), "confirmado");
+        assert.equal(
+            await page.inputValue("#aura-orders-v1-detail-payment"),
+            "pendente",
+            "Status de pagamento canônico explícito deve prevalecer sobre o fallback legado"
+        );
+        await page.click('[data-orders-action="back"]');
+
+        await page.waitForFunction(id => Array.from(document.querySelectorAll("[data-open-order]"))
+            .some(elemento => elemento.getAttribute("data-open-order") === id), pedidoSincronizadoId, { timeout: 20000 });
+        await page.click(`[data-open-order="${pedidoSincronizadoId}"]`);
+        await page.waitForSelector("#aura-orders-v1-detail-payment", { state: "visible", timeout: 15000 });
+
+        assert.equal(await page.inputValue("#aura-orders-v1-detail-status"), "confirmado");
+        assert.equal(await page.inputValue("#aura-orders-v1-detail-payment"), "pago");
+        assert.equal(
+            await page.locator("#aura-orders-v1-detail-payment").evaluate(select => select.closest("label")?.querySelector("span")?.textContent?.trim()),
+            "Status do pagamento",
+            "A UI precisa separar explicitamente pagamento de status do pedido"
+        );
+
+        await page.selectOption("#aura-orders-v1-detail-payment", "pendente");
+        await page.click('[data-orders-action="save"]');
+
+        const persistidos = await esperarCondicao(async () => {
+            const [pedidoSnap, leadSnap] = await Promise.all([
+                db.doc(`pedidos/${pedidoSincronizadoId}`).get(),
+                db.doc(`leads/${pedidoSincronizadoId}`).get()
+            ]);
+            const pedido = pedidoSnap.data();
+            const lead = leadSnap.data();
+            return pedido?.statusPagamento === "pendente" && lead?.pagamentoStatus === "pendente"
+                ? { pedido, lead }
+                : null;
+        }, "Pagamento pago → pendente não persistiu nos dois documentos");
+
+        assert.equal(persistidos.pedido.status, "confirmado", "Campo legado continua compatível");
+        assert.equal(persistidos.pedido.statusPedido, "confirmado", "Etapa operacional deve permanecer confirmada");
+        assert.equal(persistidos.pedido.statusPagamento, "pendente", "Pagamento canônico deve mudar");
+        assert.equal(persistidos.lead.pedidoStatus, "confirmado");
+        assert.equal(persistidos.lead.pagamentoStatus, "pendente");
+        assert.equal(persistidos.lead.statusLead, "em_contato", "Sincronização não deve inventar mudança de etapa do Lead");
+
+        const eventosUpdate = await esperarCondicao(async () => {
+            const snap = await db.collection("auditoria").where("entityId", "==", pedidoSincronizadoId).get();
+            const eventos = snap.docs.map(docSnap => docSnap.data()).filter(evento => evento.operation === "update");
+            return eventos.length >= 2 ? eventos : null;
+        }, "Eventos de Pedido e Lead não apareceram na Auditoria", 180);
+
+        const eventoPedido = eventosUpdate.find(evento => evento.module === "pedidos");
+        const eventoLead = eventosUpdate.find(evento => evento.module === "leads");
+        assert.ok(eventoPedido, "A escrita em pedidos deve gerar um evento");
+        assert.ok(eventoLead, "A sincronização em leads deve gerar um evento");
+        assert.equal(eventoPedido.action, "pedido.pagamento_alterado");
+        // O Functions Emulator usa um authId sintético nos triggers com Auth
+        // Context. Aqui validamos que a autoria veio autenticada e não foi
+        // inventada pelo payload; a passagem exata de authId → actorUid é
+        // coberta no teste unitário do Audit Core.
+        assert.equal(eventoPedido.actorType, "user");
+        assert.ok(eventoPedido.actorUid, "O trigger deve preservar o authId fornecido pelo Auth Context");
+        assert.equal(eventoPedido.ownerUid, "owner-pro");
+        assert.equal(eventoPedido.before.status, "pago");
+        assert.equal(eventoPedido.after.status, "confirmado");
+        assert.equal(eventoPedido.after.statusPagamento, "pendente");
+        assert.equal(eventoLead.action, "lead.atualizado");
+        assert.ok(eventoLead.changedFields.includes("pagamentoStatus"));
+        assert.ok(eventoLead.changedFields.includes("pedidoHistorico"));
+        assert.equal("pagamentoStatus" in eventoLead.before, false, "Campo não allowlisted não pode vazar valor");
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const eventosDepois = await db.collection("auditoria").where("entityId", "==", pedidoSincronizadoId).get();
+        assert.equal(
+            eventosDepois.docs.map(docSnap => docSnap.data()).filter(evento => evento.operation === "update").length,
+            2,
+            "O batch deve gerar exatamente um evento de Pedido e um de Lead, sem loop"
+        );
+
+        await page.click('[data-orders-action="back"]');
+
         // Abrir modal de novo pedido.
         await page.evaluate(() => {
             window.abrirModalPedido?.();
@@ -56,6 +212,19 @@ async function main() {
         await page.waitForSelector(
             "#pedido-modal",
             { state: "visible", timeout: 10000 }
+        );
+
+        assert.equal(await page.inputValue("#ped-status"), "novo");
+        assert.equal(await page.inputValue("#ped-pagamento-status"), "pendente");
+        assert.match(
+            await page.locator('label[for="ped-status"]').textContent(),
+            /Status inicial do pedido/,
+            "O modal deve nomear a etapa operacional sem confundi-la com pagamento"
+        );
+        assert.match(
+            await page.locator('label[for="ped-pagamento-status"]').textContent(),
+            /Status inicial do pagamento/,
+            "O pagamento deve ter controle próprio"
         );
 
         // Cliente.
@@ -400,6 +569,33 @@ async function main() {
                 "orders-exec-drawer-open"
             );
         }, { timeout: 10000 });
+
+        // Uma etapa operacional que não cabe no campo legado de quatro
+        // estados precisa sobreviver a uma recarga completa. Antes do campo
+        // canônico `statusPedido`, `em_producao` era achatado para
+        // `confirmado` e desaparecia após o reload.
+        await page.click(`[data-open-order="${pedidoId}"]`);
+        await page.selectOption("#aura-orders-v1-detail-status", "em_producao");
+        await page.click('[data-orders-action="save"]');
+        await esperarCondicao(async () => {
+            const snap = await db.doc(`pedidos/${pedidoId}`).get();
+            return snap.data()?.statusPedido === "em_producao";
+        }, "Status operacional canônico não foi persistido");
+        await page.click('[data-orders-action="back"]');
+
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => typeof window.ativarAba === "function", null, { timeout: 20000 });
+        await page.waitForFunction(() => window.ativarAba("view-pedidos") === true, null, { timeout: 30000 });
+        await page.waitForSelector("#view-pedidos.active", { state: "visible", timeout: 15000 });
+        await page.waitForFunction(id => Boolean(document.querySelector(`[data-open-order="${id}"]`)), pedidoId, { timeout: 20000 });
+        await page.click(`[data-open-order="${pedidoId}"]`);
+        await page.waitForSelector("#aura-orders-v1-detail-status", { state: "visible", timeout: 15000 });
+        assert.equal(
+            await page.inputValue("#aura-orders-v1-detail-status"),
+            "em_producao",
+            "Status operacional canônico deve sobreviver ao reload"
+        );
+        await page.click('[data-orders-action="back"]');
 
         // ===== Edição Completa de Pedido Existente V1 =====
         // Reabre o mesmo pedido e edita os campos que, antes desta etapa,

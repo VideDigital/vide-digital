@@ -12,6 +12,10 @@ import {
     rotuloModulo,
     rotuloAtor,
     rotuloOrigem,
+    rotuloAcaoAuditoria,
+    rotuloCampoAuditoria,
+    rotuloEntidadeAuditoria,
+    derivarAlteracoesAuditoria,
     formatarDataHora,
     truncarUid,
     filtrarEventosPorFiltros,
@@ -72,6 +76,7 @@ export function criarAuditCenterController({
         temMais: true,
         carregando: false,
         eventoSelecionadoId: null,
+        focoAnterior: null,
         carregado: false
     };
 
@@ -229,9 +234,9 @@ export function criarAuditCenterController({
                 <td>${escaparHtml(formatarDataHora(evento.createdAt))}</td>
                 <td>${escaparHtml(rotuloAtor(evento.actorType))}<small>${escaparHtml(truncarUid(evento.actorUid))}</small></td>
                 <td>${escaparHtml(rotuloModulo(evento.module))}</td>
-                <td>${escaparHtml(evento.action || "—")}</td>
+                <td>${escaparHtml(rotuloAcaoAuditoria(evento.action))}</td>
                 <td>${escaparHtml(rotuloOperacao(evento.operation))}</td>
-                <td>${escaparHtml(evento.entityType)} <small>${escaparHtml(truncarUid(evento.entityId))}</small></td>
+                <td>${escaparHtml(rotuloEntidadeAuditoria(evento.entityType))} <small>${escaparHtml(truncarUid(evento.entityId))}</small></td>
                 <td><span class="audit-badge-risco" data-risco="${escaparHtml(evento.risk)}">${escaparHtml(rotuloRisco(evento.risk))}</span></td>
                 <td class="audit-col-detalhes"><button type="button" data-audit-evento="${escaparHtml(evento._docId)}">Detalhes</button></td>
             </tr>
@@ -245,8 +250,8 @@ export function criarAuditCenterController({
                     <span class="audit-badge-risco" data-risco="${escaparHtml(evento.risk)}">${escaparHtml(rotuloRisco(evento.risk))}</span>
                     <time>${escaparHtml(formatarDataHora(evento.createdAt))}</time>
                 </header>
-                <strong>${escaparHtml(evento.summary || evento.action)}</strong>
-                <p>${escaparHtml(rotuloModulo(evento.module))} · ${escaparHtml(evento.entityType)} ${escaparHtml(truncarUid(evento.entityId))}</p>
+                <strong>${escaparHtml(evento.summary || rotuloAcaoAuditoria(evento.action))}</strong>
+                <p>${escaparHtml(rotuloModulo(evento.module))} · ${escaparHtml(rotuloEntidadeAuditoria(evento.entityType))} ${escaparHtml(truncarUid(evento.entityId))}</p>
                 <footer>${escaparHtml(rotuloOperacao(evento.operation))} · ${escaparHtml(rotuloAtor(evento.actorType))} <small>${escaparHtml(truncarUid(evento.actorUid))}</small></footer>
             </article>
         `;
@@ -332,6 +337,18 @@ export function criarAuditCenterController({
             .replace("<pre></pre>", `<pre>${escaparHtml(texto)}</pre>`);
     }
 
+    function blocoAlteracoes(evento) {
+        const alteracoes = derivarAlteracoesAuditoria(evento.before, evento.after);
+        if (!alteracoes.length) {
+            return `<section class="audit-drawer-alteracoes"><h4>Alterações</h4><p class="audit-drawer-aviso">Os snapshots sanitizados não permitem mostrar valores alterados neste evento. Nenhum valor foi inferido.</p></section>`;
+        }
+        return `<section class="audit-drawer-alteracoes"><h4>Alterações</h4><div>${alteracoes.map((alteracao) => `
+            <article>
+                <header><strong>${escaparHtml(alteracao.rotulo)}</strong><code>${escaparHtml(alteracao.campo)}</code></header>
+                <p><span>${escaparHtml(alteracao.antesFormatado)}</span><b aria-hidden="true">→</b><span>${escaparHtml(alteracao.depoisFormatado)}</span></p>
+            </article>`).join("")}</div></section>`;
+    }
+
     async function verificarEntidadeDisponivel(evento) {
         const nav = ENTIDADE_NAVEGACAO[evento.module];
         if (!nav || !evento.entityId) return null;
@@ -350,29 +367,37 @@ export function criarAuditCenterController({
         if (!evento || !drawer || !conteudo) return;
 
         state.eventoSelecionadoId = eventoId;
+        state.focoAnterior = document.activeElement instanceof HTMLElement ? document.activeElement : null;
 
         conteudo.innerHTML = `
             <p class="audit-drawer-summary">${escaparHtml(evento.summary || evento.action)}</p>
             <div class="audit-drawer-badges">
+                <span>${escaparHtml(rotuloAcaoAuditoria(evento.action))}</span>
                 <span>${escaparHtml(rotuloOperacao(evento.operation))}</span>
                 <span class="audit-badge-risco" data-risco="${escaparHtml(evento.risk)}">${escaparHtml(rotuloRisco(evento.risk))}</span>
             </div>
+            ${linhaChaveValor("Ação técnica", evento.action || "—")}
             ${linhaIdCopiavel("ID do evento", evento.eventId || evento._docId)}
             ${linhaChaveValor("Tipo de ator", rotuloAtor(evento.actorType))}
             ${linhaIdCopiavel("UID do ator", evento.actorUid)}
             ${linhaChaveValor("Horário", formatarDataHora(evento.createdAt))}
             ${linhaChaveValor("Módulo", rotuloModulo(evento.module))}
-            ${linhaChaveValor("Tipo de entidade", evento.entityType || "—")}
+            ${linhaChaveValor("Tipo de entidade", rotuloEntidadeAuditoria(evento.entityType))}
+            ${linhaChaveValor("Entidade técnica", evento.entityType || "—")}
             ${linhaIdCopiavel("ID da entidade", evento.entityId)}
             ${linhaChaveValor("Origem", rotuloOrigem(evento.source))}
             <div class="audit-drawer-campos"><span>Campos alterados</span><div>${(evento.changedFields || []).length
-                ? evento.changedFields.map((campo) => `<code>${escaparHtml(campo)}</code>`).join("")
+                ? evento.changedFields.map((campo) => `<span class="audit-drawer-campo"><strong>${escaparHtml(rotuloCampoAuditoria(campo))}</strong><code>${escaparHtml(campo)}</code></span>`).join("")
                 : "<em>Nenhum campo informado</em>"}</div></div>
-            <div class="audit-drawer-comparacao">
-                ${blocoJson("Antes (sanitizado)", evento.before)}
-                ${blocoJson("Depois (sanitizado)", evento.after)}
-            </div>
-            <p class="audit-drawer-aviso">Os blocos acima contêm somente a versão sanitizada. Campos sensíveis podem ter sido removidos por privacidade; um bloco vazio não significa necessariamente ausência de alteração.</p>
+            ${blocoAlteracoes(evento)}
+            <details class="audit-drawer-json">
+                <summary>Ver snapshots técnicos sanitizados</summary>
+                <div class="audit-drawer-comparacao">
+                    ${blocoJson("Antes (sanitizado)", evento.before)}
+                    ${blocoJson("Depois (sanitizado)", evento.after)}
+                </div>
+            </details>
+            <p class="audit-drawer-aviso">As alterações e os blocos técnicos usam somente a versão sanitizada. Campos sensíveis podem ter sido removidos por privacidade; a ausência de valores não significa necessariamente ausência de alteração.</p>
             <div id="audit-drawer-entidade"></div>
         `;
 
@@ -392,12 +417,14 @@ export function criarAuditCenterController({
         }
     }
 
-    function fecharDrawer() {
+    function fecharDrawer({ restaurarFoco = true } = {}) {
         const drawer = byId("audit-drawer");
         if (!drawer) return;
         drawer.classList.add("hidden");
         drawer.setAttribute("aria-hidden", "true");
         state.eventoSelecionadoId = null;
+        if (restaurarFoco && state.focoAnterior?.isConnected) state.focoAnterior.focus();
+        state.focoAnterior = null;
     }
 
     // ===== Filtros =====
@@ -409,7 +436,9 @@ export function criarAuditCenterController({
 
     function atualizarBotoesPeriodo() {
         root.querySelectorAll?.("[data-audit-period]").forEach((botao) => {
-            botao.classList.toggle("is-active", botao.getAttribute("data-audit-period") === state.filtro.periodo);
+            const ativo = botao.getAttribute("data-audit-period") === state.filtro.periodo;
+            botao.classList.toggle("is-active", ativo);
+            botao.setAttribute("aria-pressed", String(ativo));
         });
     }
 
@@ -619,13 +648,30 @@ export function criarAuditCenterController({
             const abrirEntidade = evento.target.closest("#audit-drawer-abrir-entidade");
             if (abrirEntidade) {
                 const targetView = abrirEntidade.getAttribute("data-audit-view");
-                fecharDrawer();
+                fecharDrawer({ restaurarFoco: false });
                 document.querySelector(`.nav-item[data-target="${targetView}"]`)?.click();
             }
         });
         document.addEventListener("keydown", (evento) => {
-            if (evento.key === "Escape" && !byId("audit-drawer")?.classList.contains("hidden")) {
+            const drawerAtual = byId("audit-drawer");
+            if (evento.key === "Escape" && !drawerAtual?.classList.contains("hidden")) {
                 fecharDrawer();
+                return;
+            }
+            if (evento.key === "Tab" && drawerAtual && !drawerAtual.classList.contains("hidden")) {
+                const focaveis = Array.from(drawerAtual.querySelectorAll(
+                    'button:not([disabled]), a[href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), details > summary'
+                )).filter((elemento) => elemento.offsetParent !== null);
+                if (!focaveis.length) return;
+                const primeiro = focaveis[0];
+                const ultimo = focaveis[focaveis.length - 1];
+                if (evento.shiftKey && document.activeElement === primeiro) {
+                    evento.preventDefault();
+                    ultimo.focus();
+                } else if (!evento.shiftKey && document.activeElement === ultimo) {
+                    evento.preventDefault();
+                    primeiro.focus();
+                }
             }
         });
     }

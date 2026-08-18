@@ -8,9 +8,28 @@ evento — nunca de um payload que o cliente poderia forjar.
 
 **Fase A**: código, triggers, Rules, índices, UI e testes. **Estado atual em
 produção**: Rules/índices e os 15 triggers foram publicados com sucesso,
-conforme confirmação operacional do usuário após IAM manual. A Auditoria
-Centralizada V1 continua **PARCIAL** porque ainda falta o teste manual real em
-produção — ver `PUBLICAÇÃO` no fim deste documento.
+conforme confirmação operacional do usuário após IAM manual. Em **17/08/2026**,
+um evento real de Produto e um evento real de Pedido apareceram na Central e o
+drawer foi usado para inspecionar o snapshot sanitizado. A Auditoria
+Centralizada V1 continua **PARCIAL**: essa evidência não confirma, sozinha,
+ator/tenant, ausência de PII nem negação cross-tenant — ver `PUBLICAÇÃO` no fim
+deste documento.
+
+## Evidência por ambiente (17/08/2026)
+
+- **VALIDADO EM PRODUÇÃO**: evento de alteração de Produto visível; evento de
+  Pedido visível; drawer funcional; o evento de Pedido mostrou fielmente o
+  documento legado mudando de `status: "pago"` para `status: "confirmado"`.
+- **VALIDADO EM EMULADOR**: contrato canônico de Pedido/Pagamento, escrita
+  atômica Pedido → Lead, dois eventos sem loop, ator/tenant do owner, UI do
+  drawer, filtros, exportação, autorização e responsividade. Os resultados
+  exatos desta rodada constam na seção `Testes`.
+- **VALIDADO POR TESTE UNITÁRIO**: classificação das alterações de Pedido,
+  Pagamento, Lead e Produto; sanitização; diff amigável; labels; filtros; e
+  neutralização de fórmulas no CSV.
+- **NÃO VALIDADO EM PRODUÇÃO**: as correções locais descritas neste documento,
+  a leitura negativa por um segundo tenant e a conferência explícita de
+  ator/tenant/PII nos dois eventos reais. Nada nesta rodada foi publicado.
 
 ## Arquitetura
 
@@ -140,7 +159,7 @@ Duas camadas, sempre as duas:
 
 1. **Allowlist por coleção** (`allowedFields` de cada trigger) — só os campos
    listados sobrevivem no `before`/`after`. Ex.: pedidos mantém `status`,
-   `statusPagamento`, `tipoRecebimento`, `subtotal`, `desconto`, `frete`,
+   `statusPedido`, `statusPagamento`, `tipoRecebimento`, `subtotal`, `desconto`, `frete`,
    `total`/`valor`, `prazoEntrega` — nunca `cliente`, `clienteWhatsapp`,
    `clienteEmail`, `endereco`, `cep`, `observacoesCliente`. Clientes/leads
    mantêm `statusRelacionamento`/`statusLead`, `responsavelUid`/
@@ -183,6 +202,60 @@ contrário). Sem classificação específica, cai no default por operação
 (`create` → low, `update` → medium, `delete` → high) — nunca fica sem
 `action`/`risk`. Mudança de tenant sempre vence e vira `critical`.
 
+## Contrato real de status: Pedido, Pagamento e Lead
+
+Os três conceitos são independentes. O campo legado `pedidos.status` misturava
+etapa operacional e pagamento e continua sendo gravado somente para manter
+dashboards antigos compatíveis; a Central de Pedidos usa os campos canônicos.
+
+| Conceito | Campo canônico | Valores | Compatibilidade |
+|---|---|---|---|
+| Etapa do Pedido | `pedidos.statusPedido` | `novo`, `confirmado`, `em_producao`, `pronto`, `enviado`, `entregue`, `cancelado` | documento antigo cai em `pedidos.status`; `pago` legado é interpretado como entregue apenas nesse fallback |
+| Pagamento | `pedidos.statusPagamento` | `pendente`, `parcial`, `pago`, `reembolsado` | aceita leitura de `pagamentoStatus` antigo e, por último, infere de `pedidos.status` |
+| Campo legado do Pedido | `pedidos.status` | `aguardando`, `confirmado`, `pago`, `cancelado` | obrigatório pelas Rules e por relatórios antigos; não é mais fonte canônica da tela V1 |
+| Etapa do Lead | `leads.statusLead` (espelhada também em `status` e `pipelineStage`) | `novo`, `em_contato`, `qualificado`, `proposta`, `convertido`, `perdido` | aliases legados são normalizados pelo CRM |
+| Pedido no Lead | `leads.pedidoStatus` e `pedidoSnapshot.statusPedido` | mesmos valores da etapa do Pedido | atualizado junto do Pedido quando existe vínculo |
+| Pagamento no Lead | `leads.pagamentoStatus` e `pedidoSnapshot.statusPagamento` | mesmos valores de Pagamento | atualizado junto do Pedido quando existe vínculo |
+
+No detalhe e no modal de criação, a UI mostra controles explicitamente
+separados: **Status do pedido** e **Status do pagamento**. Ao salvar, o motor
+grava os dois campos canônicos e deriva o legado: cancelado prevalece; depois,
+pagamento pago vira `status: "pago"`; pedido novo vira `"aguardando"`; as demais
+etapas viram `"confirmado"`.
+
+### Caso observado `pago → pendente`
+
+Classificação: **A + C**. A UI alterou o controle de pagamento de `pago` para
+`pendente` (**C**), mas o documento antigo tinha somente `status: "pago"`.
+Ao salvar os dois conceitos, a compatibilidade derivou `status:
+"confirmado"`; portanto o snapshot `pago → confirmado` registrado pelo trigger
+era o que realmente foi persistido (**A**). Não há evidência de snapshot
+incorreto (**não B**) nem Function reescrevendo o pedido (**não D**). Para
+documentos novos/atualizados, `statusPedido`/`statusPagamento` eliminam a perda
+semântica e permitem classificar pagamento como `pedido.pagamento_alterado`.
+
+### Fluxo Pedido → Lead
+
+`orders-engine-v1.js` trata a alteração e executa um único `writeBatch`:
+
+1. grava `pedidos/{pedidoId}` com etapa, pagamento, legado e histórico;
+2. se houver `leadId`, grava `leads/{leadId}` com `pedidoStatus`,
+   `pagamentoStatus`, `pedidoSnapshot`, `pedidoHistorico` e timestamps;
+3. ajusta a etapa do Lead somente quando a etapa do Pedido exige isso (por
+   exemplo, entregue → convertido; cancelado → perdido);
+4. confirma o batch de modo atômico.
+
+Não foi encontrado fluxo inverso Lead → Pedido nem Cloud Function que regrave
+esses documentos. Cada documento escrito dispara seu próprio trigger: por isso
+um evento de Pedido e um de Lead são esperados, sem loop. O custo intencional é
+de duas escritas de domínio, duas invocações de trigger e duas escritas de
+auditoria para uma alteração vinculada.
+
+**Dependência de publicação**: enquanto esta correção estiver apenas local, o
+frontend que envia `statusPedido`/`statusPagamento` não deve ser publicado
+sozinho; as Rules opcionais correspondentes precisam ser publicadas na mesma
+janela controlada. Esta rodada não fez deploy nem migração.
+
 ## Ruído ignorado
 
 `core.NOISE_FIELDS` (`atualizadoEm`, `updatedAt`, `lastSeen`,
@@ -217,6 +290,12 @@ antes de decidir o contrato final:
   coleção auditada: `createAdminMember`/`syncAdminClaims` (gravam em
   `equipe_admin`, fora da lista auditada, ou só mexem em custom claims) e
   `resetEmployeePassword` (não toca Firestore, só gera um link do Auth).
+- **Lacuna documentada**: `createAdminMember` e `syncAdminClaims` não informam
+  `risk`, portanto hoje recebem o fallback `medium` do helper. A trilha existe
+  e preserva ator/tenant, mas a classificação dessas duas ações de identidade
+  administrativa deve ser revisada em uma mudança própria antes de tratá-las
+  como cobertura sensível concluída; esta rodada não reclassificou Functions
+  administrativas sem um contrato/teste dedicado.
 - Removido de todo lugar onde a mutation JÁ é coberta por um trigger — evita
   evento duplicado pra mesma escrita: `adminUpdateStoreStatus`/
   `adminUpdatePlan` (usuarios/{uid}), `createEmployee`/`updateEmployee`/
@@ -246,7 +325,7 @@ interno, ambos via Admin SDK, que ignora Rules. Testado em
 `tests/emulator/firestore-security.test.mjs` (9 casos novos: owner próprio
 tenant, owner outro tenant, editor negado, leitor negado, videAdmin,
 create/update/delete sempre negados mesmo pro dono e pro admin, consulta por
-`ownerUid` não vaza outro tenant) — **219/219** Firestore + **5/5** Storage.
+`ownerUid` não vaza outro tenant) — **242/242** Firestore + **5/5** Storage.
 
 ## Índices (`firestore.indexes.json`)
 
@@ -282,11 +361,14 @@ janela já carregada. Assim é possível combinar colunas sem criar uma matriz d
   `admin` também aparecem com rótulos próprios.
 - **Listagem**: tabela no desktop, cards no mobile (`<767px`), sem listener
   permanente — `getDocs()` com `limit(50)` + `startAfter()`, botão "Ver mais".
-- **Drawer**: summary, badges de operação/risco, IDs completos e copiáveis do
-  evento/ator/entidade, horário, módulo, origem, `changedFields` em chips e
-  comparação lado a lado de `before`/`after` sanitizados. Blocos vazios
-  explicam que nenhum campo sanitizado ficou disponível e que dados sensíveis
-  podem ter sido removidos. Link "Abrir em
+- **Drawer**: ação/entidade/campos com rótulos de negócio e os identificadores
+  técnicos preservados, summary, badges de operação/risco, IDs completos e
+  copiáveis do evento/ator/entidade, horário, módulo e origem. A seção
+  **Alterações** deriva somente dos snapshots já sanitizados e destaca antes →
+  depois, com suporte a string, número, boolean, `null`, arrays e objetos. Os
+  JSONs técnicos permanecem abaixo em `<details>`; quando a sanitização não
+  deixa valores comparáveis, a UI informa isso e não inventa dado. O drawer é
+  modal, fecha com Escape, prende o foco e devolve-o ao item que o abriu. Link "Abrir em
   Pedidos/CRM 360/Atendimento/Produtos" quando a entidade ainda existe
   (checado com um `getDoc()`); "Entidade não está mais disponível." quando
   não. **Limitação honesta**: o link troca de VIEW, não faz deep-link pro item
@@ -296,7 +378,9 @@ janela já carregada. Assim é possível combinar colunas sem criar uma matriz d
 - **Exportação**: CSV/JSON, owner-only, máximo 1000 eventos consultados. A mesma
   função de filtros locais da tela é aplicada antes de gerar o arquivo; as
   colunas têm nomes legíveis e nunca incluem `before`/`after` ou PII. O nome do
-  arquivo inclui a data.
+  arquivo inclui a data. O CSV neutraliza células iniciadas (inclusive após
+  espaços) por `=`, `+`, `-` ou `@` com apóstrofo; o JSON mantém o conteúdo
+  original.
 - Nunca usa `innerHTML` com dado do evento sem escapar (`escaparHtml()` em
   todo texto interpolado).
 
@@ -316,7 +400,7 @@ efetivamente aconteceram no Firestore disparam o trigger).
   mismatch, sem resolução), `safeEventId` (idempotência), defaults, e
   `buildAuditEvent` (schema completo + validação de risk/operation/ownerUid
   obrigatórios).
-- `tests/functions/audit-triggers.test.mjs` — 15 testes exercendo
+- `tests/functions/audit-triggers.test.mjs` — 21 testes exercendo
   `computarEventoAuditoria()` com as configs REAIS das 15 coleções (mesma
   instância publicada), sem precisar do Functions Emulator: owner altera
   pedido → ator/tenant corretos; PII nunca aparece mesmo se presente no
@@ -324,34 +408,38 @@ efetivamente aconteceram no Firestore disparam o trigger).
   mesmo `event.id` não duplica; `system` actor classificado corretamente;
   chats resolve tenant por `emailDono` quando `donoUID` falta; mudança de
   tenant vira `critical`; produto sem `criadoPor` não gera evento.
-- `tests/audit-core-v1.test.mjs` — 22 testes das funções puras de UI
+- `tests/audit-core-v1.test.mjs` — 27 testes das funções puras de UI
   (rótulos inclusive WhatsApp/Admin/origem, formatação de data/UID, busca,
   filtros combináveis, estado ativo/limpeza, exportação CSV/JSON filtrável com
   limite de 1000, KPIs e comparação de dia).
 - `tests/emulator/firestore-security.test.mjs` — 9 testes novos de Rules
   (owner, outro tenant, editor, leitor, videAdmin, create/update/delete
-  negados sempre, consulta não vaza tenant). **219/219** Firestore + **5/5**
+  negados sempre, consulta não vaza tenant). **242/242** Firestore + **5/5**
   Storage.
-- `tests/emulator/ui/auditoria.flow.mjs` — fluxo real (Playwright + Auth
-  Emulator + Functions Emulator): owner altera um produto de verdade via
-  Admin SDK (simulando o cliente), o trigger real dispara, a UI busca e
-  mostra o evento, sem PII visível, drawer sanitizado com IDs copiáveis,
-  módulo + risco combinados, módulos WhatsApp/Admin, limpeza e indicador de
-  filtros, exportação filtrada, responsivo em mobile (390px, cards substituem
-  a tabela), e funcionário editor (com todas as outras permissões) não vê nem
-  acessa a Auditoria. Não pôde ser reexecutado neste sandbox (proxy bloqueia
-  o CDN do Firebase no navegador — limitação de rede já documentada em
-  `docs/QUALITY_GATE_RELEASE.md`), mas o Functions Emulator LOCAL foi
-  confirmado carregando e executando os 15 triggers reais sem erro durante
-  `pnpm run test:frontend:emulator` — validação final via Quality Gate do CI.
+- `tests/emulator/ui/auditoria.flow.mjs` — fluxo real (Playwright + Auth,
+  Firestore e Functions Emulators): owner vê apenas os próprios eventos; o
+  drawer preserva ação/campos técnicos, mostra rótulos e diff amigáveis, fecha
+  por Escape, retém/devolve foco e nunca exibe a PII sanitizada; funcionário
+  permanece bloqueado. Passou localmente, inclusive em 320, 375, 390, 768,
+  1024, 1366 e 1920 px, sem overflow horizontal global.
+- `tests/emulator/ui/pedidos.flow.mjs` — pedido legado `pago` alterado pelo
+  controle de pagamento para `pendente`; persiste `statusPedido` e
+  `statusPagamento`, sincroniza o Lead no mesmo batch e gera exatamente um
+  evento de Pedido e um de Lead, sem loop. Também valida controles separados e
+  persistência da etapa operacional após reload. Passou localmente.
 
 ## Quality Gate
 
-`pnpm run check`, `test:unit` (inclui `test:audit-core-v1`), `test:functions`
-(inclui os dois arquivos novos de `tests/functions/`), `test:rules`,
-`test:frontend:emulator` — todos verdes localmente antes deste commit. O job
-"UI com login real" do Quality Gate (`.github/workflows/quality-gate.yml`)
-passa a rodar `auditoria.flow.mjs` também, dentro de `test:ui:flows`.
+Verdes localmente nesta rodada: `pnpm run check`, `pnpm run test:unit`,
+`pnpm run test:audit-core-v1` (**27/27**),
+`pnpm run test:catalogo-produtos` (**20/20**),
+`pnpm run test:security` (Firestore **242/242**, Storage **5/5** e Functions
+**251/251**), `pnpm run test:frontend:emulator`, os fluxos Playwright de
+Pedidos e Auditoria, `pnpm run test:ui:produtos` e
+`pnpm run test:ui:responsive` (5 telas × 5 viewports). O emulador local usou o
+Node 24 disponível no host e avisou que o runtime declarado das Functions é
+Node 22; isso não causou falha, mas o CI/runtime oficial continua sendo a
+referência de compatibilidade com Node 22.
 
 ## Deploy separado
 
@@ -372,14 +460,17 @@ Deploy Firebase Spark (Rules + índices) e Deploy Firebase Functions — Auditor
 do usuário. Não inventamos run ID aqui porque este documento não registra um
 identificador confiável do run de deploy.
 
-Ainda falta a validação manual real em produção:
+Em 17/08/2026 foram concluídos os três primeiros passos: um Pedido e um Produto
+reais foram alterados e seus eventos foram abertos na Central pelo dono. O caso
+do Pedido confirmou o snapshot legado descrito na seção de contrato.
 
-1. Alterar um pedido de teste em produção.
-2. Alterar um produto de teste em produção.
-3. Abrir a Central de Auditoria como o dono real.
-4. Confirmar ator, tenant e ausência de PII nos dois eventos.
-5. Confirmar que outro tenant (outra loja de teste) não vê esses eventos.
-6. Só então marcar "Auditoria centralizada pós-Functions" como CONCLUÍDO no
+Ainda falta a validação manual real em produção de:
+
+1. confirmar explicitamente ator, tenant e ausência de PII nos dois eventos;
+2. confirmar que outro tenant (outra loja de teste) não vê esses eventos;
+3. validar, depois de uma publicação autorizada, os campos canônicos de status
+   e a apresentação amigável implementados apenas localmente nesta rodada;
+4. só então marcar "Auditoria centralizada pós-Functions" como CONCLUÍDO no
    Roadmap — não antes, e sem criar logs retroativos falsos: os registros
    começam a partir da ativação real dos triggers em produção, nunca de
    escritas anteriores a esse momento.

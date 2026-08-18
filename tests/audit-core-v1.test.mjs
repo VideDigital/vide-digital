@@ -6,6 +6,12 @@ import {
     rotuloOperacao,
     rotuloAtor,
     rotuloOrigem,
+    rotuloAcaoAuditoria,
+    rotuloCampoAuditoria,
+    rotuloEntidadeAuditoria,
+    formatarValorAuditoria,
+    derivarAlteracoesAuditoria,
+    protegerFormulaCsv,
     truncarUid,
     formatarDataHora,
     filtrarEventosLocal,
@@ -37,6 +43,59 @@ describe("audit-core-v1 — rótulos", () => {
         assert.equal(rotuloAtor("user"), "Usuário");
         assert.equal(rotuloAtor(undefined), "Desconhecido");
     });
+
+    it("humaniza ação, campo e entidade sem alterar os valores técnicos", () => {
+        assert.equal(rotuloAcaoAuditoria("pedido.status_alterado"), "Status do pedido alterado");
+        assert.equal(rotuloAcaoAuditoria("lead.atualizado"), "Lead atualizado");
+        assert.equal(rotuloCampoAuditoria("pagamentoStatus"), "Status do pagamento");
+        assert.equal(rotuloCampoAuditoria("pedidoAtualizadoEm"), "Pedido atualizado em");
+        assert.equal(rotuloEntidadeAuditoria("landing_page_publica"), "Landing Page pública");
+        assert.equal(rotuloAcaoAuditoria("modulo.acao_nova"), "Acao nova");
+    });
+});
+
+describe("audit-core-v1 — diff amigável somente de snapshots sanitizados", () => {
+    it("suporta string, number, boolean, null, array, objeto e campo removido", () => {
+        const diff = derivarAlteracoesAuditoria({
+            statusPedido: "confirmado",
+            estoque: 25,
+            freteGratis: false,
+            observacaoSegura: null,
+            tags: ["a"],
+            config: { ativo: true },
+            removido: "antes",
+            igual: "mesmo"
+        }, {
+            statusPedido: "em_producao",
+            estoque: 21,
+            freteGratis: true,
+            observacaoSegura: "ok",
+            tags: ["a", "b"],
+            config: { ativo: false },
+            igual: "mesmo"
+        });
+        assert.deepEqual(diff.map((item) => item.campo), [
+            "statusPedido", "estoque", "freteGratis", "observacaoSegura", "tags", "config", "removido"
+        ]);
+        assert.equal(diff[0].antesFormatado, "Confirmado");
+        assert.equal(diff[0].depoisFormatado, "Em produção");
+        assert.equal(diff[1].antesFormatado, "25");
+        assert.equal(diff[2].depoisFormatado, "Sim");
+        assert.equal(diff[3].antesFormatado, "Nulo");
+        assert.equal(diff[4].depoisFormatado, '["a","b"]');
+        assert.equal(diff[5].depoisFormatado, '{"ativo":false}');
+        assert.equal(diff[6].depoisFormatado, "Ausente");
+    });
+
+    it("não inventa campo que não está nos snapshots sanitizados", () => {
+        const diff = derivarAlteracoesAuditoria(
+            { status: "pago" },
+            { status: "confirmado" }
+        );
+        assert.deepEqual(diff.map((item) => item.campo), ["status"]);
+        assert.equal(diff.some((item) => item.campo === "clienteEmail"), false);
+        assert.equal(formatarValorAuditoria(undefined), "Ausente");
+    });
 });
 
 describe("audit-core-v1 — filtros combináveis", () => {
@@ -56,6 +115,13 @@ describe("audit-core-v1 — filtros combináveis", () => {
             actor: "admin-2", entity: "store", action: "plano", operation: "update", source: "admin-function"
         });
         assert.deepEqual(resultado.map((evento) => evento.module), ["admin"]);
+    });
+
+    it("busca e filtro de ação também reconhecem rótulos amigáveis", () => {
+        const evento = [{ action: "pedido.status_alterado", entityType: "pedido", entityId: "ped-1" }];
+        assert.equal(filtrarEventosPorFiltros(evento, { action: "Status do pedido" }).length, 1);
+        assert.equal(filtrarEventosPorFiltros(evento, { busca: "Status do pedido alterado" }).length, 1);
+        assert.equal(filtrarEventosPorFiltros(evento, { entity: "Pedido" }).length, 1);
     });
 
     it("limpar volta ao estado padrão e o indicador conta filtros ativos", () => {
@@ -150,6 +216,18 @@ describe("audit-core-v1 — exportação (CSV/JSON, limite 1000)", () => {
         const muitos = Array.from({ length: 1500 }, (_, i) => ({ eventId: `e${i}` }));
         const json = JSON.parse(eventosParaJson(muitos));
         assert.equal(json.length, LIMITE_EXPORTACAO);
+    });
+
+    it("neutraliza formula injection no CSV e preserva o valor bruto no JSON", () => {
+        const perigosos = ["=SUM(1,1)", "+cmd", "-1+1", "@formula"];
+        assert.deepEqual(perigosos.map(protegerFormulaCsv), perigosos.map((valor) => `'${valor}`));
+
+        const lista = perigosos.map((summary, indice) => ({ eventId: `formula-${indice}`, summary }));
+        const csv = eventosParaCsv(lista);
+        for (const valor of perigosos) assert.ok(csv.includes(`'${valor}`), `${valor} deveria ser texto no CSV`);
+
+        const json = JSON.parse(eventosParaJson(lista));
+        assert.deepEqual(json.map((item) => item.Resumo), perigosos, "JSON deve manter os valores brutos");
     });
 });
 

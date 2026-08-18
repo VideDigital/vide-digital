@@ -5330,22 +5330,24 @@ Carregando equipe...
 <div class="aura-audit-filtros-cabecalho">
 <div>
 <strong>Filtros combináveis</strong>
-<p>Busca e filtros são aplicados somente aos eventos já carregados (50 por página).</p>
+<p>O escopo de cada controle está identificado abaixo.</p>
 </div>
 <span id="audit-filtros-indicador">Nenhum filtro adicional</span>
 </div>
-<div class="aura-audit-periodo" aria-label="Filtrar período">
-<button type="button" data-audit-period="hoje">Hoje</button>
-<button type="button" data-audit-period="7d" class="is-active">7 dias</button>
-<button type="button" data-audit-period="30d">30 dias</button>
-<button type="button" data-audit-period="90d">90 dias</button>
-<button type="button" data-audit-period="personalizado">Personalizado</button>
+<div class="aura-audit-escopo"><strong>Servidor</strong><span>O período limita a consulta ao Firestore.</span></div>
+<div class="aura-audit-periodo" role="group" aria-label="Filtrar período no servidor">
+<button type="button" data-audit-period="hoje" aria-pressed="false">Hoje</button>
+<button type="button" data-audit-period="7d" class="is-active" aria-pressed="true">7 dias</button>
+<button type="button" data-audit-period="30d" aria-pressed="false">30 dias</button>
+<button type="button" data-audit-period="90d" aria-pressed="false">90 dias</button>
+<button type="button" data-audit-period="personalizado" aria-pressed="false">Personalizado</button>
 </div>
 <div id="audit-periodo-personalizado" class="aura-audit-periodo-personalizado hidden">
 <input type="date" id="audit-periodo-de" aria-label="Data inicial">
 <input type="date" id="audit-periodo-ate" aria-label="Data final">
 <button type="button" id="audit-aplicar-periodo-personalizado">Aplicar</button>
 </div>
+<div class="aura-audit-escopo"><strong>Nesta página</strong><span>Os demais filtros atuam sobre os eventos já carregados (50 por página).</span></div>
 <div class="aura-audit-filtros-grade">
 <label><span>Módulo</span><select id="audit-filtro-modulo"><option value="">Todos os módulos</option></select></label>
 <label><span>Operação</span><select id="audit-filtro-operacao"><option value="">Todas as operações</option></select></label>
@@ -5491,7 +5493,7 @@ Carregando equipe...
 
 </section>
 
-<div id="audit-drawer" class="hidden" aria-hidden="true" role="dialog" aria-label="Detalhes do evento de auditoria">
+<div id="audit-drawer" class="hidden" aria-hidden="true" aria-modal="true" role="dialog" aria-label="Detalhes do evento de auditoria">
 <div class="aura-audit-drawer-painel">
 <header>
 <h3>Detalhes do evento</h3>
@@ -8513,10 +8515,10 @@ oninput="marcarPedidoCampoEditadoManual('ped-valor')"
 
 <label for="ped-status">
 
-<span>Status inicial</span>
+<span>Status inicial do pedido</span>
 
 <small>
-Etapa atual da negociação.
+Etapa operacional atual.
 </small>
 
 </label>
@@ -8525,13 +8527,40 @@ Etapa atual da negociação.
 id="ped-status"
 class="w-full glass-input aura-order-status-select"
 >
-<option value="aguardando">Aguardando</option>
+<option value="novo">Novo</option>
 <option value="confirmado">Confirmado</option>
-<option value="pago">Pago</option>
+<option value="em_producao">Em produção</option>
+<option value="pronto">Pronto</option>
+<option value="enviado">Enviado</option>
+<option value="entregue">Entregue</option>
 <option value="cancelado">Cancelado</option>
 </select>
 
 </div>
+
+</div>
+
+<div class="aura-order-field aura-order-field-full">
+
+<label for="ped-pagamento-status">
+
+<span>Status inicial do pagamento</span>
+
+<small>
+Situação financeira, independente da etapa do pedido.
+</small>
+
+</label>
+
+<select
+id="ped-pagamento-status"
+class="w-full glass-input aura-order-status-select"
+>
+<option value="pendente">Pendente</option>
+<option value="parcial">Parcial</option>
+<option value="pago">Pago</option>
+<option value="reembolsado">Reembolsado</option>
+</select>
 
 </div>
 
