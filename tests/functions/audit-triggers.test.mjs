@@ -121,6 +121,53 @@ describe("audit/triggers — pedidos", () => {
         assert.equal(event.actorUid, null);
     });
 
+    it("pago → pendente no controle de pagamento registra os campos canônicos e prioriza pagamento", () => {
+        const event = computarEventoAuditoria(cfg, {
+            operation: "update",
+            before: { criadoPor: "ownerA", status: "pago" },
+            after: {
+                criadoPor: "ownerA",
+                status: "confirmado",
+                statusPedido: "confirmado",
+                statusPagamento: "pendente"
+            },
+            entityId: "ped-pagamento",
+            authType: "unknown",
+            authId: "uid-dono",
+            rawEventId: "evt-pagamento"
+        });
+        assert.equal(event.action, "pedido.pagamento_alterado");
+        assert.equal(event.risk, "high");
+        assert.ok(event.changedFields.includes("statusPagamento"));
+        assert.equal(event.before.status, "pago");
+        assert.equal(event.after.status, "confirmado");
+        assert.equal(event.after.statusPedido, "confirmado");
+        assert.equal(event.after.statusPagamento, "pendente");
+    });
+
+    it("mudança de etapa operacional não é confundida com pagamento", () => {
+        const event = computarEventoAuditoria(cfg, {
+            operation: "update",
+            before: {
+                criadoPor: "ownerA", status: "confirmado",
+                statusPedido: "confirmado", statusPagamento: "pendente"
+            },
+            after: {
+                criadoPor: "ownerA", status: "confirmado",
+                statusPedido: "em_producao", statusPagamento: "pendente"
+            },
+            entityId: "ped-status",
+            authType: "unknown",
+            authId: "uid-dono",
+            rawEventId: "evt-status"
+        });
+        assert.equal(event.action, "pedido.status_alterado");
+        assert.equal(event.risk, "medium");
+        assert.deepEqual(event.changedFields, ["statusPedido"]);
+        assert.equal(event.before.statusPagamento, "pendente");
+        assert.equal(event.after.statusPagamento, "pendente");
+    });
+
     it("mudança de tenant num update vira CRITICAL, mesmo que a coleção normalmente seja MEDIUM", () => {
         const event = computarEventoAuditoria(cfg, {
             operation: "update",
@@ -134,6 +181,96 @@ describe("audit/triggers — pedidos", () => {
         assert.equal(event.risk, "critical");
         assert.equal(event.action, "pedidos.tenant_alterado_suspeito");
         assert.equal(event.ownerUid, "ownerA");
+    });
+});
+
+describe("audit/triggers — produtos", () => {
+    const cfg = config("produtos/{id}");
+
+    it("estoque 25 → 21 preserva before/after sanitizados e ação de atualização", () => {
+        const event = computarEventoAuditoria(cfg, {
+            operation: "update",
+            before: { criadoPor: "ownerA", nome: "Produto A", estoque: 25 },
+            after: { criadoPor: "ownerA", nome: "Produto A", estoque: 21 },
+            entityId: "prod-estoque",
+            authType: "unknown",
+            authId: "uid-dono",
+            rawEventId: "evt-prod-estoque"
+        });
+        assert.equal(event.action, "produto.atualizado");
+        assert.equal(event.risk, "low");
+        assert.deepEqual(event.changedFields, ["estoque"]);
+        assert.equal(event.before.estoque, 25);
+        assert.equal(event.after.estoque, 21);
+    });
+
+    it("nome, status, tipo e frete usam o contrato de risco existente", () => {
+        const base = { criadoPor: "ownerA", nome: "A", statusProduto: "ativo", tipo: "fisico", freteGratis: false };
+        const cases = [
+            ["nome", "B", "produto.atualizado", "low"],
+            ["statusProduto", "rascunho", "produto.status_alterado", "medium"],
+            ["tipo", "digital", "produto.atualizado", "low"],
+            ["freteGratis", true, "produto.atualizado", "low"]
+        ];
+        for (const [field, value, action, risk] of cases) {
+            const event = computarEventoAuditoria(cfg, {
+                operation: "update",
+                before: base,
+                after: { ...base, [field]: value },
+                entityId: `prod-${field}`,
+                authType: "unknown",
+                authId: "uid-dono",
+                rawEventId: `evt-prod-${field}`
+            });
+            assert.equal(event.action, action, field);
+            assert.equal(event.risk, risk, field);
+            assert.deepEqual(event.changedFields, [field], field);
+        }
+    });
+
+    it("preço e preço de referência/desconto são auditados como preço alterado", () => {
+        for (const field of ["preco", "precoDe"]) {
+            const event = computarEventoAuditoria(cfg, {
+                operation: "update",
+                before: { criadoPor: "ownerA", [field]: 100 },
+                after: { criadoPor: "ownerA", [field]: 80 },
+                entityId: `prod-${field}`,
+                authType: "unknown",
+                authId: "uid-dono",
+                rawEventId: `evt-prod-${field}`
+            });
+            assert.equal(event.action, "produto.preco_alterado");
+            assert.equal(event.risk, "medium");
+            assert.equal(event.before[field], 100);
+            assert.equal(event.after[field], 80);
+        }
+    });
+});
+
+describe("audit/triggers — sincronização Pedido → Lead", () => {
+    const cfg = config("leads/{id}");
+
+    it("mudança apenas de pagamento/histórico do pedido continua lead.atualizado, sem status falso", () => {
+        const event = computarEventoAuditoria(cfg, {
+            operation: "update",
+            before: {
+                criadoPor: "ownerA", statusLead: "em_contato", status: "em_contato",
+                pagamentoStatus: "pago", pedidoAtualizadoEm: 1, pedidoHistorico: [{ titulo: "Antes" }]
+            },
+            after: {
+                criadoPor: "ownerA", statusLead: "em_contato", status: "em_contato",
+                pagamentoStatus: "pendente", pedidoAtualizadoEm: 2, pedidoHistorico: [{ titulo: "Depois" }]
+            },
+            entityId: "lead-pedido",
+            authType: "unknown",
+            authId: "uid-dono",
+            rawEventId: "evt-lead-pedido"
+        });
+        assert.equal(event.action, "lead.atualizado");
+        assert.equal(event.risk, "low");
+        assert.deepEqual(event.changedFields, ["pagamentoStatus", "pedidoAtualizadoEm", "pedidoHistorico"]);
+        assert.deepEqual(event.before, { statusLead: "em_contato", status: "em_contato" });
+        assert.deepEqual(event.after, { statusLead: "em_contato", status: "em_contato" });
     });
 });
 

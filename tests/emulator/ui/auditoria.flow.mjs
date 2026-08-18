@@ -107,6 +107,26 @@ async function flowAuditoriaOwner(page) {
             source: "admin-function",
             ok: true,
             createdAt: Timestamp.now()
+        }),
+        db.doc("auditoria/ui-pedido-diff-event").set({
+            schemaVersion: 1,
+            eventId: "ui-pedido-diff-event",
+            ownerUid: "owner-pro",
+            actorUid: "owner-pro",
+            actorType: "user",
+            module: "pedidos",
+            entityType: "pedido",
+            entityId: "pedido-diff-1",
+            operation: "update",
+            action: "pedido.pagamento_alterado",
+            risk: "high",
+            summary: "Pedido atualizado",
+            changedFields: ["status", "statusPagamento"],
+            before: { status: "pago" },
+            after: { status: "confirmado", statusPagamento: "pendente" },
+            source: "firestore-trigger",
+            ok: true,
+            createdAt: Timestamp.now()
         })
     ]);
 
@@ -142,6 +162,33 @@ async function flowAuditoriaOwner(page) {
     // exige a classe "hidden", então o estado certo a esperar é
     // "attached" (só presente no DOM), nunca "visible" (contradição).
     await page.waitForSelector("#audit-drawer.hidden", { state: "attached", timeout: 5000 });
+
+    // A tabela usa linguagem de negócio; o identificador técnico continua
+    // disponível no drawer, junto do diff calculado apenas sobre snapshots
+    // já sanitizados. O teclado abre/fecha o drawer e devolve o foco.
+    const linhaPagamento = page.locator('#audit-tabela-corpo tr[data-audit-evento="ui-pedido-diff-event"]');
+    await linhaPagamento.focus();
+    assert.match(await linhaPagamento.textContent(), /Status do pagamento alterado/);
+    assert.equal((await linhaPagamento.textContent()).includes("pedido.pagamento_alterado"), false);
+    await linhaPagamento.press("Enter");
+    await page.waitForSelector("#audit-drawer:not(.hidden)", { timeout: 10000 });
+    const detalhePagamento = await page.textContent("#audit-drawer-conteudo");
+    assert.match(detalhePagamento, /Status do pagamento alterado/);
+    assert.match(detalhePagamento, /Ação técnica/);
+    assert.match(detalhePagamento, /pedido\.pagamento_alterado/);
+    assert.match(detalhePagamento, /Status do pagamento/);
+    assert.match(detalhePagamento, /Pago/);
+    assert.match(detalhePagamento, /Pendente/);
+    assert.match(detalhePagamento, /statusPagamento/);
+
+    assert.equal(await page.locator("#audit-drawer-fechar").evaluate(el => document.activeElement === el), true);
+    await page.keyboard.press("Shift+Tab");
+    assert.equal(await page.evaluate(() => document.getElementById("audit-drawer")?.contains(document.activeElement)), true,
+        "O foco deve permanecer preso no drawer");
+    await page.keyboard.press("Escape");
+    await page.waitForSelector("#audit-drawer.hidden", { state: "attached", timeout: 5000 });
+    assert.equal(await linhaPagamento.evaluate(el => document.activeElement === el), true,
+        "Escape deve devolver o foco para a linha que abriu o drawer");
 
     // Filtros combináveis: módulo + risco preservam um ao outro e o estado
     // ativo fica explícito. WhatsApp/Admin são módulos reais selecionáveis.
@@ -185,19 +232,40 @@ async function flowAuditoriaOwner(page) {
 }
 
 async function flowResponsivoMobile(page) {
-    await page.setViewportSize({ width: 390, height: 844 });
-    await ativarView(page, "view-auditoria", "#audit-conteudo, #audit-estado-sem-permissao");
-    await page.waitForTimeout(500);
+    const larguras = [320, 375, 390, 768, 1024, 1366, 1920];
+    for (const largura of larguras) {
+        await page.setViewportSize({ width: largura, height: largura < 768 ? 844 : 900 });
+        await ativarView(page, "view-auditoria", "#audit-conteudo, #audit-estado-sem-permissao");
+        await page.waitForTimeout(250);
 
-    const tabelaVisivel = await page.locator(".aura-audit-tabela-wrap").isVisible().catch(() => false);
-    assert.equal(tabelaVisivel, false, "A tabela desktop não deveria aparecer em mobile");
-    const colunasFiltro = await page.locator(".aura-audit-filtros-grade").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
-    assert.equal(colunasFiltro, 1, "Filtros devem ocupar uma coluna no mobile");
-    const larguraOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
-    assert.ok(larguraOverflow <= 1, `Auditoria não deveria criar overflow horizontal global no mobile (${larguraOverflow}px)`);
+        const mobile = largura <= 767;
+        const tabelaVisivel = await page.locator(".aura-audit-tabela-wrap").isVisible().catch(() => false);
+        const cardsVisiveis = await page.locator("#audit-cards-mobile").isVisible().catch(() => false);
+        assert.equal(tabelaVisivel, !mobile, `Tabela com visibilidade incorreta em ${largura}px`);
+        assert.equal(cardsVisiveis, mobile, `Cards com visibilidade incorreta em ${largura}px`);
+
+        const colunasFiltro = await page.locator(".aura-audit-filtros-grade").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+        const colunasEsperadas = largura <= 767 ? 1 : (largura <= 1023 ? 2 : 4);
+        assert.equal(colunasFiltro, colunasEsperadas, `Grade de filtros incorreta em ${largura}px`);
+
+        const larguraOverflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        assert.ok(larguraOverflow <= 1, `Auditoria não deveria criar overflow horizontal global em ${largura}px (${larguraOverflow}px)`);
+
+        const alvo = mobile
+            ? page.locator('#audit-cards-mobile article[data-audit-evento="ui-pedido-diff-event"]')
+            : page.locator('#audit-tabela-corpo tr[data-audit-evento="ui-pedido-diff-event"]');
+        await alvo.click();
+        await page.waitForSelector("#audit-drawer:not(.hidden)", { timeout: 10000 });
+        const painel = await page.locator("#audit-drawer .aura-audit-drawer-painel").boundingBox();
+        assert.ok(painel && painel.width <= largura + 1, `Drawer ultrapassou o viewport em ${largura}px`);
+        assert.ok(painel && painel.x >= -1 && painel.x + painel.width <= largura + 1,
+            `Drawer ficou fora da área visível em ${largura}px`);
+        await page.keyboard.press("Escape");
+        await page.waitForSelector("#audit-drawer.hidden", { state: "attached", timeout: 5000 });
+    }
 
     await page.setViewportSize({ width: 1440, height: 900 });
-    console.log("auditoria.flow: OK (mobile) — cards substituem a tabela em 390px.");
+    console.log("auditoria.flow: OK (responsivo) — 320/375/390/768/1024/1366/1920px sem overflow.");
 }
 
 async function flowFuncionarioBloqueado(page, baseUrl) {

@@ -171,9 +171,11 @@ function normalizeStage(value) {
 
 function normalizePayment(value, legacyStatus = "") {
     const raw = normalizeText(value);
-    if (raw === "pago" || normalizeText(legacyStatus) === "pago") return "pago";
+    if (raw === "pago") return "pago";
     if (raw === "parcial") return "parcial";
     if (raw === "reembolsado") return "reembolsado";
+    if (raw === "pendente") return "pendente";
+    if (normalizeText(legacyStatus) === "pago") return "pago";
     return "pendente";
 }
 
@@ -259,8 +261,11 @@ function normalizeLeadOrder(lead) {
 function normalizeLegacyOrder(raw) {
     const items = normalizeItems(raw.itens, raw.produtos);
     const subtotal = subtotalItems(items) || num(raw.valor);
-    const status = normalizeStage(raw.status);
-    const payment = normalizePayment(raw.pagamentoStatus, raw.status);
+    // Documentos novos preservam os dois conceitos em campos canônicos.
+    // Documentos antigos continuam legíveis pelo fallback em `status`, que
+    // historicamente misturava etapa operacional e pagamento (`pago`).
+    const status = normalizeStage(raw.statusPedido || raw.status);
+    const payment = normalizePayment(raw.statusPagamento || raw.pagamentoStatus, raw.status);
     const order = {
         id: raw.id,
         leadId: "",
@@ -697,7 +702,7 @@ function renderDetail(order) {
             <main>
                 <section class="aura-orders-v1-panel"><header><small>Gestão</small><h3>Status e próximos passos</h3></header><div class="aura-orders-v1-form-grid">
                     <label><span>Status do pedido</span><select id="aura-orders-v1-detail-status" ${state.canEdit ? "" : "disabled"}>${STAGES.map((stage) => `<option value="${stage.id}" ${order.status === stage.id ? "selected" : ""}>${stage.label}</option>`).join("")}</select></label>
-                    <label><span>Pagamento</span><select id="aura-orders-v1-detail-payment" ${state.canEdit ? "" : "disabled"}>${Object.entries(PAYMENT_LABELS).map(([id, label]) => `<option value="${id}" ${order.payment === id ? "selected" : ""}>${label}</option>`).join("")}</select></label>
+                    <label><span>Status do pagamento</span><select id="aura-orders-v1-detail-payment" ${state.canEdit ? "" : "disabled"}>${Object.entries(PAYMENT_LABELS).map(([id, label]) => `<option value="${id}" ${order.payment === id ? "selected" : ""}>${label}</option>`).join("")}</select></label>
                     <label><span>Responsável</span><select id="aura-orders-v1-detail-responsible" ${state.canEdit ? "" : "disabled"}>${teamOptions(order.responsibleUid)}</select></label>
                     <label><span>Prazo previsto</span><input id="aura-orders-v1-detail-due" type="date" value="${dateInput(order.dueDate)}" ${state.canEdit ? "" : "disabled"}></label>
                     <label><span>Desconto</span><input id="aura-orders-v1-detail-discount" type="number" min="0" step="0.01" value="${order.discount || ""}" ${state.canEdit ? "" : "disabled"}></label>
@@ -765,6 +770,10 @@ function legacyPayload(order, patch = {}) {
         cliente: String(merged.customer || "Cliente").slice(0, 160),
         produtos: String(merged.productsText || items.map((item) => `${item.nomeSnapshot}${item.quantidade > 1 ? ` x${item.quantidade}` : ""}`).join(", ") || "Pedido").slice(0, 2000),
         valor: total,
+        statusPedido: merged.status,
+        statusPagamento: merged.payment,
+        // Mantido para dashboards/CRM legados que ainda calculam receita por
+        // `status === "pago"`. Não é mais a fonte canônica da tela V1.
         status: legacyStatus(merged.status, merged.payment),
         obs: String(merged.internalNotes || merged.customerNotes || "").slice(0, 2000),
         criadoPor: state.ownerUid,

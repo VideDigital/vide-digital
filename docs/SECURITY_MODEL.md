@@ -136,9 +136,10 @@ não abre mais um chat novo.
   15 Firestore triggers server-side com Auth Context, Central de Auditoria
   owner-only no dashboard, ver `docs/AUDITORIA_CENTRALIZADA.md`) e, conforme
   confirmação operacional do usuário, Rules/índices e triggers foram
-  publicados com sucesso. O status continua **PARCIAL** porque ainda falta o
-  teste manual real em produção: alterar pedido e produto de teste, confirmar
-  eventos, ator/tenant, ausência de PII e isolamento entre tenants.
+  publicados com sucesso. Em 17/08/2026, eventos reais de Pedido e Produto
+  apareceram e o drawer foi inspecionado. O status continua **PARCIAL** porque
+  ainda faltam a conferência explícita de ator/tenant/PII e o teste negativo
+  de isolamento com um segundo tenant; as correções desta rodada são locais.
 
 Cloud Functions são usadas quando há segredo real, integração externa,
 operação administrativa privilegiada, rate limit confiável ou processamento

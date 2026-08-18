@@ -1288,12 +1288,14 @@ service cloud.firestore {
       return data.keys().hasOnly(["cliente", "produtos", "valor", "status", "obs", "criadoPor",
           "data", "clienteId", "statusAtualizadoEm", "itens", "prazoEntrega",
           "clienteWhatsapp", "clienteEmail", "tipoRecebimento", "cep", "endereco", "observacoesCliente",
-          "historico"])
+          "historico", "statusPedido", "statusPagamento"])
         && data.keys().hasAll(["cliente", "produtos", "valor", "status", "criadoPor"])
         && data.cliente is string && data.cliente.size() >= 1 && data.cliente.size() <= 160
         && data.produtos is string && data.produtos.size() >= 1 && data.produtos.size() <= 2000
         && data.valor is number && data.valor >= 0
         && data.status in ["aguardando", "confirmado", "pago", "cancelado"]
+        && (!data.keys().hasAny(["statusPedido"]) || data.statusPedido in ["novo", "confirmado", "em_producao", "pronto", "enviado", "entregue", "cancelado"])
+        && (!data.keys().hasAny(["statusPagamento"]) || data.statusPagamento in ["pendente", "parcial", "pago", "reembolsado"])
         && data.criadoPor is string
         && (!data.keys().hasAny(["obs"]) || (data.obs is string && data.obs.size() <= 2000))
         && (!data.keys().hasAny(["statusAtualizadoEm"]) || data.statusAtualizadoEm is number)

@@ -2121,8 +2121,25 @@ describe("pedidos: validação de campos (antes desta etapa não havia nenhuma)"
     await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedEstr1"), pedidoFixture()));
     await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedEstr2"), pedidoFixture({
       itens: [{ produtoId: "prod1", nomeSnapshot: "Camiseta P", precoSnapshot: 50, quantidade: 2 }],
-      prazoEntrega: Date.now() + 86400000
+      prazoEntrega: Date.now() + 86400000,
+      statusPedido: "em_producao",
+      statusPagamento: "parcial"
     })));
+  });
+
+  it("campos canônicos separam etapa do pedido e status do pagamento sem quebrar o legado", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedStatusCanonico"), pedidoFixture({
+      status: "confirmado",
+      statusPedido: "confirmado",
+      statusPagamento: "pendente"
+    })));
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "pedidos", "pedStatusCanonico"), {
+      status: "pago",
+      statusPedido: "enviado",
+      statusPagamento: "pago"
+    }, { merge: true }));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedStatusBad1"), pedidoFixture({ statusPedido: "pago" })));
+    await assertFails(setDoc(doc(authed("ownerA"), "pedidos", "pedStatusBad2"), pedidoFixture({ statusPagamento: "confirmado" })));
   });
 
   it("rejeita status fora do enum, valor negativo, campo extra e cliente/produtos vazios", async () => {

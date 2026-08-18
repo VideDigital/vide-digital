@@ -218,6 +218,7 @@ const auditPedidosWrite = createAuditTrigger({
   tenantField: "criadoPor",
   allowedFields: [
     "status",
+    "statusPedido",
     "statusPagamento",
     "tipoRecebimento",
     "subtotal",
@@ -236,7 +237,7 @@ const auditPedidosWrite = createAuditTrigger({
     if (changedFields.some((f) => ["total", "valor", "subtotal", "desconto", "frete"].includes(f))) {
       return { action: "pedido.valores_alterados", risk: "high" };
     }
-    if (changedFields.includes("status")) {
+    if (changedFields.includes("statusPedido") || changedFields.includes("status")) {
       return { action: "pedido.status_alterado", risk: "medium" };
     }
     return { action: "pedido.atualizado", risk: "medium" };
@@ -249,11 +250,11 @@ const auditProdutosWrite = createAuditTrigger({
   module: "produtos",
   entityType: "produto",
   tenantField: "criadoPor",
-  allowedFields: ["nome", "statusProduto", "tipo", "subnicho", "preco", "estoque", "freteGratis"],
+  allowedFields: ["nome", "statusProduto", "tipo", "subnicho", "preco", "precoDe", "estoque", "freteGratis"],
   classify({ operation, changedFields }) {
     if (operation === "create") return { action: "produto.criado", risk: "low" };
     if (operation === "delete") return { action: "produto.excluido", risk: "high" };
-    if (changedFields.includes("preco")) {
+    if (changedFields.includes("preco") || changedFields.includes("precoDe")) {
       return { action: "produto.preco_alterado", risk: "medium" };
     }
     if (changedFields.includes("statusProduto")) {
