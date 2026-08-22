@@ -583,14 +583,22 @@ describe("ia_negocio_uso: contador de uso mensal (só leitura, nunca escrita do 
 });
 
 describe("public writes", () => {
-  it("público lê vitrine e só escreve leads/métricas válidos", async () => {
+  it("público lê vitrine e só escreve métricas válidas — lead público não escreve mais direto no Firestore", async () => {
     await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-a")));
     await assertFails(updateDoc(doc(anon(), "vitrines_publicas", "loja-a"), { donoUID: "attacker" }));
-    await assertSucceeds(setDoc(doc(anon(), "leads", "leadX"), { criadoPor: "ownerA", status: "novo" }));
+    // Captura pública de lead migrou para a Cloud Function createPublicLead
+    // (Admin SDK, nunca passa pelas Rules) — o cliente público não escreve
+    // mais direto em leads/{id}, nem com um payload "válido" no formato antigo.
+    await assertFails(setDoc(doc(anon(), "leads", "leadX"), { criadoPor: "ownerA", status: "novo" }));
     await assertFails(setDoc(doc(anon(), "leads", "leadAdmin"), { criadoPor: "ownerA", status: "convertido" }));
     await assertSucceeds(setDoc(doc(anon(), "metricas_produtos", "prodA"), { visualizacoes: 1 }));
     await assertFails(setDoc(doc(anon(), "metricas_produtos", "prodA"), { visualizacoes: 1, criadoPor: "attacker" }));
     await assertFails(setDoc(doc(anon(), "chats", "chatX"), { donoUID: "ownerA" }));
+  });
+
+  it("dono/funcionário com permissão continuam cadastrando lead manualmente pelo painel", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadManualOwner"), { criadoPor: "ownerA", status: "novo" }));
+    await assertFails(setDoc(doc(authed("ownerB"), "leads", "leadManualCrossTenant"), { criadoPor: "ownerA", status: "novo" }));
   });
 });
 
