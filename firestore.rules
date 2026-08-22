@@ -552,17 +552,6 @@ service cloud.firestore {
           .hasOnly(camposMetricaProduto());
     }
 
-    // Lead público: criadoPor precisa apontar para um dono real e o lead
-    // nasce sempre com status "novo" (o visitante não escolhe status).
-    function leadPublicoValido() {
-      return request.resource.data.keys().hasAll(["criadoPor"])
-        && request.resource.data.criadoPor is string
-        && request.resource.data.criadoPor != ""
-        && exists(/databases/$(database)/documents/usuarios/$(request.resource.data.criadoPor))
-        && (!("statusLead" in request.resource.data) || request.resource.data.statusLead == "novo")
-        && (!("status" in request.resource.data) || request.resource.data.status == "novo");
-    }
-
     function produtoPublicadoParaAvaliacao() {
       return request.resource.data.keys().hasAll(["produtoId", "criadoPor"])
         && request.resource.data.produtoId is string
@@ -1308,10 +1297,12 @@ service cloud.firestore {
 
     match /leads/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "leads");
-      // Captura pública (LP/loja) escreve direto — validada por leadPublicoValido().
-      // O dono/funcionário também pode cadastrar lead manualmente pelo painel.
-      allow create: if leadPublicoValido()
-        || canEditTenant(request.resource.data.criadoPor, "leads");
+      // Captura pública (LP/loja) não escreve mais direto — migrou para a
+      // Cloud Function createPublicLead (Admin SDK, nunca passa por esta
+      // regra), que resolve o tenant no servidor, aplica rate limit e
+      // sanitiza o payload. Só sobra o dono/funcionário cadastrando lead
+      // manualmente pelo painel.
+      allow create: if canEditTenant(request.resource.data.criadoPor, "leads");
       // clienteId (CRM 360, opcional): mesma checagem de pedidos.
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads")
         && clienteIdValidoParaTenant(resource.data.criadoPor);
