@@ -8,6 +8,7 @@ const { isValidEmail, normalizeEmail, normalizeString, sanitizePermissions } = r
 const { writeAudit } = require("../audit");
 
 const VALID_STATUS = new Set(["pendente", "aprovado", "rejeitado", "inativo"]);
+const BLOCKED_STATUS = new Set(["rejeitado", "inativo"]);
 const VALID_PLANS = new Set(["starter", "basico", "essencial", "negocio", "profissional", "avancado", "pro", "proplus", "agencia", "enterprise", "premium"]);
 
 const createAdminMember = onCall({ region: "southamerica-east1" }, async (request) => {
@@ -68,6 +69,21 @@ const adminUpdateStoreStatus = onCall({ region: "southamerica-east1" }, async (r
     statusAtualizadoEm: FieldValue.serverTimestamp(),
     statusAtualizadoPor: auth.uid
   }, { merge: true });
+  // isOwner() nas Rules só compara UID — nunca consulta usuarios/{uid}.status
+  // — então bloquear a loja aqui não bastava: o dono continuava com acesso
+  // pleno via SDK direto enquanto a conta do Auth seguisse habilitada. Ao
+  // suspender/rejeitar, desabilita a conta e revoga os refresh tokens (uma
+  // sessão já aberta ainda vale até o ID token expirar sozinho, ~1h — não
+  // é instantâneo, mas fecha a reentrada e o fim da sessão atual). Ao
+  // aprovar de volta, reabilita sem precisar revogar nada.
+  await getAuth().updateUser(uid, { disabled: BLOCKED_STATUS.has(status) }).catch((error) => {
+    if (error.code !== "auth/user-not-found") throw error;
+  });
+  if (BLOCKED_STATUS.has(status)) {
+    await getAuth().revokeRefreshTokens(uid).catch((error) => {
+      if (error.code !== "auth/user-not-found") throw error;
+    });
+  }
   // Sem writeAudit() aqui: esta escrita em usuarios/{uid} já é coberta
   // por auditUsuariosWrite (functions/src/audit/triggers.js) — chamar
   // writeAudit também geraria um segundo evento pra mesma mutation.

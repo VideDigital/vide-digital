@@ -1046,31 +1046,6 @@ dicas: ["Pergunte de forma específica (\"quais produtos venderam mais este mês
             );
         };
 
-        // Cria a conta de login do funcionário usando um app Firebase SECUNDÁRIO
-        // e temporário, assim a sessão do dono nunca é afetada. Modelo 100%
-        // Spark: a conta de Auth nasce pelo app secundário e o documento
-        // funcionarios/{uid} é escrito direto, protegido pelas regras
-        // (só o dono cria/edita funcionários do próprio tenant).
-        async function criarContaAuthFuncionario(email, senha) {
-            const [appMod, authMod] = await Promise.all([
-                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js"),
-                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js")
-            ]);
-            const secundario = appMod.initializeApp(firebaseConfig, "vide-criar-funcionario");
-            try {
-                const authSecundario = authMod.getAuth(secundario);
-                if (shouldUseVideEmulators()) {
-                    authMod.connectAuthEmulator(authSecundario, "http://127.0.0.1:9099", { disableWarnings: true });
-                }
-                const credencial = await authMod.createUserWithEmailAndPassword(authSecundario, email, senha);
-                const novoUid = credencial.user.uid;
-                await authMod.signOut(authSecundario).catch(() => {});
-                return novoUid;
-            } finally {
-                await appMod.deleteApp(secundario).catch(() => {});
-            }
-        }
-
         window.salvarFuncionario = async function() {
             if (!exigirEdicaoModulo("funcionarios")) return;
 
@@ -1080,11 +1055,6 @@ dicas: ["Pergunte de forma específica (\"quais produtos venderam mais este mês
                 showToast("Você não pode alterar as próprias permissões.", "error");
                 return;
             }
-            // No plano Spark as escritas em funcionarios são diretas e as
-            // regras só autorizam o DONO do tenant (evita que um funcionário
-            // com edição eleve permissões de colegas além das próprias — o
-            // "capping" que a Cloud Function fazia não é reproduzível em
-            // regras com segurança equivalente).
             if (contextoAtual.isEmployee) {
                 showToast("Apenas o dono da loja pode gerenciar funcionários.", "error");
                 return;
@@ -1103,44 +1073,29 @@ dicas: ["Pergunte de forma específica (\"quais produtos venderam mais este mês
 
             try {
                 if (uidEdicao) {
-                    await setDoc(doc(db, "funcionarios", uidEdicao), {
-                        nome,
-                        cargo,
-                        permissoes: { ver, editar },
-                        atualizadoEm: serverTimestamp(),
-                        atualizadoPorAuthUid: contextoAtual.authUid || usuarioUID
-                    }, { merge: true });
+                    await VideFunctions.updateEmployee({ uid: uidEdicao, nome, cargo, permissoes: { ver, editar } });
                     showToast("Funcionário atualizado!");
                 } else {
                     const senha = document.getElementById("funcionario-senha").value;
-                    if (!senha || senha.length < 6) {
-                        showToast("A senha precisa ter ao menos 6 caracteres.", "error");
+                    if (!senha || senha.length < 8) {
+                        showToast("A senha precisa ter ao menos 8 caracteres.", "error");
                         return;
                     }
-                    const novoUid = await criarContaAuthFuncionario(email, senha);
-                    await setDoc(doc(db, "funcionarios", novoUid), {
-                        donoUID: usuarioUID,
-                        nome,
-                        email,
-                        cargo,
-                        status: "ativo",
-                        senhaTemporaria: true,
-                        permissoes: { ver, editar },
-                        criadoEm: serverTimestamp(),
-                        criadoPorAuthUid: contextoAtual.authUid || usuarioUID
-                    });
+                    await VideFunctions.createEmployee({ email, password: senha, nome, cargo, permissoes: { ver, editar } });
                     showToast("Funcionário cadastrado! Já pode fazer login.");
                 }
                 fecharModalFuncionario();
                 carregarFuncionarios();
             } catch (err) {
                 console.error(err);
-                if (err.code === "auth/email-already-in-use") {
+                if (err.code === "functions/already-exists") {
                     showToast("Esse e-mail já está em uso por outra conta.", "error");
-                } else if (err.code === "auth/weak-password") {
-                    showToast("Senha muito fraca. Use uma senha mais longa.", "error");
-                } else if (err.code === "permission-denied") {
-                    showToast("Sem permissão para gerenciar funcionários.", "error");
+                } else if (err.code === "functions/failed-precondition") {
+                    showToast(err.message || "Limite de funcionários do plano atingido.", "error");
+                } else if (err.code === "functions/permission-denied") {
+                    showToast(err.message || "Sem permissão para gerenciar funcionários.", "error");
+                } else if (err.code === "functions/invalid-argument") {
+                    showToast(err.message || "Dados inválidos.", "error");
                 } else {
                     showToast("Erro ao salvar funcionário.", "error");
                 }
@@ -1162,15 +1117,18 @@ dicas: ["Pergunte de forma específica (\"quais produtos venderam mais este mês
 
             const novoStatus = statusAtual === "ativo" ? "inativo" : "ativo";
             try {
-                // Escrita direta (Spark). Desativar não bloqueia o login de
-                // Auth em si, mas todo acesso a dados passa pelas regras, que
-                // exigem funcionarios/{uid}.status == "ativo" — um funcionário
-                // inativo autentica e não consegue ler nem escrever nada.
-                await setDoc(doc(db, "funcionarios", uid), {
-                    status: novoStatus,
-                    atualizadoEm: serverTimestamp(),
-                    atualizadoPorAuthUid: contextoAtual.authUid || usuarioUID
-                }, { merge: true });
+                // Via Callable (enableEmployee/disableEmployee): as Rules já
+                // checam funcionarios/{uid}.status fresco a cada request, então
+                // acesso a dados já era bloqueado de imediato mesmo com o token
+                // antigo válido. O que a Callable acrescenta é revogar os
+                // refresh tokens no Auth ao desativar — a sessão do navegador
+                // cai de vez (logout real) em vez de ficar presa numa SPA
+                // "logada" só recebendo permission-denied em tudo.
+                if (novoStatus === "ativo") {
+                    await VideFunctions.enableEmployee({ uid });
+                } else {
+                    await VideFunctions.disableEmployee({ uid });
+                }
                 showToast(novoStatus === "ativo" ? "Funcionário reativado!" : "Funcionário desativado.");
                 carregarFuncionarios();
             } catch (err) {
@@ -1673,11 +1631,75 @@ window.renderizarResumoSemana = async function() {
     container.classList.remove("hidden");
 };
 
-// Leva o dono ao catálogo de produtos. O catálogo fica dentro da própria
-// tela inicial (não existe aba "view-produtos"), então garantimos que o
-// dashboard está ativo e rolamos até a grade de produtos.
+const estadoOperacionalProdutos = {
+    filtroLogistico: "todos",
+    verRascunhos: false
+};
+
+function salvarEstadoOperacionalProdutos() {
+    estadoOperacionalProdutos.filtroLogistico = filtroLogistico;
+    estadoOperacionalProdutos.verRascunhos = verRascunhos;
+}
+
+function limparBuscaCatalogoSemFoco() {
+    const campo = document.getElementById("catalogo-busca");
+    if (campo) campo.value = "";
+    window._catalogoBuscaDigitadaPeloUsuario = false;
+}
+
+function prepararModuloProdutosCatalogo(targetId) {
+    if (targetId !== "view-produtos" && targetId !== "view-catalogo") return;
+    const workspace = document.getElementById("produtos-workspace");
+    const modoCatalogo = targetId === "view-catalogo";
+    const mount = document.getElementById(modoCatalogo ? "catalogo-analytics-mount" : "produtos-operational-mount");
+    if (!workspace || !mount) return;
+
+    if (modoCatalogo) {
+        if (workspace.dataset.produtosMode !== "catalogo") salvarEstadoOperacionalProdutos();
+        filtroLogistico = "todos";
+        verRascunhos = false;
+        limparBuscaCatalogoSemFoco();
+        window._catalogoSelecaoAtiva = false;
+        window._catalogoSelecionados?.clear?.();
+    } else {
+        filtroLogistico = estadoOperacionalProdutos.filtroLogistico;
+        verRascunhos = estadoOperacionalProdutos.verRascunhos;
+        limparBuscaCatalogoSemFoco();
+    }
+
+    mount.appendChild(workspace);
+    workspace.dataset.produtosMode = modoCatalogo ? "catalogo" : "produtos";
+    alternarVisualFiltro(verRascunhos ? "rascunhos" : filtroLogistico);
+    window.atualizarSelecaoCatalogo?.();
+    carregarProdutos();
+}
+
+function montarWorkspaceProdutosInicial() {
+    const workspace = document.getElementById("produtos-workspace");
+    const mount = document.getElementById("produtos-operational-mount");
+    if (!workspace || !mount || workspace.parentElement === mount) return;
+    limparBuscaCatalogoSemFoco();
+    mount.appendChild(workspace);
+    workspace.dataset.produtosMode = "produtos";
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", montarWorkspaceProdutosInicial, { once: true });
+} else {
+    montarWorkspaceProdutosInicial();
+}
+
+window.addEventListener("pageshow", () => {
+    limparBuscaCatalogoSemFoco();
+    if (document.getElementById("view-catalogo")?.classList.contains("active")) {
+        window.aplicarFerramentasCatalogo?.();
+    }
+});
+
+// Leva o dono à visão analítica, reutilizando os mesmos dados e cards da
+// gestão operacional, sem criar uma segunda consulta ou outro listener.
 window.irParaCatalogoProdutos = function() {
-    if (typeof ativarAba === "function") ativarAba("view-dashboard");
+    if (typeof ativarAba === "function") ativarAba("view-catalogo");
     setTimeout(() => {
         document.getElementById("produtos-container")
             ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2338,6 +2360,7 @@ document
     );
 
 secaoAlvo.classList.add("active");
+    prepararModuloProdutosCatalogo(targetId);
     aplicarLayoutSalvoDaAba(targetId);
     prepararBlocosLayoutEditaveis(secaoAlvo);
     atualizarVisibilidadeBarraEditorLayout(targetId);
@@ -3267,6 +3290,7 @@ abrirDepois(
 
         const PERMISSOES_NAV = {
             "view-produtos": "produtos",
+            "view-catalogo": "produtos",
             "view-avaliacoes": "produtos",
             "view-pedidos": "pedidos",
             "view-leads": "leads",
@@ -11080,6 +11104,8 @@ limparBuscaCatalogoAoAbrirRascunhos();
 
 alternarVisualFiltro('rascunhos');
 
+salvarEstadoOperacionalProdutos();
+
 carregarProdutos();
 
 });
@@ -11094,6 +11120,8 @@ verRascunhos = false;
 
 alternarVisualFiltro('todos');
 
+salvarEstadoOperacionalProdutos();
+
 carregarProdutos();
 
 });
@@ -11103,6 +11131,7 @@ e.preventDefault();
 filtroLogistico = "fisico";
 verRascunhos = false;
 alternarVisualFiltro('fisico');
+salvarEstadoOperacionalProdutos();
 carregarProdutos();
 
 });
@@ -11112,6 +11141,7 @@ carregarProdutos();
             filtroLogistico = "digital";
             verRascunhos = false;
             alternarVisualFiltro('digital');
+            salvarEstadoOperacionalProdutos();
             carregarProdutos();
         });
 
@@ -11315,6 +11345,8 @@ window.sincronizarCatalogoAvancado = function() {
     const iniciar=()=>{
         const busca=document.getElementById("catalogo-busca");
         const ordem=document.getElementById("catalogo-ordenacao");
+        if (busca?.dataset.catalogoEventosLigados === "true") return;
+        if (busca) busca.dataset.catalogoEventosLigados = "true";
         let timer=null;
         // Só um evento de teclado/colagem real do usuário conta como
         // digitação humana — autofill do navegador nunca dispara keydown.

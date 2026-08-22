@@ -236,6 +236,14 @@ class="aura-sidebar-navigation-groups">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
 Visão Geral
 </button>
+<button data-target="view-produtos" data-module-permission="produtos" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4 7 8-4 8 4-8 4-8-4Z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4 7 8 4 8-4v10l-8 4-8-4V7Z"></path></svg>
+Produtos
+</button>
+<button data-target="view-catalogo" data-module-permission="produtos" class="nav-item hidden w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
+<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h10"></path><circle cx="18" cy="18" r="3" stroke-width="2"></circle></svg>
+Catálogo
+</button>
 <button data-target="view-perfil" class="nav-item w-full flex items-center gap-3 px-4 py-2.5 text-xs font-medium text-gray-400 hover:text-white hover:bg-white/[0.02] rounded-lg transition-all text-left mt-1">
 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
 Configurações da Loja
@@ -944,11 +952,12 @@ HUB
 
 <script src="./hub-icons.js"></script>
 
-<div class="aura-product-deck layout-block space-y-5"
+<div id="produtos-workspace" class="aura-product-deck layout-block space-y-5"
+data-produtos-mode="produtos"
 data-block-id="filtros-produtos"
 data-block-nome="Filtros e Produtos">
 
-<div class="aura-product-toolbar glass-card rounded-[26px] p-5 sm:p-6">
+<div class="aura-product-toolbar glass-card rounded-[26px] p-5 sm:p-6" data-produtos-operational>
 
 <div class="flex flex-col xl:flex-row xl:items-center xl:justify-between gap-5">
 
@@ -1141,7 +1150,7 @@ stroke="currentColor">
 </div>
 
 <div class="glass-card aura-catalog-command">
-<div class="aura-catalog-command-header">
+<div class="aura-catalog-command-header" data-catalog-analytics>
 <div class="aura-catalog-command-title">
 <span class="aura-catalog-command-icon">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1157,7 +1166,7 @@ stroke="currentColor">
 <span id="catalogo-resultados-visiveis" class="aura-catalog-result-count">0 produtos visíveis</span>
 </div>
 
-<div class="aura-catalog-summary">
+<div class="aura-catalog-summary" data-catalog-analytics>
 <div class="aura-catalog-summary-card">
 <span class="aura-catalog-summary-icon">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1187,14 +1196,14 @@ stroke="currentColor">
 </div>
 
 <div class="aura-catalog-tools">
-<label class="aura-catalog-search">
+<label class="aura-catalog-search" data-catalog-analytics>
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-4-4"></path></svg>
-<input type="search" id="catalogo-busca" placeholder="Pesquisar nome, categoria, descrição ou tipo..." autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="search" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
+<input type="search" id="catalogo-busca" name="catalog_search_query" role="searchbox" aria-label="Buscar produtos no catálogo" placeholder="Pesquisar nome, categoria, descrição ou tipo..." autocomplete="off" autocapitalize="none" spellcheck="false" inputmode="search" enterkeyhint="search" aria-autocomplete="none" data-form-type="other" data-lpignore="true" data-1p-ignore="true" data-bwignore="true">
 <button type="button" id="catalogo-limpar-busca" onclick="limparBuscaCatalogo()" aria-label="Limpar pesquisa">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m7 7 10 10"></path><path d="M17 7 7 17"></path></svg>
 </button>
 </label>
-<label class="aura-catalog-sort">
+<label class="aura-catalog-sort" data-catalog-analytics>
 <span>Ordenar</span>
 <select id="catalogo-ordenacao">
 <option value="recentes">Atualizados recentemente</option>
@@ -1205,7 +1214,7 @@ stroke="currentColor">
 <option value="estoque-asc">Menor estoque</option>
 </select>
 </label>
-<div class="aura-catalog-view-switch">
+<div class="aura-catalog-view-switch" data-catalog-analytics>
 <button type="button" id="catalogo-view-grid" class="is-active" onclick="alternarVisualCatalogo('grade')" aria-label="Visualização em grade">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="6" height="6" rx="1"></rect><rect x="14" y="4" width="6" height="6" rx="1"></rect><rect x="4" y="14" width="6" height="6" rx="1"></rect><rect x="14" y="14" width="6" height="6" rx="1"></rect></svg>
 </button>
@@ -1213,12 +1222,12 @@ stroke="currentColor">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 6h11"></path><path d="M9 12h11"></path><path d="M9 18h11"></path><circle cx="5" cy="6" r="1"></circle><circle cx="5" cy="12" r="1"></circle><circle cx="5" cy="18" r="1"></circle></svg>
 </button>
 </div>
-<button type="button" id="catalogo-selection-toggle" class="aura-catalog-selection-toggle" onclick="alternarSelecaoCatalogo()">
+<button type="button" id="catalogo-selection-toggle" class="aura-catalog-selection-toggle" data-product-operations onclick="alternarSelecaoCatalogo()">
 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="m8 12 3 3 5-6"></path></svg><span>Selecionar</span>
 </button>
 </div>
 
-<div id="catalogo-bulk-bar" class="hidden aura-catalog-bulk-bar">
+<div id="catalogo-bulk-bar" class="hidden aura-catalog-bulk-bar" data-product-operations>
 <div class="aura-catalog-bulk-info">
 <span class="aura-catalog-bulk-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m7 12 3 3 7-7"></path></svg></span>
 <div><strong id="catalogo-selecionados-count">0 selecionados</strong><small>A ação será aplicada aos produtos marcados</small></div>
@@ -1665,6 +1674,35 @@ Receita de pedidos pagos
 
 </div>
 </section>
+<section id="view-produtos" class="view-section space-y-6 max-w-6xl mx-auto aura-products-module-view">
+<header class="aura-products-module-header">
+<div>
+<span>Operação</span>
+<h1>Produtos</h1>
+<p>Cadastre, publique, organize estoque e administre os itens da sua loja.</p>
+</div>
+<div class="aura-products-module-actions">
+<button type="button" onclick="ativarAba('view-catalogo')">Ver catálogo analítico</button>
+<button type="button" class="is-primary" onclick="document.getElementById('btn-abrir-criacao')?.click()">Novo produto</button>
+</div>
+</header>
+<div id="produtos-operational-mount" class="aura-products-workspace-mount"></div>
+</section>
+
+<section id="view-catalogo" class="view-section space-y-6 max-w-6xl mx-auto aura-products-module-view">
+<header class="aura-products-module-header">
+<div>
+<span>Análise</span>
+<h1>Catálogo</h1>
+<p>Consulte indicadores, pesquise e ordene os mesmos produtos em uma visão somente leitura.</p>
+</div>
+<div class="aura-products-module-actions">
+<button type="button" onclick="ativarAba('view-produtos')">Gerenciar produtos</button>
+</div>
+</header>
+<div id="catalogo-analytics-mount" class="aura-products-workspace-mount"></div>
+</section>
+
 <section
 id="view-templates"
 class="view-section space-y-6 max-w-6xl mx-auto aura-templates-view"
