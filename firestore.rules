@@ -1457,7 +1457,16 @@ service cloud.firestore {
     }
 
     match /vitrines_publicas/{slug} {
-      allow read: if true;
+      // get (documento específico, por slug conhecido) continua público —
+      // é como loja.html sempre acessa isso (getDoc(doc(db,
+      // "vitrines_publicas", slug))), nunca list(). list() é negado: sem
+      // filtro nenhum aqui era possível enumerar TODAS as lojas da
+      // plataforma de uma vez (donoUID e emailDono inclusos, via
+      // publicStoreFields()) só chamando getDocs(collection(db,
+      // "vitrines_publicas")) sem where nenhum — nenhum código legítimo do
+      // frontend faz isso.
+      allow get: if true;
+      allow list: if false;
       allow create: if request.resource.data.keys().hasOnly(publicStoreFields())
         && request.resource.data.keys().hasAll(["donoUID"])
         && canEditTenant(request.resource.data.donoUID, "configuracoes")

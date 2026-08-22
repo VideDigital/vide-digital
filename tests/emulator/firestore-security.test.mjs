@@ -594,6 +594,38 @@ describe("public writes", () => {
   });
 });
 
+describe("vitrines_publicas: list() não enumera todas as lojas da plataforma", () => {
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("vitrines_publicas/loja-b").set({
+        donoUID: "ownerB", emailDono: "ownerB@local.test", nomeLoja: "Loja B"
+      });
+    });
+  });
+
+  it("visitante anônimo não lista o catálogo de lojas (sem where nenhum)", async () => {
+    // Antes da correção, allow read: if true cobria list() sem nenhuma
+    // restrição — um getDocs(collection(db,"vitrines_publicas")) sem where
+    // devolvia donoUID e emailDono de TODA loja da plataforma de uma vez.
+    // Nenhum código legítimo do frontend faz isso (loja.html só usa getDoc
+    // por slug conhecido) — por isso list() agora é sempre negado.
+    await assertFails(getDocs(collection(anon(), "vitrines_publicas")));
+  });
+
+  it("visitante anônimo não lista nem filtrando por um campo", async () => {
+    await assertFails(getDocs(query(collection(anon(), "vitrines_publicas"), where("donoUID", "==", "ownerA"))));
+  });
+
+  it("dono autenticado também não lista a coleção inteira", async () => {
+    await assertFails(getDocs(collection(authed("ownerA"), "vitrines_publicas")));
+  });
+
+  it("visitante anônimo continua conseguindo abrir uma loja conhecida por slug (get, não list)", async () => {
+    await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-a")));
+    await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-b")));
+  });
+});
+
 describe("vitrines_publicas: espelho do toggle iaNegocioPublicaAtiva", () => {
   it("dono e funcionário com central-ia editar atualizam só esse campo; resto continua negado ao público", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "vitrines_publicas", "loja-a"), { iaNegocioPublicaAtiva: true }));
