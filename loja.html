@@ -3703,6 +3703,23 @@
             });
         });
 
+        // Instância própria do SDK de Functions pra createPublicReview —
+        // mesmo racional de obterCreatePublicLeadCallable (leads): getFunctions
+        // é cacheado pelo SDK, só a conexão ao emulador precisa do guard
+        // compartilhado (connectFunctionsEmulator não pode rodar duas vezes
+        // na mesma instância).
+        let __createPublicReviewCallable = null;
+        function obterCreatePublicReviewCallable() {
+            if (__createPublicReviewCallable) return __createPublicReviewCallable;
+            const functionsInstance = getFunctions(app, "southamerica-east1");
+            if (shouldUseVideEmulators() && !window.__videPublicFunctionsEmulatorConnected) {
+                connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+                window.__videPublicFunctionsEmulatorConnected = true;
+            }
+            __createPublicReviewCallable = httpsCallable(functionsInstance, "createPublicReview");
+            return __createPublicReviewCallable;
+        }
+
         document.getElementById("avaliacao-form").addEventListener("submit", async function(event) {
             event.preventDefault();
             if (enviandoAvaliacao) return;
@@ -3711,7 +3728,7 @@
             const nome = document.getElementById("avaliacao-nome").value.trim().slice(0, 80);
             const comentario = document.getElementById("avaliacao-comentario").value.trim().slice(0, 1000);
 
-            if (!produto || !produto.criadoPor) {
+            if (!produto) {
                 mostrarFeedbackAvaliacao("Não foi possível identificar o produto avaliado.", "erro");
                 return;
             }
@@ -3731,15 +3748,14 @@
             mostrarFeedbackAvaliacao("", "");
 
             try {
-                const id = "avaliacao_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
-                await setDoc(doc(db, "avaliacoes", id), {
+                // O tenant (criadoPor) é resolvido no servidor a partir do
+                // produtoId — não escreve mais direto no Firestore.
+                const createPublicReviewCallable = obterCreatePublicReviewCallable();
+                await createPublicReviewCallable({
                     produtoId: produto.id,
-                    criadoPor: produto.criadoPor,
                     nome: nome,
                     nota: notaAvaliacaoSelecionada,
                     comentario: comentario,
-                    status: "novo",
-                    data: serverTimestamp(),
                     lojaSlug: (lojaSlug || "").toString().slice(0, 160)
                 });
                 mostrarFeedbackAvaliacao("Obrigado! Sua avaliação foi enviada e passará por análise antes de aparecer na loja.", "sucesso");
