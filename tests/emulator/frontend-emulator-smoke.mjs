@@ -73,6 +73,32 @@ const sendPublicChatMessage = httpsCallable(functions, "sendPublicChatMessage");
 const messageResult = await sendPublicChatMessage({ chatId: chatResult.data.chatId, texto: "Mensagem smoke" });
 assert.equal(messageResult.data.ok, true);
 
+const createPublicReview = httpsCallable(functions, "createPublicReview");
+const reviewResult = await createPublicReview({
+  produtoId: "prod-local-1",
+  nome: "Cliente Smoke",
+  nota: 5,
+  comentario: "Muito bom, chegou rápido."
+});
+assert.equal(reviewResult.data.ok, true);
+assert.ok(reviewResult.data.avaliacaoId);
+
+const reviewSnap = await getDoc(doc(db, "avaliacoes", reviewResult.data.avaliacaoId));
+assert.equal(reviewSnap.exists(), true);
+assert.equal(reviewSnap.data().criadoPor, "owner-pro", "avaliação deveria herdar o dono real do produto, não um valor do cliente");
+assert.equal(reviewSnap.data().status, "novo");
+
+let reviewFailedForMissingProduct = false;
+try {
+  await createPublicReview({ produtoId: "produto-que-nao-existe", nome: "Cliente Smoke", nota: 5 });
+} catch (error) {
+  reviewFailedForMissingProduct = true;
+  assert.equal(error.code, "functions/not-found", `esperava not-found, recebeu ${error.code}`);
+}
+assert.equal(reviewFailedForMissingProduct, true, "createPublicReview deveria recusar produto inexistente");
+
+console.log("createPublicReview validado (produto real + produto inexistente recusado).");
+
 // createPublicLead permite 5 chamadas/minuto por IP; a chamada de smoke
 // acima já consumiu 1. Mais 4 devem passar (completando o limite) e a 6ª
 // chamada no total deve ser recusada com resource-exhausted.

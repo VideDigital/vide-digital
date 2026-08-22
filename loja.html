@@ -3121,10 +3121,27 @@
             return numero;
         }
 
-        async function capturarLeadPublico(payload) {
-            const ownerUid = textoLeadPublico(fornecedorEmail, 160);
-            if (!ownerUid) throw new Error("Loja sem dono válido.");
+        // Instância própria do SDK de Functions pra createPublicLead — leads
+        // são funcionalidade central (ao contrário da IA pública, opcional),
+        // então não reaproveita a instância lazy de iniciarIaNegocioPublica.
+        // getFunctions(app, região) é cacheado pelo próprio SDK (mesma
+        // instância entre chamadas), então isso é seguro de chamar de novo
+        // aqui — só a conexão ao emulador precisa do guard compartilhado
+        // (chamar connectFunctionsEmulator duas vezes na mesma instância
+        // lança erro).
+        let __createPublicLeadCallable = null;
+        function obterCreatePublicLeadCallable() {
+            if (__createPublicLeadCallable) return __createPublicLeadCallable;
+            const functionsInstance = getFunctions(app, "southamerica-east1");
+            if (shouldUseVideEmulators() && !window.__videPublicFunctionsEmulatorConnected) {
+                connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+                window.__videPublicFunctionsEmulatorConnected = true;
+            }
+            __createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
+            return __createPublicLeadCallable;
+        }
 
+        async function capturarLeadPublico(payload) {
             payload = payload || {};
             const campaignName = textoLeadPublico(
                 payload.utmCampaign ||
@@ -3147,12 +3164,16 @@
                 payload.tipoCaptura || "interesse",
                 "interesse"
             );
+            // A chave de dedupe é só um controle de UX local (evita reenvio
+            // duplo em 10min pelo mesmo visitante) — não precisa mais do
+            // ownerUid (removido: o tenant agora é resolvido no servidor).
+            // lojaSlug é suficiente pra distinguir lojas diferentes no hash.
             const dedupeKey = chaveDedupeLeadPublico({
                 ...payload,
                 paginaOrigem,
                 formularioId,
                 tipoCaptura
-            }, ownerUid);
+            }, lojaSlug);
 
             if (leadPublicoDuplicado(dedupeKey)) {
                 return { duplicado: true, dedupeKey };
@@ -3160,84 +3181,59 @@
 
             const timestamp = Date.now();
             const sessionId = obterSessaoLeadPublico();
-            const leadId = "lead_loja_" + timestamp.toString(36) + "_" + Math.random().toString(36).slice(2, 9);
-            const lead = {
-                criadoPor: ownerUid,
-                tenantId: ownerUid,
-                lojaId: ownerUid,
-                versaoSchema: LEAD_PUBLIC_SCHEMA_VERSION,
-                canal: "loja_publica",
-                tipoCaptura,
-                sessaoId: sessionId,
-                dedupeKey,
-                nome: textoLeadPublico(payload.nome || payload.name, 120),
-                whatsapp: textoLeadPublico(payload.whatsapp || payload.telefone || payload.phone, 40),
-                email: textoLeadPublico(payload.email, 160).toLowerCase(),
-                origem,
-                produtoInteresse: textoLeadPublico(payload.produtoInteresse || "Interesse geral", 160),
-                produtoId: textoLeadPublico(payload.produtoId, 180),
-                lojaOrigem: textoLeadPublico(lojaSlug, 160),
-                paginaOrigem,
-                formularioId,
-                formularioNome: textoLeadPublico(payload.formularioNome || formularioId.replace(/_/g, " "), 160),
-                utmSource: textoLeadPublico(payload.utmSource || atribuicaoSessao?.origemNome || utmSourceCapturada, 120),
-                utmMedium: textoLeadPublico(payload.utmMedium || atribuicaoSessao?.meioNome || "", 120),
-                utmCampaign: campaignName,
-                utmContent: textoLeadPublico(payload.utmContent || urlParams.get("utm_content"), 120),
-                urlPagina: window.location.href.slice(0, 500),
-                referrer: textoLeadPublico(document.referrer, 500),
-                cliques: Math.max(0, Number(payload.cliques || 0)),
-                tempoRetencao: Math.max(0, Number(payload.tempoRetencao || 0)),
-                statusLead: "novo",
-                status: "novo",
-                pipelineStage: "novo",
-                criadoEm: serverTimestamp(),
-                atualizadoEm: serverTimestamp(),
-                data: timestamp
-            };
-
             const pedidoSnapshot = normalizarSnapshotPedidoPublico(
                 payload,
                 timestamp
             );
 
+            // Não escreve mais direto no Firestore: chama createPublicLead
+            // (Cloud Function), que resolve o tenant a partir de storeSlug
+            // no servidor (Admin SDK), aplica rate limit por IP e sanitiza
+            // todo o payload antes de gravar. Ver functions/src/public/index.js.
+            const leadRequest = {
+                storeSlug: lojaSlug,
+                versaoSchema: LEAD_PUBLIC_SCHEMA_VERSION,
+                canal: "loja_publica",
+                tipoCaptura,
+                sessionId,
+                dedupeKey,
+                nome: payload.nome || payload.name,
+                whatsapp: payload.whatsapp || payload.telefone || payload.phone,
+                email: payload.email,
+                origem,
+                produtoInteresse: payload.produtoInteresse,
+                produtoId: payload.produtoId,
+                lojaOrigem: lojaSlug,
+                paginaOrigem,
+                formularioId,
+                formularioNome: payload.formularioNome || formularioId.replace(/_/g, " "),
+                utmSource: payload.utmSource || atribuicaoSessao?.origemNome || utmSourceCapturada,
+                utmMedium: payload.utmMedium || atribuicaoSessao?.meioNome || "",
+                utmCampaign: campaignName,
+                utmContent: payload.utmContent || urlParams.get("utm_content"),
+                urlPagina: window.location.href.slice(0, 500),
+                referrer: document.referrer,
+                cliques: Math.max(0, Number(payload.cliques || 0)),
+                tempoRetencao: Math.max(0, Number(payload.tempoRetencao || 0))
+            };
+
             if (pedidoSnapshot) {
-                Object.assign(lead, {
-                    tipoRegistro: "pedido",
-                    pedidoId: textoLeadPublico(
-                        payload.pedidoId || pedidoSnapshot.numeroPedido,
-                        100
-                    ),
+                Object.assign(leadRequest, {
+                    pedidoId: payload.pedidoId || pedidoSnapshot.numeroPedido,
                     numeroPedido: pedidoSnapshot.numeroPedido,
-                    pedidoStatus: "novo",
-                    pagamentoStatus: "pendente",
-                    pedidoCriadoEm: timestamp,
-                    pedidoAtualizadoEm: timestamp,
-                    pedidoSnapshot: pedidoSnapshot,
-                    pedidoHistorico: [{
-                        titulo: "Pedido registrado na loja",
-                        detalhe:
-                            pedidoSnapshot.produtosTexto +
-                            " · " +
-                            pedidoSnapshot.total.toLocaleString(
-                                "pt-BR",
-                                { style: "currency", currency: "BRL" }
-                            ),
-                        timestamp: timestamp,
-                        autorNome: "Loja online"
-                    }],
-                    valorOportunidade: pedidoSnapshot.total,
-                    probabilidade: 70
+                    pedidoSnapshot: pedidoSnapshot
                 });
             }
 
             try {
-                await setDoc(doc(db, "leads", leadId), lead);
+                const createPublicLeadCallable = obterCreatePublicLeadCallable();
+                const resposta = await createPublicLeadCallable(leadRequest);
+                const leadId = resposta?.data?.leadId;
                 trackCrescimento("lead", {
-                    produtoId: lead.produtoId || undefined,
-                    utmSource: lead.utmSource || undefined,
-                    utmMedium: lead.utmMedium || undefined,
-                    utmCampaign: lead.utmCampaign || undefined,
+                    produtoId: leadRequest.produtoId || undefined,
+                    utmSource: leadRequest.utmSource || undefined,
+                    utmMedium: leadRequest.utmMedium || undefined,
+                    utmCampaign: leadRequest.utmCampaign || undefined,
                     value: pedidoSnapshot ? pedidoSnapshot.total : undefined,
                     currency: pedidoSnapshot ? "BRL" : undefined
                 });
@@ -3707,6 +3703,23 @@
             });
         });
 
+        // Instância própria do SDK de Functions pra createPublicReview —
+        // mesmo racional de obterCreatePublicLeadCallable (leads): getFunctions
+        // é cacheado pelo SDK, só a conexão ao emulador precisa do guard
+        // compartilhado (connectFunctionsEmulator não pode rodar duas vezes
+        // na mesma instância).
+        let __createPublicReviewCallable = null;
+        function obterCreatePublicReviewCallable() {
+            if (__createPublicReviewCallable) return __createPublicReviewCallable;
+            const functionsInstance = getFunctions(app, "southamerica-east1");
+            if (shouldUseVideEmulators() && !window.__videPublicFunctionsEmulatorConnected) {
+                connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+                window.__videPublicFunctionsEmulatorConnected = true;
+            }
+            __createPublicReviewCallable = httpsCallable(functionsInstance, "createPublicReview");
+            return __createPublicReviewCallable;
+        }
+
         document.getElementById("avaliacao-form").addEventListener("submit", async function(event) {
             event.preventDefault();
             if (enviandoAvaliacao) return;
@@ -3715,7 +3728,7 @@
             const nome = document.getElementById("avaliacao-nome").value.trim().slice(0, 80);
             const comentario = document.getElementById("avaliacao-comentario").value.trim().slice(0, 1000);
 
-            if (!produto || !produto.criadoPor) {
+            if (!produto) {
                 mostrarFeedbackAvaliacao("Não foi possível identificar o produto avaliado.", "erro");
                 return;
             }
@@ -3735,15 +3748,14 @@
             mostrarFeedbackAvaliacao("", "");
 
             try {
-                const id = "avaliacao_" + Date.now() + "_" + Math.random().toString(36).slice(2, 8);
-                await setDoc(doc(db, "avaliacoes", id), {
+                // O tenant (criadoPor) é resolvido no servidor a partir do
+                // produtoId — não escreve mais direto no Firestore.
+                const createPublicReviewCallable = obterCreatePublicReviewCallable();
+                await createPublicReviewCallable({
                     produtoId: produto.id,
-                    criadoPor: produto.criadoPor,
                     nome: nome,
                     nota: notaAvaliacaoSelecionada,
                     comentario: comentario,
-                    status: "novo",
-                    data: serverTimestamp(),
                     lojaSlug: (lojaSlug || "").toString().slice(0, 160)
                 });
                 mostrarFeedbackAvaliacao("Obrigado! Sua avaliação foi enviada e passará por análise antes de aparecer na loja.", "sucesso");

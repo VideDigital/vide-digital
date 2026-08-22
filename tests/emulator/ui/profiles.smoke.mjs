@@ -22,6 +22,8 @@ import {
 // view -> permissão de módulo esperada (mesma tabela de PERMISSOES_NAV em
 // dashboard-app.js). "null" = sem gate de permissão de módulo.
 const VIEWS = {
+    "view-produtos": "produtos",
+    "view-catalogo": "produtos",
     "view-avaliacoes": "produtos",
     "view-pedidos": "pedidos",
     "view-leads": "leads",
@@ -47,6 +49,8 @@ const PERFIS = [
         email: "employee.edit@local.test",
         senha: "Local123!edit",
         esperado: {
+            "view-produtos": true,
+            "view-catalogo": true,
             "view-avaliacoes": true,
             "view-pedidos": true,
             "view-leads": true,
@@ -63,6 +67,8 @@ const PERFIS = [
         email: "employee.read@local.test",
         senha: "Local123!read",
         esperado: {
+            "view-produtos": true,
+            "view-catalogo": true,
             "view-avaliacoes": true,
             "view-pedidos": true,
             "view-leads": true,
