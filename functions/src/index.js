@@ -30,6 +30,7 @@ exports.createPublicLead = publicFns.createPublicLead;
 exports.incrementPublicMetric = publicFns.incrementPublicMetric;
 exports.createPublicChat = publicFns.createPublicChat;
 exports.sendPublicChatMessage = publicFns.sendPublicChatMessage;
+exports.createPublicReview = publicFns.createPublicReview;
 
 // auditWrite (callable público) foi removido nesta missão — aceitava
 // ownerUid do payload do cliente, sem consumidor de produção. writeAudit

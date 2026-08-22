@@ -615,44 +615,18 @@ describe("vitrines_publicas: espelho do toggle iaNegocioPublicaAtiva", () => {
 });
 
 describe("avaliacoes de clientes", () => {
-  it("visitante cria avaliação pública válida", async () => {
-    await assertSucceeds(setDoc(doc(anon(), "avaliacoes", "revValid"), avaliacaoValida()));
+  // Criação pública migrou para a Cloud Function createPublicReview (Admin
+  // SDK, nunca passa por estas Rules) — validação de nota/comentário/status/
+  // produto/tenant real agora é feita e testada lá (ver
+  // tests/functions/public-review.test.mjs). Aqui só resta confirmar que a
+  // escrita direta está sempre fechada, mesmo com um payload "válido" no
+  // formato antigo.
+  it("visitante nunca cria avaliação direto no Firestore, mesmo com payload no formato antigo válido", async () => {
+    await assertFails(setDoc(doc(anon(), "avaliacoes", "revValid"), avaliacaoValida()));
   });
 
-  it("visitante não cria avaliação para produto inexistente", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revMissingProduct"), avaliacaoValida({ produtoId: "missing" })));
-  });
-
-  it("visitante não cria avaliação para produto em rascunho", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revDraftProduct"), avaliacaoValida({ produtoId: "prodPrivate" })));
-  });
-
-  it("visitante não escolhe criadoPor diferente do dono do produto", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revWrongOwner"), avaliacaoValida({ criadoPor: "ownerB" })));
-  });
-
-  it("visitante não cria avaliação com nota menor que 1", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revLowRating"), avaliacaoValida({ nota: 0 })));
-  });
-
-  it("visitante não cria avaliação com nota maior que 5", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revHighRating"), avaliacaoValida({ nota: 6 })));
-  });
-
-  it("visitante não cria avaliação com nota decimal", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revDecimalRating"), avaliacaoValida({ nota: 4.5 })));
-  });
-
-  it("visitante não define status inicial diferente de novo", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revPublishedOnCreate"), avaliacaoValida({ status: "publicada" })));
-  });
-
-  it("visitante não envia campo administrativo adicional", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revAdminField"), avaliacaoValida({ moderadoPor: "ownerA" })));
-  });
-
-  it("visitante não cria comentário acima do limite", async () => {
-    await assertFails(setDoc(doc(anon(), "avaliacoes", "revLongComment"), avaliacaoValida({ comentario: "x".repeat(1001) })));
+  it("dono/funcionário também não criam avaliação direto (só a Function, via Admin SDK)", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "avaliacoes", "revOwnerDireto"), avaliacaoValida()));
   });
 
   it("visitante não edita avaliação depois de enviar", async () => {
