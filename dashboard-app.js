@@ -1631,11 +1631,75 @@ window.renderizarResumoSemana = async function() {
     container.classList.remove("hidden");
 };
 
-// Leva o dono ao catálogo de produtos. O catálogo fica dentro da própria
-// tela inicial (não existe aba "view-produtos"), então garantimos que o
-// dashboard está ativo e rolamos até a grade de produtos.
+const estadoOperacionalProdutos = {
+    filtroLogistico: "todos",
+    verRascunhos: false
+};
+
+function salvarEstadoOperacionalProdutos() {
+    estadoOperacionalProdutos.filtroLogistico = filtroLogistico;
+    estadoOperacionalProdutos.verRascunhos = verRascunhos;
+}
+
+function limparBuscaCatalogoSemFoco() {
+    const campo = document.getElementById("catalogo-busca");
+    if (campo) campo.value = "";
+    window._catalogoBuscaDigitadaPeloUsuario = false;
+}
+
+function prepararModuloProdutosCatalogo(targetId) {
+    if (targetId !== "view-produtos" && targetId !== "view-catalogo") return;
+    const workspace = document.getElementById("produtos-workspace");
+    const modoCatalogo = targetId === "view-catalogo";
+    const mount = document.getElementById(modoCatalogo ? "catalogo-analytics-mount" : "produtos-operational-mount");
+    if (!workspace || !mount) return;
+
+    if (modoCatalogo) {
+        if (workspace.dataset.produtosMode !== "catalogo") salvarEstadoOperacionalProdutos();
+        filtroLogistico = "todos";
+        verRascunhos = false;
+        limparBuscaCatalogoSemFoco();
+        window._catalogoSelecaoAtiva = false;
+        window._catalogoSelecionados?.clear?.();
+    } else {
+        filtroLogistico = estadoOperacionalProdutos.filtroLogistico;
+        verRascunhos = estadoOperacionalProdutos.verRascunhos;
+        limparBuscaCatalogoSemFoco();
+    }
+
+    mount.appendChild(workspace);
+    workspace.dataset.produtosMode = modoCatalogo ? "catalogo" : "produtos";
+    alternarVisualFiltro(verRascunhos ? "rascunhos" : filtroLogistico);
+    window.atualizarSelecaoCatalogo?.();
+    carregarProdutos();
+}
+
+function montarWorkspaceProdutosInicial() {
+    const workspace = document.getElementById("produtos-workspace");
+    const mount = document.getElementById("produtos-operational-mount");
+    if (!workspace || !mount || workspace.parentElement === mount) return;
+    limparBuscaCatalogoSemFoco();
+    mount.appendChild(workspace);
+    workspace.dataset.produtosMode = "produtos";
+}
+
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", montarWorkspaceProdutosInicial, { once: true });
+} else {
+    montarWorkspaceProdutosInicial();
+}
+
+window.addEventListener("pageshow", () => {
+    limparBuscaCatalogoSemFoco();
+    if (document.getElementById("view-catalogo")?.classList.contains("active")) {
+        window.aplicarFerramentasCatalogo?.();
+    }
+});
+
+// Leva o dono à visão analítica, reutilizando os mesmos dados e cards da
+// gestão operacional, sem criar uma segunda consulta ou outro listener.
 window.irParaCatalogoProdutos = function() {
-    if (typeof ativarAba === "function") ativarAba("view-dashboard");
+    if (typeof ativarAba === "function") ativarAba("view-catalogo");
     setTimeout(() => {
         document.getElementById("produtos-container")
             ?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -2296,6 +2360,7 @@ document
     );
 
 secaoAlvo.classList.add("active");
+    prepararModuloProdutosCatalogo(targetId);
     aplicarLayoutSalvoDaAba(targetId);
     prepararBlocosLayoutEditaveis(secaoAlvo);
     atualizarVisibilidadeBarraEditorLayout(targetId);
@@ -3225,6 +3290,7 @@ abrirDepois(
 
         const PERMISSOES_NAV = {
             "view-produtos": "produtos",
+            "view-catalogo": "produtos",
             "view-avaliacoes": "produtos",
             "view-pedidos": "pedidos",
             "view-leads": "leads",
@@ -11038,6 +11104,8 @@ limparBuscaCatalogoAoAbrirRascunhos();
 
 alternarVisualFiltro('rascunhos');
 
+salvarEstadoOperacionalProdutos();
+
 carregarProdutos();
 
 });
@@ -11052,6 +11120,8 @@ verRascunhos = false;
 
 alternarVisualFiltro('todos');
 
+salvarEstadoOperacionalProdutos();
+
 carregarProdutos();
 
 });
@@ -11061,6 +11131,7 @@ e.preventDefault();
 filtroLogistico = "fisico";
 verRascunhos = false;
 alternarVisualFiltro('fisico');
+salvarEstadoOperacionalProdutos();
 carregarProdutos();
 
 });
@@ -11070,6 +11141,7 @@ carregarProdutos();
             filtroLogistico = "digital";
             verRascunhos = false;
             alternarVisualFiltro('digital');
+            salvarEstadoOperacionalProdutos();
             carregarProdutos();
         });
 
@@ -11273,6 +11345,8 @@ window.sincronizarCatalogoAvancado = function() {
     const iniciar=()=>{
         const busca=document.getElementById("catalogo-busca");
         const ordem=document.getElementById("catalogo-ordenacao");
+        if (busca?.dataset.catalogoEventosLigados === "true") return;
+        if (busca) busca.dataset.catalogoEventosLigados = "true";
         let timer=null;
         // Só um evento de teclado/colagem real do usuário conta como
         // digitação humana — autofill do navegador nunca dispara keydown.
