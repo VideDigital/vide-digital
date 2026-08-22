@@ -3,7 +3,7 @@
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { requireEdit, resolveCallerContext } = require("../shared/context");
+const { resolveCallerContext } = require("../shared/context");
 const {
   employeeLimitForPlan,
   isValidEmail,
@@ -12,6 +12,21 @@ const {
   sanitizePermissions
 } = require("../shared/validators");
 const { writeAudit } = require("../audit");
+
+// Gestão de funcionários (criar, editar, ativar/desativar, resetar senha) é
+// restrita ao dono/admin — nunca a outro funcionário, mesmo com "funcionarios"
+// na própria lista de permissões editáveis. Isso bate com a política real do
+// produto (dashboard-app.js bloqueia isso na UI incondicionalmente) — sem
+// esta checagem aqui, um funcionário com essa permissão conseguiria chamar
+// a Callable direto (bypassando a UI) e gerenciar colegas do próprio tenant.
+// capPermissionsToCaller() abaixo continua existindo como segunda camada
+// (nunca deixaria um funcionário conceder mais do que possui), mas a
+// política atual é mais simples: funcionário não gerencia funcionário.
+function requireOwnerOrAdmin(context) {
+  if (!context.isOwner && !context.isAdmin) {
+    throw new HttpsError("permission-denied", "Apenas o dono da loja pode gerenciar funcionários.");
+  }
+}
 
 async function assertEmployeeLimit(ownerUid, owner) {
   const limit = employeeLimitForPlan(owner?.plano || "starter");
@@ -48,7 +63,7 @@ function capPermissionsToCaller(context, permissoes) {
 
 const createEmployee = onCall({ region: "southamerica-east1" }, async (request) => {
   const context = await resolveCallerContext(request);
-  requireEdit(context, "funcionarios");
+  requireOwnerOrAdmin(context);
 
   const email = normalizeEmail(request.data?.email);
   const password = String(request.data?.password || "");
@@ -111,7 +126,7 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
 
 const updateEmployee = onCall({ region: "southamerica-east1" }, async (request) => {
   const context = await resolveCallerContext(request);
-  requireEdit(context, "funcionarios");
+  requireOwnerOrAdmin(context);
 
   const employeeUid = normalizeString(request.data?.uid, 160);
   if (!employeeUid) throw new HttpsError("invalid-argument", "UID obrigatório.");
@@ -144,7 +159,7 @@ const updateEmployee = onCall({ region: "southamerica-east1" }, async (request) 
 
 async function setEmployeeEnabled(request, enabled) {
   const context = await resolveCallerContext(request);
-  requireEdit(context, "funcionarios");
+  requireOwnerOrAdmin(context);
   const employeeUid = normalizeString(request.data?.uid, 160);
   if (!employeeUid) throw new HttpsError("invalid-argument", "UID obrigatório.");
   if (employeeUid === context.authUid) {
@@ -172,7 +187,7 @@ const enableEmployee = onCall({ region: "southamerica-east1" }, (request) => set
 
 const resetEmployeePassword = onCall({ region: "southamerica-east1" }, async (request) => {
   const context = await resolveCallerContext(request);
-  requireEdit(context, "funcionarios");
+  requireOwnerOrAdmin(context);
   const employeeUid = normalizeString(request.data?.uid, 160);
   const current = await loadEmployee(employeeUid);
   if (current.donoUID !== context.ownerUid) {
@@ -195,6 +210,7 @@ module.exports = {
   createEmployee,
   disableEmployee,
   enableEmployee,
+  requireOwnerOrAdmin,
   resetEmployeePassword,
   updateEmployee
 };
