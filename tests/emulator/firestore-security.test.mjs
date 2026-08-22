@@ -1007,22 +1007,22 @@ function funcionarioValido(overrides = {}) {
   };
 }
 
-describe("funcionarios: gestão direta pelo dono (Spark)", () => {
-  it("dono cria funcionário válido do próprio tenant", async () => {
-    await assertSucceeds(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
-  });
-
-  it("dono não cria funcionário apontando para outro tenant nem para si mesmo", async () => {
+describe("funcionarios: criação só via Cloud Function createEmployee", () => {
+  it("nenhuma escrita direta de create passa, nem com payload perfeitamente válido", async () => {
+    // createEmployee (functions/src/employees/index.js) é quem checa o
+    // limite de funcionários do plano (assertEmployeeLimit) e cria a conta
+    // de Auth de forma atômica com o documento — nenhuma dessas duas coisas
+    // é reproduzível numa regra de create (que nunca consegue contar
+    // documentos existentes com segurança). Por isso a regra nega SEMPRE,
+    // mesmo para o dono certo com um payload que passaria em todas as
+    // validações de forma antigas.
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
     await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp2"), funcionarioValido({ donoUID: "ownerB" })));
     await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "ownerA"), funcionarioValido()));
   });
+});
 
-  it("rejeita status inicial diferente de ativo, campos extras e timestamp manual", async () => {
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp3"), funcionarioValido({ status: "inativo" })));
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp4"), funcionarioValido({ admin: true })));
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp5"), funcionarioValido({ criadoEm: new Date("2020-01-01") })));
-  });
-
+describe("funcionarios: gestão direta pelo dono (update/delete)", () => {
   it("dono atualiza permissões/status; não muda o donoUID", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       nome: "Leitor Renomeado",

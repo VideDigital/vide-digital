@@ -190,6 +190,7 @@ const resetEmployeePassword = onCall({ region: "southamerica-east1" }, async (re
 });
 
 module.exports = {
+  assertEmployeeLimit,
   capPermissionsToCaller,
   createEmployee,
   disableEmployee,
