@@ -245,8 +245,21 @@ async function main() {
         // (overflow-y: auto, app shell), não em window/document.
         const urlAntesDosFiltros = page.url();
 
+        // <main> não tem scroll-behavior:smooth (confirmado — nenhuma regra
+        // de CSS do app shell aplica isso a este elemento), então atribuir
+        // scrollTop é síncrono; o que não é síncrono é o layout do painel
+        // ficar alto o suficiente pra ser rolável logo após o
+        // ativarAba("view-produtos") acima. Um waitForTimeout(50) fixo
+        // apostava que o layout já tinha assentado nesse intervalo — flaky
+        // por natureza (falhava, e sempre com scrollAntesDoFiltro === 0,
+        // em pontos diferentes da CI real). Espera determinística pela
+        // condição observável real (scrollHeight > clientHeight) antes de
+        // medir, sem precisar de nenhuma pausa fixa depois.
+        await page.waitForFunction(() => {
+            const main = document.querySelector("main");
+            return !!main && main.scrollHeight > main.clientHeight;
+        }, { timeout: 5000 });
         await page.evaluate(() => { document.querySelector("main").scrollTop = 600; });
-        await page.waitForTimeout(50);
         const scrollAntesDoFiltro = await page.evaluate(() => document.querySelector("main").scrollTop);
         assert.ok(scrollAntesDoFiltro > 0, "Pré-condição: o painel precisa estar rolado antes do clique no filtro");
 
