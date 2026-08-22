@@ -781,6 +781,23 @@ describe("notificacoes: list() filtrado (mesma query do dashboard-app.js)", () =
   });
 });
 
+describe("notificacoes: funcionário desativado perde acesso (não só produtos/pedidos)", () => {
+  it("employeeInactive (donoUID=ownerA) não lê nem marca como lida a notificação do próprio tenant antigo", async () => {
+    // Achado da auditoria de beta: notificacaoVisivelPara() usava
+    // employeeExists() sem checar status — funcionarios nunca permite
+    // delete, então o vínculo nunca desaparecia e um ex-funcionário
+    // continuava lendo notificações do tenant pra sempre.
+    await assertFails(getDoc(doc(authed("employeeInactive"), "notificacoes", "notifOwnerA")));
+    await assertFails(updateDoc(doc(authed("employeeInactive"), "notificacoes", "notifOwnerA"), {
+      lidoPor: arrayUnion("employeeInactive")
+    }));
+  });
+
+  it("employeeRead (mesmo tenant, ativo) continua lendo normalmente", async () => {
+    await assertSucceeds(getDoc(doc(authed("employeeRead"), "notificacoes", "notifOwnerA")));
+  });
+});
+
 describe("notificacoes: marcar como lida/não lida sem Cloud Function", () => {
   it("destinatário marca a própria notificação (broadcast) como lida", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {

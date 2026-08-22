@@ -260,6 +260,7 @@ service cloud.firestore {
     // de UIDs específicos em destinatarios; nunca grava campo uid, mas a
     // regra aceita esse formato também por segurança futura.
     function notificacaoVisivelPara(dados) {
+      let emp = employeeExists() ? employeeDoc().data : null;
       return isBackendAdmin()
         || (dados.keys().hasAny(["destinatarios"]) && dados.destinatarios == "todos")
         || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios)
@@ -269,7 +270,12 @@ service cloud.firestore {
         // dono quanto pra funcionário, por isso o ramo acima
         // (request.auth.uid in destinatarios) só cobre o dono; funcionário
         // precisa comparar o donoUID do próprio cadastro, não o próprio uid.
-        || (dados.keys().hasAny(["destinatarios"]) && employeeExists() && employeeDoc().data.donoUID in dados.destinatarios)
+        // status == "ativo" é obrigatório aqui — sem essa checagem um
+        // funcionário desativado continuava lendo/marcando como lida
+        // qualquer notificação do tenant antigo pra sempre (funcionarios
+        // nunca permite delete, então o vínculo nunca desaparece sozinho).
+        || (dados.keys().hasAny(["destinatarios"]) && emp != null
+            && emp.status == "ativo" && emp.donoUID in dados.destinatarios)
         || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
     }
 
