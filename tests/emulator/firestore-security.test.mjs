@@ -813,6 +813,23 @@ describe("notificacoes: list() filtrado (mesma query do dashboard-app.js)", () =
   });
 });
 
+describe("notificacoes: funcionário desativado perde acesso (não só produtos/pedidos)", () => {
+  it("employeeInactive (donoUID=ownerA) não lê nem marca como lida a notificação do próprio tenant antigo", async () => {
+    // Achado da auditoria de beta: notificacaoVisivelPara() usava
+    // employeeExists() sem checar status — funcionarios nunca permite
+    // delete, então o vínculo nunca desaparecia e um ex-funcionário
+    // continuava lendo notificações do tenant pra sempre.
+    await assertFails(getDoc(doc(authed("employeeInactive"), "notificacoes", "notifOwnerA")));
+    await assertFails(updateDoc(doc(authed("employeeInactive"), "notificacoes", "notifOwnerA"), {
+      lidoPor: arrayUnion("employeeInactive")
+    }));
+  });
+
+  it("employeeRead (mesmo tenant, ativo) continua lendo normalmente", async () => {
+    await assertSucceeds(getDoc(doc(authed("employeeRead"), "notificacoes", "notifOwnerA")));
+  });
+});
+
 describe("notificacoes: marcar como lida/não lida sem Cloud Function", () => {
   it("destinatário marca a própria notificação (broadcast) como lida", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "notificacoes", "notifTodos"), {
@@ -1039,22 +1056,22 @@ function funcionarioValido(overrides = {}) {
   };
 }
 
-describe("funcionarios: gestão direta pelo dono (Spark)", () => {
-  it("dono cria funcionário válido do próprio tenant", async () => {
-    await assertSucceeds(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
-  });
-
-  it("dono não cria funcionário apontando para outro tenant nem para si mesmo", async () => {
+describe("funcionarios: criação só via Cloud Function createEmployee", () => {
+  it("nenhuma escrita direta de create passa, nem com payload perfeitamente válido", async () => {
+    // createEmployee (functions/src/employees/index.js) é quem checa o
+    // limite de funcionários do plano (assertEmployeeLimit) e cria a conta
+    // de Auth de forma atômica com o documento — nenhuma dessas duas coisas
+    // é reproduzível numa regra de create (que nunca consegue contar
+    // documentos existentes com segurança). Por isso a regra nega SEMPRE,
+    // mesmo para o dono certo com um payload que passaria em todas as
+    // validações de forma antigas.
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
     await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp2"), funcionarioValido({ donoUID: "ownerB" })));
     await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "ownerA"), funcionarioValido()));
   });
+});
 
-  it("rejeita status inicial diferente de ativo, campos extras e timestamp manual", async () => {
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp3"), funcionarioValido({ status: "inativo" })));
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp4"), funcionarioValido({ admin: true })));
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp5"), funcionarioValido({ criadoEm: new Date("2020-01-01") })));
-  });
-
+describe("funcionarios: gestão direta pelo dono (update/delete)", () => {
   it("dono atualiza permissões/status; não muda o donoUID", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       nome: "Leitor Renomeado",

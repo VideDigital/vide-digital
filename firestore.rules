@@ -260,6 +260,7 @@ service cloud.firestore {
     // de UIDs específicos em destinatarios; nunca grava campo uid, mas a
     // regra aceita esse formato também por segurança futura.
     function notificacaoVisivelPara(dados) {
+      let emp = employeeExists() ? employeeDoc().data : null;
       return isBackendAdmin()
         || (dados.keys().hasAny(["destinatarios"]) && dados.destinatarios == "todos")
         || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios)
@@ -269,7 +270,12 @@ service cloud.firestore {
         // dono quanto pra funcionário, por isso o ramo acima
         // (request.auth.uid in destinatarios) só cobre o dono; funcionário
         // precisa comparar o donoUID do próprio cadastro, não o próprio uid.
-        || (dados.keys().hasAny(["destinatarios"]) && employeeExists() && employeeDoc().data.donoUID in dados.destinatarios)
+        // status == "ativo" é obrigatório aqui — sem essa checagem um
+        // funcionário desativado continuava lendo/marcando como lida
+        // qualquer notificação do tenant antigo pra sempre (funcionarios
+        // nunca permite delete, então o vínculo nunca desaparece sozinho).
+        || (dados.keys().hasAny(["destinatarios"]) && emp != null
+            && emp.status == "ativo" && emp.donoUID in dados.destinatarios)
         || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
     }
 
@@ -1201,35 +1207,13 @@ service cloud.firestore {
           || employeeCanView(resource.data.donoUID, "funcionarios")
           || isBackendAdmin()
         );
-      // Modelo Spark (sem Cloud Functions): o DONO gerencia os próprios
-      // funcionários por escrita direta. A conta de Auth do funcionário é
-      // criada por um app Firebase secundário no navegador; aqui só se
-      // valida o documento de vínculo/permissões.
-      //
-      // Só o dono (nunca um funcionário, mesmo com edição de
-      // "funcionarios") — o "capping" de permissões que a antiga Cloud
-      // Function fazia (funcionário não conceder mais do que tem) não é
-      // reproduzível em regras com segurança equivalente; a alternativa
-      // segura é restringir a gestão ao dono do tenant.
-      allow create: if isBackendAdmin() || (
-        isOwner(request.resource.data.donoUID)
-        && request.auth.uid != employeeUid
-        && request.resource.data.keys().hasOnly([
-          "donoUID", "nome", "email", "cargo", "status",
-          "senhaTemporaria", "permissoes", "criadoEm", "criadoPorAuthUid"
-        ])
-        && request.resource.data.keys().hasAll(["donoUID", "nome", "email", "status", "permissoes", "criadoEm"])
-        && request.resource.data.nome is string
-        && request.resource.data.nome.size() >= 1
-        && request.resource.data.nome.size() <= 120
-        && request.resource.data.email is string
-        && request.resource.data.email.size() <= 160
-        && request.resource.data.status == "ativo"
-        && employeeHasPermissionShape(request.resource.data)
-        && request.resource.data.criadoEm == request.time
-        && (!request.resource.data.keys().hasAny(["criadoPorAuthUid"]) || request.resource.data.criadoPorAuthUid == request.auth.uid)
-        && (!request.resource.data.keys().hasAny(["cargo"]) || (request.resource.data.cargo is string && request.resource.data.cargo.size() <= 120))
-      );
+      // Criação só via Cloud Function createEmployee (Admin SDK, nunca
+      // passa por esta regra) — é o único lugar que sabe checar o limite
+      // de funcionários do plano (assertEmployeeLimit) e criar a conta de
+      // Auth de forma atômica com o documento. Uma regra de create nunca
+      // consegue contar documentos existentes com segurança, então
+      // permitir escrita direta aqui sempre reabriria o bypass do limite.
+      allow create: if false;
       allow update: if isBackendAdmin() || (
         isOwner(resource.data.donoUID)
         && request.auth.uid != employeeUid

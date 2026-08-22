@@ -750,20 +750,19 @@ input:focus-visible, select:focus-visible, textarea:focus-visible {
 
 import { onAuthStateChanged, signOut, setPersistence, browserSessionPersistence } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
 import { collection, getDocs, doc, getDoc, setDoc, updateDoc, deleteDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { VideFunctions } from "./core/vide-functions.js";
 
-        // ===== Operações administrativas no plano Spark (sem Cloud Functions) =====
-        // Status e plano são escritas diretas em usuarios/{uid}; as regras do
-        // Firestore só as aceitam de quem possui a claim videAdmin (concedida
-        // uma única vez pelo dono da plataforma via scripts/set-admin-claim.mjs,
-        // rodado localmente com Admin SDK — ver docs/FIREBASE_SPARK_ARCHITECTURE.md).
+        // ===== Operações administrativas =====
+        // Status da loja passa pela Callable adminUpdateStoreStatus (não por
+        // escrita direta): bloquear/rejeitar uma loja também precisa desabilitar
+        // a conta no Auth e revogar os refresh tokens, e só o Admin SDK
+        // (rodando na Function) consegue fazer isso — Firestore Rules não têm
+        // esse poder. Plano continua escrita direta: não desliga acesso, só
+        // Firestore sabe validar (claim videAdmin).
         const STATUS_LOJA_VALIDOS = new Set(["pendente", "aprovado", "rejeitado", "inativo"]);
         async function adminAtualizarStatusLoja(uid, status) {
             if (!uid || !STATUS_LOJA_VALIDOS.has(status)) throw new Error("Status inválido.");
-            await setDoc(doc(db, "usuarios", uid), {
-                status,
-                statusAtualizadoEm: serverTimestamp(),
-                statusAtualizadoPor: auth.currentUser?.uid || ""
-            }, { merge: true });
+            await VideFunctions.adminUpdateStoreStatus({ uid, status });
         }
         async function adminAtualizarPlanoLoja(uid, { plano, featuresManuais, anotacaoAdmin }) {
             if (!uid || !plano) throw new Error("Plano inválido.");
