@@ -78,9 +78,9 @@ async function main() {
             senha: "Local123!pro"
         });
 
-        // A) Carga real: os dois produtos do tenant aparecem, cabeçalho e
-        // Central Inteligente concordam entre si (nunca "2 Ativos" no
-        // cabeçalho com "0 produtos visíveis" na Central).
+        // A) Produtos e Catálogo são views distintas, com a mesma permissão e
+        // o mesmo workspace/dados. Começamos na gestão operacional.
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
         await page.waitForSelector(
             "#produtos-container .aura-commerce-card",
             { state: "visible", timeout: 20000 }
@@ -110,6 +110,18 @@ async function main() {
             `Cabeçalho deveria mostrar 2 Ativo(s), veio: "${contadorInicial}"`
         );
 
+        assert.equal(await page.locator("#view-produtos .aura-product-toolbar").isVisible(), true);
+        assert.equal(await page.locator("#view-produtos .btn-gerenciar").first().isVisible(), true);
+
+        const idsNaGestao = await page.$$eval("#produtos-container .aura-commerce-card", cards => cards.map(card => card.dataset.produtoId).sort());
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-catalogo")), true);
+        await page.waitForSelector("#view-catalogo #catalogo-busca", { state: "visible", timeout: 15000 });
+        await page.waitForFunction(() => document.querySelectorAll("#produtos-container .aura-commerce-card").length === 2);
+        const idsNoCatalogo = await page.$$eval("#produtos-container .aura-commerce-card", cards => cards.map(card => card.dataset.produtoId).sort());
+        assert.deepEqual(idsNoCatalogo, idsNaGestao, "Produtos e Catálogo devem reutilizar exatamente a mesma fonte de dados");
+        assert.equal(await page.locator("#view-catalogo .btn-gerenciar").first().isVisible(), false, "Catálogo deve ser somente leitura");
+        assert.equal(await page.locator("#catalogo-selection-toggle").isVisible(), false, "Catálogo não deve expor seleção em massa");
+
         const resumoTotalInicial = await page.textContent("#catalogo-resumo-total");
         assert.equal(
             (resumoTotalInicial || "").trim(),
@@ -135,6 +147,20 @@ async function main() {
         // Campo de busca deve começar vazio — nunca pré-preenchido.
         const valorBuscaInicial = await page.inputValue("#catalogo-busca");
         assert.equal(valorBuscaInicial, "", "O campo de busca deveria começar vazio");
+        const semanticaBusca = await page.locator("#catalogo-busca").evaluate(campo => ({
+            type: campo.type,
+            name: campo.name,
+            role: campo.getAttribute("role"),
+            autocomplete: campo.getAttribute("autocomplete"),
+            ariaLabel: campo.getAttribute("aria-label")
+        }));
+        assert.deepEqual(semanticaBusca, {
+            type: "search",
+            name: "catalog_search_query",
+            role: "searchbox",
+            autocomplete: "off",
+            ariaLabel: "Buscar produtos no catálogo"
+        });
 
         // B) Autofill: simula o navegador/gerenciador de senhas preenchendo
         // o campo com o e-mail autenticado, SEM nenhum evento de teclado
@@ -205,6 +231,13 @@ async function main() {
             const total = document.getElementById("catalogo-resumo-total");
             return total && total.textContent.trim() === "2";
         }, { timeout: 5000 });
+
+        // Voltar à gestão operacional limpa a busca analítica e restaura os
+        // controles de CRUD, sem criar outro conjunto de cards.
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
+        await page.waitForSelector("#view-produtos .aura-product-toolbar", { state: "visible", timeout: 10000 });
+        assert.equal(await page.inputValue("#catalogo-busca"), "");
+        assert.equal(await page.locator("#catalogo-selection-toggle").isVisible(), true);
 
         // C) Filtros: nunca navegam, nunca mudam URL/hash, nunca jogam a
         // página pro topo — e o resultado é imediato (sem nova leitura ao
@@ -281,13 +314,21 @@ async function main() {
         assert.equal(await page.getAttribute("#filtro-digitais", "aria-pressed"), "false");
         assert.equal(await page.getAttribute("#filtro-fisicos", "aria-pressed"), "false");
 
-        // Uma busca textual ativa nao pode atravessar silenciosamente a troca
-        // para Rascunhos e esconder o unico item daquela aba.
+        // Uma busca textual do Catálogo não pode atravessar silenciosamente a
+        // navegação para Produtos nem esconder o único rascunho físico.
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-catalogo")), true);
+        await page.waitForSelector("#catalogo-busca", { state: "visible", timeout: 10000 });
         await page.fill("#catalogo-busca", "Produto Digital Local");
         await page.waitForFunction(() => {
             const total = document.getElementById("catalogo-resumo-total");
             return total && total.textContent.trim() === "1";
         }, { timeout: 5000 });
+
+        // Voltar à gestão operacional limpa novamente a busca analítica.
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
+        await page.waitForSelector("#view-produtos .aura-product-toolbar", { state: "visible", timeout: 10000 });
+        assert.equal(await page.inputValue("#catalogo-busca"), "");
+        assert.equal(await page.locator("#catalogo-selection-toggle").isVisible(), true);
 
         await page.evaluate(() => document.getElementById("filtro-rascunhos").click());
         await page.waitForFunction(() => {
@@ -312,12 +353,59 @@ async function main() {
         assert.equal(await page.getAttribute("#filtro-todos", "aria-pressed"), "true");
         assert.equal(await page.getAttribute("#filtro-rascunhos", "aria-pressed"), "false");
 
-        // D) Navegação: sair da view e voltar não deve duplicar listeners
-        // nem deixar o catálogo em loading infinito.
-        await page.evaluate(() => window.carregarProdutos && window.carregarProdutos());
+        // D) Produtos → Catálogo → Produtos: o workspace é único, a busca
+        // não atravessa views e um único input dispara um único listener.
+        const idsAntesDaNavegacao = await page.$$eval("#produtos-container .aura-commerce-card", cards => cards.map(card => card.dataset.produtoId).sort());
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-catalogo")), true);
         await page.waitForFunction(() => {
             return document.querySelectorAll("#produtos-container .aura-commerce-card").length === 2;
         }, { timeout: 15000 });
+        assert.equal(await page.inputValue("#catalogo-busca"), "");
+        assert.equal(await page.locator("#produtos-workspace").count(), 1, "Não pode existir workspace duplicado");
+        const idsDepoisDaNavegacao = await page.$$eval("#produtos-container .aura-commerce-card", cards => cards.map(card => card.dataset.produtoId).sort());
+        assert.deepEqual(idsDepoisDaNavegacao, idsAntesDaNavegacao);
+
+        await page.waitForTimeout(250);
+        await page.evaluate(() => {
+            const original = window.aplicarFerramentasCatalogo;
+            window.__catalogoAplicacoesPorInput = 0;
+            window.aplicarFerramentasCatalogo = (...args) => {
+                window.__catalogoAplicacoesPorInput += 1;
+                return original(...args);
+            };
+            const campo = document.getElementById("catalogo-busca");
+            campo.value = "Produto";
+            campo.dispatchEvent(new Event("input", { bubbles: true }));
+        });
+        await page.waitForTimeout(250);
+        assert.equal(await page.evaluate(() => window.__catalogoAplicacoesPorInput), 1, "A busca deve ter somente um listener ativo");
+
+        // Um autofill indevido não pode ser restaurado por troca de view.
+        await page.evaluate(() => {
+            document.getElementById("catalogo-busca").value = "owner.pro@local.test";
+            window.ativarAba("view-produtos");
+            window.ativarAba("view-catalogo");
+        });
+        await page.waitForFunction(() => document.getElementById("catalogo-busca")?.value === "");
+
+        // Recarga real: a sessão permanece autenticada e o Catálogo volta com
+        // busca vazia, sem recuperar e-mail ou termo anterior.
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => window.__videHubContextInitialized?.() === true, null, { timeout: 20000 });
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-catalogo")), true);
+        await page.waitForSelector("#view-catalogo #catalogo-busca", { state: "visible", timeout: 15000 });
+        assert.equal(await page.inputValue("#catalogo-busca"), "", "A recarga não deve restaurar autofill ou busca anterior");
+        await page.waitForFunction(() => document.querySelectorAll("#produtos-container .aura-commerce-card").length === 2, null, { timeout: 15000 });
+
+        await page.setViewportSize({ width: 390, height: 844 });
+        const overflowCatalogoMobile = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
+        assert.ok(overflowCatalogoMobile <= 1, `Catálogo não deve criar overflow horizontal no mobile (${overflowCatalogoMobile}px)`);
+        assert.equal(await page.locator("#view-catalogo #catalogo-busca").isVisible(), true);
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
+        assert.equal(await page.locator("#view-produtos .aura-product-toolbar").isVisible(), true);
+        const colunasProdutosMobile = await page.locator("#produtos-container").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
+        assert.equal(colunasProdutosMobile, 1, "Produtos deve usar uma coluna no mobile");
+        await page.setViewportSize({ width: 1440, height: 900 });
 
         const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
         assert.deepEqual(
@@ -329,7 +417,7 @@ async function main() {
         console.log(
             "produtos.flow: OK — carga real, autofill de e-mail neutralizado, " +
             "busca real preservada, mensagens de estado vazio corretas, " +
-            "filtros sem navegação/salto de scroll, sem erros de console."
+            "views Produtos/Catálogo separadas, listener único e recarga segura."
         );
     } catch (error) {
         falhou = true;

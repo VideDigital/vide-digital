@@ -83,6 +83,65 @@ async function resolvePublicTenant(data) {
   throw new HttpsError("invalid-argument", "Identificador público da loja ou LP é obrigatório.");
 }
 
+const TIPOS_CAPTURA = new Set(["checkout_whatsapp", "clique_produto", "formulario_popup", "interesse"]);
+
+function clampNumber(value, min, max) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return min;
+  return Math.max(min, Math.min(max, n));
+}
+
+// Mesma forma/limites de normalizarItensPedidoPublico() em loja.html — o
+// preço aqui é só o que o cliente afirma que pagou (precoSnapshot), NUNCA
+// revalidado contra o preço real do produto no servidor. Isso não é novo
+// desta migração: o caminho anterior (escrita direta no Firestore) também
+// nunca validava preço. Endurecer isso de verdade (recalcular a partir de
+// produtos/{id} no servidor) é validação de pedido/checkout, escopo maior
+// que "dar rate limit ao lead público" — ver docs/KNOWN_LIMITATIONS.md.
+function sanitizeOrderItem(item, index) {
+  const quantidade = Math.round(clampNumber(item?.quantidade, 1, 999));
+  const preco = clampNumber(item?.precoSnapshot ?? item?.preco, 0, 1000000);
+  return {
+    produtoId: publicText(item?.produtoId || item?.id || `item_${index + 1}`, 180),
+    nomeSnapshot: publicText(item?.nomeSnapshot || item?.nome || "Produto", 160) || "Produto",
+    precoSnapshot: preco,
+    quantidade,
+    subtotal: preco * quantidade
+  };
+}
+
+function sanitizeOrderSnapshot(bruto, data) {
+  if (!bruto || typeof bruto !== "object") return null;
+  const itens = (Array.isArray(bruto.itens) ? bruto.itens : []).slice(0, 20).map(sanitizeOrderItem);
+  const subtotalCalculado = itens.reduce((total, item) => total + item.subtotal, 0);
+  const desconto = clampNumber(bruto.desconto, 0, 1000000);
+  const frete = clampNumber(bruto.frete, 0, 1000000);
+  const totalInformado = clampNumber(bruto.total, 0, 1000000);
+  const total = totalInformado > 0 ? totalInformado : Math.max(0, subtotalCalculado - desconto + frete);
+  return {
+    numeroPedido: publicText(bruto.numeroPedido || data?.numeroPedido, 80),
+    clienteNome: publicText(bruto.clienteNome || data?.nome, 120),
+    clienteWhatsapp: publicText(bruto.clienteWhatsapp || data?.whatsapp || data?.telefone, 40),
+    tipoRecebimento: bruto.tipoRecebimento === "entrega" ? "entrega" : "retirada",
+    cep: publicText(bruto.cep, 20),
+    endereco: publicText(bruto.endereco, 220),
+    observacoes: publicText(bruto.observacoes, 500),
+    itens,
+    produtosTexto: publicText(
+      bruto.produtosTexto || itens.map((item) => `${item.quantidade}x ${item.nomeSnapshot}`).join(", "),
+      2000
+    ),
+    subtotal: subtotalCalculado,
+    desconto,
+    frete,
+    total,
+    moeda: "BRL",
+    statusPedido: "novo",
+    statusPagamento: "pendente",
+    criadoEm: Date.now()
+  };
+}
+
 function leadPayload(data, tenant) {
   const nome = publicText(data?.nome || data?.name, 120);
   const whatsapp = normalizePhone(data?.whatsapp || data?.telefone || data?.phone);
@@ -90,17 +149,27 @@ function leadPayload(data, tenant) {
   if (!nome && !whatsapp && !email) {
     throw new HttpsError("invalid-argument", "Informe ao menos um dado de contato.");
   }
-  return {
+
+  const tipoCaptura = TIPOS_CAPTURA.has(data?.tipoCaptura) ? data.tipoCaptura : "interesse";
+  const pedidoSnapshot = sanitizeOrderSnapshot(data?.pedidoSnapshot, data);
+
+  const payload = {
     criadoPor: tenant.ownerUid,
+    tenantId: tenant.ownerUid,
+    lojaId: tenant.ownerUid,
     nome,
     whatsapp,
     telefone: whatsapp,
     email,
     origem: publicText(data?.origem || data?.utmSource || "Público", 120),
     produtoInteresse: publicText(data?.produtoInteresse || tenant.page?.titulo || tenant.store?.nomeLoja || "Interesse geral", 160),
+    produtoId: publicText(data?.produtoId, 180),
     statusLead: "novo",
     status: "novo",
+    pipelineStage: "novo",
     prioridadeLead: "normal",
+    canal: "loja_publica",
+    tipoCaptura,
     paginaOrigem: publicText(data?.paginaOrigem || data?.pageSlug || "", 160),
     lojaOrigem: tenant.storeSlug || publicText(data?.lojaOrigem || "", 160),
     blocoOrigem: publicText(data?.blocoOrigem || data?.blockId || "", 160),
@@ -113,18 +182,53 @@ function leadPayload(data, tenant) {
     utmCampaign: publicText(data?.utmCampaign || "", 120),
     utmContent: publicText(data?.utmContent || "", 120),
     utmTerm: publicText(data?.utmTerm || "", 120),
-    sessionId: publicText(data?.sessionId || "", 120),
+    sessionId: publicText(data?.sessionId || data?.sessaoId || "", 120),
     visitorId: publicText(data?.visitorId || "", 120),
+    dedupeKey: publicText(data?.dedupeKey || "", 200),
+    cliques: Math.round(clampNumber(data?.cliques, 0, 10000)),
+    tempoRetencao: Math.round(clampNumber(data?.tempoRetencao, 0, 86400)),
     consentimentoContato: data?.consentimentoContato !== false,
     data: Date.now(),
     criadoEm: FieldValue.serverTimestamp(),
     capturadoEmBackend: FieldValue.serverTimestamp(),
     versaoCaptura: publicText(data?.versaoCaptura || "function-v1", 40)
   };
+
+  if (pedidoSnapshot) {
+    const numeroPedido = pedidoSnapshot.numeroPedido || publicText(data?.pedidoId, 100);
+    Object.assign(payload, {
+      tipoRegistro: "pedido",
+      pedidoId: numeroPedido,
+      numeroPedido,
+      pedidoStatus: "novo",
+      pagamentoStatus: "pendente",
+      pedidoCriadoEm: Date.now(),
+      pedidoAtualizadoEm: Date.now(),
+      pedidoSnapshot,
+      pedidoHistorico: [{
+        titulo: "Pedido registrado na loja",
+        detalhe: `${pedidoSnapshot.produtosTexto} · ${pedidoSnapshot.total}`,
+        timestamp: Date.now(),
+        autorNome: "Loja online"
+      }],
+      valorOportunidade: pedidoSnapshot.total,
+      probabilidade: 70
+    });
+  }
+
+  return payload;
 }
 
-const createPublicLead = onCall(publicOptions, async (request) => {
+// enforceAppCheck: false — publicOptions liga isso em produção, mas
+// loja.html (nem nenhuma outra página pública) chama initializeAppCheck().
+// Herdar o padrão faria toda chamada real cair com "unauthenticated" antes
+// de rodar — mesmo bug já documentado e corrigido em askPublicBusinessAI
+// (functions/src/ai/index.js). A mitigação de abuso real aqui é o rate
+// limit por IP (assertPublicRateLimit abaixo), igual às outras Functions
+// públicas.
+const createPublicLead = onCall({ ...publicOptions, enforceAppCheck: false }, async (request) => {
   await assertPublicRateLimit(request, "createPublicLead", RATE_LIMITS.createPublicLead);
+  assertReasonablePayloadSize(request.data);
   const tenant = await resolvePublicTenant(request.data || {});
   const payload = leadPayload(request.data || {}, tenant);
   const ref = await getFirestore().collection("leads").add(payload);
@@ -302,7 +406,9 @@ module.exports = {
   resolvePublicTenant,
   publicOptions,
   // Funções puras exportadas só para teste unitário direto (sem emulador)
-  // de tests/functions/public-review.test.mjs.
+  // de tests/functions/public-lead.test.mjs e tests/functions/public-review.test.mjs.
+  leadPayload,
+  sanitizeOrderSnapshot,
   reviewPayload,
   assertReasonablePayloadSize
 };

@@ -583,14 +583,54 @@ describe("ia_negocio_uso: contador de uso mensal (só leitura, nunca escrita do 
 });
 
 describe("public writes", () => {
-  it("público lê vitrine e só escreve leads/métricas válidos", async () => {
+  it("público lê vitrine e só escreve métricas válidas — lead público não escreve mais direto no Firestore", async () => {
     await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-a")));
     await assertFails(updateDoc(doc(anon(), "vitrines_publicas", "loja-a"), { donoUID: "attacker" }));
-    await assertSucceeds(setDoc(doc(anon(), "leads", "leadX"), { criadoPor: "ownerA", status: "novo" }));
+    // Captura pública de lead migrou para a Cloud Function createPublicLead
+    // (Admin SDK, nunca passa pelas Rules) — o cliente público não escreve
+    // mais direto em leads/{id}, nem com um payload "válido" no formato antigo.
+    await assertFails(setDoc(doc(anon(), "leads", "leadX"), { criadoPor: "ownerA", status: "novo" }));
     await assertFails(setDoc(doc(anon(), "leads", "leadAdmin"), { criadoPor: "ownerA", status: "convertido" }));
     await assertSucceeds(setDoc(doc(anon(), "metricas_produtos", "prodA"), { visualizacoes: 1 }));
     await assertFails(setDoc(doc(anon(), "metricas_produtos", "prodA"), { visualizacoes: 1, criadoPor: "attacker" }));
     await assertFails(setDoc(doc(anon(), "chats", "chatX"), { donoUID: "ownerA" }));
+  });
+
+  it("dono/funcionário com permissão continuam cadastrando lead manualmente pelo painel", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadManualOwner"), { criadoPor: "ownerA", status: "novo" }));
+    await assertFails(setDoc(doc(authed("ownerB"), "leads", "leadManualCrossTenant"), { criadoPor: "ownerA", status: "novo" }));
+  });
+});
+
+describe("vitrines_publicas: list() não enumera todas as lojas da plataforma", () => {
+  before(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("vitrines_publicas/loja-b").set({
+        donoUID: "ownerB", emailDono: "ownerB@local.test", nomeLoja: "Loja B"
+      });
+    });
+  });
+
+  it("visitante anônimo não lista o catálogo de lojas (sem where nenhum)", async () => {
+    // Antes da correção, allow read: if true cobria list() sem nenhuma
+    // restrição — um getDocs(collection(db,"vitrines_publicas")) sem where
+    // devolvia donoUID e emailDono de TODA loja da plataforma de uma vez.
+    // Nenhum código legítimo do frontend faz isso (loja.html só usa getDoc
+    // por slug conhecido) — por isso list() agora é sempre negado.
+    await assertFails(getDocs(collection(anon(), "vitrines_publicas")));
+  });
+
+  it("visitante anônimo não lista nem filtrando por um campo", async () => {
+    await assertFails(getDocs(query(collection(anon(), "vitrines_publicas"), where("donoUID", "==", "ownerA"))));
+  });
+
+  it("dono autenticado também não lista a coleção inteira", async () => {
+    await assertFails(getDocs(collection(authed("ownerA"), "vitrines_publicas")));
+  });
+
+  it("visitante anônimo continua conseguindo abrir uma loja conhecida por slug (get, não list)", async () => {
+    await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-a")));
+    await assertSucceeds(getDoc(doc(anon(), "vitrines_publicas", "loja-b")));
   });
 });
 
@@ -752,6 +792,23 @@ describe("notificacoes: list() filtrado (mesma query do dashboard-app.js)", () =
 
   it("visitante anônimo não lista nada", async () => {
     await assertFails(getDocs(notifQuery(anon(), "ownerA")));
+  });
+});
+
+describe("notificacoes: funcionário desativado perde acesso (não só produtos/pedidos)", () => {
+  it("employeeInactive (donoUID=ownerA) não lê nem marca como lida a notificação do próprio tenant antigo", async () => {
+    // Achado da auditoria de beta: notificacaoVisivelPara() usava
+    // employeeExists() sem checar status — funcionarios nunca permite
+    // delete, então o vínculo nunca desaparecia e um ex-funcionário
+    // continuava lendo notificações do tenant pra sempre.
+    await assertFails(getDoc(doc(authed("employeeInactive"), "notificacoes", "notifOwnerA")));
+    await assertFails(updateDoc(doc(authed("employeeInactive"), "notificacoes", "notifOwnerA"), {
+      lidoPor: arrayUnion("employeeInactive")
+    }));
+  });
+
+  it("employeeRead (mesmo tenant, ativo) continua lendo normalmente", async () => {
+    await assertSucceeds(getDoc(doc(authed("employeeRead"), "notificacoes", "notifOwnerA")));
   });
 });
 
@@ -981,22 +1038,22 @@ function funcionarioValido(overrides = {}) {
   };
 }
 
-describe("funcionarios: gestão direta pelo dono (Spark)", () => {
-  it("dono cria funcionário válido do próprio tenant", async () => {
-    await assertSucceeds(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
-  });
-
-  it("dono não cria funcionário apontando para outro tenant nem para si mesmo", async () => {
+describe("funcionarios: criação só via Cloud Function createEmployee", () => {
+  it("nenhuma escrita direta de create passa, nem com payload perfeitamente válido", async () => {
+    // createEmployee (functions/src/employees/index.js) é quem checa o
+    // limite de funcionários do plano (assertEmployeeLimit) e cria a conta
+    // de Auth de forma atômica com o documento — nenhuma dessas duas coisas
+    // é reproduzível numa regra de create (que nunca consegue contar
+    // documentos existentes com segurança). Por isso a regra nega SEMPRE,
+    // mesmo para o dono certo com um payload que passaria em todas as
+    // validações de forma antigas.
+    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp1"), funcionarioValido()));
     await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp2"), funcionarioValido({ donoUID: "ownerB" })));
     await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "ownerA"), funcionarioValido()));
   });
+});
 
-  it("rejeita status inicial diferente de ativo, campos extras e timestamp manual", async () => {
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp3"), funcionarioValido({ status: "inativo" })));
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp4"), funcionarioValido({ admin: true })));
-    await assertFails(setDoc(doc(authed("ownerA"), "funcionarios", "novoEmp5"), funcionarioValido({ criadoEm: new Date("2020-01-01") })));
-  });
-
+describe("funcionarios: gestão direta pelo dono (update/delete)", () => {
   it("dono atualiza permissões/status; não muda o donoUID", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       nome: "Leitor Renomeado",
