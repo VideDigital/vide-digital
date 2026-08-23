@@ -45,8 +45,26 @@
     const firebaseInit = await import(base + "firebase-init.js");
     const { doc, getDoc, getDocs, setDoc, collection, query, where, increment } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
+
+    // Mesmo padrão de loja.html/lp-forms-v5.js (obterCreatePublicLeadCallable):
+    // getFunctions() é cacheado pelo próprio SDK, só o guard do emulador
+    // precisa ser manual.
+    let createPublicLeadCallable = null;
+    function obterCreatePublicLeadCallable() {
+        if (createPublicLeadCallable) {
+            return createPublicLeadCallable;
+        }
+        const functionsInstance = getFunctions(firebaseInit.app, "southamerica-east1");
+        if (firebaseInit.shouldUseVideEmulators() && !window.__videPublicFunctionsEmulatorConnected) {
+            connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+            window.__videPublicFunctionsEmulatorConnected = true;
+        }
+        createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
+        return createPublicLeadCallable;
+    }
 
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
     var segmentos = caminho.split("/").filter(Boolean);
@@ -141,22 +159,39 @@ executarScriptsEmElemento(container);
         }, { threshold: 0.15 });
         alvos.forEach(el => observador.observe(el));
     }
+    // Handler de fallback: enquanto lp-forms-v5.js (carregado como módulo
+    // assíncrono, ver final do arquivo) ainda não terminou de anexar seu
+    // listener de submit em captura, este onsubmit inline continua sendo o
+    // único caminho real pro bloco "formulario_captura" legado renderizado
+    // acima. Por isso não escreve mais direto no Firestore: chama
+    // createPublicLead (Cloud Function), que resolve o tenant real no
+    // servidor a partir de publicPageId — visitante nunca controla
+    // criadoPor. Ver functions/src/public/index.js.
     window.enviarFormularioLP = async function(event) {
         event.preventDefault();
         const form = event.target;
         const dados = {};
         form.querySelectorAll("input").forEach(inp => { dados[inp.placeholder] = inp.value.trim(); });
         if (!dados.nome && !dados.whatsapp && !dados.email) return false;
+        if (!window.lpPublicPageIdAtual) {
+            form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Esta página ainda não está vinculada a uma loja publicada.</p>';
+            return false;
+        }
         try {
-            await setDoc(doc(db, "leads", `lead_lp_${Date.now()}`), {
-                criadoPor: window.lpDonoUIDAtual || "",
+            const createPublicLeadCallable = obterCreatePublicLeadCallable();
+            await createPublicLeadCallable({
+                publicPageId: window.lpPublicPageIdAtual,
                 nome: dados.nome || "",
                 whatsapp: dados.whatsapp || "",
+                telefone: dados.whatsapp || "",
                 email: dados.email || "",
                 origem: "Landing Page",
                 produtoInteresse: document.title || "Landing Page",
-                cliques: 0,
-                data: Date.now()
+                formularioId: "captura_lp_legado",
+                formularioNome: "Captura pública (LP legado)",
+                urlPagina: window.location.href,
+                referrer: document.referrer || "",
+                cliques: 0
             });
             form.innerHTML = '<p class="text-center text-white font-bold py-4">Recebemos seus dados! Em breve entraremos em contato.</p>';
         } catch (err) {
@@ -175,6 +210,7 @@ executarScriptsEmElemento(container);
                 return;
             }
             const meta = metaSnap.data();
+            window.lpPublicPageIdAtual = docId;
             window.lpDonoUIDAtual = meta.donoUID || null;
             document.title = meta.titulo || "Vide Hub";
             container.className = "min-h-screen";

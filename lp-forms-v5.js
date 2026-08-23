@@ -3,13 +3,16 @@
  * Captura segura, UTM, scoring inicial, anti-spam e metadados de conversão.
  * Versão 5.0.0
  */
-import { db } from "./firebase-init.js";
+import { app, db, shouldUseVideEmulators } from "./firebase-init.js";
 import {
     doc,
-    getDoc,
-    collection,
-    setDoc
+    getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+    connectFunctionsEmulator,
+    getFunctions,
+    httpsCallable
+} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
 
 const VERSION = "5.0.0";
 const SESSION_KEY = "aura_form_v5_session";
@@ -164,29 +167,6 @@ function readAttribution() {
     return current;
 }
 
-function computeInitialScore(payload) {
-    let score = 0;
-
-    if (payload.whatsapp.length >= 12) score += 25;
-    if (payload.email.includes("@")) score += 14;
-    if (payload.nome.length >= 3) score += 10;
-    if (payload.produtoInteresse) score += 12;
-    if (payload.utmSource) score += 7;
-    if (payload.utmCampaign) score += 7;
-    if (payload.cliques >= 2) score += 8;
-    if (payload.cliques >= 5) score += 5;
-    if (payload.tempoRetencao >= 30) score += 7;
-    if (payload.tempoRetencao >= 90) score += 5;
-
-    return Math.max(0, Math.min(100, Math.round(score)));
-}
-
-function temperatureFor(score) {
-    if (score >= 75) return "hot";
-    if (score >= 45) return "warm";
-    return "cold";
-}
-
 async function loadPageMeta() {
     if (state.meta) {
         return state.meta;
@@ -213,6 +193,25 @@ async function loadPageMeta() {
     }
 
     return null;
+}
+
+// Mesmo padrão de loja.html (obterCreatePublicLeadCallable): getFunctions()
+// é cacheado pelo próprio SDK, só o guard do emulador precisa ser manual.
+let createPublicLeadCallable = null;
+function obterCreatePublicLeadCallable() {
+    if (createPublicLeadCallable) {
+        return createPublicLeadCallable;
+    }
+
+    const functionsInstance = getFunctions(app, "southamerica-east1");
+
+    if (shouldUseVideEmulators() && !window.__videPublicFunctionsEmulatorConnected) {
+        connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+        window.__videPublicFunctionsEmulatorConnected = true;
+    }
+
+    createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
+    return createPublicLeadCallable;
 }
 
 function addHoneypot(form) {
@@ -290,6 +289,22 @@ function getFieldValue(form, names) {
         if (fuzzy && "value" in fuzzy && String(fuzzy.value || "").trim()) {
             return String(fuzzy.value).trim();
         }
+
+        // Fallback pro bloco legado "formulario_captura" (renderizado
+        // inline por index.html): <input placeholder="nome">, sem name
+        // nem id nenhum. Sem isto, AuraFormsV5 nunca lia os campos do
+        // único bloco de captura hoje conectado a uma página pública real
+        // (ver docs/STUDIO_BLOCK_REGISTRY.md) — todo envio caía em
+        // "Preencha pelo menos um dado de contato", mesmo com os campos
+        // visíveis preenchidos.
+        const porPlaceholder = Array.from(form.elements).find((field) => {
+            const placeholder = String(field.placeholder || "").toLowerCase();
+            return placeholder.includes(name.toLowerCase());
+        });
+
+        if (porPlaceholder && "value" in porPlaceholder && String(porPlaceholder.value || "").trim()) {
+            return String(porPlaceholder.value).trim();
+        }
     }
 
     return "";
@@ -349,8 +364,12 @@ function serializeExtraFields(form) {
     return output;
 }
 
-async function buildPayload(form) {
-    const meta = await loadPageMeta();
+// Monta o request pra createPublicLead (Cloud Function) — não escreve mais
+// direto no Firestore. tenant (ownerUid) nunca é enviado pelo cliente: a
+// Function resolve o dono real no servidor a partir de publicPageId
+// (landing_pages_publicas/{lojaSlug}__{paginaSlug}), a mesma leitura pública
+// que loadPageMeta() já fazia — visitante nunca controla criadoPor/tenantId.
+function buildLeadRequest(form, meta) {
     const attribution = readAttribution();
     const nome = getFieldValue(form, ["nome", "name"]);
     const whatsapp = normalizePhone(getFieldValue(form, ["whatsapp", "telefone", "phone"]));
@@ -367,19 +386,16 @@ async function buildPayload(form) {
         form.closest("[data-aura-block-id]")?.dataset.auraBlockId ||
         form.id ||
         "captura_geral";
-    const createdAt = Date.now();
     const tempoRetencao = Math.max(0, Math.round((Date.now() - state.startedAt) / 1000));
-    const base = {
-        criadoPor: meta?.donoUID || meta?.criadoPor || form.dataset.ownerUid || "",
+
+    return {
+        publicPageId: meta.id,
         nome,
         whatsapp,
         telefone: whatsapp,
         email,
         origem: attribution.utmSource || form.dataset.origem || "Landing Page",
         produtoInteresse,
-        statusLead: form.dataset.status || "novo",
-        status: form.dataset.status || "novo",
-        prioridadeLead: form.dataset.prioridade || "normal",
         paginaOrigem: state.route.paginaSlug,
         lojaOrigem: state.route.lojaSlug,
         blocoOrigem: form.dataset.blockId || "",
@@ -387,56 +403,24 @@ async function buildPayload(form) {
         formularioNome: form.dataset.formName || form.getAttribute("aria-label") || formId,
         urlPagina: window.location.href,
         referrer: document.referrer || "",
-        data: createdAt,
-        criadoEm: createdAt,
-        capturadoEmCliente: new Date().toISOString(),
         sessionId: state.sessionId,
         visitorId: state.visitorId,
-        visitanteRecorrente: localStorage.getItem(VISITOR_KEY) === state.visitorId,
         tempoRetencao,
         cliques: state.clicks,
-        dispositivo: getDevice(),
-        viewportLargura: window.innerWidth,
-        viewportAltura: window.innerHeight,
-        idioma: navigator.language || "pt-BR",
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "",
         utmSource: attribution.utmSource,
         utmMedium: attribution.utmMedium,
         utmCampaign: attribution.utmCampaign,
         utmContent: attribution.utmContent,
         utmTerm: attribution.utmTerm,
-        utm_source: attribution.utmSource,
-        utm_medium: attribution.utmMedium,
-        utm_campaign: attribution.utmCampaign,
         gclid: attribution.gclid,
         fbclid: attribution.fbclid,
-        firstReferrer: attribution.firstReferrer,
-        landingURL: attribution.landingURL,
         camposExtras: serializeExtraFields(form),
         consentimentoContato: true,
-        consentimentoEm: createdAt,
         versaoCaptura: VERSION
     };
-    const score = computeInitialScore(base);
-
-    return {
-        ...base,
-        leadScore: score,
-        temperaturaLead: temperatureFor(score)
-    };
-}
-
-function getDevice() {
-    if (window.innerWidth < 640) return "mobile";
-    if (window.innerWidth < 1024) return "tablet";
-    return "desktop";
 }
 
 function validatePayload(payload) {
-    if (!payload.criadoPor) {
-        return "A página ainda não está vinculada a uma loja publicada.";
-    }
-
     if (!payload.nome && !payload.whatsapp && !payload.email) {
         return "Preencha pelo menos um dado de contato.";
     }
@@ -504,28 +488,35 @@ async function handleSubmit(event) {
     setStatus(status, "Enviando informações...");
 
     try {
-        const payload = await buildPayload(form);
+        const meta = await loadPageMeta();
+
+        if (!meta?.donoUID) {
+            throw new Error("A página ainda não está vinculada a uma loja publicada.");
+        }
+
+        const payload = buildLeadRequest(form, meta);
         const validationError = validatePayload(payload);
 
         if (validationError) {
             throw new Error(validationError);
         }
 
-        // Escrita direta do lead (sem Cloud Function). O payload já traz
-        // criadoPor = dono da LP e status "novo", exatamente o que as
-        // regras exigem para uma captura pública.
-        const leadRef = doc(collection(db, "leads"));
-        await setDoc(leadRef, payload);
-        const result = { leadId: leadRef.id };
+        // Não escreve mais direto no Firestore: chama createPublicLead
+        // (Cloud Function), que resolve o tenant real a partir de
+        // publicPageId no servidor (Admin SDK), aplica rate limit por IP e
+        // sanitiza todo o payload antes de gravar. Ver
+        // functions/src/public/index.js — mesmo contrato já usado por
+        // loja.html desde a migração de leads públicos da Loja.
+        const createPublicLeadCallable = obterCreatePublicLeadCallable();
+        const resposta = await createPublicLeadCallable(payload);
+        const leadId = resposta?.data?.leadId;
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");
 
         window.dispatchEvent(new CustomEvent("aura:lead-captured", {
             detail: {
-                leadId: result.leadId,
-                score: payload.leadScore,
-                temperature: payload.temperaturaLead,
+                leadId,
                 formId: payload.formularioId
             }
         }));
