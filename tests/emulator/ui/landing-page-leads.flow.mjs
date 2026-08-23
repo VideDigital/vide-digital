@@ -88,6 +88,24 @@ async function abrirComFormularioInjetado(page, baseUrl) {
         { waitUntil: "load", timeout: 30000 }
     );
     await page.waitForSelector("#lp-container", { state: "attached", timeout: 20000 });
+
+    // A IIFE assíncrona de index.html (import de firebase-init.js/firestore/
+    // auth/functions, depois a decisão de rota) ainda pode estar em
+    // andamento quando "load" dispara — "load" não espera por promises que
+    // um script já em execução está aguardando. Em qualquer host que não
+    // seja videdigital.github.io (ver comentário no topo do arquivo), 2
+    // segmentos sempre caem no branch `else { mostrarErro() }`, que
+    // sobrescreve #lp-container com este texto exato. Espera por ele antes
+    // de injetar o form real — senão a IIFE pode terminar DEPOIS da
+    // injeção e apagar o form que acabou de ser inserido (achado real:
+    // caminho de fallback, com lp-forms-v5.js bloqueado, não tem nenhum
+    // outro sinal confiável de "a IIFE terminou").
+    await page.waitForFunction(
+        () => (document.getElementById("lp-container")?.textContent || "").includes("Pagina nao encontrada"),
+        undefined,
+        { timeout: 20000 }
+    );
+
     // window.lpPublicPageIdAtual normalmente é setado por
     // renderizarLandingPage() (index.html) — como o teste pula a rota de
     // domínio fixo (ver comentário no topo do arquivo), replica aqui o
