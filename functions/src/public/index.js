@@ -142,6 +142,27 @@ function sanitizeOrderSnapshot(bruto, data) {
   };
 }
 
+const MAX_CAMPOS_EXTRAS = 20;
+
+// camposExtras vem de qualquer campo customizado que o dono da LP tenha
+// adicionado ao formulário (AuraFormsV5) — nomes e valores nunca são
+// confiáveis. Mesmo corte que o cliente já aplica (nome ~60, valor 500),
+// mas reforçado aqui porque o cliente nunca é a fonte de verdade.
+function sanitizeCamposExtras(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const output = {};
+  let count = 0;
+  for (const [key, raw] of Object.entries(value)) {
+    if (count >= MAX_CAMPOS_EXTRAS) break;
+    const nomeCampo = normalizeString(key, 60);
+    const valorCampo = publicText(raw, 500);
+    if (!nomeCampo || !valorCampo) continue;
+    output[nomeCampo] = valorCampo;
+    count += 1;
+  }
+  return output;
+}
+
 function leadPayload(data, tenant) {
   const nome = publicText(data?.nome || data?.name, 120);
   const whatsapp = normalizePhone(data?.whatsapp || data?.telefone || data?.phone);
@@ -185,6 +206,9 @@ function leadPayload(data, tenant) {
     sessionId: publicText(data?.sessionId || data?.sessaoId || "", 120),
     visitorId: publicText(data?.visitorId || "", 120),
     dedupeKey: publicText(data?.dedupeKey || "", 200),
+    gclid: publicText(data?.gclid || "", 200),
+    fbclid: publicText(data?.fbclid || "", 200),
+    camposExtras: sanitizeCamposExtras(data?.camposExtras),
     cliques: Math.round(clampNumber(data?.cliques, 0, 10000)),
     tempoRetencao: Math.round(clampNumber(data?.tempoRetencao, 0, 86400)),
     consentimentoContato: data?.consentimentoContato !== false,
@@ -409,6 +433,7 @@ module.exports = {
   // de tests/functions/public-lead.test.mjs e tests/functions/public-review.test.mjs.
   leadPayload,
   sanitizeOrderSnapshot,
+  sanitizeCamposExtras,
   reviewPayload,
   assertReasonablePayloadSize
 };

@@ -3,6 +3,7 @@ import { describe, it } from "node:test";
 import {
   leadPayload,
   sanitizeOrderSnapshot,
+  sanitizeCamposExtras,
   assertReasonablePayloadSize
 } from "../../functions/src/public/index.js";
 
@@ -71,6 +72,94 @@ describe("leadPayload — tenant sempre resolvido pelo servidor, nunca pelo payl
     assert.equal(payload.tipoRegistro, "pedido");
     assert.equal(payload.valorOportunidade, 100);
     assert.equal(payload.pedidoStatus, "novo");
+  });
+});
+
+describe("leadPayload — tenant de Landing Page (sourceType landing-page)", () => {
+  const tenantLandingPage = {
+    ownerUid: "ownerB",
+    publicPageId: "loja-b__lp-promocao",
+    page: { titulo: "Promoção de verão", donoUID: "ownerB" },
+    sourceType: "landing-page"
+  };
+
+  it("lead de Landing Page é atribuído ao dono real da página, resolvido no servidor", () => {
+    const payload = leadPayload({ nome: "Visitante LP" }, tenantLandingPage);
+    assert.equal(payload.criadoPor, "ownerB");
+    assert.equal(payload.tenantId, "ownerB");
+  });
+
+  it("produtoInteresse cai no título da própria Landing Page quando o visitante não informa nenhum", () => {
+    const payload = leadPayload({ nome: "Visitante LP" }, tenantLandingPage);
+    assert.equal(payload.produtoInteresse, "Promoção de verão");
+  });
+
+  it("ownerUid/criadoPor/tenantId forjados pelo visitante continuam ignorados também no tenant de Landing Page", () => {
+    const payload = leadPayload({
+      nome: "Ataque LP",
+      ownerUid: "attacker",
+      criadoPor: "attacker",
+      tenantId: "attacker"
+    }, tenantLandingPage);
+    assert.equal(payload.criadoPor, "ownerB");
+    assert.equal(payload.tenantId, "ownerB");
+  });
+});
+
+describe("leadPayload — campos de atribuição/tracking de Landing Page (gclid/fbclid/camposExtras)", () => {
+  it("gclid e fbclid são preservados como texto truncado", () => {
+    const payload = leadPayload({ nome: "Maria", gclid: "Cj0KCQ_teste", fbclid: "IwAR_teste" }, tenant);
+    assert.equal(payload.gclid, "Cj0KCQ_teste");
+    assert.equal(payload.fbclid, "IwAR_teste");
+  });
+
+  it("gclid/fbclid ausentes viram string vazia, nunca undefined", () => {
+    const payload = leadPayload({ nome: "Maria" }, tenant);
+    assert.equal(payload.gclid, "");
+    assert.equal(payload.fbclid, "");
+  });
+
+  it("camposExtras preserva campos customizados legítimos do formulário", () => {
+    const payload = leadPayload({
+      nome: "Maria",
+      camposExtras: { profissao: "Designer", cidade: "São Paulo" }
+    }, tenant);
+    assert.deepEqual(payload.camposExtras, { profissao: "Designer", cidade: "São Paulo" });
+  });
+
+  it("camposExtras que não é objeto (array, string, número) vira objeto vazio, nunca quebra", () => {
+    assert.deepEqual(leadPayload({ nome: "Maria", camposExtras: "ataque" }, tenant).camposExtras, {});
+    assert.deepEqual(leadPayload({ nome: "Maria", camposExtras: [1, 2, 3] }, tenant).camposExtras, {});
+    assert.deepEqual(leadPayload({ nome: "Maria", camposExtras: 42 }, tenant).camposExtras, {});
+  });
+});
+
+describe("sanitizeCamposExtras — nunca confia em quantidade/tamanho arbitrário do visitante", () => {
+  it("corta em no máximo 20 campos, mesmo se o visitante enviar centenas", () => {
+    const entradaGigante = {};
+    for (let i = 0; i < 500; i += 1) {
+      entradaGigante[`campo_${i}`] = `valor_${i}`;
+    }
+    const resultado = sanitizeCamposExtras(entradaGigante);
+    assert.equal(Object.keys(resultado).length, 20);
+  });
+
+  it("trunca nome de campo (60) e valor (500) individualmente", () => {
+    const resultado = sanitizeCamposExtras({
+      [`campo_${"x".repeat(200)}`]: "y".repeat(2000)
+    });
+    const [nomeCampo, valorCampo] = Object.entries(resultado)[0];
+    assert.ok(nomeCampo.length <= 60);
+    assert.ok(valorCampo.length <= 500);
+  });
+
+  it("ignora entradas com nome ou valor vazio após sanitização", () => {
+    const resultado = sanitizeCamposExtras({ "   ": "algo", valido: "   ", outroValido: "ok" });
+    assert.deepEqual(resultado, { outroValido: "ok" });
+  });
+
+  it("valores não-string (número, objeto, null) são convertidos com segurança, nunca lançam", () => {
+    assert.doesNotThrow(() => sanitizeCamposExtras({ idade: 30, endereco: { rua: "X" }, vazio: null }));
   });
 });
 

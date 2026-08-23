@@ -1519,39 +1519,35 @@
             const email = values.email || "";
             const campaign = new URLSearchParams(window.location.search);
 
-            // Escrita direta do lead (sem Cloud Function — plano Spark).
-            // criadoPor vem do donoUID da própria LP pública já carregada,
-            // e status nasce "novo": exatamente o contrato que a regra
-            // leadPublicoValido() exige em firestore.rules. Antes este
-            // caminho chamava a Function createPublicLead, que nunca
-            // existiu em produção — todo formulário V4 falhava.
-            const ownerUid = state.meta?.donoUID || "";
-            if (!ownerUid) {
+            // Não escreve mais direto no Firestore: chama createPublicLead
+            // (Cloud Function), que resolve o tenant real a partir de
+            // publicPageId no servidor (Admin SDK) — visitante nunca
+            // controla criadoPor. state.meta.id é o mesmo publicId
+            // (lojaSlug__paginaSlug) usado por lp-forms-v5.js e index.html.
+            // Este renderer não está conectado a nenhuma página HTML
+            // pública hoje (ver docs/STUDIO_BLOCK_REGISTRY.md) — só roda
+            // dentro da prévia autenticada do editor — mas a migração
+            // fecha o mesmo caminho de escrita pra quando for conectado.
+            if (!state.meta?.donoUID || !state.meta?.id) {
                 throw new Error("Landing page sem tenant público válido.");
             }
-            const { doc: docRef, collection: collectionRef, setDoc } = state.firestore;
-            const leadRef = docRef(collectionRef(state.db, "leads"));
-            await setDoc(leadRef, {
-                criadoPor: ownerUid,
+            const createPublicLeadCallable = obterCreatePublicLeadCallable();
+            await createPublicLeadCallable({
+                publicPageId: state.meta.id,
                 nome: String(name).trim().slice(0, 120),
                 whatsapp: String(phone).replace(/\D/g, "").slice(0, 30),
                 telefone: String(phone).replace(/\D/g, "").slice(0, 30),
                 email: String(email).trim().slice(0, 160),
                 origem: source.slice(0, 120),
                 produtoInteresse: String(state.meta?.titulo || state.route?.paginaSlug || "Landing Page").slice(0, 160),
-                statusLead: "novo",
-                status: "novo",
-                prioridadeLead: String(config.prioridade || "normal").slice(0, 40),
                 paginaOrigem: String(state.route?.paginaSlug || "").slice(0, 160),
                 blocoOrigem: String(blockId || "").slice(0, 160),
                 formularioId: "captura_publica_v4",
                 formularioNome: "Captura pública (LP V4)",
-                followupDias: Math.max(0, numberOr(config.followupDias, 0)),
                 cliques: 0,
                 utmSource: (campaign.get("utm_source") || "").slice(0, 120),
                 utmMedium: (campaign.get("utm_medium") || "").slice(0, 120),
-                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120),
-                data: Date.now()
+                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120)
             });
 
             form.reset();
@@ -1783,23 +1779,44 @@
         const firebaseInitURL = new URL("firebase-init.js", `${window.location.origin}${state.base}`).href;
         const firestoreURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-firestore.js`;
         const authURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-auth.js`;
+        const functionsURL = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSION}/firebase-functions.js`;
 
-        // core/vide-functions.js não é mais carregado aqui: a captura de
-        // lead escreve direto no Firestore (plano Spark, sem Functions).
-        const [firebaseInit, firestore, authModule] = await Promise.all([
+        const [firebaseInit, firestore, authModule, functionsModule] = await Promise.all([
             import(firebaseInitURL),
             import(firestoreURL),
-            import(authURL)
+            import(authURL),
+            import(functionsURL)
         ]);
 
+        state.app = firebaseInit.app;
         state.db = firebaseInit.db;
         state.auth = firebaseInit.auth;
         state.firestore = firestore;
         state.authModule = authModule;
+        state.functionsModule = functionsModule;
+        state.shouldUseVideEmulators = firebaseInit.shouldUseVideEmulators;
 
         if (!state.db) {
             throw new Error("Firebase não foi inicializado.");
         }
+    }
+
+    // Mesmo padrão de loja.html/lp-forms-v5.js (obterCreatePublicLeadCallable):
+    // getFunctions() é cacheado pelo próprio SDK, só o guard do emulador
+    // precisa ser manual.
+    let createPublicLeadCallable = null;
+    function obterCreatePublicLeadCallable() {
+        if (createPublicLeadCallable) {
+            return createPublicLeadCallable;
+        }
+        const { getFunctions, httpsCallable, connectFunctionsEmulator } = state.functionsModule;
+        const functionsInstance = getFunctions(state.app, "southamerica-east1");
+        if (state.shouldUseVideEmulators?.() && !window.__videPublicFunctionsEmulatorConnected) {
+            connectFunctionsEmulator(functionsInstance, "127.0.0.1", 5001);
+            window.__videPublicFunctionsEmulatorConnected = true;
+        }
+        createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
+        return createPublicLeadCallable;
     }
 
     async function loadPublicData() {
