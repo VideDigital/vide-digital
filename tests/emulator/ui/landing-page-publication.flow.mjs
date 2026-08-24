@@ -377,7 +377,17 @@ async function main() {
                     assert.equal(dados.largura, bloco.largura);
                     assert.equal(dados.altura, bloco.altura);
                     assert.equal(dados.zIndex, bloco.zIndex);
-                    assert.deepEqual(dados.design, bloco.design);
+                    // Este cenário passa pelo editor real (window.editarLP +
+                    // renderizarEditorBlocos), que normaliza o design do
+                    // bloco preenchendo defaults ausentes (garantirDesignPadrao,
+                    // studio-canvas-v4.js) — comportamento real e esperado de
+                    // abrir/salvar um bloco no editor, não perda de dados.
+                    // Por isso o teste confirma que os campos originais do
+                    // seed continuam presentes e com o mesmo valor (subset),
+                    // em vez de exigir deepEqual estrito contra o objeto cru.
+                    for (const [chave, valor] of Object.entries(bloco.design)) {
+                        assert.equal(dados.design?.[chave], valor, `design.${chave} do bloco ${bloco.id} deveria ser preservado`);
+                    }
                 }
 
                 console.log("landing-page-publication.flow: cenário 2 OK — troca de slug publicada, sem órfãos, geometria preservada.");
