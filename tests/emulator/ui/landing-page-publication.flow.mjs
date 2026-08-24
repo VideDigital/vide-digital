@@ -230,7 +230,14 @@ async function main() {
         console.error("landing-page-publication.flow: FALHOU —", erro);
         await limparEstado(db, blocosValidos).catch(() => {});
     } finally {
-        const errosReais = erros.filter((msg) => !ehErroDeRedeExterno(msg) && !/insufficient permissions|permission-denied/i.test(msg));
+        // O teste de "consistência em falha" (bloco com campo inválido)
+        // dispara um PERMISSION_DENIED real do Firestore de propósito — o
+        // SDK sempre loga isso como console.error, mesmo já tratado pelo
+        // try/catch do próprio page.evaluate. Achado real: o filtro
+        // anterior só reconhecia "permission-denied" (hífen); o Firestore
+        // Emulator loga exatamente "PERMISSION_DENIED" (underscore,
+        // maiúsculo) — variação nunca coberta.
+        const errosReais = erros.filter((msg) => !ehErroDeRedeExterno(msg) && !/insufficient permissions|permission[-_]denied/i.test(msg));
         if (errosReais.length > 0) {
             falhou = true;
             console.error("landing-page-publication.flow: erros de console inesperados:", errosReais);
