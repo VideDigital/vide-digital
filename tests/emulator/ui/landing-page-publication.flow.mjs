@@ -122,12 +122,26 @@ async function main() {
         );
 
         // ===== Publicar: precisa ser atômico e usar o contrato corrigido =====
-        await page.evaluate(
-            (lpId) => window.alternarPublicacaoLP(lpId, true),
+        const resultadoEvaluate = await page.evaluate(
+            async (lpId) => {
+                try {
+                    await window.alternarPublicacaoLP(lpId, true);
+                    return { ok: true };
+                } catch (erro) {
+                    return { ok: false, mensagem: String(erro?.message || erro) };
+                }
+            },
             LP_ID
         );
+        console.log("landing-page-publication.flow: resultado do evaluate (publicar):", JSON.stringify(resultadoEvaluate));
 
         const privadaAposPublicar = await db.collection("landing_pages").doc(LP_ID).get();
+        console.log("landing-page-publication.flow: landing_pages/" + LP_ID + " após publicar:", JSON.stringify(privadaAposPublicar.data()));
+
+        const todosPublicos = await db.collection("landing_pages_publicas").listDocuments();
+        console.log("landing-page-publication.flow: ids em landing_pages_publicas:", JSON.stringify(todosPublicos.map((d) => d.id)));
+        console.log("landing-page-publication.flow: DOC_ID_PUBLICO esperado:", DOC_ID_PUBLICO);
+
         assert.equal(privadaAposPublicar.data()?.publicado, true, "LP privada deveria ficar marcada como publicada");
 
         const publicaSnap = await db.collection("landing_pages_publicas").doc(DOC_ID_PUBLICO).get();
