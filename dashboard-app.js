@@ -50,6 +50,13 @@ window.addEventListener("pageshow", function(event) {
         let usuarioEmail = "";
         let usuarioUID = "";
         let slugAtualSalvo = "";
+        // Getter read-only só para testes/observabilidade — o boot do
+        // dashboard escreve o preview do endereço público (#url-loja-preview)
+        // em dois momentos assíncronos independentes (leitura rápida do
+        // plano, depois o carregamento completo do perfil que de fato
+        // atribui slugAtualSalvo), então o texto do DOM sozinho não é um
+        // sinal confiável de que slugAtualSalvo já está pronto.
+        window.__videSlugAtualSalvo = () => slugAtualSalvo;
         let tipoDestino = "checkout";
         let filtroLogistico = "todos";
         let planoAtualGlobal = "starter";

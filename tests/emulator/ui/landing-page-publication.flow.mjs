@@ -109,14 +109,15 @@ async function main() {
         // que alternarPublicacaoLP() usa pra montar o docId público
         // (`${slugAtualSalvo}__${lp.pagina}`), é atribuída bem depois, numa
         // etapa assíncrona posterior do mesmo callback onAuthStateChanged
-        // (carregamento do perfil da loja). Chamar alternarPublicacaoLP()
-        // antes disso monta um docId errado (slug vazio) — achado real
-        // deste teste, não um bug do fix em si. #url-loja-preview é o
-        // elemento real que a própria dashboard-app.js escreve no exato
-        // momento em que slugAtualSalvo fica pronto, então é o sinal
-        // determinístico correto pra esperar aqui.
+        // (carregamento completo do perfil da loja). Achado real deste
+        // teste: #url-loja-preview é escrito duas vezes, de forma
+        // independente — uma leitura rápida do plano do usuário escreve o
+        // mesmo texto ANTES de slugAtualSalvo ser atribuído de verdade —
+        // então o texto do DOM sozinho não é um sinal confiável.
+        // window.__videSlugAtualSalvo() (dashboard-app.js) expõe o valor
+        // real da variável, sem ambiguidade.
         await page.waitForFunction(
-            (slug) => (document.getElementById("url-loja-preview")?.innerText || "").includes(slug),
+            (slug) => window.__videSlugAtualSalvo?.() === slug,
             STORE_SLUG,
             { timeout: 20000 }
         );
