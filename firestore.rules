@@ -1502,7 +1502,13 @@ allow update: if (
     }
 
     match /landing_pages_blocos/{id} {
-      allow read: if canViewTenant(resource.data.donoUID, "landing-pages");
+      // resource == null cobre um getDoc() num id que não existe: sem essa
+      // saída antecipada, resource.data.donoUID lança "Null value error" na
+      // avaliação da regra, e o SDK recebe permission-denied em vez de um
+      // snapshot com exists() === false — quebrando qualquer checagem de
+      // "este bloco ainda existe?" feita pelo dono/editor da própria loja.
+      // Ler um documento inexistente não vaza nenhum dado real.
+      allow read: if resource == null || canViewTenant(resource.data.donoUID, "landing-pages");
       allow create: if canEditTenant(request.resource.data.donoUID, "landing-pages");
       allow update: if donoUIDUnchanged() && canEditTenant(resource.data.donoUID, "landing-pages");
       allow delete: if canEditTenant(resource.data.donoUID, "landing-pages");

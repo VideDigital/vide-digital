@@ -676,6 +676,38 @@ describe("landing_pages_blocos_publicas: contrato de campos do modo Livre", () =
   });
 });
 
+// Achado real na revisão da PR #57 (correção do Achado 4 — bloco privado
+// ausente): alternarPublicacaoLP() valida ordemBlocos com getDoc() num id
+// que pode não existir mais (bloco apagado por fora). A regra antiga de
+// landing_pages_blocos dereferenciava resource.data.donoUID sem checar
+// resource == null — pra um id inexistente isso lança "Null value error"
+// na avaliação da regra, e o SDK recebe permission-denied em vez de um
+// snapshot com exists() === false, quebrando a checagem de existência.
+describe("landing_pages_blocos: leitura de id inexistente não pode virar permission-denied", () => {
+  it("dono lê um id que nunca existiu e recebe snapshot com exists() === false (não lança)", async () => {
+    const snap = await getDoc(doc(authed("ownerA"), "landing_pages_blocos", "id-nunca-existiu"));
+    assert.equal(snap.exists(), false);
+  });
+
+  it("leitura de bloco existente do próprio dono continua permitida", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos/blocoRealA").set({
+        lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
+      });
+    });
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "landing_pages_blocos", "blocoRealA")));
+  });
+
+  it("leitura de bloco existente de OUTRO dono continua negada (não é tratado como ausente)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos/blocoRealOutro").set({
+        lpId: "lp2", donoUID: "ownerB", tipo: "texto_midia", props: {}, visivel: true
+      });
+    });
+    await assertFails(getDoc(doc(authed("ownerA"), "landing_pages_blocos", "blocoRealOutro")));
+  });
+});
+
 describe("vitrines_publicas: list() não enumera todas as lojas da plataforma", () => {
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
