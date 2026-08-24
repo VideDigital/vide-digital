@@ -602,6 +602,80 @@ describe("public writes", () => {
   });
 });
 
+// Achado real em produção: publicLandingBlockFields() não incluía a
+// geometria do modo Livre (x/y/largura/altura/zIndex/design) — publicar
+// qualquer LP nesse modo falhava no primeiro bloco com
+// "Missing or insufficient permissions.", mesmo pro dono legítimo.
+describe("landing_pages_blocos_publicas: contrato de campos do modo Livre", () => {
+  function blocoLivreValido(overrides = {}) {
+    return {
+      lpId: "lp1",
+      donoUID: "ownerA",
+      tipo: "texto_midia",
+      props: { titulo: "Bloco" },
+      visivel: true,
+      paginaId: null,
+      design: { corFundo: "#fff" },
+      x: 20,
+      y: 40,
+      largura: 600,
+      altura: 220,
+      zIndex: 1,
+      ...overrides
+    };
+  }
+
+  it("dono real publica bloco em modo Livre com x/y/largura/altura/zIndex/design", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoLivre1"), blocoLivreValido()));
+  });
+
+  it("geometria pode nascer null (bloco criado em modo empilhado, sem posição)", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoNull1"), blocoLivreValido({
+      x: null, y: null, largura: null, altura: null, zIndex: null
+    })));
+  });
+
+  it("campo arbitrário fora do contrato é negado, mesmo junto com os campos válidos", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoMalicioso"), blocoLivreValido({
+      campoMalicioso: true
+    })));
+  });
+
+  it("geometria com tipo inválido (string em vez de número) é negada", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoXString"), blocoLivreValido({
+      x: "<script>alert(1)</script>"
+    })));
+    await assertFails(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoDesignArray"), blocoLivreValido({
+      design: ["não é mapa"]
+    })));
+  });
+
+  it("outro tenant não cria bloco marcado como de outro dono, nem sobrescreve bloco existente alheio", async () => {
+    // ownerB tenta criar um bloco público afirmando donoUID de ownerA.
+    await assertFails(setDoc(doc(authed("ownerB"), "landing_pages_blocos_publicas", "blocoCrossTenant"), blocoLivreValido({
+      donoUID: "ownerA"
+    })));
+    // ownerB tenta sobrescrever um bloco que já é de ownerA.
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos_publicas/blocoExistenteA").set(blocoLivreValido());
+    });
+    await assertFails(setDoc(doc(authed("ownerB"), "landing_pages_blocos_publicas", "blocoExistenteA"), blocoLivreValido({
+      x: 999
+    })));
+  });
+
+  it("visitante público não cria nem atualiza bloco (só o dono/funcionário com permissão)", async () => {
+    await assertFails(setDoc(doc(anon(), "landing_pages_blocos_publicas", "blocoAnonimo"), blocoLivreValido()));
+  });
+
+  it("leitura pública continua livre (renderer público lê sem autenticação)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos_publicas/blocoLeitura").set(blocoLivreValido());
+    });
+    await assertSucceeds(getDoc(doc(anon(), "landing_pages_blocos_publicas", "blocoLeitura")));
+  });
+});
+
 describe("vitrines_publicas: list() não enumera todas as lojas da plataforma", () => {
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {

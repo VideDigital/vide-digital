@@ -4772,6 +4772,10 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         };
         let lpEditorId = null;
         let scriptsEditorJaCarregados = false;
+        // writeBatch do Firestore aceita no máximo 500 operações. Margem de
+        // segurança pra sobrar espaço pro documento público + o status
+        // privado no mesmo lote (ver salvarEditorLP/alternarPublicacaoLP).
+        const LP_BATCH_LIMITE_SEGURO = 490;
         let lpEditorBlocos = [];
         window.lpEditorBlocos = lpEditorBlocos;
         window.renderizarEditorBlocos = function() { renderizarEditorBlocos(); };
@@ -6539,16 +6543,30 @@ await setDoc(doc(db, "landing_pages", lpEditorId), {
                 }, { merge: true });
                 lpEditorSlugOriginal = slug;
                 if (lpEditorPublicado) {
+                    if (lpEditorBlocos.length + 2 > LP_BATCH_LIMITE_SEGURO) {
+                        showToast("Esta Landing Page tem blocos demais pra sincronizar de uma vez. Fale com o suporte.", "error");
+                        return;
+                    }
+                    // Sincronização pública precisa ser atômica: documento
+                    // público e todos os blocos públicos são confirmados
+                    // juntos num único writeBatch. Antes, cada setDoc rodava
+                    // sequencialmente — uma falha no meio do loop (ex.: bloco
+                    // rejeitado pelas Rules) podia deixar o documento público
+                    // existindo com só parte dos blocos, ou o slug antigo já
+                    // apagado sem o novo documento ainda existir. Achado real
+                    // em produção (LP em modo Livre, ver correção do contrato
+                    // de campos em publicLandingBlockFields()).
+                    const batchPublico = writeBatch(db);
                     if (slugMudou) {
                         const docIdAntigo = `${slugAtualSalvo}__${slugAnterior}`.toLowerCase();
-                        await deleteDoc(doc(db, "landing_pages_publicas", docIdAntigo));
+                        batchPublico.delete(doc(db, "landing_pages_publicas", docIdAntigo));
                     }
                     const docIdPublico = `${slugAtualSalvo}__${slug}`.toLowerCase();
-await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
+                    batchPublico.set(doc(db, "landing_pages_publicas", docIdPublico), {
                         titulo, publicado: true, donoUID: usuarioUID, modoLayout: lpEditorModoLayout, paginas: lpEditorPaginas, ordemBlocos: lpEditorBlocos.map(b => b.id)
                     });
                     for (const bloco of lpEditorBlocos) {
-await setDoc(doc(db, "landing_pages_blocos_publicas", bloco.id), {
+                        batchPublico.set(doc(db, "landing_pages_blocos_publicas", bloco.id), {
                             lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
                             paginaId: bloco.paginaId || null,
                             visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {},
@@ -6559,6 +6577,7 @@ await setDoc(doc(db, "landing_pages_blocos_publicas", bloco.id), {
                             zIndex: bloco.zIndex !== undefined ? bloco.zIndex : null
                         });
                     }
+                    await batchPublico.commit();
                 }
                 showToast("Landing Page salva.");
             } catch(err) {
@@ -6675,24 +6694,48 @@ window.abrirPreviewEditorLP = async function() {
                 const lp = snap.data();
                 if (!exigirEdicaoModulo("landing-pages")) return;
 
-                await setDoc(doc(db, "landing_pages", id), { publicado: publicarAgora, atualizadoEm: Date.now() }, { merge: true });
                 const docIdPublico = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
+                const ordemBlocos = lp.ordemBlocos || [];
+
+                // Publicar/despublicar precisa ser atômico: o status
+                // privado publicado só pode ser confirmado junto com o
+                // documento público e todos os blocos públicos, num único
+                // writeBatch. Antes, eram writes sequenciais — uma falha no
+                // meio do loop de blocos (ex.: bloco rejeitado pelas Rules)
+                // deixava o status privado marcado como publicado com o
+                // documento público criado mas só parte dos blocos (ou
+                // nenhum), um estado inconsistente real já visto em
+                // produção. Limite prático de 500 operações por lote —
+                // acima disso a leitura abaixo recusa com um erro claro em
+                // vez de publicar parcialmente.
                 if (publicarAgora) {
-await setDoc(doc(db, "landing_pages_publicas", docIdPublico), {
-                        titulo: lp.titulo, publicado: true, donoUID: usuarioUID, modoLayout: lp.modoLayout || "empilhado", paginas: lp.paginas || [], ordemBlocos: lp.ordemBlocos || []
+                    if (ordemBlocos.length + 2 > LP_BATCH_LIMITE_SEGURO) {
+                        showToast("Esta Landing Page tem blocos demais pra publicar de uma vez. Fale com o suporte.", "error");
+                        return;
+                    }
+                    const blocosSnaps = await Promise.all(
+                        ordemBlocos.map((blocoId) => getDoc(doc(db, "landing_pages_blocos", blocoId)))
+                    );
+                    const batch = writeBatch(db);
+                    batch.set(doc(db, "landing_pages", id), { publicado: true, atualizadoEm: Date.now() }, { merge: true });
+                    batch.set(doc(db, "landing_pages_publicas", docIdPublico), {
+                        titulo: lp.titulo, publicado: true, donoUID: usuarioUID, modoLayout: lp.modoLayout || "empilhado", paginas: lp.paginas || [], ordemBlocos
                     });
-                    for (const blocoId of (lp.ordemBlocos || [])) {
-                        const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
+                    for (const blocoSnap of blocosSnaps) {
                         if (blocoSnap.exists()) {
-                            await setDoc(doc(db, "landing_pages_blocos_publicas", blocoId), { ...blocoSnap.data(), donoUID: usuarioUID });
+                            batch.set(doc(db, "landing_pages_blocos_publicas", blocoSnap.id), { ...blocoSnap.data(), donoUID: usuarioUID });
                         }
                     }
+                    await batch.commit();
                     showToast("Landing Page publicada!");
                 } else {
-                    await deleteDoc(doc(db, "landing_pages_publicas", docIdPublico));
-                    for (const blocoId of (lp.ordemBlocos || [])) {
-                        await deleteDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
+                    const batch = writeBatch(db);
+                    batch.set(doc(db, "landing_pages", id), { publicado: false, atualizadoEm: Date.now() }, { merge: true });
+                    batch.delete(doc(db, "landing_pages_publicas", docIdPublico));
+                    for (const blocoId of ordemBlocos) {
+                        batch.delete(doc(db, "landing_pages_blocos_publicas", blocoId));
                     }
+                    await batch.commit();
                     showToast("Landing Page despublicada.");
                 }
                 carregarLandingPages();
