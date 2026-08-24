@@ -683,28 +683,45 @@ describe("landing_pages_blocos_publicas: contrato de campos do modo Livre", () =
 // resource == null — pra um id inexistente isso lança "Null value error"
 // na avaliação da regra, e o SDK recebe permission-denied em vez de um
 // snapshot com exists() === false, quebrando a checagem de existência.
-describe("landing_pages_blocos: leitura de id inexistente não pode virar permission-denied", () => {
-  it("dono lê um id que nunca existiu e recebe snapshot com exists() === false (não lança)", async () => {
-    const snap = await getDoc(doc(authed("ownerA"), "landing_pages_blocos", "id-nunca-existiu"));
-    assert.equal(snap.exists(), false);
+describe("landing_pages_blocos: coleção privada continua fechada (sem oracle de existência)", () => {
+  // Achado da revisão final da PR #57: uma versão anterior desta regra
+  // usava "resource == null || canViewTenant(...)" pra deixar getDoc() de
+  // um id inexistente resolver com exists():false em vez de
+  // permission-denied. Isso abria um oracle público de existência sobre
+  // uma coleção privada — qualquer visitante, mesmo sem autenticação,
+  // podia diferenciar "id não existe" (permitido) de "id existe mas não é
+  // meu" (negado). Revertido: a checagem de "esse bloco ainda existe?" é
+  // responsabilidade do app (alternarPublicacaoLP trata permission-denied
+  // como ausente/inacessível), não da Rule.
+  it("visitante anônimo NÃO consegue ler um id inexistente (sem oracle de existência)", async () => {
+    await assertFails(getDoc(doc(anon(), "landing_pages_blocos", "id-nunca-existiu")));
   });
 
-  it("leitura de bloco existente do próprio dono continua permitida", async () => {
+  it("usuário autenticado de outro tenant NÃO lê bloco existente alheio", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
       await context.firestore().doc("landing_pages_blocos/blocoRealA").set({
         lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
       });
     });
-    await assertSucceeds(getDoc(doc(authed("ownerA"), "landing_pages_blocos", "blocoRealA")));
+    await assertFails(getDoc(doc(authed("ownerB"), "landing_pages_blocos", "blocoRealA")));
   });
 
-  it("leitura de bloco existente de OUTRO dono continua negada (não é tratado como ausente)", async () => {
+  it("visitante anônimo NÃO lê bloco existente (coleção privada, sem leitura pública)", async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {
-      await context.firestore().doc("landing_pages_blocos/blocoRealOutro").set({
-        lpId: "lp2", donoUID: "ownerB", tipo: "texto_midia", props: {}, visivel: true
+      await context.firestore().doc("landing_pages_blocos/blocoRealAnon").set({
+        lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
       });
     });
-    await assertFails(getDoc(doc(authed("ownerA"), "landing_pages_blocos", "blocoRealOutro")));
+    await assertFails(getDoc(doc(anon(), "landing_pages_blocos", "blocoRealAnon")));
+  });
+
+  it("dono lê bloco existente próprio normalmente", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos/blocoRealDono").set({
+        lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
+      });
+    });
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "landing_pages_blocos", "blocoRealDono")));
   });
 });
 

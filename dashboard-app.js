@@ -6788,9 +6788,6 @@ window.abrirPreviewEditorLP = async function() {
                         showToast("Esta Landing Page tem blocos demais pra publicar de uma vez. Fale com o suporte.", "error");
                         return { ok: false, motivo: "lote-grande-demais" };
                     }
-                    const blocosSnaps = await Promise.all(
-                        ordemBlocos.map((blocoId) => getDoc(doc(db, "landing_pages_blocos", blocoId)))
-                    );
                     // Achado real: se algum bloco referenciado em
                     // ordemBlocos não existir mais (documento apagado por
                     // fora, ou corrompido), o código antigo simplesmente
@@ -6799,17 +6796,43 @@ window.abrirPreviewEditorLP = async function() {
                     // menos) existiam de verdade, uma publicação parcial
                     // silenciosa. Aborta antes de montar o lote — nada é
                     // alterado, nem o status privado.
-                    const ausentes = ordemBlocos.filter((blocoId, i) => !blocosSnaps[i].exists());
-                    if (ausentes.length > 0) {
-                        showToast(`Não foi possível publicar: ${ausentes.length} bloco(s) referenciado(s) não foi(ram) encontrado(s). Nada foi alterado.`, "error");
-                        return { ok: false, motivo: "bloco-ausente", blocosAusentes: ausentes };
+                    //
+                    // A Rule de leitura de landing_pages_blocos permanece
+                    // fechada (só o próprio dono/funcionário lê) — de
+                    // propósito não abrimos "resource == null" pra deixar
+                    // getDoc() de um id inexistente resolver com
+                    // exists():false, porque isso criaria um oracle de
+                    // existência público sobre uma coleção privada. Então
+                    // um id ausente aqui chega como permission-denied, não
+                    // como snapshot vazio — tratamos os dois casos (ausente
+                    // OU inacessível) da mesma forma: aborta sem publicar
+                    // nada. Um erro de rede/infra real (não
+                    // permission-denied) não é mascarado — sobe pro catch
+                    // genérico normalmente.
+                    const resultadosBlocos = await Promise.all(
+                        ordemBlocos.map(async (blocoId) => {
+                            try {
+                                const blocoSnap = await getDoc(doc(db, "landing_pages_blocos", blocoId));
+                                return { blocoId, valido: blocoSnap.exists(), snap: blocoSnap };
+                            } catch (erroLeitura) {
+                                if (erroLeitura?.code === "permission-denied") {
+                                    return { blocoId, valido: false, snap: null };
+                                }
+                                throw erroLeitura;
+                            }
+                        })
+                    );
+                    const ausentesOuInacessiveis = resultadosBlocos.filter((r) => !r.valido).map((r) => r.blocoId);
+                    if (ausentesOuInacessiveis.length > 0) {
+                        showToast(`Não foi possível publicar: ${ausentesOuInacessiveis.length} bloco(s) da página estão ausentes ou não puderam ser validados. Nada foi alterado.`, "error");
+                        return { ok: false, motivo: "bloco-ausente-ou-inacessivel", blocosAusentes: ausentesOuInacessiveis };
                     }
                     const batch = writeBatch(db);
                     batch.set(doc(db, "landing_pages", id), { publicado: true, atualizadoEm: Date.now() }, { merge: true });
                     batch.set(doc(db, "landing_pages_publicas", docIdPublico), {
                         titulo: lp.titulo, publicado: true, donoUID: usuarioUID, modoLayout: lp.modoLayout || "empilhado", paginas: lp.paginas || [], ordemBlocos
                     });
-                    for (const blocoSnap of blocosSnaps) {
+                    for (const { snap: blocoSnap } of resultadosBlocos) {
                         batch.set(doc(db, "landing_pages_blocos_publicas", blocoSnap.id), { ...blocoSnap.data(), donoUID: usuarioUID });
                     }
                     await batch.commit();

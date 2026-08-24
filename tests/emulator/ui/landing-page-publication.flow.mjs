@@ -563,7 +563,7 @@ async function main() {
                 console.log("landing-page-publication.flow: cenário 5 (bloco ausente):", JSON.stringify(resultadoEvaluate));
 
                 assert.equal(resultadoEvaluate?.ok, false, "alternarPublicacaoLP() deveria recusar publicar com bloco ausente");
-                assert.equal(resultadoEvaluate?.motivo, "bloco-ausente");
+                assert.equal(resultadoEvaluate?.motivo, "bloco-ausente-ou-inacessivel");
 
                 const privadoS5 = await db.collection("landing_pages").doc(lpId).get();
                 assert.equal(privadoS5.data()?.publicado, false, "LP privada NÃO poderia ficar marcada como publicada");
