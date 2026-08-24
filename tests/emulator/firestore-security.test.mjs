@@ -602,6 +602,129 @@ describe("public writes", () => {
   });
 });
 
+// Achado real em produção: publicLandingBlockFields() não incluía a
+// geometria do modo Livre (x/y/largura/altura/zIndex/design) — publicar
+// qualquer LP nesse modo falhava no primeiro bloco com
+// "Missing or insufficient permissions.", mesmo pro dono legítimo.
+describe("landing_pages_blocos_publicas: contrato de campos do modo Livre", () => {
+  function blocoLivreValido(overrides = {}) {
+    return {
+      lpId: "lp1",
+      donoUID: "ownerA",
+      tipo: "texto_midia",
+      props: { titulo: "Bloco" },
+      visivel: true,
+      paginaId: null,
+      design: { corFundo: "#fff" },
+      x: 20,
+      y: 40,
+      largura: 600,
+      altura: 220,
+      zIndex: 1,
+      ...overrides
+    };
+  }
+
+  it("dono real publica bloco em modo Livre com x/y/largura/altura/zIndex/design", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoLivre1"), blocoLivreValido()));
+  });
+
+  it("geometria pode nascer null (bloco criado em modo empilhado, sem posição)", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoNull1"), blocoLivreValido({
+      x: null, y: null, largura: null, altura: null, zIndex: null
+    })));
+  });
+
+  it("campo arbitrário fora do contrato é negado, mesmo junto com os campos válidos", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoMalicioso"), blocoLivreValido({
+      campoMalicioso: true
+    })));
+  });
+
+  it("geometria com tipo inválido (string em vez de número) é negada", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoXString"), blocoLivreValido({
+      x: "<script>alert(1)</script>"
+    })));
+    await assertFails(setDoc(doc(authed("ownerA"), "landing_pages_blocos_publicas", "blocoDesignArray"), blocoLivreValido({
+      design: ["não é mapa"]
+    })));
+  });
+
+  it("outro tenant não cria bloco marcado como de outro dono, nem sobrescreve bloco existente alheio", async () => {
+    // ownerB tenta criar um bloco público afirmando donoUID de ownerA.
+    await assertFails(setDoc(doc(authed("ownerB"), "landing_pages_blocos_publicas", "blocoCrossTenant"), blocoLivreValido({
+      donoUID: "ownerA"
+    })));
+    // ownerB tenta sobrescrever um bloco que já é de ownerA.
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos_publicas/blocoExistenteA").set(blocoLivreValido());
+    });
+    await assertFails(setDoc(doc(authed("ownerB"), "landing_pages_blocos_publicas", "blocoExistenteA"), blocoLivreValido({
+      x: 999
+    })));
+  });
+
+  it("visitante público não cria nem atualiza bloco (só o dono/funcionário com permissão)", async () => {
+    await assertFails(setDoc(doc(anon(), "landing_pages_blocos_publicas", "blocoAnonimo"), blocoLivreValido()));
+  });
+
+  it("leitura pública continua livre (renderer público lê sem autenticação)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos_publicas/blocoLeitura").set(blocoLivreValido());
+    });
+    await assertSucceeds(getDoc(doc(anon(), "landing_pages_blocos_publicas", "blocoLeitura")));
+  });
+});
+
+// Achado real na revisão da PR #57 (correção do Achado 4 — bloco privado
+// ausente): alternarPublicacaoLP() valida ordemBlocos com getDoc() num id
+// que pode não existir mais (bloco apagado por fora). A regra antiga de
+// landing_pages_blocos dereferenciava resource.data.donoUID sem checar
+// resource == null — pra um id inexistente isso lança "Null value error"
+// na avaliação da regra, e o SDK recebe permission-denied em vez de um
+// snapshot com exists() === false, quebrando a checagem de existência.
+describe("landing_pages_blocos: coleção privada continua fechada (sem oracle de existência)", () => {
+  // Achado da revisão final da PR #57: uma versão anterior desta regra
+  // usava "resource == null || canViewTenant(...)" pra deixar getDoc() de
+  // um id inexistente resolver com exists():false em vez de
+  // permission-denied. Isso abria um oracle público de existência sobre
+  // uma coleção privada — qualquer visitante, mesmo sem autenticação,
+  // podia diferenciar "id não existe" (permitido) de "id existe mas não é
+  // meu" (negado). Revertido: a checagem de "esse bloco ainda existe?" é
+  // responsabilidade do app (alternarPublicacaoLP trata permission-denied
+  // como ausente/inacessível), não da Rule.
+  it("visitante anônimo NÃO consegue ler um id inexistente (sem oracle de existência)", async () => {
+    await assertFails(getDoc(doc(anon(), "landing_pages_blocos", "id-nunca-existiu")));
+  });
+
+  it("usuário autenticado de outro tenant NÃO lê bloco existente alheio", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos/blocoRealA").set({
+        lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
+      });
+    });
+    await assertFails(getDoc(doc(authed("ownerB"), "landing_pages_blocos", "blocoRealA")));
+  });
+
+  it("visitante anônimo NÃO lê bloco existente (coleção privada, sem leitura pública)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos/blocoRealAnon").set({
+        lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
+      });
+    });
+    await assertFails(getDoc(doc(anon(), "landing_pages_blocos", "blocoRealAnon")));
+  });
+
+  it("dono lê bloco existente próprio normalmente", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("landing_pages_blocos/blocoRealDono").set({
+        lpId: "lp1", donoUID: "ownerA", tipo: "texto_midia", props: {}, visivel: true
+      });
+    });
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "landing_pages_blocos", "blocoRealDono")));
+  });
+});
+
 describe("vitrines_publicas: list() não enumera todas as lojas da plataforma", () => {
   before(async () => {
     await testEnv.withSecurityRulesDisabled(async (context) => {

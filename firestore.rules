@@ -1115,7 +1115,25 @@ service cloud.firestore {
     }
 
     function publicLandingBlockFields() {
-      return ["lpId", "donoUID", "tipo", "props", "visivel", "paginaId", "nome", "ordem", "styles", "estilos", "atualizadoEm", "criadoEm"];
+      return ["lpId", "donoUID", "tipo", "props", "visivel", "paginaId", "nome", "ordem", "styles", "estilos", "atualizadoEm", "criadoEm", "design", "x", "y", "largura", "altura", "zIndex"];
+    }
+
+    // Geometria do modo Livre (posicionamento absoluto): x/y/largura/altura/
+    // zIndex nascem number ou null (bloco criado em modo empilhado nunca
+    // teve geometria — dashboard-app.js grava null nesse caso) e design
+    // sempre nasce mapa (nunca null — dashboard-app.js grava bloco.design
+    // || {}). Achado real: publicLandingBlockFields() não incluía estes
+    // seis campos, então publicar qualquer LP em modo Livre falhava no
+    // primeiro bloco com "Missing or insufficient permissions." mesmo para
+    // o dono legítimo — a rejeição em si estava correta (não são campos do
+    // contrato antigo), mas o contrato estava incompleto.
+    function landingBlockGeometryValida() {
+      return (!("x" in request.resource.data) || request.resource.data.x == null || request.resource.data.x is number)
+        && (!("y" in request.resource.data) || request.resource.data.y == null || request.resource.data.y is number)
+        && (!("largura" in request.resource.data) || request.resource.data.largura == null || request.resource.data.largura is number)
+        && (!("altura" in request.resource.data) || request.resource.data.altura == null || request.resource.data.altura is number)
+        && (!("zIndex" in request.resource.data) || request.resource.data.zIndex == null || request.resource.data.zIndex is number)
+        && (!("design" in request.resource.data) || request.resource.data.design is map);
     }
 
     function hasTenantField(fieldName) {
@@ -1484,6 +1502,15 @@ allow update: if (
     }
 
     match /landing_pages_blocos/{id} {
+      // NÃO usar "resource == null ||" aqui: isso permitiria qualquer
+      // visitante (mesmo sem autenticação) consultar IDs arbitrários dessa
+      // coleção PRIVADA e diferenciar "não existe" (permitido) de "existe
+      // mas não é meu" (negado) — um oracle de existência sobre dados que
+      // nunca deveriam ser publicamente consultáveis. A checagem de "esse
+      // bloco ainda existe?" é responsabilidade do app (ver
+      // alternarPublicacaoLP em dashboard-app.js), que trata
+      // permission-denied num id da própria ordemBlocos como "ausente ou
+      // inacessível" sem precisar que a Rule abra mão da privacidade.
       allow read: if canViewTenant(resource.data.donoUID, "landing-pages");
       allow create: if canEditTenant(request.resource.data.donoUID, "landing-pages");
       allow update: if donoUIDUnchanged() && canEditTenant(resource.data.donoUID, "landing-pages");
@@ -1505,9 +1532,11 @@ allow update: if (
       allow read: if true;
       allow create: if request.resource.data.keys().hasOnly(publicLandingBlockFields())
         && request.resource.data.keys().hasAll(["donoUID"])
+        && landingBlockGeometryValida()
         && canEditTenant(request.resource.data.donoUID, "landing-pages");
       allow update: if request.resource.data.keys().hasOnly(publicLandingBlockFields())
         && donoUIDUnchanged()
+        && landingBlockGeometryValida()
         && canEditTenant(resource.data.donoUID, "landing-pages");
       allow delete: if canEditTenant(resource.data.donoUID, "landing-pages");
     }
