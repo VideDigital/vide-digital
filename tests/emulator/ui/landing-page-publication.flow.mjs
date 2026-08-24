@@ -104,6 +104,23 @@ async function main() {
 
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
 
+        // loginReal() só garante que VideHubContext terminou de inicializar
+        // (window.__videHubContextInitialized) — slugAtualSalvo, a variável
+        // que alternarPublicacaoLP() usa pra montar o docId público
+        // (`${slugAtualSalvo}__${lp.pagina}`), é atribuída bem depois, numa
+        // etapa assíncrona posterior do mesmo callback onAuthStateChanged
+        // (carregamento do perfil da loja). Chamar alternarPublicacaoLP()
+        // antes disso monta um docId errado (slug vazio) — achado real
+        // deste teste, não um bug do fix em si. #url-loja-preview é o
+        // elemento real que a própria dashboard-app.js escreve no exato
+        // momento em que slugAtualSalvo fica pronto, então é o sinal
+        // determinístico correto pra esperar aqui.
+        await page.waitForFunction(
+            (slug) => (document.getElementById("url-loja-preview")?.innerText || "").includes(slug),
+            STORE_SLUG,
+            { timeout: 20000 }
+        );
+
         // ===== Publicar: precisa ser atômico e usar o contrato corrigido =====
         await page.evaluate(
             (lpId) => window.alternarPublicacaoLP(lpId, true),
