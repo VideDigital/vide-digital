@@ -4789,6 +4789,14 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         let lpEditorRemovidos = [];
         let lpEditorPublicado = false;
         let lpEditorSlugOriginal = "";
+        // Getter read-only só para testes/observabilidade, mesmo padrão de
+        // window.__videSlugAtualSalvo — deixa o E2E confirmar que o estado
+        // local só muda quando a operação correspondente no Firestore
+        // realmente for confirmada (ver publicarEditorLP).
+        window.__videLpEditorPublicado = () => lpEditorPublicado;
+        // Mesmo padrão — confirma que lpEditorSlugOriginal só avança depois
+        // do commit real (ver salvarEditorLP, ramo de LP já publicada).
+        window.__videLpEditorSlugOriginal = () => lpEditorSlugOriginal;
         let historicoEditor = [];
         let indiceHistorico = -1;
         let historicoDebounceTimer = null;
@@ -6508,97 +6516,155 @@ blocosSelecionadosLivre.clear();
             renderizarEditorBlocos();
             salvarHistoricoEditor();
         };
+        function payloadBlocoEditor(bloco) {
+            return {
+                lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
+                paginaId: bloco.paginaId || null,
+                visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {},
+                x: bloco.x !== undefined ? bloco.x : null,
+                y: bloco.y !== undefined ? bloco.y : null,
+                largura: bloco.largura !== undefined ? bloco.largura : null,
+                altura: bloco.altura !== undefined ? bloco.altura : null,
+                zIndex: bloco.zIndex !== undefined ? bloco.zIndex : null
+            };
+        }
+        // Retorna sempre { ok, motivo? } — nunca esconde falha atrás de um
+        // console.error mudo. publicarEditorLP() depende desse contrato pra
+        // nunca marcar o estado local como publicado quando o Firestore, de
+        // fato, recusou a operação.
         window.salvarEditorLP = async function() {
-            if (!exigirEdicaoModulo("landing-pages")) return;
+            if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
 
             const titulo = document.getElementById("lped-titulo").value.trim();
             const slug = document.getElementById("lped-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
-            if (!titulo || !slug) return showToast("Preencha titulo e endereco.", "error");
+            if (!titulo || !slug) {
+                showToast("Preencha titulo e endereco.", "error");
+                return { ok: false, motivo: "campos-invalidos" };
+            }
             const slugAnterior = lpEditorSlugOriginal;
             const slugMudou = slug !== slugAnterior;
             try {
                 if (slugMudou) {
                     const existente = await getDocs(query(collection(db, "landing_pages"), where("donoUID", "==", usuarioUID), where("pagina", "==", slug)));
                     const usadoPorOutra = existente.docs.some(d => d.id !== lpEditorId);
-                    if (usadoPorOutra) return showToast("Ja existe outra LP com esse endereco.", "error");
-                }
-                if (!exigirEdicaoModulo("landing-pages")) return;
-
-                for (const blocoId of lpEditorRemovidos) {
-                    await deleteDoc(doc(db, "landing_pages_blocos", blocoId));
-                    await deleteDoc(doc(db, "landing_pages_blocos_publicas", blocoId));
-                }
-                lpEditorRemovidos = [];
-                for (const bloco of lpEditorBlocos) {
-await setDoc(doc(db, "landing_pages_blocos", bloco.id), {
-                        lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
-                        paginaId: bloco.paginaId || null,
-                        visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {},
-                        x: bloco.x !== undefined ? bloco.x : null,
-                        y: bloco.y !== undefined ? bloco.y : null,
-                        largura: bloco.largura !== undefined ? bloco.largura : null,
-                        altura: bloco.altura !== undefined ? bloco.altura : null,
-                        zIndex: bloco.zIndex !== undefined ? bloco.zIndex : null
-                    });
-                }
-await setDoc(doc(db, "landing_pages", lpEditorId), {
-                    titulo, pagina: slug,
-                    modoLayout: lpEditorModoLayout,
-                    paginas: lpEditorPaginas,
-                    ordemBlocos: lpEditorBlocos.map(b => b.id),
-                    atualizadoEm: Date.now()
-                }, { merge: true });
-                lpEditorSlugOriginal = slug;
-                if (lpEditorPublicado) {
-                    if (lpEditorBlocos.length + 2 > LP_BATCH_LIMITE_SEGURO) {
-                        showToast("Esta Landing Page tem blocos demais pra sincronizar de uma vez. Fale com o suporte.", "error");
-                        return;
+                    if (usadoPorOutra) {
+                        showToast("Ja existe outra LP com esse endereco.", "error");
+                        return { ok: false, motivo: "slug-em-uso" };
                     }
-                    // Sincronização pública precisa ser atômica: documento
-                    // público e todos os blocos públicos são confirmados
-                    // juntos num único writeBatch. Antes, cada setDoc rodava
-                    // sequencialmente — uma falha no meio do loop (ex.: bloco
-                    // rejeitado pelas Rules) podia deixar o documento público
-                    // existindo com só parte dos blocos, ou o slug antigo já
-                    // apagado sem o novo documento ainda existir. Achado real
-                    // em produção (LP em modo Livre, ver correção do contrato
-                    // de campos em publicLandingBlockFields()).
-                    const batchPublico = writeBatch(db);
+                }
+                if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
+
+                const removidos = lpEditorRemovidos.slice();
+                const ordemAtual = lpEditorBlocos.map(b => b.id);
+
+                if (lpEditorPublicado) {
+                    // LP já publicada: privado, público, blocos removidos e a
+                    // troca de slug (se houver) precisam comitar como UMA
+                    // transição atômica. Nenhuma mutação pública pode
+                    // acontecer antes de saber que TUDO vai passar — achados
+                    // reais corrigidos aqui: (1) apagar o bloco público de um
+                    // bloco removido antes do lote podia deixar uma LP já no
+                    // ar com bloco sumido mas ainda listado em ordemBlocos;
+                    // (2) trocar o slug em duas fases (privado primeiro,
+                    // público depois) podia deixar o documento público
+                    // antigo órfão e lpEditorSlugOriginal apontando pra um
+                    // slug cujo documento público nunca foi criado.
+                    const operacoes =
+                        (2 * lpEditorBlocos.length) + // set privado + set público de cada bloco atual
+                        (2 * removidos.length) +      // delete privado + delete público de cada removido
+                        2 +                            // landing_pages + landing_pages_publicas novo
+                        (slugMudou ? 1 : 0);           // delete do landing_pages_publicas antigo
+                    if (operacoes > LP_BATCH_LIMITE_SEGURO) {
+                        showToast("Esta Landing Page tem blocos demais pra sincronizar de uma vez. Fale com o suporte.", "error");
+                        return { ok: false, motivo: "lote-grande-demais" };
+                    }
+
+                    const batch = writeBatch(db);
+
+                    for (const blocoId of removidos) {
+                        batch.delete(doc(db, "landing_pages_blocos", blocoId));
+                        batch.delete(doc(db, "landing_pages_blocos_publicas", blocoId));
+                    }
+
+                    for (const bloco of lpEditorBlocos) {
+                        const payload = payloadBlocoEditor(bloco);
+                        batch.set(doc(db, "landing_pages_blocos", bloco.id), payload);
+                        batch.set(doc(db, "landing_pages_blocos_publicas", bloco.id), payload);
+                    }
+
+                    batch.set(doc(db, "landing_pages", lpEditorId), {
+                        titulo, pagina: slug,
+                        modoLayout: lpEditorModoLayout,
+                        paginas: lpEditorPaginas,
+                        ordemBlocos: ordemAtual,
+                        atualizadoEm: Date.now()
+                    }, { merge: true });
+
                     if (slugMudou) {
                         const docIdAntigo = `${slugAtualSalvo}__${slugAnterior}`.toLowerCase();
-                        batchPublico.delete(doc(db, "landing_pages_publicas", docIdAntigo));
+                        batch.delete(doc(db, "landing_pages_publicas", docIdAntigo));
                     }
                     const docIdPublico = `${slugAtualSalvo}__${slug}`.toLowerCase();
-                    batchPublico.set(doc(db, "landing_pages_publicas", docIdPublico), {
-                        titulo, publicado: true, donoUID: usuarioUID, modoLayout: lpEditorModoLayout, paginas: lpEditorPaginas, ordemBlocos: lpEditorBlocos.map(b => b.id)
+                    batch.set(doc(db, "landing_pages_publicas", docIdPublico), {
+                        titulo, publicado: true, donoUID: usuarioUID, modoLayout: lpEditorModoLayout, paginas: lpEditorPaginas, ordemBlocos: ordemAtual
                     });
-                    for (const bloco of lpEditorBlocos) {
-                        batchPublico.set(doc(db, "landing_pages_blocos_publicas", bloco.id), {
-                            lpId: lpEditorId, donoUID: usuarioUID, tipo: bloco.tipo,
-                            paginaId: bloco.paginaId || null,
-                            visivel: bloco.visivel !== false, props: bloco.props, design: bloco.design || {},
-                            x: bloco.x !== undefined ? bloco.x : null,
-                            y: bloco.y !== undefined ? bloco.y : null,
-                            largura: bloco.largura !== undefined ? bloco.largura : null,
-                            altura: bloco.altura !== undefined ? bloco.altura : null,
-                            zIndex: bloco.zIndex !== undefined ? bloco.zIndex : null
-                        });
+
+                    await batch.commit();
+
+                    // Só avança o estado local depois do commit confirmado —
+                    // antes, lpEditorSlugOriginal era atualizado logo após o
+                    // setDoc privado, mesmo que a sincronização pública
+                    // ainda pudesse falhar em seguida.
+                    lpEditorRemovidos = [];
+                    lpEditorSlugOriginal = slug;
+                } else {
+                    // LP ainda não publicada: nada público em jogo, sem risco
+                    // de estado parcial visível pro público — mantém o
+                    // salvamento privado direto, sem writeBatch.
+                    for (const blocoId of removidos) {
+                        await deleteDoc(doc(db, "landing_pages_blocos", blocoId));
                     }
-                    await batchPublico.commit();
+                    lpEditorRemovidos = [];
+                    for (const bloco of lpEditorBlocos) {
+                        await setDoc(doc(db, "landing_pages_blocos", bloco.id), payloadBlocoEditor(bloco));
+                    }
+                    await setDoc(doc(db, "landing_pages", lpEditorId), {
+                        titulo, pagina: slug,
+                        modoLayout: lpEditorModoLayout,
+                        paginas: lpEditorPaginas,
+                        ordemBlocos: ordemAtual,
+                        atualizadoEm: Date.now()
+                    }, { merge: true });
+                    lpEditorSlugOriginal = slug;
                 }
+
                 showToast("Landing Page salva.");
+                return { ok: true };
             } catch(err) {
                 console.error(err);
                 showToast("Erro ao salvar: " + err.message, "error");
+                return { ok: false, motivo: "erro", erro: err?.message };
             }
         };
         window.publicarEditorLP = async function() {
-            if (!exigirEdicaoModulo("landing-pages")) return;
+            if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
 
-            await salvarEditorLP();
-            lpEditorPublicado = !lpEditorPublicado;
-            await alternarPublicacaoLP(lpEditorId, lpEditorPublicado);
+            const resultadoSalvar = await salvarEditorLP();
+            if (!resultadoSalvar?.ok) {
+                // Falha no salvamento: o Firestore não mudou o status
+                // publicado, então o estado local (lpEditorPublicado) e o
+                // badge continuam corretos exatamente como estavam — nunca
+                // mais assumimos sucesso otimisticamente aqui.
+                return resultadoSalvar;
+            }
+
+            const publicarAgora = !lpEditorPublicado;
+            const resultado = await alternarPublicacaoLP(lpEditorId, publicarAgora);
+            if (resultado?.ok) {
+                lpEditorPublicado = publicarAgora;
+            }
             atualizarBadgeStatusEditor();
+            return resultado;
         };
 window.abrirPreviewEditorLP = async function() {
     if (!lpEditorPublicado) {
@@ -6692,14 +6758,16 @@ window.abrirPreviewEditorLP = async function() {
                 showToast("Não consegui aplicar o modelo, mas a página foi criada em branco.", "error");
             }
         }
+        // Retorna sempre { ok, motivo? } — publicarEditorLP() só avança
+        // lpEditorPublicado/badge quando resultado.ok === true.
         window.alternarPublicacaoLP = async function(id, publicarAgora) {
-            if (!exigirEdicaoModulo("landing-pages")) return;
+            if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
 
             try {
                 const snap = await getDoc(doc(db, "landing_pages", id));
-                if (!snap.exists()) return;
+                if (!snap.exists()) return { ok: false, motivo: "lp-nao-encontrada" };
                 const lp = snap.data();
-                if (!exigirEdicaoModulo("landing-pages")) return;
+                if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
 
                 const docIdPublico = `${slugAtualSalvo}__${lp.pagina}`.toLowerCase();
                 const ordemBlocos = lp.ordemBlocos || [];
@@ -6718,20 +6786,31 @@ window.abrirPreviewEditorLP = async function() {
                 if (publicarAgora) {
                     if (ordemBlocos.length + 2 > LP_BATCH_LIMITE_SEGURO) {
                         showToast("Esta Landing Page tem blocos demais pra publicar de uma vez. Fale com o suporte.", "error");
-                        return;
+                        return { ok: false, motivo: "lote-grande-demais" };
                     }
                     const blocosSnaps = await Promise.all(
                         ordemBlocos.map((blocoId) => getDoc(doc(db, "landing_pages_blocos", blocoId)))
                     );
+                    // Achado real: se algum bloco referenciado em
+                    // ordemBlocos não existir mais (documento apagado por
+                    // fora, ou corrompido), o código antigo simplesmente
+                    // pulava esse bloco no loop — o documento público
+                    // anunciava N blocos em ordemBlocos, mas só N-1 (ou
+                    // menos) existiam de verdade, uma publicação parcial
+                    // silenciosa. Aborta antes de montar o lote — nada é
+                    // alterado, nem o status privado.
+                    const ausentes = ordemBlocos.filter((blocoId, i) => !blocosSnaps[i].exists());
+                    if (ausentes.length > 0) {
+                        showToast(`Não foi possível publicar: ${ausentes.length} bloco(s) referenciado(s) não foi(ram) encontrado(s). Nada foi alterado.`, "error");
+                        return { ok: false, motivo: "bloco-ausente", blocosAusentes: ausentes };
+                    }
                     const batch = writeBatch(db);
                     batch.set(doc(db, "landing_pages", id), { publicado: true, atualizadoEm: Date.now() }, { merge: true });
                     batch.set(doc(db, "landing_pages_publicas", docIdPublico), {
                         titulo: lp.titulo, publicado: true, donoUID: usuarioUID, modoLayout: lp.modoLayout || "empilhado", paginas: lp.paginas || [], ordemBlocos
                     });
                     for (const blocoSnap of blocosSnaps) {
-                        if (blocoSnap.exists()) {
-                            batch.set(doc(db, "landing_pages_blocos_publicas", blocoSnap.id), { ...blocoSnap.data(), donoUID: usuarioUID });
-                        }
+                        batch.set(doc(db, "landing_pages_blocos_publicas", blocoSnap.id), { ...blocoSnap.data(), donoUID: usuarioUID });
                     }
                     await batch.commit();
                     showToast("Landing Page publicada!");
@@ -6746,9 +6825,11 @@ window.abrirPreviewEditorLP = async function() {
                     showToast("Landing Page despublicada.");
                 }
                 carregarLandingPages();
+                return { ok: true };
             } catch(err) {
                 console.error(err);
                 showToast("Erro: " + err.message, "error");
+                return { ok: false, motivo: "erro", erro: err?.message };
             }
         };
 window.duplicarLP = async function(id) {
