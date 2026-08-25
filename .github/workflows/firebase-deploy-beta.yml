@@ -18,6 +18,37 @@
 # Quality Gate real (ver quality-gate.yml) — se a main tiver avançado (ou
 # regredido) desde então, o workflow aborta antes de qualquer
 # autenticação/deploy, em vez de publicar um commit não revisado.
+#
+# RISCO AUDITADO — defineSecret() do WhatsApp durante a análise do pacote:
+# functions/src/index.js carrega ./whatsapp incondicionalmente, e
+# functions/src/whatsapp/secrets.js declara defineSecret("WHATSAPP_APP_SECRET")
+# e defineSecret("WHATSAPP_WEBHOOK_VERIFY_TOKEN") no topo do módulo — o
+# próprio arquivo já documenta que o Firebase CLI detecta QUALQUER
+# defineSecret() carregado durante a análise do código, mesmo sem uso real
+# pela Function sendo publicada. stage=functions roda um pré-flight com
+# "deploy --dry-run --non-interactive" (flag real, confirmada em
+# `firebase deploy --help` da versão 13.35.1 fixada abaixo — nunca uma
+# flag inventada) ANTES do deploy de verdade: --dry-run "valida e builda
+# sem publicar nenhuma mudança" (texto oficial do próprio --help), e
+# --non-interactive faz falhar explicitamente em vez de travar esperando
+# um prompt, caso a análise do pacote exija configuração interativa de
+# secret. Ressalva documentada pelo próprio Firebase CLI: "In order to
+# provide better validation, this may still enable APIs on the target
+# project" — --dry-run pode habilitar APIs no projeto real mesmo sem
+# publicar nada; não lê valor de secret, não cria secret, não publica
+# nenhuma Function whatsapp*.
+#
+# JANELA DE COMPATIBILIDADE — Landing Pages: a Rule nova aceita os campos
+# de geometria do modo Livre (design/x/y/largura/altura/zIndex) que o
+# frontend novo sempre grava; a Rule antiga não. Isso significa que não
+# existe uma ordem sequencial (Functions → Pages → Rules) totalmente sem
+# janela pro release monolítico atual: publicar o frontend novo (Pages)
+# antes das Rules novas abre uma janela em que publicar/editar uma
+# Landing Page pode receber permission-denied. Este workflow NÃO controla
+# o Pages (workflow separado, pages-publish.yml) e não finge controlar
+# essa janela — cada stage imprime um aviso explícito no
+# GITHUB_STEP_SUMMARY sobre quando suspender/liberar edição e publicação
+# de Landing Pages.
 name: Deploy Firebase Beta — Controlado
 
 on:
@@ -167,6 +198,15 @@ jobs:
       - name: Testar funções puras (validadores + Functions do Beta)
         run: pnpm run test:functions
 
+      # Teste estático determinístico deste próprio arquivo (regressão:
+      # BETA_FUNCTIONS não pode ganhar nem perder Function, nenhuma
+      # whatsapp*, nunca "--only functions" genérico, Rules stage só
+      # firestore:rules, sem storage/indexes/hosting, expected_sha e
+      # confirm_production continuam obrigatórios). Não executa o
+      # workflow nem precisa de credenciais.
+      - name: Testar as garantias de segurança deste workflow
+        run: pnpm run test:ci-workflows
+
       - name: Testar regras no Emulator Suite
         run: pnpm run test:rules
 
@@ -290,6 +330,29 @@ jobs:
           create_credentials_file: true
           export_environment_variables: true
 
+      # Pré-flight SEGURO — prova, sem publicar nada, que a análise do
+      # pacote das 7 Functions do Beta consegue terminar de forma
+      # não-interativa (ver "RISCO AUDITADO" no topo do arquivo). Roda
+      # ANTES do deploy de verdade e com o MESMO --only, então qualquer
+      # exigência de configuração interativa de secret (WhatsApp ou
+      # qualquer outro) derruba o job aqui — nunca mascarado, nunca
+      # travando um deploy real esperando um prompt que não existe em
+      # modo não-interativo. Não lê valor de secret nem cria secret; pode
+      # habilitar APIs no projeto (ressalva do próprio --dry-run do
+      # Firebase CLI, ver comentário no topo do arquivo).
+      - name: "Pré-flight seguro: dry-run não-interativo (stage=functions)"
+        if: inputs.stage == 'functions'
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${BETA_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive \
+            --dry-run
+
       - name: "Publicar as 7 Functions do Beta (stage=functions)"
         if: inputs.stage == 'functions'
         shell: bash
@@ -301,6 +364,45 @@ jobs:
             --only "${BETA_FUNCTIONS}" \
             --project "${PROJECT_ID}" \
             --non-interactive
+
+      # Aviso impossível de ignorar (GITHUB_STEP_SUMMARY, topo da página
+      # do run) — este workflow não controla o Pages nem finge controlar
+      # a janela; só documenta explicitamente quando ela abre. Também
+      # lembra a claim videAdmin (Achado 3): adminUpdateStoreStatus
+      # depende dela primeiro, VIDE_SUPER_ADMIN_EMAIL é só fallback — não
+      # bloqueia o deploy das outras 6 Functions, só o smoke operacional
+      # de admin.
+      - name: "Aviso: janela de compatibilidade de Landing Pages (abertura)"
+        if: inputs.stage == 'functions'
+        shell: bash
+        run: |
+          {
+            echo "## ⚠️ Janela de compatibilidade — Landing Pages"
+            echo ""
+            echo "As 7 Functions do Beta foram publicadas. **A partir de agora e até o stage \`firestore-rules\` deste mesmo release concluir**, suspenda edição/publicação de Landing Pages — a Rule antiga em produção ainda não aceita os campos de geometria do modo Livre (\`design\`/\`x\`/\`y\`/\`largura\`/\`altura\`/\`zIndex\`) que o frontend novo grava, e publicar o frontend novo (Pages, workflow separado) antes das Rules novas abre uma janela de \`permission-denied\` real pro dono da loja."
+            echo ""
+            echo "Ordem operacional deste release: **Functions (feito) → suspender edição/publicação de LP → publicar Pages → rodar stage \`firestore-rules\` → liberar edição/publicação de LP novamente.**"
+            echo ""
+            echo "### Lembrete — claim \`videAdmin\`"
+            echo "Antes de fazer o smoke operacional de \`adminUpdateStoreStatus\` em produção, confirme que a conta administrativa usada tem a custom claim \`videAdmin\` — \`VIDE_SUPER_ADMIN_EMAIL\` é só um fallback opcional, não substitui a claim."
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "Aviso de janela de compatibilidade publicado no resumo do run."
+
+      # Reitera a janela ANTES do deploy de Rules — dá chance de abortar
+      # (Ctrl+C manual/cancelar o run) se o Pages deste mesmo release
+      # ainda não tiver sido publicado.
+      - name: "Aviso: janela de compatibilidade de Landing Pages (fechamento)"
+        if: inputs.stage == 'firestore-rules'
+        shell: bash
+        run: |
+          {
+            echo "## ⚠️ Janela de compatibilidade — Landing Pages"
+            echo ""
+            echo "Este stage publica as Firestore Rules que fecham a janela de compatibilidade de Landing Pages aberta pela publicação do frontend novo (Pages). **Confirme que o Pages deste mesmo release já foi publicado antes de prosseguir** — publicar Rules novas sem o Pages novo já no ar não é o problema (as Rules antigas fechavam caminhos que o frontend antigo ainda usava); o problema é a ordem inversa (Pages novo, Rules antigas), que já deveria ter sido evitada no stage anterior."
+            echo ""
+            echo "Depois deste stage concluir com sucesso, **libere novamente** edição/publicação de Landing Pages."
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "Aviso de janela de compatibilidade publicado no resumo do run."
 
       - name: "Publicar Firestore Rules (stage=firestore-rules)"
         if: inputs.stage == 'firestore-rules'
