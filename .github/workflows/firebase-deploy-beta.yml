@@ -1,0 +1,417 @@
+# Canal de deploy ISOLADO e reversível pro release do Beta aprovado após o
+# PR #57 — publica só as 7 Functions confirmadas em functions/src/index.js
+# (createEmployee, updateEmployee, enableEmployee, disableEmployee,
+# adminUpdateStoreStatus, createPublicLead, createPublicReview) e/ou
+# firestore:rules, isoladamente por stage. NÃO substitui nem modifica
+# firebase-deploy.yml ("Deploy Firebase Spark" — Rules+Storage+Indexes),
+# firebase-deploy-functions.yml (askBusinessAI/askPublicBusinessAI) nem
+# firebase-deploy-whatsapp.yml (WhatsApp Oficial) — cada canal continua
+# isolado, com escopo próprio, de propósito.
+#
+# stage=functions publica EXCLUSIVAMENTE as 7 Functions do Beta (env
+# BETA_FUNCTIONS abaixo) — nunca "--only functions" genérico, nunca
+# nenhuma Function whatsapp*.
+# stage=firestore-rules publica EXCLUSIVAMENTE firestore:rules — nunca
+# Storage, nunca indexes, nunca Hosting.
+#
+# expected_sha trava o deploy exatamente no commit já aprovado pelo
+# Quality Gate real (ver quality-gate.yml) — se a main tiver avançado (ou
+# regredido) desde então, o workflow aborta antes de qualquer
+# autenticação/deploy, em vez de publicar um commit não revisado.
+#
+# RISCO AUDITADO — defineSecret() do WhatsApp durante a análise do pacote:
+# functions/src/index.js carrega ./whatsapp incondicionalmente, e
+# functions/src/whatsapp/secrets.js declara defineSecret("WHATSAPP_APP_SECRET")
+# e defineSecret("WHATSAPP_WEBHOOK_VERIFY_TOKEN") no topo do módulo — o
+# próprio arquivo já documenta que o Firebase CLI detecta QUALQUER
+# defineSecret() carregado durante a análise do código, mesmo sem uso real
+# pela Function sendo publicada. stage=functions roda um pré-flight com
+# "deploy --dry-run --non-interactive" (flag real, confirmada em
+# `firebase deploy --help` da versão 13.35.1 fixada abaixo — nunca uma
+# flag inventada) ANTES do deploy de verdade: --dry-run "valida e builda
+# sem publicar nenhuma mudança" (texto oficial do próprio --help), e
+# --non-interactive faz falhar explicitamente em vez de travar esperando
+# um prompt, caso a análise do pacote exija configuração interativa de
+# secret. Ressalva documentada pelo próprio Firebase CLI: "In order to
+# provide better validation, this may still enable APIs on the target
+# project" — --dry-run pode habilitar APIs no projeto real mesmo sem
+# publicar nada; não lê valor de secret, não cria secret, não publica
+# nenhuma Function whatsapp*.
+#
+# JANELA DE COMPATIBILIDADE — Landing Pages: a Rule nova aceita os campos
+# de geometria do modo Livre (design/x/y/largura/altura/zIndex) que o
+# frontend novo sempre grava; a Rule antiga não. Isso significa que não
+# existe uma ordem sequencial (Functions → Pages → Rules) totalmente sem
+# janela pro release monolítico atual: publicar o frontend novo (Pages)
+# antes das Rules novas abre uma janela em que publicar/editar uma
+# Landing Page pode receber permission-denied. Este workflow NÃO controla
+# o Pages (workflow separado, pages-publish.yml) e não finge controlar
+# essa janela — cada stage imprime um aviso explícito no
+# GITHUB_STEP_SUMMARY sobre quando suspender/liberar edição e publicação
+# de Landing Pages.
+name: Deploy Firebase Beta — Controlado
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: O que publicar nesta execução
+        required: true
+        type: choice
+        options:
+          - functions
+          - firestore-rules
+      project_id:
+        description: ID real do projeto Firebase de produção (aceita só vide-digital-saas)
+        required: true
+        type: string
+      expected_sha:
+        description: SHA exato da main aprovada pelo Quality Gate (precisa bater com git rev-parse HEAD do checkout)
+        required: true
+        type: string
+      confirm_production:
+        description: "stage=functions: digite DEPLOY_FUNCTIONS · stage=firestore-rules: digite DEPLOY_RULES"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+concurrency:
+  group: firebase-beta-controlled-deploy
+  cancel-in-progress: false
+
+env:
+  # Lista explícita, de propósito — nunca gerada automaticamente a partir
+  # de todos os exports de functions/src/index.js. Qualquer Function nova
+  # (inclusive whatsapp*) fica de fora até alguém adicionar o nome dela
+  # aqui manualmente, com revisão.
+  BETA_FUNCTIONS: "functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:adminUpdateStoreStatus,functions:createPublicLead,functions:createPublicReview"
+
+jobs:
+  validate-and-test:
+    name: Validar solicitação e executar testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Validar stage, branch, project_id e confirmação
+        shell: bash
+        env:
+          STAGE: ${{ inputs.stage }}
+          PROJECT_ID: ${{ inputs.project_id }}
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            echo "Erro: este workflow aceita somente execução manual."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Erro: execute este workflow somente a partir da branch main."
+            exit 1
+          fi
+
+          if [[ "${STAGE}" != "functions" && "${STAGE}" != "firestore-rules" ]]; then
+            echo "Erro: stage precisa ser exatamente 'functions' ou 'firestore-rules'."
+            exit 1
+          fi
+
+          if [[ -z "${PROJECT_ID//[[:space:]]/}" ]]; then
+            echo "Erro: project_id é obrigatório."
+            exit 1
+          fi
+
+          NORMALIZED_PROJECT_ID="$(printf '%s' "${PROJECT_ID}" | tr '[:upper:]' '[:lower:]')"
+          if [[ "${NORMALIZED_PROJECT_ID}" == *demo* ]]; then
+            echo "Erro: projetos com 'demo' no ID não podem receber deploy de produção."
+            exit 1
+          fi
+
+          if [[ "${PROJECT_ID}" != "vide-digital-saas" ]]; then
+            echo "Erro: este canal publica exclusivamente no projeto vide-digital-saas."
+            exit 1
+          fi
+
+          if [[ "${STAGE}" == "functions" && "${CONFIRM_PRODUCTION}" != "DEPLOY_FUNCTIONS" ]]; then
+            echo "Erro: para stage=functions, confirm_production precisa ser exatamente DEPLOY_FUNCTIONS."
+            exit 1
+          fi
+
+          if [[ "${STAGE}" == "firestore-rules" && "${CONFIRM_PRODUCTION}" != "DEPLOY_RULES" ]]; then
+            echo "Erro: para stage=firestore-rules, confirm_production precisa ser exatamente DEPLOY_RULES."
+            exit 1
+          fi
+
+      - name: Checkout da main
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Confirmar que o checkout é exatamente o SHA aprovado
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
+            echo "::error::ERRO: SHA da main diverge do release autorizado."
+            echo "Esperado (expected_sha): ${EXPECTED_SHA}"
+            echo "Encontrado no checkout : ${ACTUAL_SHA}"
+            exit 1
+          fi
+          echo "SHA confirmado: ${ACTUAL_SHA}"
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      # pnpm 11.9.0 exige Node >= 22.13 — precisa ser a MESMA versão nos
+      # dois jobs (validate-and-test e deploy) pra não haver divergência
+      # de comportamento entre validar e publicar.
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      # Precisa vir antes de qualquer teste: test:rules e
+      # test:frontend:emulator sobem o Firestore Emulator, que roda em Java.
+      - name: Configurar Java 21 para o Firestore Emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar sintaxe do projeto
+        run: pnpm run check
+
+      - name: Testar funções puras (validadores + Functions do Beta)
+        run: pnpm run test:functions
+
+      # Teste estático determinístico deste próprio arquivo (regressão:
+      # BETA_FUNCTIONS não pode ganhar nem perder Function, nenhuma
+      # whatsapp*, nunca "--only functions" genérico, Rules stage só
+      # firestore:rules, sem storage/indexes/hosting, expected_sha e
+      # confirm_production continuam obrigatórios). Não executa o
+      # workflow nem precisa de credenciais.
+      - name: Testar as garantias de segurança deste workflow
+        run: pnpm run test:ci-workflows
+
+      - name: Testar regras no Emulator Suite
+        run: pnpm run test:rules
+
+      # test:release (suite completa com Playwright) não roda aqui de
+      # propósito: o Quality Gate real (quality-gate.yml) já validou este
+      # mesmo expected_sha com login real + Playwright antes do merge —
+      # repetir aqui só adicionaria tempo/flakiness ao caminho de deploy
+      # sem checar nada que o Quality Gate não tenha checado.
+      - name: Smoke test do frontend no Emulator Suite
+        run: pnpm run test:frontend:emulator
+
+  deploy:
+    name: "Publicar recurso selecionado (${{ inputs.stage }})"
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout da main validada
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      # Revalida no job de deploy também — o job de validação e o de
+      # deploy rodam em runners/checkouts separados; confirmar de novo
+      # fecha a janela (ainda que estreita) entre os dois jobs.
+      - name: Confirmar novamente o SHA aprovado
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
+            echo "::error::ERRO: SHA da main diverge do release autorizado."
+            echo "Esperado (expected_sha): ${EXPECTED_SHA}"
+            echo "Encontrado no checkout : ${ACTUAL_SHA}"
+            exit 1
+          fi
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar dependências das Functions
+        if: inputs.stage == 'functions'
+        run: pnpm install --frozen-lockfile --dir functions
+
+      - name: Confirmar que as 7 Functions do Beta existem no export atual
+        if: inputs.stage == 'functions'
+        shell: bash
+        run: |
+          set -euo pipefail
+          MISSING=0
+          for FN in createEmployee updateEmployee enableEmployee disableEmployee adminUpdateStoreStatus createPublicLead createPublicReview; do
+            if ! grep -qE "exports\.${FN}[[:space:]]*=" functions/src/index.js; then
+              echo "::error::Export ausente em functions/src/index.js: ${FN}"
+              MISSING=1
+            fi
+          done
+          if [[ "${MISSING}" -eq 1 ]]; then
+            exit 1
+          fi
+          echo "As 7 Functions do Beta estão exportadas em functions/src/index.js."
+
+      # Mesmo detector de autenticação já usado por firebase-deploy.yml e
+      # firebase-deploy-functions.yml — nunca usa "firebase login" nem
+      # FIREBASE_TOKEN. Sem nenhum dos dois métodos configurados, falha
+      # AQUI com instrução clara, sem imprimir nenhum valor de segredo, e
+      # sem nunca marcar sucesso sem publicar de verdade.
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            echo "Configure UM dos métodos abaixo em Settings → Secrets and variables → Actions:"
+            echo "  1. GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT (Workload Identity Federation), ou"
+            echo "  2. FIREBASE_SERVICE_ACCOUNT (conteúdo JSON completo da chave da conta de serviço)."
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      # Pré-flight SEGURO — prova, sem publicar nada, que a análise do
+      # pacote das 7 Functions do Beta consegue terminar de forma
+      # não-interativa (ver "RISCO AUDITADO" no topo do arquivo). Roda
+      # ANTES do deploy de verdade e com o MESMO --only, então qualquer
+      # exigência de configuração interativa de secret (WhatsApp ou
+      # qualquer outro) derruba o job aqui — nunca mascarado, nunca
+      # travando um deploy real esperando um prompt que não existe em
+      # modo não-interativo. Não lê valor de secret nem cria secret; pode
+      # habilitar APIs no projeto (ressalva do próprio --dry-run do
+      # Firebase CLI, ver comentário no topo do arquivo).
+      - name: "Pré-flight seguro: dry-run não-interativo (stage=functions)"
+        if: inputs.stage == 'functions'
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${BETA_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive \
+            --dry-run
+
+      - name: "Publicar as 7 Functions do Beta (stage=functions)"
+        if: inputs.stage == 'functions'
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${BETA_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive
+
+      # Aviso impossível de ignorar (GITHUB_STEP_SUMMARY, topo da página
+      # do run) — este workflow não controla o Pages nem finge controlar
+      # a janela; só documenta explicitamente quando ela abre. Também
+      # lembra a claim videAdmin (Achado 3): adminUpdateStoreStatus
+      # depende dela primeiro, VIDE_SUPER_ADMIN_EMAIL é só fallback — não
+      # bloqueia o deploy das outras 6 Functions, só o smoke operacional
+      # de admin.
+      - name: "Aviso: janela de compatibilidade de Landing Pages (abertura)"
+        if: inputs.stage == 'functions'
+        shell: bash
+        run: |
+          {
+            echo "## ⚠️ Janela de compatibilidade — Landing Pages"
+            echo ""
+            echo "As 7 Functions do Beta foram publicadas. **A partir de agora e até o stage \`firestore-rules\` deste mesmo release concluir**, suspenda edição/publicação de Landing Pages — a Rule antiga em produção ainda não aceita os campos de geometria do modo Livre (\`design\`/\`x\`/\`y\`/\`largura\`/\`altura\`/\`zIndex\`) que o frontend novo grava, e publicar o frontend novo (Pages, workflow separado) antes das Rules novas abre uma janela de \`permission-denied\` real pro dono da loja."
+            echo ""
+            echo "Ordem operacional deste release: **Functions (feito) → suspender edição/publicação de LP → publicar Pages → rodar stage \`firestore-rules\` → liberar edição/publicação de LP novamente.**"
+            echo ""
+            echo "### Lembrete — claim \`videAdmin\`"
+            echo "Antes de fazer o smoke operacional de \`adminUpdateStoreStatus\` em produção, confirme que a conta administrativa usada tem a custom claim \`videAdmin\` — \`VIDE_SUPER_ADMIN_EMAIL\` é só um fallback opcional, não substitui a claim."
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "Aviso de janela de compatibilidade publicado no resumo do run."
+
+      # Reitera a janela ANTES do deploy de Rules — dá chance de abortar
+      # (Ctrl+C manual/cancelar o run) se o Pages deste mesmo release
+      # ainda não tiver sido publicado.
+      - name: "Aviso: janela de compatibilidade de Landing Pages (fechamento)"
+        if: inputs.stage == 'firestore-rules'
+        shell: bash
+        run: |
+          {
+            echo "## ⚠️ Janela de compatibilidade — Landing Pages"
+            echo ""
+            echo "Este stage publica as Firestore Rules que fecham a janela de compatibilidade de Landing Pages aberta pela publicação do frontend novo (Pages). **Confirme que o Pages deste mesmo release já foi publicado antes de prosseguir** — publicar Rules novas sem o Pages novo já no ar não é o problema (as Rules antigas fechavam caminhos que o frontend antigo ainda usava); o problema é a ordem inversa (Pages novo, Rules antigas), que já deveria ter sido evitada no stage anterior."
+            echo ""
+            echo "Depois deste stage concluir com sucesso, **libere novamente** edição/publicação de Landing Pages."
+          } >> "${GITHUB_STEP_SUMMARY}"
+          echo "Aviso de janela de compatibilidade publicado no resumo do run."
+
+      - name: "Publicar Firestore Rules (stage=firestore-rules)"
+        if: inputs.stage == 'firestore-rules'
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only firestore:rules \
+            --project "${PROJECT_ID}" \
+            --non-interactive

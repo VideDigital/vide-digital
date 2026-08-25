@@ -81,6 +81,18 @@ transição neste arquivo quando acontecer.
 
 ## O que substituiu cada Cloud Function (legado, não publicado)
 
+> **Atualização (release do Beta, PRs #50/#52/#53/#56/#57)**: as linhas
+> abaixo pra `createEmployee`/`updateEmployee`/`enable/disableEmployee`,
+> `adminUpdateStoreStatus` e `createPublicLead` **não refletem mais o
+> estado real** — essas 6 Functions passaram por revisão de segurança,
+> ganharam testes e frontend migrado pra chamá-las de verdade (fim da
+> escrita direta descrita nesta tabela pra esses casos), e fazem parte do
+> release controlado por `.github/workflows/firebase-deploy-beta.yml`
+> (stage `functions`), junto com `createPublicReview` (que segue o mesmo
+> padrão de `createPublicLead`). **Não use a tabela abaixo como instrução
+> operacional pra essas 6 Functions** — trate como histórico do desenho
+> anterior. As demais linhas da tabela continuam válidas.
+
 O diretório `functions/` existe como **legado / testes / contrato futuro** —
 o código antigo continua ali, com validadores puros testados em
 `tests/functions/`, mas **nenhum workflow publica as Functions abaixo**.
