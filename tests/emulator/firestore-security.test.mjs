@@ -602,6 +602,118 @@ describe("public writes", () => {
   });
 });
 
+// CRM-LEAD-006 (hardening do Beta): as Rules aceitavam gravar
+// responsavelUid em leads sem comprovar que pertence ao tenant, e
+// clienteId só era validado no update, nunca no create — mesmo bug
+// classe de clienteIdValidoParaTenant, mas responsavelUid não tinha
+// checagem NENHUMA. Corrigido com responsavelLeadValidoCreate/
+// clienteIdLeadValidoCreate (create, sem resource anterior) +
+// responsavelClienteValido reusado no update (mesmo helper já usado por
+// clientes/{id}).
+describe("leads: responsavelUid e clienteId precisam pertencer ao mesmo tenant", () => {
+  // beforeEach (não before): o beforeEach global do arquivo
+  // (testEnv.clearFirestore()) roda antes de CADA teste — um before()
+  // aninhado seria apagado por ele antes do primeiro teste rodar. Um
+  // beforeEach aninhado sempre roda DEPOIS do externo, garantindo que
+  // esses fixtures sobrevivam pra cada teste individual.
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "leadEmployeeA"), {
+        donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: ["leads"] }
+      });
+      await setDoc(doc(db, "funcionarios", "leadEmployeeB"), {
+        donoUID: "ownerB", status: "ativo", permissoes: { ver: ["leads"], editar: ["leads"] }
+      });
+      await setDoc(doc(db, "funcionarios", "leadEmployeeAInativo"), {
+        donoUID: "ownerA", status: "inativo", permissoes: { ver: ["leads"], editar: ["leads"] }
+      });
+      await setDoc(doc(db, "clientes", "leadClienteA"), {
+        tenantId: "ownerA", lojaId: "ownerA", criadoPor: "ownerA", criadoEm: Date.now(),
+        atualizadoPor: "ownerA", atualizadoEm: Date.now()
+      });
+      await setDoc(doc(db, "clientes", "leadClienteB"), {
+        tenantId: "ownerB", lojaId: "ownerB", criadoPor: "ownerB", criadoEm: Date.now(),
+        atualizadoPor: "ownerB", atualizadoEm: Date.now()
+      });
+    });
+  });
+
+  it("CREATE — responsável = funcionário ATIVO do mesmo tenant: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadRespFuncA"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: "leadEmployeeA"
+    }));
+  });
+
+  it("CREATE — responsável = funcionário de OUTRO tenant: negado", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "leadRespFuncB"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: "leadEmployeeB"
+    }));
+  });
+
+  it("CREATE — responsável = funcionário INATIVO do mesmo tenant: negado", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "leadRespFuncInativo"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: "leadEmployeeAInativo"
+    }));
+  });
+
+  it("CREATE — responsável = próprio dono: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadRespDono"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: "ownerA"
+    }));
+  });
+
+  it("CREATE — responsável = uid inexistente: negado (não trava, falha com segurança)", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "leadRespInexistente"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: "funcionario-que-nunca-existiu"
+    }));
+  });
+
+  it("CREATE — sem responsável (campo ausente): permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadSemResp"), {
+      criadoPor: "ownerA", status: "novo"
+    }));
+  });
+
+  it("CREATE — cliente do mesmo tenant: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadClienteMesmoTenant"), {
+      criadoPor: "ownerA", status: "novo", clienteId: "leadClienteA"
+    }));
+  });
+
+  it("CREATE — cliente de OUTRO tenant: negado", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "leadClienteOutroTenant"), {
+      criadoPor: "ownerA", status: "novo", clienteId: "leadClienteB"
+    }));
+  });
+
+  it("CREATE — clienteId inexistente: negado", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "leadClienteInexistente"), {
+      criadoPor: "ownerA", status: "novo", clienteId: "cliente-que-nunca-existiu"
+    }));
+  });
+
+  it("UPDATE — trocar responsável pra funcionário de outro tenant: negado; documento legado preservado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadLegadoResp").set({
+        criadoPor: "ownerA", status: "novo", responsavelUid: "uid-legado-sem-vinculo-real"
+      });
+    });
+    // Atualizar um campo QUE NÃO É responsavelUid continua permitido —
+    // documento legado com responsável inválido não fica travado.
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadLegadoResp"), { status: "em_contato" }));
+    // Mas tentar trocar o responsável pra alguém de outro tenant é negado.
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadLegadoResp"), { responsavelUid: "leadEmployeeB" }));
+  });
+
+  it("UPDATE — trocar responsável pra funcionário válido do mesmo tenant: permitido", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadParaReatribuir").set({ criadoPor: "ownerA", status: "novo" });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadParaReatribuir"), { responsavelUid: "leadEmployeeA" }));
+  });
+});
+
 // Achado real em produção: publicLandingBlockFields() não incluía a
 // geometria do modo Livre (x/y/largura/altura/zIndex/design) — publicar
 // qualquer LP nesse modo falhava no primeiro bloco com
