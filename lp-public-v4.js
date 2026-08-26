@@ -1547,8 +1547,11 @@
                 cliques: 0,
                 utmSource: (campaign.get("utm_source") || "").slice(0, 120),
                 utmMedium: (campaign.get("utm_medium") || "").slice(0, 120),
-                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120)
+                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120),
+                dedupeKey: tokenTentativaLeadPublicoV4()
             });
+            // Sucesso: a PRÓXIMA submissão recebe um token novo.
+            concluirTentativaLeadPublicoV4();
 
             form.reset();
 
@@ -1817,6 +1820,25 @@
         }
         createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
         return createPublicLeadCallable;
+    }
+
+    // CRM-LEAD-008 (achado 5 da revisão adversarial): mesmo padrão de
+    // token de tentativa opaco de loja.html/lp-forms-v5.js — mantido aqui
+    // por consistência mesmo este renderer não estando conectado a
+    // nenhuma página pública hoje (ver comentário acima em
+    // obterCreatePublicLeadCallable), pra já nascer correto se/quando for
+    // conectado.
+    let pendingLeadAttemptTokenV4 = null;
+    function tokenTentativaLeadPublicoV4() {
+        if (!pendingLeadAttemptTokenV4) {
+            pendingLeadAttemptTokenV4 = (window.crypto && typeof window.crypto.randomUUID === "function")
+                ? window.crypto.randomUUID()
+                : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+        }
+        return pendingLeadAttemptTokenV4;
+    }
+    function concluirTentativaLeadPublicoV4() {
+        pendingLeadAttemptTokenV4 = null;
     }
 
     async function loadPublicData() {

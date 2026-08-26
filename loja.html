@@ -2989,6 +2989,35 @@
             } catch (e) {}
         }
 
+        // CRM-LEAD-008 (achado 5 da revisão adversarial): token de tentativa
+        // opaco, INDEPENDENTE da chave de dedupe local acima. chaveDedupeLeadPublico
+        // é derivada do CONTEÚDO do formulário (contato/produto/formulário) —
+        // boa pra UX local (bloquear clique duplo em sessionStorage), mas
+        // ruim como identidade de idempotência no servidor: duas submissões
+        // LEGÍTIMAS com o mesmo conteúdo (o mesmo contato reenviando
+        // interesse) teriam a MESMA chave e a segunda seria descartada
+        // silenciosamente. Este token identifica a TENTATIVA DE ENVIO, não o
+        // conteúdo: gerado uma vez quando uma nova tentativa começa,
+        // reaproveitado em qualquer retry da MESMA tentativa (erro de rede
+        // ambíguo — ver o catch em capturarLeadPublico), e descartado após
+        // sucesso, pra que a PRÓXIMA submissão sempre receba um token novo,
+        // mesmo com conteúdo idêntico. É esse token (não a chave de conteúdo)
+        // que vai no campo dedupeKey enviado a createPublicLead.
+        let pendingLeadAttemptToken = null;
+
+        function tokenTentativaLeadPublico() {
+            if (!pendingLeadAttemptToken) {
+                pendingLeadAttemptToken = (window.crypto && typeof window.crypto.randomUUID === "function")
+                    ? window.crypto.randomUUID()
+                    : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+            }
+            return pendingLeadAttemptToken;
+        }
+
+        function concluirTentativaLeadPublico() {
+            pendingLeadAttemptToken = null;
+        }
+
         function normalizarItensPedidoPublico(itens) {
             return (Array.isArray(itens) ? itens : [])
                 .slice(0, 20)
@@ -3164,20 +3193,32 @@
                 payload.tipoCaptura || "interesse",
                 "interesse"
             );
-            // A chave de dedupe é só um controle de UX local (evita reenvio
-            // duplo em 10min pelo mesmo visitante) — não precisa mais do
-            // ownerUid (removido: o tenant agora é resolvido no servidor).
-            // lojaSlug é suficiente pra distinguir lojas diferentes no hash.
-            const dedupeKey = chaveDedupeLeadPublico({
+            // Chave de conteúdo — só um controle de UX LOCAL (evita reenvio
+            // duplo em 10min pelo mesmo visitante clicando várias vezes no
+            // mesmo formulário) — não precisa mais do ownerUid (removido: o
+            // tenant agora é resolvido no servidor). lojaSlug é suficiente
+            // pra distinguir lojas diferentes no hash. NUNCA é enviada ao
+            // servidor como identidade de idempotência (ver CRM-LEAD-008
+            // abaixo, achado 5 da revisão adversarial).
+            const localGuardKey = chaveDedupeLeadPublico({
                 ...payload,
                 paginaOrigem,
                 formularioId,
                 tipoCaptura
             }, lojaSlug);
 
-            if (leadPublicoDuplicado(dedupeKey)) {
-                return { duplicado: true, dedupeKey };
+            if (leadPublicoDuplicado(localGuardKey)) {
+                return { duplicado: true, dedupeKey: localGuardKey };
             }
+
+            // CRM-LEAD-008: identidade de idempotência real enviada ao
+            // servidor — token opaco por TENTATIVA, não por conteúdo (ver
+            // tokenTentativaLeadPublico acima). Isso garante que duas
+            // submissões legítimas com o mesmo contato/formulário (o
+            // visitante manda interesse de novo, de propósito) sempre
+            // gerem dois leads — só um retry real da MESMA tentativa
+            // reaproveita o mesmo token.
+            const dedupeKey = tokenTentativaLeadPublico();
 
             const timestamp = Date.now();
             const sessionId = obterSessaoLeadPublico();
@@ -3237,9 +3278,18 @@
                     value: pedidoSnapshot ? pedidoSnapshot.total : undefined,
                     currency: pedidoSnapshot ? "BRL" : undefined
                 });
+                // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo
+                // que idêntica em conteúdo) recebe um token novo.
+                concluirTentativaLeadPublico();
                 return { duplicado: false, id: leadId, dedupeKey };
             } catch (error) {
-                liberarDedupeLeadPublico(dedupeKey);
+                // Falha (inclusive ambígua, ex.: rede caiu depois do
+                // servidor já ter commitado): NÃO encerra a tentativa —
+                // pendingLeadAttemptToken continua setado, então um retry
+                // desta MESMA chamada reaproveita o mesmo token e cai no
+                // dedupe transacional do servidor em vez de criar um lead
+                // duplicado.
+                liberarDedupeLeadPublico(localGuardKey);
                 throw error;
             }
         }

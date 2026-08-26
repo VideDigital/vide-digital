@@ -66,6 +66,23 @@
         return createPublicLeadCallable;
     }
 
+    // CRM-LEAD-008 (achado 5 da revisão adversarial): mesmo padrão de
+    // token de tentativa opaco usado em loja.html/lp-forms-v5.js — evita
+    // que createPublicLead trate um retry ambíguo como lead duplicado
+    // (idempotência real) sem confundir isso com dedupe por contato.
+    let pendingLeadAttemptTokenLP = null;
+    function tokenTentativaLeadPublicoLP() {
+        if (!pendingLeadAttemptTokenLP) {
+            pendingLeadAttemptTokenLP = (window.crypto && typeof window.crypto.randomUUID === "function")
+                ? window.crypto.randomUUID()
+                : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+        }
+        return pendingLeadAttemptTokenLP;
+    }
+    function concluirTentativaLeadPublicoLP() {
+        pendingLeadAttemptTokenLP = null;
+    }
+
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
     var segmentos = caminho.split("/").filter(Boolean);
     if (segmentos.length && segmentos[segmentos.length - 1].toLowerCase() === "index.html") {
@@ -191,10 +208,16 @@ executarScriptsEmElemento(container);
                 formularioNome: "Captura pública (LP legado)",
                 urlPagina: window.location.href,
                 referrer: document.referrer || "",
-                cliques: 0
+                cliques: 0,
+                dedupeKey: tokenTentativaLeadPublicoLP()
             });
+            // Sucesso: a PRÓXIMA submissão recebe um token novo.
+            concluirTentativaLeadPublicoLP();
             form.innerHTML = '<p class="text-center text-white font-bold py-4">Recebemos seus dados! Em breve entraremos em contato.</p>';
         } catch (err) {
+            // Não encerra a tentativa: um retry (usuário clica de novo)
+            // reaproveita o mesmo token, então uma falha ambígua (rede
+            // caiu depois do servidor já ter commitado) não duplica o lead.
             console.error(err);
             form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Erro ao enviar, tenta de novo.</p>';
         }

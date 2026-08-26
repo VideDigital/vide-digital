@@ -29,7 +29,9 @@ const state = {
     clicks: 0,
     submitting: false,
     enhanced: new WeakSet(),
-    observer: null
+    observer: null,
+    // CRM-LEAD-008: token de tentativa em andamento (ver tokenTentativaLeadPublico).
+    pendingAttemptToken: null
 };
 
 function detectBase() {
@@ -212,6 +214,28 @@ function obterCreatePublicLeadCallable() {
 
     createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
     return createPublicLeadCallable;
+}
+
+// CRM-LEAD-008 (achado 5 da revisão adversarial): antes, este arquivo não
+// enviava nenhum dedupeKey — createPublicLead caía no fallback de
+// identidade por contato/sessão do servidor, que confundia idempotência
+// (retry) com dedupe comercial (mesmo contato reenviando de propósito).
+// Este token identifica a TENTATIVA DE ENVIO, não o contato/formulário:
+// gerado uma vez quando uma nova tentativa começa (handleSubmit), mantido
+// em state.pendingAttemptToken pra qualquer retry da MESMA tentativa
+// reaproveitar, e descartado após sucesso — a PRÓXIMA submissão sempre
+// recebe um token novo, mesmo com conteúdo idêntico.
+function tokenTentativaLeadPublico() {
+    if (!state.pendingAttemptToken) {
+        state.pendingAttemptToken = (window.crypto && typeof window.crypto.randomUUID === "function")
+            ? window.crypto.randomUUID()
+            : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+    }
+    return state.pendingAttemptToken;
+}
+
+function concluirTentativaLeadPublico() {
+    state.pendingAttemptToken = null;
 }
 
 function addHoneypot(form) {
@@ -405,6 +429,9 @@ function buildLeadRequest(form, meta) {
         referrer: document.referrer || "",
         sessionId: state.sessionId,
         visitorId: state.visitorId,
+        // CRM-LEAD-008: token de tentativa, não de conteúdo — ver
+        // tokenTentativaLeadPublico. Nunca reusa entre submissões distintas.
+        dedupeKey: tokenTentativaLeadPublico(),
         tempoRetencao,
         cliques: state.clicks,
         utmSource: attribution.utmSource,
@@ -510,6 +537,9 @@ async function handleSubmit(event) {
         const createPublicLeadCallable = obterCreatePublicLeadCallable();
         const resposta = await createPublicLeadCallable(payload);
         const leadId = resposta?.data?.leadId;
+        // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo com
+        // conteúdo idêntico) recebe um token novo (CRM-LEAD-008).
+        concluirTentativaLeadPublico();
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");
@@ -528,6 +558,10 @@ async function handleSubmit(event) {
             }, 700);
         }
     } catch (error) {
+        // Não chama concluirTentativaLeadPublico aqui de propósito: o
+        // token de tentativa continua pendente, então se o usuário clicar
+        // em enviar de novo (retry da MESMA tentativa), createPublicLead
+        // reconhece o mesmo dedupeKey e não duplica o lead.
         console.error("[Aura Forms V5] Falha na captura:", error);
         setStatus(
             status,
