@@ -712,6 +712,87 @@ describe("leads: responsavelUid e clienteId precisam pertencer ao mesmo tenant",
     });
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadParaReatribuir"), { responsavelUid: "leadEmployeeA" }));
   });
+
+  // ACHADO 7 (revisão adversarial): CREATE já aceitava "" e null tanto
+  // pra responsavelUid quanto clienteId (ver responsavelLeadValidoCreate/
+  // clienteIdLeadValidoCreate), mas só "ausente" e "funcionário/cliente
+  // válido" tinham teste explícito — "" e null nunca tinham sido testados
+  // isoladamente. Os testes abaixo cobrem os casos que faltavam.
+  it("CREATE — responsável = string vazia: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadRespVazio"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: ""
+    }));
+  });
+
+  it("CREATE — responsável = null: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadRespNull"), {
+      criadoPor: "ownerA", status: "novo", responsavelUid: null
+    }));
+  });
+
+  it("CREATE — cliente = string vazia: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadClienteVazio"), {
+      criadoPor: "ownerA", status: "novo", clienteId: ""
+    }));
+  });
+
+  it("CREATE — cliente = null: permitido", async () => {
+    await assertSucceeds(setDoc(doc(authed("ownerA"), "leads", "leadClienteNull"), {
+      criadoPor: "ownerA", status: "novo", clienteId: null
+    }));
+  });
+
+  // ACHADO 7: no UPDATE, só "" limpava responsavelUid/clienteId antes
+  // desta correção — tentar limpar com null literal caía direto no
+  // exists()/get() com um id null (erro de avaliação da regra, nem
+  // allow nem deny limpo). responsavelClienteValido/
+  // clienteIdValidoParaTenant agora tratam null igual a "" (mesmo
+  // contrato do CREATE). A UI hoje usa "" pra limpar — isso só cobre um
+  // caso que antes não tinha comportamento definido, não muda a UI.
+  it("UPDATE — limpar responsável com string vazia: permitido", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadLimparRespVazio").set({
+        criadoPor: "ownerA", status: "novo", responsavelUid: "leadEmployeeA"
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadLimparRespVazio"), { responsavelUid: "" }));
+  });
+
+  it("UPDATE — limpar responsável com null: permitido (alinhado com o contrato de CREATE)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadLimparRespNull").set({
+        criadoPor: "ownerA", status: "novo", responsavelUid: "leadEmployeeA"
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadLimparRespNull"), { responsavelUid: null }));
+  });
+
+  it("UPDATE — limpar cliente com string vazia: permitido", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadLimparClienteVazio").set({
+        criadoPor: "ownerA", status: "novo", clienteId: "leadClienteA"
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadLimparClienteVazio"), { clienteId: "" }));
+  });
+
+  it("UPDATE — limpar cliente com null: permitido (alinhado com o contrato de CREATE)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadLimparClienteNull").set({
+        criadoPor: "ownerA", status: "novo", clienteId: "leadClienteA"
+      });
+    });
+    await assertSucceeds(updateDoc(doc(authed("ownerA"), "leads", "leadLimparClienteNull"), { clienteId: null }));
+  });
+
+  it("UPDATE — trocar cliente pra outro tenant continua negado mesmo depois do alinhamento com null", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadClienteCrossTenant").set({
+        criadoPor: "ownerA", status: "novo", clienteId: "leadClienteA"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadClienteCrossTenant"), { clienteId: "leadClienteB" }));
+  });
 });
 
 // Achado real em produção: publicLandingBlockFields() não incluía a

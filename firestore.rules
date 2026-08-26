@@ -901,11 +901,19 @@ service cloud.firestore {
     // CRM 360: só permite gravar clienteId quando ele aponta pra um
     // clientes/{id} do MESMO tenant — usado por chats/leads/pedidos.
     // Curto-circuita (não gasta get()/exists()) quando clienteId não
-    // está sendo alterado nesta escrita.
+    // está sendo alterado nesta escrita. ACHADO 7 (revisão adversarial):
+    // "alvo == null" alinhado com o contrato de CREATE (ver
+    // clienteIdLeadValidoCreate) — antes só "" limpava o campo; tentar
+    // limpar com null literal caía direto no exists()/get() com um id
+    // null, que é erro de avaliação (nem allow nem deny limpo). A UI
+    // hoje usa "" pra limpar, então isso não é regressão de
+    // comportamento — só alinha um caso que antes falhava com erro em
+    // vez de ser tratado como "sem cliente", igual "".
     function clienteIdValidoParaTenant(tenantId) {
       let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["clienteId"]);
       let alvo = request.resource.data.clienteId;
       return !mudou
+        || alvo == null
         || alvo == ""
         || (exists(/databases/$(database)/documents/clientes/$(alvo)) && get(/databases/$(database)/documents/clientes/$(alvo)).data.tenantId == tenantId);
     }
@@ -969,10 +977,14 @@ service cloud.firestore {
         || alvo == ""
         || (exists(/databases/$(database)/documents/clientes/$(alvo)) && get(/databases/$(database)/documents/clientes/$(alvo)).data.tenantId == tenantId);
     }
+    // ACHADO 7 (revisão adversarial): "alvo == null" alinhado com o
+    // contrato de CREATE (ver responsavelLeadValidoCreate) — mesma razão
+    // do clienteIdValidoParaTenant acima.
     function responsavelClienteValido(tenantId) {
       let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["responsavelUid"]);
       let alvo = request.resource.data.responsavelUid;
       return !mudou
+        || alvo == null
         || alvo == ""
         || alvo == tenantId
         || (exists(/databases/$(database)/documents/funcionarios/$(alvo)) && funcionarioAtivoDoTenant(alvo, tenantId));
