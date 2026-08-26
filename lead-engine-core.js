@@ -90,8 +90,25 @@ export function resolveStageProbability({ currentProbability, probabilidadeOrige
 // valor diferente do default da etapa, de propósito) ou "automatic"
 // (bate com o default — continua livre pra mudar sozinha nas próximas
 // trocas de etapa). Convertido/perdido sempre voltam "automatic".
-export function resolveProbabilidadeOrigem({ status, probability }) {
+//
+// B2 (achado da revisão adversarial): previousProbability/
+// previousProbabilidadeOrigem são opcionais, mas quando informados (ver
+// saveLeadDetail em lead-engine-v5.js, que sempre passa lead._probability/
+// lead._probabilidadeOrigem) e o valor da probabilidade NÃO MUDOU desde
+// antes deste save, a origem anterior é preservada tal como estava — em
+// vez de recalculada só comparando o valor com o default da NOVA etapa.
+// Sem isso, uma probabilidade manual (ex.: 50 em "em_contato", cujo
+// default é 25) virava "automatic" só por trocar o status pra
+// "qualificado" (default TAMBÉM 50) sem o usuário nunca ter reescrito o
+// valor — a intenção manual original se perdia por coincidência
+// numérica. Quando o valor muda de verdade (usuário digitou algo novo),
+// a comparação com o default da etapa continua sendo o critério, igual
+// antes.
+export function resolveProbabilidadeOrigem({ status, probability, previousProbability, previousProbabilidadeOrigem }) {
     if (status === "convertido" || status === "perdido") return "automatic";
+    if (previousProbabilidadeOrigem && probability === previousProbability) {
+        return previousProbabilidadeOrigem;
+    }
     return probability === stageProbability(status) ? "automatic" : "manual";
 }
 

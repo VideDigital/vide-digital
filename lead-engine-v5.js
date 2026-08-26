@@ -2428,13 +2428,21 @@ async function saveLeadDetail() {
     if (status === "convertido") probability = 100;
     if (status === "perdido") probability = 0;
 
-    // CRM-LEAD-002: só marca "manual" quando o valor salvo realmente
-    // diverge do default da etapa atual — permite distinguir "usuário
-    // nunca mexeu na probabilidade" (continua automática, muda sozinha
-    // quando a etapa mudar de novo) de "usuário escolheu um valor
-    // específico de propósito" (preservada nas próximas trocas de
-    // etapa, ver moveLeadToStage).
-    const probabilidadeOrigem = resolveProbabilidadeOrigem({ status, probability });
+    // CRM-LEAD-002 (B2, achado da revisão adversarial): passa o valor e a
+    // origem ANTERIORES (lead._probability/lead._probabilidadeOrigem) pra
+    // resolveProbabilidadeOrigem — se o valor no campo não mudou desde
+    // antes deste save, a origem anterior é preservada mesmo que o valor
+    // coincida com o default da NOVA etapa (ex.: manual=50 em em_contato,
+    // usuário só troca o status pra qualificado, cujo default também é
+    // 50 — sem isso, a origem manual seria perdida por coincidência).
+    // Quando o valor realmente muda, continua comparando com o default
+    // da etapa, igual antes.
+    const probabilidadeOrigem = resolveProbabilidadeOrigem({
+        status,
+        probability,
+        previousProbability: lead._probability,
+        previousProbabilidadeOrigem: lead._probabilidadeOrigem
+    });
 
     const responsible = state.team.find((person) => person.uid === responsibleUid);
     const followup = followupRaw ? new Date(followupRaw).getTime() : null;

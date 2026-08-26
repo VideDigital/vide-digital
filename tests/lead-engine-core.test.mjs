@@ -171,6 +171,87 @@ describe("CRM-LEAD-002 — probabilidade sincroniza com a etapa (sem sobrescreve
     });
 });
 
+describe("CRM-LEAD-002 (achado B2 da revisão adversarial final) — probabilidade manual não vira automatic por coincidência", () => {
+    it("cenário 6 — manual=50 em em_contato, move pra qualificado (default TAMBÉM 50), salva sem tocar no valor: origem continua manual", () => {
+        // saveLeadDetail() carrega o valor já salvo no campo (50, sem
+        // handleDetailChange auto-preencher, já que a origem é manual) —
+        // probability chega ao save exatamente igual a previousProbability.
+        const origemAposSalvar = resolveProbabilidadeOrigem({
+            status: "qualificado",
+            probability: 50,
+            previousProbability: 50,
+            previousProbabilidadeOrigem: "manual"
+        });
+        assert.equal(origemAposSalvar, "manual", "não pode virar automatic só porque 50 coincide com o default de qualificado");
+    });
+
+    it("cenário 6 (continuação) — depois de salvar como manual, mover pra proposta preserva o valor (política atual pra manual)", () => {
+        const resolved = resolveStageProbability({
+            currentProbability: 50,
+            probabilidadeOrigem: "manual",
+            nextStage: "proposta"
+        });
+        assert.equal(resolved.probability, 50, "probabilidade manual continua 50 — não avança sozinha pro default de proposta (70)");
+        assert.equal(resolved.probabilidadeOrigem, "manual");
+    });
+
+    it("cenário 7 — automático continua automático quando o valor realmente muda pra acompanhar a nova etapa", () => {
+        // Lead automático em em_contato (25, default). handleDetailChange
+        // auto-preenche o campo pro default de qualificado (50) porque a
+        // origem é automatic — probability chega ao save DIFERENTE de
+        // previousProbability (50 != 25).
+        const origemAposSalvar = resolveProbabilidadeOrigem({
+            status: "qualificado",
+            probability: 50,
+            previousProbability: 25,
+            previousProbabilidadeOrigem: "automatic"
+        });
+        assert.equal(origemAposSalvar, "automatic");
+    });
+
+    it("cenário 7 (continuação) — sem tocar em nada (mesmo valor, mesma origem automatic), continua automatic", () => {
+        const origemAposSalvar = resolveProbabilidadeOrigem({
+            status: "em_contato",
+            probability: 25,
+            previousProbability: 25,
+            previousProbabilidadeOrigem: "automatic"
+        });
+        assert.equal(origemAposSalvar, "automatic");
+    });
+
+    it("cenário 8 — convertido/perdido sempre 100/0 automatic no save, mesmo vindo de uma origem manual com valor inalterado", () => {
+        const paraConvertido = resolveProbabilidadeOrigem({
+            status: "convertido",
+            probability: 100,
+            previousProbability: 100,
+            previousProbabilidadeOrigem: "manual"
+        });
+        assert.equal(paraConvertido, "automatic");
+
+        const paraPerdido = resolveProbabilidadeOrigem({
+            status: "perdido",
+            probability: 0,
+            previousProbability: 0,
+            previousProbabilidadeOrigem: "manual"
+        });
+        assert.equal(paraPerdido, "automatic");
+    });
+
+    it("valor MUDOU de propósito pra coincidir com o default: reclassificado a partir do valor novo (comportamento pré-existente, não B2)", () => {
+        // Usuário decide digitar manualmente 50 (o mesmo valor do default
+        // de qualificado) — como o valor mudou de verdade (não é o mesmo
+        // de antes), a heurística de comparação com o default continua
+        // valendo, igual antes do achado B2.
+        const origem = resolveProbabilidadeOrigem({
+            status: "qualificado",
+            probability: 50,
+            previousProbability: 80,
+            previousProbabilidadeOrigem: "manual"
+        });
+        assert.equal(origem, "automatic");
+    });
+});
+
 describe("CRM-LEAD-002 (achado da revisão adversarial) — inferProbabilidadeOrigem: compatibilidade legada", () => {
     it("campo já persistido como manual/automatic é sempre respeitado, não reinferido", () => {
         assert.equal(inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 999, probabilidadeOrigem: "manual" }), "manual");
