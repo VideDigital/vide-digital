@@ -17,6 +17,22 @@ import {
     where,
     writeBatch
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import {
+    PIPELINE_STAGES,
+    normalizeText,
+    normalizePhone,
+    normalizeEmail,
+    normalizeStatus,
+    anyTimestamp,
+    leadTimestamp,
+    stageProbability,
+    resolveStageProbability,
+    resolveProbabilidadeOrigem,
+    numericValue,
+    formatMoney,
+    computeScore,
+    temperatureFor
+} from "./lead-engine-core.js";
 
 const VERSION = "6.2.0";
 const ASSET_VERSION = "620";
@@ -33,15 +49,6 @@ const STATUS_LABELS = Object.freeze({
     convertido: "Convertido",
     perdido: "Perdido"
 });
-
-const PIPELINE_STAGES = Object.freeze([
-    { id: "novo", label: "Novos", probability: 10 },
-    { id: "em_contato", label: "Em contato", probability: 25 },
-    { id: "qualificado", label: "Qualificados", probability: 50 },
-    { id: "proposta", label: "Propostas", probability: 70 },
-    { id: "convertido", label: "Ganhos", probability: 100 },
-    { id: "perdido", label: "Perdidos", probability: 0 }
-]);
 
 const TEMPERATURES = Object.freeze({
     hot: { label: "Quente", min: 75 },
@@ -164,24 +171,6 @@ function escapeHTML(value) {
         .replace(/>/g, "&gt;")
         .replace(/"/g, "&quot;")
         .replace(/'/g, "&#039;");
-}
-
-function normalizeText(value) {
-    return String(value || "")
-        .trim()
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[\u0300-\u036f]/g, "");
-}
-
-function normalizePhone(value) {
-    let digits = String(value || "").replace(/\D/g, "");
-    if (digits.length === 10 || digits.length === 11) digits = `55${digits}`;
-    return digits;
-}
-
-function normalizeEmail(value) {
-    return String(value || "").trim().toLowerCase();
 }
 
 function ensureAssetVersion() {
@@ -395,41 +384,6 @@ function notifyNewLeads(leads) {
     playNewLeadSound();
 }
 
-function numericValue(value) {
-    if (typeof value === "number") return Number.isFinite(value) ? value : 0;
-    const normalized = String(value || "")
-        .replace(/\s/g, "")
-        .replace(/\./g, "")
-        .replace(",", ".");
-    const parsed = Number(normalized);
-    return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function formatMoney(value) {
-    return numericValue(value).toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    });
-}
-
-function anyTimestamp(value) {
-    if (!value) return 0;
-    if (typeof value?.toMillis === "function") return value.toMillis();
-    if (typeof value?.seconds === "number") return value.seconds * 1000;
-    if (typeof value === "number") return value < 100000000000 ? value * 1000 : value;
-    const parsed = new Date(value).getTime();
-    return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function leadTimestamp(lead) {
-    const values = [lead?.data, lead?.criadoEm, lead?.createdAt, lead?.timestamp];
-    for (const value of values) {
-        const timestamp = anyTimestamp(value);
-        if (timestamp) return timestamp;
-    }
-    return 0;
-}
-
 function formatDate(timestamp, includeTime = true) {
     const value = anyTimestamp(timestamp);
     if (!value) return "—";
@@ -469,62 +423,6 @@ function localDateInput(value) {
     const date = new Date(timestamp);
     const local = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
     return local.toISOString().slice(0, 10);
-}
-
-function normalizeStatus(lead) {
-    const raw = normalizeText(
-        lead?.statusLead || lead?.pipelineStage || lead?.status || "novo"
-    ).replace(/\s+/g, "_");
-
-    if (["em_contato", "contato", "atendimento"].includes(raw)) return "em_contato";
-    if (["qualificado", "qualificacao"].includes(raw)) return "qualificado";
-    if (["proposta", "negociacao", "orcamento_enviado"].includes(raw)) return "proposta";
-    if (["convertido", "ganho", "cliente"].includes(raw)) return "convertido";
-    if (["perdido", "cancelado", "descartado"].includes(raw)) return "perdido";
-    return "novo";
-}
-
-function stageProbability(status) {
-    return PIPELINE_STAGES.find((stage) => stage.id === status)?.probability ?? 10;
-}
-
-function computeScore(lead) {
-    let score = 0;
-    const timestamp = leadTimestamp(lead);
-    const ageHours = timestamp ? Math.max(0, (Date.now() - timestamp) / 3600000) : 9999;
-    const status = normalizeStatus(lead);
-    const phone = normalizePhone(lead.whatsapp || lead.telefone);
-    const email = normalizeEmail(lead.email);
-
-    if (phone.length >= 12) score += 22;
-    if (email.includes("@")) score += 12;
-    if (String(lead.nome || "").trim().length >= 3) score += 8;
-    if (String(lead.produtoInteresse || "").trim()) score += 12;
-    if (String(lead.origem || "").trim()) score += 5;
-    if (String(lead.utmSource || lead.utm_source || "").trim()) score += 6;
-    if (String(lead.utmCampaign || lead.utm_campaign || "").trim()) score += 6;
-    if (Number(lead.cliques || 0) >= 2) score += 7;
-    if (Number(lead.cliques || 0) >= 5) score += 5;
-    if (Number(lead.tempoRetencao || 0) >= 30) score += 7;
-    if (Number(lead.tempoRetencao || 0) >= 90) score += 5;
-    if (Number(lead.totalSubmissoes || lead.submissoes || 1) > 1) score += 8;
-    if (numericValue(lead.valorOportunidade) > 0) score += 4;
-    if (ageHours <= 1) score += 10;
-    else if (ageHours <= 24) score += 6;
-    else if (ageHours <= 72) score += 3;
-
-    if (status === "em_contato") score += 4;
-    if (status === "qualificado") score += 8;
-    if (status === "proposta") score += 12;
-    if (status === "convertido") score = 100;
-    if (status === "perdido") score = Math.min(score, 25);
-    return Math.max(0, Math.min(100, Math.round(score)));
-}
-
-function temperatureFor(score) {
-    if (score >= TEMPERATURES.hot.min) return "hot";
-    if (score >= TEMPERATURES.warm.min) return "warm";
-    return "cold";
 }
 
 function isOverdue(lead) {
@@ -603,9 +501,16 @@ function standardLeadPatch(lead) {
 
 function normalizeLead(lead) {
     const capturedAt = leadTimestamp(lead);
-    const score = Number.isFinite(Number(lead.leadScore))
-        ? Number(lead.leadScore)
-        : computeScore(lead);
+    // CRM-LEAD-003: fonte única de verdade é o cálculo dinâmico —
+    // antes, se lead.leadScore já existisse (persistido por
+    // recalculateAllScores), ele era usado direto pra sempre, mesmo
+    // depois de etapa/valor/contato/prioridade mudarem, deixando
+    // score/temperatura/ordenação/prioridade obsoletos até alguém
+    // clicar em "Recalcular" de novo. leadScore não é lido por nenhuma
+    // query do Firestore nem por nenhum outro arquivo do repositório —
+    // continua sendo escrito (ver recalculateAllScores) só como
+    // snapshot histórico, nunca como fonte de leitura do próprio CRM.
+    const score = computeScore(lead);
 
     let sourceFromUrl = "";
     let campaignFromUrl = "";
@@ -652,7 +557,7 @@ function normalizeLead(lead) {
         _page: String(lead.paginaOrigem || lead.urlPagina || "Não informada"),
         _unread: !anyTimestamp(lead.visualizadoEm) && capturedAt > state.lastSeenTimestamp,
         _score: Math.max(0, Math.min(100, Math.round(score))),
-        _temperature: temperatureFor(score),
+        _temperature: temperatureFor(score, TEMPERATURES),
         _overdue: isOverdue(lead),
         _phone: normalizePhone(lead.whatsapp || lead.telefone),
         _email: normalizeEmail(lead.email),
@@ -2204,11 +2109,18 @@ async function applyBulkAction(action) {
 
             if (action === "stage") {
                 const stage = bulkValues.stage;
+                // Mesma política de moveLeadToStage (CRM-LEAD-002).
+                const resolved = resolveStageProbability({
+                    currentProbability: lead._probability,
+                    probabilidadeOrigem: lead.probabilidadeOrigem,
+                    nextStage: stage
+                });
                 updates = {
                     statusLead: stage,
                     status: stage,
                     pipelineStage: stage,
-                    probabilidade: stage === "convertido" ? 100 : stage === "perdido" ? 0 : stageProbability(stage)
+                    probabilidade: resolved.probability,
+                    probabilidadeOrigem: resolved.probabilidadeOrigem
                 };
                 title = "Etapa alterada em massa";
                 detail = STATUS_LABELS[stage] || stage;
@@ -2488,7 +2400,12 @@ async function saveLeadDetail() {
     const priority = document.getElementById("aura-leads-v5-detail-priority")?.value || "normal";
     const followupRaw = document.getElementById("aura-leads-v5-detail-followup")?.value || "";
     const responsibleUid = document.getElementById("aura-leads-v5-detail-responsible")?.value || "";
-    const value = Math.max(0, numericValue(document.getElementById("aura-leads-v5-detail-value")?.value));
+    // input type=number: valueAsNumber já entrega o float correto sem
+    // parsing de string (NaN só quando o campo está vazio/inválido).
+    const valueInputEl = document.getElementById("aura-leads-v5-detail-value");
+    const value = Math.max(0, Number.isFinite(valueInputEl?.valueAsNumber)
+        ? valueInputEl.valueAsNumber
+        : numericValue(valueInputEl?.value));
     let probability = Math.max(0, Math.min(100, Number(document.getElementById("aura-leads-v5-detail-probability")?.value) || 0));
     const closeDateRaw = document.getElementById("aura-leads-v5-detail-close-date")?.value || "";
     const tag = document.getElementById("aura-leads-v5-detail-tag")?.value.trim() || "";
@@ -2496,6 +2413,14 @@ async function saveLeadDetail() {
 
     if (status === "convertido") probability = 100;
     if (status === "perdido") probability = 0;
+
+    // CRM-LEAD-002: só marca "manual" quando o valor salvo realmente
+    // diverge do default da etapa atual — permite distinguir "usuário
+    // nunca mexeu na probabilidade" (continua automática, muda sozinha
+    // quando a etapa mudar de novo) de "usuário escolheu um valor
+    // específico de propósito" (preservada nas próximas trocas de
+    // etapa, ver moveLeadToStage).
+    const probabilidadeOrigem = resolveProbabilidadeOrigem({ status, probability });
 
     const responsible = state.team.find((person) => person.uid === responsibleUid);
     const followup = followupRaw ? new Date(followupRaw).getTime() : null;
@@ -2511,6 +2436,7 @@ async function saveLeadDetail() {
         responsavelNome: responsible?.nome || (responsibleUid === lead._responsibleUid ? lead._responsibleName : ""),
         valorOportunidade: value,
         probabilidade: probability,
+        probabilidadeOrigem,
         dataFechamentoPrevista: closeDate,
         etiqueta: tag,
         anotacao: note
@@ -2559,15 +2485,23 @@ async function moveLeadToStage(leadId, stage) {
     const lead = findLead(leadId);
     if (!lead || !PIPELINE_STAGES.some((item) => item.id === stage) || lead._status === stage) return;
 
-    const probability = stage === "convertido"
-        ? 100
-        : stage === "perdido"
-            ? 0
-            : lead.probabilidade === undefined ? stageProbability(stage) : lead._probability;
+    // CRM-LEAD-002: antes, uma vez que lead.probabilidade deixava de
+    // ser undefined (ou seja, a partir da SEGUNDA troca de etapa),
+    // qualquer nova troca simplesmente preservava lead._probability —
+    // "Em contato" (25%) nunca virava "Qualificado" (50%). Agora só
+    // preserva o valor anterior quando ele foi explicitamente marcado
+    // como manual (ver saveLeadDetail); do contrário, sempre aplica o
+    // default da nova etapa — mesma regra pra drag-and-drop e pra ação
+    // em massa (ver bulkApply, action "stage").
+    const resolved = resolveStageProbability({
+        currentProbability: lead._probability,
+        probabilidadeOrigem: lead.probabilidadeOrigem,
+        nextStage: stage
+    });
 
     const success = await persistLeadUpdates(
         lead,
-        { statusLead: stage, status: stage, pipelineStage: stage, probabilidade: probability },
+        { statusLead: stage, status: stage, pipelineStage: stage, probabilidade: resolved.probability, probabilidadeOrigem: resolved.probabilidadeOrigem },
         makeHistoryEvent("pipeline", "Etapa do pipeline alterada",
             `${STATUS_LABELS[lead._status]} → ${STATUS_LABELS[stage]}`)
     );
@@ -2742,7 +2676,7 @@ async function recalculateAllScores() {
         const timestamp = Date.now();
         const patches = state.leads.map((lead) => {
             const score = computeScore(lead);
-            const temperature = temperatureFor(score);
+            const temperature = temperatureFor(score, TEMPERATURES);
             lead.leadScore = score;
             lead.temperaturaLead = temperature;
             return {
