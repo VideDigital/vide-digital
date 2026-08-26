@@ -13,6 +13,7 @@ import {
     getFunctions,
     httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { createLeadAttemptTracker } from "./lead-attempt-token-core.js";
 
 const VERSION = "5.0.0";
 const SESSION_KEY = "aura_form_v5_session";
@@ -29,10 +30,15 @@ const state = {
     clicks: 0,
     submitting: false,
     enhanced: new WeakSet(),
-    observer: null,
-    // CRM-LEAD-008: token de tentativa em andamento (ver tokenTentativaLeadPublico).
-    pendingAttemptToken: null
+    observer: null
 };
+
+// CRM-LEAD-008 (achado B1-A da revisão adversarial): rastreador de
+// tentativa de envio — extraído pra lead-attempt-token-core.js (módulo
+// puro, testável via node --test). Compartilhado por TODOS os
+// formulários AuraFormsV5 da página, escopado por fingerprint do
+// payload (ver fingerprintTentativaLeadPublico/buildLeadRequest).
+const leadAttemptTracker = createLeadAttemptTracker();
 
 function detectBase() {
     if (window.location.hostname === "videdigital.github.io") {
@@ -216,26 +222,30 @@ function obterCreatePublicLeadCallable() {
     return createPublicLeadCallable;
 }
 
-// CRM-LEAD-008 (achado 5 da revisão adversarial): antes, este arquivo não
-// enviava nenhum dedupeKey — createPublicLead caía no fallback de
-// identidade por contato/sessão do servidor, que confundia idempotência
-// (retry) com dedupe comercial (mesmo contato reenviando de propósito).
-// Este token identifica a TENTATIVA DE ENVIO, não o contato/formulário:
-// gerado uma vez quando uma nova tentativa começa (handleSubmit), mantido
-// em state.pendingAttemptToken pra qualquer retry da MESMA tentativa
-// reaproveitar, e descartado após sucesso — a PRÓXIMA submissão sempre
-// recebe um token novo, mesmo com conteúdo idêntico.
-function tokenTentativaLeadPublico() {
-    if (!state.pendingAttemptToken) {
-        state.pendingAttemptToken = (window.crypto && typeof window.crypto.randomUUID === "function")
-            ? window.crypto.randomUUID()
-            : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
-    }
-    return state.pendingAttemptToken;
-}
-
-function concluirTentativaLeadPublico() {
-    state.pendingAttemptToken = null;
+// CRM-LEAD-008 (achado 5 + achado B1-A da revisão adversarial): antes,
+// este arquivo não enviava nenhum dedupeKey — createPublicLead caía no
+// fallback de identidade por contato/sessão do servidor, que confundia
+// idempotência (retry) com dedupe comercial (mesmo contato reenviando de
+// propósito). Depois, um token global solto (achado B1-A) tinha o problema
+// oposto: reaproveitado depois de um erro mesmo que o usuário tivesse
+// mudado os dados ou submetido outro formulário na mesma página (esta
+// função é compartilhada por TODOS os formulários AuraFormsV5 da página).
+//
+// Agora o token está associado a um FINGERPRINT do payload — só é
+// reaproveitado quando o fingerprint da chamada atual bate com o da
+// tentativa pendente (retry real da mesma tentativa, inclusive
+// double-click síncrono antes da primeira chamada terminar). Fingerprint
+// diferente (dado alterado, outro formulário, nova submissão deliberada
+// depois de um sucesso anterior) sempre gera um token novo.
+function fingerprintTentativaLeadPublico(leadRequest) {
+    return [
+        leadRequest.publicPageId || "",
+        leadRequest.formularioId || "",
+        leadRequest.produtoInteresse || "",
+        String(leadRequest.nome || "").trim().toLowerCase(),
+        String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+        String(leadRequest.email || "").trim().toLowerCase()
+    ].join("|");
 }
 
 function addHoneypot(form) {
@@ -412,7 +422,7 @@ function buildLeadRequest(form, meta) {
         "captura_geral";
     const tempoRetencao = Math.max(0, Math.round((Date.now() - state.startedAt) / 1000));
 
-    return {
+    const leadRequest = {
         publicPageId: meta.id,
         nome,
         whatsapp,
@@ -429,9 +439,6 @@ function buildLeadRequest(form, meta) {
         referrer: document.referrer || "",
         sessionId: state.sessionId,
         visitorId: state.visitorId,
-        // CRM-LEAD-008: token de tentativa, não de conteúdo — ver
-        // tokenTentativaLeadPublico. Nunca reusa entre submissões distintas.
-        dedupeKey: tokenTentativaLeadPublico(),
         tempoRetencao,
         cliques: state.clicks,
         utmSource: attribution.utmSource,
@@ -445,6 +452,12 @@ function buildLeadRequest(form, meta) {
         consentimentoContato: true,
         versaoCaptura: VERSION
     };
+    // CRM-LEAD-008 (achado B1-A): token de tentativa associado ao
+    // fingerprint deste payload — ver leadAttemptTracker/
+    // fingerprintTentativaLeadPublico. Nunca reusa entre submissões com
+    // dados diferentes ou de outro formulário.
+    leadRequest.dedupeKey = leadAttemptTracker.getToken(fingerprintTentativaLeadPublico(leadRequest));
+    return leadRequest;
 }
 
 function validatePayload(payload) {
@@ -539,7 +552,7 @@ async function handleSubmit(event) {
         const leadId = resposta?.data?.leadId;
         // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo com
         // conteúdo idêntico) recebe um token novo (CRM-LEAD-008).
-        concluirTentativaLeadPublico();
+        leadAttemptTracker.complete();
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");
@@ -558,7 +571,7 @@ async function handleSubmit(event) {
             }, 700);
         }
     } catch (error) {
-        // Não chama concluirTentativaLeadPublico aqui de propósito: o
+        // Não chama leadAttemptTracker.complete() aqui de propósito: o
         // token de tentativa continua pendente, então se o usuário clicar
         // em enviar de novo (retry da MESMA tentativa), createPublicLead
         // reconhece o mesmo dedupeKey e não duplica o lead.

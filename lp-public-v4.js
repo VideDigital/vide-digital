@@ -1532,7 +1532,7 @@
                 throw new Error("Landing page sem tenant público válido.");
             }
             const createPublicLeadCallable = obterCreatePublicLeadCallable();
-            await createPublicLeadCallable({
+            const leadRequest = {
                 publicPageId: state.meta.id,
                 nome: String(name).trim().slice(0, 120),
                 whatsapp: String(phone).replace(/\D/g, "").slice(0, 30),
@@ -1547,9 +1547,10 @@
                 cliques: 0,
                 utmSource: (campaign.get("utm_source") || "").slice(0, 120),
                 utmMedium: (campaign.get("utm_medium") || "").slice(0, 120),
-                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120),
-                dedupeKey: tokenTentativaLeadPublicoV4()
-            });
+                utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120)
+            };
+            leadRequest.dedupeKey = tokenTentativaLeadPublicoV4(fingerprintTentativaLeadPublicoV4(leadRequest));
+            await createPublicLeadCallable(leadRequest);
             // Sucesso: a PRÓXIMA submissão recebe um token novo.
             concluirTentativaLeadPublicoV4();
 
@@ -1822,23 +1823,37 @@
         return createPublicLeadCallable;
     }
 
-    // CRM-LEAD-008 (achado 5 da revisão adversarial): mesmo padrão de
-    // token de tentativa opaco de loja.html/lp-forms-v5.js — mantido aqui
-    // por consistência mesmo este renderer não estando conectado a
-    // nenhuma página pública hoje (ver comentário acima em
+    // CRM-LEAD-008 (achado 5 + achado B1-A da revisão adversarial): mesmo
+    // padrão de token de tentativa opaco de loja.html/lp-forms-v5.js —
+    // mantido aqui por consistência mesmo este renderer não estando
+    // conectado a nenhuma página pública hoje (ver comentário acima em
     // obterCreatePublicLeadCallable), pra já nascer correto se/quando for
-    // conectado.
-    let pendingLeadAttemptTokenV4 = null;
-    function tokenTentativaLeadPublicoV4() {
-        if (!pendingLeadAttemptTokenV4) {
-            pendingLeadAttemptTokenV4 = (window.crypto && typeof window.crypto.randomUUID === "function")
-                ? window.crypto.randomUUID()
-                : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+    // conectado. Associado a um fingerprint do payload (achado B1-A): só
+    // reaproveita o token quando o fingerprint bate com o da tentativa
+    // pendente.
+    let pendingLeadAttemptV4 = null; // { token, fingerprint }
+    function fingerprintTentativaLeadPublicoV4(leadRequest) {
+        return [
+            leadRequest.publicPageId || "",
+            leadRequest.formularioId || "",
+            leadRequest.blocoOrigem || "",
+            String(leadRequest.nome || "").trim().toLowerCase(),
+            String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+            String(leadRequest.email || "").trim().toLowerCase()
+        ].join("|");
+    }
+    function tokenTentativaLeadPublicoV4(fingerprint) {
+        if (pendingLeadAttemptV4 && pendingLeadAttemptV4.fingerprint === fingerprint) {
+            return pendingLeadAttemptV4.token;
         }
-        return pendingLeadAttemptTokenV4;
+        const token = (window.crypto && typeof window.crypto.randomUUID === "function")
+            ? window.crypto.randomUUID()
+            : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+        pendingLeadAttemptV4 = { token, fingerprint };
+        return token;
     }
     function concluirTentativaLeadPublicoV4() {
-        pendingLeadAttemptTokenV4 = null;
+        pendingLeadAttemptV4 = null;
     }
 
     async function loadPublicData() {

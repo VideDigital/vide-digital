@@ -1654,6 +1654,7 @@
         import { connectFunctionsEmulator, getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
         import { criarIaNegocioPublicaController } from "./ia-negocio-publica.js";
         import { initTracking, track as trackCrescimento } from "./public-tracking-v1.js";
+        import { createLeadAttemptTracker } from "./lead-attempt-token-core.js";
         import {
             garantirVisitanteAnonimo,
             normalizarErroChatPublico,
@@ -2955,68 +2956,63 @@
             }
         }
 
-        function chaveDedupeLeadPublico(payload, ownerUid) {
-            const contact = textoLeadPublico(
-                payload.whatsapp || payload.telefone || payload.phone || payload.email,
+        // CRM-LEAD-008 (achado 5 da revisão adversarial + achados B1-A/B1-B
+        // da revisão seguinte): token de tentativa opaco, associado a um
+        // FINGERPRINT do payload — não é mais um token global solto (achado
+        // B1-A: um token global reaproveitado depois de um erro podia
+        // "vazar" pra uma submissão totalmente diferente — usuário mudou os
+        // dados, trocou de formulário/produto — se o visitante tentasse de
+        // novo antes do primeiro token ser limpo) e não depende mais de um
+        // dedupe de CONTEÚDO com janela de 10min em sessionStorage (achado
+        // B1-B: bloqueava uma segunda submissão comercial legítima e
+        // deliberada só porque tinha o mesmo contato/formulário/produto).
+        //
+        // fingerprintTentativaLeadPublico() resume os campos que descrevem
+        // O QUE está sendo enviado (identidade + intenção: contato, produto,
+        // formulário, pedido) — nunca campos voláteis/de telemetria
+        // (cliques, tempoRetencao, urlPagina) que mudam sozinhos entre um
+        // clique e o retry do MESMO clique, o que faria um retry legítimo
+        // ser tratado como tentativa nova por engano.
+        //
+        // O estado da tentativa (getToken/complete) vem de
+        // createLeadAttemptTracker (lead-attempt-token-core.js) — extraído
+        // pra um módulo puro e testável via node --test, em vez de estado
+        // solto neste arquivo (mesmo padrão de lead-engine-core.js).
+        // getToken(fingerprint) só reaproveita o token pendente quando o
+        // fingerprint da chamada atual é IGUAL ao da tentativa pendente
+        // (retry real da mesma tentativa, inclusive um double-click
+        // síncrono antes da primeira chamada terminar — ambas calculam o
+        // mesmo fingerprint e reaproveitam o mesmo token antes de qualquer
+        // await, então a transação do servidor as trata como uma só).
+        // Fingerprint diferente (dado alterado, outro formulário, nova
+        // submissão deliberada depois de um sucesso anterior) sempre gera
+        // um token novo — nunca cai de volta num bloqueio de conteúdo.
+        function fingerprintTentativaLeadPublico(leadRequest) {
+            const contato = textoLeadPublico(
+                leadRequest.whatsapp || leadRequest.telefone || leadRequest.email,
                 160
-            ).replace(/\D/g, "") || textoLeadPublico(payload.email, 160).toLowerCase();
+            ).replace(/\D/g, "") || textoLeadPublico(leadRequest.email, 160).toLowerCase();
+            const pedido = leadRequest.pedidoSnapshot
+                ? [
+                    leadRequest.numeroPedido || "",
+                    String(leadRequest.pedidoSnapshot.total ?? ""),
+                    (leadRequest.pedidoSnapshot.itens || [])
+                        .map((item) => `${item.produtoId}:${item.quantidade}`)
+                        .join(",")
+                ].join("|")
+                : "";
             const raw = [
-                ownerUid,
-                payload.tipoCaptura || "captura",
-                payload.formularioId || payload.paginaOrigem || "loja",
-                payload.produtoId || payload.produtoInteresse || "geral",
-                contact || obterSessaoLeadPublico(),
-                atribuicaoSessao?.campanhaNome || "sem_campanha"
+                leadRequest.tipoCaptura || "",
+                leadRequest.formularioId || leadRequest.paginaOrigem || "",
+                leadRequest.produtoId || leadRequest.produtoInteresse || "",
+                textoLeadPublico(leadRequest.nome, 160).toLowerCase(),
+                contato,
+                pedido
             ].join("|");
-            return "lead_" + hashLeadPublico(raw);
+            return hashLeadPublico(raw);
         }
 
-        function leadPublicoDuplicado(dedupeKey) {
-            const storageKey = "videLeadDedupe:" + dedupeKey;
-            try {
-                const anterior = Number(sessionStorage.getItem(storageKey) || 0);
-                if (anterior && Date.now() - anterior < LEAD_DEDUPE_WINDOW_MS) return true;
-                sessionStorage.setItem(storageKey, String(Date.now()));
-                return false;
-            } catch (e) {
-                return false;
-            }
-        }
-
-        function liberarDedupeLeadPublico(dedupeKey) {
-            try {
-                sessionStorage.removeItem("videLeadDedupe:" + dedupeKey);
-            } catch (e) {}
-        }
-
-        // CRM-LEAD-008 (achado 5 da revisão adversarial): token de tentativa
-        // opaco, INDEPENDENTE da chave de dedupe local acima. chaveDedupeLeadPublico
-        // é derivada do CONTEÚDO do formulário (contato/produto/formulário) —
-        // boa pra UX local (bloquear clique duplo em sessionStorage), mas
-        // ruim como identidade de idempotência no servidor: duas submissões
-        // LEGÍTIMAS com o mesmo conteúdo (o mesmo contato reenviando
-        // interesse) teriam a MESMA chave e a segunda seria descartada
-        // silenciosamente. Este token identifica a TENTATIVA DE ENVIO, não o
-        // conteúdo: gerado uma vez quando uma nova tentativa começa,
-        // reaproveitado em qualquer retry da MESMA tentativa (erro de rede
-        // ambíguo — ver o catch em capturarLeadPublico), e descartado após
-        // sucesso, pra que a PRÓXIMA submissão sempre receba um token novo,
-        // mesmo com conteúdo idêntico. É esse token (não a chave de conteúdo)
-        // que vai no campo dedupeKey enviado a createPublicLead.
-        let pendingLeadAttemptToken = null;
-
-        function tokenTentativaLeadPublico() {
-            if (!pendingLeadAttemptToken) {
-                pendingLeadAttemptToken = (window.crypto && typeof window.crypto.randomUUID === "function")
-                    ? window.crypto.randomUUID()
-                    : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
-            }
-            return pendingLeadAttemptToken;
-        }
-
-        function concluirTentativaLeadPublico() {
-            pendingLeadAttemptToken = null;
-        }
+        const leadAttemptTracker = createLeadAttemptTracker();
 
         function normalizarItensPedidoPublico(itens) {
             return (Array.isArray(itens) ? itens : [])
@@ -3193,33 +3189,6 @@
                 payload.tipoCaptura || "interesse",
                 "interesse"
             );
-            // Chave de conteúdo — só um controle de UX LOCAL (evita reenvio
-            // duplo em 10min pelo mesmo visitante clicando várias vezes no
-            // mesmo formulário) — não precisa mais do ownerUid (removido: o
-            // tenant agora é resolvido no servidor). lojaSlug é suficiente
-            // pra distinguir lojas diferentes no hash. NUNCA é enviada ao
-            // servidor como identidade de idempotência (ver CRM-LEAD-008
-            // abaixo, achado 5 da revisão adversarial).
-            const localGuardKey = chaveDedupeLeadPublico({
-                ...payload,
-                paginaOrigem,
-                formularioId,
-                tipoCaptura
-            }, lojaSlug);
-
-            if (leadPublicoDuplicado(localGuardKey)) {
-                return { duplicado: true, dedupeKey: localGuardKey };
-            }
-
-            // CRM-LEAD-008: identidade de idempotência real enviada ao
-            // servidor — token opaco por TENTATIVA, não por conteúdo (ver
-            // tokenTentativaLeadPublico acima). Isso garante que duas
-            // submissões legítimas com o mesmo contato/formulário (o
-            // visitante manda interesse de novo, de propósito) sempre
-            // gerem dois leads — só um retry real da MESMA tentativa
-            // reaproveita o mesmo token.
-            const dedupeKey = tokenTentativaLeadPublico();
-
             const timestamp = Date.now();
             const sessionId = obterSessaoLeadPublico();
             const pedidoSnapshot = normalizarSnapshotPedidoPublico(
@@ -3231,13 +3200,15 @@
             // (Cloud Function), que resolve o tenant a partir de storeSlug
             // no servidor (Admin SDK), aplica rate limit por IP e sanitiza
             // todo o payload antes de gravar. Ver functions/src/public/index.js.
+            // dedupeKey é preenchido abaixo, depois de montar o restante do
+            // request — o fingerprint da tentativa é calculado em cima
+            // desses mesmos campos (ver fingerprintTentativaLeadPublico).
             const leadRequest = {
                 storeSlug: lojaSlug,
                 versaoSchema: LEAD_PUBLIC_SCHEMA_VERSION,
                 canal: "loja_publica",
                 tipoCaptura,
                 sessionId,
-                dedupeKey,
                 nome: payload.nome || payload.name,
                 whatsapp: payload.whatsapp || payload.telefone || payload.phone,
                 email: payload.email,
@@ -3266,6 +3237,16 @@
                 });
             }
 
+            // CRM-LEAD-008 (achados B1-A/B1-B): identidade de idempotência
+            // real enviada ao servidor — token opaco por TENTATIVA LÓGICA
+            // (payload + fingerprint), não por conteúdo isolado nem token
+            // solto. Uma submissão com dados diferentes, outro
+            // formulário/produto, ou uma nova submissão deliberada depois de
+            // um sucesso anterior sempre recebe um token novo — só um retry
+            // real da MESMA tentativa (mesmo fingerprint) reaproveita.
+            const dedupeKey = leadAttemptTracker.getToken(fingerprintTentativaLeadPublico(leadRequest));
+            leadRequest.dedupeKey = dedupeKey;
+
             try {
                 const createPublicLeadCallable = obterCreatePublicLeadCallable();
                 const resposta = await createPublicLeadCallable(leadRequest);
@@ -3280,16 +3261,16 @@
                 });
                 // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo
                 // que idêntica em conteúdo) recebe um token novo.
-                concluirTentativaLeadPublico();
+                leadAttemptTracker.complete();
                 return { duplicado: false, id: leadId, dedupeKey };
             } catch (error) {
                 // Falha (inclusive ambígua, ex.: rede caiu depois do
-                // servidor já ter commitado): NÃO encerra a tentativa —
-                // pendingLeadAttemptToken continua setado, então um retry
-                // desta MESMA chamada reaproveita o mesmo token e cai no
-                // dedupe transacional do servidor em vez de criar um lead
-                // duplicado.
-                liberarDedupeLeadPublico(localGuardKey);
+                // servidor já ter commitado): NÃO chama complete() — a
+                // tentativa continua pendente, então um retry com o MESMO
+                // fingerprint reaproveita o mesmo token e cai no dedupe
+                // transacional do servidor em vez de criar um lead
+                // duplicado. Um retry com fingerprint diferente (usuário
+                // mudou os dados) já ganha um token novo em getToken.
                 throw error;
             }
         }
