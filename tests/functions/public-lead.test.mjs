@@ -4,7 +4,8 @@ import {
   leadPayload,
   sanitizeOrderSnapshot,
   sanitizeCamposExtras,
-  assertReasonablePayloadSize
+  assertReasonablePayloadSize,
+  computeLeadDedupeHash
 } from "../../functions/src/public/index.js";
 
 const tenant = { ownerUid: "ownerA", storeSlug: "loja-a", store: { nomeLoja: "Loja A" } };
@@ -181,6 +182,64 @@ describe("sanitizeOrderSnapshot — nunca confia em preço/quantidade/tamanho ar
   it("retorna null quando não há pedidoSnapshot (lead comum, sem pedido)", () => {
     assert.equal(sanitizeOrderSnapshot(undefined, {}), null);
     assert.equal(sanitizeOrderSnapshot("string maliciosa", {}), null);
+  });
+});
+
+describe("computeLeadDedupeHash — CRM-LEAD-008: escopo do dedupe nunca confia só no cliente", () => {
+  const tenantA = { ownerUid: "ownerA" };
+  const tenantB = { ownerUid: "ownerB" };
+
+  function payloadBase(overrides = {}) {
+    return {
+      tipoCaptura: "interesse",
+      formularioId: "captura_geral",
+      paginaOrigem: "loja_publica",
+      produtoId: "prod1",
+      produtoInteresse: "Produto X",
+      whatsapp: "5511999998888",
+      email: "",
+      sessionId: "sess-1",
+      visitorId: "visitor-1",
+      ...overrides
+    };
+  }
+
+  it("mesmo payload + mesmo dedupeKey do cliente -> mesmo hash (retentativa legítima)", () => {
+    const hash1 = computeLeadDedupeHash(tenantA, payloadBase(), "lead_abc123");
+    const hash2 = computeLeadDedupeHash(tenantA, payloadBase(), "lead_abc123");
+    assert.equal(hash1, hash2);
+    assert.equal(typeof hash1, "string");
+    assert.ok(hash1.length > 0);
+  });
+
+  it("visitantes diferentes (contato/sessão diferentes) nunca colidem", () => {
+    const hashVisitanteA = computeLeadDedupeHash(tenantA, payloadBase({ whatsapp: "5511999998888" }), "");
+    const hashVisitanteB = computeLeadDedupeHash(tenantA, payloadBase({ whatsapp: "5511777776666" }), "");
+    assert.notEqual(hashVisitanteA, hashVisitanteB);
+  });
+
+  it("Landing Pages/formulários diferentes não colidem indevidamente, mesmo com o mesmo visitante", () => {
+    const hashFormA = computeLeadDedupeHash(tenantA, payloadBase({ formularioId: "lp_promocao_verao" }), "");
+    const hashFormB = computeLeadDedupeHash(tenantA, payloadBase({ formularioId: "lp_promocao_inverno" }), "");
+    assert.notEqual(hashFormA, hashFormB);
+  });
+
+  it("tenants diferentes NUNCA compartilham chave, mesmo com payload e dedupeKey idênticos", () => {
+    const hashTenantA = computeLeadDedupeHash(tenantA, payloadBase(), "lead_mesmo_key");
+    const hashTenantB = computeLeadDedupeHash(tenantB, payloadBase(), "lead_mesmo_key");
+    assert.notEqual(hashTenantA, hashTenantB);
+  });
+
+  it("sem nenhum dado de contato/sessão pra escopar, retorna null (lead sempre criado sem dedupe)", () => {
+    const hash = computeLeadDedupeHash(tenantA, payloadBase({ whatsapp: "", email: "", sessionId: "", visitorId: "" }), "");
+    assert.equal(hash, null);
+  });
+
+  it("hash não vaza nenhum dado sensível em texto plano (é sempre um digest sha256 hex)", () => {
+    const hash = computeLeadDedupeHash(tenantA, payloadBase(), "lead_abc123");
+    assert.match(hash, /^[0-9a-f]{64}$/);
+    assert.ok(!hash.includes("999998888"));
+    assert.ok(!hash.includes("ownerA"));
   });
 });
 
