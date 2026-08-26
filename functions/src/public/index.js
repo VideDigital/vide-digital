@@ -237,7 +237,15 @@ function leadPayload(data, tenant) {
         autorNome: "Loja online"
       }],
       valorOportunidade: pedidoSnapshot.total,
-      probabilidade: 70
+      probabilidade: 70,
+      // CRM-LEAD-002/CRM-LEAD-003 (achado 3 da revisão adversarial): 70%
+      // aqui é uma escolha comercial explícita (o visitante já colocou um
+      // pedido, não é o default genérico da etapa "novo", que é 10%) —
+      // precisa ser "manual" desde a criação pra nunca ser silenciosamente
+      // reinterpretado como automático e trocado por 10% na primeira
+      // leitura do CRM (ver inferProbabilidadeOrigem em lead-engine-core.js,
+      // que cobriria isso mesmo sem este campo, mas de forma implícita).
+      probabilidadeOrigem: "manual"
     });
   }
 
@@ -252,28 +260,33 @@ function leadPayload(data, tenant) {
 // dedupe antigo.
 const LEAD_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
 
-// Escopo do dedupe é montado só com dados já resolvidos/sanitizados no
-// servidor (nunca confia em um dedupeKey opaco do visitante como única
-// fonte): tenant.ownerUid (resolvido por resolvePublicTenant, nunca pelo
-// payload) garante que tenants diferentes nunca colidem; tipoCaptura +
-// formularioId/paginaOrigem + produtoId/produtoInteresse distinguem
-// origens (páginas/produtos diferentes não colidem indevidamente);
-// contato ou sessionId/visitorId distingue visitantes diferentes. O
-// dedupeKey enviado pelo cliente (já usado por loja.html) entra como um
-// componente extra do hash, não como o hash inteiro. Sem nenhum dado de
-// contato/sessão pra escopar (payload malformado), retorna null e o lead
-// é sempre criado sem dedupe — mesmo comportamento de antes desta missão.
-function computeLeadDedupeHash(tenant, payload, rawDedupeKey) {
-  const contactOrSession = payload.whatsapp || payload.email || payload.sessionId || payload.visitorId || "";
-  if (!contactOrSession) return null;
-  const parts = [
-    tenant.ownerUid,
-    payload.tipoCaptura || "",
-    payload.formularioId || payload.paginaOrigem || "",
-    payload.produtoId || payload.produtoInteresse || "",
-    contactOrSession,
-    publicText(rawDedupeKey || "", 200)
-  ].join("|");
+// CRM-LEAD-008 (achado 5 da revisão adversarial): a versão anterior
+// incluía contato/sessão (whatsapp || email || sessionId || visitorId) na
+// IDENTIDADE de idempotência. Isso confundia idempotência (mesma
+// tentativa de envio, retry) com dedupe COMERCIAL (mesmo contato) — se o
+// visitante tinha whatsapp/email, uma nova submissão LEGÍTIMA do mesmo
+// contato no mesmo formulário, dentro da janela de 10min, podia ser
+// silenciosamente descartada: o servidor devolvia o leadId da submissão
+// anterior e os dados novos nunca eram persistidos.
+//
+// A identidade agora é só: tenant resolvido no servidor (nunca pelo
+// payload do visitante — garante que tenants diferentes nunca
+// compartilham chave) + o token de tentativa opaco enviado pelo cliente
+// (rawDedupeKey — gerado uma vez por tentativa de ENVIO, não por
+// conteúdo; reaproveitado só em retries da mesma tentativa; ver
+// tokenTentativaLeadPublico em loja.html/lp-forms-v5.js/index.html/
+// lp-public-v4.js). Nunca usa telefone/e-mail/sessão/formulário/produto
+// como parte da chave — dois envios com o mesmo contato e a mesma origem
+// mas tokens diferentes (duas submissões legítimas, ou dois formulários
+// diferentes, que por construção sempre geram tokens diferentes) SEMPRE
+// resultam em dois leads. Sem token (payload sem dedupeKey — caller
+// desatualizado, ou chamada direta à API), não há como distinguir retry
+// de nova submissão com segurança: retorna null e o lead é sempre criado
+// sem dedupe, nunca cai de volta num fallback por contato.
+function computeLeadDedupeHash(tenant, rawDedupeKey) {
+  const token = publicText(rawDedupeKey || "", 200);
+  if (!token) return null;
+  const parts = [tenant.ownerUid, token].join("|");
   return crypto.createHash("sha256").update(parts).digest("hex");
 }
 
@@ -293,7 +306,7 @@ function dedupeCreatedAtMillis(data) {
 // SDK, usado aqui, consegue ler/escrever nele.
 async function createLeadIdempotent(payload, tenant, rawDedupeKey) {
   const db = getFirestore();
-  const dedupeHash = computeLeadDedupeHash(tenant, payload, rawDedupeKey);
+  const dedupeHash = computeLeadDedupeHash(tenant, rawDedupeKey);
 
   if (!dedupeHash) {
     const ref = await db.collection("leads").add(payload);
@@ -319,9 +332,26 @@ async function createLeadIdempotent(payload, tenant, rawDedupeKey) {
       tenantId: tenant.ownerUid,
       criadoEm: Timestamp.fromMillis(now),
       criadoEmMillis: now,
-      // expiresAt segue a mesma convenção de _rate_limits (rateLimit.js) —
-      // campo reservado pra uma eventual TTL policy do Firestore limpar
-      // documentos de dedupe velhos automaticamente.
+      // expiresAt segue a mesma convenção de campo do _rate_limits
+      // (rateLimit.js). ACHADO 6 (revisão adversarial): esse campo sozinho
+      // NÃO prova que existe uma TTL policy configurada — é só a
+      // convenção de NOME que uma TTL policy do Firestore usaria, SE
+      // alguém a configurasse (fora do código: `gcloud firestore fields
+      // ttls update`, ou no Console). Buscado no repo (firestore.indexes.json,
+      // *.tf, docs) e NÃO FOI POSSÍVEL COMPROVAR nenhuma TTL policy
+      // configurada, nem pra _rate_limits.expiresAt (já existente antes
+      // desta missão) nem para lead_dedupes.expiresAt (novo). Comparar com
+      // whatsapp_onboarding_attempts.expiresAt (functions/src/whatsapp/
+      // onboarding-core.js), que TEM checklist explícito em
+      // docs/meta-whatsapp/production-readiness.md pedindo a configuração
+      // manual da TTL policy antes do lançamento — nenhum checklist
+      // equivalente existe pra _rate_limits ou lead_dedupes. Sem uma TTL
+      // policy real, documentos aqui se acumulam indefinidamente (custo de
+      // armazenamento crescente, sem risco de segurança — o hash nunca é
+      // reutilizável fora da janela de 10min pela lógica acima, mesmo que
+      // o documento continue existindo). Configurar a TTL policy é uma
+      // mudança de infraestrutura fora do código — não feita nesta missão
+      // (regra fundamental: não alterar configuração de produção).
       expiresAt: Timestamp.fromMillis(now + LEAD_DEDUPE_WINDOW_MS * 2)
     });
     return leadRef.id;

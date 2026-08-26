@@ -112,6 +112,43 @@ assert.equal(
 
 console.log("Idempotência de createPublicLead validada (2 chamadas concorrentes -> 1 lead).");
 
+// CRM-LEAD-008 (achado 5 da revisão adversarial): mesmo contato e mesmo
+// formulário, mas dedupeKeys (tokens de tentativa) DIFERENTES, precisam
+// SEMPRE gerar dois leads — a versão anterior usava contato/sessão como
+// parte da identidade de dedupe, então uma segunda submissão legítima do
+// mesmo visitante (dados idênticos, intenção nova) era descartada
+// silenciosamente e devolvia o leadId da primeira.
+const sameContactDifferentTokensBase = {
+  storeSlug: "loja-pro-local",
+  nome: "Lead Mesmo Contato",
+  email: "lead.mesmo.contato@local.test",
+  formularioId: "captura_mesmo_form"
+};
+const attemptOne = await createPublicLead({ ...sameContactDifferentTokensBase, dedupeKey: "attempt-token-1" });
+const attemptTwo = await createPublicLead({ ...sameContactDifferentTokensBase, dedupeKey: "attempt-token-2" });
+assert.equal(attemptOne.data.ok, true);
+assert.equal(attemptTwo.data.ok, true);
+assert.notEqual(
+  attemptOne.data.leadId,
+  attemptTwo.data.leadId,
+  "mesmo contato/formulário com tokens de tentativa diferentes deveria criar dois leads, não deduplicar"
+);
+
+const sameContactLeadsSnap = await getDocs(
+  query(
+    collection(db, "leads"),
+    where("criadoPor", "==", "owner-pro"),
+    where("email", "==", "lead.mesmo.contato@local.test")
+  )
+);
+assert.equal(
+  sameContactLeadsSnap.size,
+  2,
+  "deveriam existir exatamente 2 leads — uma segunda submissão legítima do mesmo contato nunca pode ser descartada como duplicata"
+);
+
+console.log("CRM-LEAD-008 (achado 5): mesmo contato + tokens diferentes -> 2 leads, validado.");
+
 const incrementPublicMetric = httpsCallable(functions, "incrementPublicMetric");
 const metricResult = await incrementPublicMetric({ storeSlug: "loja-pro-local", event: "store_session" });
 assert.equal(metricResult.data.ok, true);
@@ -152,23 +189,15 @@ assert.equal(reviewFailedForMissingProduct, true, "createPublicReview deveria re
 console.log("createPublicReview validado (produto real + produto inexistente recusado).");
 
 // createPublicLead permite 5 chamadas/minuto por IP; a chamada de smoke
-// inicial + o par concorrente do teste de dedupe acima já consumiram 3
-// (cada chamada conta pro rate limit independente do resultado do dedupe).
-// Mais 2 devem passar (completando o limite de 5) e a 6ª chamada no total
-// deve ser recusada com resource-exhausted.
+// inicial (1) + o par concorrente do teste de dedupe (2) + o par de
+// tokens diferentes do teste de mesmo contato (2) já consumiram as 5
+// chamadas permitidas (cada chamada conta pro rate limit independente do
+// resultado do dedupe). A 6ª chamada no total deve ser recusada com
+// resource-exhausted.
 // Nota: rateLimit.js usa janela fixa por minuto do relógio real, então este
 // teste tem uma chance pequena (só no exato cruzamento de minuto) de falhar
 // por flake — se falhar isoladamente sem nenhuma outra mudança, rode de novo
 // antes de investigar como regressão real.
-for (let i = 0; i < 2; i += 1) {
-  const extra = await createPublicLead({
-    storeSlug: "loja-pro-local",
-    nome: `Lead Smoke ${i}`,
-    email: `lead.smoke.${i}@local.test`
-  });
-  assert.equal(extra.data.ok, true);
-}
-
 let rateLimited = false;
 try {
   await createPublicLead({ storeSlug: "loja-pro-local", nome: "Lead Smoke Excedente", email: "lead.excedente@local.test" });
