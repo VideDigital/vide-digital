@@ -95,6 +95,43 @@ export function resolveProbabilidadeOrigem({ status, probability }) {
     return probability === stageProbability(status) ? "automatic" : "manual";
 }
 
+// CRM-LEAD-002 (compatibilidade legada — achado da revisão adversarial
+// da PR): todo lead criado ANTES desta correção (e leads de pedido, que
+// sempre chegam com probabilidade=70 sem o campo — ver leadPayload em
+// functions/src/public/index.js) não tem probabilidadeOrigem persistido.
+// Tratar "ausente" sempre como automatic perderia uma escolha comercial
+// legítima já feita antes do campo existir (ex.: usuário setou 80% à
+// mão em "Em contato"). Em vez de migrar produção, isso infere em
+// tempo de leitura: se o campo já foi persistido como "manual" ou
+// "automatic", confia nele; senão, compara a probabilidade persistida
+// com o default da ETAPA ATUAL (não da próxima) — igual ao default
+// nunca foi escolhida de propósito (automatic, pode mudar sozinha na
+// próxima troca de etapa); diferente foi escolhida de propósito
+// (manual, preservada), mesmo sem o campo ter sido gravado na época.
+export function inferProbabilidadeOrigem({ currentStage, currentProbability, probabilidadeOrigem }) {
+    if (probabilidadeOrigem === "manual" || probabilidadeOrigem === "automatic") {
+        return probabilidadeOrigem;
+    }
+    return currentProbability === stageProbability(currentStage) ? "automatic" : "manual";
+}
+
+// CRM-LEAD-002 (achado 4 da revisão adversarial): usada por
+// handleDetailChange (lead-engine-v5.js) pra decidir o valor sugerido
+// no campo de probabilidade quando o usuário troca o <select> de etapa
+// no formulário de detalhe, ANTES de salvar. null significa "não mexer
+// no campo" — uma probabilidade de origem manual (persistida ou
+// inferida via inferProbabilidadeOrigem) não pode ser sobrescrita só
+// por trocar a etapa no formulário; o valor final de verdade só é
+// decidido no Salvar (ver resolveProbabilidadeOrigem, chamado por
+// saveLeadDetail). Convertido/perdido sempre sugerem 100/0, mesmo com
+// origem manual — não existe override manual pra um desfecho terminal.
+export function suggestedProbabilityOnStatusChange({ nextStage, probabilidadeOrigem }) {
+    if (nextStage === "convertido") return 100;
+    if (nextStage === "perdido") return 0;
+    if (probabilidadeOrigem === "manual") return null;
+    return stageProbability(nextStage);
+}
+
 // CRM-LEAD-001: a versão antiga sempre tratava "." como separador de
 // milhar (formato BR), então "99.90" virava 9990 — quebrava qualquer
 // origem que já entrega ponto decimal (input type=number, valueAsNumber,
@@ -104,6 +141,25 @@ export function resolveProbabilidadeOrigem({ status, probability }) {
 // reinterpretados. Para strings: vírgula presente = formato BR
 // ("1.234,56" ou "1234,56", ponto é milhar opcional); sem vírgula = o
 // ponto (se houver) já É o separador decimal.
+//
+// FORMATOS OFICIALMENTE SUPORTADOS (achado 8 da revisão adversarial):
+// número JS (sempre, nunca reinterpretado); string sem vírgula com ponto
+// decimal opcional ("1234.56", "99.9", "1234"); string BR com vírgula
+// decimal e ponto de milhar opcional ("1.234,56", "1234,56"). Formato
+// AMBÍGUO: uma string SEM vírgula com um único ponto seguido de exatos 3
+// dígitos ("1.234") é sempre tratada como decimal (1.234), nunca como
+// milhar (1234) — essa é a mesma regra "sem vírgula = ponto decimal"
+// acima, sem caso especial pra 3 dígitos. Investigado nesta revisão: os
+// dois únicos writers que alimentam valorOportunidade (saveLeadDetail via
+// valueAsNumber/numericValue, e o payload de pedido em
+// functions/src/public/index.js via clampNumber) SEMPRE persistem um
+// number nativo, nunca uma string — e a única origem de STRING pra este
+// parser é um <input type="number">, cujo .value o próprio browser nunca
+// preenche com separador de milhar. NÃO FOI POSSÍVEL COMPROVAR nenhum
+// writer, script de migração ou teste no repositório que persista esse
+// formato ambíguo como string — por isso nenhuma heurística nova foi
+// criada só por hipótese (ver teste dedicado em
+// tests/lead-engine-core.test.mjs fixando este comportamento).
 export function numericValue(value) {
     if (typeof value === "number") return Number.isFinite(value) ? value : 0;
     const raw = String(value ?? "").trim();

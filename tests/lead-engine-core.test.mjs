@@ -8,6 +8,8 @@ import {
     stageProbability,
     resolveStageProbability,
     resolveProbabilidadeOrigem,
+    inferProbabilidadeOrigem,
+    suggestedProbabilityOnStatusChange,
     computeScore,
     normalizeStatus,
     PIPELINE_STAGES
@@ -50,6 +52,18 @@ describe("CRM-LEAD-001 — numericValue não reinterpreta ponto decimal como mil
         // "pareça" formato BR se fosse (re)convertido pra string.
         assert.equal(numericValue(1234.56), 1234.56);
         assert.equal(numericValue(1234), 1234);
+    });
+
+    it('achado 8 (revisão adversarial): "1.234" (ambíguo, sem vírgula) é sempre tratado como decimal (1.234), nunca como milhar (1234)', () => {
+        // Comportamento OFICIAL e deliberado (documentado no comentário de
+        // numericValue): sem vírgula, o ponto SEMPRE é decimal — mesmo
+        // quando tem exatamente 3 dígitos depois, o que em outro contexto
+        // poderia "parecer" milhar formato BR. Investigado nesta revisão:
+        // nenhum writer do repositório persiste esse formato como string
+        // (valorOportunidade é sempre number nativo); este teste fixa o
+        // comportamento atual pra qualquer mudança futura ser deliberada,
+        // não acidental.
+        assert.equal(numericValue("1.234"), 1.234);
     });
 });
 
@@ -154,6 +168,94 @@ describe("CRM-LEAD-002 — probabilidade sincroniza com a etapa (sem sobrescreve
             convertido: 100,
             perdido: 0
         });
+    });
+});
+
+describe("CRM-LEAD-002 (achado da revisão adversarial) — inferProbabilidadeOrigem: compatibilidade legada", () => {
+    it("campo já persistido como manual/automatic é sempre respeitado, não reinferido", () => {
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 999, probabilidadeOrigem: "manual" }), "manual");
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 999, probabilidadeOrigem: "automatic" }), "automatic");
+    });
+
+    it("legado: em_contato + 80 + sem origem -> infere manual (80 diverge do default 25 de em_contato)", () => {
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 80, probabilidadeOrigem: undefined }), "manual");
+    });
+
+    it("legado: em_contato + 25 + sem origem -> infere automatic (25 é o default de em_contato)", () => {
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 25, probabilidadeOrigem: undefined }), "automatic");
+    });
+
+    it("legado: qualificado + 50 + sem origem -> infere automatic (50 é o default de qualificado)", () => {
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "qualificado", currentProbability: 50, probabilidadeOrigem: undefined }), "automatic");
+    });
+
+    it("pedido: novo + 70 + sem origem -> infere manual (70 diverge do default 10 de novo, nunca reinterpretado como automático)", () => {
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "novo", currentProbability: 70, probabilidadeOrigem: undefined }), "manual");
+    });
+
+    it("campo com valor inválido/desconhecido (nem manual nem automatic) também é tratado como ausente e reinferido", () => {
+        assert.equal(inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 25, probabilidadeOrigem: "lixo" }), "automatic");
+    });
+});
+
+describe("CRM-LEAD-002 (achado 4 da revisão adversarial) — todos os writers de etapa usam a mesma política", () => {
+    it("legado: em_contato + 80 + sem origem -> qualificado -> mantém 80/manual (não é sobrescrito por 50)", () => {
+        const origin = inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 80, probabilidadeOrigem: undefined });
+        const resolved = resolveStageProbability({ currentProbability: 80, probabilidadeOrigem: origin, nextStage: "qualificado" });
+        assert.equal(resolved.probability, 80);
+        assert.equal(resolved.probabilidadeOrigem, "manual");
+    });
+
+    it("legado: em_contato + 25 + sem origem -> qualificado -> vira 50/automatic", () => {
+        const origin = inferProbabilidadeOrigem({ currentStage: "em_contato", currentProbability: 25, probabilidadeOrigem: undefined });
+        const resolved = resolveStageProbability({ currentProbability: 25, probabilidadeOrigem: origin, nextStage: "qualificado" });
+        assert.equal(resolved.probability, 50);
+        assert.equal(resolved.probabilidadeOrigem, "automatic");
+    });
+
+    it("legado: qualificado + 50 + sem origem -> proposta -> 70/automatic", () => {
+        const origin = inferProbabilidadeOrigem({ currentStage: "qualificado", currentProbability: 50, probabilidadeOrigem: undefined });
+        const resolved = resolveStageProbability({ currentProbability: 50, probabilidadeOrigem: origin, nextStage: "proposta" });
+        assert.equal(resolved.probability, 70);
+        assert.equal(resolved.probabilidadeOrigem, "automatic");
+    });
+
+    it("pedido: novo + 70 + sem origem -> em_contato -> mantém 70/manual (não vira 25 nem 10)", () => {
+        const origin = inferProbabilidadeOrigem({ currentStage: "novo", currentProbability: 70, probabilidadeOrigem: undefined });
+        const resolved = resolveStageProbability({ currentProbability: 70, probabilidadeOrigem: origin, nextStage: "em_contato" });
+        assert.equal(resolved.probability, 70);
+        assert.equal(resolved.probabilidadeOrigem, "manual");
+    });
+
+    it("convertido sempre 100/automatic, mesmo vindo de uma origem manual legada", () => {
+        const resolved = resolveStageProbability({ currentProbability: 80, probabilidadeOrigem: "manual", nextStage: "convertido" });
+        assert.equal(resolved.probability, 100);
+        assert.equal(resolved.probabilidadeOrigem, "automatic");
+    });
+
+    it("perdido sempre 0/automatic, mesmo vindo de uma origem manual legada", () => {
+        const resolved = resolveStageProbability({ currentProbability: 80, probabilidadeOrigem: "manual", nextStage: "perdido" });
+        assert.equal(resolved.probability, 0);
+        assert.equal(resolved.probabilidadeOrigem, "automatic");
+    });
+});
+
+describe("CRM-LEAD-002 (achado 4 da revisão adversarial) — suggestedProbabilityOnStatusChange (handleDetailChange)", () => {
+    it("origem automatic -> sugere o default da nova etapa (comportamento de antes, preservado)", () => {
+        assert.equal(suggestedProbabilityOnStatusChange({ nextStage: "qualificado", probabilidadeOrigem: "automatic" }), 50);
+    });
+
+    it("origem manual -> não sugere nada (null), preserva o valor já digitado no campo", () => {
+        assert.equal(suggestedProbabilityOnStatusChange({ nextStage: "qualificado", probabilidadeOrigem: "manual" }), null);
+    });
+
+    it("sem origem (lead novo, ainda sem lead selecionado) -> trata como automatic, sugere o default", () => {
+        assert.equal(suggestedProbabilityOnStatusChange({ nextStage: "em_contato", probabilidadeOrigem: undefined }), 25);
+    });
+
+    it("convertido/perdido sempre sugerem 100/0, mesmo com origem manual", () => {
+        assert.equal(suggestedProbabilityOnStatusChange({ nextStage: "convertido", probabilidadeOrigem: "manual" }), 100);
+        assert.equal(suggestedProbabilityOnStatusChange({ nextStage: "perdido", probabilidadeOrigem: "manual" }), 0);
     });
 });
 

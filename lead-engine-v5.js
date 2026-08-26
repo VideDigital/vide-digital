@@ -28,6 +28,8 @@ import {
     stageProbability,
     resolveStageProbability,
     resolveProbabilidadeOrigem,
+    inferProbabilidadeOrigem,
+    suggestedProbabilityOnStatusChange,
     numericValue,
     formatMoney,
     computeScore,
@@ -539,6 +541,17 @@ function normalizeLead(lead) {
     const probability = Number.isFinite(probabilityRaw)
         ? Math.max(0, Math.min(100, Math.round(probabilityRaw)))
         : stageProbability(status);
+    // CRM-LEAD-002 (compatibilidade legada): fonte única de verdade da
+    // origem da probabilidade, calculada uma vez aqui — todos os
+    // caminhos que trocam de etapa (moveLeadToStage, ação em massa,
+    // registrar contato, concluir follow-up, handleDetailChange) usam
+    // lead._probabilidadeOrigem em vez do campo cru lead.probabilidadeOrigem,
+    // que pode estar ausente em leads antigos. Ver inferProbabilidadeOrigem.
+    const probabilidadeOrigem = inferProbabilidadeOrigem({
+        currentStage: status,
+        currentProbability: probability,
+        probabilidadeOrigem: lead.probabilidadeOrigem
+    });
 
     const history = Array.isArray(lead.historicoLead)
         ? lead.historicoLead.filter((item) => item && typeof item === "object").slice(-MAX_HISTORY)
@@ -566,6 +579,7 @@ function normalizeLead(lead) {
         _medium: String(lead.utmMedium || lead.utm_medium || mediumFromUrl || "").trim(),
         _value: Math.max(0, numericValue(lead.valorOportunidade)),
         _probability: probability,
+        _probabilidadeOrigem: probabilidadeOrigem,
         _forecast: Math.max(0, numericValue(lead.valorOportunidade)) * probability / 100,
         _responsibleUid: String(lead.responsavelUid || ""),
         _responsibleName: String(lead.responsavelNome || ""),
@@ -2112,7 +2126,7 @@ async function applyBulkAction(action) {
                 // Mesma política de moveLeadToStage (CRM-LEAD-002).
                 const resolved = resolveStageProbability({
                     currentProbability: lead._probability,
-                    probabilidadeOrigem: lead.probabilidadeOrigem,
+                    probabilidadeOrigem: lead._probabilidadeOrigem,
                     nextStage: stage
                 });
                 updates = {
@@ -2464,14 +2478,30 @@ async function registerContact(leadId = state.selectedLeadId) {
     if (!lead) return;
 
     const nextStatus = lead._status === "novo" ? "em_contato" : lead._status;
+    const updates = {
+        ultimoContatoEm: Date.now(),
+        statusLead: nextStatus,
+        status: nextStatus,
+        pipelineStage: nextStatus
+    };
+    // CRM-LEAD-002 (achado 4 da revisão adversarial): "Registrar
+    // contato" também move a etapa (novo -> em_contato) e precisa da
+    // MESMA política de probabilidade que moveLeadToStage — só sincroniza
+    // quando a etapa realmente muda (nextStatus !== lead._status);
+    // quando o lead já não está mais em "novo", isso é só um registro de
+    // contato, sem mudança de etapa nem de probabilidade.
+    if (nextStatus !== lead._status) {
+        const resolved = resolveStageProbability({
+            currentProbability: lead._probability,
+            probabilidadeOrigem: lead._probabilidadeOrigem,
+            nextStage: nextStatus
+        });
+        updates.probabilidade = resolved.probability;
+        updates.probabilidadeOrigem = resolved.probabilidadeOrigem;
+    }
     const success = await persistLeadUpdates(
         lead,
-        {
-            ultimoContatoEm: Date.now(),
-            statusLead: nextStatus,
-            status: nextStatus,
-            pipelineStage: nextStatus
-        },
+        updates,
         makeHistoryEvent("contact", "Contato registrado", "Interação comercial registrada pela equipe.")
     );
 
@@ -2495,7 +2525,7 @@ async function moveLeadToStage(leadId, stage) {
     // em massa (ver bulkApply, action "stage").
     const resolved = resolveStageProbability({
         currentProbability: lead._probability,
-        probabilidadeOrigem: lead.probabilidadeOrigem,
+        probabilidadeOrigem: lead._probabilidadeOrigem,
         nextStage: stage
     });
 
@@ -2518,15 +2548,28 @@ async function updateAgenda(leadId, action) {
 
     if (action === "done") {
         const nextStatus = lead._status === "novo" ? "em_contato" : lead._status;
+        const updates = {
+            ultimoContatoEm: Date.now(),
+            proximoContatoEm: null,
+            statusLead: nextStatus,
+            status: nextStatus,
+            pipelineStage: nextStatus
+        };
+        // CRM-LEAD-002 (achado 4 da revisão adversarial): mesma política
+        // de registerContact/moveLeadToStage — só sincroniza probabilidade
+        // quando concluir o follow-up realmente move a etapa.
+        if (nextStatus !== lead._status) {
+            const resolved = resolveStageProbability({
+                currentProbability: lead._probability,
+                probabilidadeOrigem: lead._probabilidadeOrigem,
+                nextStage: nextStatus
+            });
+            updates.probabilidade = resolved.probability;
+            updates.probabilidadeOrigem = resolved.probabilidadeOrigem;
+        }
         const success = await persistLeadUpdates(
             lead,
-            {
-                ultimoContatoEm: Date.now(),
-                proximoContatoEm: null,
-                statusLead: nextStatus,
-                status: nextStatus,
-                pipelineStage: nextStatus
-            },
+            updates,
             makeHistoryEvent("followup", "Follow-up concluído", "Contato concluído e removido da agenda.")
         );
         if (success) {
@@ -3066,8 +3109,20 @@ function handleDetailChange(event) {
     }
 
     if (event.target.id === "aura-leads-v5-detail-status") {
+        // CRM-LEAD-002 (achado 4 da revisão adversarial): antes,
+        // qualquer troca do <select> de etapa sobrescrevia o campo de
+        // probabilidade com o default da etapa, mesmo quando o lead
+        // tinha uma probabilidade manual (persistida ou inferida via
+        // inferProbabilidadeOrigem para leads legados) — perdendo o
+        // valor antes mesmo de Salvar. suggestedProbabilityOnStatusChange
+        // devolve null nesse caso, e o campo não é tocado.
+        const lead = findLead(state.selectedLeadId);
         const probability = document.getElementById("aura-leads-v5-detail-probability");
-        if (probability) probability.value = String(stageProbability(event.target.value));
+        const suggested = suggestedProbabilityOnStatusChange({
+            nextStage: event.target.value,
+            probabilidadeOrigem: lead?._probabilidadeOrigem
+        });
+        if (probability && suggested !== null) probability.value = String(suggested);
     }
 }
 
