@@ -551,8 +551,11 @@ async function handleSubmit(event) {
         const resposta = await createPublicLeadCallable(payload);
         const leadId = resposta?.data?.leadId;
         // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo com
-        // conteúdo idêntico) recebe um token novo (CRM-LEAD-008).
-        leadAttemptTracker.complete();
+        // conteúdo idêntico) recebe um token novo (CRM-LEAD-008). Passa o
+        // MESMO fingerprint usado em getToken (recalculado do payload, uma
+        // função pura), pra encerrar só ESTA tentativa, não interferir em
+        // outras pendentes de outro formulário na mesma página.
+        leadAttemptTracker.complete(fingerprintTentativaLeadPublico(payload));
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");

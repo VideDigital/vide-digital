@@ -219,7 +219,7 @@ executarScriptsEmElemento(container);
             leadRequest.dedupeKey = leadAttemptTrackerLP.getToken(fingerprintTentativaLeadPublicoLP(leadRequest));
             await createPublicLeadCallable(leadRequest);
             // Sucesso: a PRÓXIMA submissão recebe um token novo.
-            leadAttemptTrackerLP.complete();
+            leadAttemptTrackerLP.complete(fingerprintTentativaLeadPublicoLP(leadRequest));
             form.innerHTML = '<p class="text-center text-white font-bold py-4">Recebemos seus dados! Em breve entraremos em contato.</p>';
         } catch (err) {
             // Não encerra a tentativa: um retry (usuário clica de novo)

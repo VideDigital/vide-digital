@@ -1552,7 +1552,7 @@
             leadRequest.dedupeKey = tokenTentativaLeadPublicoV4(fingerprintTentativaLeadPublicoV4(leadRequest));
             await createPublicLeadCallable(leadRequest);
             // Sucesso: a PRÓXIMA submissão recebe um token novo.
-            concluirTentativaLeadPublicoV4();
+            concluirTentativaLeadPublicoV4(fingerprintTentativaLeadPublicoV4(leadRequest));
 
             form.reset();
 
@@ -1823,15 +1823,18 @@
         return createPublicLeadCallable;
     }
 
-    // CRM-LEAD-008 (achado 5 + achado B1-A da revisão adversarial): mesmo
-    // padrão de token de tentativa opaco de loja.html/lp-forms-v5.js —
-    // mantido aqui por consistência mesmo este renderer não estando
+    // CRM-LEAD-008 (achado 5 + achados B1-A/B1-B da revisão adversarial):
+    // mesmo padrão de token de tentativa opaco de loja.html/lp-forms-v5.js
+    // — mantido aqui por consistência mesmo este renderer não estando
     // conectado a nenhuma página pública hoje (ver comentário acima em
     // obterCreatePublicLeadCallable), pra já nascer correto se/quando for
-    // conectado. Associado a um fingerprint do payload (achado B1-A): só
-    // reaproveita o token quando o fingerprint bate com o da tentativa
-    // pendente.
-    let pendingLeadAttemptV4 = null; // { token, fingerprint }
+    // conectado. Associado a um fingerprint do payload: só reaproveita o
+    // token quando o fingerprint bate com o de uma tentativa pendente.
+    // Um MAPA (fingerprint -> token), não um único slot: uma página pode
+    // ter mais de um bloco formulario_captura — um slot único perderia a
+    // tentativa pendente de um bloco se o visitante interagisse com outro
+    // formulário antes de reenviar o primeiro.
+    const pendingLeadAttemptsV4 = new Map(); // fingerprint -> token
     function fingerprintTentativaLeadPublicoV4(leadRequest) {
         return [
             leadRequest.publicPageId || "",
@@ -1843,17 +1846,17 @@
         ].join("|");
     }
     function tokenTentativaLeadPublicoV4(fingerprint) {
-        if (pendingLeadAttemptV4 && pendingLeadAttemptV4.fingerprint === fingerprint) {
-            return pendingLeadAttemptV4.token;
+        if (pendingLeadAttemptsV4.has(fingerprint)) {
+            return pendingLeadAttemptsV4.get(fingerprint);
         }
         const token = (window.crypto && typeof window.crypto.randomUUID === "function")
             ? window.crypto.randomUUID()
             : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
-        pendingLeadAttemptV4 = { token, fingerprint };
+        pendingLeadAttemptsV4.set(fingerprint, token);
         return token;
     }
-    function concluirTentativaLeadPublicoV4() {
-        pendingLeadAttemptV4 = null;
+    function concluirTentativaLeadPublicoV4(fingerprint) {
+        pendingLeadAttemptsV4.delete(fingerprint);
     }
 
     async function loadPublicData() {

@@ -3260,8 +3260,11 @@
                     currency: pedidoSnapshot ? "BRL" : undefined
                 });
                 // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo
-                // que idêntica em conteúdo) recebe um token novo.
-                leadAttemptTracker.complete();
+                // que idêntica em conteúdo) recebe um token novo. Passa o
+                // MESMO fingerprint usado em getToken, pra encerrar só ESTA
+                // tentativa (checkout/produto/popup podem ter tentativas
+                // pendentes simultâneas, independentes entre si).
+                leadAttemptTracker.complete(fingerprintTentativaLeadPublico(leadRequest));
                 return { duplicado: false, id: leadId, dedupeKey };
             } catch (error) {
                 // Falha (inclusive ambígua, ex.: rede caiu depois do
