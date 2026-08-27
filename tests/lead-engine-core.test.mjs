@@ -634,6 +634,74 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
         assert.equal(fpA, fpC, "ordem de inserção das chaves não pode afetar o fingerprint (canonicamente ordenado)");
     });
 
+    function extrairRendererReal() {
+        const start = indexSource.indexOf("function escaparAtributoFormulario");
+        const end = indexSource.indexOf("function camposExtrasDoFormulario");
+        assert.ok(start > 0 && end > start);
+        return new Function(`${indexSource.slice(start, end)}; return renderizarCamposFormulario;`)();
+    }
+
+    it("PR60-SMOKE-001 — strings legadas continuam type=text (exceto whatsapp) e nunca required", () => {
+        const renderer = extrairRendererReal();
+        const html = renderer(["nome", "email", "whatsapp", "telefone"]);
+        // Comportamento pré-existente, preservado: "email"/"telefone" como
+        // string SEMPRE viram type="text" (nunca type="email"/"tel") —
+        // só um objeto estruturado pode declarar tipo. Regressão aqui
+        // significaria mudar o HTML de toda LP publicada antes desta PR.
+        const tipos = Array.from(html.matchAll(/<input type="([^"]+)"/g), (m) => m[1]);
+        assert.deepEqual(tipos, ["text", "text", "tel", "text"]);
+        assert.doesNotMatch(html, /required/, "string legada nunca pode ganhar required");
+    });
+
+    it("PR60-SMOKE-001 — campo personalizado objeto respeita type da allowlist, com fallback text pra tipo inválido", () => {
+        const renderer = extrairRendererReal();
+        const campos = [
+            { name: "empresa", label: "Empresa", type: "text" },
+            { name: "email_alt", label: "E-mail alternativo", type: "email" },
+            { name: "telefone_extra", label: "Telefone extra", type: "tel" },
+            { name: "idade", label: "Idade", type: "number" },
+            { name: "nascimento", label: "Nascimento", type: "date" },
+            { name: "observacao", label: "Observação", type: "textarea" },
+            { name: "invalido", label: "Campo inválido", type: "<script>" }
+        ];
+        const html = renderer(campos);
+        assert.match(html, /<input type="text" name="empresa"/);
+        assert.match(html, /<input type="email" name="email_alt"/);
+        assert.match(html, /<input type="tel" name="telefone_extra"/);
+        assert.doesNotMatch(html, /inputmode="numeric"/, "tel customizado não herda a máscara específica do whatsapp canônico");
+        assert.match(html, /<input type="number" name="idade"/);
+        assert.match(html, /<input type="date" name="nascimento"/);
+        assert.match(html, /<textarea name="observacao"/, "type=textarea precisa virar elemento <textarea> real");
+        assert.doesNotMatch(html, /<input[^>]*name="observacao"/, "textarea não pode também virar <input>");
+        assert.match(html, /<input type="text" name="invalido"/, "tipo desconhecido cai em text, nunca no valor bruto recebido");
+        assert.doesNotMatch(html, /<script>/, "tipo inválido nunca deve ser refletido cru no HTML");
+    });
+
+    it("PR60-SMOKE-001 — required só é aplicado quando o objeto declara required:true explicitamente", () => {
+        const renderer = extrairRendererReal();
+        const html = renderer([
+            { name: "obrigatorio", label: "Obrigatório", type: "text", required: true },
+            { name: "opcional_false", label: "Opcional explícito", type: "text", required: false },
+            { name: "opcional_ausente", label: "Opcional por omissão", type: "text" }
+        ]);
+        assert.match(html, /name="obrigatorio"[^>]*\srequired/);
+        assert.doesNotMatch(html, /name="opcional_false"[^>]*\srequired/);
+        assert.doesNotMatch(html, /name="opcional_ausente"[^>]*\srequired/);
+    });
+
+    it("PR60-SMOKE-001 — whatsapp canônico preserva tel/numeric/maxlength mesmo se vier como objeto (defesa em profundidade)", () => {
+        const renderer = extrairRendererReal();
+        // Ninguém pode criar um campo personalizado chamado "whatsapp" pela
+        // UI (nome reservado), mas o renderer é a última linha de defesa:
+        // mesmo recebendo um objeto cujo name normalize pra "whatsapp",
+        // ele precisa continuar como o campo canônico, nunca herdando
+        // type/required customizados.
+        const html = renderer([{ name: "whatsapp", label: "Whatsapp", type: "textarea", required: true }]);
+        assert.match(html, /<input type="tel" name="whatsapp" inputmode="numeric" maxlength="11"/);
+        assert.doesNotMatch(html, /<textarea/);
+        assert.doesNotMatch(html, /required/);
+    });
+
     it("writers legados alcançáveis gravam somente o contrato canônico", () => {
         const responsavelWriter = dashboardSource.match(/window\.aplicarFuncionarioEmMassa[\s\S]*?window\.aplicarEtiquetaEmMassa/)?.[0] || "";
         const lembreteWriter = dashboardSource.match(/window\.aplicarLembreteEmMassa[\s\S]*?window\.copiarWhatsappsSelecionados/)?.[0] || "";

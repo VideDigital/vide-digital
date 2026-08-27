@@ -149,10 +149,11 @@
         // emitidos, e o sufixo é incrementado até achar um valor livre.
         const usados = new Set();
         return (Array.isArray(campos) ? campos : []).map((campo, index) => {
-            const raw = typeof campo === "object" && campo
+            const isObjeto = typeof campo === "object" && campo !== null;
+            const raw = isObjeto
                 ? (campo.id || campo.name || campo.chave || campo.label || campo.nome || "")
                 : campo;
-            const label = typeof campo === "object" && campo
+            const label = isObjeto
                 ? (campo.label || campo.nome || campo.name || campo.id || raw)
                 : raw;
             const baseName = String(raw || "")
@@ -173,11 +174,35 @@
             const safeName = escaparAtributoFormulario(name);
             const safeLabel = escaparAtributoFormulario(label || `Campo ${index + 1}`);
             const isWhatsapp = baseName === "whatsapp";
-            return isWhatsapp
-                ? `<input type="tel" name="${safeName}" inputmode="numeric" maxlength="11" placeholder="${safeLabel}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`
-                : `<input type="text" name="${safeName}" placeholder="${safeLabel}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`;
+            if (isWhatsapp) {
+                // Campo canônico whatsapp preserva o comportamento de sempre,
+                // mesmo se algum dia chegar como objeto — nunca herda type/required
+                // customizados, pra não regredir nenhuma LP publicada antes desta PR.
+                return `<input type="tel" name="${safeName}" inputmode="numeric" maxlength="11" placeholder="${safeLabel}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`;
+            }
+            // Strings legadas (todo o histórico anterior a esta PR) continuam
+            // SEMPRE type="text" e SEM required — só um objeto estruturado
+            // pode declarar type/required, e só dentro da allowlist.
+            let tipo = "text";
+            let obrigatorio = false;
+            if (isObjeto) {
+                const tipoBruto = String(campo.type || campo.tipo || "").toLowerCase();
+                tipo = TIPOS_CAMPO_FORMULARIO.has(tipoBruto) ? tipoBruto : "text";
+                obrigatorio = campo.required === true || campo.obrigatorio === true;
+            }
+            const requiredAttr = obrigatorio ? " required" : "";
+            if (tipo === "textarea") {
+                return `<textarea name="${safeName}" placeholder="${safeLabel}"${requiredAttr} class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white"></textarea>`;
+            }
+            return `<input type="${tipo}" name="${safeName}" placeholder="${safeLabel}"${requiredAttr} class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`;
         }).join("");
     }
+
+    // Tipos aceitos por um campo personalizado estruturado (PR60-SMOKE-001).
+    // Mesma allowlist usada pelo preview do Studio (studio-canonical-renderers-v1.js).
+    // Tipo ausente/desconhecido sempre cai em "text" — nunca falha silenciosamente
+    // pra um valor arbitrário injetado no atributo type.
+    const TIPOS_CAMPO_FORMULARIO = new Set(["text", "email", "tel", "number", "date", "textarea"]);
 
     function camposExtrasDoFormulario(form) {
         const excluidos = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
