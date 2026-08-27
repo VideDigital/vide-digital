@@ -13,7 +13,7 @@ import {
     getFunctions,
     httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
-import { createLeadAttemptTracker } from "./lead-attempt-token-core.js";
+import { createLeadAttemptTracker, fingerprintCamposExtras } from "./lead-attempt-token-core.js";
 
 const VERSION = "5.0.0";
 const SESSION_KEY = "aura_form_v5_session";
@@ -237,6 +237,16 @@ function obterCreatePublicLeadCallable() {
 // double-click síncrono antes da primeira chamada terminar). Fingerprint
 // diferente (dado alterado, outro formulário, nova submissão deliberada
 // depois de um sucesso anterior) sempre gera um token novo.
+//
+// ÚLTIMO B1 (revisão adversarial final, terceira passada): buildLeadRequest
+// também envia camposExtras — campos customizados que o dono da LP
+// adiciona ao formulário (empresa, orçamento, mensagem etc.), dados
+// comerciais preenchidos manualmente pelo visitante, não cobertos pelos
+// campos fixos acima. Corrigir um desses campos depois de um erro
+// ambíguo é a MESMA classe de bug do contato — sem entrar no
+// fingerprint, o retry reaproveitava o token e o dado corrigido podia
+// nunca ser persistido. fingerprintCamposExtras (lead-attempt-token-core.js)
+// serializa de forma determinística (chaves ordenadas).
 function fingerprintTentativaLeadPublico(leadRequest) {
     return [
         leadRequest.publicPageId || "",
@@ -244,7 +254,8 @@ function fingerprintTentativaLeadPublico(leadRequest) {
         leadRequest.produtoInteresse || "",
         String(leadRequest.nome || "").trim().toLowerCase(),
         String(leadRequest.whatsapp || "").replace(/\D/g, ""),
-        String(leadRequest.email || "").trim().toLowerCase()
+        String(leadRequest.email || "").trim().toLowerCase(),
+        fingerprintCamposExtras(leadRequest.camposExtras)
     ].join("|");
 }
 
