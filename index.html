@@ -148,7 +148,12 @@ function executarScriptsEmElemento(container) {
     }
 
     function renderizarCamposFormulario(campos) {
-        const usados = new Map();
+        // Unicidade GLOBAL do `name` final (não só por baseName): um label
+        // que já normalize pro mesmo texto de um sufixo auto-gerado (ex.:
+        // "Nome" + "Nome" + "Nome_2") não pode colidir com o `name` que o
+        // segundo "Nome" recebeu — por isso o Set guarda os names FINAIS já
+        // emitidos, e o sufixo é incrementado até achar um valor livre.
+        const usados = new Set();
         return (Array.isArray(campos) ? campos : []).map((campo, index) => {
             const raw = typeof campo === "object" && campo
                 ? (campo.id || campo.name || campo.chave || campo.label || campo.nome || "")
@@ -163,10 +168,14 @@ function executarScriptsEmElemento(container) {
                 .replace(/[^a-z0-9_-]+/g, "_")
                 .replace(/^_+|_+$/g, "")
                 .slice(0, 60) || `campo_${index + 1}`;
-            const occurrence = (usados.get(baseName) || 0) + 1;
-            usados.set(baseName, occurrence);
-            const suffix = occurrence === 1 ? "" : `_${occurrence}`;
-            const name = `${baseName.slice(0, 60 - suffix.length)}${suffix}`;
+            let name = baseName;
+            let tentativa = 1;
+            while (usados.has(name)) {
+                tentativa += 1;
+                const suffix = `_${tentativa}`;
+                name = `${baseName.slice(0, 60 - suffix.length)}${suffix}`;
+            }
+            usados.add(name);
             const safeName = escaparAtributoFormulario(name);
             const safeLabel = escaparAtributoFormulario(label || `Campo ${index + 1}`);
             const isWhatsapp = baseName === "whatsapp";

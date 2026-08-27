@@ -583,6 +583,57 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
         assert.deepEqual(names.slice(0, 4), ["nome", "whatsapp", "empresa_setor", "empresa_setor_2"]);
     });
 
+    it("PR60-REV-001 — regressão: label que normaliza pro mesmo texto de um sufixo auto-gerado não colide", () => {
+        const start = indexSource.indexOf("function escaparAtributoFormulario");
+        const end = indexSource.indexOf("function camposExtrasDoFormulario");
+        const renderer = new Function(`${indexSource.slice(start, end)}; return renderizarCamposFormulario;`)();
+
+        // Campo 1 "Nome" -> nome; campo 2 "Nome" -> nome_2 (sufixo
+        // automático); campo 3 "Nome_2" normaliza literalmente pro MESMO
+        // texto "nome_2" que o campo 2 já recebeu — o bug antigo (contador
+        // só por baseName) deixava os dois com name="nome_2".
+        const htmlUnderscore = renderer(["Nome", "Nome", "Nome_2"]);
+        const namesUnderscore = Array.from(htmlUnderscore.matchAll(/\sname="([^"]+)"/g), (m) => m[1]);
+        assert.equal(namesUnderscore.length, 3);
+        assert.equal(new Set(namesUnderscore).size, 3, "os 3 names finais precisam ser únicos");
+        assert.deepEqual(namesUnderscore, ["nome", "nome_2", "nome_2_2"]);
+
+        // Variante com hífen: "Nome-2" preserva o hífen na normalização
+        // ([^a-z0-9_-]+ não converte "-" pra "_"), então não colide de fato
+        // com o sufixo "_2" (que usa underscore) — mas os 3 names ainda
+        // precisam sair únicos e estáveis, sem depender de coincidência.
+        const htmlHifen = renderer(["Nome", "Nome", "Nome-2"]);
+        const namesHifen = Array.from(htmlHifen.matchAll(/\sname="([^"]+)"/g), (m) => m[1]);
+        assert.equal(new Set(namesHifen).size, 3, "os 3 names finais precisam ser únicos mesmo sem colisão literal");
+        assert.deepEqual(namesHifen, ["nome", "nome_2", "nome-2"]);
+
+        // Truncamento: dois labels longos que truncam pro MESMO texto de 60
+        // caracteres, mais um terceiro cujo baseName (também truncado) já é
+        // igual ao que o sufixo do segundo produziria — o Set de names
+        // finais precisa resolver a cadeia toda, sempre respeitando o limite
+        // de 60 caracteres já incluindo o sufixo.
+        const longBase = "campo_muito_longo_" + "x".repeat(50); // > 60 chars antes do slice
+        const htmlTruncado = renderer([longBase, longBase, longBase]);
+        const namesTruncados = Array.from(htmlTruncado.matchAll(/\sname="([^"]+)"/g), (m) => m[1]);
+        assert.equal(new Set(namesTruncados).size, 3, "colisão pós-truncamento também precisa ficar única");
+        assert.ok(namesTruncados.every((name) => name.length <= 60), "name final nunca pode passar de 60 caracteres");
+        assert.ok(namesTruncados[2].endsWith("_3"), "terceira ocorrência deve receber o próximo sufixo livre, não repetir _2");
+    });
+
+    it("PR60-REV-001 — fingerprint da tentativa diferencia alteração em qualquer camposExtras pós-colisão resolvida", () => {
+        const fpStart = indexSource.indexOf("function fingerprintTentativaLeadPublicoLP");
+        const fpEnd = indexSource.indexOf("\n\n    var caminho", fpStart);
+        assert.ok(fpStart > 0 && fpEnd > fpStart, "marcadores de extração da função de fingerprint precisam existir");
+        const fingerprint = new Function(`${indexSource.slice(fpStart, fpEnd)}; return fingerprintTentativaLeadPublicoLP;`)();
+
+        const base = { publicPageId: "p1", formularioId: "f1", nome: "Ana", whatsapp: "11988887777", email: "a@a.com" };
+        const fpA = fingerprint({ ...base, camposExtras: { nome_2: "valor-2", nome_2_2: "valor-3" } });
+        const fpB = fingerprint({ ...base, camposExtras: { nome_2: "valor-2", nome_2_2: "VALOR-DIFERENTE" } });
+        const fpC = fingerprint({ ...base, camposExtras: { nome_2_2: "valor-3", nome_2: "valor-2" } });
+        assert.notEqual(fpA, fpB, "alterar só o campo resolvido por colisão precisa mudar o fingerprint");
+        assert.equal(fpA, fpC, "ordem de inserção das chaves não pode afetar o fingerprint (canonicamente ordenado)");
+    });
+
     it("writers legados alcançáveis gravam somente o contrato canônico", () => {
         const responsavelWriter = dashboardSource.match(/window\.aplicarFuncionarioEmMassa[\s\S]*?window\.aplicarEtiquetaEmMassa/)?.[0] || "";
         const lembreteWriter = dashboardSource.match(/window\.aplicarLembreteEmMassa[\s\S]*?window\.copiarWhatsappsSelecionados/)?.[0] || "";
