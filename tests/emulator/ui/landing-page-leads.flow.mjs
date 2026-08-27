@@ -57,16 +57,16 @@ function adminDb() {
 
 function markupFormularioCaptura() {
     // Mesmo HTML que index.html/renderizarBloco() produz pro bloco
-    // "formulario_captura" — inputs só com placeholder, sem name/id (é
-    // esse o único bloco de captura conectado a uma página pública real
-    // hoje). Reproduzido aqui literalmente, não reinventado.
+    // "formulario_captura" — cada input submetível possui name estável,
+    // inclusive o campo customizado que precisa entrar no FormData.
     return `
         <div class="max-w-md mx-auto px-6 text-left">
             <h2 class="text-2xl font-bold mb-6">Fale com a gente</h2>
             <form class="space-y-3 text-left" onsubmit="return enviarFormularioLP(event)">
-                <input type="text" placeholder="nome" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
-                <input type="tel" inputmode="numeric" maxlength="11" placeholder="whatsapp" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
-                <input type="text" placeholder="email" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
+                <input type="text" name="nome" placeholder="nome" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
+                <input type="tel" name="whatsapp" inputmode="numeric" maxlength="11" placeholder="whatsapp" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
+                <input type="text" name="email" placeholder="email" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
+                <input type="text" name="empresa_preferida" placeholder="Empresa preferida" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">
                 <button type="submit" class="w-full font-bold py-3 rounded-xl bg-white text-black">Enviar</button>
             </form>
         </div>
@@ -127,13 +127,19 @@ async function preencherEEnviar(page, sufixo) {
     const nome = `Lead LP QA ${sufixo}`;
     const whatsapp = "11988887777";
     const email = `lead.lp.qa.${sufixo}.${SUFIXO_TESTE}@local.test`.toLowerCase();
+    const empresaPreferida = `Empresa QA ${sufixo}`;
 
     await page.fill('#lp-container form input[placeholder="nome"]', nome);
     await page.fill('#lp-container form input[placeholder="whatsapp"]', whatsapp);
     await page.fill('#lp-container form input[placeholder="email"]', email);
+    await page.fill('#lp-container form input[name="empresa_preferida"]', empresaPreferida);
+    const formDataCustom = await page.evaluate(() =>
+        new FormData(document.querySelector("#lp-container form")).get("empresa_preferida")
+    );
+    assert.equal(formDataCustom, empresaPreferida, "FormData real deve coletar o input customizado pelo name");
     await page.click('#lp-container form button[type="submit"]');
 
-    return { nome, whatsapp, email };
+    return { nome, whatsapp, email, empresaPreferida };
 }
 
 async function testarCaminhoPrimarioAuraFormsV5(browser, baseUrl, db) {
@@ -196,6 +202,8 @@ async function testarCaminhoPrimarioAuraFormsV5(browser, baseUrl, db) {
         assert.equal(lead.statusLead, "novo");
         assert.equal(lead.canal, "loja_publica");
         assert.equal(lead.origem, "Landing Page", "origem default deveria ser preservada quando não há UTM");
+        assert.deepEqual(lead.camposExtras, { empresa_preferida: dados.empresaPreferida },
+            "request real para createPublicLead deve carregar camposExtras");
 
         console.log("landing-page-leads.flow: caminho primário (AuraFormsV5) OK.");
     } catch (erro) {
@@ -245,6 +253,8 @@ async function testarCaminhoFallbackEnviarFormularioLP(browser, baseUrl, db) {
         assert.equal(lead.nome, dados.nome);
         assert.equal(lead.status, "novo");
         assert.equal(lead.formularioId, "captura_lp_legado");
+        assert.deepEqual(lead.camposExtras, { empresa_preferida: dados.empresaPreferida },
+            "fallback legado também deve propagar camposExtras pelo FormData");
 
         console.log("landing-page-leads.flow: caminho de fallback (enviarFormularioLP) OK.");
     } catch (erro) {

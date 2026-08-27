@@ -17470,6 +17470,7 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
         // =============================================
         let _cacheAutomacaoLeads = [];
         let _selecionadosAutomacaoLeads = new Set();
+        let _funcionariosAtivosAutomacaoLeads = [];
 
         let _modoLixeira = false;
 
@@ -17488,11 +17489,17 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
 
                 try {
                     const snapFunc = await getDocs(query(collection(db, "funcionarios"), where("donoUID", "==", usuarioUID)));
-                    let funcionarios = [];
-                    snapFunc.forEach(d => funcionarios.push({ id: d.id, ...d.data() }));
+                    _funcionariosAtivosAutomacaoLeads = [];
+                    snapFunc.forEach(d => {
+                        const funcionario = { id: d.id, ...d.data() };
+                        if (funcionario.status === "ativo") {
+                            _funcionariosAtivosAutomacaoLeads.push(funcionario);
+                        }
+                    });
                     const selectFunc = document.getElementById("auto-lead-funcionario-atribuir");
                     if (selectFunc) {
-                        selectFunc.innerHTML = `<option value="">Ninguém</option>` + funcionarios.map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
+                        selectFunc.innerHTML = `<option value="">Ninguém</option><option value="${usuarioUID}">Proprietário</option>` +
+                            _funcionariosAtivosAutomacaoLeads.map(f => `<option value="${f.id}">${f.nome}</option>`).join("");
                     }
                 } catch (e) { /* não é crítico, ignora silenciosamente */ }
 
@@ -17764,8 +17771,17 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
             const funcUID = document.getElementById("auto-lead-funcionario-atribuir").value;
             const ids = Array.from(_selecionadosAutomacaoLeads);
             if (ids.length === 0) return;
+            const funcionario = _funcionariosAtivosAutomacaoLeads.find(item => item.id === funcUID);
+            if (funcUID && funcUID !== usuarioUID && !funcionario) {
+                showToast("Escolha um funcionário ativo desta loja.", "error");
+                return;
+            }
             try {
-                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { funcionarioResponsavel: funcUID || null }, { merge: true })));
+                const responsavelNome = funcUID === usuarioUID ? "Proprietário" : (funcionario?.nome || "");
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), {
+                    responsavelUid: funcUID || "",
+                    responsavelNome
+                }, { merge: true })));
                 showToast(`${ids.length} lead(s) atribuído(s)!`);
                 carregarAutomacaoLeads();
             } catch (err) {
@@ -17804,7 +17820,9 @@ ${n.foto ? `<img src="${n.foto}" class="h-11 w-11 rounded-lg object-cover shrink
                 return;
             }
             try {
-                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { lembreteData: dataLembrete }, { merge: true })));
+                const proximoContatoEm = new Date(`${dataLembrete}T09:00:00`).getTime();
+                if (!Number.isFinite(proximoContatoEm)) throw new Error("Data de lembrete inválida");
+                await Promise.all(ids.map(id => setDoc(doc(db, "leads", id), { proximoContatoEm }, { merge: true })));
                 showToast(`Lembrete definido em ${ids.length} lead(s)!`);
                 carregarAutomacaoLeads();
             } catch (err) {

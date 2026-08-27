@@ -24,6 +24,13 @@ import {
     normalizeEmail,
     normalizeStatus,
     anyTimestamp,
+    resolveLeadResponsible,
+    resolveLeadFollowup,
+    shouldWriteCanonicalValue,
+    normalizeExtraFields,
+    extraFieldsSearchText,
+    extraFieldKeysForExport,
+    csvCell,
     leadTimestamp,
     stageProbability,
     resolveStageProbability,
@@ -430,7 +437,7 @@ function localDateInput(value) {
 function isOverdue(lead) {
     const status = normalizeStatus(lead);
     if (status === "convertido" || status === "perdido") return false;
-    const followup = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+    const followup = resolveLeadFollowup(lead).timestamp;
     if (followup) return followup < Date.now();
     const lastContact = anyTimestamp(lead.ultimoContatoEm || lead.contatadoEm);
     if (lastContact) return false;
@@ -552,6 +559,9 @@ function normalizeLead(lead) {
         currentProbability: probability,
         probabilidadeOrigem: lead.probabilidadeOrigem
     });
+    const responsible = resolveLeadResponsible(lead);
+    const followup = resolveLeadFollowup(lead);
+    const extraFields = normalizeExtraFields(lead.camposExtras);
 
     const history = Array.isArray(lead.historicoLead)
         ? lead.historicoLead.filter((item) => item && typeof item === "object").slice(-MAX_HISTORY)
@@ -581,8 +591,12 @@ function normalizeLead(lead) {
         _probability: probability,
         _probabilidadeOrigem: probabilidadeOrigem,
         _forecast: Math.max(0, numericValue(lead.valorOportunidade)) * probability / 100,
-        _responsibleUid: String(lead.responsavelUid || ""),
-        _responsibleName: String(lead.responsavelNome || ""),
+        _responsibleUid: responsible.uid,
+        _responsibleName: responsible.name,
+        _responsibleSource: responsible.source,
+        _followupTimestamp: followup.timestamp,
+        _followupSource: followup.source,
+        _extraFields: extraFields,
         _history: history,
         _search: normalizeText([
             lead.nome, lead.email, lead.whatsapp, lead.telefone,
@@ -593,7 +607,8 @@ function normalizeLead(lead) {
             lead.formularioNome, lead.formularioId,
             lead.blocoOrigem, lead.tipoCaptura, lead.canal,
             lead.sessaoId, lead.dedupeKey,
-            lead.anotacao, lead.etiqueta, lead.responsavelNome
+            lead.anotacao, lead.etiqueta, lead.responsavelNome,
+            extraFieldsSearchText(lead.camposExtras)
         ].filter(Boolean).join(" "))
     };
 }
@@ -1634,7 +1649,7 @@ function renderLeadRow(lead, selectable = false) {
     const context = lead._campaign !== "Sem campanha"
         ? `${lead._campaign} · ${interest}`
         : interest;
-    const followup = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+    const followup = lead._followupTimestamp;
     const rowClasses = [
         state.selectedLeadId === lead.id ? "is-selected" : "",
         lead._unread ? "is-unread" : "",
@@ -1696,7 +1711,7 @@ function renderPipeline() {
 }
 
 function renderPipelineCard(lead) {
-    const followup = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+    const followup = lead._followupTimestamp;
     return `<article class="aura-leads-v5-pipeline-card ${lead._overdue ? "is-overdue" : ""}"
         draggable="${state.canEdit ? "true" : "false"}"
         data-drag-lead="${escapeHTML(lead.id)}" data-open-lead="${escapeHTML(lead.id)}">
@@ -1728,31 +1743,30 @@ function renderAgenda() {
     const nextWeek = todayStart + 7 * 86400000;
 
     const scheduled = activeLeads()
-        .filter((lead) => anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp))
+        .filter((lead) => lead._followupTimestamp)
         .sort((a, b) =>
-            anyTimestamp(a.proximoContatoEm || a.lembreteTimestamp) -
-            anyTimestamp(b.proximoContatoEm || b.lembreteTimestamp)
+            a._followupTimestamp - b._followupTimestamp
         );
 
     const groups = [
         { id: "overdue", label: "Vencidos", description: "Exigem contato imediato",
-          leads: scheduled.filter((lead) => anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp) < now) },
+          leads: scheduled.filter((lead) => lead._followupTimestamp < now) },
         { id: "today", label: "Hoje", description: "Compromissos do dia",
           leads: scheduled.filter((lead) => {
-              const value = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+              const value = lead._followupTimestamp;
               return value >= now && value < tomorrowStart;
           }) },
         { id: "week", label: "Próximos 7 dias", description: "Planejamento de follow-up",
           leads: scheduled.filter((lead) => {
-              const value = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+              const value = lead._followupTimestamp;
               return value >= tomorrowStart && value < nextWeek;
           }) },
         { id: "later", label: "Mais adiante", description: "Agenda futura",
-          leads: scheduled.filter((lead) => anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp) >= nextWeek) }
+          leads: scheduled.filter((lead) => lead._followupTimestamp >= nextWeek) }
     ];
 
     const withoutDate = activeLeads()
-        .filter((lead) => !anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp))
+        .filter((lead) => !lead._followupTimestamp)
         .slice(0, 12);
 
     return `${renderMetrics()}
@@ -1768,13 +1782,13 @@ function renderAgenda() {
         </section>
         <section class="aura-leads-v5-unscheduled">
             <header><div><span>Sem data definida</span><h3>Oportunidades sem próximo passo</h3></div>
-            <strong>${activeLeads().filter((lead) => !anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp)).length}</strong></header>
+            <strong>${activeLeads().filter((lead) => !lead._followupTimestamp).length}</strong></header>
             <div>${withoutDate.length ? withoutDate.map(renderAgendaCard).join("") : `<p class="aura-leads-v5-agenda-empty">Todas as oportunidades abertas possuem agenda.</p>`}</div>
         </section>`;
 }
 
 function renderAgendaCard(lead) {
-    const followup = anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp);
+    const followup = lead._followupTimestamp;
     return `<article class="aura-leads-v5-agenda-card">
         <button type="button" data-open-lead="${escapeHTML(lead.id)}">
             <span class="aura-leads-v5-avatar">${escapeHTML((lead.nome || "L").charAt(0).toUpperCase())}</span>
@@ -2218,6 +2232,16 @@ function renderHistory(lead) {
     </section>`;
 }
 
+function renderExtraFields(lead) {
+    if (!lead._extraFields?.length) return "";
+    return `<section class="aura-leads-v5-context aura-leads-v6-panel aura-leads-v6-extra-fields">
+        <h4>Informações do formulário</h4>
+        <dl>${lead._extraFields.map((field) => `
+            <div><dt>${escapeHTML(field.label)}</dt><dd>${escapeHTML(field.value)}</dd></div>
+        `).join("")}</dl>
+    </section>`;
+}
+
 function buildWhatsappMessage(lead, templateKey) {
     const template = WHATSAPP_TEMPLATES[templateKey] || WHATSAPP_TEMPLATES.saudacao;
     return template.text
@@ -2297,7 +2321,7 @@ function renderDetail(leadId) {
                             <option value="alta" ${lead.prioridadeLead === "alta" ? "selected" : ""}>Alta</option>
                         </select></label>
                         <label><span>Próximo contato</span><input id="aura-leads-v5-detail-followup" type="datetime-local"
-                            value="${timestampToLocalInput(lead.proximoContatoEm || lead.lembreteTimestamp)}" ${readOnly}></label>
+                            value="${timestampToLocalInput(lead._followupTimestamp)}" ${readOnly}></label>
                         <label><span>Responsável</span><select id="aura-leads-v5-detail-responsible" ${readOnly}>
                             ${renderTeamOptions(lead._responsibleUid)}
                         </select></label>
@@ -2344,6 +2368,8 @@ function renderDetail(leadId) {
                 </dl>
                 ${!lead._qualityComplete ? `<div class="aura-leads-v6-quality-warning"><strong>Captura legada</strong><span>Alguns campos serão completados sem alterar nome, contato, status ou histórico.</span>${state.canEdit ? `<button type="button" data-detail-action="normalize">Padronizar este lead</button>` : ""}</div>` : ""}
                 </section>
+
+                ${renderExtraFields(lead)}
 
                 ${renderHistory(lead)}
             </aside>
@@ -2453,9 +2479,6 @@ async function saveLeadDetail() {
         status,
         pipelineStage: status,
         prioridadeLead: priority,
-        proximoContatoEm: followup,
-        responsavelUid: responsibleUid,
-        responsavelNome: responsible?.nome || (responsibleUid === lead._responsibleUid ? lead._responsibleName : ""),
         valorOportunidade: value,
         probabilidade: probability,
         probabilidadeOrigem,
@@ -2463,6 +2486,26 @@ async function saveLeadDetail() {
         etiqueta: tag,
         anotacao: note
     };
+
+    const responsibleName = responsible?.nome ||
+        (responsibleUid === lead._responsibleUid ? lead._responsibleName : "");
+    if (shouldWriteCanonicalValue({
+        record: lead,
+        canonicalField: "responsavelUid",
+        previousResolved: lead._responsibleUid,
+        nextValue: responsibleUid
+    })) {
+        updates.responsavelUid = responsibleUid;
+        updates.responsavelNome = responsibleName;
+    }
+    if (shouldWriteCanonicalValue({
+        record: lead,
+        canonicalField: "proximoContatoEm",
+        previousResolved: timestampToLocalInput(lead._followupTimestamp),
+        nextValue: followupRaw
+    })) {
+        updates.proximoContatoEm = followup;
+    }
 
     const detail = [
         STATUS_LABELS[status] || status,
@@ -2588,7 +2631,7 @@ async function updateAgenda(leadId, action) {
     }
 
     const days = action === "snooze3" ? 3 : 1;
-    const base = Math.max(Date.now(), anyTimestamp(lead.proximoContatoEm || lead.lembreteTimestamp));
+    const base = Math.max(Date.now(), lead._followupTimestamp);
     const next = base + days * 86400000;
     const success = await persistLeadUpdates(
         lead,
@@ -2901,14 +2944,18 @@ function exportCSV() {
         return;
     }
 
+    const extraKeys = extraFieldKeysForExport(leads);
     const rows = [[
         "Nome", "WhatsApp", "E-mail", "Origem", "Campanha", "Interesse",
         "Etapa", "Score", "Temperatura", "Prioridade", "Responsável",
         "Valor", "Probabilidade", "Previsão ponderada", "Próximo contato",
-        "Fechamento previsto", "SLA vencido", "Página", "Formulário", "Capturado em", "Arquivado", "Lixeira", "Visualizado em"
+        "Fechamento previsto", "SLA vencido", "Página", "Formulário", "Capturado em", "Arquivado", "Lixeira", "Visualizado em",
+        ...extraKeys.map((key) => `Formulário: ${key}`)
     ]];
 
-    leads.forEach((lead) => rows.push([
+    leads.forEach((lead) => {
+        const extraValues = new Map(lead._extraFields.map((field) => [field.key, field.value]));
+        rows.push([
         lead.nome || "",
         lead.whatsapp || lead.telefone || "",
         lead.email || "",
@@ -2923,7 +2970,7 @@ function exportCSV() {
         lead._value,
         lead._probability,
         lead._forecast,
-        formatDate(lead.proximoContatoEm || lead.lembreteTimestamp),
+        formatDate(lead._followupTimestamp),
         formatDate(lead.dataFechamentoPrevista, false),
         lead._overdue ? "Sim" : "Não",
         lead.paginaOrigem || lead.urlPagina || "",
@@ -2931,11 +2978,13 @@ function exportCSV() {
         formatDate(lead._timestamp),
         lead.arquivado ? "Sim" : "Não",
         lead.lixeira ? "Sim" : "Não",
-        formatDate(lead.visualizadoEm)
-    ]));
+        formatDate(lead.visualizadoEm),
+        ...extraKeys.map((key) => extraValues.get(key) || "")
+        ]);
+    });
 
     const csv = rows
-        .map((row) => row.map((value) => `"${String(value).replace(/"/g, '""')}"`).join(";"))
+        .map((row) => row.map(csvCell).join(";"))
         .join("\n");
     const blob = new Blob([`\uFEFF${csv}`], { type: "text/csv;charset=utf-8" });
     const url = URL.createObjectURL(blob);

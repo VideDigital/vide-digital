@@ -293,15 +293,24 @@ const auditLeadsWrite = createAuditTrigger({
   module: "leads",
   entityType: "lead",
   tenantField: "criadoPor",
-  allowedFields: ["statusLead", "status", "prioridadeLead", "funcionarioResponsavel", "etiqueta", "origem", "arquivado", "lixeira"],
+  allowedFields: [
+    "statusLead", "status", "prioridadeLead", "responsavelUid", "responsavelNome",
+    "proximoContatoEm", "funcionarioResponsavel", "lembreteTimestamp", "lembreteData",
+    "etiqueta", "origem", "arquivado", "lixeira"
+  ],
   classify({ operation, changedFields }) {
     if (operation === "create") return { action: "lead.criado", risk: "low" };
     if (operation === "delete") return { action: "lead.excluido", risk: "high" };
     if (changedFields.includes("lixeira")) {
       return { action: "lead.movido_para_lixeira", risk: "high" };
     }
-    if (changedFields.includes("funcionarioResponsavel")) {
+    if (["responsavelUid", "responsavelNome", "funcionarioResponsavel"]
+      .some((field) => changedFields.includes(field))) {
       return { action: "lead.responsavel_alterado", risk: "medium" };
+    }
+    if (["proximoContatoEm", "lembreteTimestamp", "lembreteData"]
+      .some((field) => changedFields.includes(field))) {
+      return { action: "lead.followup_alterado", risk: "low" };
     }
     if (changedFields.includes("statusLead") || changedFields.includes("status")) {
       return { action: "lead.status_alterado", risk: "medium" };

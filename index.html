@@ -86,12 +86,15 @@
     // loja.html). Serializado como objeto (JSON.stringify) — cada campo
     // é uma chave própria, não uma posição delimitada por caractere.
     function fingerprintTentativaLeadPublicoLP(leadRequest) {
+        const camposExtras = Object.fromEntries(Object.entries(leadRequest.camposExtras || {})
+            .sort(([a], [b]) => a.localeCompare(b)));
         return JSON.stringify({
             publicPageId: leadRequest.publicPageId || "",
             formularioId: leadRequest.formularioId || "",
             nome: String(leadRequest.nome || "").trim().toLowerCase(),
             whatsapp: String(leadRequest.whatsapp || "").replace(/\D/g, ""),
-            email: String(leadRequest.email || "").trim().toLowerCase()
+            email: String(leadRequest.email || "").trim().toLowerCase(),
+            camposExtras
         });
     }
 
@@ -134,6 +137,53 @@ function executarScriptsEmElemento(container) {
             scriptNovo.textContent = scriptAntigo.textContent;
             scriptAntigo.parentNode.replaceChild(scriptNovo, scriptAntigo);
         });
+    }
+
+    function escaparAtributoFormulario(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/"/g, "&quot;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+    }
+
+    function renderizarCamposFormulario(campos) {
+        const usados = new Map();
+        return (Array.isArray(campos) ? campos : []).map((campo, index) => {
+            const raw = typeof campo === "object" && campo
+                ? (campo.id || campo.name || campo.chave || campo.label || campo.nome || "")
+                : campo;
+            const label = typeof campo === "object" && campo
+                ? (campo.label || campo.nome || campo.name || campo.id || raw)
+                : raw;
+            const baseName = String(raw || "")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .toLowerCase()
+                .replace(/[^a-z0-9_-]+/g, "_")
+                .replace(/^_+|_+$/g, "")
+                .slice(0, 60) || `campo_${index + 1}`;
+            const occurrence = (usados.get(baseName) || 0) + 1;
+            usados.set(baseName, occurrence);
+            const suffix = occurrence === 1 ? "" : `_${occurrence}`;
+            const name = `${baseName.slice(0, 60 - suffix.length)}${suffix}`;
+            const safeName = escaparAtributoFormulario(name);
+            const safeLabel = escaparAtributoFormulario(label || `Campo ${index + 1}`);
+            const isWhatsapp = baseName === "whatsapp";
+            return isWhatsapp
+                ? `<input type="tel" name="${safeName}" inputmode="numeric" maxlength="11" placeholder="${safeLabel}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`
+                : `<input type="text" name="${safeName}" placeholder="${safeLabel}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`;
+        }).join("");
+    }
+
+    function camposExtrasDoFormulario(form) {
+        const excluidos = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
+        const extras = {};
+        for (const [key, value] of new FormData(form).entries()) {
+            if (excluidos.has(String(key).toLowerCase()) || typeof value !== "string" || !value.trim()) continue;
+            extras[String(key).slice(0, 60)] = value.trim().slice(0, 500);
+        }
+        return extras;
     }
 async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos, modoLayout, paginas) {
         let blocosCarregados = [];
@@ -201,7 +251,13 @@ executarScriptsEmElemento(container);
         const form = event.target;
         const dados = {};
         form.querySelectorAll("input").forEach(inp => { dados[inp.placeholder] = inp.value.trim(); });
-        if (!dados.nome && !dados.whatsapp && !dados.email) return false;
+        const dadosNomeados = Object.fromEntries(Array.from(new FormData(form).entries())
+            .filter(([, value]) => typeof value === "string")
+            .map(([key, value]) => [String(key).toLowerCase(), value.trim()]));
+        const nome = dadosNomeados.nome || dadosNomeados.name || dados.nome || "";
+        const whatsapp = dadosNomeados.whatsapp || dadosNomeados.telefone || dadosNomeados.phone || dados.whatsapp || "";
+        const email = dadosNomeados.email || dados.email || "";
+        if (!nome && !whatsapp && !email) return false;
         if (!window.lpPublicPageIdAtual) {
             form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Esta página ainda não está vinculada a uma loja publicada.</p>';
             return false;
@@ -210,17 +266,18 @@ executarScriptsEmElemento(container);
             const createPublicLeadCallable = obterCreatePublicLeadCallable();
             const leadRequest = {
                 publicPageId: window.lpPublicPageIdAtual,
-                nome: dados.nome || "",
-                whatsapp: dados.whatsapp || "",
-                telefone: dados.whatsapp || "",
-                email: dados.email || "",
+                nome,
+                whatsapp,
+                telefone: whatsapp,
+                email,
                 origem: "Landing Page",
                 produtoInteresse: document.title || "Landing Page",
                 formularioId: "captura_lp_legado",
                 formularioNome: "Captura pública (LP legado)",
                 urlPagina: window.location.href,
                 referrer: document.referrer || "",
-                cliques: 0
+                cliques: 0,
+                camposExtras: camposExtrasDoFormulario(form)
             };
             leadRequest.dedupeKey = leadAttemptTrackerLP.getToken(fingerprintTentativaLeadPublicoLP(leadRequest));
             await createPublicLeadCallable(leadRequest);
@@ -356,7 +413,7 @@ const lp = snap.docs[0].data();
                 <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
                     <h2 class="text-2xl font-bold mb-6">${bloco.props.titulo || ""}</h2>
                     <form class="space-y-3 text-left" onsubmit="return enviarFormularioLP(event)">
-                        ${(bloco.props.campos || []).map(campo => campo === "whatsapp" ? `<input type="tel" inputmode="numeric" maxlength="11" placeholder="${campo}" oninput="this.value=this.value.replace(/[^0-9]/g,'').slice(0,11)" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">` : `<input type="text" placeholder="${campo}" class="w-full p-3 rounded-xl bg-white/5 border border-white/10 text-white">`).join("")}
+                        ${renderizarCamposFormulario(bloco.props.campos)}
 
 
                         <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</button>

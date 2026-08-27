@@ -795,6 +795,55 @@ describe("leads: responsavelUid e clienteId precisam pertencer ao mesmo tenant",
   });
 });
 
+describe("CRM-LEAD-005 — aliases históricos permanecem legíveis, mas não recebem novos writes", () => {
+  it("CREATE nega funcionarioResponsavel e lembreteData novos", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "novoAliasResponsavel"), {
+      criadoPor: "ownerA", status: "novo", funcionarioResponsavel: "ownerB"
+    }));
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "novoAliasLembrete"), {
+      criadoPor: "ownerA", status: "novo", lembreteData: "2026-09-01"
+    }));
+  });
+
+  it("documento legado existente continua legível e editável quando aliases ficam intactos", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasesHistoricos").set({
+        criadoPor: "ownerA",
+        status: "novo",
+        funcionarioResponsavel: "uid-historico",
+        lembreteData: "2026-09-01"
+      });
+    });
+    const db = authed("ownerA");
+    await assertSucceeds(getDoc(doc(db, "leads", "leadAliasesHistoricos")));
+    await assertSucceeds(updateDoc(doc(db, "leads", "leadAliasesHistoricos"), {
+      status: "em_contato", anotacao: "Alias preservado sem alteração"
+    }));
+  });
+
+  it("UPDATE nega alterar responsável legado, inclusive para UID de outro tenant", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasResponsavel").set({
+        criadoPor: "ownerA", status: "novo", funcionarioResponsavel: "uid-historico"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasResponsavel"), {
+      funcionarioResponsavel: "ownerB"
+    }));
+  });
+
+  it("UPDATE nega alterar lembreteData legado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasLembrete").set({
+        criadoPor: "ownerA", status: "novo", lembreteData: "2026-09-01"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasLembrete"), {
+      lembreteData: "2026-10-01"
+    }));
+  });
+});
+
 // Achado real em produção: publicLandingBlockFields() não incluía a
 // geometria do modo Livre (x/y/largura/altura/zIndex/design) — publicar
 // qualquer LP nesse modo falhava no primeiro bloco com

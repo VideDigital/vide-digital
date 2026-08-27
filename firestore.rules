@@ -977,6 +977,16 @@ service cloud.firestore {
         || alvo == ""
         || (exists(/databases/$(database)/documents/clientes/$(alvo)) && get(/databases/$(database)/documents/clientes/$(alvo)).data.tenantId == tenantId);
     }
+    // CRM-LEAD-005: aliases antigos continuam legíveis e podem permanecer
+    // intactos em documentos históricos, mas nenhum cliente pode criá-los,
+    // alterá-los ou removê-los. Admin SDK não passa por Rules.
+    function aliasesLegadosLeadAusentesCreate() {
+      return !request.resource.data.keys().hasAny(["funcionarioResponsavel", "lembreteData"]);
+    }
+    function aliasesLegadosLeadInalteradosUpdate() {
+      return !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(["funcionarioResponsavel", "lembreteData"]);
+    }
     // ACHADO 7 (revisão adversarial): "alvo == null" alinhado com o
     // contrato de CREATE (ver responsavelLeadValidoCreate) — mesma razão
     // do clienteIdValidoParaTenant acima.
@@ -1333,11 +1343,13 @@ service cloud.firestore {
       // clienteId era validado, e só no update (nunca no create).
       allow create: if canEditTenant(request.resource.data.criadoPor, "leads")
         && responsavelLeadValidoCreate(request.resource.data.criadoPor)
-        && clienteIdLeadValidoCreate(request.resource.data.criadoPor);
+        && clienteIdLeadValidoCreate(request.resource.data.criadoPor)
+        && aliasesLegadosLeadAusentesCreate();
       // clienteId (CRM 360, opcional): mesma checagem de pedidos.
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads")
         && clienteIdValidoParaTenant(resource.data.criadoPor)
-        && responsavelClienteValido(resource.data.criadoPor);
+        && responsavelClienteValido(resource.data.criadoPor)
+        && aliasesLegadosLeadInalteradosUpdate();
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
 

@@ -272,6 +272,38 @@ describe("audit/triggers — sincronização Pedido → Lead", () => {
         assert.deepEqual(event.before, { statusLead: "em_contato", status: "em_contato" });
         assert.deepEqual(event.after, { statusLead: "em_contato", status: "em_contato" });
     });
+
+    it("reconhece responsável canônico sem perder compatibilidade com o alias histórico", () => {
+        for (const field of ["responsavelUid", "responsavelNome", "funcionarioResponsavel"]) {
+            const event = computarEventoAuditoria(cfg, {
+                operation: "update",
+                before: { criadoPor: "ownerA", [field]: "antes" },
+                after: { criadoPor: "ownerA", [field]: "depois" },
+                entityId: `lead-responsavel-${field}`,
+                authType: "unknown",
+                authId: "uid-dono",
+                rawEventId: `evt-lead-responsavel-${field}`
+            });
+            assert.equal(event.action, "lead.responsavel_alterado", field);
+            assert.equal(event.after[field], "depois", field);
+        }
+    });
+
+    it("reconhece follow-up canônico e aliases apenas para auditoria histórica", () => {
+        for (const field of ["proximoContatoEm", "lembreteTimestamp", "lembreteData"]) {
+            const event = computarEventoAuditoria(cfg, {
+                operation: "update",
+                before: { criadoPor: "ownerA", [field]: 1 },
+                after: { criadoPor: "ownerA", [field]: 2 },
+                entityId: `lead-followup-${field}`,
+                authType: "unknown",
+                authId: "uid-dono",
+                rawEventId: `evt-lead-followup-${field}`
+            });
+            assert.equal(event.action, "lead.followup_alterado", field);
+            assert.equal(event.risk, "low", field);
+        }
+    });
 });
 
 describe("audit/triggers — funcionarios", () => {
