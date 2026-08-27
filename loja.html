@@ -1654,7 +1654,7 @@
         import { connectFunctionsEmulator, getFunctions, httpsCallable } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
         import { criarIaNegocioPublicaController } from "./ia-negocio-publica.js";
         import { initTracking, track as trackCrescimento } from "./public-tracking-v1.js";
-        import { createLeadAttemptTracker } from "./lead-attempt-token-core.js";
+        import { createLeadAttemptTracker, fingerprintLeadAttempt } from "./lead-attempt-token-core.js";
         import {
             garantirVisitanteAnonimo,
             normalizarErroChatPublico,
@@ -2967,49 +2967,34 @@
         // B1-B: bloqueava uma segunda submissão comercial legítima e
         // deliberada só porque tinha o mesmo contato/formulário/produto).
         //
-        // fingerprintTentativaLeadPublico() resume os campos que descrevem
-        // O QUE está sendo enviado (identidade + intenção: contato, produto,
-        // formulário, pedido) — nunca campos voláteis/de telemetria
-        // (cliques, tempoRetencao, urlPagina) que mudam sozinhos entre um
-        // clique e o retry do MESMO clique, o que faria um retry legítimo
-        // ser tratado como tentativa nova por engano.
+        // fingerprintLeadAttempt() (lead-attempt-token-core.js, importado
+        // acima) resume os campos que descrevem O QUE está sendo enviado
+        // (identidade + intenção comercial COMPLETA: contato — whatsapp E
+        // email, cada um de forma independente —, produto, formulário,
+        // e todos os campos comerciais do pedido/checkout quando
+        // aplicável) — nunca campos voláteis/de telemetria (cliques,
+        // tempoRetencao, urlPagina, criadoEm do pedidoSnapshot) que mudam
+        // sozinhos entre um clique e o retry do MESMO clique, o que faria
+        // um retry legítimo ser tratado como tentativa nova por engano.
+        // Extraído pra um módulo puro e testável via node --test (mesmo
+        // padrão de lead-engine-core.js) — ver
+        // tests/lead-attempt-token-core.test.mjs pra cobertura completa
+        // dos campos que participam/não participam do fingerprint.
         //
         // O estado da tentativa (getToken/complete) vem de
-        // createLeadAttemptTracker (lead-attempt-token-core.js) — extraído
-        // pra um módulo puro e testável via node --test, em vez de estado
-        // solto neste arquivo (mesmo padrão de lead-engine-core.js).
+        // createLeadAttemptTracker (lead-attempt-token-core.js).
         // getToken(fingerprint) só reaproveita o token pendente quando o
         // fingerprint da chamada atual é IGUAL ao da tentativa pendente
         // (retry real da mesma tentativa, inclusive um double-click
         // síncrono antes da primeira chamada terminar — ambas calculam o
         // mesmo fingerprint e reaproveitam o mesmo token antes de qualquer
         // await, então a transação do servidor as trata como uma só).
-        // Fingerprint diferente (dado alterado, outro formulário, nova
-        // submissão deliberada depois de um sucesso anterior) sempre gera
-        // um token novo — nunca cai de volta num bloqueio de conteúdo.
+        // Fingerprint diferente (qualquer campo comercial relevante
+        // alterado, outro formulário, nova submissão deliberada depois de
+        // um sucesso anterior) sempre gera um token novo — nunca cai de
+        // volta num bloqueio de conteúdo.
         function fingerprintTentativaLeadPublico(leadRequest) {
-            const contato = textoLeadPublico(
-                leadRequest.whatsapp || leadRequest.telefone || leadRequest.email,
-                160
-            ).replace(/\D/g, "") || textoLeadPublico(leadRequest.email, 160).toLowerCase();
-            const pedido = leadRequest.pedidoSnapshot
-                ? [
-                    leadRequest.numeroPedido || "",
-                    String(leadRequest.pedidoSnapshot.total ?? ""),
-                    (leadRequest.pedidoSnapshot.itens || [])
-                        .map((item) => `${item.produtoId}:${item.quantidade}`)
-                        .join(",")
-                ].join("|")
-                : "";
-            const raw = [
-                leadRequest.tipoCaptura || "",
-                leadRequest.formularioId || leadRequest.paginaOrigem || "",
-                leadRequest.produtoId || leadRequest.produtoInteresse || "",
-                textoLeadPublico(leadRequest.nome, 160).toLowerCase(),
-                contato,
-                pedido
-            ].join("|");
-            return hashLeadPublico(raw);
+            return hashLeadPublico(fingerprintLeadAttempt(leadRequest));
         }
 
         const leadAttemptTracker = createLeadAttemptTracker();
