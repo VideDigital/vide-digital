@@ -46,6 +46,7 @@
     const { doc, getDoc, getDocs, setDoc, collection, query, where, increment } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
+    const { createLeadAttemptTracker } = await import(base + "lead-attempt-token-core.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
 
@@ -64,6 +65,34 @@
         }
         createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
         return createPublicLeadCallable;
+    }
+
+    // CRM-LEAD-008 (achado 5 + achado B1-A da revisão adversarial): mesmo
+    // padrão de token de tentativa opaco usado em loja.html/lp-forms-v5.js
+    // — evita que createPublicLead trate um retry ambíguo como lead
+    // duplicado (idempotência real) sem confundir isso com dedupe por
+    // contato. Associado a um fingerprint do payload (achado B1-A): só
+    // reaproveita o token quando o fingerprint da chamada atual bate com
+    // o da tentativa pendente — usuário editando os dados depois de um
+    // erro e reenviando sempre ganha um token novo. Estado do rastreador
+    // vem de createLeadAttemptTracker (lead-attempt-token-core.js, módulo
+    // puro testável via node --test — mesmo módulo usado por loja.html/
+    // lp-forms-v5.js).
+    const leadAttemptTrackerLP = createLeadAttemptTracker();
+    // B2 (revisão adversarial final da PR #59, quarta passada —
+    // serialização ambígua): campos concatenados com "|" sem escaping
+    // podiam colidir se um valor comercial contivesse esse caractere
+    // (mesma classe de bug corrigida em lead-attempt-token-core.js e
+    // loja.html). Serializado como objeto (JSON.stringify) — cada campo
+    // é uma chave própria, não uma posição delimitada por caractere.
+    function fingerprintTentativaLeadPublicoLP(leadRequest) {
+        return JSON.stringify({
+            publicPageId: leadRequest.publicPageId || "",
+            formularioId: leadRequest.formularioId || "",
+            nome: String(leadRequest.nome || "").trim().toLowerCase(),
+            whatsapp: String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+            email: String(leadRequest.email || "").trim().toLowerCase()
+        });
     }
 
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
@@ -179,7 +208,7 @@ executarScriptsEmElemento(container);
         }
         try {
             const createPublicLeadCallable = obterCreatePublicLeadCallable();
-            await createPublicLeadCallable({
+            const leadRequest = {
                 publicPageId: window.lpPublicPageIdAtual,
                 nome: dados.nome || "",
                 whatsapp: dados.whatsapp || "",
@@ -192,9 +221,16 @@ executarScriptsEmElemento(container);
                 urlPagina: window.location.href,
                 referrer: document.referrer || "",
                 cliques: 0
-            });
+            };
+            leadRequest.dedupeKey = leadAttemptTrackerLP.getToken(fingerprintTentativaLeadPublicoLP(leadRequest));
+            await createPublicLeadCallable(leadRequest);
+            // Sucesso: a PRÓXIMA submissão recebe um token novo.
+            leadAttemptTrackerLP.complete(fingerprintTentativaLeadPublicoLP(leadRequest));
             form.innerHTML = '<p class="text-center text-white font-bold py-4">Recebemos seus dados! Em breve entraremos em contato.</p>';
         } catch (err) {
+            // Não encerra a tentativa: um retry (usuário clica de novo)
+            // reaproveita o mesmo token, então uma falha ambígua (rede
+            // caiu depois do servidor já ter commitado) não duplica o lead.
             console.error(err);
             form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Erro ao enviar, tenta de novo.</p>';
         }

@@ -901,11 +901,19 @@ service cloud.firestore {
     // CRM 360: só permite gravar clienteId quando ele aponta pra um
     // clientes/{id} do MESMO tenant — usado por chats/leads/pedidos.
     // Curto-circuita (não gasta get()/exists()) quando clienteId não
-    // está sendo alterado nesta escrita.
+    // está sendo alterado nesta escrita. ACHADO 7 (revisão adversarial):
+    // "alvo == null" alinhado com o contrato de CREATE (ver
+    // clienteIdLeadValidoCreate) — antes só "" limpava o campo; tentar
+    // limpar com null literal caía direto no exists()/get() com um id
+    // null, que é erro de avaliação (nem allow nem deny limpo). A UI
+    // hoje usa "" pra limpar, então isso não é regressão de
+    // comportamento — só alinha um caso que antes falhava com erro em
+    // vez de ser tratado como "sem cliente", igual "".
     function clienteIdValidoParaTenant(tenantId) {
       let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["clienteId"]);
       let alvo = request.resource.data.clienteId;
       return !mudou
+        || alvo == null
         || alvo == ""
         || (exists(/databases/$(database)/documents/clientes/$(alvo)) && get(/databases/$(database)/documents/clientes/$(alvo)).data.tenantId == tenantId);
     }
@@ -944,10 +952,39 @@ service cloud.firestore {
     function statusRelacionamentoValido(status) {
       return status in ["novo", "lead", "qualificado", "negociacao", "cliente", "recorrente", "inativo", "perdido"];
     }
+    // CRM-LEAD-006: as duas funções abaixo cobrem o CREATE de leads, que
+    // não tem resource anterior (resource == null numa criação) — por
+    // isso não podem reusar clienteIdValidoParaTenant/
+    // responsavelClienteValido, que dependem de resource.data.diff()
+    // pra decidir "o campo mudou?" (só faz sentido em update). No
+    // create não existe "mudou": o valor final É o valor a validar.
+    // Mesma semântica das duas em qualquer outro lugar do arquivo:
+    // vazio/null é permitido, o próprio dono é permitido (só pra
+    // responsável), ou precisa apontar pra um documento real do MESMO
+    // tenant — nunca confia no nome/id enviado pelo cliente.
+    function responsavelLeadValidoCreate(tenantId) {
+      let alvo = request.resource.data.responsavelUid;
+      return !("responsavelUid" in request.resource.data)
+        || alvo == null
+        || alvo == ""
+        || alvo == tenantId
+        || (exists(/databases/$(database)/documents/funcionarios/$(alvo)) && funcionarioAtivoDoTenant(alvo, tenantId));
+    }
+    function clienteIdLeadValidoCreate(tenantId) {
+      let alvo = request.resource.data.clienteId;
+      return !("clienteId" in request.resource.data)
+        || alvo == null
+        || alvo == ""
+        || (exists(/databases/$(database)/documents/clientes/$(alvo)) && get(/databases/$(database)/documents/clientes/$(alvo)).data.tenantId == tenantId);
+    }
+    // ACHADO 7 (revisão adversarial): "alvo == null" alinhado com o
+    // contrato de CREATE (ver responsavelLeadValidoCreate) — mesma razão
+    // do clienteIdValidoParaTenant acima.
     function responsavelClienteValido(tenantId) {
       let mudou = request.resource.data.diff(resource.data).affectedKeys().hasAny(["responsavelUid"]);
       let alvo = request.resource.data.responsavelUid;
       return !mudou
+        || alvo == null
         || alvo == ""
         || alvo == tenantId
         || (exists(/databases/$(database)/documents/funcionarios/$(alvo)) && funcionarioAtivoDoTenant(alvo, tenantId));
@@ -1291,10 +1328,16 @@ service cloud.firestore {
       // regra), que resolve o tenant no servidor, aplica rate limit e
       // sanitiza o payload. Só sobra o dono/funcionário cadastrando lead
       // manualmente pelo painel.
-      allow create: if canEditTenant(request.resource.data.criadoPor, "leads");
+      // CRM-LEAD-006: responsavelUid e clienteId, quando presentes,
+      // precisam comprovadamente pertencer ao MESMO tenant — antes só
+      // clienteId era validado, e só no update (nunca no create).
+      allow create: if canEditTenant(request.resource.data.criadoPor, "leads")
+        && responsavelLeadValidoCreate(request.resource.data.criadoPor)
+        && clienteIdLeadValidoCreate(request.resource.data.criadoPor);
       // clienteId (CRM 360, opcional): mesma checagem de pedidos.
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads")
-        && clienteIdValidoParaTenant(resource.data.criadoPor);
+        && clienteIdValidoParaTenant(resource.data.criadoPor)
+        && responsavelClienteValido(resource.data.criadoPor);
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
 

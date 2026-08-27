@@ -1,7 +1,8 @@
 "use strict";
 
+const crypto = require("node:crypto");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
-const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { publicText, normalizeEmail, normalizePhone, normalizeString } = require("../shared/validators");
 const { assertPublicRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
@@ -236,11 +237,125 @@ function leadPayload(data, tenant) {
         autorNome: "Loja online"
       }],
       valorOportunidade: pedidoSnapshot.total,
-      probabilidade: 70
+      probabilidade: 70,
+      // CRM-LEAD-002/CRM-LEAD-003 (achado 3 da revisão adversarial): 70%
+      // aqui é uma escolha comercial explícita (o visitante já colocou um
+      // pedido, não é o default genérico da etapa "novo", que é 10%) —
+      // precisa ser "manual" desde a criação pra nunca ser silenciosamente
+      // reinterpretado como automático e trocado por 10% na primeira
+      // leitura do CRM (ver inferProbabilidadeOrigem em lead-engine-core.js,
+      // que cobriria isso mesmo sem este campo, mas de forma implícita).
+      probabilidadeOrigem: "manual"
     });
   }
 
   return payload;
+}
+
+// CRM-LEAD-008: janela de dedupe do servidor — mesma janela de UX que
+// loja.html já usa (LEAD_DEDUPE_WINDOW_MS, 10min) pro guard local via
+// sessionStorage. Aqui ela é o que decide se um hash de dedupe recente
+// ainda "conta": passada a janela, uma nova chamada com os mesmos dados
+// cria um lead novo — não fica bloqueada pra sempre por um documento de
+// dedupe antigo.
+const LEAD_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
+// CRM-LEAD-008 (achado 5 da revisão adversarial): a versão anterior
+// incluía contato/sessão (whatsapp || email || sessionId || visitorId) na
+// IDENTIDADE de idempotência. Isso confundia idempotência (mesma
+// tentativa de envio, retry) com dedupe COMERCIAL (mesmo contato) — se o
+// visitante tinha whatsapp/email, uma nova submissão LEGÍTIMA do mesmo
+// contato no mesmo formulário, dentro da janela de 10min, podia ser
+// silenciosamente descartada: o servidor devolvia o leadId da submissão
+// anterior e os dados novos nunca eram persistidos.
+//
+// A identidade agora é só: tenant resolvido no servidor (nunca pelo
+// payload do visitante — garante que tenants diferentes nunca
+// compartilham chave) + o token de tentativa opaco enviado pelo cliente
+// (rawDedupeKey — gerado uma vez por tentativa de ENVIO, não por
+// conteúdo; reaproveitado só em retries da mesma tentativa; ver
+// tokenTentativaLeadPublico em loja.html/lp-forms-v5.js/index.html/
+// lp-public-v4.js). Nunca usa telefone/e-mail/sessão/formulário/produto
+// como parte da chave — dois envios com o mesmo contato e a mesma origem
+// mas tokens diferentes (duas submissões legítimas, ou dois formulários
+// diferentes, que por construção sempre geram tokens diferentes) SEMPRE
+// resultam em dois leads. Sem token (payload sem dedupeKey — caller
+// desatualizado, ou chamada direta à API), não há como distinguir retry
+// de nova submissão com segurança: retorna null e o lead é sempre criado
+// sem dedupe, nunca cai de volta num fallback por contato.
+function computeLeadDedupeHash(tenant, rawDedupeKey) {
+  const token = publicText(rawDedupeKey || "", 200);
+  if (!token) return null;
+  const parts = [tenant.ownerUid, token].join("|");
+  return crypto.createHash("sha256").update(parts).digest("hex");
+}
+
+function dedupeCreatedAtMillis(data) {
+  const value = data?.criadoEmMillis;
+  return Number.isFinite(value) ? value : 0;
+}
+
+// Cria o lead de forma idempotente dentro da janela de dedupe, usando uma
+// transação do Firestore (nunca "checar se existe e depois criar" fora de
+// uma transação — isso teria uma race condition real entre duas chamadas
+// simultâneas, exatamente o caso que este código precisa cobrir). O id do
+// lead é pré-alocado com .doc() (sem argumento) ANTES da transação, senão
+// não daria pra referenciá-lo dentro do próprio tx.set(). lead_dedupes/{hash}
+// não tem nenhuma regra de acesso liberada em firestore.rules (cai no
+// catch-all "allow read, write: if false" do fim do arquivo) — só o Admin
+// SDK, usado aqui, consegue ler/escrever nele.
+async function createLeadIdempotent(payload, tenant, rawDedupeKey) {
+  const db = getFirestore();
+  const dedupeHash = computeLeadDedupeHash(tenant, rawDedupeKey);
+
+  if (!dedupeHash) {
+    const ref = await db.collection("leads").add(payload);
+    return ref.id;
+  }
+
+  const dedupeRef = db.collection("lead_dedupes").doc(dedupeHash);
+  const leadRef = db.collection("leads").doc();
+  const now = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const dedupeSnap = await tx.get(dedupeRef);
+    if (dedupeSnap.exists) {
+      const data = dedupeSnap.data() || {};
+      if (data.leadId && now - dedupeCreatedAtMillis(data) < LEAD_DEDUPE_WINDOW_MS) {
+        return data.leadId;
+      }
+    }
+
+    tx.set(leadRef, payload);
+    tx.set(dedupeRef, {
+      leadId: leadRef.id,
+      tenantId: tenant.ownerUid,
+      criadoEm: Timestamp.fromMillis(now),
+      criadoEmMillis: now,
+      // expiresAt segue a mesma convenção de campo do _rate_limits
+      // (rateLimit.js). ACHADO 6 (revisão adversarial): esse campo sozinho
+      // NÃO prova que existe uma TTL policy configurada — é só a
+      // convenção de NOME que uma TTL policy do Firestore usaria, SE
+      // alguém a configurasse (fora do código: `gcloud firestore fields
+      // ttls update`, ou no Console). Buscado no repo (firestore.indexes.json,
+      // *.tf, docs) e NÃO FOI POSSÍVEL COMPROVAR nenhuma TTL policy
+      // configurada, nem pra _rate_limits.expiresAt (já existente antes
+      // desta missão) nem para lead_dedupes.expiresAt (novo). Comparar com
+      // whatsapp_onboarding_attempts.expiresAt (functions/src/whatsapp/
+      // onboarding-core.js), que TEM checklist explícito em
+      // docs/meta-whatsapp/production-readiness.md pedindo a configuração
+      // manual da TTL policy antes do lançamento — nenhum checklist
+      // equivalente existe pra _rate_limits ou lead_dedupes. Sem uma TTL
+      // policy real, documentos aqui se acumulam indefinidamente (custo de
+      // armazenamento crescente, sem risco de segurança — o hash nunca é
+      // reutilizável fora da janela de 10min pela lógica acima, mesmo que
+      // o documento continue existindo). Configurar a TTL policy é uma
+      // mudança de infraestrutura fora do código — não feita nesta missão
+      // (regra fundamental: não alterar configuração de produção).
+      expiresAt: Timestamp.fromMillis(now + LEAD_DEDUPE_WINDOW_MS * 2)
+    });
+    return leadRef.id;
+  });
 }
 
 // enforceAppCheck: false — publicOptions liga isso em produção, mas
@@ -255,12 +370,16 @@ const createPublicLead = onCall({ ...publicOptions, enforceAppCheck: false }, as
   assertReasonablePayloadSize(request.data);
   const tenant = await resolvePublicTenant(request.data || {});
   const payload = leadPayload(request.data || {}, tenant);
-  const ref = await getFirestore().collection("leads").add(payload);
+  // CRM-LEAD-008: idempotente dentro da janela de dedupe — mesma
+  // retentativa legítima (rede falhou depois de já ter criado no
+  // servidor, cliente tenta de novo) não duplica o lead. Ver
+  // createLeadIdempotent acima.
+  const leadId = await createLeadIdempotent(payload, tenant, request.data?.dedupeKey);
   // Sem writeAudit() aqui: auditLeadsWrite (trigger em leads/{id}) já
   // audita a criação, com actorType "unknown"/"unauthenticated" derivado
   // do Auth Context real da escrita (esta Function não passa por auth de
   // usuário — visitante público sempre foi anônimo aqui).
-  return { ok: true, leadId: ref.id };
+  return { ok: true, leadId };
 });
 
 const METRIC_EVENTS = new Set(["store_session", "store_time", "product_view", "product_click", "lp_view"]);
@@ -435,5 +554,6 @@ module.exports = {
   sanitizeOrderSnapshot,
   sanitizeCamposExtras,
   reviewPayload,
-  assertReasonablePayloadSize
+  assertReasonablePayloadSize,
+  computeLeadDedupeHash
 };

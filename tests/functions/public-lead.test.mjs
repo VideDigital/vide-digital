@@ -4,7 +4,8 @@ import {
   leadPayload,
   sanitizeOrderSnapshot,
   sanitizeCamposExtras,
-  assertReasonablePayloadSize
+  assertReasonablePayloadSize,
+  computeLeadDedupeHash
 } from "../../functions/src/public/index.js";
 
 const tenant = { ownerUid: "ownerA", storeSlug: "loja-a", store: { nomeLoja: "Loja A" } };
@@ -72,6 +73,15 @@ describe("leadPayload — tenant sempre resolvido pelo servidor, nunca pelo payl
     assert.equal(payload.tipoRegistro, "pedido");
     assert.equal(payload.valorOportunidade, 100);
     assert.equal(payload.pedidoStatus, "novo");
+  });
+
+  it("CRM-LEAD-002/003 (achado 3): pedido grava probabilidade=70 com origem explicitamente manual, nunca reinterpretada como default automático de 'novo' (10)", () => {
+    const payload = leadPayload({
+      nome: "Maria",
+      pedidoSnapshot: { itens: [{ nome: "Produto X", quantidade: 2, preco: 50 }] }
+    }, tenant);
+    assert.equal(payload.probabilidade, 70);
+    assert.equal(payload.probabilidadeOrigem, "manual");
   });
 });
 
@@ -181,6 +191,58 @@ describe("sanitizeOrderSnapshot — nunca confia em preço/quantidade/tamanho ar
   it("retorna null quando não há pedidoSnapshot (lead comum, sem pedido)", () => {
     assert.equal(sanitizeOrderSnapshot(undefined, {}), null);
     assert.equal(sanitizeOrderSnapshot("string maliciosa", {}), null);
+  });
+});
+
+describe("computeLeadDedupeHash — CRM-LEAD-008 (achado 5 da revisão adversarial): identidade é só tenant+token de tentativa, nunca contato/formulário", () => {
+  const tenantA = { ownerUid: "ownerA" };
+  const tenantB = { ownerUid: "ownerB" };
+
+  it("mesmo token do cliente -> mesmo hash (retentativa da MESMA tentativa, ex.: rede falhou depois do servidor já ter commitado)", () => {
+    const hash1 = computeLeadDedupeHash(tenantA, "attempt-token-abc123");
+    const hash2 = computeLeadDedupeHash(tenantA, "attempt-token-abc123");
+    assert.equal(hash1, hash2);
+    assert.equal(typeof hash1, "string");
+    assert.ok(hash1.length > 0);
+  });
+
+  it("mesmo contato/formulário, tokens DIFERENTES -> hashes diferentes (duas submissões legítimas nunca colidem, mesmo com conteúdo idêntico)", () => {
+    // Nunca recebe payload/contato — a função não tem mais como confundir
+    // duas submissões distintas do mesmo visitante, porque a identidade
+    // não depende de contato/formulário/produto, só do token.
+    const hashTentativa1 = computeLeadDedupeHash(tenantA, "attempt-token-1");
+    const hashTentativa2 = computeLeadDedupeHash(tenantA, "attempt-token-2");
+    assert.notEqual(hashTentativa1, hashTentativa2);
+  });
+
+  it("tenants diferentes NUNCA compartilham chave, mesmo com o token idêntico", () => {
+    const hashTenantA = computeLeadDedupeHash(tenantA, "attempt-token-mesmo");
+    const hashTenantB = computeLeadDedupeHash(tenantB, "attempt-token-mesmo");
+    assert.notEqual(hashTenantA, hashTenantB);
+  });
+
+  it("formulários diferentes nunca colidem — por construção cada tentativa de envio gera seu próprio token, independente do formulário", () => {
+    const hashFormA = computeLeadDedupeHash(tenantA, "attempt-lp-promocao-verao-001");
+    const hashFormB = computeLeadDedupeHash(tenantA, "attempt-lp-promocao-inverno-001");
+    assert.notEqual(hashFormA, hashFormB);
+  });
+
+  it("sem token (dedupeKey ausente/vazio) -> retorna null; NUNCA cai de volta num fallback por contato/sessão", () => {
+    assert.equal(computeLeadDedupeHash(tenantA, ""), null);
+    assert.equal(computeLeadDedupeHash(tenantA, undefined), null);
+    assert.equal(computeLeadDedupeHash(tenantA, null), null);
+  });
+
+  it("hash não vaza o token em texto plano (é sempre um digest sha256 hex)", () => {
+    const hash = computeLeadDedupeHash(tenantA, "attempt-token-abc123-sensivel");
+    assert.match(hash, /^[0-9a-f]{64}$/);
+    assert.ok(!hash.includes("attempt-token-abc123-sensivel"));
+    assert.ok(!hash.includes("ownerA"));
+  });
+
+  it("token é truncado/sanitizado (publicText) antes de compor o hash — nunca aceita objeto/array bruto do visitante", () => {
+    assert.doesNotThrow(() => computeLeadDedupeHash(tenantA, { toString: () => "ataque" }));
+    assert.doesNotThrow(() => computeLeadDedupeHash(tenantA, "x".repeat(5000)));
   });
 });
 

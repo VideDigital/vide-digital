@@ -13,6 +13,7 @@ import {
     getFunctions,
     httpsCallable
 } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+import { createLeadAttemptTracker, fingerprintCamposExtras } from "./lead-attempt-token-core.js";
 
 const VERSION = "5.0.0";
 const SESSION_KEY = "aura_form_v5_session";
@@ -31,6 +32,13 @@ const state = {
     enhanced: new WeakSet(),
     observer: null
 };
+
+// CRM-LEAD-008 (achado B1-A da revisão adversarial): rastreador de
+// tentativa de envio — extraído pra lead-attempt-token-core.js (módulo
+// puro, testável via node --test). Compartilhado por TODOS os
+// formulários AuraFormsV5 da página, escopado por fingerprint do
+// payload (ver fingerprintTentativaLeadPublico/buildLeadRequest).
+const leadAttemptTracker = createLeadAttemptTracker();
 
 function detectBase() {
     if (window.location.hostname === "videdigital.github.io") {
@@ -214,6 +222,54 @@ function obterCreatePublicLeadCallable() {
     return createPublicLeadCallable;
 }
 
+// CRM-LEAD-008 (achado 5 + achado B1-A da revisão adversarial): antes,
+// este arquivo não enviava nenhum dedupeKey — createPublicLead caía no
+// fallback de identidade por contato/sessão do servidor, que confundia
+// idempotência (retry) com dedupe comercial (mesmo contato reenviando de
+// propósito). Depois, um token global solto (achado B1-A) tinha o problema
+// oposto: reaproveitado depois de um erro mesmo que o usuário tivesse
+// mudado os dados ou submetido outro formulário na mesma página (esta
+// função é compartilhada por TODOS os formulários AuraFormsV5 da página).
+//
+// Agora o token está associado a um FINGERPRINT do payload — só é
+// reaproveitado quando o fingerprint da chamada atual bate com o da
+// tentativa pendente (retry real da mesma tentativa, inclusive
+// double-click síncrono antes da primeira chamada terminar). Fingerprint
+// diferente (dado alterado, outro formulário, nova submissão deliberada
+// depois de um sucesso anterior) sempre gera um token novo.
+//
+// ÚLTIMO B1 (revisão adversarial final, terceira passada): buildLeadRequest
+// também envia camposExtras — campos customizados que o dono da LP
+// adiciona ao formulário (empresa, orçamento, mensagem etc.), dados
+// comerciais preenchidos manualmente pelo visitante, não cobertos pelos
+// campos fixos acima. Corrigir um desses campos depois de um erro
+// ambíguo é a MESMA classe de bug do contato — sem entrar no
+// fingerprint, o retry reaproveitava o token e o dado corrigido podia
+// nunca ser persistido. fingerprintCamposExtras (lead-attempt-token-core.js)
+// serializa de forma determinística (chaves ordenadas).
+//
+// B2 (revisão adversarial final, quarta passada — serialização ambígua):
+// os campos abaixo eram concatenados com "|" sem escaping. Um valor
+// comercial legítimo contendo "|" (ex.: um camposExtras "mensagem" com
+// esse caractere) podia, em princípio, deslocar a fronteira entre campos
+// e colidir com uma combinação diferente. Corrigido serializando um
+// objeto estruturado com JSON.stringify — cada campo é uma chave própria
+// (não uma posição delimitada por caractere), e fingerprintCamposExtras
+// já devolve uma string internamente colisão-segura (array de pares
+// [chave, valor] via JSON.stringify — ver lead-attempt-token-core.js),
+// aninhada aqui como mais um campo de string comum.
+function fingerprintTentativaLeadPublico(leadRequest) {
+    return JSON.stringify({
+        publicPageId: leadRequest.publicPageId || "",
+        formularioId: leadRequest.formularioId || "",
+        produtoInteresse: leadRequest.produtoInteresse || "",
+        nome: String(leadRequest.nome || "").trim().toLowerCase(),
+        whatsapp: String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+        email: String(leadRequest.email || "").trim().toLowerCase(),
+        camposExtras: fingerprintCamposExtras(leadRequest.camposExtras)
+    });
+}
+
 function addHoneypot(form) {
     if (form.querySelector("[data-aura-honeypot]")) {
         return;
@@ -388,7 +444,7 @@ function buildLeadRequest(form, meta) {
         "captura_geral";
     const tempoRetencao = Math.max(0, Math.round((Date.now() - state.startedAt) / 1000));
 
-    return {
+    const leadRequest = {
         publicPageId: meta.id,
         nome,
         whatsapp,
@@ -418,6 +474,12 @@ function buildLeadRequest(form, meta) {
         consentimentoContato: true,
         versaoCaptura: VERSION
     };
+    // CRM-LEAD-008 (achado B1-A): token de tentativa associado ao
+    // fingerprint deste payload — ver leadAttemptTracker/
+    // fingerprintTentativaLeadPublico. Nunca reusa entre submissões com
+    // dados diferentes ou de outro formulário.
+    leadRequest.dedupeKey = leadAttemptTracker.getToken(fingerprintTentativaLeadPublico(leadRequest));
+    return leadRequest;
 }
 
 function validatePayload(payload) {
@@ -510,6 +572,12 @@ async function handleSubmit(event) {
         const createPublicLeadCallable = obterCreatePublicLeadCallable();
         const resposta = await createPublicLeadCallable(payload);
         const leadId = resposta?.data?.leadId;
+        // Sucesso: encerra a tentativa — a PRÓXIMA submissão (mesmo com
+        // conteúdo idêntico) recebe um token novo (CRM-LEAD-008). Passa o
+        // MESMO fingerprint usado em getToken (recalculado do payload, uma
+        // função pura), pra encerrar só ESTA tentativa, não interferir em
+        // outras pendentes de outro formulário na mesma página.
+        leadAttemptTracker.complete(fingerprintTentativaLeadPublico(payload));
         form.reset();
         form.dataset.auraStartedAt = String(Date.now());
         setStatus(status, form.dataset.successMessage || "Informações enviadas com sucesso.", "success");
@@ -528,6 +596,10 @@ async function handleSubmit(event) {
             }, 700);
         }
     } catch (error) {
+        // Não chama leadAttemptTracker.complete() aqui de propósito: o
+        // token de tentativa continua pendente, então se o usuário clicar
+        // em enviar de novo (retry da MESMA tentativa), createPublicLead
+        // reconhece o mesmo dedupeKey e não duplica o lead.
         console.error("[Aura Forms V5] Falha na captura:", error);
         setStatus(
             status,

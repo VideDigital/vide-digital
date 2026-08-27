@@ -1532,7 +1532,7 @@
                 throw new Error("Landing page sem tenant público válido.");
             }
             const createPublicLeadCallable = obterCreatePublicLeadCallable();
-            await createPublicLeadCallable({
+            const leadRequest = {
                 publicPageId: state.meta.id,
                 nome: String(name).trim().slice(0, 120),
                 whatsapp: String(phone).replace(/\D/g, "").slice(0, 30),
@@ -1548,7 +1548,11 @@
                 utmSource: (campaign.get("utm_source") || "").slice(0, 120),
                 utmMedium: (campaign.get("utm_medium") || "").slice(0, 120),
                 utmCampaign: (campaign.get("utm_campaign") || "").slice(0, 120)
-            });
+            };
+            leadRequest.dedupeKey = tokenTentativaLeadPublicoV4(fingerprintTentativaLeadPublicoV4(leadRequest));
+            await createPublicLeadCallable(leadRequest);
+            // Sucesso: a PRÓXIMA submissão recebe um token novo.
+            concluirTentativaLeadPublicoV4(fingerprintTentativaLeadPublicoV4(leadRequest));
 
             form.reset();
 
@@ -1817,6 +1821,42 @@
         }
         createPublicLeadCallable = httpsCallable(functionsInstance, "createPublicLead");
         return createPublicLeadCallable;
+    }
+
+    // CRM-LEAD-008 (achado 5 + achados B1-A/B1-B da revisão adversarial):
+    // mesmo padrão de token de tentativa opaco de loja.html/lp-forms-v5.js
+    // — mantido aqui por consistência mesmo este renderer não estando
+    // conectado a nenhuma página pública hoje (ver comentário acima em
+    // obterCreatePublicLeadCallable), pra já nascer correto se/quando for
+    // conectado. Associado a um fingerprint do payload: só reaproveita o
+    // token quando o fingerprint bate com o de uma tentativa pendente.
+    // Um MAPA (fingerprint -> token), não um único slot: uma página pode
+    // ter mais de um bloco formulario_captura — um slot único perderia a
+    // tentativa pendente de um bloco se o visitante interagisse com outro
+    // formulário antes de reenviar o primeiro.
+    const pendingLeadAttemptsV4 = new Map(); // fingerprint -> token
+    function fingerprintTentativaLeadPublicoV4(leadRequest) {
+        return [
+            leadRequest.publicPageId || "",
+            leadRequest.formularioId || "",
+            leadRequest.blocoOrigem || "",
+            String(leadRequest.nome || "").trim().toLowerCase(),
+            String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+            String(leadRequest.email || "").trim().toLowerCase()
+        ].join("|");
+    }
+    function tokenTentativaLeadPublicoV4(fingerprint) {
+        if (pendingLeadAttemptsV4.has(fingerprint)) {
+            return pendingLeadAttemptsV4.get(fingerprint);
+        }
+        const token = (window.crypto && typeof window.crypto.randomUUID === "function")
+            ? window.crypto.randomUUID()
+            : ("tent_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2, 10) + Math.random().toString(36).slice(2, 10));
+        pendingLeadAttemptsV4.set(fingerprint, token);
+        return token;
+    }
+    function concluirTentativaLeadPublicoV4(fingerprint) {
+        pendingLeadAttemptsV4.delete(fingerprint);
     }
 
     async function loadPublicData() {
