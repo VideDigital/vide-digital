@@ -247,16 +247,27 @@ function obterCreatePublicLeadCallable() {
 // fingerprint, o retry reaproveitava o token e o dado corrigido podia
 // nunca ser persistido. fingerprintCamposExtras (lead-attempt-token-core.js)
 // serializa de forma determinística (chaves ordenadas).
+//
+// B2 (revisão adversarial final, quarta passada — serialização ambígua):
+// os campos abaixo eram concatenados com "|" sem escaping. Um valor
+// comercial legítimo contendo "|" (ex.: um camposExtras "mensagem" com
+// esse caractere) podia, em princípio, deslocar a fronteira entre campos
+// e colidir com uma combinação diferente. Corrigido serializando um
+// objeto estruturado com JSON.stringify — cada campo é uma chave própria
+// (não uma posição delimitada por caractere), e fingerprintCamposExtras
+// já devolve uma string internamente colisão-segura (array de pares
+// [chave, valor] via JSON.stringify — ver lead-attempt-token-core.js),
+// aninhada aqui como mais um campo de string comum.
 function fingerprintTentativaLeadPublico(leadRequest) {
-    return [
-        leadRequest.publicPageId || "",
-        leadRequest.formularioId || "",
-        leadRequest.produtoInteresse || "",
-        String(leadRequest.nome || "").trim().toLowerCase(),
-        String(leadRequest.whatsapp || "").replace(/\D/g, ""),
-        String(leadRequest.email || "").trim().toLowerCase(),
-        fingerprintCamposExtras(leadRequest.camposExtras)
-    ].join("|");
+    return JSON.stringify({
+        publicPageId: leadRequest.publicPageId || "",
+        formularioId: leadRequest.formularioId || "",
+        produtoInteresse: leadRequest.produtoInteresse || "",
+        nome: String(leadRequest.nome || "").trim().toLowerCase(),
+        whatsapp: String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+        email: String(leadRequest.email || "").trim().toLowerCase(),
+        camposExtras: fingerprintCamposExtras(leadRequest.camposExtras)
+    });
 }
 
 function addHoneypot(form) {

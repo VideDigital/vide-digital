@@ -79,14 +79,20 @@
     // puro testável via node --test — mesmo módulo usado por loja.html/
     // lp-forms-v5.js).
     const leadAttemptTrackerLP = createLeadAttemptTracker();
+    // B2 (revisão adversarial final da PR #59, quarta passada —
+    // serialização ambígua): campos concatenados com "|" sem escaping
+    // podiam colidir se um valor comercial contivesse esse caractere
+    // (mesma classe de bug corrigida em lead-attempt-token-core.js e
+    // loja.html). Serializado como objeto (JSON.stringify) — cada campo
+    // é uma chave própria, não uma posição delimitada por caractere.
     function fingerprintTentativaLeadPublicoLP(leadRequest) {
-        return [
-            leadRequest.publicPageId || "",
-            leadRequest.formularioId || "",
-            String(leadRequest.nome || "").trim().toLowerCase(),
-            String(leadRequest.whatsapp || "").replace(/\D/g, ""),
-            String(leadRequest.email || "").trim().toLowerCase()
-        ].join("|");
+        return JSON.stringify({
+            publicPageId: leadRequest.publicPageId || "",
+            formularioId: leadRequest.formularioId || "",
+            nome: String(leadRequest.nome || "").trim().toLowerCase(),
+            whatsapp: String(leadRequest.whatsapp || "").replace(/\D/g, ""),
+            email: String(leadRequest.email || "").trim().toLowerCase()
+        });
     }
 
     var caminho = window.location.pathname.indexOf(base) === 0 ? window.location.pathname.slice(base.length) : window.location.pathname.replace(/^\//, "");
