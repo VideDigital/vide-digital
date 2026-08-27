@@ -2,6 +2,7 @@
 // Lógica pura extraída de lead-engine-v5.js pra lead-engine-core.js
 // especificamente pra permitir estes testes sem DOM/Firestore.
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
     numericValue,
@@ -12,7 +13,15 @@ import {
     suggestedProbabilityOnStatusChange,
     computeScore,
     normalizeStatus,
-    PIPELINE_STAGES
+    PIPELINE_STAGES,
+    normalizeText,
+    resolveLeadResponsible,
+    resolveLeadFollowup,
+    shouldWriteCanonicalValue,
+    normalizeExtraFields,
+    extraFieldsSearchText,
+    extraFieldKeysForExport,
+    csvCell
 } from "../lead-engine-core.js";
 
 describe("CRM-LEAD-001 — numericValue não reinterpreta ponto decimal como milhar", () => {
@@ -398,5 +407,246 @@ describe("CRM-LEAD-003 — score é sempre derivado (fonte única de verdade)", 
         assert.equal(normalizeStatus({ statusLead: "ganho" }), "convertido");
         assert.equal(normalizeStatus({ statusLead: "cancelado" }), "perdido");
         assert.equal(normalizeStatus({}), "novo");
+    });
+});
+
+describe("CRM-LEAD-004 — camposExtras normalizados para UI, busca e CSV", () => {
+    it("tolera ausente, null, vazio, array e string indevida", () => {
+        for (const value of [undefined, null, {}, [], "indevido"]) {
+            assert.deepEqual(normalizeExtraFields(value), []);
+        }
+    });
+
+    it("normaliza escalares históricos, descarta inválidos, ordena e não muta", () => {
+        const source = {
+            cidade_preferida: " São Paulo ",
+            idade: 27,
+            aceitaContato: true,
+            objeto: { segredo: true },
+            vazio: "   ",
+            "": "sem chave"
+        };
+        const before = structuredClone(source);
+        assert.deepEqual(normalizeExtraFields(source), [
+            { key: "aceitaContato", label: "Aceita Contato", value: "true" },
+            { key: "cidade_preferida", label: "Cidade preferida", value: "São Paulo" },
+            { key: "idade", label: "Idade", value: "27" }
+        ]);
+        assert.deepEqual(source, before);
+    });
+
+    it("ordem do objeto de entrada não altera a estrutura determinística", () => {
+        assert.deepEqual(
+            normalizeExtraFields({ zeta: "2", alfa: "1" }),
+            normalizeExtraFields({ alfa: "1", zeta: "2" })
+        );
+    });
+
+    it("texto de busca inclui chave, label e valor com suporte a acentos/case", () => {
+        const search = normalizeText(extraFieldsSearchText({ cidade_preferida: "SÃO PAULO", perfil: "Designer" }));
+        assert.match(search, /cidade preferida/);
+        assert.match(search, /sao paulo/);
+        assert.match(search, /designer/);
+        assert.equal(extraFieldsSearchText(undefined), "");
+    });
+
+    it("união de chaves do CSV é ordenada e ignora extras inválidos/ausentes", () => {
+        assert.deepEqual(extraFieldKeysForExport([
+            { camposExtras: { segmento: "B2B", cidade: "Recife" } },
+            {},
+            { camposExtras: { cargo: "CEO", cidade: "Fortaleza" } },
+            { camposExtras: [] }
+        ]), ["cargo", "cidade", "segmento"]);
+    });
+
+    it("escapa aspas e neutraliza formula injection em qualquer célula textual", () => {
+        assert.equal(csvCell('texto "seguro"'), '"texto ""seguro"""');
+        assert.equal(csvCell("=2+2"), '"\'=2+2"');
+        assert.equal(csvCell("+cmd"), '"\'+cmd"');
+        assert.equal(csvCell("-1+1"), '"\'-1+1"');
+        assert.equal(csvCell("@SUM(A1:A2)"), '"\'@SUM(A1:A2)"');
+        assert.equal(csvCell("  =2+2"), '"\'  =2+2"');
+    });
+
+    it("payload semelhante a XSS permanece apenas texto na camada normalizada", () => {
+        assert.deepEqual(normalizeExtraFields({ observacao: '<img src=x onerror="alert(1)">' }), [
+            { key: "observacao", label: "Observacao", value: '<img src=x onerror="alert(1)">' }
+        ]);
+    });
+});
+
+describe("CRM-LEAD-005 — precedência explícita de responsável legado", () => {
+    it("somente canônico", () => {
+        assert.deepEqual(resolveLeadResponsible({ responsavelUid: "employee-a", responsavelNome: "Ana" }),
+            { uid: "employee-a", name: "Ana", source: "canonical" });
+    });
+    it("somente legado", () => {
+        assert.deepEqual(resolveLeadResponsible({ funcionarioResponsavel: "employee-old" }),
+            { uid: "employee-old", name: "", source: "legacy" });
+    });
+    it("ambos iguais: canônico vence", () => {
+        assert.equal(resolveLeadResponsible({ responsavelUid: "same", funcionarioResponsavel: "same" }).source, "canonical");
+    });
+    it("ambos divergentes: canônico vence", () => {
+        assert.equal(resolveLeadResponsible({ responsavelUid: "canonical", funcionarioResponsavel: "legacy" }).uid, "canonical");
+    });
+    it("canônico vazio bloqueia fallback válido", () => {
+        assert.deepEqual(resolveLeadResponsible({ responsavelUid: "", funcionarioResponsavel: "legacy" }),
+            { uid: "", name: "", source: "canonical" });
+    });
+    it("canônico null bloqueia fallback válido", () => {
+        assert.deepEqual(resolveLeadResponsible({ responsavelUid: null, funcionarioResponsavel: "legacy" }),
+            { uid: "", name: "", source: "canonical" });
+    });
+    it("sem nenhum campo resulta em vazio sem inventar autoridade", () => {
+        assert.deepEqual(resolveLeadResponsible({}), { uid: "", name: "", source: "none" });
+    });
+    it("salvar outro campo não materializa canônico no lead somente legado", () => {
+        const lead = { funcionarioResponsavel: "employee-old" };
+        assert.equal(shouldWriteCanonicalValue({
+            record: lead, canonicalField: "responsavelUid",
+            previousResolved: "employee-old", nextValue: "employee-old"
+        }), false);
+        assert.equal(shouldWriteCanonicalValue({
+            record: lead, canonicalField: "responsavelUid",
+            previousResolved: "employee-old", nextValue: ""
+        }), true, "limpeza deliberada deve criar canônico vazio autoritativo");
+    });
+});
+
+describe("CRM-LEAD-005 — precedência explícita de follow-up legado", () => {
+    const canonical = "2026-09-01T12:00:00.000Z";
+    const timestampLegacy = "2026-09-02T12:00:00.000Z";
+    const dateLegacy = "2026-09-03";
+
+    it("somente proximoContatoEm", () => {
+        assert.equal(resolveLeadFollowup({ proximoContatoEm: canonical }).source, "canonical");
+    });
+    it("somente lembreteTimestamp", () => {
+        assert.equal(resolveLeadFollowup({ lembreteTimestamp: timestampLegacy }).source, "lembreteTimestamp");
+    });
+    it("somente lembreteData", () => {
+        const resolved = resolveLeadFollowup({ lembreteData: dateLegacy });
+        assert.equal(resolved.source, "lembreteData");
+        assert.equal(resolved.timestamp, new Date(`${dateLegacy}T00:00:00`).getTime(),
+            "data legada deve preservar o dia no fuso local");
+    });
+    it("datas divergentes respeitam a ordem canônico > timestamp > data", () => {
+        const all = resolveLeadFollowup({ proximoContatoEm: canonical, lembreteTimestamp: timestampLegacy, lembreteData: dateLegacy });
+        assert.equal(all.timestamp, Date.parse(canonical));
+        assert.equal(all.source, "canonical");
+        assert.equal(resolveLeadFollowup({ lembreteTimestamp: timestampLegacy, lembreteData: dateLegacy }).timestamp, Date.parse(timestampLegacy));
+    });
+    it("proximoContatoEm null bloqueia todos os fallbacks", () => {
+        assert.deepEqual(resolveLeadFollowup({ proximoContatoEm: null, lembreteTimestamp: timestampLegacy, lembreteData: dateLegacy }),
+            { timestamp: 0, source: "canonical" });
+    });
+    it("nenhum campo resulta em zero", () => {
+        assert.deepEqual(resolveLeadFollowup({}), { timestamp: 0, source: "none" });
+    });
+    it("salvar outro campo preserva semanticamente follow-up somente legado", () => {
+        const lead = { lembreteData: dateLegacy };
+        assert.equal(shouldWriteCanonicalValue({
+            record: lead, canonicalField: "proximoContatoEm",
+            previousResolved: "2026-09-03T00:00", nextValue: "2026-09-03T00:00"
+        }), false);
+    });
+});
+
+describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () => {
+    const dashboardSource = readFileSync("dashboard-app.js", "utf8");
+    const dashboardHtml = readFileSync("dashboard.html", "utf8");
+    const indexSource = readFileSync("index.html", "utf8");
+
+    it("renderer público cria name estável e o fallback envia camposExtras", () => {
+        assert.match(indexSource, /function renderizarCamposFormulario\(campos\)/);
+        assert.match(indexSource, /name="\$\{safeName\}"/);
+        assert.match(indexSource, /baseName\.slice\(0, 60 - suffix\.length\)/,
+            "sufixo de colisão deve sobreviver mesmo quando a chave-base já tem 60 caracteres");
+        assert.match(indexSource, /camposExtras:\s*camposExtrasDoFormulario\(form\)/);
+    });
+
+    it("renderer efetivo gera names únicos/estáveis, inclusive em colisão e limite de 60 caracteres", () => {
+        const start = indexSource.indexOf("function escaparAtributoFormulario");
+        const end = indexSource.indexOf("function camposExtrasDoFormulario");
+        assert.ok(start > 0 && end > start);
+        const renderer = new Function(`${indexSource.slice(start, end)}; return renderizarCamposFormulario;`)();
+        const longField = "campo_" + "x".repeat(80);
+        const fields = ["nome", "whatsapp", "Empresa / Setor", "Empresa / Setor", longField, longField];
+        const htmlA = renderer(fields);
+        const htmlB = renderer(fields);
+        const names = Array.from(htmlA.matchAll(/\sname="([^"]+)"/g), (match) => match[1]);
+        assert.equal(htmlA, htmlB, "mesma definição deve produzir a mesma identidade");
+        assert.equal(names.length, fields.length, "todo input submetível precisa de name");
+        assert.equal(new Set(names).size, fields.length, "colisões devem ganhar sufixos únicos");
+        assert.ok(names.every((name) => name.length <= 60));
+        assert.deepEqual(names.slice(0, 4), ["nome", "whatsapp", "empresa_setor", "empresa_setor_2"]);
+    });
+
+    it("PR60-REV-001 — regressão: label que normaliza pro mesmo texto de um sufixo auto-gerado não colide", () => {
+        const start = indexSource.indexOf("function escaparAtributoFormulario");
+        const end = indexSource.indexOf("function camposExtrasDoFormulario");
+        const renderer = new Function(`${indexSource.slice(start, end)}; return renderizarCamposFormulario;`)();
+
+        // Campo 1 "Nome" -> nome; campo 2 "Nome" -> nome_2 (sufixo
+        // automático); campo 3 "Nome_2" normaliza literalmente pro MESMO
+        // texto "nome_2" que o campo 2 já recebeu — o bug antigo (contador
+        // só por baseName) deixava os dois com name="nome_2".
+        const htmlUnderscore = renderer(["Nome", "Nome", "Nome_2"]);
+        const namesUnderscore = Array.from(htmlUnderscore.matchAll(/\sname="([^"]+)"/g), (m) => m[1]);
+        assert.equal(namesUnderscore.length, 3);
+        assert.equal(new Set(namesUnderscore).size, 3, "os 3 names finais precisam ser únicos");
+        assert.deepEqual(namesUnderscore, ["nome", "nome_2", "nome_2_2"]);
+
+        // Variante com hífen: "Nome-2" preserva o hífen na normalização
+        // ([^a-z0-9_-]+ não converte "-" pra "_"), então não colide de fato
+        // com o sufixo "_2" (que usa underscore) — mas os 3 names ainda
+        // precisam sair únicos e estáveis, sem depender de coincidência.
+        const htmlHifen = renderer(["Nome", "Nome", "Nome-2"]);
+        const namesHifen = Array.from(htmlHifen.matchAll(/\sname="([^"]+)"/g), (m) => m[1]);
+        assert.equal(new Set(namesHifen).size, 3, "os 3 names finais precisam ser únicos mesmo sem colisão literal");
+        assert.deepEqual(namesHifen, ["nome", "nome_2", "nome-2"]);
+
+        // Truncamento: dois labels longos que truncam pro MESMO texto de 60
+        // caracteres, mais um terceiro cujo baseName (também truncado) já é
+        // igual ao que o sufixo do segundo produziria — o Set de names
+        // finais precisa resolver a cadeia toda, sempre respeitando o limite
+        // de 60 caracteres já incluindo o sufixo.
+        const longBase = "campo_muito_longo_" + "x".repeat(50); // > 60 chars antes do slice
+        const htmlTruncado = renderer([longBase, longBase, longBase]);
+        const namesTruncados = Array.from(htmlTruncado.matchAll(/\sname="([^"]+)"/g), (m) => m[1]);
+        assert.equal(new Set(namesTruncados).size, 3, "colisão pós-truncamento também precisa ficar única");
+        assert.ok(namesTruncados.every((name) => name.length <= 60), "name final nunca pode passar de 60 caracteres");
+        assert.ok(namesTruncados[2].endsWith("_3"), "terceira ocorrência deve receber o próximo sufixo livre, não repetir _2");
+    });
+
+    it("PR60-REV-001 — fingerprint da tentativa diferencia alteração em qualquer camposExtras pós-colisão resolvida", () => {
+        const fpStart = indexSource.indexOf("function fingerprintTentativaLeadPublicoLP");
+        const fpEnd = indexSource.indexOf("\n\n    var caminho", fpStart);
+        assert.ok(fpStart > 0 && fpEnd > fpStart, "marcadores de extração da função de fingerprint precisam existir");
+        const fingerprint = new Function(`${indexSource.slice(fpStart, fpEnd)}; return fingerprintTentativaLeadPublicoLP;`)();
+
+        const base = { publicPageId: "p1", formularioId: "f1", nome: "Ana", whatsapp: "11988887777", email: "a@a.com" };
+        const fpA = fingerprint({ ...base, camposExtras: { nome_2: "valor-2", nome_2_2: "valor-3" } });
+        const fpB = fingerprint({ ...base, camposExtras: { nome_2: "valor-2", nome_2_2: "VALOR-DIFERENTE" } });
+        const fpC = fingerprint({ ...base, camposExtras: { nome_2_2: "valor-3", nome_2: "valor-2" } });
+        assert.notEqual(fpA, fpB, "alterar só o campo resolvido por colisão precisa mudar o fingerprint");
+        assert.equal(fpA, fpC, "ordem de inserção das chaves não pode afetar o fingerprint (canonicamente ordenado)");
+    });
+
+    it("writers legados alcançáveis gravam somente o contrato canônico", () => {
+        const responsavelWriter = dashboardSource.match(/window\.aplicarFuncionarioEmMassa[\s\S]*?window\.aplicarEtiquetaEmMassa/)?.[0] || "";
+        const lembreteWriter = dashboardSource.match(/window\.aplicarLembreteEmMassa[\s\S]*?window\.copiarWhatsappsSelecionados/)?.[0] || "";
+        assert.match(responsavelWriter, /responsavelUid/);
+        assert.match(responsavelWriter, /responsavelNome/);
+        assert.doesNotMatch(responsavelWriter, /funcionarioResponsavel/);
+        assert.match(lembreteWriter, /proximoContatoEm/);
+        assert.doesNotMatch(lembreteWriter, /lembreteData\s*:/);
+    });
+
+    it("tela legada redireciona pelo mesmo data-target e filtra funcionários ativos", () => {
+        assert.match(dashboardHtml, /class="aura-hub-card" data-target="view-automacao-leads"/);
+        assert.match(dashboardSource, /funcionario\.status === "ativo"/);
+        assert.match(dashboardSource, /funcUID !== usuarioUID && !funcionario/);
     });
 });

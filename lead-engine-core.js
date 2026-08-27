@@ -54,6 +54,107 @@ export function anyTimestamp(value) {
     return Number.isFinite(parsed) ? parsed : 0;
 }
 
+export function hasOwnField(record, field) {
+    return Boolean(record && typeof record === "object" &&
+        Object.prototype.hasOwnProperty.call(record, field));
+}
+
+// CRM-LEAD-005: presença é diferente de truthiness. Um canônico vazio/null
+// representa uma remoção deliberada e, portanto, bloqueia o fallback legado.
+export function resolveLeadResponsible(lead) {
+    if (hasOwnField(lead, "responsavelUid")) {
+        return {
+            uid: String(lead?.responsavelUid ?? "").trim(),
+            name: String(lead?.responsavelNome ?? "").trim(),
+            source: "canonical"
+        };
+    }
+
+    if (hasOwnField(lead, "funcionarioResponsavel")) {
+        return {
+            uid: String(lead?.funcionarioResponsavel ?? "").trim(),
+            name: String(lead?.responsavelNome ?? lead?.funcionarioResponsavelNome ?? "").trim(),
+            source: "legacy"
+        };
+    }
+
+    return { uid: "", name: "", source: "none" };
+}
+
+export function resolveLeadFollowup(lead) {
+    if (hasOwnField(lead, "proximoContatoEm")) {
+        return { timestamp: anyTimestamp(lead?.proximoContatoEm), source: "canonical" };
+    }
+    if (hasOwnField(lead, "lembreteTimestamp")) {
+        return { timestamp: anyTimestamp(lead?.lembreteTimestamp), source: "lembreteTimestamp" };
+    }
+    if (hasOwnField(lead, "lembreteData")) {
+        const rawDate = lead?.lembreteData;
+        // input type=date legado representa um dia local, não meia-noite
+        // UTC. Date.parse("YYYY-MM-DD") deslocaria a UI para o dia anterior
+        // em fusos negativos (ex.: 10/09 -> 09/09 21h em São Paulo).
+        const timestamp = typeof rawDate === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDate)
+            ? new Date(`${rawDate}T00:00:00`).getTime()
+            : anyTimestamp(rawDate);
+        return { timestamp: Number.isFinite(timestamp) ? timestamp : 0, source: "lembreteData" };
+    }
+    return { timestamp: 0, source: "none" };
+}
+
+// Ao salvar outro dado de um documento legado, não materializa um canônico
+// vazio nem faz migração implícita. O canônico só nasce se o usuário mudou
+// semanticamente o valor resolvido na tela.
+export function shouldWriteCanonicalValue({ record, canonicalField, previousResolved, nextValue }) {
+    if (hasOwnField(record, canonicalField)) return true;
+    return nextValue !== previousResolved;
+}
+
+function readableExtraFieldLabel(key) {
+    const spaced = String(key || "")
+        .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+        .replace(/[_-]+/g, " ")
+        .replace(/\s+/g, " ")
+        .trim();
+    return spaced ? spaced.charAt(0).toLocaleUpperCase("pt-BR") + spaced.slice(1) : "";
+}
+
+// CRM-LEAD-004: contrato de persistência continua sendo um mapa simples.
+// Esta normalização existe apenas no consumer e nunca muta o documento.
+export function normalizeExtraFields(value) {
+    if (!value || typeof value !== "object" || Array.isArray(value)) return [];
+
+    return Object.entries(value)
+        .map(([rawKey, rawValue]) => {
+            const key = String(rawKey || "").trim().slice(0, 60);
+            const scalar = ["string", "number", "boolean"].includes(typeof rawValue);
+            if (!key || !scalar) return null;
+            const normalizedValue = String(rawValue).trim().slice(0, 500);
+            if (!normalizedValue) return null;
+            return { key, label: readableExtraFieldLabel(key), value: normalizedValue };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.key.localeCompare(b.key, "pt-BR", { sensitivity: "base" }));
+}
+
+export function extraFieldsSearchText(value) {
+    return normalizeExtraFields(value)
+        .flatMap((field) => [field.key, field.label, field.value])
+        .join(" ");
+}
+
+export function extraFieldKeysForExport(leads) {
+    return Array.from(new Set(
+        (Array.isArray(leads) ? leads : [])
+            .flatMap((lead) => normalizeExtraFields(lead?.camposExtras).map((field) => field.key))
+    )).sort((a, b) => a.localeCompare(b, "pt-BR", { sensitivity: "base" }));
+}
+
+export function csvCell(value) {
+    let text = String(value ?? "");
+    if (/^\s*[=+\-@]/.test(text)) text = `'${text}`;
+    return `"${text.replace(/"/g, '""')}"`;
+}
+
 export function leadTimestamp(lead) {
     const values = [lead?.data, lead?.criadoEm, lead?.createdAt, lead?.timestamp];
     for (const value of values) {

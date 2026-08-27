@@ -11,6 +11,7 @@ import {
   arrayUnion,
   collection,
   deleteDoc,
+  deleteField,
   doc,
   getDoc,
   getDocs,
@@ -792,6 +793,127 @@ describe("leads: responsavelUid e clienteId precisam pertencer ao mesmo tenant",
       });
     });
     await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadClienteCrossTenant"), { clienteId: "leadClienteB" }));
+  });
+});
+
+describe("CRM-LEAD-005 — aliases históricos permanecem legíveis, mas não recebem novos writes", () => {
+  it("CREATE nega funcionarioResponsavel e lembreteData novos", async () => {
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "novoAliasResponsavel"), {
+      criadoPor: "ownerA", status: "novo", funcionarioResponsavel: "ownerB"
+    }));
+    await assertFails(setDoc(doc(authed("ownerA"), "leads", "novoAliasLembrete"), {
+      criadoPor: "ownerA", status: "novo", lembreteData: "2026-09-01"
+    }));
+  });
+
+  it("documento legado existente continua legível e editável quando aliases ficam intactos", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasesHistoricos").set({
+        criadoPor: "ownerA",
+        status: "novo",
+        funcionarioResponsavel: "uid-historico",
+        lembreteData: "2026-09-01"
+      });
+    });
+    const db = authed("ownerA");
+    await assertSucceeds(getDoc(doc(db, "leads", "leadAliasesHistoricos")));
+    await assertSucceeds(updateDoc(doc(db, "leads", "leadAliasesHistoricos"), {
+      status: "em_contato", anotacao: "Alias preservado sem alteração"
+    }));
+  });
+
+  it("UPDATE nega alterar responsável legado, inclusive para UID de outro tenant", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasResponsavel").set({
+        criadoPor: "ownerA", status: "novo", funcionarioResponsavel: "uid-historico"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasResponsavel"), {
+      funcionarioResponsavel: "ownerB"
+    }));
+  });
+
+  it("UPDATE nega alterar lembreteData legado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasLembrete").set({
+        criadoPor: "ownerA", status: "novo", lembreteData: "2026-09-01"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasLembrete"), {
+      lembreteData: "2026-10-01"
+    }));
+  });
+
+  // PR60-REV-002 (revisão adversarial da PR #60): a implementação já era
+  // correta por affectedKeys()/diff() cobrir add/remove/modify igualmente,
+  // mas essas 3 fronteiras — remover alias, zerar pra null e adicionar
+  // alias novo num doc que nunca teve nenhum (o "backdoor via update") —
+  // não tinham prova explícita em teste. Cobrindo as duas aliases em cada
+  // fronteira (6 casos no total).
+  it("UPDATE nega remover funcionarioResponsavel legado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasResponsavelRemover").set({
+        criadoPor: "ownerA", status: "novo", funcionarioResponsavel: "uid-historico"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasResponsavelRemover"), {
+      funcionarioResponsavel: deleteField()
+    }));
+  });
+
+  it("UPDATE nega zerar funcionarioResponsavel legado para null", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasResponsavelNull").set({
+        criadoPor: "ownerA", status: "novo", funcionarioResponsavel: "uid-historico"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasResponsavelNull"), {
+      funcionarioResponsavel: null
+    }));
+  });
+
+  it("UPDATE nega adicionar funcionarioResponsavel novo a documento que nunca teve alias (backdoor via update)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadSemAliasResponsavel").set({
+        criadoPor: "ownerA", status: "novo"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadSemAliasResponsavel"), {
+      funcionarioResponsavel: "algum-uid"
+    }));
+  });
+
+  it("UPDATE nega remover lembreteData legado", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasLembreteRemover").set({
+        criadoPor: "ownerA", status: "novo", lembreteData: "2026-09-01"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasLembreteRemover"), {
+      lembreteData: deleteField()
+    }));
+  });
+
+  it("UPDATE nega zerar lembreteData legado para null", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadAliasLembreteNull").set({
+        criadoPor: "ownerA", status: "novo", lembreteData: "2026-09-01"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadAliasLembreteNull"), {
+      lembreteData: null
+    }));
+  });
+
+  it("UPDATE nega adicionar lembreteData novo a documento que nunca teve alias (backdoor via update)", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await context.firestore().doc("leads/leadSemAliasLembrete").set({
+        criadoPor: "ownerA", status: "novo"
+      });
+    });
+    await assertFails(updateDoc(doc(authed("ownerA"), "leads", "leadSemAliasLembrete"), {
+      lembreteData: "2026-09-01"
+    }));
   });
 });
 
