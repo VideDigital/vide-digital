@@ -85,6 +85,31 @@ function defaultRandomToken() {
 // observacoes — corrigir o endereço ou as observações depois de um erro
 // também reaproveitava o token e os dados corrigidos podiam se perder.
 //
+// B2 (revisão adversarial final da PR #59, quarta passada — serialização
+// ambígua): as versões anteriores destas funções concatenavam campos com
+// delimitadores literais ("|", ":", ",", "&", "=") sem escaping. Um valor
+// comercial legítimo que contivesse um desses delimitadores (ex.: um
+// endereço "Rua A|apto 1" com observações "azul") podia produzir a MESMA
+// string canônica que um valor totalmente diferente (endereço "Rua A",
+// observações "apto 1|azul") — colisão de fingerprint entre duas
+// intenções comerciais distintas, o que faria a segunda ser tratada como
+// retry da primeira e perder o token/lead corretos. loja.html também
+// reduzia essa string pra um hash FNV-like de 32 bits (hashLeadPublico)
+// só pra usar como chave local do Map — redução desnecessária que
+// adicionava um segundo ponto de colisão (duas strings canônicas
+// DIFERENTES podiam, em princípio, cair no mesmo hash de 32 bits).
+//
+// Corrigido usando serialização ESTRUTURAL: cada função monta um valor
+// canônico explícito (objeto/array já normalizado, sem timestamps) e
+// serializa com JSON.stringify — que delimita campos e strings de forma
+// estrutural (aspas/escaping), não por caractere literal reservado, então
+// nenhum valor de campo (por mais que contenha "|", ":", "," etc.) pode
+// ser reinterpretado como fronteira entre campos. loja.html agora usa a
+// própria string canônica (JSON) como chave do Map, sem reduzir pra
+// hash — não há necessidade de reduzir pra 32 bits só pra indexar um Map
+// em memória, e a redução só adicionava risco de colisão sem nenhum
+// ganho (não é usada como segredo nem enviada ao servidor).
+//
 // Estas funções tornam a lógica REAL usada por loja.html testável sem
 // DOM (mesmo padrão de lead-engine-core.js). O objetivo do fingerprint é
 // só decidir "isto é uma retentativa da MESMA intenção comercial, ou uma
@@ -108,12 +133,14 @@ function normalizeFingerprintPhone(value) {
 // campos de contato diferentes descrevem duas formas de a loja
 // encontrar o cliente; mudar qualquer um dos dois é uma correção real
 // que precisa virar um lead/tentativa novo se o anterior já tiver sido
-// criado no servidor.
+// criado no servidor. Serializado como objeto (JSON.stringify) — não
+// por concatenação — pra um e-mail nunca poder "vazar" pro campo do
+// whatsapp ou vice-versa.
 export function fingerprintContato({ whatsapp, telefone, email }) {
-    return [
-        normalizeFingerprintPhone(whatsapp || telefone),
-        normalizeFingerprintText(email, 160)
-    ].join("|");
+    return JSON.stringify({
+        whatsapp: normalizeFingerprintPhone(whatsapp || telefone),
+        email: normalizeFingerprintText(email, 160)
+    });
 }
 
 // Representação canônica e ESTÁVEL de um pedidoSnapshot (ver
@@ -122,10 +149,12 @@ export function fingerprintContato({ whatsapp, telefone, email }) {
 // timestamp: normalizarSnapshotPedidoPublico grava criadoEm a cada
 // chamada (Date.now()), então usar o objeto inteiro faria até um retry
 // idêntico gerar um fingerprint novo a cada tentativa, quebrando a
-// idempotência real. Itens são ordenados por produtoId antes de
-// serializar, pra o fingerprint não depender de uma ordem de array
-// incidental (duas chamadas com os mesmos itens, em ordens diferentes
-// por acaso, continuam sendo a MESMA intenção comercial).
+// idempotência real. Itens são normalizados pra objetos (não strings
+// concatenadas) e ordenados por produtoId antes de serializar, pra o
+// fingerprint não depender de uma ordem de array incidental (duas
+// chamadas com os mesmos itens, em ordens diferentes por acaso,
+// continuam sendo a MESMA intenção comercial) nem de delimitadores
+// literais entre produtoId/quantidade/preco.
 export function fingerprintPedido(pedidoSnapshot) {
     if (!pedidoSnapshot || typeof pedidoSnapshot !== "object") return "";
     const itens = Array.isArray(pedidoSnapshot.itens) ? pedidoSnapshot.itens : [];
@@ -135,23 +164,21 @@ export function fingerprintPedido(pedidoSnapshot) {
             quantidade: Number(item?.quantidade) || 0,
             preco: Number(item?.precoSnapshot ?? item?.preco) || 0
         }))
-        .sort((a, b) => a.produtoId.localeCompare(b.produtoId))
-        .map((item) => `${item.produtoId}:${item.quantidade}:${item.preco}`)
-        .join(",");
+        .sort((a, b) => a.produtoId.localeCompare(b.produtoId));
 
-    return [
-        normalizeFingerprintText(pedidoSnapshot.numeroPedido, 80),
-        normalizeFingerprintText(pedidoSnapshot.clienteNome, 120),
-        normalizeFingerprintPhone(pedidoSnapshot.clienteWhatsapp),
-        normalizeFingerprintText(pedidoSnapshot.tipoRecebimento, 20),
-        normalizeFingerprintText(pedidoSnapshot.cep, 20),
-        normalizeFingerprintText(pedidoSnapshot.endereco, 220),
-        normalizeFingerprintText(pedidoSnapshot.observacoes, 500),
-        itensCanonicos,
-        Number(pedidoSnapshot.desconto) || 0,
-        Number(pedidoSnapshot.frete) || 0,
-        Number(pedidoSnapshot.total) || 0
-    ].join("|");
+    return JSON.stringify({
+        numeroPedido: normalizeFingerprintText(pedidoSnapshot.numeroPedido, 80),
+        clienteNome: normalizeFingerprintText(pedidoSnapshot.clienteNome, 120),
+        clienteWhatsapp: normalizeFingerprintPhone(pedidoSnapshot.clienteWhatsapp),
+        tipoRecebimento: normalizeFingerprintText(pedidoSnapshot.tipoRecebimento, 20),
+        cep: normalizeFingerprintText(pedidoSnapshot.cep, 20),
+        endereco: normalizeFingerprintText(pedidoSnapshot.endereco, 220),
+        observacoes: normalizeFingerprintText(pedidoSnapshot.observacoes, 500),
+        itens: itensCanonicos,
+        desconto: Number(pedidoSnapshot.desconto) || 0,
+        frete: Number(pedidoSnapshot.frete) || 0,
+        total: Number(pedidoSnapshot.total) || 0
+    });
 }
 
 // camposExtras (lp-forms-v5.js): campos customizados que o dono da
@@ -160,26 +187,34 @@ export function fingerprintPedido(pedidoSnapshot) {
 // "mensagem"), não cobertos pelos campos fixos (nome/whatsapp/email).
 // Corrigir um desses campos depois de um erro ambíguo é a MESMA classe
 // de bug do contato/pedido acima — precisa entrar no fingerprint.
+// Serializado como array de pares [chave, valor] (chaves ordenadas,
+// JSON.stringify) — não por "chave=valor&chave=valor" — pra um valor
+// contendo "&" ou "=" nunca poder ser reinterpretado como fronteira
+// entre campos.
 export function fingerprintCamposExtras(camposExtras) {
     if (!camposExtras || typeof camposExtras !== "object") return "";
-    return Object.keys(camposExtras)
-        .sort()
-        .map((key) => `${normalizeFingerprintText(key, 60)}=${normalizeFingerprintText(camposExtras[key], 500)}`)
-        .join("&");
+    const chaves = Object.keys(camposExtras).sort();
+    if (chaves.length === 0) return "";
+    return JSON.stringify(
+        chaves.map((key) => [normalizeFingerprintText(key, 60), normalizeFingerprintText(camposExtras[key], 500)])
+    );
 }
 
 // Fingerprint completo de uma tentativa de captura pública na Loja —
 // identidade + intenção comercial completa (contato, produto,
 // formulário, pedido quando aplicável). leadRequest é o mesmo objeto
 // montado por capturarLeadPublico (loja.html) antes de dedupeKey ser
-// preenchido.
+// preenchido. Um único JSON.stringify no nível superior, com
+// contato/pedido já serializados de forma canônica e colisão-segura
+// (ver acima) aninhados como campos de string — dois payloads
+// comerciais diferentes nunca produzem o mesmo JSON.
 export function fingerprintLeadAttempt(leadRequest) {
-    return [
-        leadRequest.tipoCaptura || "",
-        leadRequest.formularioId || leadRequest.paginaOrigem || "",
-        leadRequest.produtoId || leadRequest.produtoInteresse || "",
-        normalizeFingerprintText(leadRequest.nome, 160),
-        fingerprintContato(leadRequest),
-        fingerprintPedido(leadRequest.pedidoSnapshot)
-    ].join("|");
+    return JSON.stringify({
+        tipoCaptura: leadRequest.tipoCaptura || "",
+        formulario: leadRequest.formularioId || leadRequest.paginaOrigem || "",
+        produto: leadRequest.produtoId || leadRequest.produtoInteresse || "",
+        nome: normalizeFingerprintText(leadRequest.nome, 160),
+        contato: fingerprintContato(leadRequest),
+        pedido: fingerprintPedido(leadRequest.pedidoSnapshot)
+    });
 }

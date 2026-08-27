@@ -392,3 +392,208 @@ describe("fingerprintCamposExtras — ÚLTIMO B1 (lp-forms-v5.js, campos customi
         assert.equal(fingerprintCamposExtras(null), "");
     });
 });
+
+// ==========================================================================
+// B2 (revisão adversarial final da PR #59, quarta passada — serialização
+// ambígua): as versões anteriores de fingerprintContato/fingerprintPedido/
+// fingerprintCamposExtras concatenavam campos com delimitadores literais
+// ("|", ":", ",", "&", "=") sem escaping. Um valor comercial contendo um
+// desses caracteres podia deslocar a fronteira entre campos e colidir com
+// uma combinação DIFERENTE de valores — duas intenções comerciais
+// distintas produzindo o MESMO fingerprint, tratadas como retry uma da
+// outra. Os testes abaixo reproduzem colisões REAIS da implementação
+// antiga (comprovadas por reconstrução da lógica antiga contra os mesmos
+// dados) e comprovam que a versão estrutural (JSON.stringify sobre objetos
+// canônicos) elimina cada uma delas, sem quebrar retry/ordenação/campos
+// voláteis.
+// ==========================================================================
+describe("fingerprintContato/fingerprintPedido/fingerprintCamposExtras — B2 (serialização estrutural, revisão adversarial final)", () => {
+    it("Teste B2-1 — delimitador '|' cruzando a fronteira endereço/observações: fingerprints diferentes", () => {
+        // Reproduz o exemplo conceitual da missão: A tem "|" DENTRO do
+        // endereço; B tem o mesmo texto total, mas o "|" cai dentro das
+        // observações. Com o join antigo ("...|endereco|observacoes|..."),
+        // as duas strings resultantes eram IDÊNTICAS (comprovado abaixo
+        // reconstruindo a lógica antiga).
+        const pedidoA = pedidoSnapshotBase({ endereco: "Rua A|apto 1", observacoes: "azul" });
+        const pedidoB = pedidoSnapshotBase({ endereco: "Rua A", observacoes: "apto 1|azul" });
+
+        function fingerprintPedidoAntigo(p) {
+            const itens = (p.itens || [])
+                .map((item) => ({ produtoId: String(item.produtoId || "").toLowerCase(), quantidade: Number(item.quantidade) || 0, preco: Number(item.precoSnapshot ?? item.preco) || 0 }))
+                .sort((a, b) => a.produtoId.localeCompare(b.produtoId))
+                .map((item) => `${item.produtoId}:${item.quantidade}:${item.preco}`)
+                .join(",");
+            return [
+                String(p.numeroPedido || "").toLowerCase(),
+                String(p.clienteNome || "").toLowerCase(),
+                String(p.clienteWhatsapp || "").replace(/\D/g, ""),
+                String(p.tipoRecebimento || "").toLowerCase(),
+                String(p.cep || "").toLowerCase(),
+                String(p.endereco || "").toLowerCase(),
+                String(p.observacoes || "").toLowerCase(),
+                itens,
+                Number(p.desconto) || 0,
+                Number(p.frete) || 0,
+                Number(p.total) || 0
+            ].join("|");
+        }
+        assert.equal(
+            fingerprintPedidoAntigo(pedidoA),
+            fingerprintPedidoAntigo(pedidoB),
+            "prova de regressão: a lógica ANTIGA colidia exatamente neste caso (evidência de que o B2 era real, não hipótese)"
+        );
+
+        assert.notEqual(
+            fingerprintPedido(pedidoA),
+            fingerprintPedido(pedidoB),
+            "a versão estrutural (JSON) não pode colidir só porque um '|' está dentro de um valor em vez de entre dois valores"
+        );
+    });
+
+    it("Teste B2-2 — delimitadores '&'/'=' em camposExtras: fingerprints diferentes mesmo quando a concatenação antiga colidiria", () => {
+        // camposA: chave "cargo" com valor contendo "=" ("x=y").
+        // camposB: chave "cargo=x" (o "=" está na CHAVE) com valor "y".
+        // Com o join antigo ("chave=valor&chave=valor", chaves ordenadas),
+        // as duas produziam a MESMA string: "cargo=x=y&empresa=a&b".
+        const camposA = { empresa: "A&B", cargo: "x=y" };
+        const camposB = { empresa: "A&B", "cargo=x": "y" };
+
+        function fingerprintCamposExtrasAntigo(campos) {
+            return Object.keys(campos)
+                .sort()
+                .map((key) => `${key.toLowerCase()}=${String(campos[key]).toLowerCase()}`)
+                .join("&");
+        }
+        assert.equal(
+            fingerprintCamposExtrasAntigo(camposA),
+            fingerprintCamposExtrasAntigo(camposB),
+            "prova de regressão: a lógica ANTIGA colidia exatamente neste caso"
+        );
+
+        assert.notEqual(
+            fingerprintCamposExtras(camposA),
+            fingerprintCamposExtras(camposB),
+            "corrigir só o nome de uma chave/valor não pode colidir com outra combinação estrutural diferente"
+        );
+    });
+
+    it("Teste B2-3 — delimitadores ':'/','/'|' em itens do pedido: fingerprints diferentes mesmo quando a concatenação antiga colidiria", () => {
+        // pedidoA: UM item cujo produtoId já contém ':' e ',' (simulando
+        // um id/variação de produto com caracteres especiais).
+        // pedidoB: DOIS itens "limpos" cuja concatenação antiga
+        // ("produtoId:quantidade:preco", itens juntados por ",") produz a
+        // MESMA string que o item único de A.
+        const pedidoA = pedidoSnapshotBase({ itens: [{ produtoId: "a:1:2,b", quantidade: 3, precoSnapshot: 4 }] });
+        const pedidoB = pedidoSnapshotBase({
+            itens: [
+                { produtoId: "a", quantidade: 1, precoSnapshot: 2 },
+                { produtoId: "b", quantidade: 3, precoSnapshot: 4 }
+            ]
+        });
+
+        function itensAntigo(p) {
+            return (p.itens || [])
+                .map((item) => ({ produtoId: String(item.produtoId || "").toLowerCase(), quantidade: Number(item.quantidade) || 0, preco: Number(item.precoSnapshot ?? item.preco) || 0 }))
+                .sort((a, b) => a.produtoId.localeCompare(b.produtoId))
+                .map((item) => `${item.produtoId}:${item.quantidade}:${item.preco}`)
+                .join(",");
+        }
+        assert.equal(
+            itensAntigo(pedidoA),
+            itensAntigo(pedidoB),
+            "prova de regressão: um item com produtoId 'a:1:2,b' colidia com dois itens 'a' e 'b' na lógica ANTIGA"
+        );
+
+        assert.notEqual(
+            fingerprintPedido(pedidoA),
+            fingerprintPedido(pedidoB),
+            "um pedido de 1 item com caracteres especiais no produtoId não pode ser confundido com um pedido de 2 itens diferentes"
+        );
+    });
+
+    it("Teste B2-4 — ordem dos itens continua irrelevante na versão estrutural (reafirmação com valores com delimitadores)", () => {
+        const itensOrdemA = [
+            { produtoId: "p:1,a", precoSnapshot: 10, quantidade: 2 },
+            { produtoId: "p|2,b", precoSnapshot: 20, quantidade: 1 }
+        ];
+        const itensOrdemB = [
+            { produtoId: "p|2,b", precoSnapshot: 20, quantidade: 1 },
+            { produtoId: "p:1,a", precoSnapshot: 10, quantidade: 2 }
+        ];
+        assert.equal(
+            fingerprintPedido(pedidoSnapshotBase({ itens: itensOrdemA })),
+            fingerprintPedido(pedidoSnapshotBase({ itens: itensOrdemB }))
+        );
+    });
+
+    it("Teste B2-5 — ordem das chaves de camposExtras continua irrelevante na versão estrutural (reafirmação com valores com delimitadores)", () => {
+        const camposOrdemA = { empresa: "A&B=C", orcamento: "5.000,00" };
+        const camposOrdemB = { orcamento: "5.000,00", empresa: "A&B=C" };
+        assert.equal(fingerprintCamposExtras(camposOrdemA), fingerprintCamposExtras(camposOrdemB));
+    });
+
+    it("Teste B2-6 — retry idêntico continua reaproveitando o mesmo token mesmo com valores contendo delimitadores", () => {
+        const tracker = createLeadAttemptTracker(sequentialTokenGenerator());
+        const payloadComDelimitadores = checkoutLeadRequestBase({
+            pedidoSnapshot: pedidoSnapshotBase({ endereco: "Rua A|apto 1, bloco:2", observacoes: "azul & branco" })
+        });
+        const retryIdentico = checkoutLeadRequestBase({
+            pedidoSnapshot: pedidoSnapshotBase({ endereco: "Rua A|apto 1, bloco:2", observacoes: "azul & branco" })
+        });
+
+        const fingerprintA = fingerprintLeadAttempt(payloadComDelimitadores);
+        const fingerprintRetry = fingerprintLeadAttempt(retryIdentico);
+        assert.equal(fingerprintA, fingerprintRetry);
+        assert.equal(tracker.getToken(fingerprintA), tracker.getToken(fingerprintRetry));
+    });
+
+    it("Teste B2-7 — sucesso + nova submissão idêntica: token novo, mesmo com valores contendo delimitadores", () => {
+        const tracker = createLeadAttemptTracker(sequentialTokenGenerator());
+        const payload = checkoutLeadRequestBase({
+            pedidoSnapshot: pedidoSnapshotBase({ observacoes: "entregar na portaria, ramal: 42" })
+        });
+        const fingerprint = fingerprintLeadAttempt(payload);
+
+        const tokenPrimeiraCompra = tracker.getToken(fingerprint);
+        tracker.complete(fingerprint);
+
+        const fingerprintSegundaCompra = fingerprintLeadAttempt(checkoutLeadRequestBase({
+            pedidoSnapshot: pedidoSnapshotBase({ observacoes: "entregar na portaria, ramal: 42" })
+        }));
+        const tokenSegundaCompra = tracker.getToken(fingerprintSegundaCompra);
+
+        assert.notEqual(tokenSegundaCompra, tokenPrimeiraCompra);
+    });
+
+    it("Teste B2-8 — campos voláteis continuam fora do fingerprint na versão estrutural", () => {
+        const tracker = createLeadAttemptTracker(sequentialTokenGenerator());
+        const tentativaA = checkoutLeadRequestBase({ cliques: 1, tempoRetencao: 10, urlPagina: "https://loja-x.example/a" });
+        const retryTecnico = checkoutLeadRequestBase({
+            cliques: 9,
+            tempoRetencao: 99,
+            urlPagina: "https://loja-x.example/b?utm=z",
+            pedidoSnapshot: pedidoSnapshotBase({ criadoEm: Date.now() + 99999 })
+        });
+
+        const fingerprintA = fingerprintLeadAttempt(tentativaA);
+        const fingerprintRetry = fingerprintLeadAttempt(retryTecnico);
+        assert.equal(fingerprintA, fingerprintRetry);
+        assert.equal(tracker.getToken(fingerprintA), tracker.getToken(fingerprintRetry));
+    });
+
+    it("Teste B2-9 — mudança comercial real (email/endereço/cep/observações/tipoRecebimento/quantidade/camposExtras): fingerprint sempre diferente", () => {
+        const base = checkoutLeadRequestBase();
+        const fingerprintBase = fingerprintLeadAttempt(base);
+
+        assert.notEqual(fingerprintBase, fingerprintLeadAttempt(checkoutLeadRequestBase({ email: "outro@teste.com" })));
+        assert.notEqual(fingerprintBase, fingerprintLeadAttempt(checkoutLeadRequestBase({ pedidoSnapshot: pedidoSnapshotBase({ endereco: "Rua Nova, 200" }) })));
+        assert.notEqual(fingerprintBase, fingerprintLeadAttempt(checkoutLeadRequestBase({ pedidoSnapshot: pedidoSnapshotBase({ cep: "09999-000" }) })));
+        assert.notEqual(fingerprintBase, fingerprintLeadAttempt(checkoutLeadRequestBase({ pedidoSnapshot: pedidoSnapshotBase({ observacoes: "portão dos fundos" }) })));
+        assert.notEqual(fingerprintBase, fingerprintLeadAttempt(checkoutLeadRequestBase({ pedidoSnapshot: pedidoSnapshotBase({ tipoRecebimento: "entrega" }) })));
+        assert.notEqual(fingerprintBase, fingerprintLeadAttempt(checkoutLeadRequestBase({ pedidoSnapshot: pedidoSnapshotBase({ itens: [{ produtoId: "prod-1", precoSnapshot: 50, quantidade: 9 }] }) })));
+
+        const camposExtrasBase = fingerprintCamposExtras({ empresa: "Acme" });
+        const camposExtrasEditado = fingerprintCamposExtras({ empresa: "Acme Corp" });
+        assert.notEqual(camposExtrasBase, camposExtrasEditado, "camposExtras (LP) também precisa continuar mudando o fingerprint depois da correção estrutural");
+    });
+});
