@@ -702,6 +702,25 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
         assert.doesNotMatch(html, /required/);
     });
 
+    it("PR61-REV-004 — outros nomes reservados (não só whatsapp) também não herdam type/required customizado como objeto", () => {
+        const renderer = extrairRendererReal();
+        // A Studio Ultimate já recusa criar um campo personalizado com
+        // esses nomes — isso só importa se um documento chegar aqui fora
+        // desse caminho (escrita direta no Firestore). Mesmo assim, um
+        // objeto malformado não pode virar um <textarea required> pra um
+        // slot reservado como email/nome/telefone/phone/name/website.
+        const html = renderer([
+            { name: "email", label: "E-mail", type: "textarea", required: true },
+            { name: "nome", label: "Nome", type: "number", required: true },
+            { name: "telefone", label: "Telefone", type: "date", required: true }
+        ]);
+        assert.match(html, /<input type="text" name="email"/);
+        assert.match(html, /<input type="text" name="nome"/);
+        assert.match(html, /<input type="text" name="telefone"/);
+        assert.doesNotMatch(html, /<textarea/);
+        assert.doesNotMatch(html, /required/);
+    });
+
     it("writers legados alcançáveis gravam somente o contrato canônico", () => {
         const responsavelWriter = dashboardSource.match(/window\.aplicarFuncionarioEmMassa[\s\S]*?window\.aplicarEtiquetaEmMassa/)?.[0] || "";
         const lembreteWriter = dashboardSource.match(/window\.aplicarLembreteEmMassa[\s\S]*?window\.copiarWhatsappsSelecionados/)?.[0] || "";

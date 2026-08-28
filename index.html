@@ -183,9 +183,19 @@
             // Strings legadas (todo o histórico anterior a esta PR) continuam
             // SEMPRE type="text" e SEM required — só um objeto estruturado
             // pode declarar type/required, e só dentro da allowlist.
+            //
+            // PR61-REV-004 (hardening): a mesma defesa em profundidade do
+            // whatsapp acima vale pros OUTROS nomes reservados. A Studio
+            // Ultimate já recusa criar um campo personalizado com esses
+            // nomes, então isso só importa se um documento chegar aqui
+            // fora desse caminho (escrita direta no Firestore) — mas se
+            // chegar, um objeto malformado com baseName "email"/"nome"/
+            // "telefone"/"phone"/"name"/"website" não pode herdar
+            // type/required customizado, exatamente como uma string legada
+            // nunca poderia.
             let tipo = "text";
             let obrigatorio = false;
-            if (isObjeto) {
+            if (isObjeto && !NOMES_RESERVADOS_CAMPO_FORMULARIO.has(baseName)) {
                 const tipoBruto = String(campo.type || campo.tipo || "").toLowerCase();
                 tipo = TIPOS_CAMPO_FORMULARIO.has(tipoBruto) ? tipoBruto : "text";
                 obrigatorio = campo.required === true || campo.obrigatorio === true;
@@ -203,6 +213,10 @@
     // Tipo ausente/desconhecido sempre cai em "text" — nunca falha silenciosamente
     // pra um valor arbitrário injetado no atributo type.
     const TIPOS_CAMPO_FORMULARIO = new Set(["text", "email", "tel", "number", "date", "textarea"]);
+    // PR61-REV-004: mesma allowlist de nomes reservados usada pela autoria
+    // (studio-ultimate.js) e pela extração de camposExtras
+    // (camposExtrasDoFormulario, mais abaixo neste arquivo).
+    const NOMES_RESERVADOS_CAMPO_FORMULARIO = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
 
     function camposExtrasDoFormulario(form) {
         const excluidos = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
