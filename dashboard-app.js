@@ -6342,6 +6342,13 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                 </div>
             `;
         }
+        // PR61-REV-001 (achado adicional, pego pelo próprio teste de
+        // regressão em CI): esta função alimenta o card do bloco na lista
+        // lateral do editor básico (renderizarEditorBlocos() -> innerHTML),
+        // um sink DIFERENTE de renderizarBlocoPreview() mas com o mesmo
+        // problema — texto livre do usuário (titulo/textoCopyright/
+        // logoTexto/url) interpolado sem escaping. Escapado aqui na fonte
+        // porque esta função só tem esse único call site.
         function nomeResumoBloco(bloco) {
             const p = bloco.props || {};
             const texto = String(p.titulo || p.textoCopyright || p.logoTexto || p.url || "");
