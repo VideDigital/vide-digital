@@ -111,6 +111,102 @@ function ehNegativaEsperadaDoFunilPublico({
     );
 }
 
+/**
+ * `networkidle` não é uma condição de prontidão válida neste dashboard:
+ * listeners persistentes do Firebase podem manter a rede ocupada mesmo depois
+ * de a troca de aba e o gate de permissão terem terminado. O contrato deste
+ * smoke é exatamente o estado de navegação/permissão produzido por
+ * `ativarAba()`:
+ *
+ * - acesso permitido: a seção solicitada fica ativa e visível;
+ * - acesso negado: a seção solicitada não fica ativa e a aba já ativa não é
+ *   removida.
+ *
+ * Esses são sinais do produto, não uma espera fixa. Eles também são os estados
+ * dos quais dependem as asserções de acesso, visibilidade, permissão e
+ * navegação realizadas logo abaixo.
+ */
+async function esperarProntidaoDaView(page, viewId, acessoPermitido) {
+    await page.waitForFunction(
+        ({ id, permitido }) => {
+            const alvo = document.getElementById(id);
+            const ativa = document.querySelector(".view-section.active");
+
+            if (!alvo || !ativa) return false;
+
+            if (!permitido) {
+                return !alvo.classList.contains("active") && ativa.id !== id;
+            }
+
+            const estilo = window.getComputedStyle(alvo);
+            return (
+                ativa === alvo &&
+                alvo.classList.contains("active") &&
+                !alvo.hidden &&
+                estilo.display !== "none" &&
+                estilo.visibility !== "hidden"
+            );
+        },
+        { id: viewId, permitido: acessoPermitido },
+        { timeout: 10000 }
+    );
+}
+
+/**
+ * Duas views iniciam carregamentos assíncronos depois que `ativarAba()` já
+ * deixou a seção visível. A prontidão de navegação acima continua sendo o
+ * contrato principal; este complemento só espera os estados terminais que
+ * essas telas já materializam no produto antes de avaliarmos erros de JS.
+ *
+ * O caminho de erro também é terminal de propósito: ele permite que o smoke
+ * prossiga até a asserção normal de console, que deve reprovar a falha em vez
+ * de escondê-la atrás de um timeout.
+ */
+async function esperarCargaAssincronaDaView(page, viewId, acessoPermitido) {
+    if (!acessoPermitido) return;
+    if (viewId !== "view-funcionarios" && viewId !== "view-notificacoes") {
+        return;
+    }
+
+    await page.waitForFunction(
+        id => {
+            if (id === "view-funcionarios") {
+                const lista = document.getElementById("lista-funcionarios");
+                const contadores = [
+                    document.getElementById("funcionario-total-count"),
+                    document.getElementById("funcionario-active-count"),
+                    document.getElementById("funcionario-inactive-count")
+                ];
+
+                if (lista?.querySelector(".aura-team-error")) return true;
+
+                const contadoresFinais = contadores.every(elemento =>
+                    /^\d+$/.test(elemento?.textContent?.trim() || "")
+                );
+                const listaFinal = lista?.querySelector(
+                    ".aura-team-member, .aura-team-empty"
+                );
+
+                return contadoresFinais && Boolean(listaFinal);
+            }
+
+            const lista = document.getElementById(
+                "lista-notificacoes-cliente"
+            );
+            const estadoFinal = lista?.querySelector(
+                ".aura-notification-item, .aura-notifications-empty, " +
+                ".aura-notifications-erro"
+            );
+            const buscaEmVoo = typeof _promiseNotificacoesEmVoo !== "undefined" &&
+                _promiseNotificacoesEmVoo !== null;
+
+            return Boolean(estadoFinal) && !buscaEmVoo;
+        },
+        viewId,
+        { timeout: 10000 }
+    );
+}
+
 async function testarPerfil(browser, baseUrl, perfil) {
     const page = await browser.newPage();
     const erros = coletarErrosConsole(page);
@@ -127,10 +223,10 @@ async function testarPerfil(browser, baseUrl, perfil) {
                 return window.ativarAba(id);
             }, viewId);
 
-            // Os controllers disparam cargas assíncronas ao ativar a aba.
-            await page.waitForLoadState("networkidle").catch(() => {});
-
             const esperado = perfil.esperado[viewId];
+
+            await esperarProntidaoDaView(page, viewId, esperado);
+            await esperarCargaAssincronaDaView(page, viewId, esperado);
 
             if (ativou !== esperado) {
                 falhas.push(
