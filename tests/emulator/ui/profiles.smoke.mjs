@@ -111,6 +111,47 @@ function ehNegativaEsperadaDoFunilPublico({
     );
 }
 
+/**
+ * `networkidle` não é uma condição de prontidão válida neste dashboard:
+ * listeners persistentes do Firebase podem manter a rede ocupada mesmo depois
+ * de a troca de aba e o gate de permissão terem terminado. O contrato deste
+ * smoke é exatamente o estado de navegação/permissão produzido por
+ * `ativarAba()`:
+ *
+ * - acesso permitido: a seção solicitada fica ativa e visível;
+ * - acesso negado: a seção solicitada não fica ativa e a aba já ativa não é
+ *   removida.
+ *
+ * Esses são sinais do produto, não uma espera fixa. Eles também são os estados
+ * dos quais dependem as asserções de acesso, visibilidade, permissão e
+ * navegação realizadas logo abaixo.
+ */
+async function esperarProntidaoDaView(page, viewId, acessoPermitido) {
+    await page.waitForFunction(
+        ({ id, permitido }) => {
+            const alvo = document.getElementById(id);
+            const ativa = document.querySelector(".view-section.active");
+
+            if (!alvo || !ativa) return false;
+
+            if (!permitido) {
+                return !alvo.classList.contains("active") && ativa.id !== id;
+            }
+
+            const estilo = window.getComputedStyle(alvo);
+            return (
+                ativa === alvo &&
+                alvo.classList.contains("active") &&
+                !alvo.hidden &&
+                estilo.display !== "none" &&
+                estilo.visibility !== "hidden"
+            );
+        },
+        { id: viewId, permitido: acessoPermitido },
+        { timeout: 10000 }
+    );
+}
+
 async function testarPerfil(browser, baseUrl, perfil) {
     const page = await browser.newPage();
     const erros = coletarErrosConsole(page);
@@ -127,10 +168,9 @@ async function testarPerfil(browser, baseUrl, perfil) {
                 return window.ativarAba(id);
             }, viewId);
 
-            // Os controllers disparam cargas assíncronas ao ativar a aba.
-            await page.waitForLoadState("networkidle").catch(() => {});
-
             const esperado = perfil.esperado[viewId];
+
+            await esperarProntidaoDaView(page, viewId, esperado);
 
             if (ativou !== esperado) {
                 falhas.push(
