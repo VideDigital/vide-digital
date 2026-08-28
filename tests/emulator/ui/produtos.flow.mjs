@@ -410,10 +410,157 @@ async function main() {
         assert.equal(await page.inputValue("#catalogo-busca"), "", "A recarga não deve restaurar autofill ou busca anterior");
         await page.waitForFunction(() => document.querySelectorAll("#produtos-container .aura-commerce-card").length === 2, null, { timeout: 15000 });
 
+        // PRODUTOS-MOBILE-001B — instrumentação DIAGNÓSTICA (read-only em
+        // relação ao próprio app): não altera nenhum comportamento de
+        // produto, não enfraquece a assertion original abaixo (continua
+        // sendo uma única chamada a isVisible(), comparada com true, sem
+        // polling/retry/sleep) — só captura evidência estruturada em volta
+        // dela. Ver PRODUTOS-MOBILE-001/001A para o contexto do finding.
+        await page.evaluate(() => {
+            window.__diagCatalogoMutations = [];
+            const alvos = [
+                ["view-catalogo", document.getElementById("view-catalogo")],
+                ["produtos-workspace", document.getElementById("produtos-workspace")],
+                ["aura-catalog-tools", document.querySelector("#view-catalogo .aura-catalog-tools")],
+                ["aura-catalog-search", document.querySelector("#view-catalogo .aura-catalog-search")],
+                ["catalogo-busca", document.getElementById("catalogo-busca")]
+            ];
+            window.__diagCatalogoObservers = alvos
+                .filter(([, el]) => el)
+                .map(([nome, el]) => {
+                    const observer = new MutationObserver((mutations) => {
+                        for (const m of mutations) {
+                            window.__diagCatalogoMutations.push({
+                                alvo: nome,
+                                atributo: m.attributeName,
+                                valorAntigo: m.oldValue,
+                                valorNovo: el.getAttribute(m.attributeName),
+                                timestamp: performance.now()
+                            });
+                        }
+                    });
+                    observer.observe(el, {
+                        attributes: true,
+                        attributeOldValue: true,
+                        attributeFilter: ["class", "style", "hidden", "data-produtos-mode"]
+                    });
+                    return observer;
+                });
+            window.__diagCatalogoRafLog = [];
+            const registrarRaf = () => {
+                window.__diagCatalogoRafLog.push(performance.now());
+                if (window.__diagCatalogoRafLog.length < 5) requestAnimationFrame(registrarRaf);
+            };
+            requestAnimationFrame(registrarRaf);
+        });
+
+        const capturarSnapshotCatalogoDiag = () => {
+            function retangulo(el) {
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                return { x: r.x, y: r.y, width: r.width, height: r.height };
+            }
+            function estiloBasico(el) {
+                if (!el) return null;
+                const cs = getComputedStyle(el);
+                return { display: cs.display, visibility: cs.visibility, opacity: cs.opacity };
+            }
+            const viewCatalogo = document.getElementById("view-catalogo");
+            const workspace = document.getElementById("produtos-workspace");
+            const tools = document.querySelector("#view-catalogo .aura-catalog-tools");
+            const search = document.querySelector("#view-catalogo .aura-catalog-search");
+            const busca = document.getElementById("catalogo-busca");
+            const activeView = document.querySelector(".view-section.active");
+            return {
+                timestamp: performance.now(),
+                viewport: { width: window.innerWidth, height: window.innerHeight },
+                documentReadyState: document.readyState,
+                fontsStatus: (document.fonts && document.fonts.status) || null,
+                activeElementTag: document.activeElement ? document.activeElement.tagName : null,
+                activeViewId: activeView ? activeView.id : null,
+                catalogoBuscaDuplicateCount: document.querySelectorAll("#catalogo-busca").length,
+                viewCatalogo: viewCatalogo ? { className: viewCatalogo.className, ...estiloBasico(viewCatalogo), rect: retangulo(viewCatalogo) } : null,
+                produtosWorkspace: workspace ? {
+                    parentId: workspace.parentElement ? workspace.parentElement.id : null,
+                    produtosMode: workspace.dataset.produtosMode || null,
+                    ...estiloBasico(workspace),
+                    rect: retangulo(workspace)
+                } : null,
+                auraCatalogTools: tools ? {
+                    ...estiloBasico(tools),
+                    gridTemplateColumns: getComputedStyle(tools).gridTemplateColumns,
+                    flexDirection: getComputedStyle(tools).flexDirection,
+                    rect: retangulo(tools)
+                } : null,
+                auraCatalogSearch: search ? {
+                    ...estiloBasico(search),
+                    width: getComputedStyle(search).width,
+                    minWidth: getComputedStyle(search).minWidth,
+                    maxWidth: getComputedStyle(search).maxWidth,
+                    rect: retangulo(search)
+                } : null,
+                catalogoBusca: busca ? {
+                    ...estiloBasico(busca),
+                    clientWidth: busca.clientWidth,
+                    clientHeight: busca.clientHeight,
+                    offsetWidth: busca.offsetWidth,
+                    offsetHeight: busca.offsetHeight,
+                    rect: retangulo(busca)
+                } : null
+            };
+        };
+        const capturarCadeiaAncestrais = () => {
+            const alvo = document.querySelector("#view-catalogo #catalogo-busca");
+            if (!alvo) return null;
+            const cadeia = [];
+            let el = alvo;
+            while (el && el.nodeType === 1) {
+                const cs = getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                cadeia.push({
+                    tag: el.tagName,
+                    id: el.id || null,
+                    classes: el.className || null,
+                    display: cs.display,
+                    visibility: cs.visibility,
+                    opacity: cs.opacity,
+                    width: r.width,
+                    height: r.height
+                });
+                el = el.parentElement;
+            }
+            return cadeia;
+        };
+
+        const snapshotAntesResize = await page.evaluate(capturarSnapshotCatalogoDiag);
+
         await page.setViewportSize({ width: 390, height: 844 });
+
+        const snapshotDepoisResize = await page.evaluate(capturarSnapshotCatalogoDiag);
+
         const overflowCatalogoMobile = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         assert.ok(overflowCatalogoMobile <= 1, `Catálogo não deve criar overflow horizontal no mobile (${overflowCatalogoMobile}px)`);
-        assert.equal(await page.locator("#view-catalogo #catalogo-busca").isVisible(), true);
+
+        // Assertion original: uma única chamada a isVisible(), comparada
+        // com true — sem polling, sem retry, sem espera. O diagnóstico
+        // abaixo só LÊ o resultado já obtido, nunca o recalcula.
+        const catalogoBuscaVisivelAposResize = await page.locator("#view-catalogo #catalogo-busca").isVisible();
+        const snapshotNaAssercao = await page.evaluate(capturarSnapshotCatalogoDiag);
+        const cadeiaAncestraisNaAssercao = await page.evaluate(capturarCadeiaAncestrais);
+        const mutationsRegistradas = await page.evaluate(() => window.__diagCatalogoMutations || []);
+        const rafLog = await page.evaluate(() => window.__diagCatalogoRafLog || []);
+
+        console.log("[DIAG PRODUTOS-MOBILE-001B] " + JSON.stringify({
+            resultado: catalogoBuscaVisivelAposResize ? "PASS" : "FAIL",
+            snapshotAntesResize,
+            snapshotDepoisResize,
+            snapshotNaAssercao,
+            cadeiaAncestraisNaAssercao,
+            mutationsRegistradas,
+            rafLog
+        }));
+
+        assert.equal(catalogoBuscaVisivelAposResize, true);
         assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
         assert.equal(await page.locator("#view-produtos .aura-product-toolbar").isVisible(), true);
         const colunasProdutosMobile = await page.locator("#produtos-container").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
