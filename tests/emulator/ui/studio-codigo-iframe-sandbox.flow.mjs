@@ -154,28 +154,38 @@ async function main() {
         assert.equal(resultadoPublicar?.ok, true, "LP com bloco codigo_iframe precisa publicar normalmente");
 
         const blocoPublicoSnap = await db.collection("landing_pages_blocos_publicas").doc(BLOCO_ID).get();
-        assert.equal(blocoPublicoSnap.data()?.props?.htmlCustom, PAYLOAD_HTML, "htmlCustom precisa ter sido publicado sem sanitização na escrita (a defesa é só no render)");
+        const blocoPublicadoData = blocoPublicoSnap.data();
+        assert.equal(blocoPublicadoData?.props?.htmlCustom, PAYLOAD_HTML, "htmlCustom precisa ter sido publicado sem sanitização na escrita (a defesa é só no render)");
 
-        // Mesma técnica de ?p=<loja>/<pagina> usada pelos outros E2E de LP
-        // pública deste repositório (ver studio-custom-fields-authoring.flow.mjs
-        // e landing-page-leads.flow.mjs) — index.html só resolve a rota fixa
-        // de domínio em videdigital.github.io; localmente cai em
-        // mostrarErro(), então este teste lê o HTML publicado real e injeta
-        // via a função REAL de renderização, extraída do próprio index.html.
+        // PR62-REV-001: index.html só resolve automaticamente a rota
+        // loja/pagina de 2 segmentos quando window.location.hostname ===
+        // "videdigital.github.io" (rota fixa do GitHub Pages). Forjar esse
+        // hostname localmente enganaria também shouldUseVideEmulators()
+        // (que exige localhost/127.0.0.1) e apontaria o SDK pro Firebase de
+        // produção real dentro de um teste — inaceitável (mesmo motivo já
+        // documentado em landing-page-leads.flow.mjs). Por isso navegamos
+        // com ?p= só pra ter um documento index.html real com #lp-container
+        // no DOM — e então EXECUTAMOS a implementação REAL de
+        // renderizarBloco(), extraída por texto do próprio index.html via
+        // new Function() e nunca reconstruída à mão, contra o bloco
+        // efetivamente publicado no Firestore. Se o branch codigo_iframe
+        // real de index.html perder o sandbox, mudar a allowlist ou
+        // quebrar de qualquer outra forma, este teste falha — quem gera o
+        // HTML inserido no DOM é o código real, não uma string escrita à
+        // mão.
         const { readFile } = await import("node:fs/promises");
         const path = await import("node:path");
         const { REPO_ROOT } = await import("./_helpers.mjs");
         const indexSource = await readFile(path.join(REPO_ROOT, "index.html"), "utf8");
-        const startFn = indexSource.indexOf("} else if (bloco.tipo === \"codigo_iframe\") {");
-        assert.ok(startFn > 0, "não foi possível localizar o branch codigo_iframe em index.html");
-        const iframeHtmlPublico = await page.evaluate(({ payload, altura }) => {
-            const safe = String(payload).replace(/"/g, "&quot;");
-            return `<iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${safe}" style="width:100%; height:${altura}px; border:0;" class="rounded-xl w-full bg-white"></iframe>`;
-        }, { payload: PAYLOAD_HTML, altura: 200 });
-        // Confirma que essa string bate com a que index.html realmente
-        // produziria pra este bloco (mesma allowlist, mesmo srcdoc) — não é
-        // uma verificação por si só, é a preparação da injeção real abaixo.
-        assert.match(indexSource, /sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc=/, "index.html precisa gerar o mesmo atributo sandbox no branch codigo_iframe");
+        const startFn = indexSource.indexOf("async function renderizarBloco(bloco, modoLayout) {");
+        assert.ok(startFn > 0, "não foi possível localizar renderizarBloco em index.html");
+        const endFn = indexSource.indexOf("function mostrarErro() {", startFn);
+        assert.ok(endFn > startFn, "não foi possível localizar o fim de renderizarBloco em index.html");
+        const rendererSource = indexSource.slice(startFn, endFn);
+        // Checagem de que a extração pegou a função certa (sanidade da
+        // fatia de texto) — a prova de comportamento real vem da execução
+        // abaixo, não desta linha.
+        assert.match(rendererSource, /bloco\.tipo === "codigo_iframe"/, "o trecho extraído de index.html precisa conter o branch codigo_iframe");
 
         await page.goto(`${baseUrl}/index.html?p=${STORE_SLUG}/lp-iframe-sandbox-qa-${SUFIXO}&useEmulator=true`, { waitUntil: "load", timeout: 30000 });
         await page.waitForFunction(
@@ -183,9 +193,31 @@ async function main() {
             undefined,
             { timeout: 20000 }
         );
-        await page.evaluate((html) => {
-            document.getElementById("lp-container").innerHTML = html;
-        }, iframeHtmlPublico);
+
+        // Mesma chamada e mesmo padrão de inserção que
+        // renderizarBlocosNoContainer() usa em produção:
+        // container.insertAdjacentHTML("beforeend", await
+        // renderizarBloco(bloco, "empilhado")).
+        const blocoParaRender = JSON.parse(JSON.stringify({
+            tipo: blocoPublicadoData.tipo,
+            props: blocoPublicadoData.props,
+            design: blocoPublicadoData.design || {}
+        }));
+        await page.evaluate(async ({ rendererSource: src, bloco }) => {
+            const renderizarBlocoReal = new Function(`${src}; return renderizarBloco;`)();
+            const html = await renderizarBlocoReal(bloco, "empilhado");
+            document.getElementById("lp-container").insertAdjacentHTML("beforeend", html);
+        }, { rendererSource, bloco: blocoParaRender });
+
+        const iframeAttrsPublico = await page.locator("#lp-container iframe").first().evaluate((el) => ({
+            sandbox: el.getAttribute("sandbox"),
+            hasSrcdoc: el.hasAttribute("srcdoc")
+        }));
+        assert.equal(iframeAttrsPublico.hasSrcdoc, true, "o iframe do renderer público (gerado pelo renderizarBloco REAL) precisa continuar usando srcdoc");
+        assert.ok(iframeAttrsPublico.sandbox, "o iframe do renderer público (gerado pelo renderizarBloco REAL) precisa ter o atributo sandbox");
+        const flagsSetPublico = new Set(iframeAttrsPublico.sandbox.split(/\s+/).filter(Boolean));
+        assert.ok(flagsSetPublico.has("allow-scripts"), "sandbox do renderer público precisa incluir allow-scripts");
+        assert.ok(!flagsSetPublico.has("allow-same-origin"), "sandbox do renderer público NUNCA pode incluir allow-same-origin");
 
         const framePublico = await localizarFrameDoIframeCustom(page);
         await framePublico.waitForFunction(() => window.__iframeExecutouInternamente === true, undefined, { timeout: 10000 });
