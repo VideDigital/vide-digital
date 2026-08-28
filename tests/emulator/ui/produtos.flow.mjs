@@ -410,10 +410,322 @@ async function main() {
         assert.equal(await page.inputValue("#catalogo-busca"), "", "A recarga não deve restaurar autofill ou busca anterior");
         await page.waitForFunction(() => document.querySelectorAll("#produtos-container .aura-commerce-card").length === 2, null, { timeout: 15000 });
 
+        // PRODUTOS-MOBILE-001B — instrumentação DIAGNÓSTICA (read-only em
+        // relação ao próprio app): não altera nenhum comportamento de
+        // produto, não enfraquece a assertion original abaixo (continua
+        // sendo uma única chamada a isVisible(), comparada com true, sem
+        // polling/retry/sleep) — só captura evidência estruturada em volta
+        // dela. Ver PRODUTOS-MOBILE-001/001A para o contexto do finding.
+        await page.evaluate(() => {
+            window.__diagCatalogoMutations = [];
+            const alvos = [
+                ["view-catalogo", document.getElementById("view-catalogo")],
+                ["produtos-workspace", document.getElementById("produtos-workspace")],
+                ["aura-catalog-tools", document.querySelector("#view-catalogo .aura-catalog-tools")],
+                ["aura-catalog-search", document.querySelector("#view-catalogo .aura-catalog-search")],
+                ["catalogo-busca", document.getElementById("catalogo-busca")]
+            ];
+            window.__diagCatalogoObservers = alvos
+                .filter(([, el]) => el)
+                .map(([nome, el]) => {
+                    const observer = new MutationObserver((mutations) => {
+                        for (const m of mutations) {
+                            window.__diagCatalogoMutations.push({
+                                alvo: nome,
+                                atributo: m.attributeName,
+                                valorAntigo: m.oldValue,
+                                valorNovo: el.getAttribute(m.attributeName),
+                                timestamp: performance.now()
+                            });
+                        }
+                    });
+                    observer.observe(el, {
+                        attributes: true,
+                        attributeOldValue: true,
+                        attributeFilter: ["class", "style", "hidden", "data-produtos-mode"]
+                    });
+                    return observer;
+                });
+            window.__diagCatalogoRafLog = [];
+            const registrarRaf = () => {
+                window.__diagCatalogoRafLog.push(performance.now());
+                if (window.__diagCatalogoRafLog.length < 5) requestAnimationFrame(registrarRaf);
+            };
+            requestAnimationFrame(registrarRaf);
+        });
+
+        // PRODUTOS-MOBILE-001C — instrumentação TEMPORÁRIA de call stack.
+        // Intercepta os métodos reais (nunca os substitui de verdade: SEMPRE
+        // chama o original, com o mesmo retorno) só para os casos exatos que
+        // importam (token "active" em #view-catalogo; data-produtos-mode em
+        // #produtos-workspace), capturando quem chamou via new Error().stack.
+        // classList.add/remove/toggle são o ponto de interceptação certo
+        // (não setAttribute — motores nativos não roteiam DOMTokenList por
+        // ali). dataset.produtosMode É especificado como equivalente a
+        // setAttribute, mas na prática o binding nativo do Chromium não
+        // passa pelo Element.prototype.setAttribute — por isso também
+        // sombreamos a própria propriedade "dataset" só na instância de
+        // #produtos-workspace (Object.defineProperty), com um Proxy que
+        // intercepta a escrita de "produtosMode" e repassa pro
+        // DOMStringMap real. Os dois mecanismos coexistem: se setAttribute
+        // disparar, ambos registram (e o log distingue qual foi).
+        await page.evaluate(() => {
+            window.__diagClassListTrace = [];
+            window.__diagSetAttributeTrace = [];
+            window.__diagDatasetTrace = [];
+
+            const viewCatalogo = document.getElementById("view-catalogo");
+            const workspace = document.getElementById("produtos-workspace");
+
+            if (viewCatalogo) {
+                const originalAdd = DOMTokenList.prototype.add;
+                const originalRemove = DOMTokenList.prototype.remove;
+                const originalToggle = DOMTokenList.prototype.toggle;
+
+                const ehClassListDoAlvo = (tokenList) => viewCatalogo.classList === tokenList;
+
+                DOMTokenList.prototype.add = function (...tokens) {
+                    if (!ehClassListDoAlvo(this)) return originalAdd.apply(this, tokens);
+                    const antes = viewCatalogo.className;
+                    const activeAntes = document.querySelectorAll(".view-section.active")[0]?.id || null;
+                    const resultado = originalAdd.apply(this, tokens);
+                    if (tokens.includes("active")) {
+                        window.__diagClassListTrace.push({
+                            operation: "add",
+                            token: "active",
+                            timestamp: performance.now(),
+                            classNameBefore: antes,
+                            classNameAfter: viewCatalogo.className,
+                            activeViewBefore: activeAntes,
+                            activeViewAfter: document.querySelectorAll(".view-section.active")[0]?.id || null,
+                            stack: new Error().stack || null
+                        });
+                    }
+                    return resultado;
+                };
+
+                DOMTokenList.prototype.remove = function (...tokens) {
+                    if (!ehClassListDoAlvo(this)) return originalRemove.apply(this, tokens);
+                    const antes = viewCatalogo.className;
+                    const activeAntes = document.querySelectorAll(".view-section.active")[0]?.id || null;
+                    const resultado = originalRemove.apply(this, tokens);
+                    if (tokens.includes("active")) {
+                        window.__diagClassListTrace.push({
+                            operation: "remove",
+                            token: "active",
+                            timestamp: performance.now(),
+                            classNameBefore: antes,
+                            classNameAfter: viewCatalogo.className,
+                            activeViewBefore: activeAntes,
+                            activeViewAfter: document.querySelectorAll(".view-section.active")[0]?.id || null,
+                            stack: new Error().stack || null
+                        });
+                    }
+                    return resultado;
+                };
+
+                DOMTokenList.prototype.toggle = function (token, force) {
+                    if (!ehClassListDoAlvo(this) || token !== "active") {
+                        return originalToggle.apply(this, arguments);
+                    }
+                    const antes = viewCatalogo.className;
+                    const activeAntes = document.querySelectorAll(".view-section.active")[0]?.id || null;
+                    const resultado = originalToggle.apply(this, arguments);
+                    window.__diagClassListTrace.push({
+                        operation: "toggle",
+                        token: "active",
+                        timestamp: performance.now(),
+                        classNameBefore: antes,
+                        classNameAfter: viewCatalogo.className,
+                        activeViewBefore: activeAntes,
+                        activeViewAfter: document.querySelectorAll(".view-section.active")[0]?.id || null,
+                        stack: new Error().stack || null
+                    });
+                    return resultado;
+                };
+
+                window.__diagClassListRestore = () => {
+                    DOMTokenList.prototype.add = originalAdd;
+                    DOMTokenList.prototype.remove = originalRemove;
+                    DOMTokenList.prototype.toggle = originalToggle;
+                };
+            }
+
+            const originalSetAttribute = Element.prototype.setAttribute;
+            Element.prototype.setAttribute = function (name, value) {
+                if (this.id === "produtos-workspace" && name === "data-produtos-mode") {
+                    window.__diagSetAttributeTrace.push({
+                        oldValue: this.getAttribute(name),
+                        newValue: value,
+                        timestamp: performance.now(),
+                        stack: new Error().stack || null
+                    });
+                }
+                return originalSetAttribute.call(this, name, value);
+            };
+            window.__diagSetAttributeRestore = () => {
+                Element.prototype.setAttribute = originalSetAttribute;
+            };
+
+            if (workspace) {
+                const datasetReal = workspace.dataset;
+                const datasetProxy = new Proxy(datasetReal, {
+                    set(target, prop, value) {
+                        if (prop === "produtosMode") {
+                            window.__diagDatasetTrace.push({
+                                oldValue: target[prop] ?? null,
+                                newValue: value,
+                                timestamp: performance.now(),
+                                stack: new Error().stack || null
+                            });
+                        }
+                        return Reflect.set(target, prop, value);
+                    }
+                });
+                try {
+                    Object.defineProperty(workspace, "dataset", {
+                        configurable: true,
+                        get: () => datasetProxy
+                    });
+                    window.__diagDatasetShadowInstalado = true;
+                } catch (err) {
+                    window.__diagDatasetShadowInstalado = false;
+                    window.__diagDatasetShadowErro = String(err && err.message || err);
+                }
+            }
+        });
+
+        const capturarSnapshotCatalogoDiag = () => {
+            function retangulo(el) {
+                if (!el) return null;
+                const r = el.getBoundingClientRect();
+                return { x: r.x, y: r.y, width: r.width, height: r.height };
+            }
+            function estiloBasico(el) {
+                if (!el) return null;
+                const cs = getComputedStyle(el);
+                return { display: cs.display, visibility: cs.visibility, opacity: cs.opacity };
+            }
+            const viewCatalogo = document.getElementById("view-catalogo");
+            const workspace = document.getElementById("produtos-workspace");
+            const tools = document.querySelector("#view-catalogo .aura-catalog-tools");
+            const search = document.querySelector("#view-catalogo .aura-catalog-search");
+            const busca = document.getElementById("catalogo-busca");
+            const activeView = document.querySelector(".view-section.active");
+            return {
+                timestamp: performance.now(),
+                viewport: { width: window.innerWidth, height: window.innerHeight },
+                documentReadyState: document.readyState,
+                fontsStatus: (document.fonts && document.fonts.status) || null,
+                activeElementTag: document.activeElement ? document.activeElement.tagName : null,
+                activeViewId: activeView ? activeView.id : null,
+                catalogoBuscaDuplicateCount: document.querySelectorAll("#catalogo-busca").length,
+                viewCatalogo: viewCatalogo ? { className: viewCatalogo.className, ...estiloBasico(viewCatalogo), rect: retangulo(viewCatalogo) } : null,
+                produtosWorkspace: workspace ? {
+                    parentId: workspace.parentElement ? workspace.parentElement.id : null,
+                    produtosMode: workspace.dataset.produtosMode || null,
+                    ...estiloBasico(workspace),
+                    rect: retangulo(workspace)
+                } : null,
+                auraCatalogTools: tools ? {
+                    ...estiloBasico(tools),
+                    gridTemplateColumns: getComputedStyle(tools).gridTemplateColumns,
+                    flexDirection: getComputedStyle(tools).flexDirection,
+                    rect: retangulo(tools)
+                } : null,
+                auraCatalogSearch: search ? {
+                    ...estiloBasico(search),
+                    width: getComputedStyle(search).width,
+                    minWidth: getComputedStyle(search).minWidth,
+                    maxWidth: getComputedStyle(search).maxWidth,
+                    rect: retangulo(search)
+                } : null,
+                catalogoBusca: busca ? {
+                    ...estiloBasico(busca),
+                    clientWidth: busca.clientWidth,
+                    clientHeight: busca.clientHeight,
+                    offsetWidth: busca.offsetWidth,
+                    offsetHeight: busca.offsetHeight,
+                    rect: retangulo(busca)
+                } : null
+            };
+        };
+        const capturarCadeiaAncestrais = () => {
+            const alvo = document.querySelector("#view-catalogo #catalogo-busca");
+            if (!alvo) return null;
+            const cadeia = [];
+            let el = alvo;
+            while (el && el.nodeType === 1) {
+                const cs = getComputedStyle(el);
+                const r = el.getBoundingClientRect();
+                cadeia.push({
+                    tag: el.tagName,
+                    id: el.id || null,
+                    classes: el.className || null,
+                    display: cs.display,
+                    visibility: cs.visibility,
+                    opacity: cs.opacity,
+                    width: r.width,
+                    height: r.height
+                });
+                el = el.parentElement;
+            }
+            return cadeia;
+        };
+
+        const snapshotAntesResize = await page.evaluate(capturarSnapshotCatalogoDiag);
+
         await page.setViewportSize({ width: 390, height: 844 });
+
+        const snapshotDepoisResize = await page.evaluate(capturarSnapshotCatalogoDiag);
+
         const overflowCatalogoMobile = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
         assert.ok(overflowCatalogoMobile <= 1, `Catálogo não deve criar overflow horizontal no mobile (${overflowCatalogoMobile}px)`);
-        assert.equal(await page.locator("#view-catalogo #catalogo-busca").isVisible(), true);
+
+        // Assertion original: uma única chamada a isVisible(), comparada
+        // com true — sem polling, sem retry, sem espera. O diagnóstico
+        // abaixo só LÊ o resultado já obtido, nunca o recalcula.
+        const catalogoBuscaVisivelAposResize = await page.locator("#view-catalogo #catalogo-busca").isVisible();
+        const snapshotNaAssercao = await page.evaluate(capturarSnapshotCatalogoDiag);
+        const cadeiaAncestraisNaAssercao = await page.evaluate(capturarCadeiaAncestrais);
+        const mutationsRegistradas = await page.evaluate(() => window.__diagCatalogoMutations || []);
+        const rafLog = await page.evaluate(() => window.__diagCatalogoRafLog || []);
+
+        // PRODUTOS-MOBILE-001C — coleta dos traces de call stack instalados
+        // acima. Restaura os métodos originais logo em seguida (higiene —
+        // não deve afetar nada depois, já que só chamamos os originais o
+        // tempo todo, mas evita qualquer interferência residual no restante
+        // do teste, inclusive no ativarAba("view-produtos") logo abaixo).
+        const classListTrace = await page.evaluate(() => window.__diagClassListTrace || []);
+        const setAttributeTrace = await page.evaluate(() => window.__diagSetAttributeTrace || []);
+        const datasetTrace = await page.evaluate(() => window.__diagDatasetTrace || []);
+        const datasetShadowInstalado = await page.evaluate(() => window.__diagDatasetShadowInstalado ?? null);
+        const datasetShadowErro = await page.evaluate(() => window.__diagDatasetShadowErro || null);
+        await page.evaluate(() => {
+            window.__diagClassListRestore?.();
+            window.__diagSetAttributeRestore?.();
+        });
+
+        console.log("[DIAG PRODUTOS-MOBILE-001B] " + JSON.stringify({
+            resultado: catalogoBuscaVisivelAposResize ? "PASS" : "FAIL",
+            snapshotAntesResize,
+            snapshotDepoisResize,
+            snapshotNaAssercao,
+            cadeiaAncestraisNaAssercao,
+            mutationsRegistradas,
+            rafLog
+        }));
+
+        console.log("[DIAG PRODUTOS-MOBILE-001C stacks] " + JSON.stringify({
+            resultado: catalogoBuscaVisivelAposResize ? "PASS" : "FAIL",
+            classListTrace,
+            setAttributeTrace,
+            datasetTrace,
+            datasetShadowInstalado,
+            datasetShadowErro
+        }));
+
+        assert.equal(catalogoBuscaVisivelAposResize, true);
         assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
         assert.equal(await page.locator("#view-produtos .aura-product-toolbar").isVisible(), true);
         const colunasProdutosMobile = await page.locator("#produtos-container").evaluate(el => getComputedStyle(el).gridTemplateColumns.split(" ").length);
