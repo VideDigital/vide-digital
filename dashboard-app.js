@@ -5430,8 +5430,21 @@ document.addEventListener("mousedown", function(e) {
                         <div class="text-gray-300 text-sm space-y-2">${paragrafos.map(p => `<p>${p}</p>`).join("")}</div>
                     </div>`;
 } else if (bloco.tipo === "codigo_iframe") {
+                // PR61-REV2-001: srcdoc SEM sandbox herda a MESMA origem do
+                // dashboard autenticado (não é opaca) — um funcionário com
+                // permissão de landing-pages podia plantar htmlCustom que,
+                // ao ser aberto por outro usuário (inclusive o owner) no
+                // preview do editor básico, lia window.parent.document e
+                // chamava globals privilegiados do próprio dashboard.
+                // sandbox="allow-forms allow-popups allow-presentation
+                // allow-scripts" (sem allow-same-origin, de propósito)
+                // força uma origem opaca real: o HTML/script custom
+                // continua rodando dentro do próprio iframe, mas isolado
+                // do dashboard. Mesma allowlist já usada em
+                // lp-public-v4.js (implementação de referência ainda não
+                // conectada a nenhuma rota ativa).
                 conteudo = bloco.props.htmlCustom
-                    ? `<div class="max-w-3xl mx-auto px-6"><iframe srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
+                    ? `<div class="max-w-3xl mx-auto px-6"><iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
                     : (bloco.props.url
                         ? `<div class="max-w-3xl mx-auto px-6"><div class="bg-white/5 border border-dashed border-white/20 rounded-xl p-6 text-center text-xs text-gray-500">Incorporado: ${bloco.props.url}</div></div>`
                         : `<div class="max-w-3xl mx-auto px-6"><p class="text-xs text-gray-500 text-center">Nenhuma URL definida ainda.</p></div>`);
