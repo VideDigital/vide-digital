@@ -454,6 +454,147 @@ async function main() {
             requestAnimationFrame(registrarRaf);
         });
 
+        // PRODUTOS-MOBILE-001C — instrumentação TEMPORÁRIA de call stack.
+        // Intercepta os métodos reais (nunca os substitui de verdade: SEMPRE
+        // chama o original, com o mesmo retorno) só para os casos exatos que
+        // importam (token "active" em #view-catalogo; data-produtos-mode em
+        // #produtos-workspace), capturando quem chamou via new Error().stack.
+        // classList.add/remove/toggle são o ponto de interceptação certo
+        // (não setAttribute — motores nativos não roteiam DOMTokenList por
+        // ali). dataset.produtosMode É especificado como equivalente a
+        // setAttribute, mas na prática o binding nativo do Chromium não
+        // passa pelo Element.prototype.setAttribute — por isso também
+        // sombreamos a própria propriedade "dataset" só na instância de
+        // #produtos-workspace (Object.defineProperty), com um Proxy que
+        // intercepta a escrita de "produtosMode" e repassa pro
+        // DOMStringMap real. Os dois mecanismos coexistem: se setAttribute
+        // disparar, ambos registram (e o log distingue qual foi).
+        await page.evaluate(() => {
+            window.__diagClassListTrace = [];
+            window.__diagSetAttributeTrace = [];
+            window.__diagDatasetTrace = [];
+
+            const viewCatalogo = document.getElementById("view-catalogo");
+            const workspace = document.getElementById("produtos-workspace");
+
+            if (viewCatalogo) {
+                const originalAdd = DOMTokenList.prototype.add;
+                const originalRemove = DOMTokenList.prototype.remove;
+                const originalToggle = DOMTokenList.prototype.toggle;
+
+                const ehClassListDoAlvo = (tokenList) => viewCatalogo.classList === tokenList;
+
+                DOMTokenList.prototype.add = function (...tokens) {
+                    if (!ehClassListDoAlvo(this)) return originalAdd.apply(this, tokens);
+                    const antes = viewCatalogo.className;
+                    const activeAntes = document.querySelectorAll(".view-section.active")[0]?.id || null;
+                    const resultado = originalAdd.apply(this, tokens);
+                    if (tokens.includes("active")) {
+                        window.__diagClassListTrace.push({
+                            operation: "add",
+                            token: "active",
+                            timestamp: performance.now(),
+                            classNameBefore: antes,
+                            classNameAfter: viewCatalogo.className,
+                            activeViewBefore: activeAntes,
+                            activeViewAfter: document.querySelectorAll(".view-section.active")[0]?.id || null,
+                            stack: new Error().stack || null
+                        });
+                    }
+                    return resultado;
+                };
+
+                DOMTokenList.prototype.remove = function (...tokens) {
+                    if (!ehClassListDoAlvo(this)) return originalRemove.apply(this, tokens);
+                    const antes = viewCatalogo.className;
+                    const activeAntes = document.querySelectorAll(".view-section.active")[0]?.id || null;
+                    const resultado = originalRemove.apply(this, tokens);
+                    if (tokens.includes("active")) {
+                        window.__diagClassListTrace.push({
+                            operation: "remove",
+                            token: "active",
+                            timestamp: performance.now(),
+                            classNameBefore: antes,
+                            classNameAfter: viewCatalogo.className,
+                            activeViewBefore: activeAntes,
+                            activeViewAfter: document.querySelectorAll(".view-section.active")[0]?.id || null,
+                            stack: new Error().stack || null
+                        });
+                    }
+                    return resultado;
+                };
+
+                DOMTokenList.prototype.toggle = function (token, force) {
+                    if (!ehClassListDoAlvo(this) || token !== "active") {
+                        return originalToggle.apply(this, arguments);
+                    }
+                    const antes = viewCatalogo.className;
+                    const activeAntes = document.querySelectorAll(".view-section.active")[0]?.id || null;
+                    const resultado = originalToggle.apply(this, arguments);
+                    window.__diagClassListTrace.push({
+                        operation: "toggle",
+                        token: "active",
+                        timestamp: performance.now(),
+                        classNameBefore: antes,
+                        classNameAfter: viewCatalogo.className,
+                        activeViewBefore: activeAntes,
+                        activeViewAfter: document.querySelectorAll(".view-section.active")[0]?.id || null,
+                        stack: new Error().stack || null
+                    });
+                    return resultado;
+                };
+
+                window.__diagClassListRestore = () => {
+                    DOMTokenList.prototype.add = originalAdd;
+                    DOMTokenList.prototype.remove = originalRemove;
+                    DOMTokenList.prototype.toggle = originalToggle;
+                };
+            }
+
+            const originalSetAttribute = Element.prototype.setAttribute;
+            Element.prototype.setAttribute = function (name, value) {
+                if (this.id === "produtos-workspace" && name === "data-produtos-mode") {
+                    window.__diagSetAttributeTrace.push({
+                        oldValue: this.getAttribute(name),
+                        newValue: value,
+                        timestamp: performance.now(),
+                        stack: new Error().stack || null
+                    });
+                }
+                return originalSetAttribute.call(this, name, value);
+            };
+            window.__diagSetAttributeRestore = () => {
+                Element.prototype.setAttribute = originalSetAttribute;
+            };
+
+            if (workspace) {
+                const datasetReal = workspace.dataset;
+                const datasetProxy = new Proxy(datasetReal, {
+                    set(target, prop, value) {
+                        if (prop === "produtosMode") {
+                            window.__diagDatasetTrace.push({
+                                oldValue: target[prop] ?? null,
+                                newValue: value,
+                                timestamp: performance.now(),
+                                stack: new Error().stack || null
+                            });
+                        }
+                        return Reflect.set(target, prop, value);
+                    }
+                });
+                try {
+                    Object.defineProperty(workspace, "dataset", {
+                        configurable: true,
+                        get: () => datasetProxy
+                    });
+                    window.__diagDatasetShadowInstalado = true;
+                } catch (err) {
+                    window.__diagDatasetShadowInstalado = false;
+                    window.__diagDatasetShadowErro = String(err && err.message || err);
+                }
+            }
+        });
+
         const capturarSnapshotCatalogoDiag = () => {
             function retangulo(el) {
                 if (!el) return null;
@@ -550,6 +691,21 @@ async function main() {
         const mutationsRegistradas = await page.evaluate(() => window.__diagCatalogoMutations || []);
         const rafLog = await page.evaluate(() => window.__diagCatalogoRafLog || []);
 
+        // PRODUTOS-MOBILE-001C — coleta dos traces de call stack instalados
+        // acima. Restaura os métodos originais logo em seguida (higiene —
+        // não deve afetar nada depois, já que só chamamos os originais o
+        // tempo todo, mas evita qualquer interferência residual no restante
+        // do teste, inclusive no ativarAba("view-produtos") logo abaixo).
+        const classListTrace = await page.evaluate(() => window.__diagClassListTrace || []);
+        const setAttributeTrace = await page.evaluate(() => window.__diagSetAttributeTrace || []);
+        const datasetTrace = await page.evaluate(() => window.__diagDatasetTrace || []);
+        const datasetShadowInstalado = await page.evaluate(() => window.__diagDatasetShadowInstalado ?? null);
+        const datasetShadowErro = await page.evaluate(() => window.__diagDatasetShadowErro || null);
+        await page.evaluate(() => {
+            window.__diagClassListRestore?.();
+            window.__diagSetAttributeRestore?.();
+        });
+
         console.log("[DIAG PRODUTOS-MOBILE-001B] " + JSON.stringify({
             resultado: catalogoBuscaVisivelAposResize ? "PASS" : "FAIL",
             snapshotAntesResize,
@@ -558,6 +714,15 @@ async function main() {
             cadeiaAncestraisNaAssercao,
             mutationsRegistradas,
             rafLog
+        }));
+
+        console.log("[DIAG PRODUTOS-MOBILE-001C stacks] " + JSON.stringify({
+            resultado: catalogoBuscaVisivelAposResize ? "PASS" : "FAIL",
+            classListTrace,
+            setAttributeTrace,
+            datasetTrace,
+            datasetShadowInstalado,
+            datasetShadowErro
         }));
 
         assert.equal(catalogoBuscaVisivelAposResize, true);
