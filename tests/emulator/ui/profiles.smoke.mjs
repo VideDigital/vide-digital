@@ -152,6 +152,61 @@ async function esperarProntidaoDaView(page, viewId, acessoPermitido) {
     );
 }
 
+/**
+ * Duas views iniciam carregamentos assíncronos depois que `ativarAba()` já
+ * deixou a seção visível. A prontidão de navegação acima continua sendo o
+ * contrato principal; este complemento só espera os estados terminais que
+ * essas telas já materializam no produto antes de avaliarmos erros de JS.
+ *
+ * O caminho de erro também é terminal de propósito: ele permite que o smoke
+ * prossiga até a asserção normal de console, que deve reprovar a falha em vez
+ * de escondê-la atrás de um timeout.
+ */
+async function esperarCargaAssincronaDaView(page, viewId, acessoPermitido) {
+    if (!acessoPermitido) return;
+    if (viewId !== "view-funcionarios" && viewId !== "view-notificacoes") {
+        return;
+    }
+
+    await page.waitForFunction(
+        id => {
+            if (id === "view-funcionarios") {
+                const lista = document.getElementById("lista-funcionarios");
+                const contadores = [
+                    document.getElementById("funcionario-total-count"),
+                    document.getElementById("funcionario-active-count"),
+                    document.getElementById("funcionario-inactive-count")
+                ];
+
+                if (lista?.querySelector(".aura-team-error")) return true;
+
+                const contadoresFinais = contadores.every(elemento =>
+                    /^\d+$/.test(elemento?.textContent?.trim() || "")
+                );
+                const listaFinal = lista?.querySelector(
+                    ".aura-team-member, .aura-team-empty"
+                );
+
+                return contadoresFinais && Boolean(listaFinal);
+            }
+
+            const lista = document.getElementById(
+                "lista-notificacoes-cliente"
+            );
+            const estadoFinal = lista?.querySelector(
+                ".aura-notification-item, .aura-notifications-empty, " +
+                ".aura-notifications-erro"
+            );
+            const buscaEmVoo = typeof _promiseNotificacoesEmVoo !== "undefined" &&
+                _promiseNotificacoesEmVoo !== null;
+
+            return Boolean(estadoFinal) && !buscaEmVoo;
+        },
+        viewId,
+        { timeout: 10000 }
+    );
+}
+
 async function testarPerfil(browser, baseUrl, perfil) {
     const page = await browser.newPage();
     const erros = coletarErrosConsole(page);
@@ -171,6 +226,7 @@ async function testarPerfil(browser, baseUrl, perfil) {
             const esperado = perfil.esperado[viewId];
 
             await esperarProntidaoDaView(page, viewId, esperado);
+            await esperarCargaAssincronaDaView(page, viewId, esperado);
 
             if (ativou !== esperado) {
                 falhas.push(
