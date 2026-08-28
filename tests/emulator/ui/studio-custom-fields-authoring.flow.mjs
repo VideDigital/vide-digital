@@ -11,9 +11,11 @@
 // — sem montar props.campos em JS nem semear camposExtras via Admin SDK.
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import path from "node:path";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
+    REPO_ROOT,
     captureDiagnostics,
     coletarErrosConsole,
     ehErroDeRedeExterno,
@@ -21,6 +23,30 @@ import {
     loginReal,
     startStaticServer
 } from "./_helpers.mjs";
+
+// index.html só resolve a rota pública de LP (2 segmentos loja/página) na
+// rota fixa de domínio (window.location.hostname === "videdigital.github.io")
+// — em qualquer outro host, inclusive o servidor estático local deste
+// teste, cai sempre no branch `else { mostrarErro() }` (ver comentário
+// idêntico em landing-page-leads.flow.mjs). Forjar esse hostname pra
+// contornar isso enganaria também shouldUseVideEmulators() e apontaria o
+// SDK pro Firebase de produção real — inaceitável dentro de um teste.
+// Por isso este teste, assim como landing-page-leads.flow.mjs, injeta o
+// HTML do formulário diretamente em #lp-container. A diferença: em vez de
+// um HTML escrito à mão (que não provaria nada sobre o renderer real),
+// este extrai e executa a função renderizarCamposFormulario() de VERDADE
+// direto do index.html publicado — mesma técnica de extração usada por
+// extrairRendererReal() em tests/lead-engine-core.test.mjs — contra os
+// campos REALMENTE publicados no Firestore. O submit em seguida usa o
+// window.enviarFormularioLP real (esse sim já é global incondicionalmente,
+// fora de qualquer branch de rota), então tudo depois da injeção do HTML
+// é pipeline de produção genuíno, não simulado.
+function extrairRendererCamposFormularioReal(indexSource) {
+    const start = indexSource.indexOf("function escaparAtributoFormulario");
+    const end = indexSource.indexOf("function camposExtrasDoFormulario");
+    assert.ok(start > 0 && end > start, "não foi possível localizar renderizarCamposFormulario em index.html");
+    return new Function(`${indexSource.slice(start, end)}; return renderizarCamposFormulario;`)();
+}
 
 const PROJECT_ID = "demo-vide-hub";
 const STORE_UID = "owner-pro";
@@ -228,7 +254,45 @@ async function main() {
         const camposPublicados = blocoPublicoSnap.data()?.props?.campos || [];
         assert.equal(camposPublicados.filter((c) => typeof c === "object" && c).length, 4, "os 4 campos personalizados precisam ter sido publicados junto com o bloco");
 
-        await page.goto(`${baseUrl}/${STORE_SLUG}/${LP_SLUG}?useEmulator=true`, { waitUntil: "load", timeout: 30000 });
+        // ?p=<lojaSlug>/<paginaSlug> é a mesma técnica que o 404.html real
+        // do GitHub Pages usa (restaurada por history.replaceState() no
+        // topo do próprio index.html) — sem isso, o servidor estático
+        // deste teste (que só serve arquivos literais, sem rewrite de
+        // SPA) responderia 404 "Not found" pra /loja/pagina diretamente.
+        // Mesmo assim, com 2 segmentos e host != videdigital.github.io, o
+        // próprio index.html cai em mostrarErro() (ver comentário acima) —
+        // por isso a espera por "Pagina nao encontrada" antes de injetar o
+        // form real, garantindo que a IIFE assíncrona da página já
+        // terminou de decidir a rota (senão ela pode sobrescrever
+        // #lp-container DEPOIS da injeção).
+        await page.goto(`${baseUrl}/index.html?p=${STORE_SLUG}/${LP_SLUG}&useEmulator=true`, { waitUntil: "load", timeout: 30000 });
+        await page.waitForFunction(
+            () => (document.getElementById("lp-container")?.textContent || "").includes("Pagina nao encontrada"),
+            undefined,
+            { timeout: 20000 }
+        );
+
+        const indexSource = await readFile(path.join(REPO_ROOT, "index.html"), "utf8");
+        const rendererCampos = extrairRendererCamposFormularioReal(indexSource);
+        const camposHtml = rendererCampos(camposPublicados);
+        const tituloBloco = blocoPublicoSnap.data()?.props?.titulo || "";
+        const textoBotaoBloco = blocoPublicoSnap.data()?.props?.textoBotao || "Enviar";
+        // window.lpPublicPageIdAtual normalmente é setado por
+        // renderizarLandingPage() — como o teste pula essa rota (ver
+        // comentário acima), replica aqui o mesmo valor que ela teria
+        // calculado (mesmo padrão de landing-page-leads.flow.mjs).
+        await page.evaluate(({ html, titulo, textoBotao, publicPageId }) => {
+            window.lpPublicPageIdAtual = publicPageId;
+            document.getElementById("lp-container").innerHTML = `
+                <div class="max-w-md mx-auto px-6 text-left">
+                    <h2 class="text-2xl font-bold mb-6">${titulo}</h2>
+                    <form class="space-y-3 text-left" onsubmit="return enviarFormularioLP(event)">
+                        ${html}
+                        <button type="submit" class="w-full font-bold py-3 rounded-xl bg-white text-black">${textoBotao}</button>
+                    </form>
+                </div>
+            `;
+        }, { html: camposHtml, titulo: tituloBloco, textoBotao: textoBotaoBloco, publicPageId: DOC_ID_PUBLICO });
         await page.waitForSelector('input[name="nome"]', { state: "visible", timeout: 20000 });
 
         // Confirma no DOM real que o renderer público aplicou type/required
