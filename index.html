@@ -500,8 +500,17 @@ const lp = snap.docs[0].data();
                     </div>
                 </div>`;
         } else if (bloco.tipo === "codigo_iframe") {
+            // PR61-REV2-001: srcdoc SEM sandbox herda a MESMA origem do
+            // documento pai (não é opaca) — permite que o htmlCustom leia
+            // window.parent.document e chame globals do pai. sandbox=
+            // "allow-forms allow-popups allow-presentation allow-scripts"
+            // (sem allow-same-origin, de propósito) força uma origem
+            // opaca real: o HTML/script custom continua rodando dentro do
+            // próprio iframe, mas fica isolado do documento pai. Mesma
+            // allowlist já usada em lp-public-v4.js (implementação de
+            // referência ainda não conectada a nenhuma rota ativa).
             conteudoHtml = bloco.props.htmlCustom
-                ? `<div class="max-w-5xl mx-auto px-6"><iframe srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
+                ? `<div class="max-w-5xl mx-auto px-6"><iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
                 : (bloco.props.url
                     ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
                     : "");
