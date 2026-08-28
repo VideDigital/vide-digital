@@ -295,6 +295,22 @@ async function main() {
         }, { html: camposHtml, titulo: tituloBloco, textoBotao: textoBotaoBloco, publicPageId: DOC_ID_PUBLICO });
         await page.waitForSelector('input[name="nome"]', { state: "visible", timeout: 20000 });
 
+        // lp-forms-v5.js (módulo carregado incondicionalmente no fim de
+        // index.html) varre o DOM via MutationObserver e "aprimora"
+        // QUALQUER form que encontrar, inclusive este injetado — mesmo
+        // padrão documentado em landing-page-leads.flow.mjs. Sem esperar
+        // enhanceForm() terminar (dataset.auraFormsV5 === "ready") e sem
+        // respeitar o anti-spam real de >=1200ms entre o aprimoramento e o
+        // submit, AuraFormsV5 descarta a submissão silenciosamente — sem
+        // erro, sem lead criado. Achado real ao rodar pela primeira vez em
+        // CI (o teste anterior não esperava por nenhum dos dois).
+        await page.waitForFunction(() => typeof window.AuraFormsV5 === "object", undefined, { timeout: 20000 });
+        await page.waitForFunction(
+            () => document.querySelector("#lp-container form")?.dataset.auraFormsV5 === "ready",
+            undefined,
+            { timeout: 10000 }
+        );
+
         // Confirma no DOM real que o renderer público aplicou type/required
         // corretamente pros campos personalizados publicados.
         const empresaInput = page.locator('input[name="empresa_qa"]');
@@ -318,6 +334,11 @@ async function main() {
         await empresaInput.fill("EMPRESA-PR60-QA");
         await observacaoField.fill(payloadXss);
         await emailAltInput.fill("qa-alt@local.test");
+        // Anti-spam real de lp-forms-v5.js (não é espera pra mascarar
+        // timing frágil — é a regra de negócio real que precisa ser
+        // satisfeita pra não ser tratado como bot, mesmo padrão de
+        // landing-page-leads.flow.mjs).
+        await page.waitForTimeout(1300);
         await page.click('button[type="submit"]');
 
         const leadCriado = await new Promise((resolve, reject) => {
