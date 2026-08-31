@@ -174,6 +174,15 @@ async function main() {
         const previewTemScriptInjetado = await page.locator("#lped-preview-canvas script").count();
         assert.equal(previewTemScriptInjetado, 0, "o preview não pode ter criado uma tag <script> real no DOM a partir do payload");
 
+        // O edit acima só mudou o estado em memória (lpEditorBlocos) — como
+        // qualquer outro fluxo real do editor, precisa de salvarEditorLP()
+        // pra persistir em landing_pages_blocos antes de publicar (editarLP
+        // já preenche #lped-titulo/#lped-slug pra uma LP existente).
+        const resultadoSalvar = await page.evaluate(() => window.salvarEditorLP());
+        assert.equal(resultadoSalvar?.ok, true, `salvarEditorLP precisa confirmar sucesso: ${JSON.stringify(resultadoSalvar)}`);
+        const blocoPrivadoAposSave = (await db.collection("landing_pages_blocos").doc(BLOCO_TEXTO_ID).get()).data();
+        assert.equal(blocoPrivadoAposSave?.props?.titulo, XSS_TEXT_PAYLOAD, "o payload precisa ter sido persistido em landing_pages_blocos pelo salvarEditorLP real");
+
         // ===== 5) Publicar =====
         const resultadoPublicar = await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
         assert.equal(resultadoPublicar?.ok, true, "LP com payload malicioso precisa publicar normalmente (a defesa é no render, não na escrita)");
