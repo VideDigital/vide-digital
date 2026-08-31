@@ -47,6 +47,7 @@
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
     const { createLeadAttemptTracker } = await import(base + "lead-attempt-token-core.js");
+    const { escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL } = await import(base + "lp-render-safety-core.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
 
@@ -120,24 +121,17 @@
         return null;
     }
 
-function executarScriptsEmElemento(container) {
-    const scripts = container.querySelectorAll("script");
-    scripts.forEach(scriptAntigo => {
-        const scriptNovo = document.createElement("script");
-        Array.from(scriptAntigo.attributes).forEach(attr => scriptNovo.setAttribute(attr.name, attr.value));
-        scriptNovo.textContent = scriptAntigo.textContent;
-        scriptAntigo.parentNode.replaceChild(scriptNovo, scriptAntigo);
-    });
-}
-    function executarScriptsEmElemento(elemento) {
-        const scripts = elemento.querySelectorAll("script");
-        scripts.forEach(scriptAntigo => {
-            const scriptNovo = document.createElement("script");
-            Array.from(scriptAntigo.attributes).forEach(attr => scriptNovo.setAttribute(attr.name, attr.value));
-            scriptNovo.textContent = scriptAntigo.textContent;
-            scriptAntigo.parentNode.replaceChild(scriptNovo, scriptAntigo);
-        });
-    }
+    // LP-SEC-AUDIT-001: existia aqui uma executarScriptsEmElemento() que
+    // recriava e reinseria qualquer <script> encontrado dentro do container
+    // depois de cada insertAdjacentHTML, forçando sua execução no documento
+    // pai da LP pública. Nenhum tipo de bloco depende disso: codigo_iframe
+    // roda seu htmlCustom dentro do próprio documento do iframe (srcdoc com
+    // allow-scripts), que o navegador já executa sozinho, sem precisar de
+    // recriação no documento pai; todos os outros tipos de bloco agora
+    // escapam texto/atributo/URL na origem (ver lp-render-safety-core.js) e
+    // nunca deveriam conter uma tag <script> de propósito. Removida: era o
+    // agravante que transformava qualquer campo de texto sem escaping numa
+    // execução de script garantida, mesmo fora do codigo_iframe.
 
     function escaparAtributoFormulario(value) {
         return String(value ?? "")
@@ -227,8 +221,7 @@ async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos
                 container.insertAdjacentHTML("beforeend", await renderizarBloco(bloco, "empilhado"));
             }
         }
-executarScriptsEmElemento(container);
-        ativarAnimacoesDeEntrada(container);
+ativarAnimacoesDeEntrada(container);
     }
     function ativarAnimacoesDeEntrada(container) {
         const alvos = container.querySelectorAll("[data-animacao]");
@@ -374,20 +367,21 @@ const lp = snap.docs[0].data();
     }
     async function renderizarBloco(bloco, modoLayout) {
         const d = bloco.design || {};
-        const corFundo = d.corFundo || "";
-        const imagemFundo = d.imagemFundoB64 || "";
-        const corSobreposicao = d.corSobreposicao || "#000000";
-        const opacidade = (d.opacidadeSobreposicao || 0) / 100;
-        const corBotaoFundo = d.corBotaoFundo || "";
-        const corBotaoBorda = d.corBotaoBorda || "";
-        const corBotaoTexto = d.corBotaoTexto || "";
-        const paddingTop = d.paddingTop !== undefined ? d.paddingTop : 64;
-        const paddingBottom = d.paddingBottom !== undefined ? d.paddingBottom : 64;
+        const corFundo = escapeAttribute(d.corFundo || "");
+        const imagemFundo = safeImageURL(d.imagemFundoB64 || "");
+        const corSobreposicao = escapeAttribute(d.corSobreposicao || "#000000");
+        const opacidade = (Number(d.opacidadeSobreposicao) || 0) / 100;
+        const corBotaoFundo = escapeAttribute(d.corBotaoFundo || "");
+        const corBotaoBorda = escapeAttribute(d.corBotaoBorda || "");
+        const corBotaoTexto = escapeAttribute(d.corBotaoTexto || "");
+        const paddingTop = d.paddingTop !== undefined ? (Number(d.paddingTop) || 0) : 64;
+        const paddingBottom = d.paddingBottom !== undefined ? (Number(d.paddingBottom) || 0) : 64;
         const alinhamento = d.alinhamento || "esquerda";
         const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
         const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
         const justifyClasse = alinhamento === "centro" ? "justify-center" : alinhamento === "direita" ? "justify-end" : "justify-start";
-        const idSecaoAttr = d.idSecao ? ` id="${d.idSecao.replace(/^#+/, "")}"` : "";
+        const idSecaoAttr = d.idSecao ? ` id="${escapeAttribute(String(d.idSecao).replace(/^#+/, ""))}"` : "";
+        const animacaoAttr = d.animacao ? ` data-animacao="${escapeAttribute(d.animacao)}"` : "";
         const visivelDesktop = d.visivelDesktop !== false;
         const visivelMobile = d.visivelMobile !== false;
         let visClasse = "";
@@ -396,7 +390,7 @@ const lp = snap.docs[0].data();
         else if (!visivelDesktop && !visivelMobile) visClasse = "hidden";
         const loadingAttr = d.priorizarImagem ? ' loading="eager" fetchpriority="high"' : ' loading="lazy"';
         const estiloFundo = imagemFundo
-            ? `background-image: url('${imagemFundo}'); background-size: cover; background-position: center;`
+            ? `background-image: url('${escapeAttribute(escapeCSSString(imagemFundo))}'); background-size: cover; background-position: center;`
             : (corFundo ? `background-color: ${corFundo};` : "");
         const overlayHtml = imagemFundo
             ? `<div style="position:absolute; inset:0; background-color:${corSobreposicao}; opacity:${opacidade};"></div>`
@@ -406,38 +400,40 @@ const lp = snap.docs[0].data();
         const classeBotaoForm = `w-full font-bold py-3 rounded-xl ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
         let conteudoHtml = "";
         if (bloco.tipo === "texto_midia") {
+            const imagemMidia = safeImageURL(bloco.props.imagemB64);
+            const larguraImagem = Number(bloco.props.imagemLargura) || 0;
             conteudoHtml = `
                 <div class="max-w-5xl mx-auto px-6 grid md:grid-cols-2 gap-10 ${itemsClasse}">
                     <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""} ${textAlignClasse}">
-                        <h2 class="text-3xl font-bold mb-4">${bloco.props.titulo || ""}</h2>
-                        <p class="text-gray-300 mb-6">${bloco.props.subtitulo || ""}</p>
-                        ${bloco.props.botaoTexto ? `<a href="${bloco.props.botaoLink || "#"}" style="${estiloBotao}" class="${classeBotao}">${bloco.props.botaoTexto}</a>` : ""}
+                        <h2 class="text-3xl font-bold mb-4">${escapeHTML(bloco.props.titulo)}</h2>
+                        <p class="text-gray-300 mb-6">${escapeHTML(bloco.props.subtitulo)}</p>
+                        ${bloco.props.botaoTexto ? `<a href="${escapeAttribute(safeLinkURL(bloco.props.botaoLink, { allowMailto: true, allowTel: true }))}" style="${estiloBotao}" class="${classeBotao}">${escapeHTML(bloco.props.botaoTexto)}</a>` : ""}
                     </div>
                     <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
-                        ${bloco.props.imagemB64 ? `<img src="${bloco.props.imagemB64}"${loadingAttr} style="${bloco.props.imagemLargura ? `width:${bloco.props.imagemLargura}px; max-width:100%;` : "width:100%;"}" class="rounded-2xl">` : ""}
+                        ${imagemMidia ? `<img src="${escapeAttribute(imagemMidia)}"${loadingAttr} style="${larguraImagem ? `width:${larguraImagem}px; max-width:100%;` : "width:100%;"}" class="rounded-2xl">` : ""}
                     </div>
                 </div>`;
         } else if (bloco.tipo === "formulario_captura") {
             conteudoHtml = `
                 <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
-                    <h2 class="text-2xl font-bold mb-6">${bloco.props.titulo || ""}</h2>
+                    <h2 class="text-2xl font-bold mb-6">${escapeHTML(bloco.props.titulo)}</h2>
                     <form class="space-y-3 text-left" onsubmit="return enviarFormularioLP(event)">
                         ${renderizarCamposFormulario(bloco.props.campos)}
 
 
-                        <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</button>
+                        <button type="submit" style="${estiloBotao}" class="${classeBotaoForm}">${escapeHTML(bloco.props.textoBotao || "Enviar")}</button>
                     </form>
                 </div>`;
         } else if (bloco.tipo === "faq") {
             const itens = bloco.props.itens || [];
             conteudoHtml = `
                 <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
-                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                     <div class="space-y-3 text-left">
                         ${itens.map(item => `
                             <details class="bg-white/5 border border-white/10 rounded-xl p-4">
-                                <summary class="font-bold cursor-pointer">${item.pergunta || ""}</summary>
-                                <p class="text-gray-300 mt-2 text-sm">${item.resposta || ""}</p>
+                                <summary class="font-bold cursor-pointer">${escapeHTML(item.pergunta)}</summary>
+                                <p class="text-gray-300 mt-2 text-sm">${escapeHTML(item.resposta)}</p>
                             </details>
                         `).join("")}
                     </div>
@@ -446,22 +442,22 @@ const lp = snap.docs[0].data();
             const imagens = bloco.props.imagens || [];
             conteudoHtml = `
                 <div class="max-w-5xl mx-auto px-6 ${textAlignClasse}">
-                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                     <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-                        ${imagens.map(img => `<img src="${img}"${loadingAttr} class="w-full h-40 object-cover rounded-xl">`).join("")}
+                        ${imagens.map(img => `<img src="${escapeAttribute(safeImageURL(img))}"${loadingAttr} class="w-full h-40 object-cover rounded-xl">`).join("")}
                     </div>
                 </div>`;
         } else if (bloco.tipo === "lista_cards") {
             const cards = bloco.props.cards || [];
             conteudoHtml = `
                 <div class="max-w-5xl mx-auto px-6 ${textAlignClasse}">
-                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
                         ${cards.map(card => `
                             <div class="bg-white/5 border border-white/10 rounded-xl p-5">
-                                ${card.icone ? `<div class="text-2xl mb-2">${card.icone}</div>` : ""}
-                                <h3 class="font-bold mb-1">${card.titulo || ""}</h3>
-                                <p class="text-gray-400 text-sm">${card.texto || ""}</p>
+                                ${card.icone ? `<div class="text-2xl mb-2">${escapeHTML(card.icone)}</div>` : ""}
+                                <h3 class="font-bold mb-1">${escapeHTML(card.titulo)}</h3>
+                                <p class="text-gray-400 text-sm">${escapeHTML(card.texto)}</p>
                             </div>
                         `).join("")}
                     </div>
@@ -470,21 +466,21 @@ const lp = snap.docs[0].data();
             const linhas = bloco.props.linhas || [];
             conteudoHtml = `
                 <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
-                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${bloco.props.titulo}</h2>` : ""}
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                     <table class="w-full text-left border-collapse text-sm">
                         <thead>
                             <tr class="border-b border-white/10">
                                 <th class="p-3"></th>
-                                <th class="p-3 font-bold">${bloco.props.coluna1 || ""}</th>
-                                <th class="p-3 font-bold">${bloco.props.coluna2 || ""}</th>
+                                <th class="p-3 font-bold">${escapeHTML(bloco.props.coluna1)}</th>
+                                <th class="p-3 font-bold">${escapeHTML(bloco.props.coluna2)}</th>
                             </tr>
                         </thead>
                         <tbody>
                             ${linhas.map(linha => `
                                 <tr class="border-b border-white/5">
-                                    <td class="p-3 text-gray-400">${linha.label || ""}</td>
-                                    <td class="p-3">${linha.valor1 || ""}</td>
-                                    <td class="p-3">${linha.valor2 || ""}</td>
+                                    <td class="p-3 text-gray-400">${escapeHTML(linha.label)}</td>
+                                    <td class="p-3">${escapeHTML(linha.valor1)}</td>
+                                    <td class="p-3">${escapeHTML(linha.valor2)}</td>
                                 </tr>
                             `).join("")}
                         </tbody>
@@ -494,9 +490,9 @@ const lp = snap.docs[0].data();
             const paragrafos = (bloco.props.conteudo || "").split(/\n\s*\n/).filter(p => p.trim());
             conteudoHtml = `
                 <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
-                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-6">${bloco.props.titulo}</h2>` : ""}
+                    ${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-6">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                     <div class="text-gray-300 space-y-4 leading-relaxed">
-                        ${paragrafos.map(p => `<p>${p}</p>`).join("")}
+                        ${paragrafos.map(p => `<p>${escapeHTML(p)}</p>`).join("")}
                     </div>
                 </div>`;
         } else if (bloco.tipo === "codigo_iframe") {
@@ -510,16 +506,16 @@ const lp = snap.docs[0].data();
             // allowlist já usada em lp-public-v4.js (implementação de
             // referência ainda não conectada a nenhuma rota ativa).
             conteudoHtml = bloco.props.htmlCustom
-                ? `<div class="max-w-5xl mx-auto px-6"><iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
+                ? `<div class="max-w-5xl mx-auto px-6"><iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${Number(bloco.props.altura) || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
                 : (bloco.props.url
-                    ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${bloco.props.url}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl"></iframe></div>`
+                    ? `<div class="max-w-5xl mx-auto px-6"><iframe src="${escapeAttribute(safeIframeURL(bloco.props.url))}" style="width:100%; height:${Number(bloco.props.altura) || 400}px; border:0;" class="rounded-xl"></iframe></div>`
                     : "");
         } else if (bloco.tipo === "carrossel_banners") {
             const banners = bloco.props.banners || [];
             const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
             const slides = banners.map(b => `
-                <a href="${b.link || "#"}" class="shrink-0 snap-center w-full md:w-[600px]">
-                    <img src="${b.imagemB64}"${loadingAttr} class="w-full h-64 object-cover rounded-2xl">
+                <a href="${escapeAttribute(safeLinkURL(b.link))}" class="shrink-0 snap-center w-full md:w-[600px]">
+                    <img src="${escapeAttribute(safeImageURL(b.imagemB64))}"${loadingAttr} class="w-full h-64 object-cover rounded-2xl">
                 </a>
             `).join("");
             conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${envolverCarrossel(idUnico, slides)}</div>`;
@@ -533,69 +529,70 @@ const lp = snap.docs[0].data();
             const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
             const slides = produtos.map(p => `
                 <div class="shrink-0 snap-center w-64 bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                    ${p.imagemB64 ? `<img src="${p.imagemB64}"${loadingAttr} class="w-full h-40 object-cover">` : ""}
+                    ${p.imagemB64 ? `<img src="${escapeAttribute(safeImageURL(p.imagemB64))}"${loadingAttr} class="w-full h-40 object-cover">` : ""}
                     <div class="p-4">
-                        <h3 class="font-bold text-sm mb-1">${p.nome || ""}</h3>
-                        <p class="text-gray-400 text-xs">R$ ${p.preco || ""}</p>
+                        <h3 class="font-bold text-sm mb-1">${escapeHTML(p.nome)}</h3>
+                        <p class="text-gray-400 text-xs">R$ ${escapeHTML(p.preco)}</p>
                     </div>
                 </div>
             `).join("");
-            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}${envolverCarrossel(idUnico, slides)}</div>`;
+            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8 ${textAlignClasse}">${escapeHTML(bloco.props.titulo)}</h2>` : ""}${envolverCarrossel(idUnico, slides)}</div>`;
         } else if (bloco.tipo === "carrossel_cards") {
             const cards = bloco.props.cards || [];
             const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
             const estilo = bloco.props.estiloImagem || "lado";
             const slides = cards.map(c => {
+                const imagemCard = safeImageURL(c.imagemB64);
                 if (estilo === "fundo") {
                     return `
-                        <div class="shrink-0 snap-center w-64 h-72 rounded-2xl relative overflow-hidden" style="${c.imagemB64 ? `background-image:url('${c.imagemB64}');background-size:cover;background-position:center;` : "background-color:#222;"}">
+                        <div class="shrink-0 snap-center w-64 h-72 rounded-2xl relative overflow-hidden" style="${imagemCard ? `background-image:url('${escapeAttribute(escapeCSSString(imagemCard))}');background-size:cover;background-position:center;` : "background-color:#222;"}">
                             <div class="absolute inset-0 bg-black/40"></div>
                             <div class="relative p-5 flex flex-col justify-end h-full text-white">
-                                <h3 class="font-bold mb-1">${c.titulo || ""}</h3>
-                                <p class="text-sm text-gray-200">${c.texto || ""}</p>
+                                <h3 class="font-bold mb-1">${escapeHTML(c.titulo)}</h3>
+                                <p class="text-sm text-gray-200">${escapeHTML(c.texto)}</p>
                             </div>
                         </div>
                     `;
                 }
                 return `
                     <div class="shrink-0 snap-center w-64 bg-white/5 border border-white/10 rounded-2xl overflow-hidden">
-                        ${c.imagemB64 ? `<img src="${c.imagemB64}"${loadingAttr} class="w-full h-36 object-cover">` : ""}
+                        ${imagemCard ? `<img src="${escapeAttribute(imagemCard)}"${loadingAttr} class="w-full h-36 object-cover">` : ""}
                         <div class="p-4">
-                            <h3 class="font-bold text-sm mb-1">${c.titulo || ""}</h3>
-                            <p class="text-gray-400 text-xs">${c.texto || ""}</p>
+                            <h3 class="font-bold text-sm mb-1">${escapeHTML(c.titulo)}</h3>
+                            <p class="text-gray-400 text-xs">${escapeHTML(c.texto)}</p>
                         </div>
                     </div>
                 `;
             }).join("");
-            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}${envolverCarrossel(idUnico, slides)}</div>`;
+            conteudoHtml = `<div class="max-w-5xl mx-auto px-6">${bloco.props.titulo ? `<h2 class="text-3xl font-bold mb-8 ${textAlignClasse}">${escapeHTML(bloco.props.titulo)}</h2>` : ""}${envolverCarrossel(idUnico, slides)}</div>`;
         } else if (bloco.tipo === "navegacao") {
             const links = bloco.props.links || [];
             conteudoHtml = `
                 <div class="max-w-6xl mx-auto px-6 flex items-center justify-between flex-wrap gap-4">
-                    <span class="font-bold text-lg">${bloco.props.logoTexto || ""}</span>
+                    <span class="font-bold text-lg">${escapeHTML(bloco.props.logoTexto)}</span>
                     <nav class="flex gap-6 flex-wrap">
-                        ${links.map(l => `<a href="${l.href || "#"}" class="text-sm hover:opacity-70">${l.label || ""}</a>`).join("")}
+                        ${links.map(l => `<a href="${escapeAttribute(safeLinkURL(l.href, { allowMailto: true, allowTel: true }))}" class="text-sm hover:opacity-70">${escapeHTML(l.label)}</a>`).join("")}
                     </nav>
                 </div>`;
         } else if (bloco.tipo === "rodape") {
             const links = bloco.props.links || [];
             conteudoHtml = `
                 <div class="max-w-6xl mx-auto px-6 flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-gray-400">
-                    <p>${bloco.props.textoCopyright || ""}</p>
+                    <p>${escapeHTML(bloco.props.textoCopyright)}</p>
                     <div class="flex gap-6 flex-wrap">
-                        ${links.map(l => `<a href="${l.href || "#"}" class="hover:opacity-70">${l.label || ""}</a>`).join("")}
+                        ${links.map(l => `<a href="${escapeAttribute(safeLinkURL(l.href, { allowMailto: true, allowTel: true }))}" class="hover:opacity-70">${escapeHTML(l.label)}</a>`).join("")}
                     </div>
                 </div>`;
         } else if (bloco.tipo === "seletor_cores") {
             const opcoes = bloco.props.opcoes || [];
             conteudoHtml = `
                 <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
-                    ${bloco.props.titulo ? `<h3 class="font-bold mb-3">${bloco.props.titulo}</h3>` : ""}
+                    ${bloco.props.titulo ? `<h3 class="font-bold mb-3">${escapeHTML(bloco.props.titulo)}</h3>` : ""}
                     <div class="flex gap-3 flex-wrap ${justifyClasse}">
                         ${opcoes.map(op => `
                             <div class="flex flex-col items-center gap-1">
-                                <div style="background-color:${op.hex || "#000"};" class="w-10 h-10 rounded-full border-2 border-white/20"></div>
-                                <span class="text-[10px] text-gray-400">${op.nome || ""}</span>
+                                <div style="background-color:${escapeAttribute(op.hex || "#000")};" class="w-10 h-10 rounded-full border-2 border-white/20"></div>
+                                <span class="text-[10px] text-gray-400">${escapeHTML(op.nome)}</span>
                             </div>
                         `).join("")}
                     </div>
@@ -604,19 +601,19 @@ const lp = snap.docs[0].data();
             const itens = bloco.props.itens || [];
             conteudoHtml = `
                 <div class="max-w-5xl mx-auto px-6 text-xs text-gray-400">
-                    ${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-2">/</span>' : ""}<a href="${item.href || "#"}" class="hover:text-white">${item.label || ""}</a>`).join("")}
+                    ${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-2">/</span>' : ""}<a href="${escapeAttribute(safeLinkURL(item.href))}" class="hover:text-white">${escapeHTML(item.label)}</a>`).join("")}
                 </div>`;
         } else if (bloco.tipo === "forma") {
-            const largura = bloco.props.largura || 120;
-            const altura = bloco.props.altura || 120;
-            const corForma = bloco.props.cor || "#5B3DF5";
+            const largura = Number(bloco.props.largura) || 120;
+            const altura = Number(bloco.props.altura) || 120;
+            const corForma = escapeAttribute(bloco.props.cor || "#5B3DF5");
             let estiloForma = `width:${largura}px; background-color:${corForma};`;
             if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
             else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
             else estiloForma += `height:${altura}px; border-radius:8px;`;
             conteudoHtml = `<div class="flex ${justifyClasse} px-6"><div style="${estiloForma}"></div></div>`;
         }
-        const estiloTextoBloco = d.corTexto ? `color:${d.corTexto};` : "";
+        const estiloTextoBloco = d.corTexto ? `color:${escapeAttribute(d.corTexto)};` : "";
         if (modoLayout === "livre") {
             const largura = bloco.largura || 600;
             const altura = bloco.altura || 220;
@@ -624,12 +621,12 @@ const lp = snap.docs[0].data();
             const x = Math.min(Math.max(0, bloco.x !== undefined ? bloco.x : 20), Math.max(0, larguraTela - largura));
             const y = bloco.y !== undefined ? bloco.y : 20;
             const zIndex = bloco.zIndex || 1;
-return `<section${idSecaoAttr}${d.animacao ? ` data-animacao="${d.animacao}"` : ""} class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTextoBloco}">
+return `<section${idSecaoAttr}${animacaoAttr} class="absolute rounded-lg overflow-hidden" style="left:${x}px; top:${y}px; width:${largura}px; height:${altura}px; z-index:${zIndex}; ${estiloFundo} ${estiloTextoBloco}">
                 ${overlayHtml}
                 <div class="relative w-full h-full overflow-hidden" style="padding-top:${Math.min(paddingTop, 24)}px; padding-bottom:${Math.min(paddingBottom, 24)}px;">${conteudoHtml}</div>
             </section>`;
         }
-        return `<section${idSecaoAttr}${d.animacao ? ` data-animacao="${d.animacao}"` : ""} class="relative ${visClasse}" style="${estiloFundo} ${estiloTextoBloco} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
+        return `<section${idSecaoAttr}${animacaoAttr} class="relative ${visClasse}" style="${estiloFundo} ${estiloTextoBloco} padding-top:${paddingTop}px; padding-bottom:${paddingBottom}px;">
             ${overlayHtml}
             <div class="relative">${conteudoHtml}</div>
         </section>`;
