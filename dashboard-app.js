@@ -1,5 +1,5 @@
 import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
-import { escapeHTML, escapeAttribute, escapeTextareaContent, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
+import { escapeHTML, escapeAttribute, escapeTextareaContent, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
@@ -5364,7 +5364,7 @@ document.addEventListener("mousedown", function(e) {
             const classeBotao = `inline-block font-bold px-5 py-2.5 rounded-xl text-sm ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
             const classeBotaoForm = `w-full font-bold py-2.5 rounded-xl text-sm text-center ${!corBotaoFundo ? "bg-white" : ""} ${!corBotaoTexto ? "text-black" : ""}`;
             const estiloFundo = imagemFundo
-                ? `background-image: url('${imagemFundo}'); background-size: cover; background-position: center;`
+                ? `background-image: url('${escapeAttribute(escapeCSSString(imagemFundo))}'); background-size: cover; background-position: center;`
                 : (corFundo ? `background-color: ${corFundo};` : "");
             const overlayHtml = imagemFundo
                 ? `<div style="position:absolute; inset:0; background-color:${corSobreposicao}; opacity:${opacidade};"></div>`
@@ -5479,7 +5479,7 @@ document.addEventListener("mousedown", function(e) {
                             ${cards.length === 0 ? '<p class="text-xs text-gray-500">Sem cards ainda.</p>' : cards.map(c => {
                                 const imagemCard = safeImageURL(c.imagemB64);
                                 return estilo === "fundo"
-                                    ? `<div class="shrink-0 w-32 h-32 rounded-xl relative overflow-hidden" style="${imagemCard ? `background-image:url('${escapeAttribute(imagemCard)}');background-size:cover;` : "background-color:#222;"}"><div class="absolute inset-0 bg-black/40"></div><p class="relative text-[10px] font-bold p-2 text-white">${escapeHTML(c.titulo)}</p></div>`
+                                    ? `<div class="shrink-0 w-32 h-32 rounded-xl relative overflow-hidden" style="${imagemCard ? `background-image:url('${escapeAttribute(escapeCSSString(imagemCard))}');background-size:cover;` : "background-color:#222;"}"><div class="absolute inset-0 bg-black/40"></div><p class="relative text-[10px] font-bold p-2 text-white">${escapeHTML(c.titulo)}</p></div>`
                                     : `<div class="shrink-0 w-28 bg-white/5 border border-white/10 rounded-xl overflow-hidden"><div class="w-full h-14 bg-white/10"></div><p class="text-[10px] font-bold p-2">${escapeHTML(c.titulo)}</p></div>`;
                             }).join("")}
                         </div>

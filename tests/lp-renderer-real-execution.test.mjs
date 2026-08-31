@@ -16,7 +16,7 @@ import { describe, it } from "node:test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { escapeHTML, escapeAttribute, safeLinkURL, safeImageURL, safeIframeURL } from "../lp-render-safety-core.js";
+import { escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL } from "../lp-render-safety-core.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -60,10 +60,10 @@ async function carregarRenderizarBlocoReal() {
 
     const fonteCompleta = `${helpersFormulario}\n${envolverCarrossel}\n${renderizarBlocoSrc}\nreturn renderizarBloco;`;
     const factory = new Function(
-        "escapeHTML", "escapeAttribute", "safeLinkURL", "safeImageURL", "safeIframeURL", "doc", "getDoc", "db",
+        "escapeHTML", "escapeAttribute", "escapeCSSString", "safeLinkURL", "safeImageURL", "safeIframeURL", "doc", "getDoc", "db",
         fonteCompleta
     );
-    return factory(escapeHTML, escapeAttribute, safeLinkURL, safeImageURL, safeIframeURL, doc, getDoc, db);
+    return factory(escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL, doc, getDoc, db);
 }
 
 const SCRIPT_PAYLOAD = "<script>window.__lpXssMarker=1<\/script>";
@@ -138,6 +138,90 @@ describe("renderizarBloco() real (index.html) — LP-SEC-AUDIT-001 (stored XSS) 
         };
         const html = await renderizarBloco(bloco, "empilhado");
         assertHtmlSeguro(html, "cores de design");
+    });
+
+    // ADV-66-001 (revisão adversarial da PR #66): o teste "cores de design
+    // maliciosas" acima usa JS_URL_PAYLOAD (esquema javascript:) pra
+    // imagemFundoB64 — safeImageURL REJEITA esse esquema e zera o valor
+    // antes de chegar no sink, então nunca exercitou o caminho vulnerável
+    // de verdade. O achado real precisa de um ESQUEMA VÁLIDO (http/https)
+    // com CORPO malicioso — só assim o valor atravessa safeImageURL
+    // intacto e chega em url('...') dentro do atributo style.
+    it("ADV-66-001: imagemFundoB64 com esquema http(s) válido e corpo tentando fechar o atributo style não cria elemento HTML ativo", async () => {
+        const renderizarBloco = await carregarRenderizarBlocoReal();
+        const payload = 'https://x.exemplo.invalid/x.png"><img src=x onerror="window.__lpXssMarker=1">';
+        const bloco = {
+            tipo: "texto_midia",
+            props: { titulo: "Título normal", subtitulo: "sub" },
+            design: { imagemFundoB64: payload }
+        };
+        const html = await renderizarBloco(bloco, "empilhado");
+        assertHtmlSeguro(html, "imagemFundoB64 (ADV-66-001)");
+        // Prova estrutural direta: o atributo style do <section> tem que
+        // conter TODO o payload (incluindo as aspas/tags) como um valor só
+        // — se o atributo tivesse sido fechado cedo, o <img> apareceria
+        // como uma tag irmã fora do style=, não como texto dentro dele.
+        const styleMatch = html.match(/<section[^>]*\bstyle="([^"]*)"/);
+        assert.ok(styleMatch, "precisa existir um atributo style bem-formado (aspas balanceadas) no <section>");
+        assert.ok(html.indexOf("<img") === -1 || html.indexOf("<img") > html.indexOf(styleMatch[0]) + styleMatch[0].length, "nenhum <img> real pode ter sido criado como filho do <section> a partir do payload");
+    });
+
+    // ADV-66-002 (revisão adversarial da PR #66): mesmo com escapeAttribute
+    // aplicado (sem escapeCSSString), uma aspa simples escapada como
+    // &#039; volta a ser um caractere literal quando o navegador decodifica
+    // o atributo style ANTES do parser CSS interpretar o valor — permitindo
+    // fechar url('...') e injetar uma declaração CSS adicional dentro do
+    // MESMO atributo. Prova aqui só a nível de string (o mesmo nível que
+    // comprovou o achado original): o payload inteiro, incluindo a
+    // declaração que tentaria escapar, precisa permanecer DENTRO do valor
+    // de url('...'), nunca como uma declaração CSS irmã fora dele.
+    it("ADV-66-002: imagemFundoB64/imagemB64 (carrossel_cards) com corpo tentando fechar url('...') não injeta declaração CSS adicional", async () => {
+        const renderizarBloco = await carregarRenderizarBlocoReal();
+        const payloadCss = "https://x.exemplo.invalid/y.png');position:fixed;top:0;left:0;z-index:999999;((";
+
+        function verificarSemInjecaoCss(html, contexto) {
+            // Procura especificamente o style="..." que contenha url( —
+            // envolverCarrossel() envolve o card num wrapper que já tem seu
+            // próprio style="scrollbar-width: none;" ANTES do card, então
+            // pegar o primeiro style="..." genérico pegaria o do wrapper.
+            const styleMatch = html.match(/\bstyle="([^"]*url\([^"]*)"/);
+            assert.ok(styleMatch, `${contexto}: precisa existir um atributo style bem-formado (aspas balanceadas) contendo url(...)`);
+            // Simula exatamente o que o navegador faz: decodifica entidades
+            // HTML do atributo ANTES de entregar o texto pro parser CSS —
+            // é esse passo que devolve um "'" literal a partir de "&#039;".
+            const decodificado = styleMatch[1]
+                .replace(/&quot;/g, '"')
+                .replace(/&#0?39;/g, "'")
+                .replace(/&lt;/g, "<")
+                .replace(/&gt;/g, ">")
+                .replace(/&amp;/g, "&");
+            const urlStart = decodificado.indexOf("url('");
+            assert.ok(urlStart >= 0, `${contexto}: precisa existir url('...') na declaração CSS decodificada`);
+            // Escaneia a string CSS respeitando backslash-escape (mesma
+            // regra que um parser CSS real usa): um "'" só termina a string
+            // se NÃO estiver precedido por um número ímpar de backslashes.
+            let i = urlStart + "url('".length;
+            let barras = 0;
+            while (i < decodificado.length) {
+                const c = decodificado[i];
+                if (c === "\\") { barras += 1; i += 1; continue; }
+                if (c === "'" && barras % 2 === 0) break;
+                barras = 0;
+                i += 1;
+            }
+            assert.ok(i < decodificado.length, `${contexto}: a string CSS de url('...') nunca terminou — parse quebrado`);
+            const restoAposString = decodificado.slice(i + 1).trim();
+            assert.match(restoAposString, /^\);/, `${contexto}: depois do fim real da string CSS só pode vir ");" (fechamento do url() + fim da declaração) — encontrado: ${JSON.stringify(restoAposString.slice(0, 30))}`);
+            assert.ok(!/(?:^|;)\s*position\s*:\s*fixed\s*(?:;|$)/.test(restoAposString), `${contexto}: position:fixed não pode aparecer como declaração CSS própria fora da string de url(...)`);
+        }
+
+        const blocoFundo = { tipo: "texto_midia", props: { titulo: "t", subtitulo: "s" }, design: { imagemFundoB64: payloadCss } };
+        const htmlFundo = await renderizarBloco(blocoFundo, "empilhado");
+        verificarSemInjecaoCss(htmlFundo, "imagemFundoB64");
+
+        const blocoCarrossel = { tipo: "carrossel_cards", props: { estiloImagem: "fundo", cards: [{ titulo: "c", texto: "t", imagemB64: payloadCss }] }, design: {} };
+        const htmlCarrossel = await renderizarBloco(blocoCarrossel, "empilhado");
+        verificarSemInjecaoCss(htmlCarrossel, "carrossel_cards imagemB64");
     });
 });
 

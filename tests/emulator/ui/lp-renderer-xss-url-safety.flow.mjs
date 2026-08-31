@@ -40,6 +40,15 @@ const XSS_TEXT_PAYLOAD = '"><svg onload="window.__lpXssTextMarker=true"><script>
 const XSS_URL_PAYLOAD = "javascript:window.__lpXssUrlMarker=true";
 const URL_LEGITIMA = "https://exemplo.com/promocao";
 const IMAGEM_LEGITIMA = "https://exemplo.com/foto.jpg";
+// ADV-66-001/002 (revisão adversarial da PR #66): esquema http(s) VÁLIDO
+// (passa safeImageURL sem alteração) + corpo tentando fechar o atributo
+// style / a string CSS de url('...') e injetar uma declaração própria.
+// Não é digitável pela UI de produção (o campo só aceita upload real de
+// arquivo, convertido pra data: URI por comprimirImagem) — semeado direto
+// via Admin SDK, mesmo padrão já usado aqui pro link malicioso da
+// navegação (escrita fora da UI, permitida porque Rules não validam
+// conteúdo de props/design, só nome de campo + geometria).
+const XSS_CSS_BG_PAYLOAD = "https://exemplo.com/x.png');position:fixed;top:0;left:0;z-index:999999;((";
 
 // Mesmo payload inofensivo do teste da PR #62 — não deve regredir.
 const CODIGO_IFRAME_PAYLOAD_HTML = `<script>
@@ -71,7 +80,7 @@ async function seedLp(db) {
     await db.collection("landing_pages_blocos").doc(BLOCO_TEXTO_ID).set({
         lpId: LP_ID, donoUID: STORE_UID, tipo: "texto_midia", paginaId: null, visivel: true,
         props: { titulo: "Titulo original", subtitulo: "Subtitulo original", botaoTexto: "Comprar", botaoLink: URL_LEGITIMA, imagemB64: IMAGEM_LEGITIMA },
-        design: {}, x: null, y: null, largura: null, altura: null, zIndex: null
+        design: { imagemFundoB64: XSS_CSS_BG_PAYLOAD }, x: null, y: null, largura: null, altura: null, zIndex: null
     });
     // navegacao com um link javascript: já persistido — cobre o caso de
     // escrita direta (fora da UI, já que Rules não validam esquema de
@@ -174,6 +183,26 @@ async function main() {
         const previewTemScriptInjetado = await page.locator("#lped-preview-canvas script").count();
         assert.equal(previewTemScriptInjetado, 0, "o preview não pode ter criado uma tag <script> real no DOM a partir do payload");
 
+        // ===== ADV-66-001/002: design.imagemFundoB64 (semeado via Admin
+        // SDK, tentando fechar o atributo style / a string CSS de
+        // url('...')) — usa getComputedStyle do NAVEGADOR REAL, não
+        // comparação textual, exatamente como pedido na revisão
+        // adversarial (entity decoding -> CSS parsing só o browser faz
+        // certo). Nenhum elemento com position:fixed pode existir dentro
+        // do preview, e o marcador de escape não pode ter disparado.
+        const resultadoCssPreview = await page.evaluate((idx) => {
+            const bloco = document.querySelector(`#lped-preview-bloco-${idx} > div`);
+            if (!bloco) return { existe: false };
+            return {
+                existe: true,
+                position: getComputedStyle(bloco).position,
+                temFilhoFixed: Array.from(bloco.querySelectorAll("*")).some((el) => getComputedStyle(el).position === "fixed")
+            };
+        }, indiceBlocoTexto);
+        assert.equal(resultadoCssPreview.existe, true, "o bloco com imagemFundoB64 malicioso precisa existir no DOM do preview");
+        assert.notEqual(resultadoCssPreview.position, "fixed", "position:fixed NUNCA pode ter sido aplicado ao próprio bloco a partir do payload de CSS");
+        assert.equal(resultadoCssPreview.temFilhoFixed, false, "nenhum elemento dentro do bloco pode ter position:fixed a partir do payload de CSS");
+
         // O edit acima só mudou o estado em memória (lpEditorBlocos) — como
         // qualquer outro fluxo real do editor, precisa de salvarEditorLP()
         // pra persistir em landing_pages_blocos antes de publicar (editarLP
@@ -258,6 +287,19 @@ async function main() {
         assert.equal(linkMaliciosoNoDom, 0, "nenhum <a href=\"javascript:...\"> pode existir no DOM público real");
         const linkLegitimoVisivel = await page.locator(`a[href="${URL_LEGITIMA}"]`).count();
         assert.ok(linkLegitimoVisivel > 0, "o link legítimo precisa continuar presente e clicável no DOM");
+
+        // ADV-66-001/002 no renderer PÚBLICO: mesmas verificações via
+        // getComputedStyle do navegador real, agora contra o HTML
+        // efetivamente inserido em #lp-container.
+        const resultadoCssPublico = await page.evaluate(() => {
+            const elementos = Array.from(document.getElementById("lp-container").querySelectorAll("*"));
+            return {
+                algumFixed: elementos.some((el) => getComputedStyle(el).position === "fixed"),
+                temBackgroundImage: elementos.some((el) => getComputedStyle(el).backgroundImage !== "none")
+            };
+        });
+        assert.equal(resultadoCssPublico.algumFixed, false, "nenhum elemento do renderer público pode ter position:fixed a partir do payload de CSS");
+        assert.equal(resultadoCssPublico.temBackgroundImage, true, "sanity: a declaração background-image precisa ter sido aplicada de alguma forma (prova que o valor chegou ao CSS, só não escapou pra outra declaração)");
 
         // ===== 10) codigo_iframe.htmlCustom — regressão da PR #62 =====
         const blocoPublicoIframe = (await db.collection("landing_pages_blocos_publicas").doc(BLOCO_IFRAME_ID).get()).data();

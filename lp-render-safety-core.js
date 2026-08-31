@@ -35,6 +35,54 @@ export function escapeAttribute(value) {
     return escapeHTML(value).replace(/`/g, "&#096;");
 }
 
+// ADV-66-001/002 (revisão adversarial da PR #66): safeImageURL só valida
+// ESQUEMA — o corpo de uma URL http(s) é livre. Quando esse valor entra
+// dentro de uma string CSS (dentro de url(...)), escapeAttribute (que só
+// entende o contexto de ATRIBUTO HTML) não é suficiente sozinho: o
+// navegador decodifica entidades HTML do atributo style ANTES de entregar
+// o texto pro parser CSS, então uma aspa escapada como entidade HTML volta
+// a ser um caractere literal exatamente no momento em que o CSS interpreta
+// o valor — o que permite fechar a string CSS e injetar declaração
+// adicional (ou, sem NENHUM escaping de atributo por cima — caso do achado
+// original —, fechar o próprio atributo style e criar markup ativo).
+// Contrato de 3 camadas independentes, cada uma resolvendo só o seu
+// contexto (URL VALIDATION -> CSS STRING ENCODING -> HTML ATTRIBUTE
+// ENCODING); nenhuma substitui a outra — uso correto:
+//   const seguro = escapeAttribute(escapeCSSString(safeImageURL(raw)));
+const CSS_STRING_ESCAPE_CODES = buildCssStringEscapeCodes();
+
+function buildCssStringEscapeCodes() {
+    const codes = new Set();
+    codes.add(92); // backslash
+    codes.add(39); // '
+    codes.add(34); // "
+    for (let c = 0; c <= 31; c += 1) codes.add(c); // controle, inclui NUL/LF/CR/FF
+    codes.add(127); // DEL
+    return codes;
+}
+
+export function escapeCSSString(value) {
+    const raw = String(value ?? "");
+    let out = "";
+    for (let i = 0; i < raw.length; i += 1) {
+        const code = raw.charCodeAt(i);
+        if (!CSS_STRING_ESCAPE_CODES.has(code)) {
+            out += raw[i];
+            continue;
+        }
+        if (code === 92) { out += "\\\\"; continue; }
+        if (code === 39) { out += "\\'"; continue; }
+        if (code === 34) { out += '\\"'; continue; }
+        // Controle (inclui NUL/LF/CR/FF) e DEL: um literal newline/NUL
+        // dentro de uma string CSS quoted encerra o token cedo demais
+        // ("bad string" — erro de parse) — escape hex padrão do CSS
+        // (backslash + hex do codepoint + espaço, pra nunca grudar no
+        // próximo dígito hex de um caractere adjacente).
+        out += "\\" + code.toString(16) + " ";
+    }
+    return out;
+}
+
 // Textarea usa um estado de tokenizer diferente de tag/atributo comum: o
 // parser HTML só procura a sequência literal "</textarea" pra fechar o
 // elemento — não decodifica entidades nesse meio-tempo. escapeHTML já

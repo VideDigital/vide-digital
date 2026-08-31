@@ -9,6 +9,7 @@ import {
     escapeHTML,
     escapeAttribute,
     escapeTextareaContent,
+    escapeCSSString,
     safeLinkURL,
     safeImageURL,
     safeIframeURL
@@ -46,6 +47,77 @@ describe("escapeTextareaContent — fecha a sequencia de fechamento do textarea"
         const payload = "texto</textarea><img src=x onerror=alert(1)>";
         const escapado = escapeTextareaContent(payload);
         assert.ok(!escapado.includes("</textarea>"), "a sequencia de fechamento nao pode sobreviver intacta");
+    });
+});
+
+// ADV-66-001/002 (revisão adversarial da PR #66): safeImageURL só valida
+// esquema — o corpo de uma URL http(s) é livre. escapeCSSString fecha o
+// contexto de STRING CSS (dentro de url('...')) — camada independente de
+// escapeAttribute (contexto de ATRIBUTO HTML). As duas precisam ser
+// aplicadas juntas, nessa ordem: escapeAttribute(escapeCSSString(url)).
+describe("escapeCSSString — contexto de string CSS (dentro de url('...'))", () => {
+    it("escapa backslash", () => {
+        assert.equal(escapeCSSString("a\\b"), "a\\\\b");
+    });
+    it("escapa aspa simples", () => {
+        assert.equal(escapeCSSString("a'b"), "a\\'b");
+    });
+    it('escapa aspa dupla', () => {
+        assert.equal(escapeCSSString('a"b'), 'a\\"b');
+    });
+    it("escapa newline (LF) como escape hex CSS", () => {
+        assert.equal(escapeCSSString("a\nb"), "a\\a b");
+    });
+    it("escapa CR", () => {
+        assert.equal(escapeCSSString("a\rb"), "a\\d b");
+    });
+    it("escapa FF", () => {
+        assert.equal(escapeCSSString("a\fb"), "a\\c b");
+    });
+    it("escapa NUL e outros control chars", () => {
+        assert.equal(escapeCSSString("a\x00b"), "a\\0 b");
+        assert.equal(escapeCSSString("a\x1fb"), "a\\1f b");
+    });
+    it("combinação de vários caracteres perigosos numa só chamada: nenhum sobrevive sem escape", () => {
+        const entrada = `x');\\'"\n\r\f`;
+        const saida = escapeCSSString(entrada);
+        // Nenhuma aspa/backslash/control-char pode aparecer na saída sem
+        // um backslash de escape imediatamente antes — senão o parser CSS
+        // interpretaria como fim da string ou início de outra sequência.
+        const semEscapes = saida.replace(/\\./g, "").replace(/\\[0-9a-f]{1,6} ?/g, "");
+        assert.ok(!/['"\\\n\r\f\x00-\x1f]/.test(semEscapes), `sobrou caractere perigoso sem escape: ${JSON.stringify(semEscapes)}`);
+    });
+    it("string vazia/ausente", () => {
+        assert.equal(escapeCSSString(""), "");
+        assert.equal(escapeCSSString(null), "");
+        assert.equal(escapeCSSString(undefined), "");
+    });
+    it("Unicode legítimo (acentos, emoji) passa intacto", () => {
+        assert.equal(escapeCSSString("café ☕ 日本語"), "café ☕ 日本語");
+    });
+    it("URL normal sem caracteres especiais passa intacta", () => {
+        assert.equal(escapeCSSString("https://cdn.exemplo.com/foto.jpg?w=200&h=100"), "https://cdn.exemplo.com/foto.jpg?w=200&h=100");
+    });
+
+    describe("composição safeImageURL -> escapeCSSString -> escapeAttribute — nenhuma aspa sobrevive intacta pro navegador decodificar", () => {
+        it("ADV-66-001: esquema válido + corpo tentando fechar o atributo style", () => {
+            const payload = 'https://x/x.png"><img src=x onerror="pwn()">';
+            const seguro = safeImageURL(payload);
+            assert.equal(seguro, payload, "sanity: safeImageURL só valida esquema, propaga o corpo inalterado");
+            const final = escapeAttribute(escapeCSSString(seguro));
+            assert.ok(!final.includes('"'), "nenhuma aspa dupla literal pode sobreviver — precisa virar &quot; (a barra que a precede não protege contra o navegador decodificar a entidade)");
+            assert.ok(!final.includes("<") && !final.includes(">"), "< e > também precisam estar como entidade");
+        });
+        it("ADV-66-002: esquema válido + corpo tentando fechar url('...') e injetar declaração CSS", () => {
+            const payload = "https://x/y.png');position:fixed;top:0;left:0;((";
+            const seguro = safeImageURL(payload);
+            const final = escapeAttribute(escapeCSSString(seguro));
+            assert.ok(!final.includes("'"), "nenhuma aspa simples literal pode sobreviver — precisa estar escapada em ambas as camadas (\\&#039; ou equivalente)");
+        });
+        it("URL legítima sobrevive ao pipeline completo sem alteração", () => {
+            const legitima = "https://cdn.exemplo.com/foto.jpg";
+            assert.equal(escapeAttribute(escapeCSSString(safeImageURL(legitima))), legitima);
+        });
     });
 });
 
