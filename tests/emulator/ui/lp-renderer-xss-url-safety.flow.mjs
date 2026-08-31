@@ -132,8 +132,18 @@ async function main() {
         // authoring.flow.mjs (usa a UI de produção, não bypassa).
         const indiceBlocoTexto = await page.evaluate(() => window.lpEditorBlocos.findIndex((b) => b.tipo === "texto_midia"));
         assert.ok(indiceBlocoTexto >= 0, "bloco texto_midia semeado precisa existir em lpEditorBlocos");
+        // Garante estado determinístico do painel (expandido, aba
+        // "Conteudo") via as próprias funções globais do editor — o clique
+        // genérico no card não é confiável (alterna colapso, e o estado
+        // inicial de _colapsado não é garantido), então controlamos isso
+        // diretamente pelas funções expostas, e deixamos só o preenchimento
+        // do campo em si (a ação de segurança relevante) para a interação
+        // real via input.
+        await page.evaluate((idx) => {
+            window.trocarAbaBlocoEditor(idx, "conteudo");
+            if (window.lpEditorBlocos[idx]._colapsado) window.alternarColapsoBloco(idx);
+        }, indiceBlocoTexto);
         const cardBloco = page.locator(`[data-lped-block-index="${indiceBlocoTexto}"]`);
-        await cardBloco.locator('[data-aura-mobile-card-trigger], .cursor-pointer').first().click();
         const inputTitulo = cardBloco.locator('input[placeholder="Titulo"]').first();
         await inputTitulo.waitFor({ state: "visible", timeout: 10000 });
         await inputTitulo.fill(XSS_TEXT_PAYLOAD);
@@ -142,8 +152,8 @@ async function main() {
         // (lpEditorBlocos) foi atualizado antes de salvar).
         await inputTitulo.dispatchEvent("input");
         await page.waitForFunction(
-            (idx, payload) => window.lpEditorBlocos[idx]?.props?.titulo === payload,
-            [indiceBlocoTexto, XSS_TEXT_PAYLOAD],
+            ({ idx, payload }) => window.lpEditorBlocos[idx]?.props?.titulo === payload,
+            { idx: indiceBlocoTexto, payload: XSS_TEXT_PAYLOAD },
             { timeout: 5000 }
         );
 
