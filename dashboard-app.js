@@ -1,4 +1,5 @@
 import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
+import { escapeHTML, escapeAttribute, escapeTextareaContent, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";

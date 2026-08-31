@@ -196,7 +196,14 @@ async function main() {
         assert.ok(startFn > 0, "não foi possível localizar renderizarBloco em index.html");
         const endFn = indexSource.indexOf("function mostrarErro() {", startFn);
         assert.ok(endFn > startFn, "não foi possível localizar o fim de renderizarBloco em index.html");
-        const rendererSource = indexSource.slice(startFn, endFn);
+        // renderizarBloco() depende de escapeHTML/escapeAttribute/
+        // safeLinkURL/safeImageURL/safeIframeURL (lp-render-safety-core.js),
+        // importadas como closure do módulo de index.html — invisíveis
+        // dentro do page.evaluate() abaixo (escopo global do browser).
+        // Extrai o texto real desses helpers (nunca reconstruído à mão) e
+        // concatena, pra ficarem no MESMO escopo de função.
+        const safetyCoreSource = (await readFile(path.join(REPO_ROOT, "lp-render-safety-core.js"), "utf8")).replace(/^export /gm, "");
+        const rendererSource = `${safetyCoreSource}\n${indexSource.slice(startFn, endFn)}`;
         assert.match(rendererSource, /bloco\.tipo === "texto_midia"/, "o trecho extraído precisa conter o branch texto_midia");
         assert.match(rendererSource, /bloco\.tipo === "navegacao"/, "o trecho extraído precisa conter o branch navegacao");
 

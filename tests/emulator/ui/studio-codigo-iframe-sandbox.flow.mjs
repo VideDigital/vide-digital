@@ -181,7 +181,16 @@ async function main() {
         assert.ok(startFn > 0, "não foi possível localizar renderizarBloco em index.html");
         const endFn = indexSource.indexOf("function mostrarErro() {", startFn);
         assert.ok(endFn > startFn, "não foi possível localizar o fim de renderizarBloco em index.html");
-        const rendererSource = indexSource.slice(startFn, endFn);
+        // LP-SEC-AUDIT-001/002: renderizarBloco() agora depende de
+        // escapeHTML/escapeAttribute/safeLinkURL/safeImageURL/safeIframeURL
+        // (lp-render-safety-core.js), importadas como closure do módulo de
+        // index.html — invisíveis dentro do page.evaluate() abaixo (escopo
+        // global do browser, não o escopo do módulo). Extrai o texto real
+        // desses helpers (nunca reconstruído à mão) e concatena antes de
+        // renderizarBloco, pra ficarem no MESMO escopo de função quando o
+        // new Function() reconstruir tudo junto.
+        const safetyCoreSource = (await readFile(path.join(REPO_ROOT, "lp-render-safety-core.js"), "utf8")).replace(/^export /gm, "");
+        const rendererSource = `${safetyCoreSource}\n${indexSource.slice(startFn, endFn)}`;
         // Checagem de que a extração pegou a função certa (sanidade da
         // fatia de texto) — a prova de comportamento real vem da execução
         // abaixo, não desta linha.
