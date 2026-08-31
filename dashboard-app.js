@@ -5346,15 +5346,15 @@ document.addEventListener("mousedown", function(e) {
         };
         function renderizarBlocoPreview(bloco, indiceBloco) {
             const d = bloco.design || {};
-            const corFundo = d.corFundo || "";
-            const imagemFundo = d.imagemFundoB64 || "";
-            const corSobreposicao = d.corSobreposicao || "#000000";
-            const opacidade = (d.opacidadeSobreposicao || 0) / 100;
-            const corBotaoFundo = d.corBotaoFundo || "";
-            const corBotaoBorda = d.corBotaoBorda || "";
-            const corBotaoTexto = d.corBotaoTexto || "";
-            const paddingTop = d.paddingTop !== undefined ? d.paddingTop : 64;
-            const paddingBottom = d.paddingBottom !== undefined ? d.paddingBottom : 64;
+            const corFundo = escapeAttribute(d.corFundo || "");
+            const imagemFundo = safeImageURL(d.imagemFundoB64 || "");
+            const corSobreposicao = escapeAttribute(d.corSobreposicao || "#000000");
+            const opacidade = (Number(d.opacidadeSobreposicao) || 0) / 100;
+            const corBotaoFundo = escapeAttribute(d.corBotaoFundo || "");
+            const corBotaoBorda = escapeAttribute(d.corBotaoBorda || "");
+            const corBotaoTexto = escapeAttribute(d.corBotaoTexto || "");
+            const paddingTop = d.paddingTop !== undefined ? (Number(d.paddingTop) || 0) : 64;
+            const paddingBottom = d.paddingBottom !== undefined ? (Number(d.paddingBottom) || 0) : 64;
             const alinhamento = d.alinhamento || "esquerda";
             const textAlignClasse = alinhamento === "centro" ? "text-center" : alinhamento === "direita" ? "text-right" : "text-left";
             const itemsClasse = alinhamento === "centro" ? "items-center" : alinhamento === "direita" ? "items-end" : "items-start";
@@ -5370,64 +5370,66 @@ document.addEventListener("mousedown", function(e) {
                 : "";
             let conteudo = "";
             if (bloco.tipo === "texto_midia") {
-                const estiloImgLargura = bloco.props.imagemLargura ? `width:${bloco.props.imagemLargura}px; max-width:100%;` : "width:100%;";
+                const imagemMidia = safeImageURL(bloco.props.imagemB64);
+                const larguraImagem = Number(bloco.props.imagemLargura) || 0;
+                const estiloImgLargura = larguraImagem ? `width:${larguraImagem}px; max-width:100%;` : "width:100%;";
                 conteudo = `
                     <div class="max-w-3xl mx-auto px-6 grid md:grid-cols-2 gap-6 ${itemsClasse}">
                         <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-2" : ""} ${textAlignClasse}">
-                            <h2 class="text-xl font-bold mb-2">${bloco.props.titulo || ""}</h2>
-                            <p class="text-gray-300 text-sm mb-3">${bloco.props.subtitulo || ""}</p>
-                            ${bloco.props.botaoTexto ? `<span style="${estiloBotao}" class="${classeBotao}">${bloco.props.botaoTexto}</span>` : ""}
+                            <h2 class="text-xl font-bold mb-2">${escapeHTML(bloco.props.titulo)}</h2>
+                            <p class="text-gray-300 text-sm mb-3">${escapeHTML(bloco.props.subtitulo)}</p>
+                            ${bloco.props.botaoTexto ? `<span style="${estiloBotao}" class="${classeBotao}">${escapeHTML(bloco.props.botaoTexto)}</span>` : ""}
                         </div>
                         <div class="${bloco.props.posicaoImagem === "esquerda" ? "md:order-1" : ""}">
-                            ${bloco.props.imagemB64 ? `<div class="relative inline-block"><img src="${bloco.props.imagemB64}" style="${estiloImgLargura}" class="rounded-xl"><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="imagem-largura"></div></div>` : '<div class="w-full h-24 bg-white/5 rounded-xl"></div>'}
+                            ${imagemMidia ? `<div class="relative inline-block"><img src="${escapeAttribute(imagemMidia)}" style="${estiloImgLargura}" class="rounded-xl"><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="imagem-largura"></div></div>` : '<div class="w-full h-24 bg-white/5 rounded-xl"></div>'}
                         </div>
                     </div>`;
             } else if (bloco.tipo === "formulario_captura") {
                 conteudo = `
                     <div class="max-w-sm mx-auto px-6 ${textAlignClasse}">
-                        <h2 class="text-lg font-bold mb-3">${bloco.props.titulo || ""}</h2>
+                        <h2 class="text-lg font-bold mb-3">${escapeHTML(bloco.props.titulo)}</h2>
                         <div class="space-y-2 text-left">
-                            ${(bloco.props.campos || []).map(campo => `<div class="w-full p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-500">${campo}</div>`).join("")}
-                            <div style="${estiloBotao}" class="${classeBotaoForm}">${bloco.props.textoBotao || "Enviar"}</div>
+                            ${(bloco.props.campos || []).map(campo => `<div class="w-full p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-500">${escapeHTML(typeof campo === "object" && campo ? (campo.label || campo.name || "") : campo)}</div>`).join("")}
+                            <div style="${estiloBotao}" class="${classeBotaoForm}">${escapeHTML(bloco.props.textoBotao || "Enviar")}</div>
                         </div>
                     </div>`;
             } else if (bloco.tipo === "faq") {
                 const itens = bloco.props.itens || [];
                 conteudo = `
                     <div class="max-w-2xl mx-auto px-6 ${textAlignClasse}">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
-                        <div class="space-y-2 text-left">${itens.map(item => `<div class="bg-white/5 border border-white/10 rounded-xl p-3"><p class="font-bold text-sm">${item.pergunta || ""}</p></div>`).join("")}</div>
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
+                        <div class="space-y-2 text-left">${itens.map(item => `<div class="bg-white/5 border border-white/10 rounded-xl p-3"><p class="font-bold text-sm">${escapeHTML(item.pergunta)}</p></div>`).join("")}</div>
                     </div>`;
             } else if (bloco.tipo === "galeria_imagens") {
                 const imagens = bloco.props.imagens || [];
                 conteudo = `
                     <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
-                        <div class="grid grid-cols-4 gap-2">${imagens.length === 0 ? '<p class="text-xs text-gray-500 col-span-4">Sem imagens ainda.</p>' : imagens.map(img => `<img src="${img}" class="w-full h-20 object-cover rounded-lg">`).join("")}</div>
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
+                        <div class="grid grid-cols-4 gap-2">${imagens.length === 0 ? '<p class="text-xs text-gray-500 col-span-4">Sem imagens ainda.</p>' : imagens.map(img => `<img src="${escapeAttribute(safeImageURL(img))}" class="w-full h-20 object-cover rounded-lg">`).join("")}</div>
                     </div>`;
             } else if (bloco.tipo === "lista_cards") {
                 const cards = bloco.props.cards || [];
                 conteudo = `
                     <div class="max-w-3xl mx-auto px-6 ${textAlignClasse}">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
-                        <div class="grid grid-cols-3 gap-2 text-left">${cards.map(c => `<div class="bg-white/5 border border-white/10 rounded-xl p-3"><p class="text-sm">${c.icone || ""} ${c.titulo || ""}</p></div>`).join("")}</div>
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
+                        <div class="grid grid-cols-3 gap-2 text-left">${cards.map(c => `<div class="bg-white/5 border border-white/10 rounded-xl p-3"><p class="text-sm">${escapeHTML(c.icone)} ${escapeHTML(c.titulo)}</p></div>`).join("")}</div>
                     </div>`;
             } else if (bloco.tipo === "tabela_comparativo") {
                 const linhas = bloco.props.linhas || [];
                 conteudo = `
                     <div class="max-w-2xl mx-auto px-6 ${textAlignClasse}">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${bloco.props.titulo}</h2>` : ""}
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                         <table class="w-full text-xs text-left">
-                            <tr class="border-b border-white/10"><th></th><th class="p-1">${bloco.props.coluna1 || ""}</th><th class="p-1">${bloco.props.coluna2 || ""}</th></tr>
-                            ${linhas.map(l => `<tr class="border-b border-white/5"><td class="p-1 text-gray-400">${l.label || ""}</td><td class="p-1">${l.valor1 || ""}</td><td class="p-1">${l.valor2 || ""}</td></tr>`).join("")}
+                            <tr class="border-b border-white/10"><th></th><th class="p-1">${escapeHTML(bloco.props.coluna1)}</th><th class="p-1">${escapeHTML(bloco.props.coluna2)}</th></tr>
+                            ${linhas.map(l => `<tr class="border-b border-white/5"><td class="p-1 text-gray-400">${escapeHTML(l.label)}</td><td class="p-1">${escapeHTML(l.valor1)}</td><td class="p-1">${escapeHTML(l.valor2)}</td></tr>`).join("")}
                         </table>
                     </div>`;
             } else if (bloco.tipo === "texto_rico") {
                 const paragrafos = (bloco.props.conteudo || "").split(/\n\s*\n/).filter(p => p.trim());
                 conteudo = `
                     <div class="max-w-2xl mx-auto px-6 ${textAlignClasse}">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-3">${bloco.props.titulo}</h2>` : ""}
-                        <div class="text-gray-300 text-sm space-y-2">${paragrafos.map(p => `<p>${p}</p>`).join("")}</div>
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-3">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
+                        <div class="text-gray-300 text-sm space-y-2">${paragrafos.map(p => `<p>${escapeHTML(p)}</p>`).join("")}</div>
                     </div>`;
 } else if (bloco.tipo === "codigo_iframe") {
                 // PR61-REV2-001: srcdoc SEM sandbox herda a MESMA origem do
@@ -5444,24 +5446,24 @@ document.addEventListener("mousedown", function(e) {
                 // lp-public-v4.js (implementação de referência ainda não
                 // conectada a nenhuma rota ativa).
                 conteudo = bloco.props.htmlCustom
-                    ? `<div class="max-w-3xl mx-auto px-6"><iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${bloco.props.altura || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
+                    ? `<div class="max-w-3xl mx-auto px-6"><iframe sandbox="allow-forms allow-popups allow-presentation allow-scripts" srcdoc="${(bloco.props.htmlCustom || "").replace(/"/g, "&quot;")}" style="width:100%; height:${Number(bloco.props.altura) || 400}px; border:0;" class="rounded-xl w-full bg-white"></iframe></div>`
                     : (bloco.props.url
-                        ? `<div class="max-w-3xl mx-auto px-6"><div class="bg-white/5 border border-dashed border-white/20 rounded-xl p-6 text-center text-xs text-gray-500">Incorporado: ${bloco.props.url}</div></div>`
+                        ? `<div class="max-w-3xl mx-auto px-6"><div class="bg-white/5 border border-dashed border-white/20 rounded-xl p-6 text-center text-xs text-gray-500">Incorporado: ${escapeHTML(bloco.props.url)}</div></div>`
                         : `<div class="max-w-3xl mx-auto px-6"><p class="text-xs text-gray-500 text-center">Nenhuma URL definida ainda.</p></div>`);
             } else if (bloco.tipo === "carrossel_banners") {
                 const banners = bloco.props.banners || [];
-                conteudo = `<div class="max-w-3xl mx-auto px-6"><div class="flex gap-2 overflow-x-auto">${banners.length === 0 ? '<p class="text-xs text-gray-500">Sem banners ainda.</p>' : banners.map(b => `<img src="${b.imagemB64}" class="shrink-0 w-40 h-20 object-cover rounded-xl">`).join("")}</div></div>`;
+                conteudo = `<div class="max-w-3xl mx-auto px-6"><div class="flex gap-2 overflow-x-auto">${banners.length === 0 ? '<p class="text-xs text-gray-500">Sem banners ainda.</p>' : banners.map(b => `<img src="${escapeAttribute(safeImageURL(b.imagemB64))}" class="shrink-0 w-40 h-20 object-cover rounded-xl">`).join("")}</div></div>`;
             } else if (bloco.tipo === "carrossel_produtos") {
                 const ids = bloco.props.produtosIds || [];
                 const produtos = produtosDoUsuarioCache.filter(p => ids.includes(p.id));
                 conteudo = `
                     <div class="max-w-3xl mx-auto px-6">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4 ${textAlignClasse}">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                         <div class="flex gap-3 overflow-x-auto">
                             ${produtos.length === 0 ? '<p class="text-xs text-gray-500">Nenhum produto selecionado ainda.</p>' : produtos.map(p => `
                                 <div class="shrink-0 w-28 bg-white/5 border border-white/10 rounded-xl overflow-hidden">
                                     <div class="w-full h-16 bg-white/10"></div>
-                                    <div class="p-2"><p class="text-[10px] font-bold truncate">${p.nome}</p><p class="text-[9px] text-gray-400">R$ ${p.preco}</p></div>
+                                    <div class="p-2"><p class="text-[10px] font-bold truncate">${escapeHTML(p.nome)}</p><p class="text-[9px] text-gray-400">R$ ${escapeHTML(p.preco)}</p></div>
                                 </div>
                             `).join("")}
                         </div>
@@ -5471,41 +5473,43 @@ document.addEventListener("mousedown", function(e) {
                 const estilo = bloco.props.estiloImagem || "lado";
                 conteudo = `
                     <div class="max-w-3xl mx-auto px-6">
-                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4 ${textAlignClasse}">${bloco.props.titulo}</h2>` : ""}
+                        ${bloco.props.titulo ? `<h2 class="text-xl font-bold mb-4 ${textAlignClasse}">${escapeHTML(bloco.props.titulo)}</h2>` : ""}
                         <div class="flex gap-3 overflow-x-auto">
-                            ${cards.length === 0 ? '<p class="text-xs text-gray-500">Sem cards ainda.</p>' : cards.map(c => estilo === "fundo"
-                                ? `<div class="shrink-0 w-32 h-32 rounded-xl relative overflow-hidden" style="${c.imagemB64 ? `background-image:url('${c.imagemB64}');background-size:cover;` : "background-color:#222;"}"><div class="absolute inset-0 bg-black/40"></div><p class="relative text-[10px] font-bold p-2 text-white">${c.titulo || ""}</p></div>`
-                                : `<div class="shrink-0 w-28 bg-white/5 border border-white/10 rounded-xl overflow-hidden"><div class="w-full h-14 bg-white/10"></div><p class="text-[10px] font-bold p-2">${c.titulo || ""}</p></div>`
-                            ).join("")}
+                            ${cards.length === 0 ? '<p class="text-xs text-gray-500">Sem cards ainda.</p>' : cards.map(c => {
+                                const imagemCard = safeImageURL(c.imagemB64);
+                                return estilo === "fundo"
+                                    ? `<div class="shrink-0 w-32 h-32 rounded-xl relative overflow-hidden" style="${imagemCard ? `background-image:url('${escapeAttribute(imagemCard)}');background-size:cover;` : "background-color:#222;"}"><div class="absolute inset-0 bg-black/40"></div><p class="relative text-[10px] font-bold p-2 text-white">${escapeHTML(c.titulo)}</p></div>`
+                                    : `<div class="shrink-0 w-28 bg-white/5 border border-white/10 rounded-xl overflow-hidden"><div class="w-full h-14 bg-white/10"></div><p class="text-[10px] font-bold p-2">${escapeHTML(c.titulo)}</p></div>`;
+                            }).join("")}
                         </div>
                     </div>`;
             } else if (bloco.tipo === "navegacao") {
                 const links = bloco.props.links || [];
-                conteudo = `<div class="max-w-3xl mx-auto px-6 flex items-center justify-between"><span class="font-bold">${bloco.props.logoTexto || ""}</span><div class="flex gap-3 text-xs">${links.map(l => `<span>${l.label || ""}</span>`).join("")}</div></div>`;
+                conteudo = `<div class="max-w-3xl mx-auto px-6 flex items-center justify-between"><span class="font-bold">${escapeHTML(bloco.props.logoTexto)}</span><div class="flex gap-3 text-xs">${links.map(l => `<span>${escapeHTML(l.label)}</span>`).join("")}</div></div>`;
             } else if (bloco.tipo === "rodape") {
                 const links = bloco.props.links || [];
-                conteudo = `<div class="max-w-3xl mx-auto px-6 flex items-center justify-between text-xs text-gray-400"><p>${bloco.props.textoCopyright || ""}</p><div class="flex gap-3">${links.map(l => `<span>${l.label || ""}</span>`).join("")}</div></div>`;
+                conteudo = `<div class="max-w-3xl mx-auto px-6 flex items-center justify-between text-xs text-gray-400"><p>${escapeHTML(bloco.props.textoCopyright)}</p><div class="flex gap-3">${links.map(l => `<span>${escapeHTML(l.label)}</span>`).join("")}</div></div>`;
             } else if (bloco.tipo === "seletor_cores") {
                 const opcoes = bloco.props.opcoes || [];
                 conteudo = `
                     <div class="max-w-sm mx-auto px-6 ${textAlignClasse}">
-                        ${bloco.props.titulo ? `<p class="font-bold text-sm mb-2">${bloco.props.titulo}</p>` : ""}
-                        <div class="flex gap-2 ${justifyClasse}">${opcoes.map(op => `<div style="background-color:${op.hex || "#000"};" class="w-7 h-7 rounded-full border border-white/20"></div>`).join("")}</div>
+                        ${bloco.props.titulo ? `<p class="font-bold text-sm mb-2">${escapeHTML(bloco.props.titulo)}</p>` : ""}
+                        <div class="flex gap-2 ${justifyClasse}">${opcoes.map(op => `<div style="background-color:${escapeAttribute(op.hex || "#000")};" class="w-7 h-7 rounded-full border border-white/20"></div>`).join("")}</div>
                     </div>`;
             } else if (bloco.tipo === "breadcrumb") {
                 const itens = bloco.props.itens || [];
-                conteudo = `<div class="max-w-3xl mx-auto px-6 text-xs text-gray-400">${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-1">/</span>' : ""}<span>${item.label || ""}</span>`).join("")}</div>`;
+                conteudo = `<div class="max-w-3xl mx-auto px-6 text-xs text-gray-400">${itens.map((item, idx) => `${idx > 0 ? '<span class="mx-1">/</span>' : ""}<span>${escapeHTML(item.label)}</span>`).join("")}</div>`;
             } else if (bloco.tipo === "forma") {
-                const largura = bloco.props.largura || 120;
-                const altura = bloco.props.altura || 120;
-                const corForma = bloco.props.cor || "#5B3DF5";
+                const largura = Number(bloco.props.largura) || 120;
+                const altura = Number(bloco.props.altura) || 120;
+                const corForma = escapeAttribute(bloco.props.cor || "#5B3DF5");
                 let estiloForma = `width:${largura}px; background-color:${corForma};`;
                 if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
                 else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
                 else estiloForma += `height:${altura}px; border-radius:8px;`;
                 conteudo = `<div class="flex ${justifyClasse} px-6"><div class="relative inline-block"><div style="${estiloForma}"></div><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="forma"></div></div></div>`;
             }
-            const estiloTexto = d.corTexto ? `color:${d.corTexto};` : "";
+            const estiloTexto = d.corTexto ? `color:${escapeAttribute(d.corTexto)};` : "";
             if (lpEditorModoLayout === "livre") {
                 const x = bloco.x !== undefined ? bloco.x : 20;
                 const y = bloco.y !== undefined ? bloco.y : 20;
@@ -5874,7 +5878,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                 return `
                     <div class="space-y-2 mt-3">
                         <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                        <textarea oninput="lpEditorBlocos[${i}].props.subtitulo = this.value" placeholder="Subtitulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none" rows="2">${bloco.props.subtitulo || ""}</textarea>
+                        <textarea oninput="lpEditorBlocos[${i}].props.subtitulo = this.value" placeholder="Subtitulo" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none" rows="2">${escapeTextareaContent(bloco.props.subtitulo)}</textarea>
                         <div class="grid grid-cols-2 gap-2">
                             <input type="text" value="${(bloco.props.botaoTexto || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoTexto = this.value" placeholder="Texto do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
                             <input type="text" value="${(bloco.props.botaoLink || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.botaoLink = this.value" placeholder="Link do botao" class="glass-input rounded-lg p-2.5 text-xs text-white outline-none">
@@ -5885,7 +5889,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                         </select>
                         ${bloco.props.imagemB64 ? `
                             <div class="flex items-center gap-2">
-                                <img src="${bloco.props.imagemB64}" class="h-12 w-20 object-cover rounded-lg border border-white/10">
+                                <img src="${escapeAttribute(safeImageURL(bloco.props.imagemB64))}" class="h-12 w-20 object-cover rounded-lg border border-white/10">
                                 <label class="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[10px] font-bold px-3 py-2 rounded-lg cursor-pointer transition-all">
                                     Trocar imagem
                                     <input type="file" accept="image/*" class="hidden" onchange="uploadImagemTextoMidiaEditor(${i}, this)">
@@ -5928,7 +5932,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                                     <button onclick="removerItemListaEditor(${i}, 'itens', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
                                 </div>
                                 <input type="text" value="${(item.pergunta || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.itens[${j}].pergunta = this.value" placeholder="Pergunta" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
-                                <textarea oninput="lpEditorBlocos[${i}].props.itens[${j}].resposta = this.value" placeholder="Resposta" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${item.resposta || ""}</textarea>
+                                <textarea oninput="lpEditorBlocos[${i}].props.itens[${j}].resposta = this.value" placeholder="Resposta" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${escapeTextareaContent(item.resposta)}</textarea>
                             </div>
                         `).join("")}
                         <button onclick="adicionarItemListaEditor(${i}, 'itens', {pergunta: '', resposta: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar pergunta</button>
@@ -5942,7 +5946,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                         <div class="grid grid-cols-4 gap-2">
                             ${imagens.map((img, j) => `
                                 <div class="relative">
-                                    <img src="${img}" class="w-full h-16 object-cover rounded-lg border border-white/10">
+                                    <img src="${escapeAttribute(safeImageURL(img))}" class="w-full h-16 object-cover rounded-lg border border-white/10">
                                     <button onclick="removerImagemGaleriaEditor(${i}, ${j})" class="absolute top-0.5 right-0.5 bg-black/70 text-red-400 text-[9px] font-bold rounded px-1">X</button>
                                 </div>
                             `).join("")}
@@ -5968,7 +5972,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                                     <input type="text" value="${(card.icone || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.cards[${j}].icone = this.value" placeholder="Emoji" class="glass-input rounded-lg p-2 text-xs text-white outline-none">
                                     <input type="text" value="${(card.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.cards[${j}].titulo = this.value" placeholder="Titulo" class="col-span-2 glass-input rounded-lg p-2 text-xs text-white outline-none">
                                 </div>
-                                <textarea oninput="lpEditorBlocos[${i}].props.cards[${j}].texto = this.value" placeholder="Texto" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${card.texto || ""}</textarea>
+                                <textarea oninput="lpEditorBlocos[${i}].props.cards[${j}].texto = this.value" placeholder="Texto" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${escapeTextareaContent(card.texto)}</textarea>
                             </div>
                         `).join("")}
                         <button onclick="adicionarItemListaEditor(${i}, 'cards', {icone: '', titulo: '', texto: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar card</button>
@@ -6003,7 +6007,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                 return `
                     <div class="space-y-2 mt-3">
                         <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo (opcional)" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
-                        <textarea oninput="lpEditorBlocos[${i}].props.conteudo = this.value" placeholder="Texto (deixe uma linha em branco entre paragrafos)" rows="6" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">${bloco.props.conteudo || ""}</textarea>
+                        <textarea oninput="lpEditorBlocos[${i}].props.conteudo = this.value" placeholder="Texto (deixe uma linha em branco entre paragrafos)" rows="6" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">${escapeTextareaContent(bloco.props.conteudo)}</textarea>
                     </div>
                 `;
             } else if (bloco.tipo === "codigo_iframe") {
@@ -6015,7 +6019,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                             <input type="number" min="100" value="${bloco.props.altura || 400}" oninput="lpEditorBlocos[${i}].props.altura = parseInt(this.value) || 400" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
                         </div>
                         <p class="text-[9px] text-gray-500">Ou cole um codigo HTML pronto (usado no lugar do link acima, se preenchido):</p>
-                        <textarea oninput="lpEditorBlocos[${i}].props.htmlCustom = this.value" placeholder="Cole aqui o codigo HTML" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none font-mono" rows="4">${bloco.props.htmlCustom || ""}</textarea>
+                        <textarea oninput="lpEditorBlocos[${i}].props.htmlCustom = this.value" placeholder="Cole aqui o codigo HTML" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none font-mono" rows="4">${escapeTextareaContent(bloco.props.htmlCustom)}</textarea>
                     </div>
                 `;
             } else if (bloco.tipo === "carrossel_banners") {
@@ -6024,7 +6028,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                     <div class="space-y-2 mt-3">
                         ${banners.map((b, j) => `
                             <div class="border border-white/5 rounded-lg p-2.5 flex items-center gap-2">
-                                <img src="${b.imagemB64}" class="w-16 h-10 object-cover rounded-lg border border-white/10">
+                                <img src="${escapeAttribute(safeImageURL(b.imagemB64))}" class="w-16 h-10 object-cover rounded-lg border border-white/10">
                                 <input type="text" value="${(b.link || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.banners[${j}].link = this.value" placeholder="Link (opcional)" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
                                 <button onclick="removerItemListaEditor(${i}, 'banners', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
                             </div>
@@ -6045,8 +6049,8 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                             ${produtosDoUsuarioCache.length === 0 ? '<p class="text-[10px] text-gray-500 p-2">Nenhum produto ativo encontrado.</p>' : produtosDoUsuarioCache.map(p => `
                                 <label class="flex items-center gap-2 text-xs text-gray-300 p-1.5 hover:bg-white/5 rounded-lg cursor-pointer">
                                     <input type="checkbox" ${selecionados.includes(p.id) ? "checked" : ""} onchange="alternarProdutoCarrosselEditor(${i}, '${p.id}', this.checked)">
-                                    ${p.imagemB64 ? `<img src="${p.imagemB64}" class="w-8 h-8 object-cover rounded">` : ""}
-                                    <span>${p.nome} - R$ ${p.preco}</span>
+                                    ${safeImageURL(p.imagemB64) ? `<img src="${escapeAttribute(safeImageURL(p.imagemB64))}" class="w-8 h-8 object-cover rounded">` : ""}
+                                    <span>${escapeHTML(p.nome)} - R$ ${escapeHTML(p.preco)}</span>
                                 </label>
                             `).join("")}
                         </div>
@@ -6067,13 +6071,13 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                                     <span class="text-[9px] text-gray-500">Card ${j + 1}</span>
                                     <button onclick="removerItemListaEditor(${i}, 'cards', ${j})" class="text-red-400 text-[9px] font-bold">Remover</button>
                                 </div>
-                                ${card.imagemB64 ? `<img src="${card.imagemB64}" class="w-full h-16 object-cover rounded-lg">` : ""}
+                                ${safeImageURL(card.imagemB64) ? `<img src="${escapeAttribute(safeImageURL(card.imagemB64))}" class="w-full h-16 object-cover rounded-lg">` : ""}
                                 <label class="inline-block bg-white/5 hover:bg-white/10 border border-white/10 text-white text-[9px] font-bold px-2 py-1.5 rounded-lg cursor-pointer">
                                     ${card.imagemB64 ? "Trocar imagem" : "Adicionar imagem"}
                                     <input type="file" accept="image/*" class="hidden" onchange="uploadImagemCardCarrosselEditor(${i}, ${j}, this)">
                                 </label>
                                 <input type="text" value="${(card.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.cards[${j}].titulo = this.value" placeholder="Titulo" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
-                                <textarea oninput="lpEditorBlocos[${i}].props.cards[${j}].texto = this.value" placeholder="Texto" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${card.texto || ""}</textarea>
+                                <textarea oninput="lpEditorBlocos[${i}].props.cards[${j}].texto = this.value" placeholder="Texto" rows="2" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">${escapeTextareaContent(card.texto)}</textarea>
                             </div>
                         `).join("")}
                         <button onclick="adicionarItemListaEditor(${i}, 'cards', {titulo: '', texto: '', imagemB64: ''})" class="text-[10px] font-bold text-gray-400 hover:text-white">+ Adicionar card</button>
@@ -6120,7 +6124,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                         <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo (ex: Escolha a cor)" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
                         ${opcoes.map((op, j) => `
                             <div class="flex items-center gap-2">
-                                <input type="color" value="${op.hex || "#000000"}" oninput="lpEditorBlocos[${i}].props.opcoes[${j}].hex = this.value" class="h-8 w-8 rounded cursor-pointer bg-transparent border-0">
+                                <input type="color" value="${escapeAttribute(op.hex || "#000000")}" oninput="lpEditorBlocos[${i}].props.opcoes[${j}].hex = this.value" class="h-8 w-8 rounded cursor-pointer bg-transparent border-0">
                                 <input type="text" value="${(op.nome || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.opcoes[${j}].nome = this.value" placeholder="Nome da cor" class="flex-1 glass-input rounded-lg p-2 text-xs text-white outline-none">
                                 <button onclick="removerItemListaEditor(${i}, 'opcoes', ${j})" class="text-red-400 text-[9px] font-bold px-1">X</button>
                             </div>
@@ -6164,7 +6168,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                         </div>
                         <div>
                             <label class="text-[9px] text-gray-500">Cor</label>
-                            <input type="color" value="${bloco.props.cor || "#5B3DF5"}" oninput="lpEditorBlocos[${i}].props.cor = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                            <input type="color" value="${escapeAttribute(bloco.props.cor || "#5B3DF5")}" oninput="lpEditorBlocos[${i}].props.cor = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
                         </div>
                     </div>
                 `;
@@ -6223,12 +6227,12 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                     <div>
                         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Plano de fundo</p>
                         <div class="flex items-center gap-2 mb-2">
-                            <input type="color" value="${d.corFundo || "#14132B"}" oninput="lpEditorBlocos[${i}].design.corFundo = this.value" class="h-8 w-8 rounded cursor-pointer bg-transparent border-0">
+                            <input type="color" value="${escapeAttribute(d.corFundo || "#14132B")}" oninput="lpEditorBlocos[${i}].design.corFundo = this.value" class="h-8 w-8 rounded cursor-pointer bg-transparent border-0">
                             <span class="text-[10px] text-gray-500">Cor de fundo (usada se nao tiver imagem)</span>
                         </div>
-                        ${d.imagemFundoB64 ? `
+                        ${safeImageURL(d.imagemFundoB64) ? `
                             <div class="flex items-center gap-2 mb-2">
-                                <img src="${d.imagemFundoB64}" class="h-12 w-20 object-cover rounded-lg border border-white/10">
+                                <img src="${escapeAttribute(safeImageURL(d.imagemFundoB64))}" class="h-12 w-20 object-cover rounded-lg border border-white/10">
                                 <button onclick="removerImagemFundoEditor(${i})" class="text-red-400 hover:text-red-300 text-[10px] font-bold">Remover imagem</button>
                             </div>
                         ` : `
@@ -6240,11 +6244,11 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                         <div class="grid grid-cols-2 gap-2 mt-2">
                             <div>
                                 <label class="text-[9px] text-gray-500">Cor da sobreposicao</label>
-                                <input type="color" value="${d.corSobreposicao}" oninput="lpEditorBlocos[${i}].design.corSobreposicao = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                                <input type="color" value="${escapeAttribute(d.corSobreposicao || "#000000")}" oninput="lpEditorBlocos[${i}].design.corSobreposicao = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
                             </div>
                             <div>
                                 <label class="text-[9px] text-gray-500">Opacidade (0-100)</label>
-                                <input type="number" min="0" max="100" value="${d.opacidadeSobreposicao}" oninput="lpEditorBlocos[${i}].design.opacidadeSobreposicao = parseInt(this.value) || 0" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
+                                <input type="number" min="0" max="100" value="${Number(d.opacidadeSobreposicao) || 0}" oninput="lpEditorBlocos[${i}].design.opacidadeSobreposicao = parseInt(this.value) || 0" class="w-full glass-input rounded-lg p-2 text-xs text-white outline-none">
                             </div>
                         </div>
                     </div>
@@ -6253,21 +6257,21 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                         <div class="grid grid-cols-3 gap-2">
                             <div>
                                 <label class="text-[9px] text-gray-500">Fundo</label>
-                                <input type="color" value="${d.corBotaoFundo || "#FFFFFF"}" oninput="lpEditorBlocos[${i}].design.corBotaoFundo = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                                <input type="color" value="${escapeAttribute(d.corBotaoFundo || "#FFFFFF")}" oninput="lpEditorBlocos[${i}].design.corBotaoFundo = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
                             </div>
                             <div>
                                 <label class="text-[9px] text-gray-500">Borda</label>
-                                <input type="color" value="${d.corBotaoBorda || "#FFFFFF"}" oninput="lpEditorBlocos[${i}].design.corBotaoBorda = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                                <input type="color" value="${escapeAttribute(d.corBotaoBorda || "#FFFFFF")}" oninput="lpEditorBlocos[${i}].design.corBotaoBorda = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
                             </div>
                             <div>
                                 <label class="text-[9px] text-gray-500">Texto</label>
-                                <input type="color" value="${d.corBotaoTexto || "#000000"}" oninput="lpEditorBlocos[${i}].design.corBotaoTexto = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                                <input type="color" value="${escapeAttribute(d.corBotaoTexto || "#000000")}" oninput="lpEditorBlocos[${i}].design.corBotaoTexto = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
                             </div>
                         </div>
                     </div>
                     <div>
                         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Cor do texto do bloco</p>
-                        <input type="color" value="${d.corTexto || "#FFFFFF"}" oninput="lpEditorBlocos[${i}].design.corTexto = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
+                        <input type="color" value="${escapeAttribute(d.corTexto || "#FFFFFF")}" oninput="lpEditorBlocos[${i}].design.corTexto = this.value" class="h-8 w-full rounded cursor-pointer bg-transparent border-0">
                     </div>
                     <div>
                         <p class="text-[10px] font-bold text-gray-500 uppercase tracking-wider mb-1.5">Espacamento (padding em px)</p>
@@ -6330,9 +6334,9 @@ for (const blocoId of (lp.ordemBlocos || [])) {
         }
         function nomeResumoBloco(bloco) {
             const p = bloco.props || {};
-            const texto = p.titulo || p.textoCopyright || p.logoTexto || p.url || "";
+            const texto = String(p.titulo || p.textoCopyright || p.logoTexto || p.url || "");
             if (!texto) return "";
-            return texto.length > 28 ? texto.slice(0, 28) + "..." : texto;
+            return escapeHTML(texto.length > 28 ? texto.slice(0, 28) + "..." : texto);
         }
         window.alternarColapsoBloco = function(i) {
             lpEditorBlocos[i]._colapsado = !lpEditorBlocos[i]._colapsado;
