@@ -25,7 +25,10 @@ import { getFirestore } from "firebase-admin/firestore";
 import {
     captureDiagnostics,
     coletarErrosConsole,
+    criarTelemetria,
     ehErroDeRedeExterno,
+    instrumentarCicloDeVida,
+    instrumentarLifecycleDocumento,
     launchBrowser,
     loginReal,
     startStaticServer
@@ -106,6 +109,14 @@ async function main() {
     const erros = coletarErrosConsole(page);
     let falhou = false;
 
+    // ===== Telemetria de diagnóstico (RELEASE-GATE-OBSERVABILITY) =====
+    // Read-only: só observa e imprime, nunca decide o resultado do teste
+    // nem altera o timing da corrida entre fecharEditorLP() e
+    // alternarPublicacaoLP() investigada nesta missão.
+    const logTelemetria = criarTelemetria("studio-iframe");
+    instrumentarCicloDeVida(page, logTelemetria, { browser });
+    await instrumentarLifecycleDocumento(page);
+
     try {
         await seedLpComIframe(db);
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
@@ -145,12 +156,26 @@ async function main() {
         const marcadorNoParent = await page.evaluate(() => window.__iframeEscapeProbe || null);
         assert.equal(marcadorNoParent, null, "window.__iframeEscapeProbe nunca pode aparecer no parent (dashboard) real");
 
+        logTelemetria("ANTES_FECHAR_EDITOR", { url: page.url() });
         await page.evaluate(() => window.fecharEditorLP?.());
+        logTelemetria("DEPOIS_FECHAR_EDITOR", { url: page.url() });
 
         // ===== 2) Renderer público (index.html) =====
         // Publica de verdade pra exercitar o caminho real de index.html —
-        // mesmo padrão dos outros E2E desta base.
-        const resultadoPublicar = await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
+        // mesmo padrão dos outros E2E desta base. A sequência
+        // fecharEditorLP() -> alternarPublicacaoLP() e a ausência de
+        // qualquer wait entre as duas permanecem EXATAMENTE como estavam —
+        // só adicionamos observação (logTelemetria/try-catch de
+        // resultado), nunca uma nova espera.
+        logTelemetria("ANTES_PUBLICAR", { url: page.url() });
+        let resultadoPublicar;
+        try {
+            resultadoPublicar = await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
+            logTelemetria("PUBLICAR_RESOLVEU", { ok: resultadoPublicar?.ok, url: page.url() });
+        } catch (erroPublicar) {
+            logTelemetria("PUBLICAR_REJEITOU", { erro: String(erroPublicar), url: page.url() });
+            throw erroPublicar;
+        }
         assert.equal(resultadoPublicar?.ok, true, "LP com bloco codigo_iframe precisa publicar normalmente");
 
         const blocoPublicoSnap = await db.collection("landing_pages_blocos_publicas").doc(BLOCO_ID).get();
@@ -247,8 +272,10 @@ async function main() {
         console.log("studio-codigo-iframe-sandbox.flow: OK — sandbox presente e efetivo no editor autenticado e no renderer público, sem allow-same-origin, htmlCustom continua funcional dentro do próprio iframe.");
     } catch (error) {
         falhou = true;
+        logTelemetria("CATCH_INICIO", { erro: String(error) });
         await captureDiagnostics(page, "studio-codigo-iframe-sandbox", erros.filter((erro) => !ehErroDeRedeExterno(erro))).catch(() => {});
         console.error("studio-codigo-iframe-sandbox.flow: FALHOU —", error);
+        logTelemetria("CATCH_FIM");
     } finally {
         await limparEstado(db);
         await page.close();

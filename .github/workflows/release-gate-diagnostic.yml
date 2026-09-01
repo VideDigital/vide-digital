@@ -1,0 +1,138 @@
+# DIAGNÓSTICO — NÃO FAZ DEPLOY.
+#
+# Workflow temporário (RELEASE-GATE-OBSERVABILITY-IMPLEMENTATION) pra
+# investigar duas intermitências já documentadas no release gate real do
+# GitHub Pages (pages-publish.yml): studio-codigo-iframe-sandbox.flow.mjs
+# ("Execution context was destroyed") e loja-chat-publico.flow.mjs
+# ("FIRESTORE INTERNAL ASSERTION FAILED"), ambas em pnpm run test:release
+# rodando na MESMA VM que test:all, ao contrário do job isolado do
+# Quality Gate.
+#
+# Reproduz o mesmo ambiente e a mesma sequência do job "validar" de
+# pages-publish.yml (test:all && test:ui:login && test:ui:flows &&
+# test:ui:responsive) mas quebrada em steps separados, com snapshot de
+# recursos do runner (date/uptime/free/df/ps) entre cada fase — pra
+# comprovar ou descartar pressão de recursos/processos residuais, sem
+# tentar corrigir nada.
+#
+# ZERO deploy: sem actions/deploy-pages, sem firebase deploy, sem upload
+# de Pages artifact — só publica os logs técnicos e o
+# test-results/ui-diagnostics em caso de falha.
+
+name: Release Gate Diagnostic (temporário)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-gate-diagnostic-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  PNPM_VERSION: "11.9.0"
+  JAVA_VERSION: "21"
+
+jobs:
+  diagnostico:
+    name: Diagnóstico de intermitência (sem deploy)
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVA_VERSION }}
+
+      - name: Instalar dependências
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar Chromium do Playwright
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: "Snapshot de recursos — antes de test:all"
+        if: always()
+        run: |
+          echo "== date =="; date
+          echo "== uptime =="; uptime
+          echo "== free -m =="; free -m
+          echo "== df -h =="; df -h
+          echo "== ps (node/java/chrome) =="; ps -eo pid,ppid,rss,%cpu,%mem,cmd | grep -iE 'node|java|chrom' | grep -v grep || true
+
+      - name: "test:all (check + unit + rules + functions + frontend:emulator)"
+        run: pnpm run test:all
+
+      - name: "Snapshot de recursos — depois de test:all, antes de test:ui:login"
+        if: always()
+        run: |
+          echo "== date =="; date
+          echo "== uptime =="; uptime
+          echo "== free -m =="; free -m
+          echo "== df -h =="; df -h
+          echo "== ps (node/java/chrome) =="; ps -eo pid,ppid,rss,%cpu,%mem,cmd | grep -iE 'node|java|chrom' | grep -v grep || true
+
+      - name: "test:ui:login (login real + 3 perfis)"
+        run: pnpm run test:ui:login
+
+      - name: "Snapshot de recursos — depois de test:ui:login, antes de test:ui:flows"
+        if: always()
+        run: |
+          echo "== date =="; date
+          echo "== uptime =="; uptime
+          echo "== free -m =="; free -m
+          echo "== df -h =="; df -h
+          echo "== ps (node/java/chrome) =="; ps -eo pid,ppid,rss,%cpu,%mem,cmd | grep -iE 'node|java|chrom' | grep -v grep || true
+
+      - name: "test:ui:flows (inclui studio-codigo-iframe-sandbox e loja-chat-publico, instrumentados)"
+        run: pnpm run test:ui:flows
+
+      - name: "Snapshot de recursos — depois de test:ui:flows, antes de test:ui:responsive"
+        if: always()
+        run: |
+          echo "== date =="; date
+          echo "== uptime =="; uptime
+          echo "== free -m =="; free -m
+          echo "== df -h =="; df -h
+          echo "== ps (node/java/chrome) =="; ps -eo pid,ppid,rss,%cpu,%mem,cmd | grep -iE 'node|java|chrom' | grep -v grep || true
+
+      - name: "test:ui:responsive"
+        run: pnpm run test:ui:responsive
+
+      - name: "Snapshot de recursos — final (job completo)"
+        if: always()
+        run: |
+          echo "== date =="; date
+          echo "== uptime =="; uptime
+          echo "== free -m =="; free -m
+          echo "== df -h =="; df -h
+          echo "== ps (node/java/chrome) =="; ps -eo pid,ppid,rss,%cpu,%mem,cmd | grep -iE 'node|java|chrom' | grep -v grep || true
+
+      - name: Publicar diagnósticos técnicos (screenshot/HTML/JSON, sem credenciais)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-gate-diagnostic-ui
+          path: test-results/ui-diagnostics/
+          retention-days: 14
+          if-no-files-found: ignore

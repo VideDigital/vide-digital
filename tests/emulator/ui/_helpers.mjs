@@ -160,3 +160,68 @@ export const VIEWPORTS = Object.freeze({
     "celular-390": { width: 390, height: 844 },
     "celular-360": { width: 360, height: 640 }
 });
+
+// ===== Telemetria de diagnóstico (RELEASE-GATE-OBSERVABILITY-IMPLEMENTATION) =====
+// Estritamente read-only: nunca aguarda nada (nenhum await além do já
+// exigido pela própria Playwright API pra registrar um listener),
+// nunca decide se um teste passa ou falha, nunca substitui/enfraquece
+// nenhuma asserção existente — só observa e imprime, pra investigar as
+// duas intermitências documentadas no release gate do GitHub Pages
+// (studio-codigo-iframe-sandbox.flow.mjs:153 "Execution context was
+// destroyed" e loja-chat-publico.flow.mjs "FIRESTORE INTERNAL ASSERTION
+// FAILED"). Usado só pelos dois testes sob investigação.
+
+// Cria uma função de log com timestamp relativo (ms desde a criação) e
+// prefixo — só console.log, nunca bloqueia nem espera nada.
+export function criarTelemetria(prefixo) {
+    const inicio = Date.now();
+    return function logTelemetria(marco, extra = {}) {
+        const detalhe = Object.keys(extra).length ? ` ${JSON.stringify(extra)}` : "";
+        console.log(`[TELEMETRIA:${prefixo}] ${marco} t=${Date.now() - inicio}ms${detalhe}`);
+    };
+}
+
+// Anexa listeners passivos de ciclo de vida numa page (e, opcionalmente,
+// no browser inteiro) — cada listener só imprime quando o evento
+// realmente dispara, nunca aguarda nada e nunca aciona nenhuma ação no
+// teste. Retorna contadores simples pra telemetria agregada (ex.: contar
+// pageerror por iteração da matriz), sem duplicar a lista de erros que
+// coletarErrosConsole() já mantém pras asserções existentes.
+export function instrumentarCicloDeVida(page, logTelemetria, { browser = null } = {}) {
+    const contadores = { pageerror: 0, crash: 0, close: 0 };
+    page.on("framenavigated", (frame) => {
+        logTelemetria(frame === page.mainFrame() ? "EVENTO_FRAMENAVIGATED_MAINFRAME" : "EVENTO_FRAMENAVIGATED_SUBFRAME", { novaUrl: frame.url() });
+    });
+    page.on("domcontentloaded", () => logTelemetria("EVENTO_DOMCONTENTLOADED", { url: page.url() }));
+    page.on("load", () => logTelemetria("EVENTO_LOAD", { url: page.url() }));
+    page.on("close", () => {
+        contadores.close += 1;
+        logTelemetria("EVENTO_PAGE_CLOSE");
+    });
+    page.on("crash", () => {
+        contadores.crash += 1;
+        logTelemetria("EVENTO_PAGE_CRASH");
+    });
+    page.on("pageerror", (erro) => {
+        contadores.pageerror += 1;
+        logTelemetria("EVENTO_PAGEERROR", { erro: String(erro) });
+    });
+    if (browser) {
+        browser.on("disconnected", () => logTelemetria("EVENTO_BROWSER_DISCONNECTED"));
+    }
+    return contadores;
+}
+
+// Registra um identificador aleatório de lifecycle em TODO documento novo
+// criado nesta page — dispara automaticamente na carga inicial E em
+// qualquer navegação/reload subsequente, mesmo pra mesma URL, porque
+// addInitScript roda de novo a cada documento novo. Um token novo a cada
+// disparo prova, de forma passiva (só via console.log, sem nenhum
+// evaluate() adicional no caminho crítico do teste), se um documento novo
+// substituiu o anterior — mesmo quando a URL não muda.
+export async function instrumentarLifecycleDocumento(page) {
+    await page.addInitScript(() => {
+        const token = `doc_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+        console.log(`[TELEMETRIA:doc-lifecycle] EVENTO_NOVO_DOCUMENT token=${token} url=${location.href}`);
+    });
+}

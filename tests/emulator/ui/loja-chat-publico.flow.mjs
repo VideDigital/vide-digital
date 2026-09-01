@@ -15,7 +15,10 @@ import { getFirestore } from "firebase-admin/firestore";
 import {
     captureDiagnostics,
     coletarErrosConsole,
+    criarTelemetria,
     ehErroDeRedeExterno,
+    instrumentarCicloDeVida,
+    instrumentarLifecycleDocumento,
     launchBrowser,
     loginReal,
     startStaticServer
@@ -457,25 +460,40 @@ async function validarFalhaAuthAnonimaSemFallbackV1(browser, baseUrl) {
 }
 
 async function validarMatrizVisualWidgets(browser, baseUrl) {
+    // Telemetria de diagnóstico (RELEASE-GATE-OBSERVABILITY): índice
+    // absoluto da iteração, pra saber exatamente "quantos contexts já
+    // passaram" quando um erro aparecer — puramente read-only, não muda a
+    // ordem/timing da matriz.
+    let indiceAbsoluto = -1;
     for (const viewport of MATRIZ_VIEWPORTS_PUBLICOS) {
         for (const zoom of viewport.zooms) {
             for (const tema of TEMAS_PUBLICOS) {
+                indiceAbsoluto += 1;
                 const cssViewport = {
                     width: Math.floor(viewport.width / zoom),
                     height: Math.floor(viewport.height / zoom)
                 };
-                const contexto = await browser.newContext({ viewport: cssViewport });
-                const page = await contexto.newPage();
-                const erros = coletarErrosConsole(page);
                 const rotulo = `${viewport.width}x${viewport.height} zoom ${Math.round(zoom * 100)}% tema ${tema}`;
+                const logTelemetria = criarTelemetria(`loja-matriz#${indiceAbsoluto}`);
+                logTelemetria("MARCO_ITERACAO_INICIO", { indiceAbsoluto, viewport: `${viewport.width}x${viewport.height}`, zoom, tema });
+
+                const contexto = await browser.newContext({ viewport: cssViewport });
+                logTelemetria("CONTEXT_CRIADO");
+                const page = await contexto.newPage();
+                logTelemetria("PAGE_CRIADA");
+                const erros = coletarErrosConsole(page);
+                const contadoresCicloDeVida = instrumentarCicloDeVida(page, logTelemetria);
+                await instrumentarLifecycleDocumento(page);
                 try {
                     await abrirLojaPublica(page, baseUrl, { tema });
+                    logTelemetria("FIREBASE_PRONTO", { url: page.url() });
                     let estado = await obterEstadoWidgetsPublicos(page);
                     assert.equal(estado.tema, tema, `${rotulo}: tema deveria ser aplicado`);
                     assert.equal(estado.larguraDocumento <= estado.larguraViewport + 2, true, `${rotulo}: loja não deveria gerar overflow horizontal`);
                     await validarEstadoChatFechadoIaVisivel(page, `${rotulo} / chat fechado`);
 
                     await abrirEIniciarConversa(page);
+                    logTelemetria("CONVERSA_PRONTA");
                     await validarEstadoChatAbertoIaOculta(page, `${rotulo} / chat aberto`);
 
                     await page.evaluate(() => window.toggleIaNegocioPublicaWindow(true));
@@ -484,9 +502,36 @@ async function validarMatrizVisualWidgets(browser, baseUrl) {
                     assert.equal(estado.chatVisivel, false, `${rotulo}: chat deveria fechar ao abrir IA`);
                     assert.equal(estado.iaJanelaVisivel, true, `${rotulo}: janela da IA deveria abrir`);
                 } finally {
+                    logTelemetria("TEARDOWN_INICIADO", { url: page.url(), contadoresCicloDeVida });
                     const errosInesperados = erros.filter((msg) => !ehErroDeRedeExterno(msg));
+                    // Telemetria adicional (NÃO allowlist): se o erro
+                    // específico investigado aparecer, registra os marcos
+                    // imediatamente anteriores antes da asserção existente
+                    // rodar — a asserção abaixo continua EXATAMENTE igual,
+                    // isto só imprime contexto extra pro diagnóstico.
+                    const errosAssertionFirestore = errosInesperados.filter((msg) => /FIRESTORE.*INTERNAL ASSERTION FAILED/i.test(msg));
+                    if (errosAssertionFirestore.length > 0) {
+                        logTelemetria("EVENTO_FIRESTORE_INTERNAL_ASSERTION", {
+                            indiceAbsoluto,
+                            rotulo,
+                            quantidade: errosAssertionFirestore.length,
+                            contextsAnteriores: indiceAbsoluto,
+                            contadoresCicloDeVida,
+                            urlFinal: page.url(),
+                            mensagens: errosAssertionFirestore
+                        });
+                    }
+                    logTelemetria("TELEMETRIA_ITERACAO_RESUMO", {
+                        indiceAbsoluto,
+                        rotulo,
+                        consoleErrorCount: erros.length,
+                        errosInesperadosCount: errosInesperados.length,
+                        pageerrorCount: contadoresCicloDeVida.pageerror,
+                        urlFinal: page.url()
+                    });
                     assert.deepEqual(errosInesperados, [], `${rotulo}: não deveria emitir console.error: ${errosInesperados.join("\n")}`);
                     await contexto.close();
+                    logTelemetria("CONTEXT_CLOSE_CONCLUIDO");
                 }
             }
         }
@@ -497,6 +542,12 @@ async function main() {
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
     let falhou = false;
+
+    // Telemetria de diagnóstico (RELEASE-GATE-OBSERVABILITY): um único
+    // listener de nível de browser (não por iteração da matriz), pra
+    // detectar uma desconexão do browser inteiro sem instrumentar demais.
+    const logTelemetriaGlobal = criarTelemetria("loja-main");
+    browser.on("disconnected", () => logTelemetriaGlobal("EVENTO_BROWSER_DISCONNECTED"));
 
     const contextoA = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const paginaA = await contextoA.newPage();
