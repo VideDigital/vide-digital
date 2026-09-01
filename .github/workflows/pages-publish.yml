@@ -1,7 +1,34 @@
 # Publicação controlada do frontend no GitHub Pages.
 # Nunca publica automaticamente após commit ou merge.
-# A publicação exige acionamento manual, confirmação explícita
-# e aprovação de todos os testes de release.
+# A publicação exige acionamento manual, confirmação explícita e prova de
+# que o SHA exato solicitado já possui um Quality Gate oficial da main
+# (.github/workflows/quality-gate.yml, disparado por push) completo e
+# verde.
+#
+# PAGES-EXACT-SHA-QUALITY-GATE-IMPLEMENTATION: este workflow costumava
+# rodar `pnpm run test:release` de novo aqui dentro — uma segunda
+# execução completa e sequencial (test:all + test:ui:login + test:ui:flows
+# + test:ui:responsive) duplicando exatamente os mesmos comandos que os 4
+# jobs do Quality Gate já executam, em paralelo, a cada push na main. Uma
+# auditoria read-only comprovou, por comparação literal de scripts, que a
+# cobertura é idêntica — e essa duplicação sofreu duas intermitências
+# reais (não relacionadas a nenhuma regressão de produto) que bloquearam
+# a publicação sem nenhum sinal de bug real. A fonte de aprovação passa a
+# ser o Quality Gate oficial do SHA exato, não uma segunda execução.
+#
+# Garantia central: pra publicar um SHA A, TODAS as condições abaixo
+# precisam ser verdadeiras ao mesmo tempo — qualquer divergência falha
+# fechado, sem fallback:
+#   autorização humana (input sha)      == A
+#   github.sha do disparo               == A
+#   HEAD atual de main (verificado 3x)  == A
+#   Quality Gate push/main nesse SHA    == A, completed, conclusion=success
+#   os 4 jobs oficiais (estado latest)  == todos completed/success
+#   artefato do Pages montado           == checkout explícito de A
+#
+# Se main avançar em QUALQUER momento entre a autorização e o deploy, a
+# autorização daquele SHA expira e a publicação para — nunca publica
+# "o que main for agora".
 
 name: Publicar GitHub Pages
 
@@ -10,6 +37,10 @@ on:
     inputs:
       confirmacao:
         description: "Digite PUBLICAR para confirmar a publicação"
+        required: true
+        type: string
+      sha:
+        description: "SHA completo (40 chars) da main explicitamente autorizado para publicação"
         required: true
         type: string
 
@@ -22,14 +53,16 @@ concurrency:
 
 env:
   NODE_VERSION: "22"
-  PNPM_VERSION: "11.9.0"
-  JAVA_VERSION: "21"
 
 jobs:
   validar:
     name: Validar release antes da publicação
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    timeout-minutes: 15
+
+    permissions:
+      contents: read
+      actions: read
 
     steps:
       - name: Bloquear publicação fora da main
@@ -50,44 +83,121 @@ jobs:
             exit 1
           fi
 
-      - name: Baixar código aprovado
-        uses: actions/checkout@v6
-
-      - name: Configurar pnpm
-        uses: pnpm/action-setup@v6
+      # Validação de identidade via API do GitHub, SEM checkout — nunca
+      # executa nada do commit solicitado antes de provar que ele é
+      # exatamente o HEAD atual de main. process.env (nunca interpolação
+      # direta de ${{ inputs.sha }} dentro do script) evita qualquer
+      # possibilidade de injeção de código via input.
+      - name: Validar identidade do SHA autorizado (antes de qualquer checkout)
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
         with:
-          version: ${{ env.PNPM_VERSION }}
+          script: |
+            const shaRegex = /^[0-9a-f]{40}$/;
+            const expectedSha = process.env.EXPECTED_SHA;
+
+            if (!shaRegex.test(expectedSha || "")) {
+              core.setFailed(`Input "sha" malformado: esperado exatamente 40 caracteres hex minúsculos, recebido "${expectedSha}".`);
+              return;
+            }
+
+            if (context.sha !== expectedSha) {
+              core.setFailed(`github.sha (${context.sha}) é diferente do sha explicitamente autorizado (${expectedSha}). A autorização é estritamente para esse SHA — disparo abortado.`);
+              return;
+            }
+
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: "main"
+            });
+
+            if (branch.commit.sha !== expectedSha) {
+              core.setFailed(`main avançou: HEAD atual de main é ${branch.commit.sha}, diferente do sha autorizado ${expectedSha}. A autorização daquele SHA expirou.`);
+              return;
+            }
+
+            core.info(`Identidade confirmada: sha ${expectedSha} é exatamente o HEAD atual de main.`);
+
+      - name: Baixar código autorizado (checkout explícito do SHA, não da branch)
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+
+      - name: Confirmar SHA do checkout
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        run: |
+          ATUAL="$(git rev-parse HEAD)"
+          if [ "$ATUAL" != "$EXPECTED_SHA" ]; then
+            echo "git rev-parse HEAD ($ATUAL) é diferente do sha autorizado ($EXPECTED_SHA)."
+            exit 1
+          fi
 
       - name: Configurar Node.js
         uses: actions/setup-node@v6
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-          cache-dependency-path: pnpm-lock.yaml
 
-      - name: Configurar Java
-        uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: ${{ env.JAVA_VERSION }}
-
-      - name: Instalar dependências
-        run: pnpm install --frozen-lockfile
-
-      - name: Instalar Chromium do Playwright
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Executar testes completos de release
-        run: pnpm run test:release
+      # scripts/pages-qg-gate.mjs só usa fetch()/process.env nativos do
+      # Node — sem dependências, sem pnpm install. GITHUB_TOKEN aqui é o
+      # token automático do job (permissions.actions: read acima), nunca
+      # um secret adicional.
+      - name: Exigir Quality Gate completo (4/4) e verde no SHA exato
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/pages-qg-gate.mjs
 
   preparar:
     name: Preparar site aprovado
     runs-on: ubuntu-latest
     needs: validar
 
+    permissions:
+      contents: read
+
     steps:
-      - name: Baixar código aprovado sem dependências
+      # TOCTOU: revalida que main ainda é o SHA autorizado ANTES do
+      # checkout — main pode ter avançado entre o job "validar" terminar
+      # e este job começar.
+      - name: Revalidar que main ainda é o SHA autorizado (antes do checkout)
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        with:
+          script: |
+            const expectedSha = process.env.EXPECTED_SHA;
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: "main"
+            });
+            if (branch.commit.sha !== expectedSha) {
+              core.setFailed(`main avançou entre a validação e a preparação: HEAD atual é ${branch.commit.sha}, autorizado era ${expectedSha}. Abortando — não preparar artefato de um SHA diferente do autorizado.`);
+              return;
+            }
+            core.info(`main ainda é exatamente o SHA autorizado (${expectedSha}) — prosseguindo com o checkout.`);
+
+      - name: Baixar código autorizado sem dependências (checkout explícito do SHA)
         uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+
+      - name: Confirmar SHA do checkout
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        run: |
+          ATUAL="$(git rev-parse HEAD)"
+          if [ "$ATUAL" != "$EXPECTED_SHA" ]; then
+            echo "git rev-parse HEAD ($ATUAL) é diferente do sha autorizado ($EXPECTED_SHA)."
+            exit 1
+          fi
 
       - name: Configurar GitHub Pages
         uses: actions/configure-pages@v5
@@ -191,6 +301,7 @@ jobs:
     needs: preparar
 
     permissions:
+      contents: read
       pages: write
       id-token: write
 
@@ -199,6 +310,29 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
 
     steps:
+      # Última revalidação, TOCTOU final: main pode ter avançado durante
+      # o job "preparar". Read-only via API do GitHub — não executa
+      # código do repositório (nenhum checkout necessário aqui; o
+      # artefato do Pages já foi montado e enviado pelo job "preparar" a
+      # partir do SHA já confirmado).
+      - name: Revalidar que main ainda é o SHA autorizado (antes do deploy)
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        with:
+          script: |
+            const expectedSha = process.env.EXPECTED_SHA;
+            const { data: branch } = await github.rest.repos.getBranch({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              branch: "main"
+            });
+            if (branch.commit.sha !== expectedSha) {
+              core.setFailed(`main avançou entre a preparação e a publicação: HEAD atual é ${branch.commit.sha}, autorizado era ${expectedSha}. Abortando — não publicar um artefato cujo SHA não é mais o HEAD autorizado de main.`);
+              return;
+            }
+            core.info(`main ainda é exatamente o SHA autorizado (${expectedSha}) — prosseguindo com a publicação.`);
+
       - name: Publicar no GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
