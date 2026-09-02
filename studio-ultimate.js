@@ -30,6 +30,19 @@
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 
+  // PR66-CLOSURE-F1: studio-ultimate.js é um script clássico (IIFE, sem
+  // "use module"), carregado por studio-loader.js via <script src> —
+  // não pode ter um `import` estático no topo do arquivo. `import()`
+  // dinâmico funciona a partir de QUALQUER script, clássico ou não (mesma
+  // técnica já usada em index.html), e cacheia a Promise pra só buscar o
+  // módulo uma vez mesmo com múltiplas exportações no mesmo carregamento
+  // de página.
+  let renderSafetyPromise = null;
+  function loadRenderSafety() {
+    if (!renderSafetyPromise) renderSafetyPromise = import("./lp-render-safety-core.js");
+    return renderSafetyPromise;
+  }
+
   function toast(message, type) {
     if (typeof window.showToast === "function") window.showToast(message, type);
     else console.info(`[Aura Ultimate] ${message}`);
@@ -1031,16 +1044,31 @@
     }
   }
 
-  function renderStandaloneBlock(block) {
+  // PR66-CLOSURE-F1: `safety` traz a implementação REAL de
+  // lp-render-safety-core.js (via loadRenderSafety(), resolvida por quem
+  // chama esta função) — nunca reimplementada aqui. Todo href/src/
+  // background-image usa a mesma política de 3 camadas (URL VALIDATION ->
+  // CSS STRING ENCODING -> HTML ATTRIBUTE ENCODING) já aprovada nos
+  // renderers ativos (index.html/dashboard-app.js). Cores de design
+  // (corFundo/corTexto/corBotao*) não são URL nem string CSS entre aspas —
+  // só precisam de escapeAttribute pra não quebrar o atributo style=.
+  function renderStandaloneBlock(block, safety) {
+    const { escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL } = safety;
     const design = block.design || {};
     const props = block.props || {};
-    const sectionStyle = `background:${design.corFundo || "#0B1020"};color:${design.corTexto || "#F8FAFC"};padding:${Number(design.paddingTop ?? 64)}px 24px ${Number(design.paddingBottom ?? 64)}px;text-align:${design.alinhamento === "centro" ? "center" : design.alinhamento === "direita" ? "right" : "left"};`;
-    const buttonStyle = `background:${design.corBotaoFundo || "#7C3AED"};color:${design.corBotaoTexto || "#FFFFFF"};border:1px solid ${design.corBotaoBorda || design.corBotaoFundo || "#7C3AED"};`;
+    const corFundo = escapeAttribute(design.corFundo || "#0B1020");
+    const corTexto = escapeAttribute(design.corTexto || "#F8FAFC");
+    const sectionStyle = `background:${corFundo};color:${corTexto};padding:${Number(design.paddingTop ?? 64)}px 24px ${Number(design.paddingBottom ?? 64)}px;text-align:${design.alinhamento === "centro" ? "center" : design.alinhamento === "direita" ? "right" : "left"};`;
+    const corBotaoFundo = escapeAttribute(design.corBotaoFundo || "#7C3AED");
+    const corBotaoTexto = escapeAttribute(design.corBotaoTexto || "#FFFFFF");
+    const corBotaoBorda = escapeAttribute(design.corBotaoBorda || design.corBotaoFundo || "#7C3AED");
+    const buttonStyle = `background:${corBotaoFundo};color:${corBotaoTexto};border:1px solid ${corBotaoBorda};`;
     let content = "";
     if (block.tipo === "navegacao") {
-      content = `<div class="nav"><strong>${escapeHTML(props.logoTexto || "Sua Marca")}</strong><div>${(props.links || []).map((link) => `<a href="${escapeHTML(link.href || "#")}">${escapeHTML(link.label || "Link")}</a>`).join("")}</div></div>`;
+      content = `<div class="nav"><strong>${escapeHTML(props.logoTexto || "Sua Marca")}</strong><div>${(props.links || []).map((link) => `<a href="${escapeAttribute(safeLinkURL(link.href, { allowMailto: true, allowTel: true }))}">${escapeHTML(link.label || "Link")}</a>`).join("")}</div></div>`;
     } else if (block.tipo === "texto_midia") {
-      content = `<div class="split ${props.posicaoImagem === "esquerda" ? "reverse" : ""}"><div><h2>${escapeHTML(props.titulo || "")}</h2><p>${escapeHTML(props.subtitulo || "")}</p>${props.botaoTexto ? `<a class="btn" style="${buttonStyle}" href="${escapeHTML(props.botaoLink || "#")}">${escapeHTML(props.botaoTexto)}</a>` : ""}</div><div>${props.imagemB64 ? `<img src="${props.imagemB64}" alt="${escapeHTML(props.imagemAlt || props.titulo || "Imagem")}">` : '<div class="placeholder"></div>'}</div></div>`;
+      const imagem = safeImageURL(props.imagemB64);
+      content = `<div class="split ${props.posicaoImagem === "esquerda" ? "reverse" : ""}"><div><h2>${escapeHTML(props.titulo || "")}</h2><p>${escapeHTML(props.subtitulo || "")}</p>${props.botaoTexto ? `<a class="btn" style="${buttonStyle}" href="${escapeAttribute(safeLinkURL(props.botaoLink, { allowMailto: true, allowTel: true }))}">${escapeHTML(props.botaoTexto)}</a>` : ""}</div><div>${imagem ? `<img src="${escapeAttribute(imagem)}" alt="${escapeAttribute(props.imagemAlt || props.titulo || "Imagem")}">` : '<div class="placeholder"></div>'}</div></div>`;
     } else if (block.tipo === "lista_cards") {
       content = `<h2>${escapeHTML(props.titulo || "")}</h2><div class="cards">${(props.cards || []).map((card) => `<article><b>${escapeHTML(card.icone || "")}</b><h3>${escapeHTML(card.titulo || "")}</h3><p>${escapeHTML(card.texto || "")}</p></article>`).join("")}</div>`;
     } else if (block.tipo === "texto_rico") {
@@ -1050,34 +1078,36 @@
     } else if (block.tipo === "formulario_captura") {
       content = `<form class="form" onsubmit="event.preventDefault();alert('Formulário demonstrativo. Conecte o envio no Vide Hub para receber os leads.');"><h2>${escapeHTML(props.titulo || "")}</h2>${(props.campos || []).map((field) => `<input required placeholder="${escapeHTML(field)}">`).join("")}<button class="btn" style="${buttonStyle}">${escapeHTML(props.textoBotao || "Enviar")}</button></form>`;
     } else if (block.tipo === "galeria_imagens") {
-      content = `<h2>${escapeHTML(props.titulo || "")}</h2><div class="gallery">${(props.imagens || []).map((image) => `<img src="${image}" alt="Galeria">`).join("")}</div>`;
+      content = `<h2>${escapeHTML(props.titulo || "")}</h2><div class="gallery">${(props.imagens || []).map((image) => `<img src="${escapeAttribute(safeImageURL(image))}" alt="Galeria">`).join("")}</div>`;
     } else if (block.tipo === "carrossel_cards") {
-      content = `<h2>${escapeHTML(props.titulo || "")}</h2><div class="cards">${(props.cards || []).map((card) => `<article>${card.imagemB64 ? `<img src="${card.imagemB64}" alt="">` : ""}<h3>${escapeHTML(card.titulo || "")}</h3><p>${escapeHTML(card.texto || "")}</p></article>`).join("")}</div>`;
+      content = `<h2>${escapeHTML(props.titulo || "")}</h2><div class="cards">${(props.cards || []).map((card) => { const imagemCard = safeImageURL(card.imagemB64); return `<article>${imagemCard ? `<img src="${escapeAttribute(imagemCard)}" alt="">` : ""}<h3>${escapeHTML(card.titulo || "")}</h3><p>${escapeHTML(card.texto || "")}</p></article>`; }).join("")}</div>`;
     } else if (block.tipo === "tabela_comparativo") {
       content = `<h2>${escapeHTML(props.titulo || "")}</h2><table><thead><tr><th></th><th>${escapeHTML(props.coluna1 || "")}</th><th>${escapeHTML(props.coluna2 || "")}</th></tr></thead><tbody>${(props.linhas || []).map((row) => `<tr><td>${escapeHTML(row.label || "")}</td><td>${escapeHTML(row.valor1 || "")}</td><td>${escapeHTML(row.valor2 || "")}</td></tr>`).join("")}</tbody></table>`;
     } else if (block.tipo === "carrossel_produtos") {
       content = `<h2>${escapeHTML(props.titulo || "Produtos")}</h2><div class="placeholder products">Produtos conectados ao catálogo do Vide Hub</div>`;
     } else if (block.tipo === "carrossel_banners") {
-      content = `<div class="gallery">${(props.banners || []).map((image) => `<img src="${typeof image === "string" ? image : image.imagemB64 || ""}" alt="Banner">`).join("")}</div>`;
+      content = `<div class="gallery">${(props.banners || []).map((image) => `<img src="${escapeAttribute(safeImageURL(typeof image === "string" ? image : image.imagemB64 || ""))}" alt="Banner">`).join("")}</div>`;
     } else if (block.tipo === "rodape") {
-      content = `<footer><p>${escapeHTML(props.textoCopyright || "")}</p><div>${(props.links || []).map((link) => `<a href="${escapeHTML(link.href || "#")}">${escapeHTML(link.label || "Link")}</a>`).join("")}</div></footer>`;
+      content = `<footer><p>${escapeHTML(props.textoCopyright || "")}</p><div>${(props.links || []).map((link) => `<a href="${escapeAttribute(safeLinkURL(link.href, { allowMailto: true, allowTel: true }))}">${escapeHTML(link.label || "Link")}</a>`).join("")}</div></footer>`;
     } else {
       content = `<div class="rich"><h2>${escapeHTML(blockTitle(block))}</h2><p>Bloco ${escapeHTML(blockLabel(block))}</p></div>`;
     }
-    const background = design.imagemFundoB64 ? `background-image:linear-gradient(rgba(0,0,0,${Number(design.opacidadeSobreposicao || 35) / 100}),rgba(0,0,0,${Number(design.opacidadeSobreposicao || 35) / 100})),url('${design.imagemFundoB64}');background-size:cover;background-position:center;` : "";
-    return `<section id="${escapeHTML(design.idSecao || "")}" style="${sectionStyle}${background}"><div class="container">${content}</div></section>`;
+    const imagemFundo = safeImageURL(design.imagemFundoB64);
+    const background = imagemFundo ? `background-image:linear-gradient(rgba(0,0,0,${Number(design.opacidadeSobreposicao || 35) / 100}),rgba(0,0,0,${Number(design.opacidadeSobreposicao || 35) / 100})),url('${escapeAttribute(escapeCSSString(imagemFundo))}');background-size:cover;background-position:center;` : "";
+    return `<section id="${escapeAttribute(design.idSecao || "")}" style="${sectionStyle}${background}"><div class="container">${content}</div></section>`;
   }
 
-  function standaloneHTMLDocument() {
+  async function standaloneHTMLDocument() {
+    const safety = await loadRenderSafety();
     const payload = pagePayload();
-    const blocksHTML = payload.blocks.filter((block) => block.visivel !== false).map(renderStandaloneBlock).join("\n");
+    const blocksHTML = payload.blocks.filter((block) => block.visivel !== false).map((block) => renderStandaloneBlock(block, safety)).join("\n");
     return `<!DOCTYPE html>
 <html lang="pt-BR"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHTML(payload.title)}</title>
 <style>*{box-sizing:border-box}html{scroll-behavior:smooth}body{margin:0;font-family:Inter,Arial,sans-serif;background:#070A12;color:#F8FAFC}a{text-decoration:none;color:inherit}.container{width:min(1120px,100%);margin:auto}.nav{display:flex;align-items:center;justify-content:space-between;gap:24px}.nav div{display:flex;gap:18px;flex-wrap:wrap}.split{display:grid;grid-template-columns:1.05fr .95fr;align-items:center;gap:48px}.split.reverse>div:first-child{order:2}.split img,.gallery img,.cards img{max-width:100%;border-radius:20px;display:block}.split h2,.rich h2,section>div>h2{font-size:clamp(32px,5vw,68px);line-height:1.02;margin:0 0 18px}.split p,.rich p,.cards p{line-height:1.7;opacity:.78}.btn{display:inline-flex;padding:14px 22px;border-radius:12px;font-weight:800;margin-top:18px}.cards{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}.cards article,.form,details{padding:24px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.05);border-radius:18px}.gallery{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}.gallery img{width:100%;height:220px;object-fit:cover}.form{max-width:520px;margin:auto}.form input{width:100%;padding:14px;border-radius:10px;border:1px solid rgba(255,255,255,.15);margin:7px 0;background:rgba(255,255,255,.08);color:inherit}.form button{width:100%}.placeholder{min-height:220px;border:1px dashed rgba(255,255,255,.2);display:grid;place-items:center;border-radius:18px;opacity:.65}table{width:100%;border-collapse:collapse}td,th{padding:14px;border-bottom:1px solid rgba(255,255,255,.12);text-align:left}details{margin:10px 0}summary{font-weight:800;cursor:pointer}footer{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}footer div{display:flex;gap:16px}@media(max-width:760px){.split{grid-template-columns:1fr}.split.reverse>div:first-child{order:0}.cards{grid-template-columns:1fr}.gallery{grid-template-columns:1fr 1fr}.nav{align-items:flex-start;flex-direction:column}.nav div{gap:10px}section{padding-left:18px!important;padding-right:18px!important}}</style></head><body>${blocksHTML}</body></html>`;
   }
 
-  function exportStandaloneHTML() {
-    const html = standaloneHTMLDocument();
+  async function exportStandaloneHTML() {
+    const html = await standaloneHTMLDocument();
     downloadBlob(new Blob([html], { type: "text/html;charset=utf-8" }), `${slugify(document.getElementById("lped-slug")?.value || "landing-page")}-standalone.html`);
     toast("HTML independente exportado.");
   }
