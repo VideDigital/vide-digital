@@ -111,13 +111,14 @@ async function main() {
         );
 
         // ===== Abre o editor real e espera o Studio (incluindo
-        // AuraResponsiveV4 e o Inspector) terminar de carregar — editarLP()
-        // dispara carregarEditorLandingPages() em segundo plano, sem
-        // esperar por ele. =====
+        // AuraResponsiveV4, o Inspector e o Desktop Shell) terminar de
+        // carregar — editarLP() dispara carregarEditorLandingPages() em
+        // segundo plano, sem esperar por ele. =====
         await page.evaluate((lpId) => window.editarLP(lpId), LP_ID);
         await page.waitForFunction(
             () => typeof window.AuraResponsiveV4?.saveDevice === "function"
-                && typeof window.AuraStudioInspector?.select === "function",
+                && typeof window.AuraStudioInspector?.select === "function"
+                && typeof window.VideLandingEditorShellV1?.setMode === "function",
             { timeout: 20000 }
         );
 
@@ -132,7 +133,16 @@ async function main() {
         // -> debounce -> saveDevice(), que materializa responsiveV4 pra
         // TODOS os blocos — inclusive o formulario_captura, nunca
         // selecionado. É assim que o incidente real aconteceu: a falha
-        // apareceu num bloco que a pessoa nem estava editando. =====
+        // apareceu num bloco que a pessoa nem estava editando.
+        //
+        // O Desktop Shell V1 (studio-desktop-shell-v1.js) começa em modo
+        // "build" (lista de blocos) — nesse modo o Inspector fica com
+        // display:none (studio-desktop-shell-v1.css). Um usuário real
+        // clica na aba "Design" da barra de modos pra ver o Inspector;
+        // aqui chamamos a mesma função pública real que esse clique
+        // aciona (window.VideLandingEditorShellV1.setMode), sem
+        // reimplementar a lógica de troca de modo. =====
+        await page.evaluate(() => window.VideLandingEditorShellV1.setMode("design"));
         await page.evaluate(() => window.AuraStudioInspector.select(0));
         await page.waitForSelector('[data-studio-path="props.subtitulo"]', { state: "visible", timeout: 10000 });
         await page.fill('[data-studio-path="props.subtitulo"]', "Nova descrição via Inspector real");
