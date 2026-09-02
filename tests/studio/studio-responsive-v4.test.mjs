@@ -150,6 +150,34 @@ test("captureBlock: valores semanticamente válidos (null, string vazia, zero) n
     const capturadoZero = api.captureBlock(blocoZero);
     assert.equal(Object.hasOwn(capturadoZero.props, "imagemLargura"), true);
     assert.equal(capturadoZero.props.imagemLargura, 0);
+
+    const blocoImagemLarguraNull = blocoBase({ props: { imagemLargura: null } });
+    const capturadoImagemLarguraNull = api.captureBlock(blocoImagemLarguraNull);
+    assert.equal(Object.hasOwn(capturadoImagemLarguraNull.props, "imagemLargura"), true);
+    assert.equal(capturadoImagemLarguraNull.props.imagemLargura, null);
+});
+
+test("captureBlock: block.props completamente ausente (undefined) não quebra e não produz chaves", () => {
+    const { api } = loadResponsiveV4();
+    const bloco = blocoBase({ tipo: "texto_midia" });
+    delete bloco.props;
+    assert.equal(bloco.props, undefined, "pré-condição: bloco sem props nenhum, não só vazio");
+
+    const capturado = api.captureBlock(bloco);
+    // Object.keys(...).length em vez de deepEqual contra um literal {} —
+    // capturado.props foi criado DENTRO do contexto vm (outro realm), então
+    // seu Object.prototype difere do {} desta closure externa; deepEqual
+    // (assert/strict) compara identidade de protótipo e falsamente
+    // reportaria diferença mesmo com conteúdo estruturalmente idêntico.
+    assert.equal(Object.keys(capturado.props).length, 0, "sem block.props, o resultado deveria ser um objeto vazio, nunca lançar nem incluir chaves undefined");
+    assert.deepEqual(encontrarChavesUndefined(capturado), []);
+});
+
+test("captureBlock: block.props = {} (vazio, mas presente) não produz chaves", () => {
+    const { api } = loadResponsiveV4();
+    const bloco = blocoBase({ tipo: "texto_midia", props: {} });
+    const capturado = api.captureBlock(bloco);
+    assert.equal(Object.keys(capturado.props).length, 0);
 });
 
 test("saveDevice: desktop/tablet/mobile materializam props sem nenhuma chave undefined", () => {
@@ -234,4 +262,34 @@ test("applyDevice aplica de volta o estado herdado real (applyBlockState) sem in
 
     assert.equal(bloco.props.posicaoImagem, "esquerda", "applyBlockState deveria aplicar de volta o valor herdado real no bloco");
     assert.equal(Object.hasOwn(bloco.props, "imagemLargura"), false, "applyBlockState não deveria introduzir imagemLargura quando o estado capturado não tinha essa chave");
+});
+
+test("resetDevice(\"desktop\") recaptura via captureBlock — nunca preserva um valor antigo/inválido do estado anterior", () => {
+    const { api, setBlocks } = loadResponsiveV4();
+    const bloco = blocoBase({ tipo: "formulario_captura", props: { titulo: "Fale conosco" } });
+    setBlocks([bloco]);
+
+    api.saveDevice("desktop");
+    // Simula um estado desktop antigo/manipulado com um valor que o bloco
+    // real não tem — resetDevice("desktop") precisa sempre recapturar do
+    // bloco real via captureBlock(), nunca preservar isso.
+    bloco.design.responsiveV4.desktop.props.imagemLargura = "valor-antigo-invalido";
+
+    api.resetDevice("desktop");
+
+    const props = bloco.design.responsiveV4.desktop.props;
+    assert.equal(Object.hasOwn(props, "imagemLargura"), false, "resetDevice deveria recapturar do bloco real (sem imagemLargura), não preservar o valor antigo");
+});
+
+test("copyDevice copia o estado herdado real (via captureBlock/inheritedState) sem introduzir chaves undefined", () => {
+    const { api, setBlocks } = loadResponsiveV4();
+    const bloco = blocoBase({ tipo: "texto_midia", props: { titulo: "T", posicaoImagem: "direita" } });
+    setBlocks([bloco]);
+
+    api.saveDevice("desktop");
+    api.copyDevice("desktop", "tablet");
+
+    const propsTablet = bloco.design.responsiveV4.tablet.props;
+    assert.equal(propsTablet.posicaoImagem, "direita", "copyDevice deveria preservar o valor real");
+    assert.equal(Object.hasOwn(propsTablet, "imagemLargura"), false, "copyDevice não deveria introduzir imagemLargura");
 });
