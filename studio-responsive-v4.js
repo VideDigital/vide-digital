@@ -35,6 +35,17 @@
     return block.design.responsiveV4;
   }
 
+  // O Firestore SDK recusa qualquer valor `undefined` (mesmo como chave
+  // presente com valor undefined) — só inclui a chave quando o bloco
+  // realmente tem esse valor. null/""/0 são valores explícitos e
+  // continuam preservados normalmente; só `undefined` é omitido.
+  function captureImageProps(block) {
+    const props = {};
+    if (block.props?.posicaoImagem !== undefined) props.posicaoImagem = block.props.posicaoImagem;
+    if (block.props?.imagemLargura !== undefined) props.imagemLargura = block.props.imagemLargura;
+    return props;
+  }
+
   function captureBlock(block) {
     const geometry = {};
     state.properties.forEach((key) => {
@@ -50,10 +61,7 @@
       geometry,
       design,
       v4: clone(block.design?.v4 || {}),
-      props: {
-        posicaoImagem: block.props?.posicaoImagem,
-        imagemLargura: block.props?.imagemLargura
-      }
+      props: captureImageProps(block)
     };
   }
 
