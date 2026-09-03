@@ -270,6 +270,31 @@ describe("renderizarBloco() real (index.html) — LP-SEC-AUDIT-001 (stored XSS) 
         assert.ok(!/background-image\s*:\s*url\(/i.test(html), `nenhum background-image injetado pode sobreviver — produzido: ${html}`);
         assert.ok(!html.includes("example.invalid"), `a URL externa do payload não pode sobreviver — produzido: ${html}`);
     });
+
+    // PR72-FOLLOWUP-REMAINING-COLOR-SINKS-HARDENING: props.cor (bloco
+    // "forma") e op.hex (bloco "seletor_cores") não foram cobertos pela
+    // PR #72 (aquela missão tratou só os 6 campos design.cor*) — mesmo
+    // vetor bare-CSS-value, campos diferentes.
+    it("forma: props.cor com ';' cru não injeta declaração CSS (bare CSS value, sem aspas)", async () => {
+        const renderizarBloco = await carregarRenderizarBlocoReal();
+        const payloadCss = "#000000;position:fixed;inset:0;z-index:999999";
+        const bloco = { tipo: "forma", props: { largura: 120, altura: 120, cor: payloadCss, tipoForma: "quadrado" }, design: {} };
+        const html = await renderizarBloco(bloco, "empilhado");
+        assertHtmlSeguro(html, "forma (props.cor CSS declaration injection)");
+        assert.ok(!/(?:^|[;"])\s*position\s*:\s*fixed\s*(?:;|"|$)/i.test(html), `position:fixed não pode aparecer como declaração CSS própria — produzido: ${html}`);
+        assert.ok(!/z-index\s*:\s*999999/i.test(html), `z-index:999999 injetado não pode sobreviver — produzido: ${html}`);
+        assert.ok(!html.includes(";position:fixed"), `o payload cru não pode sobreviver como fragmento — produzido: ${html}`);
+    });
+
+    it("seletor_cores: op.hex com ';' cru não injeta declaração CSS (bare CSS value, sem aspas)", async () => {
+        const renderizarBloco = await carregarRenderizarBlocoReal();
+        const payloadCss = "#000000;position:fixed;inset:0;z-index:999999";
+        const bloco = { tipo: "seletor_cores", props: { opcoes: [{ nome: "Teste", hex: payloadCss }] }, design: {} };
+        const html = await renderizarBloco(bloco, "empilhado");
+        assertHtmlSeguro(html, "seletor_cores (op.hex CSS declaration injection)");
+        assert.ok(!/(?:^|[;"])\s*position\s*:\s*fixed\s*(?:;|"|$)/i.test(html), `position:fixed não pode aparecer como declaração CSS própria — produzido: ${html}`);
+        assert.ok(!/z-index\s*:\s*999999/i.test(html), `z-index:999999 injetado não pode sobreviver — produzido: ${html}`);
+    });
 });
 
 describe("renderizarBloco() real (index.html) — conteúdo legítimo continua funcionando (compatibilidade)", () => {

@@ -5495,7 +5495,7 @@ document.addEventListener("mousedown", function(e) {
                 conteudo = `
                     <div class="max-w-sm mx-auto px-6 ${textAlignClasse}">
                         ${bloco.props.titulo ? `<p class="font-bold text-sm mb-2">${escapeHTML(bloco.props.titulo)}</p>` : ""}
-                        <div class="flex gap-2 ${justifyClasse}">${opcoes.map(op => `<div style="background-color:${escapeAttribute(op.hex || "#000")};" class="w-7 h-7 rounded-full border border-white/20"></div>`).join("")}</div>
+                        <div class="flex gap-2 ${justifyClasse}">${opcoes.map(op => `<div style="background-color:${escapeAttribute(safeCSSColor(op.hex, "#000000"))};" class="w-7 h-7 rounded-full border border-white/20"></div>`).join("")}</div>
                     </div>`;
             } else if (bloco.tipo === "breadcrumb") {
                 const itens = bloco.props.itens || [];
@@ -5503,7 +5503,7 @@ document.addEventListener("mousedown", function(e) {
             } else if (bloco.tipo === "forma") {
                 const largura = Number(bloco.props.largura) || 120;
                 const altura = Number(bloco.props.altura) || 120;
-                const corForma = escapeAttribute(bloco.props.cor || "#5B3DF5");
+                const corForma = escapeAttribute(safeCSSColor(bloco.props.cor, "#5B3DF5"));
                 let estiloForma = `width:${largura}px; background-color:${corForma};`;
                 if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
                 else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;

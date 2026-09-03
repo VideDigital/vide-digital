@@ -591,7 +591,7 @@ const lp = snap.docs[0].data();
                     <div class="flex gap-3 flex-wrap ${justifyClasse}">
                         ${opcoes.map(op => `
                             <div class="flex flex-col items-center gap-1">
-                                <div style="background-color:${escapeAttribute(op.hex || "#000")};" class="w-10 h-10 rounded-full border-2 border-white/20"></div>
+                                <div style="background-color:${escapeAttribute(safeCSSColor(op.hex, "#000000"))};" class="w-10 h-10 rounded-full border-2 border-white/20"></div>
                                 <span class="text-[10px] text-gray-400">${escapeHTML(op.nome)}</span>
                             </div>
                         `).join("")}
@@ -606,7 +606,7 @@ const lp = snap.docs[0].data();
         } else if (bloco.tipo === "forma") {
             const largura = Number(bloco.props.largura) || 120;
             const altura = Number(bloco.props.altura) || 120;
-            const corForma = escapeAttribute(bloco.props.cor || "#5B3DF5");
+            const corForma = escapeAttribute(safeCSSColor(bloco.props.cor, "#5B3DF5"));
             let estiloForma = `width:${largura}px; background-color:${corForma};`;
             if (bloco.props.tipoForma === "circulo") estiloForma += `height:${altura}px; border-radius:50%;`;
             else if (bloco.props.tipoForma === "linha") estiloForma += `height:3px;`;
