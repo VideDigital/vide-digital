@@ -139,6 +139,22 @@
         return escapeHTML(value).replace(/`/g, "&#096;");
     }
 
+    // PR70-REV-001: cores de design são interpoladas como VALOR BARE de
+    // propriedade CSS custom (--aura-block-bg:${valor}) dentro do mesmo
+    // atributo style= (ver getBlockStyle() abaixo, styles.join(";")).
+    // escapeAttribute sozinho não fecha esse vetor — ";" sozinho encerra a
+    // declaração e abre uma nova sem nunca tocar a aspa do atributo.
+    // Allowlist (#RRGGBB), mesmo contrato de lp-render-safety-core.js.
+    const SAFE_CSS_COLOR = /^#[0-9a-f]{6}$/i;
+
+    function safeCSSColor(value, fallback = "") {
+        const candidate = String(value ?? "").trim();
+        if (SAFE_CSS_COLOR.test(candidate)) return candidate;
+        const fallbackCandidate = String(fallback ?? "").trim();
+        if (SAFE_CSS_COLOR.test(fallbackCandidate)) return fallbackCandidate;
+        return "";
+    }
+
     function safeURL(value, options = {}) {
         const raw = String(value || "").trim();
 
@@ -442,24 +458,29 @@
         const v4 = responsive.v4 || {};
         const styles = [];
 
-        if (design.corFundo) {
-            styles.push(`--aura-block-bg:${escapeAttribute(design.corFundo)}`);
+        const corFundoBloco = safeCSSColor(design.corFundo);
+        if (corFundoBloco) {
+            styles.push(`--aura-block-bg:${escapeAttribute(corFundoBloco)}`);
         }
 
-        if (design.corTexto) {
-            styles.push(`--aura-block-text:${escapeAttribute(design.corTexto)}`);
+        const corTextoBloco = safeCSSColor(design.corTexto);
+        if (corTextoBloco) {
+            styles.push(`--aura-block-text:${escapeAttribute(corTextoBloco)}`);
         }
 
-        if (design.corBotaoFundo) {
-            styles.push(`--aura-button-bg:${escapeAttribute(design.corBotaoFundo)}`);
+        const corBotaoFundoBloco = safeCSSColor(design.corBotaoFundo);
+        if (corBotaoFundoBloco) {
+            styles.push(`--aura-button-bg:${escapeAttribute(corBotaoFundoBloco)}`);
         }
 
-        if (design.corBotaoTexto) {
-            styles.push(`--aura-button-text:${escapeAttribute(design.corBotaoTexto)}`);
+        const corBotaoTextoBloco = safeCSSColor(design.corBotaoTexto);
+        if (corBotaoTextoBloco) {
+            styles.push(`--aura-button-text:${escapeAttribute(corBotaoTextoBloco)}`);
         }
 
-        if (design.corBotaoBorda) {
-            styles.push(`--aura-button-border:${escapeAttribute(design.corBotaoBorda)}`);
+        const corBotaoBordaBloco = safeCSSColor(design.corBotaoBorda);
+        if (corBotaoBordaBloco) {
+            styles.push(`--aura-button-border:${escapeAttribute(corBotaoBordaBloco)}`);
         }
 
         styles.push(`--aura-padding-top:${px(design.paddingTop, 48)}`);

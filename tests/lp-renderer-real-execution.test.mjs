@@ -16,7 +16,7 @@ import { describe, it } from "node:test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL } from "../lp-render-safety-core.js";
+import { escapeHTML, escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL } from "../lp-render-safety-core.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -60,10 +60,10 @@ async function carregarRenderizarBlocoReal() {
 
     const fonteCompleta = `${helpersFormulario}\n${envolverCarrossel}\n${renderizarBlocoSrc}\nreturn renderizarBloco;`;
     const factory = new Function(
-        "escapeHTML", "escapeAttribute", "escapeCSSString", "safeLinkURL", "safeImageURL", "safeIframeURL", "doc", "getDoc", "db",
+        "escapeHTML", "escapeAttribute", "escapeCSSString", "safeCSSColor", "safeLinkURL", "safeImageURL", "safeIframeURL", "doc", "getDoc", "db",
         fonteCompleta
     );
-    return factory(escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL, doc, getDoc, db);
+    return factory(escapeHTML, escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL, doc, getDoc, db);
 }
 
 const SCRIPT_PAYLOAD = "<script>window.__lpXssMarker=1<\/script>";
@@ -222,6 +222,53 @@ describe("renderizarBloco() real (index.html) — LP-SEC-AUDIT-001 (stored XSS) 
         const blocoCarrossel = { tipo: "carrossel_cards", props: { estiloImagem: "fundo", cards: [{ titulo: "c", texto: "t", imagemB64: payloadCss }] }, design: {} };
         const htmlCarrossel = await renderizarBloco(blocoCarrossel, "empilhado");
         verificarSemInjecaoCss(htmlCarrossel, "carrossel_cards imagemB64");
+    });
+
+    // PR70-REV-001: escapeAttribute() protege CONTEXTO DE ATRIBUTO HTML
+    // (impede a aspa de fechar o style=), mas NÃO protege CONTEXTO DE VALOR
+    // DE DECLARAÇÃO CSS — um valor como "red;position:fixed;inset:0" nunca
+    // precisa de aspas pra quebrar nada: o ";" já é, por si só, o delimitador
+    // de declaração CSS. Diferente de ADV-66-001/002 (que dependem de fechar
+    // um atributo ou uma string CSS quoted), aqui a ausência de aspas no
+    // payload é o ponto — nenhuma das duas defesas anteriores (escapeAttribute
+    // sozinho) intercepta um ";" bare. Prova estrutural: depois do fix, o
+    // valor inteiro precisa ser rejeitado (nunca vira "red" nem qualquer
+    // fragmento do payload dentro do style=), então "position:fixed" nunca
+    // pode aparecer como declaração própria em NENHUM lugar do HTML.
+    it("PR70-REV-001: corFundo/corTexto/corBotaoFundo/corBotaoBorda/corBotaoTexto/corSobreposicao com ';' cru não injetam declaração CSS (bare CSS value, sem aspas)", async () => {
+        const renderizarBloco = await carregarRenderizarBlocoReal();
+        const payloadCss = "red;position:fixed;inset:0;z-index:999999";
+        const bloco = {
+            tipo: "texto_midia",
+            props: { titulo: "Título normal", botaoTexto: "Comprar", botaoLink: "https://loja.exemplo.com" },
+            design: {
+                corFundo: payloadCss,
+                corTexto: payloadCss,
+                corBotaoFundo: payloadCss,
+                corBotaoBorda: payloadCss,
+                corBotaoTexto: payloadCss,
+                corSobreposicao: payloadCss
+            }
+        };
+        const html = await renderizarBloco(bloco, "empilhado");
+        assertHtmlSeguro(html, "cores de design (CSS declaration injection)");
+        assert.ok(!/(?:^|[;"])\s*position\s*:\s*fixed\s*(?:;|"|$)/i.test(html), `position:fixed não pode aparecer como declaração CSS própria em nenhum lugar do HTML — produzido: ${html}`);
+        assert.ok(!/z-index\s*:\s*999999/i.test(html), `z-index:999999 injetado não pode sobreviver — produzido: ${html}`);
+        assert.ok(!html.includes(";position:fixed"), `o payload cru não pode sobreviver como fragmento — produzido: ${html}`);
+    });
+
+    it("PR70-REV-001: corFundo tentando um background-image:url(...) externo via ';' bare não injeta a declaração", async () => {
+        const renderizarBloco = await carregarRenderizarBlocoReal();
+        const payloadCss = 'red;background-image:url("https://example.invalid/pr70-rev-001")';
+        const bloco = {
+            tipo: "texto_midia",
+            props: { titulo: "Título normal" },
+            design: { corFundo: payloadCss }
+        };
+        const html = await renderizarBloco(bloco, "empilhado");
+        assertHtmlSeguro(html, "corFundo (CSS declaration injection - background-image)");
+        assert.ok(!/background-image\s*:\s*url\(/i.test(html), `nenhum background-image injetado pode sobreviver — produzido: ${html}`);
+        assert.ok(!html.includes("example.invalid"), `a URL externa do payload não pode sobreviver — produzido: ${html}`);
     });
 });
 

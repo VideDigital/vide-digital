@@ -47,7 +47,7 @@
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
     const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
     const { createLeadAttemptTracker } = await import(base + "lead-attempt-token-core.js");
-    const { escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL } = await import(base + "lp-render-safety-core.js");
+    const { escapeHTML, escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL } = await import(base + "lp-render-safety-core.js");
     const db = firebaseInit.db;
     const auth = firebaseInit.auth;
 
@@ -367,13 +367,13 @@ const lp = snap.docs[0].data();
     }
     async function renderizarBloco(bloco, modoLayout) {
         const d = bloco.design || {};
-        const corFundo = escapeAttribute(d.corFundo || "");
+        const corFundo = escapeAttribute(safeCSSColor(d.corFundo));
         const imagemFundo = safeImageURL(d.imagemFundoB64 || "");
-        const corSobreposicao = escapeAttribute(d.corSobreposicao || "#000000");
+        const corSobreposicao = escapeAttribute(safeCSSColor(d.corSobreposicao, "#000000"));
         const opacidade = (Number(d.opacidadeSobreposicao) || 0) / 100;
-        const corBotaoFundo = escapeAttribute(d.corBotaoFundo || "");
-        const corBotaoBorda = escapeAttribute(d.corBotaoBorda || "");
-        const corBotaoTexto = escapeAttribute(d.corBotaoTexto || "");
+        const corBotaoFundo = escapeAttribute(safeCSSColor(d.corBotaoFundo));
+        const corBotaoBorda = escapeAttribute(safeCSSColor(d.corBotaoBorda));
+        const corBotaoTexto = escapeAttribute(safeCSSColor(d.corBotaoTexto));
         const paddingTop = d.paddingTop !== undefined ? (Number(d.paddingTop) || 0) : 64;
         const paddingBottom = d.paddingBottom !== undefined ? (Number(d.paddingBottom) || 0) : 64;
         const alinhamento = d.alinhamento || "esquerda";
@@ -613,7 +613,8 @@ const lp = snap.docs[0].data();
             else estiloForma += `height:${altura}px; border-radius:8px;`;
             conteudoHtml = `<div class="flex ${justifyClasse} px-6"><div style="${estiloForma}"></div></div>`;
         }
-        const estiloTextoBloco = d.corTexto ? `color:${escapeAttribute(d.corTexto)};` : "";
+        const corTextoBloco = safeCSSColor(d.corTexto);
+        const estiloTextoBloco = corTextoBloco ? `color:${escapeAttribute(corTextoBloco)};` : "";
         if (modoLayout === "livre") {
             const largura = bloco.largura || 600;
             const altura = bloco.altura || 220;

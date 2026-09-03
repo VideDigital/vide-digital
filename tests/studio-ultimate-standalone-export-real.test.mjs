@@ -14,7 +14,7 @@ import { describe, it } from "node:test";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL } from "../lp-render-safety-core.js";
+import { escapeHTML, escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL } from "../lp-render-safety-core.js";
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -46,7 +46,7 @@ async function carregarRenderStandaloneBlockReal() {
     return factory(escapeHTML);
 }
 
-const safety = Object.freeze({ escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL });
+const safety = Object.freeze({ escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL });
 
 const SCRIPT_PAYLOAD = "<script>window.__standaloneXssMarker=1<\/script>";
 const IMG_ONERROR_PAYLOAD = '<img src=x onerror="window.__standaloneXssMarker=1">';
@@ -221,6 +221,44 @@ describe("renderStandaloneBlock() real (studio-ultimate.js) — PR66-CLOSURE-F1:
         const bloco = { tipo: "texto_midia", props: { titulo: "T" }, design: { idSecao: ATTR_BREAKOUT_PAYLOAD } };
         const html = renderStandaloneBlock(bloco, safety);
         assertHtmlSeguro(html, "idSecao");
+    });
+
+    // PR70-REV-001: mesma classe de bug de tests/lp-renderer-real-execution.test.mjs
+    // — escapeAttribute() sozinho protege o contexto de ATRIBUTO HTML (o teste
+    // #11 acima, com ATTR_BREAKOUT_PAYLOAD baseado em aspas), mas não o
+    // contexto de VALOR DE DECLARAÇÃO CSS: um ";" bare (sem nenhuma aspa)
+    // já é suficiente pra terminar a declaração corrente e abrir uma nova
+    // dentro do MESMO atributo style — renderStandaloneBlock() replicou o
+    // mesmo padrão escapeAttribute-only dos renderers ativos ao ser corrigido
+    // na PR66-CLOSURE-F1, herdando esta lacuna.
+    it("PR70-REV-001: corFundo/corTexto/corBotaoFundo/corBotaoBorda/corBotaoTexto com ';' cru não injetam declaração CSS (bare CSS value)", async () => {
+        const renderStandaloneBlock = await carregarRenderStandaloneBlockReal();
+        const payloadCss = "red;position:fixed;inset:0;z-index:999999";
+        const bloco = {
+            tipo: "texto_midia",
+            props: { titulo: "T", botaoTexto: "Comprar", botaoLink: "https://loja.exemplo.com" },
+            design: {
+                corFundo: payloadCss,
+                corTexto: payloadCss,
+                corBotaoFundo: payloadCss,
+                corBotaoBorda: payloadCss,
+                corBotaoTexto: payloadCss
+            }
+        };
+        const html = renderStandaloneBlock(bloco, safety);
+        assertHtmlSeguro(html, "cores de design (CSS declaration injection)");
+        assert.ok(!/(?:^|[;"])\s*position\s*:\s*fixed\s*(?:;|"|$)/i.test(html), `position:fixed não pode aparecer como declaração CSS própria no standalone — produzido: ${html}`);
+        assert.ok(!/z-index\s*:\s*999999/i.test(html), `z-index:999999 injetado não pode sobreviver no standalone — produzido: ${html}`);
+    });
+
+    it("PR70-REV-001: corFundo tentando um background-image:url(...) externo via ';' bare não injeta a declaração no standalone", async () => {
+        const renderStandaloneBlock = await carregarRenderStandaloneBlockReal();
+        const payloadCss = 'red;background-image:url("https://example.invalid/pr70-rev-001")';
+        const bloco = { tipo: "texto_midia", props: { titulo: "T" }, design: { corFundo: payloadCss } };
+        const html = renderStandaloneBlock(bloco, safety);
+        assertHtmlSeguro(html, "corFundo standalone (CSS declaration injection - background-image)");
+        assert.ok(!/background-image\s*:\s*url\(/i.test(html), `nenhum background-image injetado pode sobreviver no standalone — produzido: ${html}`);
+        assert.ok(!html.includes("example.invalid"), `a URL externa do payload não pode sobreviver no standalone — produzido: ${html}`);
     });
 });
 
