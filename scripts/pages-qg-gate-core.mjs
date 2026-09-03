@@ -34,13 +34,48 @@ export const EXPECTED_JOB_NAMES = Object.freeze([
 
 export const QUALITY_GATE_WORKFLOW_FILE = "quality-gate.yml";
 
-// URLs da API do GitHub como funções puras (recebem `repo` já resolvido,
-// nunca leem env/fazem fetch aqui) — testáveis diretamente, sem mock de
-// rede, garantindo que os filtros corretos (branch=main, event=push,
-// status=completed, filter=latest) sempre fazem parte da própria
-// requisição, não só da revalidação em avaliarGateCompleto().
-export function construirUrlRunsQG(repo) {
-    return `https://api.github.com/repos/${repo}/actions/workflows/${QUALITY_GATE_WORKFLOW_FILE}/runs?branch=main&event=push&status=completed`;
+// Códigos estáveis de motivo de bloqueio — usados pelo orquestrador de
+// retry (avaliarGateComRetry) pra decidir o que é retry-elegível sem
+// depender de matching frágil de texto na mensagem.
+export const REASON_CODES = Object.freeze({
+    SHA_MALFORMADO: "SHA_MALFORMADO",
+    RUN_NOT_FOUND: "RUN_NOT_FOUND",
+    RUN_AMBIGUOUS: "RUN_AMBIGUOUS",
+    JOBS_INVALIDOS: "JOBS_INVALIDOS",
+    MAIN_DIVERGIU: "MAIN_DIVERGIU"
+});
+
+// PAGES-QG-GATE-TRANSIENT-EMPTY-HOTFIX: run 33736878096 comprovou um
+// falso negativo real — o QG correto (33708630578) existia,
+// completed/success, no SHA exato, e a mesma consulta retornou vazio
+// nessa execução específica, mas encontrou o run correto minutos depois
+// com os mesmos filtros. A causa exata não foi comprovável a partir dos
+// logs disponíveis — retry bounded aqui é hardening pela evidência do
+// falso negativo, não uma tentativa de "esperar o QG ficar verde": só
+// dispara quando a API devolve ZERO runs brutos (nenhum candidato
+// nenhum), nunca quando algum run foi encontrado mas foi rejeitado por
+// um motivo concreto (SHA errado, branch errada, ambíguo, vermelho,
+// incompleto) — esses continuam falhando fechado na primeira tentativa.
+export const MAX_TENTATIVAS = 3;
+export const BACKOFF_MS = Object.freeze([5000, 10000]);
+
+// URLs da API do GitHub como funções puras (recebem `repo`/`expectedSha`
+// já resolvidos, nunca leem env/fazem fetch aqui) — testáveis
+// diretamente, sem mock de rede, garantindo que os filtros corretos
+// (branch=main, event=push, status=completed, head_sha=<SHA exato>,
+// filter=latest) sempre fazem parte da própria requisição, não só da
+// revalidação em memória de selecionarRunAprovado() — que continua
+// soberana e nunca é relaxada por causa do filtro na query: o query
+// param reduz volume/superfície de inconsistência, mas NUNCA é tratado
+// como autoridade.
+export function construirUrlRunsQG(repo, expectedSha) {
+    const params = new URLSearchParams({
+        branch: "main",
+        event: "push",
+        status: "completed",
+        head_sha: expectedSha
+    });
+    return `https://api.github.com/repos/${repo}/actions/workflows/${QUALITY_GATE_WORKFLOW_FILE}/runs?${params.toString()}`;
 }
 
 export function construirUrlJobsDoRun(repo, runId) {
@@ -78,13 +113,15 @@ export function selecionarRunAprovado(runs, { expectedSha, expectedBranch = "mai
     if (candidatos.length === 0) {
         return {
             ok: false,
-            motivo: `nenhum run do Quality Gate encontrado com head_sha=${expectedSha} head_branch=${expectedBranch} event=push status=completed conclusion=success`
+            motivo: `nenhum run do Quality Gate encontrado com head_sha=${expectedSha} head_branch=${expectedBranch} event=push status=completed conclusion=success`,
+            reasonCode: REASON_CODES.RUN_NOT_FOUND
         };
     }
     if (candidatos.length > 1) {
         return {
             ok: false,
             motivo: `${candidatos.length} runs do Quality Gate ambíguos encontrados para o mesmo sha — esperado exatamente 1`,
+            reasonCode: REASON_CODES.RUN_AMBIGUOUS,
             candidatos: candidatos.map((r) => ({ id: r.id, run_attempt: r.run_attempt }))
         };
     }
@@ -157,5 +194,112 @@ export function avaliarGateCompleto({ expectedSha, runs, jobsPorRunId, expectedB
         ok: true,
         run: { id: selecao.run.id, run_attempt: selecao.run.run_attempt, head_sha: selecao.run.head_sha },
         jobs: validacaoJobs.jobs
+    };
+}
+
+// Valida estritamente o shape de uma resposta 200 da API do GitHub antes
+// de tratá-la como uma lista (runs ou jobs) — nunca interpreta uma chave
+// ausente/errada como "lista vazia" silenciosa. Substitui a detecção
+// genérica antiga (Object.keys(corpo).find(Array.isArray)), que aceitava
+// silenciosamente qualquer shape 200 inesperado como zero itens —
+// exatamente o sintoma observado no incidente do run 33736878096 (HTTP
+// ok, zero candidatos, sem nenhum erro explícito).
+export function extrairArrayObrigatorio(corpo, chaveEsperada) {
+    if (corpo === null || typeof corpo !== "object" || Array.isArray(corpo)) {
+        return {
+            ok: false,
+            motivo: `GitHub API respondeu 200, mas o corpo não é um objeto JSON válido (recebido ${corpo === null ? "null" : typeof corpo}).`
+        };
+    }
+    if (!Object.prototype.hasOwnProperty.call(corpo, chaveEsperada) || !Array.isArray(corpo[chaveEsperada])) {
+        return {
+            ok: false,
+            motivo: `GitHub API respondeu 200, mas shape inesperado: campo "${chaveEsperada}" ausente ou não-array.`
+        };
+    }
+    return {
+        ok: true,
+        itens: corpo[chaveEsperada],
+        totalCount: typeof corpo.total_count === "number" ? corpo.total_count : null
+    };
+}
+
+// Orquestra a busca do run + jobs com retry bounded (só pra "zero runs
+// brutos recebidos da API") e revalidação TOCTOU de main antes de cada
+// retry — todas as dependências de I/O (busca de runs, busca de jobs,
+// leitura do HEAD de main, sleep) são injetadas, então esta função nunca
+// faz fetch/setTimeout diretamente e é 100% testável com fixtures em
+// memória, sem mock de rede e sem esperar os backoffs reais.
+//
+// Retry só é elegível quando `buscarRunsAprovados()` devolve um array
+// VAZIO (zero runs brutos, exatamente o sintoma do falso negativo já
+// comprovado) — nunca quando algum run foi devolvido mas rejeitado por
+// um motivo concreto (SHA errado, branch/evento errados, ambíguo,
+// vermelho, incompleto): esses continuam falhando fechado imediatamente,
+// sem nenhuma tentativa adicional. Erros lançados por
+// buscarRunsAprovados/buscarJobsDoRun (HTTP não-2xx, JSON inválido,
+// shape inesperado) também propagam imediatamente, sem retry.
+export async function avaliarGateComRetry({
+    expectedSha,
+    expectedBranch = "main",
+    nomesEsperados = EXPECTED_JOB_NAMES,
+    buscarRunsAprovados,
+    buscarJobsDoRun,
+    obterHeadAtualDeMain,
+    dormir = async () => {},
+    maxTentativas = MAX_TENTATIVAS,
+    backoffMs = BACKOFF_MS,
+    aoTentar
+} = {}) {
+    const formato = validarFormatoSha(expectedSha);
+    if (!formato.ok) return { ok: false, motivo: formato.motivo, reasonCode: REASON_CODES.SHA_MALFORMADO };
+
+    for (let tentativa = 1; tentativa <= maxTentativas; tentativa += 1) {
+        if (tentativa > 1) {
+            const headAtual = await obterHeadAtualDeMain();
+            if (headAtual !== expectedSha) {
+                return {
+                    ok: false,
+                    motivo: `main avançou durante o retry (antes da tentativa ${tentativa}): HEAD atual é ${headAtual}, autorizado era ${expectedSha}. A autorização daquele SHA expirou.`,
+                    reasonCode: REASON_CODES.MAIN_DIVERGIU,
+                    tentativa
+                };
+            }
+        }
+
+        const runs = await buscarRunsAprovados();
+        if (typeof aoTentar === "function") aoTentar({ tentativa, totalRunsRecebidos: runs.length });
+
+        if (runs.length === 0 && tentativa < maxTentativas) {
+            await dormir(backoffMs[tentativa - 1]);
+            continue;
+        }
+
+        const selecao = selecionarRunAprovado(runs, { expectedSha, expectedBranch });
+        if (!selecao.ok) {
+            return { ...selecao, tentativa };
+        }
+
+        const jobs = await buscarJobsDoRun(selecao.run.id);
+        const validacaoJobs = validarJobsObrigatorios(jobs, { nomesEsperados });
+        if (!validacaoJobs.ok) {
+            return { ok: false, motivo: validacaoJobs.motivo, reasonCode: REASON_CODES.JOBS_INVALIDOS, tentativa };
+        }
+
+        return {
+            ok: true,
+            run: { id: selecao.run.id, run_attempt: selecao.run.run_attempt, head_sha: selecao.run.head_sha },
+            jobs: validacaoJobs.jobs,
+            tentativa
+        };
+    }
+
+    // Inatingível pela estrutura do loop acima (a última iteração sempre
+    // retorna um valor), mas mantido como cinto-e-suspensório fail-closed.
+    return {
+        ok: false,
+        motivo: "esgotadas as tentativas sem localizar o Quality Gate.",
+        reasonCode: REASON_CODES.RUN_NOT_FOUND,
+        tentativa: maxTentativas
     };
 }

@@ -18,10 +18,15 @@ import {
     SHA_REGEX,
     EXPECTED_JOB_NAMES,
     QUALITY_GATE_WORKFLOW_FILE,
+    REASON_CODES,
+    MAX_TENTATIVAS,
+    BACKOFF_MS,
     validarFormatoSha,
     selecionarRunAprovado,
     validarJobsObrigatorios,
     avaliarGateCompleto,
+    avaliarGateComRetry,
+    extrairArrayObrigatorio,
     construirUrlRunsQG,
     construirUrlJobsDoRun
 } from "../../scripts/pages-qg-gate-core.mjs";
@@ -254,10 +259,20 @@ describe("scripts/pages-qg-gate-core.mjs — funções puras do gate exact-SHA",
 
     describe("construirUrlRunsQG / construirUrlJobsDoRun", () => {
         it("18. URL de runs filtra branch=main, event=push, status=completed no workflow certo", () => {
-            const url = construirUrlRunsQG("VideDigital/vide-digital");
+            const url = construirUrlRunsQG("VideDigital/vide-digital", SHA_A);
             assert.match(url, /branch=main/);
             assert.match(url, /event=push/);
             assert.match(url, /status=completed/);
+            assert.match(url, new RegExp(`workflows/${QUALITY_GATE_WORKFLOW_FILE}/runs`));
+        });
+
+        it("22. URL de runs também filtra head_sha=<SHA exato> (reduz superfície/volume de resultados)", () => {
+            const url = construirUrlRunsQG("VideDigital/vide-digital", SHA_A);
+            assert.match(url, new RegExp(`head_sha=${SHA_A}`));
+        });
+
+        it("23. URL de runs preserva o workflow quality-gate.yml mesmo com head_sha adicionado", () => {
+            const url = construirUrlRunsQG("VideDigital/vide-digital", SHA_A);
             assert.match(url, new RegExp(`workflows/${QUALITY_GATE_WORKFLOW_FILE}/runs`));
         });
 
@@ -265,6 +280,349 @@ describe("scripts/pages-qg-gate-core.mjs — funções puras do gate exact-SHA",
             const url = construirUrlJobsDoRun("VideDigital/vide-digital", 33429829480);
             assert.match(url, /filter=latest/);
             assert.match(url, /runs\/33429829480\/jobs/);
+        });
+    });
+
+    describe("24. seleção ainda revalida head_sha/branch/event/status/conclusion mesmo com query já filtrada por head_sha", () => {
+        it("query param NÃO é autoridade — selecionarRunAprovado continua rejeitando um run que não bate em memória", () => {
+            // Simula a API "confiando cegamente" no query param head_sha e
+            // devolvendo um run de branch/evento errado mesmo assim — a
+            // validação em memória (já existente) precisa continuar sendo
+            // soberana, nunca relaxada pela adição do query param.
+            const r = selecionarRunAprovado([runBase({ head_branch: "outra-branch" })], { expectedSha: SHA_A });
+            assert.equal(r.ok, false);
+        });
+    });
+
+    describe("25. rerun no mesmo run.id — run_attempt atualizado continua aceito", () => {
+        it("run com run_attempt=2 (pós-rerun) e conclusion=success continua sendo aprovado normalmente", () => {
+            const r = selecionarRunAprovado([runBase({ run_attempt: 2 })], { expectedSha: SHA_A });
+            assert.equal(r.ok, true);
+            assert.equal(r.run.run_attempt, 2);
+        });
+    });
+
+    describe("reasonCode — selecionarRunAprovado", () => {
+        it("zero candidatos retorna reasonCode RUN_NOT_FOUND", () => {
+            const r = selecionarRunAprovado([], { expectedSha: SHA_A });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.RUN_NOT_FOUND);
+        });
+
+        it("múltiplos candidatos retorna reasonCode RUN_AMBIGUOUS", () => {
+            const r = selecionarRunAprovado([runBase({ id: 1 }), runBase({ id: 2 })], { expectedSha: SHA_A });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.RUN_AMBIGUOUS);
+        });
+    });
+
+    describe("16/17. extrairArrayObrigatorio — shape estrito da resposta da API (runs e jobs)", () => {
+        it("corpo com a chave esperada como array retorna os itens", () => {
+            const r = extrairArrayObrigatorio({ total_count: 2, workflow_runs: [1, 2] }, "workflow_runs");
+            assert.equal(r.ok, true);
+            assert.deepEqual(r.itens, [1, 2]);
+            assert.equal(r.totalCount, 2);
+        });
+
+        it("corpo com a chave esperada como array VAZIO continua ok (lista real vazia, não shape inesperado)", () => {
+            const r = extrairArrayObrigatorio({ total_count: 0, workflow_runs: [] }, "workflow_runs");
+            assert.equal(r.ok, true);
+            assert.deepEqual(r.itens, []);
+        });
+
+        it("15. resposta 200 sem a chave esperada (workflow_runs ausente) falha explicitamente, nunca vira lista vazia silenciosa", () => {
+            const r = extrairArrayObrigatorio({ total_count: 0, message: "algo inesperado" }, "workflow_runs");
+            assert.equal(r.ok, false);
+            assert.match(r.motivo, /workflow_runs/);
+        });
+
+        it("16. workflow_runs presente mas não-array falha explicitamente", () => {
+            const r = extrairArrayObrigatorio({ workflow_runs: "não é array" }, "workflow_runs");
+            assert.equal(r.ok, false);
+        });
+
+        it("17. resposta 200 sem a chave 'jobs' falha explicitamente", () => {
+            const r = extrairArrayObrigatorio({ total_count: 0 }, "jobs");
+            assert.equal(r.ok, false);
+            assert.match(r.motivo, /jobs/);
+        });
+
+        it("18. jobs presente mas não-array falha explicitamente", () => {
+            const r = extrairArrayObrigatorio({ jobs: { não: "é array" } }, "jobs");
+            assert.equal(r.ok, false);
+        });
+
+        it("corpo que não é objeto (array/string/número/null) falha explicitamente", () => {
+            assert.equal(extrairArrayObrigatorio([], "workflow_runs").ok, false);
+            assert.equal(extrairArrayObrigatorio("string", "workflow_runs").ok, false);
+            assert.equal(extrairArrayObrigatorio(42, "workflow_runs").ok, false);
+            assert.equal(extrairArrayObrigatorio(null, "workflow_runs").ok, false);
+        });
+    });
+
+    describe("avaliarGateComRetry — orquestração com retry bounded, TOCTOU e dependências injetadas (sem rede real, sem espera real)", () => {
+        function fakeDormir(registro) {
+            return async (ms) => {
+                registro.push(ms);
+            };
+        }
+
+        function fakeJobsOk() {
+            return async () => EXPECTED_JOB_NAMES.map(jobOk);
+        }
+
+        it("1. primeira consulta já retorna o run correto → PASS, tentativa=1, sem sleep", async () => {
+            const sleeps = [];
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => [runBase()],
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: fakeDormir(sleeps)
+            });
+            assert.equal(r.ok, true);
+            assert.equal(r.tentativa, 1);
+            assert.deepEqual(sleeps, []);
+        });
+
+        it("2. primeira vazia, segunda retorna o run correto → PASS, 1 sleep de 5000ms", async () => {
+            const sleeps = [];
+            let chamada = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => {
+                    chamada += 1;
+                    return chamada === 1 ? [] : [runBase()];
+                },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: fakeDormir(sleeps)
+            });
+            assert.equal(r.ok, true);
+            assert.equal(r.tentativa, 2);
+            assert.deepEqual(sleeps, [5000]);
+        });
+
+        it("3. primeira e segunda vazias, terceira retorna o run correto → PASS, sleeps 5000 e 10000ms", async () => {
+            const sleeps = [];
+            let chamada = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => {
+                    chamada += 1;
+                    return chamada < 3 ? [] : [runBase()];
+                },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: fakeDormir(sleeps)
+            });
+            assert.equal(r.ok, true);
+            assert.equal(r.tentativa, 3);
+            assert.deepEqual(sleeps, [5000, 10000]);
+        });
+
+        it("4. três tentativas vazias → FAIL closed, reasonCode RUN_NOT_FOUND, sem tentativa extra além do máximo", async () => {
+            let chamadas = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => {
+                    chamadas += 1;
+                    return [];
+                },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.RUN_NOT_FOUND);
+            assert.equal(chamadas, MAX_TENTATIVAS);
+        });
+
+        it("5. os waits são exatamente 5000 e depois 10000 (BACKOFF_MS), nunca espera real (sleep fake nunca chama setTimeout de verdade)", async () => {
+            const sleeps = [];
+            let chamada = 0;
+            await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => {
+                    chamada += 1;
+                    return chamada < 3 ? [] : [runBase()];
+                },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: fakeDormir(sleeps)
+            });
+            assert.deepEqual(sleeps, BACKOFF_MS);
+        });
+
+        it("6. SHA malformado falha imediato, reasonCode SHA_MALFORMADO, 0 chamadas a buscarRunsAprovados (0 retries)", async () => {
+            let chamadas = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: "curto-demais",
+                buscarRunsAprovados: async () => { chamadas += 1; return [runBase()]; },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.SHA_MALFORMADO);
+            assert.equal(chamadas, 0);
+        });
+
+        it("7. run encontrado mas conclusion=failure → FAIL imediato, sem retry (run já existe, não é 'zero candidatos')", async () => {
+            let chamadas = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => { chamadas += 1; return [runBase({ conclusion: "failure" })]; },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => { throw new Error("não deveria dormir — falha vermelha não é retry-elegível"); }
+            });
+            assert.equal(r.ok, false);
+            assert.equal(chamadas, 1);
+        });
+
+        it("8. run encontrado com status=in_progress → FAIL imediato, sem retry (run já existe, não é 'zero candidatos')", async () => {
+            let chamadas = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => { chamadas += 1; return [runBase({ status: "in_progress", conclusion: null })]; },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => { throw new Error("não deveria dormir — run in_progress não é retry-elegível"); }
+            });
+            assert.equal(r.ok, false);
+            assert.equal(chamadas, 1);
+        });
+
+        it("9. dois runs aprovados (ambíguo) → FAIL imediato, sem retry", async () => {
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => [runBase({ id: 1 }), runBase({ id: 2 })],
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => { throw new Error("não deveria dormir — ambíguo não é retry-elegível"); }
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.RUN_AMBIGUOUS);
+        });
+
+        it("10. main avança antes do segundo attempt → FAIL imediato, reasonCode MAIN_DIVERGIU, nenhuma nova consulta de runs", async () => {
+            let chamadasRuns = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => { chamadasRuns += 1; return []; },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_B,
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.MAIN_DIVERGIU);
+            assert.equal(chamadasRuns, 1, "só a 1ª tentativa deveria ter consultado runs — a 2ª aborta antes por causa do TOCTOU");
+        });
+
+        it("11. main avança antes do terceiro attempt → FAIL imediato, reasonCode MAIN_DIVERGIU", async () => {
+            let chamada = 0;
+            let headsConsultados = 0;
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => { chamada += 1; return []; },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => {
+                    headsConsultados += 1;
+                    return headsConsultados === 1 ? SHA_A : SHA_B;
+                },
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.MAIN_DIVERGIU);
+            assert.equal(chamada, 2, "1ª e 2ª tentativa consultaram runs; a 3ª aborta antes por causa do TOCTOU");
+        });
+
+        it("12. HTTP 500 (erro propagado por buscarRunsAprovados) → FAIL imediato, sem retry, erro propaga", async () => {
+            let chamadas = 0;
+            await assert.rejects(
+                avaliarGateComRetry({
+                    expectedSha: SHA_A,
+                    buscarRunsAprovados: async () => { chamadas += 1; throw new Error("GitHub API respondeu 500 Internal Server Error"); },
+                    buscarJobsDoRun: fakeJobsOk(),
+                    obterHeadAtualDeMain: async () => SHA_A,
+                    dormir: async () => { throw new Error("não deveria dormir — erro HTTP não é retry-elegível"); }
+                }),
+                /500/
+            );
+            assert.equal(chamadas, 1);
+        });
+
+        it("13. HTTP 403 (erro propagado) → FAIL imediato, sem retry", async () => {
+            await assert.rejects(
+                avaliarGateComRetry({
+                    expectedSha: SHA_A,
+                    buscarRunsAprovados: async () => { throw new Error("GitHub API respondeu 403 Forbidden"); },
+                    buscarJobsDoRun: fakeJobsOk(),
+                    obterHeadAtualDeMain: async () => SHA_A,
+                    dormir: async () => { throw new Error("não deveria dormir"); }
+                }),
+                /403/
+            );
+        });
+
+        it("19. jobs faltando no run selecionado → FAIL, reasonCode JOBS_INVALIDOS", async () => {
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => [runBase()],
+                buscarJobsDoRun: async () => EXPECTED_JOB_NAMES.slice(0, 3).map(jobOk),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.JOBS_INVALIDOS);
+        });
+
+        it("20. job extra no run selecionado → FAIL, reasonCode JOBS_INVALIDOS", async () => {
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => [runBase()],
+                buscarJobsDoRun: async () => [...EXPECTED_JOB_NAMES.map(jobOk), jobOk("Job novo não auditado")],
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.JOBS_INVALIDOS);
+        });
+
+        it("21. job vermelho no run selecionado → FAIL, reasonCode JOBS_INVALIDOS", async () => {
+            const r = await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => [runBase()],
+                buscarJobsDoRun: async () => {
+                    const jobs = EXPECTED_JOB_NAMES.map(jobOk);
+                    jobs[0] = { name: EXPECTED_JOB_NAMES[0], status: "completed", conclusion: "failure" };
+                    return jobs;
+                },
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => {}
+            });
+            assert.equal(r.ok, false);
+            assert.equal(r.reasonCode, REASON_CODES.JOBS_INVALIDOS);
+        });
+
+        it("27. observabilidade: aoTentar é chamado uma vez por tentativa lógica, com o total de runs recebidos", async () => {
+            const chamadasRegistradas = [];
+            let chamada = 0;
+            await avaliarGateComRetry({
+                expectedSha: SHA_A,
+                buscarRunsAprovados: async () => {
+                    chamada += 1;
+                    return chamada < 3 ? [] : [runBase()];
+                },
+                buscarJobsDoRun: fakeJobsOk(),
+                obterHeadAtualDeMain: async () => SHA_A,
+                dormir: async () => {},
+                aoTentar: (info) => chamadasRegistradas.push(info)
+            });
+            assert.equal(chamadasRegistradas.length, 3);
+            assert.deepEqual(chamadasRegistradas.map((c) => c.tentativa), [1, 2, 3]);
+            assert.deepEqual(chamadasRegistradas.map((c) => c.totalRunsRecebidos), [0, 0, 1]);
         });
     });
 
@@ -389,5 +747,48 @@ describe(".github/workflows/pages-publish.yml — garantias estruturais do gate 
         for (const bloco of blocosScript) {
             assert.doesNotMatch(bloco, /\$\{\{\s*inputs\.sha\s*\}\}/, `bloco de script não deveria interpolar inputs.sha diretamente: ${bloco.slice(0, 120)}`);
         }
+    });
+});
+
+describe("scripts/pages-qg-gate.mjs — garantias estruturais do wrapper (leitura estática do código-fonte)", () => {
+    const WRAPPER_PATH = path.resolve(__dirname, "../../scripts/pages-qg-gate.mjs");
+    const codigoWrapper = readFileSync(WRAPPER_PATH, "utf8");
+
+    it("26. nenhuma chamada de console.log/console.error interpola diretamente a variável de token/Authorization", () => {
+        const linhasDeLog = codigoWrapper
+            .split("\n")
+            .filter((linha) => /console\.(log|error|warn|info)\(/.test(linha));
+        assert.ok(linhasDeLog.length > 0, "esperado pelo menos uma chamada de log no wrapper");
+        for (const linha of linhasDeLog) {
+            assert.doesNotMatch(linha, /\btoken\b/i, `linha de log não deveria referenciar "token": ${linha.trim()}`);
+            assert.doesNotMatch(linha, /Authorization/i, `linha de log não deveria referenciar "Authorization": ${linha.trim()}`);
+        }
+    });
+
+    it("cabeçalho Authorization só aparece dentro da construção de headers de fetch, nunca em template literal de log", () => {
+        const ocorrencias = (codigoWrapper.match(/Authorization:/g) || []).length;
+        assert.ok(ocorrencias >= 1, "esperado pelo menos uma construção de header Authorization");
+    });
+
+    it("28. paginação (per_page/page) continua presente no fetch de runs e de jobs", () => {
+        assert.match(codigoWrapper, /per_page=100/);
+        assert.match(codigoWrapper, /page=/);
+    });
+
+    it("usa extrairArrayObrigatorio (shape estrito) em vez da detecção genérica de chave-array removida", () => {
+        assert.match(codigoWrapper, /extrairArrayObrigatorio/);
+        assert.doesNotMatch(codigoWrapper, /Object\.keys\(corpo\)\.find/, "a detecção genérica de chave-array deveria ter sido removida em favor do shape estrito");
+    });
+
+    it("usa avaliarGateComRetry (orquestração com retry bounded) em vez de uma única leitura lógica direta", () => {
+        assert.match(codigoWrapper, /avaliarGateComRetry/);
+    });
+
+    it("head_sha é passado para construirUrlRunsQG (query filtrada pelo SHA exato)", () => {
+        assert.match(codigoWrapper, /construirUrlRunsQG\([^)]*expectedSha[^)]*\)/);
+    });
+
+    it("sleep real usa setTimeout (produção), diferente do sleep fake injetado nos testes", () => {
+        assert.match(codigoWrapper, /setTimeout/);
     });
 });
