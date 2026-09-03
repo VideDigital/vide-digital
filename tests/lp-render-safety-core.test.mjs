@@ -10,6 +10,7 @@ import {
     escapeAttribute,
     escapeTextareaContent,
     escapeCSSString,
+    safeCSSColor,
     safeLinkURL,
     safeImageURL,
     safeIframeURL
@@ -118,6 +119,74 @@ describe("escapeCSSString — contexto de string CSS (dentro de url('...'))", ()
             const legitima = "https://cdn.exemplo.com/foto.jpg";
             assert.equal(escapeAttribute(escapeCSSString(safeImageURL(legitima))), legitima);
         });
+    });
+});
+
+// PR70-REV-001: as cores de design (corFundo/corTexto/corSobreposicao/
+// corBotaoFundo/corBotaoBorda/corBotaoTexto) são interpoladas como VALOR
+// BARE de propriedade CSS dentro do atributo style (ex.:
+// `background-color:${valor};`) — um contexto onde escapeAttribute não
+// impede que um ";" solto encerre a declaração e injete uma nova, sem
+// nunca tocar a aspa que delimita o próprio atributo style. safeCSSColor
+// fecha esse vetor na origem com allowlist (#RRGGBB), não denylist.
+describe("safeCSSColor — allowlist de cor pra contexto de VALOR BARE de propriedade CSS (style=)", () => {
+    it("hex válido de 6 dígitos (minúsculo) é aceito intacto", () => {
+        assert.equal(safeCSSColor("#5b3df5"), "#5b3df5");
+    });
+    it("hex válido de 6 dígitos (maiúsculo) é aceito intacto", () => {
+        assert.equal(safeCSSColor("#5B3DF5"), "#5B3DF5");
+    });
+    it("hex válido com dígitos e letras misturados é aceito", () => {
+        assert.equal(safeCSSColor("#a1B2c3"), "#a1B2c3");
+    });
+    it("espaço em branco ao redor de um hex válido é aparado", () => {
+        assert.equal(safeCSSColor("  #ffffff  "), "#ffffff");
+    });
+    it("payload de injeção de declaração CSS (PR70-REV-001) é rejeitado, nunca ecoado", () => {
+        const payload = "red;position:fixed;inset:0;z-index:999999";
+        assert.equal(safeCSSColor(payload), "");
+    });
+    it("payload de injeção via background-image/url(...) é rejeitado", () => {
+        const payload = 'red;background-image:url("https://example.invalid/pwn")';
+        assert.equal(safeCSSColor(payload), "");
+    });
+    it("hex de 3 dígitos (#RGB abreviado) é rejeitado — só #RRGGBB é o formato comprovado emitido pelo produto", () => {
+        assert.equal(safeCSSColor("#fff"), "");
+    });
+    it("hex de 8 dígitos (com alpha) é rejeitado", () => {
+        assert.equal(safeCSSColor("#ffffffff"), "");
+    });
+    it("nome de cor CSS (red, currentColor) é rejeitado — fora da allowlist", () => {
+        assert.equal(safeCSSColor("red"), "");
+        assert.equal(safeCSSColor("currentColor"), "");
+    });
+    it("rgb()/rgba()/hsl()/var(--x) são rejeitados — abririam parênteses fora da allowlist", () => {
+        assert.equal(safeCSSColor("rgb(255,0,0)"), "");
+        assert.equal(safeCSSColor("rgba(255,0,0,.5)"), "");
+        assert.equal(safeCSSColor("hsl(0,100%,50%)"), "");
+        assert.equal(safeCSSColor("var(--cor-perigosa)"), "");
+    });
+    it("hex sem o # inicial é rejeitado", () => {
+        assert.equal(safeCSSColor("5B3DF5"), "");
+    });
+    it("vazio/ausente sem fallback retorna string vazia", () => {
+        assert.equal(safeCSSColor(""), "");
+        assert.equal(safeCSSColor(null), "");
+        assert.equal(safeCSSColor(undefined), "");
+    });
+    it("candidato inválido cai pro fallback quando o fallback é um hex válido", () => {
+        assert.equal(safeCSSColor("red;position:fixed", "#000000"), "#000000");
+        assert.equal(safeCSSColor(null, "#ffffff"), "#ffffff");
+    });
+    it("fallback também passa pela MESMA allowlist — nunca é ecoado cru", () => {
+        assert.equal(safeCSSColor("", "red;position:fixed;inset:0;z-index:999999"), "");
+        assert.equal(safeCSSColor(undefined, "javascript:alert(1)"), "");
+    });
+    it("candidato válido tem prioridade sobre o fallback (fallback só é usado se o candidato falhar)", () => {
+        assert.equal(safeCSSColor("#123456", "#000000"), "#123456");
+    });
+    it("nem candidato nem fallback válidos: retorna string vazia (nunca undefined/null/valor não confiável)", () => {
+        assert.equal(safeCSSColor("not-a-color", "also-not-a-color"), "");
     });
 });
 

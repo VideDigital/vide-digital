@@ -1,5 +1,5 @@
 import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
-import { escapeHTML, escapeAttribute, escapeTextareaContent, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
+import { escapeHTML, escapeAttribute, escapeTextareaContent, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
@@ -5347,13 +5347,13 @@ document.addEventListener("mousedown", function(e) {
         };
         function renderizarBlocoPreview(bloco, indiceBloco) {
             const d = bloco.design || {};
-            const corFundo = escapeAttribute(d.corFundo || "");
+            const corFundo = escapeAttribute(safeCSSColor(d.corFundo));
             const imagemFundo = safeImageURL(d.imagemFundoB64 || "");
-            const corSobreposicao = escapeAttribute(d.corSobreposicao || "#000000");
+            const corSobreposicao = escapeAttribute(safeCSSColor(d.corSobreposicao, "#000000"));
             const opacidade = (Number(d.opacidadeSobreposicao) || 0) / 100;
-            const corBotaoFundo = escapeAttribute(d.corBotaoFundo || "");
-            const corBotaoBorda = escapeAttribute(d.corBotaoBorda || "");
-            const corBotaoTexto = escapeAttribute(d.corBotaoTexto || "");
+            const corBotaoFundo = escapeAttribute(safeCSSColor(d.corBotaoFundo));
+            const corBotaoBorda = escapeAttribute(safeCSSColor(d.corBotaoBorda));
+            const corBotaoTexto = escapeAttribute(safeCSSColor(d.corBotaoTexto));
             const paddingTop = d.paddingTop !== undefined ? (Number(d.paddingTop) || 0) : 64;
             const paddingBottom = d.paddingBottom !== undefined ? (Number(d.paddingBottom) || 0) : 64;
             const alinhamento = d.alinhamento || "esquerda";
@@ -5510,7 +5510,8 @@ document.addEventListener("mousedown", function(e) {
                 else estiloForma += `height:${altura}px; border-radius:8px;`;
                 conteudo = `<div class="flex ${justifyClasse} px-6"><div class="relative inline-block"><div style="${estiloForma}"></div><div class="resize-handle absolute -bottom-1 -right-1 w-3 h-3 bg-white border border-[#5B3DF5] rounded-sm cursor-nwse-resize" data-bloco-index="${indiceBloco}" data-modo-redimensionar="forma"></div></div></div>`;
             }
-            const estiloTexto = d.corTexto ? `color:${escapeAttribute(d.corTexto)};` : "";
+            const corTextoBloco = safeCSSColor(d.corTexto);
+            const estiloTexto = corTextoBloco ? `color:${escapeAttribute(corTextoBloco)};` : "";
             if (lpEditorModoLayout === "livre") {
                 const x = bloco.x !== undefined ? bloco.x : 20;
                 const y = bloco.y !== undefined ? bloco.y : 20;

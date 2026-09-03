@@ -1049,19 +1049,25 @@
   // chama esta função) — nunca reimplementada aqui. Todo href/src/
   // background-image usa a mesma política de 3 camadas (URL VALIDATION ->
   // CSS STRING ENCODING -> HTML ATTRIBUTE ENCODING) já aprovada nos
-  // renderers ativos (index.html/dashboard-app.js). Cores de design
-  // (corFundo/corTexto/corBotao*) não são URL nem string CSS entre aspas —
-  // só precisam de escapeAttribute pra não quebrar o atributo style=.
+  // renderers ativos (index.html/dashboard-app.js).
+  //
+  // PR70-REV-001: cores de design (corFundo/corTexto/corBotao*) não são URL
+  // nem string CSS entre aspas — são VALOR BARE de propriedade CSS dentro
+  // do mesmo atributo style=. escapeAttribute sozinho NÃO fecha esse vetor:
+  // um valor como "red;position:fixed;inset:0;z-index:999999" injeta uma
+  // segunda declaração CSS ativa sem nunca tocar a aspa que delimita o
+  // atributo. safeCSSColor (allowlist #RRGGBB) valida ANTES de
+  // escapeAttribute encodar — mesmo contrato do renderer público/preview.
   function renderStandaloneBlock(block, safety) {
-    const { escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL } = safety;
+    const { escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL } = safety;
     const design = block.design || {};
     const props = block.props || {};
-    const corFundo = escapeAttribute(design.corFundo || "#0B1020");
-    const corTexto = escapeAttribute(design.corTexto || "#F8FAFC");
+    const corFundo = escapeAttribute(safeCSSColor(design.corFundo, "#0B1020"));
+    const corTexto = escapeAttribute(safeCSSColor(design.corTexto, "#F8FAFC"));
     const sectionStyle = `background:${corFundo};color:${corTexto};padding:${Number(design.paddingTop ?? 64)}px 24px ${Number(design.paddingBottom ?? 64)}px;text-align:${design.alinhamento === "centro" ? "center" : design.alinhamento === "direita" ? "right" : "left"};`;
-    const corBotaoFundo = escapeAttribute(design.corBotaoFundo || "#7C3AED");
-    const corBotaoTexto = escapeAttribute(design.corBotaoTexto || "#FFFFFF");
-    const corBotaoBorda = escapeAttribute(design.corBotaoBorda || design.corBotaoFundo || "#7C3AED");
+    const corBotaoFundo = escapeAttribute(safeCSSColor(design.corBotaoFundo, "#7C3AED"));
+    const corBotaoTexto = escapeAttribute(safeCSSColor(design.corBotaoTexto, "#FFFFFF"));
+    const corBotaoBorda = escapeAttribute(safeCSSColor(design.corBotaoBorda || design.corBotaoFundo, "#7C3AED"));
     const buttonStyle = `background:${corBotaoFundo};color:${corBotaoTexto};border:1px solid ${corBotaoBorda};`;
     let content = "";
     if (block.tipo === "navegacao") {

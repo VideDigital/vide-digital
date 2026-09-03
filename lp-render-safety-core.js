@@ -152,6 +152,35 @@ export function safeImageURL(value) {
     return "";
 }
 
+// PR70-REV-001: as cores de design (design.corFundo/corTexto/
+// corSobreposicao/corBotaoFundo/corBotaoBorda/corBotaoTexto) são
+// interpoladas como VALOR BARE de propriedade CSS dentro do atributo style
+// (ex.: `background-color:${valor};`) — um contexto que escapeAttribute
+// NÃO cobre: "}" e aspas não têm papel especial aqui, mas ";" sozinho já
+// encerra a declaração e abre uma nova dentro do MESMO atributo style
+// (ex.: "red;position:fixed;inset:0;z-index:999999" produz uma segunda
+// declaração CSS ativa, sem nunca tocar na aspa que delimita o atributo).
+// Allowlist, não denylist: só #RRGGBB (6 dígitos hex) é aceito — o único
+// formato realmente emitido por qualquer preset/paleta/seletor de cor do
+// produto — então nenhum ";", "(", "url(" ou qualquer outro token com
+// potencial de injeção jamais atravessa esta função. fallback passa pela
+// MESMA validação (nunca é ecoado cru); se nem o valor nem o fallback
+// forem hex válidos, retorna "" (produz uma declaração CSS vazia/omitida,
+// nunca um valor não confiável). Uso correto (validar ANTES de escapar
+// atributo, nunca o contrário, e nunca usar escapeCSSString aqui — esse
+// helper é para contexto de STRING CSS quoted, ex. url('...'), não para
+// valor bare de propriedade):
+//   const seguro = escapeAttribute(safeCSSColor(corBruta, corFallback));
+const SAFE_CSS_COLOR = /^#[0-9a-f]{6}$/i;
+
+export function safeCSSColor(value, fallback = "") {
+    const candidate = String(value ?? "").trim();
+    if (SAFE_CSS_COLOR.test(candidate)) return candidate;
+    const fallbackCandidate = String(fallback ?? "").trim();
+    if (SAFE_CSS_COLOR.test(fallbackCandidate)) return fallbackCandidate;
+    return "";
+}
+
 // Política de iframe src (codigo_iframe SEM htmlCustom — bloco.props.url):
 // deliberadamente MAIS restrita que safeLinkURL — nunca reutiliza mailto:/
 // tel:/data: (não fazem sentido como destino de iframe e ampliariam a

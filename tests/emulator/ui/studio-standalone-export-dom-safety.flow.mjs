@@ -50,7 +50,7 @@ async function main() {
         // exports em window, já que o restante da página não é module.
         await page.addScriptTag({
             type: "module",
-            content: `${lpRenderSafetySrc}\nwindow.__lpRenderSafety = { escapeHTML, escapeAttribute, escapeCSSString, safeLinkURL, safeImageURL, safeIframeURL };`
+            content: `${lpRenderSafetySrc}\nwindow.__lpRenderSafety = { escapeHTML, escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL };`
         });
         await page.waitForFunction(() => !!window.__lpRenderSafety, { timeout: 5000 });
 
@@ -171,6 +171,55 @@ async function main() {
         console.log("studio-standalone-export-dom-safety.flow: imagemFundoB64 (ADV-66-002):", JSON.stringify(resultadoCss));
         assert.equal(resultadoCss.existeSection, true);
         assert.notEqual(resultadoCss.position, "fixed", "position:fixed NÃO pode ter sido aplicado como declaração CSS real no elemento — a tentativa de fechar url('...') precisa continuar presa dentro da string");
+
+        // ===== Caso 4b (PR70-REV-001): payload direto em
+        // design.corFundo/corTexto/corBotaoFundo/corBotaoBorda/corBotaoTexto
+        // — VALOR BARE de propriedade CSS dentro do MESMO atributo style
+        // (nunca dentro de url('...')). Diferente do Caso 4 (que passa por
+        // escapeCSSString), aqui o vetor é só ";" — sem precisar de aspas.
+        // A propriedade computada do <section>/.btn tem que continuar
+        // vindo do fallback seguro, nunca position:fixed/z-index real. =====
+        const resultadoCorInjecao = await page.evaluate(() => {
+            const payload = "red;position:fixed;inset:0;z-index:999999";
+            const html = window.__renderStandaloneBlock(
+                {
+                    tipo: "texto_midia",
+                    props: { titulo: "T", botaoTexto: "Comprar", botaoLink: "https://loja.exemplo.com" },
+                    design: {
+                        corFundo: payload,
+                        corTexto: payload,
+                        corBotaoFundo: payload,
+                        corBotaoBorda: payload,
+                        corBotaoTexto: payload
+                    }
+                },
+                window.__lpRenderSafety
+            );
+            const container = document.createElement("div");
+            document.body.appendChild(container);
+            container.innerHTML = html;
+            const section = container.querySelector("section");
+            const link = container.querySelector("a.btn");
+            const computadoSection = section ? getComputedStyle(section) : null;
+            const computadoLink = link ? getComputedStyle(link) : null;
+            const resultado = {
+                existeSection: !!section,
+                existeLink: !!link,
+                sectionPosition: computadoSection?.position || null,
+                sectionZIndex: computadoSection?.zIndex || null,
+                linkPosition: computadoLink?.position || null,
+                linkZIndex: computadoLink?.zIndex || null
+            };
+            container.remove();
+            return resultado;
+        });
+        console.log("studio-standalone-export-dom-safety.flow: injeção de declaração CSS via cor de design (PR70-REV-001):", JSON.stringify(resultadoCorInjecao));
+        assert.equal(resultadoCorInjecao.existeSection, true);
+        assert.equal(resultadoCorInjecao.existeLink, true);
+        assert.notEqual(resultadoCorInjecao.sectionPosition, "fixed", "position:fixed NÃO pode ter sido aplicado como declaração CSS real no <section> a partir de design.corFundo/corTexto");
+        assert.notEqual(resultadoCorInjecao.sectionZIndex, "999999", "z-index:999999 NÃO pode ter sido aplicado como declaração CSS real no <section>");
+        assert.notEqual(resultadoCorInjecao.linkPosition, "fixed", "position:fixed NÃO pode ter sido aplicado como declaração CSS real no CTA a partir de design.corBotaoFundo/corBotaoBorda/corBotaoTexto");
+        assert.notEqual(resultadoCorInjecao.linkZIndex, "999999", "z-index:999999 NÃO pode ter sido aplicado como declaração CSS real no CTA");
 
         // ===== Caso 5: conteúdo legítimo continua intacto (compatibilidade
         // real, não só a nível de string). =====
