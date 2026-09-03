@@ -1210,11 +1210,26 @@
     const components = window.AuraComponentsV4?.list?.() || [];
     const selected = getSelectedBlocks();
     const selectedComponent = selected[0]?.block?.design?.v4Component;
+    // PR72-FOLLOWUP-REMAINING-COLOR-SINKS-HARDENING: component.accent nunca
+    // entra no template HTML — mesmo em dados JÁ persistidos em
+    // localStorage antes deste fix (created via createFromSelection() a
+    // partir de design.corFundo/corBotaoFundo, nunca validado). O
+    // <article> é montado sem a cor; a custom property --accent é aplicada
+    // DEPOIS, via CSSOM (element.style.setProperty), que trata o valor
+    // inteiro como um único token de propriedade — nunca interpretado como
+    // HTML nem como múltiplas declarações CSS, então nem attribute breakout
+    // nem CSS declaration injection são possíveis independente do
+    // conteúdo. safeAccentColor() valida com a MESMA allowlist/contrato de
+    // safeCSSColor() (lp-render-safety-core.js) antes mesmo de chegar à
+    // CSSOM, como defesa em profundidade.
     root.innerHTML = `
       ${panelHeading("Sistema reutilizável", "Componentes e instâncias", "Transforme grupos em componentes, insira instâncias e sincronize alterações.")}
       <div class="aura-v4-inline-actions"><button type="button" id="aura-v4-create-component">Criar da seleção</button>${selectedComponent ? `<button type="button" id="aura-v4-update-component">Atualizar componente</button><button type="button" id="aura-v4-detach-component">Desvincular</button>` : ""}</div>
-      <div class="aura-v4-components-grid">${components.map((component) => `<article style="--accent:${component.accent || "#7C3AED"}"><span>${component.type === "group" ? `${component.blocks.length} blocos` : "1 bloco"}</span><h4>${escapeHTML(component.name)}</h4><p>Atualizado em ${new Date(component.updatedAt || component.createdAt).toLocaleDateString("pt-BR")}</p><div><button type="button" data-v4-component-insert="${component.id}">Inserir</button><button type="button" data-v4-component-remove="${component.id}">Excluir</button></div></article>`).join("") || '<div class="aura-v4-empty"><strong>Nenhum componente salvo</strong><p>Selecione blocos e crie uma estrutura reutilizável.</p></div>'}</div>
+      <div class="aura-v4-components-grid">${components.map((component) => `<article><span>${component.type === "group" ? `${component.blocks.length} blocos` : "1 bloco"}</span><h4>${escapeHTML(component.name)}</h4><p>Atualizado em ${new Date(component.updatedAt || component.createdAt).toLocaleDateString("pt-BR")}</p><div><button type="button" data-v4-component-insert="${component.id}">Inserir</button><button type="button" data-v4-component-remove="${component.id}">Excluir</button></div></article>`).join("") || '<div class="aura-v4-empty"><strong>Nenhum componente salvo</strong><p>Selecione blocos e crie uma estrutura reutilizável.</p></div>'}</div>
     `;
+    $$(".aura-v4-components-grid article", root).forEach((article, index) => {
+      article.style.setProperty("--accent", safeAccentColor(components[index]?.accent, "#7C3AED"));
+    });
     $("#aura-v4-content-meta", root).textContent = `${components.length} componente(s)`;
     $("#aura-v4-create-component", root)?.addEventListener("click", () => {
       window.AuraComponentsV4?.createFromSelection?.();
@@ -1320,6 +1335,24 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  // PR72-FOLLOWUP-REMAINING-COLOR-SINKS-HARDENING: studio-canvas-v4.js é
+  // script clássico/síncrono (sem import() dinâmico pro helper canônico,
+  // de propósito — ver renderComponentsPanel()) — precisa de um helper
+  // local com SEMÂNTICA EXATAMENTE equivalente a safeCSSColor() em
+  // lp-render-safety-core.js: mesma allowlist (#RRGGBB, case-insensitive),
+  // mesmo trim, fallback validado pela mesma regra, nunca eco de valor
+  // inválido. Teste de paridade em
+  // tests/studio-canvas-v4-component-accent-safety.test.mjs.
+  const SAFE_ACCENT_COLOR = /^#[0-9a-f]{6}$/i;
+
+  function safeAccentColor(value, fallback = "") {
+    const candidate = String(value ?? "").trim();
+    if (SAFE_ACCENT_COLOR.test(candidate)) return candidate;
+    const fallbackCandidate = String(fallback ?? "").trim();
+    if (SAFE_ACCENT_COLOR.test(fallbackCandidate)) return fallbackCandidate;
+    return "";
   }
 
   function bindCanvas() {

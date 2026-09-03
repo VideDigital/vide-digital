@@ -1185,7 +1185,7 @@
                             aria-label="${escapeAttribute(option.nome || option.hex || "Cor")}"
                             title="${escapeAttribute(option.nome || option.hex || "Cor")}"
                         >
-                            <span style="background:${escapeAttribute(option.hex || "#ffffff")}"></span>
+                            <span style="background:${escapeAttribute(safeCSSColor(option.hex, "#ffffff"))}"></span>
                             <strong>${escapeHTML(option.nome || option.hex || "Cor")}</strong>
                         </button>
                     `).join("")}
@@ -1219,7 +1219,7 @@
     function renderShape(props, responsive) {
         const width = Math.max(8, numberOr(props.largura, 160));
         const height = Math.max(8, numberOr(props.altura, 160));
-        const color = props.cor || responsive.design?.corFundo || "#ff7a45";
+        const color = safeCSSColor(props.cor || responsive.design?.corFundo, "#ff7a45");
         const type = String(props.tipoForma || "circulo").toLowerCase();
         const safeType = ["circulo", "quadrado", "retangulo", "linha"].includes(type)
             ? type
