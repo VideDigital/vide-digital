@@ -557,6 +557,7 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
     const dashboardSource = readFileSync("dashboard-app.js", "utf8");
     const dashboardHtml = readFileSync("dashboard.html", "utf8");
     const indexSource = readFileSync("index.html", "utf8");
+    const studioUltimateSource = readFileSync("studio-ultimate.js", "utf8");
 
     it("renderer público cria name estável e o fallback envia camposExtras", () => {
         assert.match(indexSource, /function renderizarCamposFormulario\(campos\)/);
@@ -719,6 +720,63 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
         assert.match(html, /<input type="text" name="telefone"/);
         assert.doesNotMatch(html, /<textarea/);
         assert.doesNotMatch(html, /required/);
+    });
+
+    function extrairReservaAutoriaReal() {
+        const start = studioUltimateSource.indexOf("const NOMES_RESERVADOS_CAMPO_FORM");
+        const end = studioUltimateSource.indexOf("function camposPersonalizados");
+        assert.ok(start > 0 && end > start, "marcadores de extração da reserva de nomes da autoria precisam existir");
+        return new Function(`${studioUltimateSource.slice(start, end)}; return { NOMES_RESERVADOS_CAMPO_FORM, normalizarNomeCampoPersonalizado };`)();
+    }
+
+    it("PR61-REV-006 — normalização real do name: \"__proto__\" já vira \"proto\" (underscores nas pontas são removidos); \"prototype\"/\"constructor\" passam intactos", () => {
+        const { normalizarNomeCampoPersonalizado } = extrairReservaAutoriaReal();
+        // Fato verificado na função real (não é comportamento alterado por
+        // esta correção): replace(/^_+|_+$/g, "") remove os underscores das
+        // pontas, então um label "__proto__" NUNCA chega em name="__proto__"
+        // literal — vira "proto" antes de qualquer checagem de reservado,
+        // em ambos os lados (autoria e renderer, que usam o mesmo
+        // algoritmo). "prototype" e "constructor" não têm underscore nas
+        // pontas, então atravessam a normalização sem qualquer alteração —
+        // são o gap real que esta correção fecha.
+        assert.equal(normalizarNomeCampoPersonalizado("__proto__"), "proto");
+        assert.equal(normalizarNomeCampoPersonalizado("prototype"), "prototype");
+        assert.equal(normalizarNomeCampoPersonalizado("constructor"), "constructor");
+    });
+
+    it("PR61-REV-006 — autoria recusa __proto__/prototype/constructor como nomes reservados", () => {
+        const { NOMES_RESERVADOS_CAMPO_FORM } = extrairReservaAutoriaReal();
+        for (const nome of ["__proto__", "prototype", "constructor"]) {
+            assert.ok(NOMES_RESERVADOS_CAMPO_FORM.has(nome),
+                `"${nome}" precisa estar na lista de nomes reservados da autoria`);
+        }
+    });
+
+    it("PR61-REV-006 — renderer não deixa \"prototype\"/\"constructor\" herdarem type/required customizado como objeto", () => {
+        const renderer = extrairRendererReal();
+        // Mesma defesa em profundidade da PR61-REV-004, estendida aos
+        // nomes prototype-ish alcançáveis (sem underscore nas pontas, que
+        // sobrevivem à normalização de baseName sem alteração).
+        const html = renderer([
+            { name: "prototype", label: "Prototype", type: "number", required: true },
+            { name: "constructor", label: "Constructor", type: "date", required: true }
+        ]);
+        assert.match(html, /<input type="text" name="prototype"/);
+        assert.match(html, /<input type="text" name="constructor"/);
+        assert.doesNotMatch(html, /required/);
+    });
+
+    it("PR61-REV-006 — __proto__ como name de objeto já é neutralizado pela normalização de baseName do renderer, independente desta correção", () => {
+        const renderer = extrairRendererReal();
+        // baseName normaliza campo.name/label do MESMO jeito que o lado da
+        // autoria — "__proto__" vira "proto" antes de qualquer checagem de
+        // reservado, então mesmo um documento malformado com name:"__proto__"
+        // nunca produz name="__proto__" no HTML final. Comportamento
+        // pré-existente (não alterado por esta correção), registrado aqui
+        // pra travar a suposição como regressão futura.
+        const html = renderer([{ name: "__proto__", label: "Proto", type: "textarea", required: true }]);
+        assert.doesNotMatch(html, /name="__proto__"/);
+        assert.match(html, /name="proto"/);
     });
 
     it("writers legados alcançáveis gravam somente o contrato canônico", () => {

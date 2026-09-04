@@ -216,13 +216,16 @@
     // PR61-REV-004: mesma allowlist de nomes reservados usada pela autoria
     // (studio-ultimate.js) e pela extração de camposExtras
     // (camposExtrasDoFormulario, mais abaixo neste arquivo).
-    const NOMES_RESERVADOS_CAMPO_FORMULARIO = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
+    // PR61-REV-006: inclui nomes prototype-ish ("__proto__" já é neutralizado
+    // pela normalização de baseName acima, que remove underscores nas
+    // pontas; "prototype"/"constructor" atravessam sem alteração e são o
+    // gap real que esta allowlist fecha).
+    const NOMES_RESERVADOS_CAMPO_FORMULARIO = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone", "__proto__", "prototype", "constructor"]);
 
     function camposExtrasDoFormulario(form) {
-        const excluidos = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
         const extras = {};
         for (const [key, value] of new FormData(form).entries()) {
-            if (excluidos.has(String(key).toLowerCase()) || typeof value !== "string" || !value.trim()) continue;
+            if (NOMES_RESERVADOS_CAMPO_FORMULARIO.has(String(key).toLowerCase()) || typeof value !== "string" || !value.trim()) continue;
             extras[String(key).slice(0, 60)] = value.trim().slice(0, 500);
         }
         return extras;

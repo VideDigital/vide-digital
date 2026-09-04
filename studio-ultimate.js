@@ -906,7 +906,11 @@
   // conseguir corrigi-lo. Com o rascunho isolado, nada disso pode
   // acontecer: enquanto o campo não passou por um saveForm() bem
   // sucedido, ele simplesmente não existe em block.props.campos.
-  const NOMES_RESERVADOS_CAMPO_FORM = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
+  // PR61-REV-006: nomes prototype-ish também são recusados na criação —
+  // "prototype"/"constructor" atravessam normalizarNomeCampoPersonalizado()
+  // sem alteração (só têm underscores nas pontas os textos como "__proto__",
+  // que a normalização já reduz a "proto" antes desta checagem).
+  const NOMES_RESERVADOS_CAMPO_FORM = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone", "__proto__", "prototype", "constructor"]);
   const TIPOS_CAMPO_PERSONALIZADO = new Set(["text", "email", "tel", "number", "date", "textarea"]);
   const LABELS_TIPO_CAMPO_PERSONALIZADO = { text: "Texto curto", email: "E-mail", tel: "Telefone", number: "Número", date: "Data", textarea: "Texto longo" };
   const MAX_CAMPOS_PERSONALIZADOS = 20;
