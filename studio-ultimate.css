@@ -1120,6 +1120,84 @@
   text-transform:uppercase;
 }
 
+.aura-ultimate-custom-fields{
+  margin-top:14px;
+  padding-top:12px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+
+.aura-ultimate-custom-field-row{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  padding:10px;
+  margin-bottom:8px;
+  border-radius:11px;
+  border:1px solid rgba(255,255,255,.08);
+  background:rgba(255,255,255,.03);
+}
+
+.aura-ultimate-custom-field-main{
+  display:grid;
+  grid-template-columns:2fr 1fr auto;
+  align-items:center;
+  gap:8px;
+}
+
+.aura-ultimate-custom-field-main input[type="text"],
+.aura-ultimate-custom-field-main select{
+  min-height:34px;
+  padding:0 10px;
+  border-radius:9px;
+  border:1px solid rgba(255,255,255,.1);
+  background:rgba(255,255,255,.04);
+  color:#fff;
+  font-size:7px;
+}
+
+.aura-ultimate-custom-field-required{
+  white-space:nowrap;
+}
+
+.aura-ultimate-custom-field-meta{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  flex-wrap:wrap;
+}
+
+.aura-ultimate-custom-field-meta small{
+  color:rgba(255,255,255,.4);
+  font-size:6.5px;
+}
+
+.aura-ultimate-custom-field-meta code{
+  color:rgba(255,255,255,.6);
+  font-size:6.5px;
+}
+
+.aura-ultimate-custom-field-error{
+  color:#FCA5A5!important;
+  font-weight:700;
+}
+
+.aura-ultimate-custom-field-actions{
+  display:flex;
+  gap:6px;
+  justify-content:flex-end;
+}
+
+.aura-ultimate-custom-field-actions button{
+  min-height:28px;
+  padding:0 10px;
+}
+
+@media (max-width:640px){
+  .aura-ultimate-custom-field-main{
+    grid-template-columns:1fr;
+  }
+}
+
 .aura-ultimate-form-empty{
   min-height:300px;
 }
@@ -1768,10 +1846,22 @@
 .tema-claro .aura-ultimate-field select,
 .tema-claro .aura-assets-field input,
 .tema-claro .aura-assets-field select,
-.tema-claro .aura-assets-search input{
+.tema-claro .aura-assets-search input,
+.tema-claro .aura-ultimate-custom-field-main input[type="text"],
+.tema-claro .aura-ultimate-custom-field-main select{
   color:#0F172A!important;
   background:#FFFFFF!important;
   border-color:rgba(15,23,42,.1)!important;
+}
+
+.tema-claro .aura-ultimate-custom-field-row{
+  background:rgba(15,23,42,.03);
+  border-color:rgba(15,23,42,.08);
+}
+
+.tema-claro .aura-ultimate-custom-field-meta small,
+.tema-claro .aura-ultimate-custom-field-meta code{
+  color:rgba(15,23,42,.5);
 }
 
 /* Responsividade */

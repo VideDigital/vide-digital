@@ -15,6 +15,13 @@
     composerMode: "replace",
     selectedSections: new Set(),
     formIndex: -1,
+    // PR61-REV-002: rascunho isolado dos campos personalizados do formulário
+    // atualmente aberto no Studio. `blockRef` é a referência do bloco pra
+    // saber quando invalidar (troca de formulário, reabertura da aba).
+    // Nenhum campo aqui é gravado em block.props.campos até saveForm()
+    // validar com sucesso — ver comentário completo perto de
+    // garantirRascunhoCampos().
+    formDraft: { blockRef: null, campos: [] },
     lastAudit: null,
     observer: null,
     modalObserver: null
@@ -860,7 +867,7 @@
     if (list) {
       list.innerHTML = forms.length ? forms.map(({ block, index }, position) => `
         <button type="button" class="aura-ultimate-form-item ${state.formIndex === index ? "is-active" : ""}" data-form-index="${index}">
-          <b>${String(position + 1).padStart(2, "0")}</b><span><strong>${escapeHTML(block.props?.titulo || "Formulário")}</strong><small>${(block.props?.campos || []).join(" · ") || "Sem campos"}</small></span>
+          <b>${String(position + 1).padStart(2, "0")}</b><span><strong>${escapeHTML(block.props?.titulo || "Formulário")}</strong><small>${resumoCamposFormulario(block)}</small></span>
         </button>
       `).join("") : '<div class="aura-ultimate-empty">Nenhum formulário nesta página.</div>';
       $$('[data-form-index]', list).forEach((button) => button.addEventListener("click", () => {
@@ -869,6 +876,172 @@
       }));
     }
     renderFormEditor();
+  }
+
+  // PR60-SMOKE-001 — autoria produtiva de campos personalizados.
+  //
+  // Contrato: block.props.campos continua um array misto. Elemento string
+  // = campo canônico legado (nome/whatsapp/email), tratado exatamente como
+  // sempre foi. Elemento objeto = campo personalizado criado por aqui:
+  // { name, label, type, required }. `name` é a própria chave usada em
+  // camposExtras no lead (não existe snapshot de schema separado do lead),
+  // então ele é gerado a partir do label na primeira vez que o campo é
+  // salvo com sucesso e congelado depois — editar o label mais tarde nunca
+  // muda o name.
+  //
+  // PR61-REV-002 (correção): toda a edição em andamento (adicionar, editar
+  // label/tipo/obrigatório, mover, remover) acontece SÓ em state.formDraft
+  // — nunca em block.props.campos diretamente. block.props.campos (o
+  // array que salvarEditorLP()/publicação de fato persistem) só é
+  // reescrito dentro de saveForm(), depois de validar sem nenhum
+  // campo._erro, e com uma reconstrução explícita que lista só
+  // {name, label, type, required} — nunca vaza _novo/_erro (estado
+  // interno do rascunho) pro documento. Antes, um campo recém-adicionado
+  // ia direto pro array persistível (window.lpEditorBlocos é a mesma
+  // referência lida por salvarEditorLP()), então fechar o Studio sem
+  // clicar "Salvar formulário" e salvar a LP por outro caminho podia
+  // persistir um campo com name vazio — e como a provisoriedade era
+  // rastreada só por um WeakSet em memória, um reload perdia essa marca
+  // e o campo ficava quebrado pra sempre, sem nenhuma validação futura
+  // conseguir corrigi-lo. Com o rascunho isolado, nada disso pode
+  // acontecer: enquanto o campo não passou por um saveForm() bem
+  // sucedido, ele simplesmente não existe em block.props.campos.
+  // PR61-REV-006: nomes prototype-ish também são recusados na criação —
+  // "prototype"/"constructor" atravessam normalizarNomeCampoPersonalizado()
+  // sem alteração (só têm underscores nas pontas os textos como "__proto__",
+  // que a normalização já reduz a "proto" antes desta checagem).
+  const NOMES_RESERVADOS_CAMPO_FORM = new Set(["website", "nome", "name", "email", "whatsapp", "telefone", "phone", "__proto__", "prototype", "constructor"]);
+  const TIPOS_CAMPO_PERSONALIZADO = new Set(["text", "email", "tel", "number", "date", "textarea"]);
+  const LABELS_TIPO_CAMPO_PERSONALIZADO = { text: "Texto curto", email: "E-mail", tel: "Telefone", number: "Número", date: "Data", textarea: "Texto longo" };
+  const MAX_CAMPOS_PERSONALIZADOS = 20;
+
+  // Mesmo algoritmo de normalização do renderer público real
+  // (renderizarCamposFormulario, index.html) — mantidos em sincronia de
+  // propósito, pra um label gerar o mesmo name em qualquer um dos dois.
+  function normalizarNomeCampoPersonalizado(valor) {
+    return String(valor || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/[^a-z0-9_-]+/g, "_")
+      .replace(/^_+|_+$/g, "")
+      .slice(0, 60);
+  }
+
+  function camposPersonalizados(block) {
+    return Array.isArray(block?.props?.campos)
+      ? block.props.campos.filter((campo) => typeof campo === "object" && campo !== null)
+      : [];
+  }
+
+  function camposCanonicosStrings(block) {
+    return Array.isArray(block?.props?.campos)
+      ? block.props.campos.filter((campo) => typeof campo === "string")
+      : [];
+  }
+
+  function resumoCamposFormulario(block) {
+    const canonicos = camposCanonicosStrings(block);
+    const personalizados = camposPersonalizados(block);
+    const partes = [...canonicos, ...personalizados.map((campo) => campo.label || campo.name || "Campo")];
+    return escapeHTML(partes.join(" · ") || "Sem campos");
+  }
+
+  // Garante state.formDraft.campos pro bloco atual. `blockRef` guarda a
+  // referência do bloco (getBlocks() sempre retorna a mesma referência
+  // pro mesmo índice na mesma sessão de página — troca só num reload real
+  // ou ao trocar de formulário) — enquanto ela não mudar, o rascunho
+  // existente é preservado entre re-renders. Quando muda (primeira
+  // abertura da aba, troca de formulário, ou depois de um reload que cria
+  // um window.lpEditorBlocos novo do zero), o rascunho é reconstruído a
+  // partir do que está REALMENTE persistido em block.props.campos — nunca
+  // a partir de um rascunho anterior descartado.
+  function garantirRascunhoCampos(block) {
+    if (state.formDraft.blockRef === block) return state.formDraft.campos;
+    state.formDraft = {
+      blockRef: block,
+      campos: clone(camposPersonalizados(block)).map((campo) => ({ ...campo, _novo: false, _erro: "" }))
+    };
+    return state.formDraft.campos;
+  }
+
+  // Sincroniza os valores digitados nas linhas (label/tipo/obrigatório) de
+  // volta pro rascunho, e gera/congela o name de cada campo ainda
+  // provisório (_novo). Nunca bloqueia nada aqui — só marca campo._erro
+  // pra exibir feedback inline; quem decide bloquear o Salvar é
+  // saveForm(). Nada disso toca block.props.campos.
+  function sincronizarCamposPersonalizados(block) {
+    const personalizados = garantirRascunhoCampos(block);
+    if (!state.modal) return personalizados;
+    const nomesGlobais = new Set(camposCanonicosStrings(block));
+    personalizados.forEach((campo) => {
+      if (!campo._novo && campo.name) nomesGlobais.add(campo.name);
+    });
+    personalizados.forEach((campo, index) => {
+      const linha = $(`[data-custom-field-row="${index}"]`, state.modal);
+      const labelInput = linha && $("[data-custom-field-label]", linha);
+      const typeSelect = linha && $("[data-custom-field-type]", linha);
+      const requiredInput = linha && $("[data-custom-field-required]", linha);
+      if (labelInput) campo.label = labelInput.value.trim().slice(0, 80);
+      if (typeSelect) campo.type = TIPOS_CAMPO_PERSONALIZADO.has(typeSelect.value) ? typeSelect.value : "text";
+      if (requiredInput) campo.required = !!requiredInput.checked;
+      campo._erro = "";
+      if (!campo._novo) return;
+      const normalizado = normalizarNomeCampoPersonalizado(campo.label);
+      if (!normalizado) {
+        campo._erro = "Informe um nome pro campo.";
+        return;
+      }
+      if (NOMES_RESERVADOS_CAMPO_FORM.has(normalizado)) {
+        campo._erro = `"${campo.label}" é reservado (já existe como campo padrão). Escolha outro nome.`;
+        return;
+      }
+      let nome = normalizado;
+      let tentativa = 1;
+      while (nomesGlobais.has(nome)) {
+        tentativa += 1;
+        const suffix = `_${tentativa}`;
+        nome = `${normalizado.slice(0, 60 - suffix.length)}${suffix}`;
+      }
+      campo.name = nome;
+      nomesGlobais.add(nome);
+    });
+    return personalizados;
+  }
+
+  function renderCamposPersonalizadosSecao(block) {
+    const personalizados = garantirRascunhoCampos(block);
+    const linhas = personalizados.map((campo, index) => {
+      const opcoesTipo = Object.entries(LABELS_TIPO_CAMPO_PERSONALIZADO)
+        .map(([valor, rotulo]) => `<option value="${valor}" ${campo.type === valor ? "selected" : ""}>${escapeHTML(rotulo)}</option>`)
+        .join("");
+      const nomeExibicao = campo._novo ? "gerado ao salvar" : escapeHTML(campo.name || "");
+      return `
+        <div class="aura-ultimate-custom-field-row" data-custom-field-row="${index}">
+          <div class="aura-ultimate-custom-field-main">
+            <input type="text" data-custom-field-label placeholder="Nome do campo (ex.: Empresa)" value="${escapeHTML(campo.label || "")}" maxlength="80">
+            <select data-custom-field-type>${opcoesTipo}</select>
+            <label class="aura-ultimate-check aura-ultimate-custom-field-required"><input type="checkbox" data-custom-field-required ${campo.required ? "checked" : ""}><span>Obrigatório</span></label>
+          </div>
+          <div class="aura-ultimate-custom-field-meta">
+            <small>Identificador: <code>${nomeExibicao}</code></small>
+            ${campo._erro ? `<small class="aura-ultimate-custom-field-error">${escapeHTML(campo._erro)}</small>` : ""}
+          </div>
+          <div class="aura-ultimate-custom-field-actions">
+            <button type="button" class="aura-ultimate-secondary-button" data-custom-field-up ${index === 0 ? "disabled" : ""} title="Mover para cima" aria-label="Mover campo para cima">↑</button>
+            <button type="button" class="aura-ultimate-secondary-button" data-custom-field-down ${index === personalizados.length - 1 ? "disabled" : ""} title="Mover para baixo" aria-label="Mover campo para baixo">↓</button>
+            <button type="button" class="aura-ultimate-danger-button" data-custom-field-remove title="Remover campo" aria-label="Remover campo personalizado">Remover</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+    return `
+      <div class="aura-ultimate-custom-fields" data-custom-fields-section>
+        <div class="aura-ultimate-card-title"><strong>Campos personalizados</strong><span>${personalizados.length}/${MAX_CAMPOS_PERSONALIZADOS}</span></div>
+        ${personalizados.length ? linhas : '<div class="aura-ultimate-empty">Nenhum campo personalizado ainda.</div>'}
+        <button type="button" class="aura-ultimate-secondary-button" id="aura-ultimate-form-add-field" ${personalizados.length >= MAX_CAMPOS_PERSONALIZADOS ? "disabled" : ""}>+ Adicionar campo</button>
+      </div>
+    `;
   }
 
   function renderFormEditor() {
@@ -885,9 +1058,10 @@
       <div class="aura-ultimate-card-title"><strong>Configuração do formulário</strong><span>${escapeHTML(block.design?.idSecao || "sem âncora")}</span></div>
       <label class="aura-ultimate-field"><span>Título</span><input id="aura-ultimate-form-title" value="${escapeHTML(block.props.titulo || "")}"></label>
       <label class="aura-ultimate-field"><span>Texto do botão</span><input id="aura-ultimate-form-button" value="${escapeHTML(block.props.textoBotao || "Enviar")}"></label>
-      <div class="aura-ultimate-form-fields"><span>Campos</span>
+      <div class="aura-ultimate-form-fields"><span>Campos padrão</span>
         ${["nome", "whatsapp", "email"].map((field) => `<label class="aura-ultimate-check"><input type="checkbox" data-form-field="${field}" ${fields.includes(field) ? "checked" : ""}><span>${field}</span></label>`).join("")}
       </div>
+      ${renderCamposPersonalizadosSecao(block)}
       <div class="aura-ultimate-field-grid">
         <label class="aura-ultimate-field"><span>Prioridade sugerida</span><select id="aura-ultimate-form-priority"><option value="baixa" ${meta.prioridade === "baixa" ? "selected" : ""}>Baixa</option><option value="normal" ${!meta.prioridade || meta.prioridade === "normal" ? "selected" : ""}>Normal</option><option value="alta" ${meta.prioridade === "alta" ? "selected" : ""}>Alta</option></select></label>
         <label class="aura-ultimate-field"><span>Status inicial sugerido</span><select id="aura-ultimate-form-status"><option value="novo" ${!meta.status || meta.status === "novo" ? "selected" : ""}>Novo</option><option value="contato" ${meta.status === "contato" ? "selected" : ""}>Em contato</option></select></label>
@@ -898,19 +1072,78 @@
     `;
     $("#aura-ultimate-form-focus", root)?.addEventListener("click", () => { window.AuraStudioInspector?.select?.(state.formIndex); close(); });
     $("#aura-ultimate-form-save", root)?.addEventListener("click", saveForm);
+    $("#aura-ultimate-form-add-field", root)?.addEventListener("click", () => adicionarCampoPersonalizado(block));
+    $$("[data-custom-field-row]", root).forEach((linha) => {
+      const index = Number(linha.dataset.customFieldRow);
+      $("[data-custom-field-up]", linha)?.addEventListener("click", () => moverCampoPersonalizado(block, index, -1));
+      $("[data-custom-field-down]", linha)?.addEventListener("click", () => moverCampoPersonalizado(block, index, 1));
+      $("[data-custom-field-remove]", linha)?.addEventListener("click", () => removerCampoPersonalizado(block, index));
+    });
+  }
+
+  function adicionarCampoPersonalizado(block) {
+    if (!block || block.tipo !== "formulario_captura") return;
+    const personalizados = sincronizarCamposPersonalizados(block);
+    if (personalizados.length >= MAX_CAMPOS_PERSONALIZADOS) {
+      toast(`Limite de ${MAX_CAMPOS_PERSONALIZADOS} campos personalizados atingido.`, "error");
+      return;
+    }
+    personalizados.push({ name: "", label: "", type: "text", required: false, _novo: true, _erro: "" });
+    renderFormEditor();
+    const root = $("#aura-ultimate-form-editor", state.modal);
+    const novaLinha = root && $$("[data-custom-field-row]", root).slice(-1)[0];
+    $("[data-custom-field-label]", novaLinha)?.focus();
+  }
+
+  function removerCampoPersonalizado(block, index) {
+    if (!block) return;
+    // Remove só do rascunho/configuração futura do formulário — nunca toca
+    // leads já criados, que guardam camposExtras congelado no próprio
+    // documento.
+    const personalizados = sincronizarCamposPersonalizados(block);
+    if (index < 0 || index >= personalizados.length) return;
+    personalizados.splice(index, 1);
+    renderFormEditor();
+  }
+
+  function moverCampoPersonalizado(block, index, direcao) {
+    if (!block) return;
+    const personalizados = sincronizarCamposPersonalizados(block);
+    const novoIndex = index + direcao;
+    if (novoIndex < 0 || novoIndex >= personalizados.length) return;
+    [personalizados[index], personalizados[novoIndex]] = [personalizados[novoIndex], personalizados[index]];
+    renderFormEditor();
   }
 
   function saveForm() {
     const block = getBlocks()[state.formIndex];
     if (!block || block.tipo !== "formulario_captura") return;
     const fields = $$('[data-form-field]', state.modal).filter((input) => input.checked).map((input) => input.dataset.formField);
-    if (!fields.length) {
-      toast("Selecione pelo menos um campo.", "error");
+    const personalizados = sincronizarCamposPersonalizados(block);
+    const comErro = personalizados.find((campo) => campo._erro);
+    if (comErro) {
+      toast("Corrija os campos personalizados destacados antes de salvar.", "error");
+      renderFormEditor();
+      return;
+    }
+    if (!fields.length && !personalizados.length) {
+      toast("Selecione ou crie pelo menos um campo.", "error");
       return;
     }
     block.props.titulo = $("#aura-ultimate-form-title", state.modal)?.value.trim() || "Preencha seus dados";
     block.props.textoBotao = $("#aura-ultimate-form-button", state.modal)?.value.trim() || "Enviar";
-    block.props.campos = fields;
+    // Reconstrução explícita, listando só as 4 chaves do contrato — nunca
+    // grava _novo/_erro (estado interno do rascunho) em block.props.campos,
+    // que é o que salvarEditorLP()/publicação de fato leem pra persistir.
+    const personalizadosLimpos = personalizados.map((campo) => ({
+      name: campo.name,
+      label: campo.label,
+      type: campo.type,
+      required: campo.required
+    }));
+    // Canônicos primeiro (mesma ordem dos checkboxes), personalizados
+    // depois, preservando a ordem em que foram criados/reordenados.
+    block.props.campos = [...fields, ...personalizadosLimpos];
     block.props._auraForm = {
       prioridade: $("#aura-ultimate-form-priority", state.modal)?.value || "normal",
       status: $("#aura-ultimate-form-status", state.modal)?.value || "novo",
@@ -919,7 +1152,15 @@
     };
     block.design = block.design || {};
     block.design.idSecao = block.design.idSecao || "contato";
+    // O rascunho passa a refletir o estado recém-commitado — todo campo
+    // volta a ser "estável" (name congelado), igual a como ficaria se a
+    // aba fosse reaberta do zero a partir do Firestore.
+    state.formDraft = {
+      blockRef: block,
+      campos: clone(personalizadosLimpos).map((campo) => ({ ...campo, _novo: false, _erro: "" }))
+    };
     notifyChange("Formulário atualizado");
+    renderFormEditor();
     toast("Formulário atualizado.");
   }
 

@@ -557,6 +557,7 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
     const dashboardSource = readFileSync("dashboard-app.js", "utf8");
     const dashboardHtml = readFileSync("dashboard.html", "utf8");
     const indexSource = readFileSync("index.html", "utf8");
+    const studioUltimateSource = readFileSync("studio-ultimate.js", "utf8");
 
     it("renderer público cria name estável e o fallback envia camposExtras", () => {
         assert.match(indexSource, /function renderizarCamposFormulario\(campos\)/);
@@ -632,6 +633,150 @@ describe("CRM-LEAD-004/005 — contratos dos writers e renderer efetivos", () =>
         const fpC = fingerprint({ ...base, camposExtras: { nome_2_2: "valor-3", nome_2: "valor-2" } });
         assert.notEqual(fpA, fpB, "alterar só o campo resolvido por colisão precisa mudar o fingerprint");
         assert.equal(fpA, fpC, "ordem de inserção das chaves não pode afetar o fingerprint (canonicamente ordenado)");
+    });
+
+    function extrairRendererReal() {
+        const start = indexSource.indexOf("function escaparAtributoFormulario");
+        const end = indexSource.indexOf("function camposExtrasDoFormulario");
+        assert.ok(start > 0 && end > start);
+        return new Function(`${indexSource.slice(start, end)}; return renderizarCamposFormulario;`)();
+    }
+
+    it("PR60-SMOKE-001 — strings legadas continuam type=text (exceto whatsapp) e nunca required", () => {
+        const renderer = extrairRendererReal();
+        const html = renderer(["nome", "email", "whatsapp", "telefone"]);
+        // Comportamento pré-existente, preservado: "email"/"telefone" como
+        // string SEMPRE viram type="text" (nunca type="email"/"tel") —
+        // só um objeto estruturado pode declarar tipo. Regressão aqui
+        // significaria mudar o HTML de toda LP publicada antes desta PR.
+        const tipos = Array.from(html.matchAll(/<input type="([^"]+)"/g), (m) => m[1]);
+        assert.deepEqual(tipos, ["text", "text", "tel", "text"]);
+        assert.doesNotMatch(html, /required/, "string legada nunca pode ganhar required");
+    });
+
+    it("PR60-SMOKE-001 — campo personalizado objeto respeita type da allowlist, com fallback text pra tipo inválido", () => {
+        const renderer = extrairRendererReal();
+        const campos = [
+            { name: "empresa", label: "Empresa", type: "text" },
+            { name: "email_alt", label: "E-mail alternativo", type: "email" },
+            { name: "telefone_extra", label: "Telefone extra", type: "tel" },
+            { name: "idade", label: "Idade", type: "number" },
+            { name: "nascimento", label: "Nascimento", type: "date" },
+            { name: "observacao", label: "Observação", type: "textarea" },
+            { name: "invalido", label: "Campo inválido", type: "<script>" }
+        ];
+        const html = renderer(campos);
+        assert.match(html, /<input type="text" name="empresa"/);
+        assert.match(html, /<input type="email" name="email_alt"/);
+        assert.match(html, /<input type="tel" name="telefone_extra"/);
+        assert.doesNotMatch(html, /inputmode="numeric"/, "tel customizado não herda a máscara específica do whatsapp canônico");
+        assert.match(html, /<input type="number" name="idade"/);
+        assert.match(html, /<input type="date" name="nascimento"/);
+        assert.match(html, /<textarea name="observacao"/, "type=textarea precisa virar elemento <textarea> real");
+        assert.doesNotMatch(html, /<input[^>]*name="observacao"/, "textarea não pode também virar <input>");
+        assert.match(html, /<input type="text" name="invalido"/, "tipo desconhecido cai em text, nunca no valor bruto recebido");
+        assert.doesNotMatch(html, /<script>/, "tipo inválido nunca deve ser refletido cru no HTML");
+    });
+
+    it("PR60-SMOKE-001 — required só é aplicado quando o objeto declara required:true explicitamente", () => {
+        const renderer = extrairRendererReal();
+        const html = renderer([
+            { name: "obrigatorio", label: "Obrigatório", type: "text", required: true },
+            { name: "opcional_false", label: "Opcional explícito", type: "text", required: false },
+            { name: "opcional_ausente", label: "Opcional por omissão", type: "text" }
+        ]);
+        assert.match(html, /name="obrigatorio"[^>]*\srequired/);
+        assert.doesNotMatch(html, /name="opcional_false"[^>]*\srequired/);
+        assert.doesNotMatch(html, /name="opcional_ausente"[^>]*\srequired/);
+    });
+
+    it("PR60-SMOKE-001 — whatsapp canônico preserva tel/numeric/maxlength mesmo se vier como objeto (defesa em profundidade)", () => {
+        const renderer = extrairRendererReal();
+        // Ninguém pode criar um campo personalizado chamado "whatsapp" pela
+        // UI (nome reservado), mas o renderer é a última linha de defesa:
+        // mesmo recebendo um objeto cujo name normalize pra "whatsapp",
+        // ele precisa continuar como o campo canônico, nunca herdando
+        // type/required customizados.
+        const html = renderer([{ name: "whatsapp", label: "Whatsapp", type: "textarea", required: true }]);
+        assert.match(html, /<input type="tel" name="whatsapp" inputmode="numeric" maxlength="11"/);
+        assert.doesNotMatch(html, /<textarea/);
+        assert.doesNotMatch(html, /required/);
+    });
+
+    it("PR61-REV-004 — outros nomes reservados (não só whatsapp) também não herdam type/required customizado como objeto", () => {
+        const renderer = extrairRendererReal();
+        // A Studio Ultimate já recusa criar um campo personalizado com
+        // esses nomes — isso só importa se um documento chegar aqui fora
+        // desse caminho (escrita direta no Firestore). Mesmo assim, um
+        // objeto malformado não pode virar um <textarea required> pra um
+        // slot reservado como email/nome/telefone/phone/name/website.
+        const html = renderer([
+            { name: "email", label: "E-mail", type: "textarea", required: true },
+            { name: "nome", label: "Nome", type: "number", required: true },
+            { name: "telefone", label: "Telefone", type: "date", required: true }
+        ]);
+        assert.match(html, /<input type="text" name="email"/);
+        assert.match(html, /<input type="text" name="nome"/);
+        assert.match(html, /<input type="text" name="telefone"/);
+        assert.doesNotMatch(html, /<textarea/);
+        assert.doesNotMatch(html, /required/);
+    });
+
+    function extrairReservaAutoriaReal() {
+        const start = studioUltimateSource.indexOf("const NOMES_RESERVADOS_CAMPO_FORM");
+        const end = studioUltimateSource.indexOf("function camposPersonalizados");
+        assert.ok(start > 0 && end > start, "marcadores de extração da reserva de nomes da autoria precisam existir");
+        return new Function(`${studioUltimateSource.slice(start, end)}; return { NOMES_RESERVADOS_CAMPO_FORM, normalizarNomeCampoPersonalizado };`)();
+    }
+
+    it("PR61-REV-006 — normalização real do name: \"__proto__\" já vira \"proto\" (underscores nas pontas são removidos); \"prototype\"/\"constructor\" passam intactos", () => {
+        const { normalizarNomeCampoPersonalizado } = extrairReservaAutoriaReal();
+        // Fato verificado na função real (não é comportamento alterado por
+        // esta correção): replace(/^_+|_+$/g, "") remove os underscores das
+        // pontas, então um label "__proto__" NUNCA chega em name="__proto__"
+        // literal — vira "proto" antes de qualquer checagem de reservado,
+        // em ambos os lados (autoria e renderer, que usam o mesmo
+        // algoritmo). "prototype" e "constructor" não têm underscore nas
+        // pontas, então atravessam a normalização sem qualquer alteração —
+        // são o gap real que esta correção fecha.
+        assert.equal(normalizarNomeCampoPersonalizado("__proto__"), "proto");
+        assert.equal(normalizarNomeCampoPersonalizado("prototype"), "prototype");
+        assert.equal(normalizarNomeCampoPersonalizado("constructor"), "constructor");
+    });
+
+    it("PR61-REV-006 — autoria recusa __proto__/prototype/constructor como nomes reservados", () => {
+        const { NOMES_RESERVADOS_CAMPO_FORM } = extrairReservaAutoriaReal();
+        for (const nome of ["__proto__", "prototype", "constructor"]) {
+            assert.ok(NOMES_RESERVADOS_CAMPO_FORM.has(nome),
+                `"${nome}" precisa estar na lista de nomes reservados da autoria`);
+        }
+    });
+
+    it("PR61-REV-006 — renderer não deixa \"prototype\"/\"constructor\" herdarem type/required customizado como objeto", () => {
+        const renderer = extrairRendererReal();
+        // Mesma defesa em profundidade da PR61-REV-004, estendida aos
+        // nomes prototype-ish alcançáveis (sem underscore nas pontas, que
+        // sobrevivem à normalização de baseName sem alteração).
+        const html = renderer([
+            { name: "prototype", label: "Prototype", type: "number", required: true },
+            { name: "constructor", label: "Constructor", type: "date", required: true }
+        ]);
+        assert.match(html, /<input type="text" name="prototype"/);
+        assert.match(html, /<input type="text" name="constructor"/);
+        assert.doesNotMatch(html, /required/);
+    });
+
+    it("PR61-REV-006 — __proto__ como name de objeto já é neutralizado pela normalização de baseName do renderer, independente desta correção", () => {
+        const renderer = extrairRendererReal();
+        // baseName normaliza campo.name/label do MESMO jeito que o lado da
+        // autoria — "__proto__" vira "proto" antes de qualquer checagem de
+        // reservado, então mesmo um documento malformado com name:"__proto__"
+        // nunca produz name="__proto__" no HTML final. Comportamento
+        // pré-existente (não alterado por esta correção), registrado aqui
+        // pra travar a suposição como regressão futura.
+        const html = renderer([{ name: "__proto__", label: "Proto", type: "textarea", required: true }]);
+        assert.doesNotMatch(html, /name="__proto__"/);
+        assert.match(html, /name="proto"/);
     });
 
     it("writers legados alcançáveis gravam somente o contrato canônico", () => {

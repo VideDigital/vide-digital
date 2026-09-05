@@ -5390,7 +5390,7 @@ document.addEventListener("mousedown", function(e) {
                     <div class="max-w-sm mx-auto px-6 ${textAlignClasse}">
                         <h2 class="text-lg font-bold mb-3">${escapeHTML(bloco.props.titulo)}</h2>
                         <div class="space-y-2 text-left">
-                            ${(bloco.props.campos || []).map(campo => `<div class="w-full p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-500">${escapeHTML(typeof campo === "object" && campo ? (campo.label || campo.name || "") : campo)}</div>`).join("")}
+                            ${(bloco.props.campos || []).map(campo => `<div class="w-full p-2.5 rounded-lg bg-white/5 border border-white/10 text-xs text-gray-500">${escapeHTML(typeof campo === "object" && campo ? (campo.label || campo.name || "Campo") : campo)}</div>`).join("")}
                             <div style="${estiloBotao}" class="${classeBotaoForm}">${escapeHTML(bloco.props.textoBotao || "Enviar")}</div>
                         </div>
                     </div>`;
@@ -5908,6 +5908,13 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                 `;
             } else if (bloco.tipo === "formulario_captura") {
                 const camposAtuais = bloco.props.campos || [];
+                // Os checkboxes abaixo só alternam os 3 campos padrão por
+                // valor exato de string — nunca tocam nem removem os
+                // campos personalizados (objetos) criados no Studio
+                // Ultimate, que continuam intactos em camposAtuais mesmo
+                // quando esse editor básico salva o bloco (ver
+                // alternarCampoFormEditor). PR60-SMOKE-001.
+                const totalPersonalizados = camposAtuais.filter(campo => typeof campo === "object" && campo).length;
                 return `
                     <div class="space-y-2 mt-3">
                         <input type="text" value="${(bloco.props.titulo || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.titulo = this.value" placeholder="Titulo do formulario" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
@@ -5919,6 +5926,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                                 </label>
                             `).join("")}
                         </div>
+                        ${totalPersonalizados ? `<p class="text-[10px] text-gray-500">Este formulário possui ${totalPersonalizados} campo(s) personalizado(s). Edite-os no Studio Ultimate.</p>` : ""}
                        <input type="text" value="${(bloco.props.textoBotao || "").replace(/"/g, "&quot;")}" oninput="lpEditorBlocos[${i}].props.textoBotao = this.value" placeholder="Texto do botao" class="w-full glass-input rounded-lg p-2.5 text-xs text-white outline-none">
                     </div>
                 `;
@@ -6334,6 +6342,13 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                 </div>
             `;
         }
+        // PR61-REV-001 (achado adicional, pego pelo próprio teste de
+        // regressão em CI): esta função alimenta o card do bloco na lista
+        // lateral do editor básico (renderizarEditorBlocos() -> innerHTML),
+        // um sink DIFERENTE de renderizarBlocoPreview() mas com o mesmo
+        // problema — texto livre do usuário (titulo/textoCopyright/
+        // logoTexto/url) interpolado sem escaping. Escapado aqui na fonte
+        // porque esta função só tem esse único call site.
         function nomeResumoBloco(bloco) {
             const p = bloco.props || {};
             const texto = String(p.titulo || p.textoCopyright || p.logoTexto || p.url || "");
@@ -6398,6 +6413,11 @@ const box = document.getElementById("lped-blocos-lista");
             renderizarPainelCamadas();
         }
         window.alternarCampoFormEditor = function(i, campo, marcado) {
+            // `campo` aqui é sempre uma das 3 strings canônicas (nome/whatsapp/
+            // email) — `includes`/`filter(c => c !== campo)` comparam por
+            // igualdade estrita, então nunca casam com um objeto de campo
+            // personalizado. Losslessness pro Studio Ultimate confirmada por
+            // construção, sem precisar de lógica extra. PR60-SMOKE-001.
             if (!lpEditorBlocos[i].props.campos) lpEditorBlocos[i].props.campos = [];
             const campos = lpEditorBlocos[i].props.campos;
             if (marcado && !campos.includes(campo)) campos.push(campo);
