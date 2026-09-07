@@ -561,7 +561,7 @@ function normalizeLead(lead) {
     });
     const responsible = resolveLeadResponsible(lead);
     const followup = resolveLeadFollowup(lead);
-    const extraFields = normalizeExtraFields(lead.camposExtras);
+    const extraFields = normalizeExtraFields(lead.camposExtras, lead.camposExtrasMeta);
 
     const history = Array.isArray(lead.historicoLead)
         ? lead.historicoLead.filter((item) => item && typeof item === "object").slice(-MAX_HISTORY)
@@ -608,7 +608,7 @@ function normalizeLead(lead) {
             lead.blocoOrigem, lead.tipoCaptura, lead.canal,
             lead.sessaoId, lead.dedupeKey,
             lead.anotacao, lead.etiqueta, lead.responsavelNome,
-            extraFieldsSearchText(lead.camposExtras)
+            extraFieldsSearchText(lead.camposExtras, lead.camposExtrasMeta)
         ].filter(Boolean).join(" "))
     };
 }
@@ -2950,11 +2950,13 @@ function exportCSV() {
         "Etapa", "Score", "Temperatura", "Prioridade", "Responsável",
         "Valor", "Probabilidade", "Previsão ponderada", "Próximo contato",
         "Fechamento previsto", "SLA vencido", "Página", "Formulário", "Capturado em", "Arquivado", "Lixeira", "Visualizado em",
-        ...extraKeys.map((key) => `Formulário: ${key}`)
+        ...extraKeys.map((key) => `Formulário: ${key}`),
+        ...extraKeys.map((key) => `Rótulo: ${key}`)
     ]];
 
     leads.forEach((lead) => {
         const extraValues = new Map(lead._extraFields.map((field) => [field.key, field.value]));
+        const extraLabels = new Map(lead._extraFields.map((field) => [field.key, field.label]));
         rows.push([
         lead.nome || "",
         lead.whatsapp || lead.telefone || "",
@@ -2979,7 +2981,8 @@ function exportCSV() {
         lead.arquivado ? "Sim" : "Não",
         lead.lixeira ? "Sim" : "Não",
         formatDate(lead.visualizadoEm),
-        ...extraKeys.map((key) => extraValues.get(key) || "")
+        ...extraKeys.map((key) => extraValues.get(key) || ""),
+        ...extraKeys.map((key) => extraLabels.get(key) || "")
         ]);
     });
 

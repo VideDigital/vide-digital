@@ -238,7 +238,17 @@ async function testarCaminhoFallbackEnviarFormularioLP(browser, baseUrl, db) {
         );
         assert.equal(marcadoPeloAura, undefined, "Com lp-forms-v5.js bloqueado, o form não deveria ser marcado pelo AuraFormsV5");
 
+        let failFirst = true;
+        await page.route("**/createPublicLead", (route) => {
+            if (failFirst) { failFirst = false; return route.abort("failed"); }
+            return route.continue();
+        });
         const dados = await preencherEEnviar(page, "fallback");
+        await page.waitForFunction(() => document.querySelector("[data-vide-fallback-status]")?.textContent.includes("Erro ao enviar"));
+        assert.equal(await page.inputValue('#lp-container form input[placeholder="nome"]'), dados.nome);
+        assert.equal(await page.inputValue('#lp-container form input[name="empresa_preferida"]'), dados.empresaPreferida);
+        assert.equal(await page.locator('#lp-container form button[type="submit"]').isEnabled(), true);
+        await page.click('#lp-container form button[type="submit"]');
 
         await page.waitForFunction(
             () => (document.querySelector("#lp-container form")?.innerHTML || "").includes("Recebemos seus dados"),
