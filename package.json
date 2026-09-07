@@ -31,7 +31,7 @@
     "test:atendimento": "node --test tests/atendimento.test.mjs",
     "test:templates-atendimento": "node --test tests/templates-atendimento.test.mjs",
     "test:pedidos-estruturados": "node --test tests/pedidos-estruturados.test.mjs",
-    "test:crm360": "node --test tests/crm360.test.mjs",
+    "test:crm360": "node --test tests/crm360.test.mjs tests/crm-reliability.test.mjs",
     "test:ia-copilot": "node --test tests/ia-copilot.test.mjs",
     "test:ia-negocio": "node --test tests/ia-negocio.test.mjs && node --test tests/ia-negocio-publica.test.mjs",
     "test:public-chat-auth": "node --test tests/public-chat-auth-v1.test.mjs",
