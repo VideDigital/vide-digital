@@ -1331,6 +1331,77 @@ service cloud.firestore {
       allow delete: if canEditTenant(resource.data.criadoPor, "pedidos");
     }
 
+    // Client writers: lead engine (detail/bulk/merge/normalization), CRM360
+    // links and legacy automation panel. Admin SDK capture bypasses Rules.
+    // UPDATE validates only affected keys: untouched historical data stays editable.
+    function leadWritableFields() {
+      return [
+        "criadoPor", "tenantId", "lojaId", "nome", "name", "email", "whatsapp", "telefone", "phone",
+        "origem", "produtoInteresse", "produtoId", "statusLead", "status", "pipelineStage", "prioridadeLead",
+        "canal", "tipoCaptura", "paginaOrigem", "lojaOrigem", "blocoOrigem", "formularioId", "formularioNome",
+        "urlPagina", "referrer", "utmSource", "utmMedium", "utmCampaign", "utmContent", "utmTerm", "campanha",
+        "sessionId", "visitorId", "dedupeKey", "gclid", "fbclid", "camposExtras", "camposExtrasMeta", "cliques",
+        "tempoRetencao", "consentimentoContato", "data", "criadoEm", "capturadoEmBackend", "versaoCaptura",
+        "tipoRegistro", "pedidoId", "numeroPedido", "pedidoStatus", "pagamentoStatus", "pedidoCriadoEm",
+        "pedidoAtualizadoEm", "pedidoSnapshot", "pedidoHistorico", "valorOportunidade", "probabilidade",
+        "probabilidadeOrigem", "responsavelUid", "responsavelNome", "proximoContatoEm", "dataFechamentoPrevista",
+        "etiqueta", "anotacao", "atualizadoEm", "historicoLead", "arquivado", "lixeira", "arquivadoEm",
+        "movidoLixeiraEm", "restauradoEm", "visualizadoEm", "ultimoContatoEm", "leadScore", "temperaturaLead",
+        "scoreAtualizadoEm", "mescladoEm", "idsMesclados", "duplicadoDe", "totalSubmissoes", "submissoes",
+        "historicoAtividades", "historicoAtualizadoEm", "ultimoTemplateId", "ultimoTemplateTitulo",
+        "fluxoTemplateExecutadoEm", "motivoFollowup", "anotacaoAtualizadaEm", "contatoAtualizadoEm",
+        "followupAtualizadoEm", "followupConcluidoEm", "statusAtualizadoEm",
+        "clienteId", "versaoSchema", "schemaVersion", "padronizadoEm", "padronizadoPorUid", "lembreteTimestamp"
+      ];
+    }
+    function leadText(data, changed, field, maximum) {
+      return !changed.hasAny([field]) || !(field in data) || data[field] == null
+        || (data[field] is string && data[field].size() <= maximum);
+    }
+    function leadNumber(data, changed, field, maximum) {
+      return !changed.hasAny([field]) || !(field in data) || data[field] == null
+        || (data[field] is number && data[field] >= 0 && data[field] <= maximum);
+    }
+    function leadMap(data, changed, field) {
+      return !changed.hasAny([field]) || !(field in data)
+        || (data[field] is map && data[field].size() <= 1000);
+    }
+    function leadBool(data, changed, field) {
+      return !changed.hasAny([field]) || !(field in data) || data[field] is bool;
+    }
+    function validLeadSchema(data, changed) {
+      return changed.hasOnly(leadWritableFields())
+        && leadText(data, changed, "nome", 160)
+        && leadText(data, changed, "email", 254)
+        && leadText(data, changed, "whatsapp", 40)
+        && leadText(data, changed, "telefone", 40)
+        && leadText(data, changed, "origem", 160)
+        && leadText(data, changed, "produtoInteresse", 500)
+        && leadText(data, changed, "etiqueta", 160)
+        && leadText(data, changed, "anotacao", 50000)
+        && leadText(data, changed, "statusLead", 40)
+        && leadText(data, changed, "status", 40)
+        && leadText(data, changed, "pipelineStage", 40)
+        && leadNumber(data, changed, "probabilidade", 100)
+        && leadNumber(data, changed, "leadScore", 100)
+        && leadNumber(data, changed, "valorOportunidade", 1000000000000)
+        && leadMap(data, changed, "camposExtras")
+        && leadMap(data, changed, "camposExtrasMeta")
+        && leadBool(data, changed, "arquivado")
+        && leadBool(data, changed, "lixeira")
+        && (!changed.hasAny(["tenantId"]) || !("tenantId" in data) || data.tenantId == data.criadoPor)
+        && (!changed.hasAny(["lojaId"]) || !("lojaId" in data) || data.lojaId == data.criadoPor);
+    }
+
+    match /lead_settings/{ownerUid} {
+      allow read: if canViewTenant(ownerUid, "leads");
+      allow create, update: if canEditTenant(ownerUid, "leads")
+        && request.resource.data.keys().hasOnly(["slaMinutes"])
+        && request.resource.data.slaMinutes is int
+        && request.resource.data.slaMinutes >= 5 && request.resource.data.slaMinutes <= 1440;
+      allow delete: if canEditTenant(ownerUid, "leads");
+    }
+
     match /leads/{id} {
       allow read: if canViewTenant(resource.data.criadoPor, "leads");
       // Captura pública (LP/loja) não escreve mais direto — migrou para a
@@ -1344,12 +1415,14 @@ service cloud.firestore {
       allow create: if canEditTenant(request.resource.data.criadoPor, "leads")
         && responsavelLeadValidoCreate(request.resource.data.criadoPor)
         && clienteIdLeadValidoCreate(request.resource.data.criadoPor)
-        && aliasesLegadosLeadAusentesCreate();
+        && aliasesLegadosLeadAusentesCreate()
+        && validLeadSchema(request.resource.data, request.resource.data.keys().toSet());
       // clienteId (CRM 360, opcional): mesma checagem de pedidos.
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "leads")
         && clienteIdValidoParaTenant(resource.data.criadoPor)
         && responsavelClienteValido(resource.data.criadoPor)
-        && aliasesLegadosLeadInalteradosUpdate();
+        && aliasesLegadosLeadInalteradosUpdate()
+        && validLeadSchema(request.resource.data, request.resource.data.diff(resource.data).affectedKeys());
       allow delete: if canEditTenant(resource.data.criadoPor, "leads");
     }
 

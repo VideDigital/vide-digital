@@ -2,6 +2,7 @@
 // Lógica pura extraída de lead-engine-v5.js pra lead-engine-core.js
 // especificamente pra permitir estes testes sem DOM/Firestore.
 import assert from "node:assert/strict";
+import "./lead-settings.test.mjs";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
 import {
