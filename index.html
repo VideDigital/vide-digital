@@ -43,9 +43,9 @@
 
     // Import absoluto (nao relativo) -- evita quebrar quando a URL "fake" tem varios niveis (ex: /teste/lp1)
     const firebaseInit = await import(base + "firebase-init.js");
-    const { doc, getDoc, getDocs, setDoc, collection, query, where, increment } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js");
-    const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
-    const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js");
+    const { doc, getDoc, getDocs, setDoc, collection, query, where, increment } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
+    const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js");
+    const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js");
     const { createLeadAttemptTracker } = await import(base + "lead-attempt-token-core.js");
     const { escapeHTML, escapeAttribute, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL } = await import(base + "lp-render-safety-core.js");
     const db = firebaseInit.db;

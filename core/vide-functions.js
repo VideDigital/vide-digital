@@ -11,7 +11,7 @@ import {
     connectFunctionsEmulator,
     getFunctions,
     httpsCallable
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js";
 
 const REGION = "southamerica-east1";
 const functionsInstance = getFunctions(app, REGION);
