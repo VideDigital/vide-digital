@@ -14,14 +14,19 @@ function real(source, name, bindings) { return new Function(...Object.keys(bindi
 
 test("CRM-011: second batch failure applies only confirmed state and leaves pending selection", async () => {
   const leads = Array.from({ length: 401 }, (_, i) => ({ id: String(i), criadoPor: "a" }));
-  const state = { ownerUid: "a", selectedIds: new Set(leads.map(l => l.id)) };
+  const state = { ownerUid: "a", canEdit: true, selectedIds: new Set(leads.map(l => l.id)) };
   let commits = 0;
   const run = real(extract(engine, "async function commitLeadPatches(", "async function recalculateAllScores("), "commitLeadPatches", {
     state, findLead: id => leads.find(l => l.id === id), MAX_BATCH_SIZE: 400, db: {}, doc: (_db, _c, id) => id,
     normalizeLead: lead => lead, refreshLeadCollections: noop,
     writeBatch: () => ({ set() {}, commit: async () => { if (++commits === 2) throw new Error("injected failure"); } })
   });
-  await assert.rejects(run(leads.map(l => ({ id: l.id, data: { arquivado: true } }))));
+  const bulk = real(extract(engine, "async function applyBulkAction(", "function historyEntries("), "applyBulkAction", {
+    state, selectedLeads: () => leads, document: { getElementById: () => null }, window: { confirm: () => true },
+    toast: noop, render: noop, makeHistoryEvent: () => ({}), historyWithEvent: () => [], commitLeadPatches: run,
+    refreshLeadCollections: noop, loadLeads: noop, leadBatchFailureMessage: () => "", console: { error() {} }
+  });
+  await bulk("archive");
   assert.equal(leads.filter(l => l.arquivado).length, 400);
   assert.deepEqual([...state.selectedIds], ["400"]);
 });
@@ -99,4 +104,95 @@ test("CRM-007: actual merge persists exclusive commercial data before archiving 
   await run({ leads: records });
   assert.equal(writes.find(w => w.id === "p")?.data.responsavelUid, "employee");
   assert.equal(writes.find(w => w.id === "d")?.data.arquivado, true);
+});
+
+test("CRM review: automation failure reloads once without automatically retrying the rejected write", async () => {
+  const state = { canEdit: true, canView: true, ownerUid: "a", automationRunning: false,
+    automation: { runOnRefresh: true, stageProbability: true }, realtimeReady: false,
+    knownLeadIds: new Set(), lastSeenTimestamp: 0, modalOpen: false };
+  const lead = { id: "p", criadoPor: "a", _tenantValid: true, _status: "convertido", _probability: 20 };
+  const snapshot = { docs: [{ id: lead.id, data: () => lead }] };
+  let failures = 0, subscriptions = 0, handle, load;
+  const run = real(extract(engine, "async function runAutomations(", "async function mergeDuplicateGroup("), "runAutomations", {
+    state, render: noop, makeHistoryEvent: () => ({}), historyWithEvent: () => [],
+    refreshLeadCollections: () => { state.leads = state.allLeads; },
+    commitLeadPatches: async () => { failures++; throw new Error("permission-denied"); },
+    loadLeads: options => load(options), console: { error() {} }, toast: noop, leadBatchFailureMessage: () => ""
+  });
+  handle = real(extract(engine, "function handleRealtimeSnapshot(", "function dispatchLeadsBridge("), "handleRealtimeSnapshot", {
+    state, normalizeLead: value => value, refreshLeadCollections: () => { state.leads = state.allLeads; },
+    updateActiveTabUI: noop, dispatchLeadsBridge: noop, render: noop, findLead: () => lead,
+    renderDetail: noop, closeDetail: noop, notifyNewLeads: noop, runAutomations: run, console: { error() {} }
+  });
+  load = real(extract(engine, "function loadLeads(", "function deriveGroups("), "loadLeads", {
+    state, renderAccessDenied: noop, render: noop, renderLoading: noop, renderError: noop,
+    query: noop, collection: noop, where: noop, db: {}, handleRealtimeSnapshot: handle,
+    onSnapshot: (_query, callback) => {
+      subscriptions++;
+      // Bound the old failure loop so a regression fails promptly.
+      if (subscriptions <= 4) queueMicrotask(() => callback(snapshot));
+      return noop;
+    }, console: { error() {} }
+  });
+  load();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(failures, 1, "reconciliation must not retry a rejected automatic write");
+  assert.equal(subscriptions, 2, "one initial subscription and one reconciliation");
+  assert.equal(state.realtimeReady, true);
+  assert.equal(state.leads[0]._probability, 20, "reconciliation preserves the unchanged server record");
+  load({ force: true });
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(failures, 2, "a later explicit reload can retry automation once");
+  assert.equal(subscriptions, 4);
+});
+
+test("CRM review: merge preserves terminal stage probability invariants with sparse legacy records", () => {
+  for (const [status, expected] of [["convertido", 100], ["perdido", 0]]) {
+    const result = core.mergeLeadCommercialFields([
+      { id: "primary", status },
+      { id: "duplicate", probabilidade: 70, probabilidadeOrigem: "manual" }
+    ]);
+    assert.equal(result.statusLead, status);
+    assert.equal(result.probabilidade, expected);
+    assert.equal(result.probabilidadeOrigem, "automatic");
+  }
+});
+
+test("CRM review: auxiliary writes preserve the user's bulk selection", async () => {
+  const state = { ownerUid: "a", selectedIds: new Set(["p"]) };
+  const lead = { id: "p", criadoPor: "a" };
+  const run = real(extract(engine, "async function commitLeadPatches(", "async function recalculateAllScores("), "commitLeadPatches", {
+    state, findLead: () => lead, MAX_BATCH_SIZE: 400, db: {}, doc: noop, normalizeLead: value => value,
+    writeBatch: () => ({ set() {}, commit: async () => {} })
+  });
+  assert.deepEqual(await run([{ id: "p", data: { leadScore: 42 } }]), ["p"]);
+  assert.equal(lead.leadScore, 42);
+  assert.deepEqual([...state.selectedIds], ["p"]);
+});
+
+test("CRM review: successful bulk clears only its confirmed IDs, preserving newly selected records", async () => {
+  const state = { canEdit: true, selectedIds: new Set(["p"]) };
+  const run = real(extract(engine, "async function applyBulkAction(", "function historyEntries("), "applyBulkAction", {
+    state, selectedLeads: () => [{ id: "p" }], document: { getElementById: () => null },
+    window: { confirm: () => true }, toast: noop, render: noop, makeHistoryEvent: () => ({}), historyWithEvent: () => [],
+    commitLeadPatches: async () => { state.selectedIds.add("new"); return ["p"]; },
+    refreshLeadCollections: noop, loadLeads: noop, leadBatchFailureMessage: () => "", console: { error() {} }
+  });
+  await run("archive");
+  assert.deepEqual([...state.selectedIds], ["new"]);
+});
+
+test("CRM review: legacy UTM aliases merge to canonical fields with presence-based conflict rules", () => {
+  const aliases = { utm_source: "Source", utm_medium: "Medium", utm_campaign: "Campaign", utm_content: "Content", utm_term: "Term" };
+  const result = core.mergeLeadCommercialFields([{ id: "p" }, { id: "d", ...aliases }]);
+  for (const [alias, value] of Object.entries(aliases)) {
+    const canonical = alias.replace(/_([a-z])/, (_, character) => character.toUpperCase());
+    assert.equal(result[canonical], value);
+    assert.equal(Object.hasOwn(result, alias), false, "merge must not author new legacy aliases");
+    assert.throws(() => core.mergeLeadCommercialFields([{ [canonical]: "" }, { [alias]: value }]), /conflitantes/);
+    assert.throws(() => core.mergeLeadCommercialFields([{ [canonical]: null }, { [alias]: value }]), /conflitantes/);
+    const explicit = core.mergeLeadCommercialFields([{ [canonical]: "", [alias]: value }]);
+    assert.equal(explicit[canonical], "", "canonical presence wins within the same record");
+    assert.equal(core.mergeLeadCommercialFields([{ [canonical]: value }, { [alias]: value }])[canonical], value);
+  }
 });

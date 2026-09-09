@@ -356,8 +356,15 @@ export function mergeLeadCommercialFields(records) {
         if (values.some(value => JSON.stringify(value) !== JSON.stringify(values[0]))) conflict(field);
         patch[field] = values[0];
     };
-    for (const field of ["dataFechamentoPrevista", "etiqueta", "origem", "utmSource", "utmMedium", "utmCampaign", "utmContent", "utmTerm", "campanha", "clienteId", "prioridadeLead"]) {
+    for (const field of ["dataFechamentoPrevista", "etiqueta", "origem", "campanha", "clienteId", "prioridadeLead"]) {
         choose(field, records.filter(record => hasOwnField(record, field)).map(record => record[field]));
+    }
+    for (const suffix of ["Source", "Medium", "Campaign", "Content", "Term"]) {
+        const field = `utm${suffix}`;
+        const legacy = `utm_${suffix.toLowerCase()}`;
+        choose(field, records
+            .filter(record => hasOwnField(record, field) || hasOwnField(record, legacy))
+            .map(record => hasOwnField(record, field) ? record[field] : record[legacy]));
     }
     const responsible = records.filter(record => hasOwnField(record, "responsavelUid") || hasOwnField(record, "funcionarioResponsavel"));
     if (responsible.length) {
@@ -373,6 +380,12 @@ export function mergeLeadCommercialFields(records) {
     }
     choose("probabilidade", records.filter(record => hasOwnField(record, "probabilidade")).map(record => record.probabilidade));
     choose("probabilidadeOrigem", records.filter(record => hasOwnField(record, "probabilidadeOrigem")).map(record => record.probabilidadeOrigem));
+    if (patch.statusLead === "convertido" || patch.statusLead === "perdido") {
+        // Stage and probability may come from different sparse legacy records.
+        // Terminal outcomes always use the same 100/0 automatic policy as edits.
+        patch.probabilidade = stageProbability(patch.statusLead);
+        patch.probabilidadeOrigem = "automatic";
+    }
     for (const field of ["camposExtras", "camposExtrasMeta"]) {
         const combined = {};
         let present = false;

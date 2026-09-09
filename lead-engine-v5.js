@@ -1178,7 +1178,7 @@ function closeDetail() {
     });
 }
 
-function handleRealtimeSnapshot(snapshot) {
+function handleRealtimeSnapshot(snapshot, options = {}) {
     const wasReady = state.realtimeReady;
     const previousIds = state.knownLeadIds;
     const normalized = snapshot.docs
@@ -1219,7 +1219,7 @@ function handleRealtimeSnapshot(snapshot) {
 
     if (added.length) notifyNewLeads(added);
 
-    if (!wasReady && state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
+    if (!wasReady && !options.skipAutomations && state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
         runAutomations({ silent: true, skipRender: true });
     }
 }
@@ -1267,7 +1267,7 @@ function loadLeads(options = {}) {
 
     state.unsubscribeLeads = onSnapshot(
         leadsQuery,
-        handleRealtimeSnapshot,
+        snapshot => handleRealtimeSnapshot(snapshot, { skipAutomations: Boolean(options?.skipAutomations) }),
         (error) => {
             state.loading = false;
             state.unsubscribeLeads = null;
@@ -2187,8 +2187,8 @@ async function applyBulkAction(action) {
             return { id: lead.id, data: updates };
         });
 
-        await commitLeadPatches(patches);
-        state.selectedIds.clear();
+        const appliedIds = await commitLeadPatches(patches);
+        appliedIds.forEach(id => state.selectedIds.delete(id));
         refreshLeadCollections();
         state.bulkRunning = false;
         render();
@@ -2196,6 +2196,7 @@ async function applyBulkAction(action) {
     } catch (error) {
         state.bulkRunning = false;
         console.error("[Aura Leads V6] Falha na ação em massa:", error);
+        (error.appliedIds || []).forEach(id => state.selectedIds.delete(id));
         refreshLeadCollections();
         loadLeads({ force: true });
         render();
@@ -2765,7 +2766,6 @@ async function commitLeadPatches(patches) {
                     Object.assign(lead, patch.data);
                     Object.assign(lead, normalizeLead(lead));
                 }
-                state.selectedIds?.delete(patch.id);
             }
         }
         return appliedIds;
@@ -2882,7 +2882,9 @@ async function runAutomations(options = {}) {
         state.automationRunning = false;
         console.error("[Aura Leads V6] Falha nas automações:", error);
         refreshLeadCollections();
-        loadLeads({ force: true });
+        // Reconcile confirmed server state without retrying the same rejected
+        // automatic writes on the new subscription's first snapshot.
+        loadLeads({ force: true, skipAutomations: true });
         if (!options.skipRender) render();
         if (!options.silent) toast(leadBatchFailureMessage(error), "error");
         return 0;
