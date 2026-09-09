@@ -16,7 +16,7 @@
 // firebase-init.js). Reaproveitar a instância principal aqui derrubaria a
 // sessão do dono. Mesmo firebaseConfig, app nomeado à parte — o padrão
 // oficial do SDK pra múltiplas instâncias no mesmo processo.
-import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp, getApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
     browserLocalPersistence,
     connectAuthEmulator,
@@ -24,13 +24,13 @@ import {
     onAuthStateChanged,
     setPersistence,
     signInAnonymously
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import {
     connectFirestoreEmulator,
     doc,
     getDoc,
     getFirestore
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import { firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
 import {
     LIMITE_NOME_VISITANTE_CHAT,

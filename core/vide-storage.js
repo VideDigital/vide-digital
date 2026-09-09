@@ -3,7 +3,7 @@ import {
     getDownloadURL,
     ref,
     uploadBytes
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp", "image/gif"]);
 const DIGITAL_TYPES = new Set(["application/pdf"]);

@@ -3,7 +3,7 @@ import {
     doc,
     getDoc,
     getDocs
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
 export const VIDE_SUPER_ADMIN_EMAIL = "danielmarcelino549@gmail.com";
 

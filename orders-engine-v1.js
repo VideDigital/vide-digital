@@ -3,7 +3,7 @@
  * Central em página inteira integrada ao checkout público e aos pedidos legados.
  */
 import { db, auth } from "./firebase-init.js";
-import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import {
     collection,
     doc,
@@ -15,7 +15,7 @@ import {
     setDoc,
     where,
     writeBatch
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import {
     adicionarItemPedido,
     atualizarPrecoItem,
