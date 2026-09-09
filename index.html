@@ -235,7 +235,7 @@ async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos
         for (const blocoId of ordemBlocos) {
             const blocoSnap = await getDoc(doc(db, colecaoBlocos, blocoId));
             if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
-                blocosCarregados.push(blocoSnap.data());
+                blocosCarregados.push({ ...blocoSnap.data(), id: blocoSnap.id });
             }
         }
         if (paginas && paginas.length > 0) {

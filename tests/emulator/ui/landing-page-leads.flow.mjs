@@ -220,6 +220,8 @@ async function testarCaminhoFallbackEnviarFormularioLP(browser, baseUrl, db) {
     const contexto = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await contexto.newPage();
     const erros = coletarErrosConsole(page);
+    const errosReais = () => erros.filter((msg) => !ehErroDeRedeExterno(msg) && !/lp-forms-v5/i.test(msg));
+    let errosEsperados = [];
 
     try {
         // Bloqueia lp-forms-v5.js deliberadamente pra forçar o cenário de
@@ -237,6 +239,7 @@ async function testarCaminhoFallbackEnviarFormularioLP(browser, baseUrl, db) {
             () => document.querySelector("#lp-container form")?.dataset.auraFormsV5
         );
         assert.equal(marcadoPeloAura, undefined, "Com lp-forms-v5.js bloqueado, o form não deveria ser marcado pelo AuraFormsV5");
+        assert.deepEqual(errosReais(), [], "Fallback não deve emitir erros antes da falha induzida");
 
         let failFirst = true;
         await page.route("**/createPublicLead", (route) => {
@@ -245,6 +248,11 @@ async function testarCaminhoFallbackEnviarFormularioLP(browser, baseUrl, db) {
         });
         const dados = await preencherEEnviar(page, "fallback");
         await page.waitForFunction(() => document.querySelector("[data-vide-fallback-status]")?.textContent.includes("Erro ao enviar"));
+        assert.equal(failFirst, false, "A primeira chamada deve ter sido abortada pelo teste");
+        // O catch real registra a falha de rede induzida. Exigir exatamente
+        // esse erro nesta fase preserva o detector de erros novos no retry.
+        assert.deepEqual(errosReais(), ["FirebaseError: internal"], "A chamada abortada deve produzir exatamente o erro esperado do callable");
+        errosEsperados = ["FirebaseError: internal"];
         assert.equal(await page.inputValue('#lp-container form input[placeholder="nome"]'), dados.nome);
         assert.equal(await page.inputValue('#lp-container form input[name="empresa_preferida"]'), dados.empresaPreferida);
         assert.equal(await page.locator('#lp-container form button[type="submit"]').isEnabled(), true);
@@ -271,8 +279,7 @@ async function testarCaminhoFallbackEnviarFormularioLP(browser, baseUrl, db) {
         await captureDiagnostics(page, "landing-page-leads-fallback", coletarErrosConsole(page)).catch(() => {});
         throw erro;
     } finally {
-        const errosReais = erros.filter((msg) => !ehErroDeRedeExterno(msg) && !/lp-forms-v5/i.test(msg));
-        assert.deepEqual(errosReais, [], `Fallback: não deveria emitir console.error inesperado: ${errosReais.join("\n")}`);
+        assert.deepEqual(errosReais(), errosEsperados, "Fallback: o retry não deve emitir nenhum erro novo além da falha induzida já verificada");
         await contexto.close();
     }
 }

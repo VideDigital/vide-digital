@@ -60,3 +60,45 @@ test("PR61: actual CRM renderer escapes metadata labels and keeps scalar values"
   assert.ok(html.includes("value"));
   assert.equal(normalizeExtraFields({ x: "value" }, Object.create({ x: { label: "inherited spoof" } }))[0].label, "X");
 });
+
+test("PR61: public block loading preserves document identity for distinct form hints", async () => {
+  const source = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  const start = source.indexOf("async function renderizarBlocosNoContainer(");
+  const end = source.indexOf("function ativarAnimacoesDeEntrada(", start);
+  assert.ok(start >= 0 && end > start);
+  const records = new Map([
+    ["form-one", { donoUID: "owner", tipo: "formulario_captura", props: { campos: [{ name: "empresa", label: "First company" }] } }],
+    ["form-two", { id: "untrusted-stored-id", donoUID: "owner", tipo: "formulario_captura", props: { campos: [{ name: "empresa", label: "Second company" }] } }]
+  ]);
+  const rendered = [];
+  const load = new Function("db", "getDoc", "doc", "renderizarBloco", "ativarAnimacoesDeEntrada",
+    `${source.slice(start, end)}; return renderizarBlocosNoContainer;`)(
+    {}, async (id) => ({ id, exists: () => records.has(id), data: () => records.get(id) }),
+    (_db, _collection, id) => id, async (block) => { rendered.push(block); return ""; }, () => {});
+  await load({ insertAdjacentHTML() {} }, "landing_pages_blocos_publicas", [...records.keys()], "empilhado", []);
+  assert.deepEqual(rendered.map((block) => block.id), [...records.keys()], "hint must use actual Firestore document IDs, including records without an id field");
+  const tenant = { ownerUid: "owner", sourceType: "landing-page", page: { ordemBlocos: [...records.keys()] } };
+  const read = async (path) => ({ exists: true, data: () => records.get(path.split("/").at(-1)) });
+  for (const block of rendered) {
+    const metadata = await publicApi.snapshotLeadFieldMetadata({ blocoOrigem: block.id, camposExtras: { empresa: "ACME" } }, tenant, read);
+    assert.equal(metadata.empresa.label, block.props.campos[0].label, "same custom key in two forms must resolve the submitted form");
+  }
+});
+
+test("PR61: snapshot preserves labels as shown by the active public renderer", async () => {
+  const source = readFileSync(new URL("../../index.html", import.meta.url), "utf8");
+  const start = source.indexOf("function escaparAtributoFormulario(");
+  const end = source.indexOf("function camposExtrasDoFormulario(", start);
+  assert.ok(start >= 0 && end > start);
+  const render = new Function(`${source.slice(start, end)}; return renderizarCamposFormulario;`)();
+  const tenant = { ownerUid: "owner", sourceType: "landing-page", page: { ordemBlocos: ["form"] } };
+  for (const label of ["Empresa Smoke PR61 Renomeada", "empresa_QA - Matriz", 'Empresa "QA" & Filial']) {
+    const field = { name: "empresa_qa", label, type: "text", required: true };
+    const html = render([field]);
+    const read = async () => ({ exists: true, data: () => ({ donoUID: "owner", tipo: "formulario_captura", props: { campos: [field] } }) });
+    const metadata = await publicApi.snapshotLeadFieldMetadata({ blocoOrigem: "form", camposExtras: { empresa_qa: "ACME" } }, tenant, read);
+    assert.equal(metadata.empresa_qa.label, label);
+    assert.ok(html.includes(`placeholder="${escapeHTML(label)}"`), "public label punctuation/case must not be changed by preview-only normalization");
+    assert.equal(normalizeExtraFields({ empresa_qa: "ACME" }, metadata)[0].label, label);
+  }
+});
