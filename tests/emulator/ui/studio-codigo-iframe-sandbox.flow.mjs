@@ -38,80 +38,6 @@ const SUFIXO = Date.now();
 const LP_ID = `lp_test_iframe_sandbox_${SUFIXO}`;
 const BLOCO_ID = `${LP_ID}_iframe`;
 
-// ==== PR74-IFRAME-NAVIGATION-DIAGNOSTIC-002 — instrumentação PASSIVA ====
-// Reaproveita a estratégia já usada pela PR #67 (branch
-// diag/release-gate-observability, criarTelemetria/instrumentarCicloDeVida/
-// instrumentarLifecycleDocumento em _helpers.mjs) para o mesmo achado —
-// "Execution context was destroyed" na linha do page.evaluate() de
-// window.alternarPublicacaoLP(). Mantida 100% LOCAL a este arquivo (não
-// altera _helpers.mjs, que é compartilhado por toda a cadeia de testes).
-// Nada aqui altera comportamento produtivo, assertion, timeout ou retry —
-// só timestamps/eventos passivos do Playwright e um id de documento
-// gerado via addInitScript. Nenhum page.evaluate() novo foi adicionado
-// perto da janela crítica: qaLog() só usa page.url(), leitura passiva do
-// bookkeeping do Playwright.
-const qaT0 = Date.now();
-let qaSeq = 0;
-let qaNavCounter = 0;
-let qaUltimaUrl = null;
-let qaUltimoDocId = null;
-let qaPagina = null;
-
-function qaLog(marco, extra = {}) {
-    const url = qaPagina ? qaPagina.url() : "(sem pagina)";
-    qaSeq += 1;
-    const detalhe = Object.keys(extra).length ? ` ${JSON.stringify(extra)}` : "";
-    console.log(`[QA-MARCO] seq=${qaSeq} t=${Date.now() - qaT0}ms marco=${marco} url=${url} navCounter=${qaNavCounter} docId=${qaUltimoDocId}${detalhe}`);
-}
-
-function instrumentarTelemetriaDeNavegacao(page, browser) {
-    qaPagina = page;
-    page.addInitScript(() => {
-        try {
-            const id = (window.crypto && typeof window.crypto.randomUUID === "function")
-                ? window.crypto.randomUUID()
-                : `${Date.now()}-${Math.random()}`;
-            window.__qaDocumentId = id;
-            console.log(`[QA-DOC] id=${id} url=${location.href}`);
-        } catch (_) { /* diagnóstico passivo — nunca deve afetar o produto */ }
-    });
-    page.on("console", (msg) => {
-        const texto = msg.text();
-        if (!texto.startsWith("[QA-DOC]")) return;
-        const match = texto.match(/^\[QA-DOC\] id=(\S+) url=(.*)$/);
-        const docIdAnterior = qaUltimoDocId;
-        qaUltimoDocId = match ? match[1] : texto;
-        qaSeq += 1;
-        console.log(`[QA-DOCEVENT] seq=${qaSeq} t=${Date.now() - qaT0}ms docIdAnterior=${docIdAnterior} docIdNovo=${qaUltimoDocId} url=${match ? match[2] : "(?)"}`);
-    });
-    page.on("framenavigated", (frame) => {
-        const principal = frame === page.mainFrame();
-        const novaUrl = frame.url();
-        qaSeq += 1;
-        if (principal) {
-            qaNavCounter += 1;
-            const urlAnterior = qaUltimaUrl;
-            console.log(`[QA-NAV] seq=${qaSeq} t=${Date.now() - qaT0}ms navCounter=${qaNavCounter} principal=true urlAnterior=${urlAnterior} urlNova=${novaUrl} mesmaUrl=${urlAnterior === novaUrl}`);
-            qaUltimaUrl = novaUrl;
-        } else {
-            console.log(`[QA-NAV] seq=${qaSeq} t=${Date.now() - qaT0}ms navCounter=${qaNavCounter} principal=false(iframe) urlNova=${novaUrl}`);
-        }
-    });
-    page.on("domcontentloaded", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=domcontentloaded url=${page.url()}`); });
-    page.on("load", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=load url=${page.url()}`); });
-    page.on("close", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=close`); });
-    page.on("crash", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=crash`); });
-    page.on("pageerror", (erro) => { qaSeq += 1; console.log(`[QA-PAGEERROR] seq=${qaSeq} t=${Date.now() - qaT0}ms erro=${String(erro)}`); });
-    page.on("requestfailed", (request) => {
-        if (!request.isNavigationRequest()) return;
-        qaSeq += 1;
-        console.log(`[QA-REQFAILED] seq=${qaSeq} t=${Date.now() - qaT0}ms url=${request.url()} falha=${request.failure()?.errorText}`);
-    });
-    if (browser) {
-        browser.on("disconnected", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=browser_disconnected`); });
-    }
-}
-
 // Payload inofensivo, não-destrutivo, sem tocar dados reais — mesma técnica
 // sugerida na missão: marca uma propriedade no PRÓPRIO window do iframe
 // (prova de execução interna) e tenta marcar uma propriedade em
@@ -160,8 +86,7 @@ async function limparEstado(db) {
 // isso não é afetado pela Same-Origin Policy que bloqueia o JS da própria
 // página; é assim que conseguimos inspecionar o "lado de dentro" do
 // iframe isolado sem violar o isolamento que estamos testando).
-async function localizarFrameDoIframeCustom(page, contexto = "generico") {
-    qaLog(`ANTES_LOCALIZAR_IFRAME_${contexto}`);
+async function localizarFrameDoIframeCustom(page) {
     await page.waitForFunction(
         () => Array.from(document.querySelectorAll("iframe")).some((f) => f.getAttribute("sandbox") !== null),
         undefined,
@@ -170,7 +95,6 @@ async function localizarFrameDoIframeCustom(page, contexto = "generico") {
     const handle = await page.waitForSelector("iframe[sandbox]", { state: "attached", timeout: 15000 });
     const frame = await handle.contentFrame();
     assert.ok(frame, "o iframe do bloco codigo_iframe precisa ter um frame de conteúdo acessível");
-    qaLog(`DEPOIS_LOCALIZAR_IFRAME_${contexto}`);
     return frame;
 }
 
@@ -179,7 +103,6 @@ async function main() {
     const browser = await launchBrowser();
     const db = adminDb();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    instrumentarTelemetriaDeNavegacao(page, browser);
     const erros = coletarErrosConsole(page);
     let falhou = false;
 
@@ -188,9 +111,7 @@ async function main() {
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
 
         // ===== 1) Editor autenticado (dashboard-app.js) =====
-        qaLog("ANTES_EDITAR_LP");
         await page.evaluate((lpId) => window.editarLP(lpId), LP_ID);
-        qaLog("DEPOIS_EDITAR_LP");
         await page.waitForSelector("#lped-preview-canvas", { state: "attached", timeout: 15000 });
 
         const iframeAttrs = await page.locator("#lped-preview-canvas iframe").first().evaluate((el) => ({
@@ -203,7 +124,7 @@ async function main() {
         assert.ok(flagsSet.has("allow-scripts"), "sandbox precisa incluir allow-scripts (senão o htmlCustom pararia de funcionar)");
         assert.ok(!flagsSet.has("allow-same-origin"), "sandbox NUNCA pode incluir allow-same-origin — isso anularia o isolamento");
 
-        const frameEditor = await localizarFrameDoIframeCustom(page, "editor");
+        const frameEditor = await localizarFrameDoIframeCustom(page);
         // 1) HTML custom continua funcional: o script executa DENTRO do
         // próprio iframe.
         await frameEditor.waitForFunction(() => window.__iframeExecutouInternamente === true, undefined, { timeout: 10000 });
@@ -224,26 +145,12 @@ async function main() {
         const marcadorNoParent = await page.evaluate(() => window.__iframeEscapeProbe || null);
         assert.equal(marcadorNoParent, null, "window.__iframeEscapeProbe nunca pode aparecer no parent (dashboard) real");
 
-        qaLog("ANTES_FECHAR_EDITOR");
         await page.evaluate(() => window.fecharEditorLP?.());
-        qaLog("DEPOIS_FECHAR_EDITOR");
 
         // ===== 2) Renderer público (index.html) =====
         // Publica de verdade pra exercitar o caminho real de index.html —
-        // mesmo padrão dos outros E2E desta base. A sequência
-        // fecharEditorLP() -> alternarPublicacaoLP() e a ausência de
-        // qualquer wait entre as duas permanecem EXATAMENTE como estavam —
-        // só adicionamos observação (qaLog/try-catch de resultado), nunca
-        // uma nova espera.
-        qaLog("ANTES_PUBLICAR");
-        let resultadoPublicar;
-        try {
-            resultadoPublicar = await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
-            qaLog("PUBLICAR_RESOLVEU", { ok: resultadoPublicar?.ok });
-        } catch (erroPublicar) {
-            qaLog("PUBLICAR_REJEITOU", { erro: String(erroPublicar) });
-            throw erroPublicar;
-        }
+        // mesmo padrão dos outros E2E desta base.
+        const resultadoPublicar = await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
         assert.equal(resultadoPublicar?.ok, true, "LP com bloco codigo_iframe precisa publicar normalmente");
 
         const blocoPublicoSnap = await db.collection("landing_pages_blocos_publicas").doc(BLOCO_ID).get();
@@ -289,9 +196,7 @@ async function main() {
         // abaixo, não desta linha.
         assert.match(rendererSource, /bloco\.tipo === "codigo_iframe"/, "o trecho extraído de index.html precisa conter o branch codigo_iframe");
 
-        qaLog("ANTES_GOTO_PUBLICO");
         await page.goto(`${baseUrl}/index.html?p=${STORE_SLUG}/lp-iframe-sandbox-qa-${SUFIXO}&useEmulator=true`, { waitUntil: "load", timeout: 30000 });
-        qaLog("DEPOIS_GOTO_PUBLICO");
         await page.waitForFunction(
             () => (document.getElementById("lp-container")?.textContent || "").includes("Pagina nao encontrada"),
             undefined,
@@ -323,7 +228,7 @@ async function main() {
         assert.ok(flagsSetPublico.has("allow-scripts"), "sandbox do renderer público precisa incluir allow-scripts");
         assert.ok(!flagsSetPublico.has("allow-same-origin"), "sandbox do renderer público NUNCA pode incluir allow-same-origin");
 
-        const framePublico = await localizarFrameDoIframeCustom(page, "publico");
+        const framePublico = await localizarFrameDoIframeCustom(page);
         await framePublico.waitForFunction(() => window.__iframeExecutouInternamente === true, undefined, { timeout: 10000 });
         const resultadoPublico = await framePublico.evaluate(() => ({
             parentBloqueado: window.__parentBloqueado === true,
@@ -342,10 +247,8 @@ async function main() {
         console.log("studio-codigo-iframe-sandbox.flow: OK — sandbox presente e efetivo no editor autenticado e no renderer público, sem allow-same-origin, htmlCustom continua funcional dentro do próprio iframe.");
     } catch (error) {
         falhou = true;
-        qaLog("CATCH_INICIO", { erro: String(error) });
         await captureDiagnostics(page, "studio-codigo-iframe-sandbox", erros.filter((erro) => !ehErroDeRedeExterno(erro))).catch(() => {});
         console.error("studio-codigo-iframe-sandbox.flow: FALHOU —", error);
-        qaLog("CATCH_FIM");
     } finally {
         await limparEstado(db);
         await page.close();

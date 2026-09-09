@@ -34,72 +34,6 @@ const SUFIXO = Date.now();
 const LP_ID = `lp_test_draft_integrity_${SUFIXO}`;
 const BLOCO_ID = `${LP_ID}_form`;
 
-// ==== PR74-NAVIGATION-RACE-DIAGNOSTIC-001 — instrumentação PASSIVA ====
-// Objetivo único: comprovar qual navegação destrói o Execution Context na
-// 2ª ocorrência do ciclo reload+reabrir. Nada aqui altera comportamento
-// produtivo, assertion, timeout ou retry — só timestamps/eventos passivos
-// do Playwright e um id de documento gerado via addInitScript (script
-// injetado ANTES de cada documento carregar). Nenhum page.evaluate() novo
-// foi adicionado perto da janela crítica: qaLog() só usa page.url(), que é
-// leitura passiva do bookkeeping do Playwright, não avalia JS na página.
-const qaT0 = Date.now();
-let qaSeq = 0;
-let qaNavCounter = 0;
-let qaUltimaUrl = null;
-let qaUltimoDocId = null;
-let qaPagina = null;
-
-function qaLog(marco) {
-    const url = qaPagina ? qaPagina.url() : "(sem pagina)";
-    qaSeq += 1;
-    console.log(`[QA-MARCO] seq=${qaSeq} t=${Date.now() - qaT0}ms marco=${marco} url=${url} navCounter=${qaNavCounter} docId=${qaUltimoDocId}`);
-}
-
-function instrumentarTelemetriaDeNavegacao(page) {
-    qaPagina = page;
-    page.addInitScript(() => {
-        try {
-            const id = (window.crypto && typeof window.crypto.randomUUID === "function")
-                ? window.crypto.randomUUID()
-                : `${Date.now()}-${Math.random()}`;
-            window.__qaDocumentId = id;
-            console.log(`[QA-DOC] id=${id} url=${location.href}`);
-        } catch (_) { /* diagnóstico passivo — nunca deve afetar o produto */ }
-    });
-    page.on("console", (msg) => {
-        const texto = msg.text();
-        if (!texto.startsWith("[QA-DOC]")) return;
-        const match = texto.match(/^\[QA-DOC\] id=(\S+) url=(.*)$/);
-        const docIdAnterior = qaUltimoDocId;
-        qaUltimoDocId = match ? match[1] : texto;
-        qaSeq += 1;
-        console.log(`[QA-DOCEVENT] seq=${qaSeq} t=${Date.now() - qaT0}ms docIdAnterior=${docIdAnterior} docIdNovo=${qaUltimoDocId} url=${match ? match[2] : "(?)"}`);
-    });
-    page.on("framenavigated", (frame) => {
-        const principal = frame === page.mainFrame();
-        const novaUrl = frame.url();
-        qaSeq += 1;
-        if (principal) {
-            qaNavCounter += 1;
-            const urlAnterior = qaUltimaUrl;
-            console.log(`[QA-NAV] seq=${qaSeq} t=${Date.now() - qaT0}ms navCounter=${qaNavCounter} principal=true urlAnterior=${urlAnterior} urlNova=${novaUrl} mesmaUrl=${urlAnterior === novaUrl}`);
-            qaUltimaUrl = novaUrl;
-        } else {
-            console.log(`[QA-NAV] seq=${qaSeq} t=${Date.now() - qaT0}ms navCounter=${qaNavCounter} principal=false urlNova=${novaUrl}`);
-        }
-    });
-    page.on("domcontentloaded", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=domcontentloaded url=${page.url()}`); });
-    page.on("load", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=load url=${page.url()}`); });
-    page.on("close", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=close`); });
-    page.on("crash", () => { qaSeq += 1; console.log(`[QA-LIFECYCLE] seq=${qaSeq} t=${Date.now() - qaT0}ms evento=crash`); });
-    page.on("pageerror", (erro) => { qaSeq += 1; console.log(`[QA-PAGEERROR] seq=${qaSeq} t=${Date.now() - qaT0}ms erro=${String(erro)}`); });
-    page.on("requestfailed", (request) => {
-        if (!request.isNavigationRequest()) return;
-        qaSeq += 1;
-        console.log(`[QA-REQFAILED] seq=${qaSeq} t=${Date.now() - qaT0}ms url=${request.url()} falha=${request.failure()?.errorText}`);
-    });
-}
-
 function adminDb() {
     if (!getApps().length) initializeApp({ projectId: PROJECT_ID });
     return getFirestore();
@@ -123,10 +57,8 @@ async function limparEstado(db) {
     await db.collection("landing_pages_blocos").doc(BLOCO_ID).delete().catch(() => {});
 }
 
-async function abrirEditorEFormularios(page, ciclo = "inicial") {
-    qaLog(`ANTES_EDITAR_LP_${ciclo}`);
+async function abrirEditorEFormularios(page) {
     await page.evaluate((lpId) => window.editarLP(lpId), LP_ID);
-    qaLog(`DEPOIS_EDITAR_LP_${ciclo}`);
     await page.waitForFunction(() => typeof window.AuraStudioUltimate?.open === "function", undefined, { timeout: 20000 });
     await page.evaluate(() => window.AuraStudioUltimate.open("forms"));
     await page.waitForSelector("#aura-ultimate-form-editor", { state: "visible", timeout: 15000 });
@@ -138,16 +70,13 @@ async function fecharTudo(page) {
     await page.evaluate(() => window.fecharEditorLP?.());
 }
 
-async function recarregarEAbrirDashboard(page, baseUrl, ciclo) {
-    qaLog(`ANTES_RELOAD_${ciclo}`);
+async function recarregarEAbrirDashboard(page, baseUrl) {
     await page.reload({ waitUntil: "load", timeout: 30000 });
-    qaLog(`DEPOIS_RELOAD_${ciclo}`);
     await page.waitForFunction(
         () => typeof window.__videHubContextInitialized === "function" && window.__videHubContextInitialized(),
         undefined,
         { timeout: 20000 }
     );
-    qaLog(`CONTEXT_READY_${ciclo}`);
 }
 
 async function main() {
@@ -155,20 +84,17 @@ async function main() {
     const browser = await launchBrowser();
     const db = adminDb();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
-    instrumentarTelemetriaDeNavegacao(page);
     const erros = coletarErrosConsole(page);
     let falhou = false;
 
     try {
         await seedLpComFormulario(db);
-        qaLog("ANTES_LOGIN");
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
-        qaLog("DEPOIS_LOGIN");
 
         // ===== Cenário adversarial: adicionar campo, NÃO preencher, NÃO
         // clicar "Salvar formulário", fechar o Studio, salvar a LP pelo
         // caminho global, reload, reabrir. =====
-        await abrirEditorEFormularios(page, 0);
+        await abrirEditorEFormularios(page);
         await page.click("#aura-ultimate-form-add-field");
         await page.waitForSelector("[data-custom-field-row]", { state: "visible", timeout: 5000 });
         assert.equal(await page.locator("[data-custom-field-row]").count(), 1, "o campo provisório precisa aparecer na UI do Studio (rascunho local)");
@@ -195,8 +121,8 @@ async function main() {
         assert.ok(!JSON.stringify(blocoSalvo1.data()).includes("_novo"), "nenhuma propriedade interna _novo pode ter alcançado o documento persistido");
 
         await fecharTudo(page);
-        await recarregarEAbrirDashboard(page, baseUrl, 1);
-        await abrirEditorEFormularios(page, 1);
+        await recarregarEAbrirDashboard(page, baseUrl);
+        await abrirEditorEFormularios(page);
 
         // Depois do reload, reabrindo o Studio: nenhum campo quebrado
         // aparece (o rascunho é reconstruído do zero a partir do que está
@@ -229,8 +155,8 @@ async function main() {
         );
 
         await fecharTudo(page);
-        await recarregarEAbrirDashboard(page, baseUrl, 2);
-        await abrirEditorEFormularios(page, 2);
+        await recarregarEAbrirDashboard(page, baseUrl);
+        await abrirEditorEFormularios(page);
         const nomeAposReload = await page.locator("[data-custom-field-row] code").first().textContent();
         assert.equal(nomeAposReload, nomeGerado, "o name precisa sobreviver idêntico ao reload");
 
@@ -249,7 +175,6 @@ async function main() {
         console.log("studio-custom-fields-draft-integrity.flow: OK — rascunho não confirmado nunca persiste, name congelado sobrevive a múltiplos ciclos reais de edição/reload.");
     } catch (error) {
         falhou = true;
-        qaLog("ERRO_CAPTURADO");
         await captureDiagnostics(page, "studio-custom-fields-draft-integrity", erros.filter((erro) => !ehErroDeRedeExterno(erro))).catch(() => {});
         console.error("studio-custom-fields-draft-integrity.flow: FALHOU —", error);
     } finally {
