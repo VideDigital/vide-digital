@@ -1351,6 +1351,11 @@ service cloud.firestore {
         "historicoAtividades", "historicoAtualizadoEm", "ultimoTemplateId", "ultimoTemplateTitulo",
         "fluxoTemplateExecutadoEm", "motivoFollowup", "anotacaoAtualizadaEm", "contatoAtualizadoEm",
         "followupAtualizadoEm", "followupConcluidoEm", "statusAtualizadoEm",
+        "pedidoVinculadoId", "pedidoResponsavelUid", "pedidoResponsavelNome", "pedidoPrazoEntrega",
+        "pedidoDesconto", "pedidoFrete", "pedidoObservacoesInternas", "pedidoSnapshot.clienteNome",
+        "pedidoSnapshot.clienteWhatsapp", "pedidoSnapshot.clienteEmail", "pedidoSnapshot.tipoRecebimento", "pedidoSnapshot.cep",
+        "pedidoSnapshot.endereco", "pedidoSnapshot.observacoes", "pedidoSnapshot.produtosTexto", "pedidoSnapshot.itens",
+        "pedidoSnapshot.subtotal",
         "clienteId", "versaoSchema", "schemaVersion", "padronizadoEm", "padronizadoPorUid", "lembreteTimestamp"
       ];
     }

@@ -46,6 +46,16 @@ describe("ASTRA CRM-010/012: lead integrity and tenant SLA", () => {
     await assertSucceeds(updateDoc(ref, { ultimoTemplateId: "t1", ultimoTemplateTitulo: "Follow-up", fluxoTemplateExecutadoEm: serverTimestamp(), motivoFollowup: "Retornar" }));
     await assertSucceeds(updateDoc(ref, { anotacao: "nota", anotacaoAtualizadaEm: Date.now(), telefone: "11912345678", contatoAtualizadoEm: Date.now(), proximoContatoEm: null, followupAtualizadoEm: Date.now(), followupConcluidoEm: Date.now(), statusLead: "novo", statusAtualizadoEm: Date.now() }));
   });
+  it("accepts the complete current order-to-lead writer payload", async () => {
+    const source = fs.readFileSync("orders-engine-v1.js", "utf8");
+    const start = source.indexOf("const leadPatch = {");
+    const end = source.indexOf('if (leadStatus === "convertido")', start);
+    const patch = new Function("legacyId", "merged", "num", "history", "leadStatus", source.slice(start, end) + "; return leadPatch;")("order", { status: "confirmado", payment: "pendente", total: 99, subtotal: 99, items: [] }, value => Number(value) || 0, [], "em_contato");
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const ref = doc(db, "leads", "astra-order");
+    await assertSucceeds(setDoc(ref, { criadoPor: "ownerA", pedidoSnapshot: { total: 99 } }));
+    await assertSucceeds(setDoc(ref, patch, { merge: true }));
+  });
   it("SLA configuration: owner/editor read-write, reader read-only, other tenant denied", async () => {
     await testEnv.withSecurityRulesDisabled(async context => {
       await setDoc(doc(context.firestore(), "funcionarios", "astra-editor"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
