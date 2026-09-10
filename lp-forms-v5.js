@@ -7,12 +7,12 @@ import { app, db, shouldUseVideEmulators } from "./firebase-init.js";
 import {
     doc,
     getDoc
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import {
     connectFunctionsEmulator,
     getFunctions,
     httpsCallable
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-functions.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js";
 import { createLeadAttemptTracker, fingerprintCamposExtras } from "./lead-attempt-token-core.js";
 
 const VERSION = "5.0.0";

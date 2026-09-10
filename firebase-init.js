@@ -1,19 +1,19 @@
 // firebase-init.js
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
 import {
     connectFirestoreEmulator,
     doc,
     getFirestore,
     onSnapshot
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import {
     connectAuthEmulator,
     getAuth
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
 import {
     connectStorageEmulator,
     getStorage
-} from "https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js";
+} from "https://www.gstatic.com/firebasejs/12.14.0/firebase-storage.js";
 
 function shouldUseVideEmulators() {
     const params = new URLSearchParams(window.location.search);
