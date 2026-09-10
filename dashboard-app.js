@@ -45,8 +45,8 @@ window.addEventListener("pageshow", function(event) {
         if (t.texto) root.style.setProperty("--sys-texto", t.texto);
     } catch(err) { console.error(err); }
 })();
-        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, startAfter, Timestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+        import { onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js";
+        import { collection, doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, query, where, orderBy, onSnapshot, serverTimestamp, arrayUnion, arrayRemove, limit, startAfter, Timestamp, writeBatch, increment } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 
         let usuarioEmail = "";
         let usuarioUID = "";
