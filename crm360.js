@@ -315,7 +315,7 @@ export function criarCrm360Controller(deps) {
     const { db, context, firestore, notify = () => {} } = deps;
     const {
         collection, doc, getDoc, getDocs, setDoc, updateDoc,
-        query, where, limit, serverTimestamp
+        query, where, limit, startAfter, serverTimestamp
     } = firestore;
 
     const state = {
@@ -666,8 +666,23 @@ export function criarCrm360Controller(deps) {
         // As Rules de leads/pedidos/chats validam o tenant pelos campos
         // criadoPor/donoUID/emailDono. Consultar apenas por clienteId não
         // permite que o Firestore prove a autorização da lista. Por isso as
-        // consultas abaixo são limitadas ao tenant e o clienteId é filtrado
-        // em memória. Esse padrão também evita depender de índices compostos.
+        // consultas percorrem o tenant em páginas pelo cursor documental e
+        // retêm apenas este cliente. Nenhum índice composto novo é necessário.
+        async function related(collectionName, tenantField) {
+            const matched = [];
+            let cursor;
+            while (state.clienteId === clienteId && storeUid() === tenantId) {
+                const constraints = [where(tenantField, "==", tenantId), limit(300)];
+                if (cursor) constraints.push(startAfter(cursor));
+                const snapshot = await getDocs(query(collection(db, collectionName), ...constraints));
+                snapshot.forEach(item => {
+                    if (item.data().clienteId === clienteId) matched.push(item);
+                });
+                if (snapshot.size < 300) break;
+                cursor = snapshot.docs[snapshot.docs.length - 1];
+            }
+            return { forEach: callback => matched.forEach(callback) };
+        }
         const [
             leadsSnap,
             pedidosSnap,
@@ -676,26 +691,10 @@ export function criarCrm360Controller(deps) {
             obsSnap,
             eventosSnap
         ] = await Promise.all([
-            getDocs(query(
-                collection(db, "leads"),
-                where("criadoPor", "==", tenantId),
-                limit(300)
-            )),
-            getDocs(query(
-                collection(db, "pedidos"),
-                where("criadoPor", "==", tenantId),
-                limit(300)
-            )),
-            getDocs(query(
-                collection(db, "chats"),
-                where("donoUID", "==", tenantId),
-                limit(300)
-            )),
-            getDocs(query(
-                collection(db, "chats"),
-                where("emailDono", "==", tenantId),
-                limit(300)
-            )),
+            related("leads", "criadoPor"),
+            related("pedidos", "criadoPor"),
+            related("chats", "donoUID"),
+            related("chats", "emailDono"),
             getDocs(query(
                 collection(db, "clientes", clienteId, "observacoes"),
                 limit(100)
@@ -705,6 +704,8 @@ export function criarCrm360Controller(deps) {
                 limit(100)
             ))
         ]);
+
+        if (state.clienteId !== clienteId || storeUid() !== tenantId) return;
 
         state.leads = [];
         leadsSnap.forEach(documento => {

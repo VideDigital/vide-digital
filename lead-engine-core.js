@@ -120,7 +120,7 @@ function readableExtraFieldLabel(key) {
 
 // CRM-LEAD-004: contrato de persistência continua sendo um mapa simples.
 // Esta normalização existe apenas no consumer e nunca muta o documento.
-export function normalizeExtraFields(value) {
+export function normalizeExtraFields(value, metadata) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return [];
 
     return Object.entries(value)
@@ -130,14 +130,17 @@ export function normalizeExtraFields(value) {
             if (!key || !scalar) return null;
             const normalizedValue = String(rawValue).trim().slice(0, 500);
             if (!normalizedValue) return null;
-            return { key, label: readableExtraFieldLabel(key), value: normalizedValue };
+            const snapshot = metadata && Object.prototype.hasOwnProperty.call(metadata, key) ? metadata[key] : null;
+            const label = typeof snapshot?.label === "string" && snapshot.label.trim()
+                ? snapshot.label.trim().slice(0, 160) : readableExtraFieldLabel(key);
+            return { key, label, value: normalizedValue };
         })
         .filter(Boolean)
         .sort((a, b) => a.key.localeCompare(b.key, "pt-BR", { sensitivity: "base" }));
 }
 
-export function extraFieldsSearchText(value) {
-    return normalizeExtraFields(value)
+export function extraFieldsSearchText(value, metadata) {
+    return normalizeExtraFields(value, metadata)
         .flatMap((field) => [field.key, field.label, field.value])
         .join(" ");
 }
@@ -340,4 +343,70 @@ export function temperatureFor(score, temperatures) {
     if (score >= t.hot.min) return "hot";
     if (score >= t.warm.min) return "warm";
     return "cold";
+}
+
+// Merge never silently discards incompatible commercial information. An
+// explicit clear (null/empty) is a value, and remains distinct from absence.
+export function mergeLeadCommercialFields(records) {
+    const patch = {};
+    const conflict = (field) => {
+        const error = new Error(`Dados comerciais conflitantes em ${field}. Revise os registros antes de mesclar.`);
+        error.code = "merge-conflict";
+        throw error;
+    };
+    const choose = (field, values) => {
+        if (!values.length) return;
+        if (values.some(value => JSON.stringify(value) !== JSON.stringify(values[0]))) conflict(field);
+        patch[field] = values[0];
+    };
+    for (const field of ["dataFechamentoPrevista", "etiqueta", "origem", "campanha", "clienteId", "prioridadeLead"]) {
+        choose(field, records.filter(record => hasOwnField(record, field)).map(record => record[field]));
+    }
+    for (const suffix of ["Source", "Medium", "Campaign", "Content", "Term"]) {
+        const field = `utm${suffix}`;
+        const legacy = `utm_${suffix.toLowerCase()}`;
+        choose(field, records
+            .filter(record => hasOwnField(record, field) || hasOwnField(record, legacy))
+            .map(record => hasOwnField(record, field) ? record[field] : record[legacy]));
+    }
+    const responsible = records.filter(record => hasOwnField(record, "responsavelUid") || hasOwnField(record, "funcionarioResponsavel"));
+    if (responsible.length) {
+        choose("responsavelUid", responsible.map(record => resolveLeadResponsible(record).uid));
+        patch.responsavelNome = responsible.map(resolveLeadResponsible).find(value => value.name)?.name || "";
+    }
+    const followups = records.filter(record => ["proximoContatoEm", "lembreteTimestamp", "lembreteData"].some(field => hasOwnField(record, field)));
+    if (followups.length) choose("proximoContatoEm", followups.map(record => resolveLeadFollowup(record).timestamp || null));
+    const stages = records.filter(record => ["statusLead", "pipelineStage", "status"].some(field => hasOwnField(record, field)));
+    if (stages.length) {
+        choose("statusLead", stages.map(normalizeStatus));
+        patch.status = patch.pipelineStage = patch.statusLead;
+    }
+    choose("probabilidade", records.filter(record => hasOwnField(record, "probabilidade")).map(record => record.probabilidade));
+    choose("probabilidadeOrigem", records.filter(record => hasOwnField(record, "probabilidadeOrigem")).map(record => record.probabilidadeOrigem));
+    if (patch.statusLead === "convertido" || patch.statusLead === "perdido") {
+        // Stage and probability may come from different sparse legacy records.
+        // Terminal outcomes always use the same 100/0 automatic policy as edits.
+        patch.probabilidade = stageProbability(patch.statusLead);
+        patch.probabilidadeOrigem = "automatic";
+    }
+    for (const field of ["camposExtras", "camposExtrasMeta"]) {
+        const combined = {};
+        let present = false;
+        for (const record of records) {
+            if (!hasOwnField(record, field)) continue;
+            const value = record[field];
+            if (!value || typeof value !== "object" || Array.isArray(value)) conflict(field);
+            present = true;
+            for (const [key, item] of Object.entries(value)) {
+                if (["__proto__", "prototype", "constructor"].includes(key)) conflict(field);
+                if (Object.hasOwn(combined, key) && JSON.stringify(combined[key]) !== JSON.stringify(item)) conflict(`${field}.${key}`);
+                combined[key] = item;
+            }
+        }
+        if (present) patch[field] = combined;
+    }
+    patch.idsMesclados = [...new Set(records.flatMap((record, index) => [
+        ...(index ? [record.id] : []), ...(Array.isArray(record.idsMesclados) ? record.idsMesclados : [])
+    ]).filter(id => typeof id === "string" && id && id !== records[0]?.id))];
+    return patch;
 }

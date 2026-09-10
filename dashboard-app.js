@@ -3580,7 +3580,7 @@ btn.classList.add("opacity-40");
         const crm360Controller = criarCrm360Controller({
             db,
             context: VideHubContext,
-            firestore: { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, limit, serverTimestamp },
+            firestore: { collection, doc, getDoc, getDocs, setDoc, updateDoc, query, where, limit, startAfter, serverTimestamp },
             notify: showToast
         });
         crm360Controller.bindEventos();

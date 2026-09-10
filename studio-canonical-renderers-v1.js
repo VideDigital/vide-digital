@@ -171,7 +171,7 @@
       <section class="aura-canonical-block aura-canonical-form-section" data-aura-block-type="formulario_captura">
         <div class="aura-canonical-container aura-canonical-form-grid">
           <div class="aura-canonical-copy"><span class="aura-canonical-eyebrow">Vamos conversar</span><h2>${escapeHTML(props.titulo || "Receba novidades")}</h2><p>${escapeHTML(props.subtitulo || "Preencha seus dados e entraremos em contato.")}</p></div>
-          <form class="aura-canonical-form" data-aura-canonical-form novalidate>
+          <form class="aura-canonical-form" data-aura-canonical-form data-block-id="${escapeAttribute(block.id || "")}" novalidate>
             ${fields.map((field, index) => {
               const normalized = normalizeField(field, index);
               const id = `aura-field-${escapeAttribute(normalized.name)}-${index}`;

@@ -27,6 +27,59 @@ import {
 const PROJECT_ID = "demo-vide-hub";
 let testEnv;
 
+describe("ASTRA CRM-010/012: lead integrity and tenant SLA", () => {
+  it("rejects malformed commercial fields on CREATE and UPDATE, but retains untouched legacy", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    for (const [index, patch] of [{ probabilidade: 101 }, { valorOportunidade: {} }, { camposExtras: [] }, { nome: [] }, { arquivado: "true" }, { inventedField: true }, { tenantId: "ownerB" }].entries()) {
+      await assertFails(setDoc(doc(db, "leads", `astra-invalid-${index}`), { criadoPor: "ownerA", ...patch }));
+    }
+    await testEnv.withSecurityRulesDisabled(async context => setDoc(doc(context.firestore(), "leads", "astra-legacy"), { criadoPor: "ownerA", probabilidade: "old", unknownLegacy: true }));
+    await assertSucceeds(updateDoc(doc(db, "leads", "astra-legacy"), { anotacao: "Still editable", valorOportunidade: 0.5 }));
+    await assertFails(updateDoc(doc(db, "leads", "astra-legacy"), { probabilidade: 101 }));
+    await assertSucceeds(deleteDoc(doc(db, "leads", "astra-legacy")));
+  });
+  it("retains existing dashboard activity, template and follow-up writers", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const ref = doc(db, "leads", "astra-dashboard");
+    await assertSucceeds(setDoc(ref, { criadoPor: "ownerA", nome: "Test" }));
+    await assertSucceeds(updateDoc(ref, { historicoAtividades: [{ tipo: "nota", texto: "Test" }], historicoAtualizadoEm: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { ultimoTemplateId: "t1", ultimoTemplateTitulo: "Follow-up", fluxoTemplateExecutadoEm: serverTimestamp(), motivoFollowup: "Retornar" }));
+    await assertSucceeds(updateDoc(ref, { anotacao: "nota", anotacaoAtualizadaEm: Date.now(), telefone: "11912345678", contatoAtualizadoEm: Date.now(), proximoContatoEm: null, followupAtualizadoEm: Date.now(), followupConcluidoEm: Date.now(), statusLead: "novo", statusAtualizadoEm: Date.now() }));
+  });
+  it("accepts the complete current order-to-lead writer payload", async () => {
+    const source = fs.readFileSync("orders-engine-v1.js", "utf8");
+    const start = source.indexOf("const leadPatch = {");
+    const end = source.indexOf('if (leadStatus === "convertido")', start);
+    const patch = new Function("legacyId", "merged", "num", "history", "leadStatus", source.slice(start, end) + "; return leadPatch;")("order", { status: "confirmado", payment: "pendente", total: 99, subtotal: 99, items: [] }, value => Number(value) || 0, [], "em_contato");
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const ref = doc(db, "leads", "astra-order");
+    await assertSucceeds(setDoc(ref, { criadoPor: "ownerA", pedidoSnapshot: { total: 99 } }));
+    await assertSucceeds(setDoc(ref, patch, { merge: true }));
+  });
+  it("SLA configuration: owner/editor read-write, reader read-only, other tenant denied", async () => {
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), "funcionarios", "astra-editor"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
+      await setDoc(doc(context.firestore(), "funcionarios", "astra-reader"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: [] } });
+      await setDoc(doc(context.firestore(), "funcionarios", "astra-inactive"), { donoUID: "ownerA", status: "inativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
+    });
+    const ref = uid => doc(testEnv.authenticatedContext(uid).firestore(), "lead_settings", "ownerA");
+    await assertSucceeds(setDoc(ref("ownerA"), { slaMinutes: 120 }));
+    await assertSucceeds(getDoc(ref("astra-reader")));
+    await assertSucceeds(updateDoc(ref("astra-editor"), { slaMinutes: 60 }));
+    await assertFails(updateDoc(ref("astra-reader"), { slaMinutes: 30 }));
+    await assertFails(getDoc(ref("ownerB")));
+    await assertFails(setDoc(ref("ownerB"), { slaMinutes: 30 }));
+    await assertFails(getDoc(ref("astra-inactive")));
+    await assertFails(updateDoc(ref("astra-inactive"), { slaMinutes: 30 }));
+    await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "lead_settings", "ownerA")));
+    await assertFails(deleteDoc(ref("astra-reader")));
+    await assertFails(setDoc(ref("ownerA"), { slaMinutes: 4 }));
+    await assertFails(setDoc(ref("ownerA"), { slaMinutes: 1441 }));
+    await assertFails(setDoc(ref("ownerA"), { slaMinutes: 30, spoof: true }));
+    await assertSucceeds(deleteDoc(ref("ownerA")));
+  });
+});
+
 before(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,
