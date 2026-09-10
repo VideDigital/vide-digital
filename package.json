@@ -9,7 +9,7 @@
   "scripts": {
     "emulators": "firebase emulators:start --project demo-vide-hub --only auth,firestore,storage,functions",
     "emulators:exec": "firebase emulators:exec --project demo-vide-hub --only auth,firestore,storage,functions \"pnpm run test:security:inner\"",
-    "test:rules": "firebase emulators:exec --project demo-vide-hub --only firestore,storage \"node --test tests/emulator/firestore-security.test.mjs && node --test tests/emulator/storage-security.test.mjs && node --test tests/functions/emulator/employee-limit.test.mjs && node --test tests/functions/emulator/public-lead-metadata.test.mjs\"",
+    "test:rules": "firebase emulators:exec --project demo-vide-hub --only firestore,storage \"node --test tests/emulator/firestore-security.test.mjs && node --test tests/emulator/storage-security.test.mjs && node --test tests/functions/emulator/employee-limit.test.mjs && node --test tests/functions/emulator/public-lead-metadata.test.mjs && node --test tests/functions/emulator/release-train-integration.test.mjs\"",
     "test:functions": "node --test tests/functions/*.test.mjs",
     "test:frontend:emulator": "firebase emulators:exec --project demo-vide-hub --only auth,firestore,functions \"node scripts/seed-emulator.mjs --local-defaults && node tests/emulator/frontend-emulator-smoke.mjs && node tests/emulator/whatsapp-hardening.smoke.mjs\"",
     "test:ui:login": "firebase emulators:exec --project demo-vide-hub --only auth,firestore,functions \"node scripts/seed-emulator.mjs --local-defaults && node tests/emulator/ui/login.smoke.mjs && node tests/emulator/ui/profiles.smoke.mjs\"",
