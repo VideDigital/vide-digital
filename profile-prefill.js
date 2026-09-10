@@ -409,7 +409,7 @@
     async function obterServicosFirebase() {
         var modulos = await Promise.all([
             import("./firebase-init.js"),
-            import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js")
+            import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js")
         ]);
 
         return {
@@ -4526,7 +4526,7 @@
             var firebase = await import("./firebase-init.js");
             if (firebase.auth?.currentUser?.uid) return firebase.auth.currentUser.uid;
 
-            var authSdk = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+            var authSdk = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js");
             return await new Promise(function(resolve) {
                 var timeout = setTimeout(function() { resolve(""); }, 4000);
                 var unsubscribe = authSdk.onAuthStateChanged(firebase.auth, function(usuario) {
@@ -4603,7 +4603,7 @@
 
             var modulos = await Promise.all([
                 import("./firebase-init.js"),
-                import("https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js")
+                import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js")
             ]);
             var firebase = modulos[0];
             var firestore = modulos[1];
@@ -5714,10 +5714,10 @@
             var modulos = await Promise.all([
                 import("./firebase-init.js"),
                 import(
-                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js"
+                    "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js"
                 ),
                 import(
-                    "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js"
+                    "https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js"
                 )
             ]);
 
