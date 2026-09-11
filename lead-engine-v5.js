@@ -15,7 +15,8 @@ import {
     query,
     setDoc,
     where,
-    writeBatch
+    writeBatch,
+    runTransaction
 } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
 import {
     PIPELINE_STAGES,
@@ -40,7 +41,8 @@ import {
     numericValue,
     formatMoney,
     computeScore,
-    temperatureFor
+    temperatureFor,
+    mergeLeadCommercialFields
 } from "./lead-engine-core.js";
 
 const VERSION = "6.2.0";
@@ -1176,7 +1178,7 @@ function closeDetail() {
     });
 }
 
-function handleRealtimeSnapshot(snapshot) {
+function handleRealtimeSnapshot(snapshot, options = {}) {
     const wasReady = state.realtimeReady;
     const previousIds = state.knownLeadIds;
     const normalized = snapshot.docs
@@ -1217,7 +1219,7 @@ function handleRealtimeSnapshot(snapshot) {
 
     if (added.length) notifyNewLeads(added);
 
-    if (!wasReady && state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
+    if (!wasReady && !options.skipAutomations && state.automation.runOnRefresh && state.canEdit && !state.automationRunning) {
         runAutomations({ silent: true, skipRender: true });
     }
 }
@@ -1265,7 +1267,7 @@ function loadLeads(options = {}) {
 
     state.unsubscribeLeads = onSnapshot(
         leadsQuery,
-        handleRealtimeSnapshot,
+        snapshot => handleRealtimeSnapshot(snapshot, { skipAutomations: Boolean(options?.skipAutomations) }),
         (error) => {
             state.loading = false;
             state.unsubscribeLeads = null;
@@ -2182,13 +2184,11 @@ async function applyBulkAction(action) {
                 lead,
                 makeHistoryEvent("bulk", title, detail)
             );
-            Object.assign(lead, updates);
-            Object.assign(lead, normalizeLead(lead));
             return { id: lead.id, data: updates };
         });
 
-        await commitLeadPatches(patches);
-        state.selectedIds.clear();
+        const appliedIds = await commitLeadPatches(patches);
+        appliedIds.forEach(id => state.selectedIds.delete(id));
         refreshLeadCollections();
         state.bulkRunning = false;
         render();
@@ -2196,8 +2196,11 @@ async function applyBulkAction(action) {
     } catch (error) {
         state.bulkRunning = false;
         console.error("[Aura Leads V6] Falha na ação em massa:", error);
+        (error.appliedIds || []).forEach(id => state.selectedIds.delete(id));
+        refreshLeadCollections();
+        loadLeads({ force: true });
         render();
-        toast("Não foi possível concluir a ação em massa.", "error");
+        toast(leadBatchFailureMessage(error), "error");
     }
 }
 
@@ -2715,8 +2718,10 @@ async function normalizeStoredLeads() {
     } catch (error) {
         state.schemaMigrationRunning = false;
         console.error("[Aura Leads V6.2] Falha ao padronizar base:", error);
+        refreshLeadCollections();
+        loadLeads({ force: true });
         render();
-        toast("Não foi possível padronizar toda a base.", "error");
+        toast(leadBatchFailureMessage(error), "error");
     }
 }
 
@@ -2741,19 +2746,38 @@ function openWhatsapp(lead, message = "") {
 }
 
 async function commitLeadPatches(patches) {
-    const safePatches = patches.filter((patch) => {
-        const lead = findLead(patch.id);
-        return lead && String(lead.criadoPor || "") === state.ownerUid;
-    });
-
-    for (let index = 0; index < safePatches.length; index += MAX_BATCH_SIZE) {
-        const chunk = safePatches.slice(index, index + MAX_BATCH_SIZE);
-        const batch = writeBatch(db);
-        chunk.forEach((patch) => {
-            batch.set(doc(db, "leads", patch.id), patch.data, { merge: true });
-        });
-        await batch.commit();
+    const ownerUid = state.ownerUid;
+    const appliedIds = [];
+    try {
+        if (patches.some((patch) => String(findLead(patch.id)?.criadoPor || "") !== ownerUid)) {
+            throw new Error("Seleção contém lead indisponível para esta loja.");
+        }
+        for (let index = 0; index < patches.length; index += MAX_BATCH_SIZE) {
+            if (state.ownerUid !== ownerUid) throw new Error("A loja ativa mudou durante a operação.");
+            const chunk = patches.slice(index, index + MAX_BATCH_SIZE);
+            const batch = writeBatch(db);
+            chunk.forEach((patch) => batch.set(doc(db, "leads", patch.id), patch.data, { merge: true }));
+            await batch.commit();
+            for (const patch of chunk) {
+                appliedIds.push(patch.id);
+                if (state.ownerUid !== ownerUid) continue;
+                const lead = findLead(patch.id);
+                if (lead) {
+                    Object.assign(lead, patch.data);
+                    Object.assign(lead, normalizeLead(lead));
+                }
+            }
+        }
+        return appliedIds;
+    } catch (error) {
+        error.appliedIds = appliedIds;
+        error.unconfirmedCount = patches.length - appliedIds.length;
+        throw error;
     }
+}
+
+function leadBatchFailureMessage(error) {
+    return `${error.appliedIds?.length || 0} lead(s) confirmados; ${error.unconfirmedCount ?? "outros"} sem confirmação. Atualizando a lista antes de repetir.`;
 }
 
 async function recalculateAllScores() {
@@ -2771,8 +2795,6 @@ async function recalculateAllScores() {
         const patches = state.leads.map((lead) => {
             const score = computeScore(lead);
             const temperature = temperatureFor(score, TEMPERATURES);
-            lead.leadScore = score;
-            lead.temperaturaLead = temperature;
             return {
                 id: lead.id,
                 data: { leadScore: score, temperaturaLead: temperature, scoreAtualizadoEm: timestamp }
@@ -2786,7 +2808,9 @@ async function recalculateAllScores() {
         toast("Scores recalculados.");
     } catch (error) {
         console.error("[Aura Leads V6] Falha ao recalcular scores:", error);
-        toast("Não foi possível recalcular os scores.", "error");
+        refreshLeadCollections();
+        loadLeads({ force: true });
+        toast(leadBatchFailureMessage(error), "error");
         render();
     }
 }
@@ -2839,8 +2863,6 @@ async function runAutomations(options = {}) {
             );
 
             patches.push({ id: lead.id, data: updates });
-            Object.assign(lead, updates);
-            Object.assign(lead, normalizeLead(lead));
         });
 
         if (patches.length) {
@@ -2859,61 +2881,82 @@ async function runAutomations(options = {}) {
     } catch (error) {
         state.automationRunning = false;
         console.error("[Aura Leads V6] Falha nas automações:", error);
+        refreshLeadCollections();
+        // Reconcile confirmed server state without retrying the same rejected
+        // automatic writes on the new subscription's first snapshot.
+        loadLeads({ force: true, skipAutomations: true });
         if (!options.skipRender) render();
-        if (!options.silent) toast("Não foi possível executar as automações.", "error");
+        if (!options.silent) toast(leadBatchFailureMessage(error), "error");
         return 0;
     }
 }
 
 async function mergeDuplicateGroup(group) {
     if (!state.canEdit) return toast("Seu acesso é somente para consulta.", "error");
+    if (state.mergeRunning) return;
     if (!group?.leads?.length || group.leads.length < 2) return;
+    if (group.leads.length > MAX_BATCH_SIZE) return toast("Selecione no máximo 400 registros por mescla.", "error");
+    const ownerUid = state.ownerUid;
+    const ids = [...new Set(group.leads.map(lead => lead.id))];
+    if (ids.length !== group.leads.length || group.leads.some(lead => lead.criadoPor !== ownerUid)) {
+        return toast("Grupo inválido para esta loja.", "error");
+    }
 
     const confirmed = window.confirm(
         `Mesclar ${group.leads.length} registros? O lead mais recente será mantido e os demais serão arquivados.`
     );
     if (!confirmed) return;
 
-    const [primary, ...duplicates] = group.leads;
-    const combinedHistory = group.leads
-        .flatMap((lead) => Array.isArray(lead.historicoLead) ? lead.historicoLead : lead._history || [])
-        .sort((a, b) => anyTimestamp(a.timestamp) - anyTimestamp(b.timestamp))
-        .slice(-MAX_HISTORY + 1);
-
-    combinedHistory.push(makeHistoryEvent(
-        "merge", "Registros duplicados mesclados",
-        `${duplicates.length} registro(s) arquivado(s).`
-    ));
-
-    const merged = {
-        nome: primary.nome || duplicates.find((lead) => lead.nome)?.nome || "",
-        email: primary.email || duplicates.find((lead) => lead.email)?.email || "",
-        whatsapp: primary.whatsapp || duplicates.find((lead) => lead.whatsapp)?.whatsapp || "",
-        telefone: primary.telefone || duplicates.find((lead) => lead.telefone)?.telefone || "",
-        produtoInteresse: primary.produtoInteresse ||
-            duplicates.find((lead) => lead.produtoInteresse)?.produtoInteresse || "",
-        anotacao: [primary.anotacao, ...duplicates.map((lead) => lead.anotacao)]
-            .filter(Boolean).join("\n\n"),
-        valorOportunidade: Math.max(...group.leads.map((lead) => lead._value), 0),
-        totalSubmissoes: group.leads.reduce(
-            (total, lead) => total + Number(lead.totalSubmissoes || lead.submissoes || 1), 0
-        ),
-        historicoLead: combinedHistory.slice(-MAX_HISTORY),
-        mescladoEm: Date.now(),
-        idsMesclados: duplicates.map((lead) => lead.id)
-    };
-
+    state.mergeRunning = true;
     try {
-        const batch = writeBatch(db);
-        batch.set(doc(db, "leads", primary.id), merged, { merge: true });
+      await runTransaction(db, async (tx) => {
+        const snapshots = await Promise.all(ids.map(id => tx.get(doc(db, "leads", id))));
+        const records = snapshots.map((snapshot, index) => {
+            if (!snapshot.exists() || snapshot.data().criadoPor !== ownerUid) throw new Error("Lead indisponível nesta loja.");
+            return { ...snapshot.data(), id: ids[index] };
+        });
+        const [primary, ...duplicates] = records;
+        if (duplicates.every(lead => lead.arquivado && lead.duplicadoDe === primary.id)) return;
+        if (records.some(lead => lead.arquivado || lead.lixeira)) throw new Error("Um registro foi arquivado ou excluído. Atualize a lista.");
+        const commercial = mergeLeadCommercialFields(records);
+            const combinedHistory = records
+                .flatMap((lead) => Array.isArray(lead.historicoLead) ? lead.historicoLead : lead._history || [])
+                .sort((a, b) => anyTimestamp(a.timestamp) - anyTimestamp(b.timestamp))
+                .slice(-MAX_HISTORY + 1);
+
+            combinedHistory.push(makeHistoryEvent(
+                "merge", "Registros duplicados mesclados",
+                `${duplicates.length} registro(s) arquivado(s).`
+            ));
+
+            const merged = {
+                nome: primary.nome || duplicates.find((lead) => lead.nome)?.nome || "",
+                email: primary.email || duplicates.find((lead) => lead.email)?.email || "",
+                whatsapp: primary.whatsapp || duplicates.find((lead) => lead.whatsapp)?.whatsapp || "",
+                telefone: primary.telefone || duplicates.find((lead) => lead.telefone)?.telefone || "",
+                produtoInteresse: primary.produtoInteresse ||
+                    duplicates.find((lead) => lead.produtoInteresse)?.produtoInteresse || "",
+                anotacao: [primary.anotacao, ...duplicates.map((lead) => lead.anotacao)]
+                    .filter(Boolean).join("\n\n"),
+                valorOportunidade: Math.max(...records.map((lead) => numericValue(lead.valorOportunidade)), 0),
+                totalSubmissoes: records.reduce(
+                    (total, lead) => total + Number(lead.totalSubmissoes || lead.submissoes || 1), 0
+                ),
+                historicoLead: combinedHistory.slice(-MAX_HISTORY),
+                mescladoEm: Date.now(),
+                ...commercial
+            };
+
+        tx.set(doc(db, "leads", primary.id), merged, { merge: true });
         duplicates.forEach((duplicate) => {
-            batch.set(doc(db, "leads", duplicate.id), {
+            tx.set(doc(db, "leads", duplicate.id), {
                 arquivado: true,
                 duplicadoDe: primary.id,
                 mescladoEm: Date.now()
             }, { merge: true });
         });
-        await batch.commit();
+      });
+        if (state.ownerUid !== ownerUid) return;
         state.selectedLeadId = "";
         loadLeads({ force: true });
         state.activeTab = "duplicates";
@@ -2922,7 +2965,9 @@ async function mergeDuplicateGroup(group) {
         toast("Duplicidades mescladas.");
     } catch (error) {
         console.error("[Aura Leads V6] Falha ao mesclar duplicidades:", error);
-        toast("Não foi possível mesclar os registros.", "error");
+        toast(error.code === "merge-conflict" ? error.message : "Não foi possível mesclar os registros. Atualize a lista e revise os dados.", "error");
+    } finally {
+        state.mergeRunning = false;
     }
 }
 
