@@ -1356,7 +1356,8 @@ service cloud.firestore {
         "pedidoSnapshot.clienteWhatsapp", "pedidoSnapshot.clienteEmail", "pedidoSnapshot.tipoRecebimento", "pedidoSnapshot.cep",
         "pedidoSnapshot.endereco", "pedidoSnapshot.observacoes", "pedidoSnapshot.produtosTexto", "pedidoSnapshot.itens",
         "pedidoSnapshot.subtotal",
-        "clienteId", "versaoSchema", "schemaVersion", "padronizadoEm", "padronizadoPorUid", "lembreteTimestamp"
+        "clienteId", "versaoSchema", "schemaVersion", "padronizadoEm", "padronizadoPorUid", "lembreteTimestamp",
+        "visualizadoPorUid", "visualizadoPorNome"
       ];
     }
     function leadText(data, changed, field, maximum) {
@@ -1374,6 +1375,13 @@ service cloud.firestore {
     function leadBool(data, changed, field) {
       return !changed.hasAny([field]) || !(field in data) || data[field] is bool;
     }
+    // Read-receipt actor: presentation metadata only, never used for
+    // authorization. The UID still must be the caller's own — otherwise a
+    // tenant editor could stamp an arbitrary uid as who viewed the lead.
+    function leadOwnUid(data, changed, field) {
+      return !changed.hasAny([field]) || !(field in data)
+        || (data[field] is string && data[field] == request.auth.uid);
+    }
     function validLeadSchema(data, changed) {
       return changed.hasOnly(leadWritableFields())
         && leadText(data, changed, "nome", 160)
@@ -1390,10 +1398,13 @@ service cloud.firestore {
         && leadNumber(data, changed, "probabilidade", 100)
         && leadNumber(data, changed, "leadScore", 100)
         && leadNumber(data, changed, "valorOportunidade", 1000000000000)
+        && leadNumber(data, changed, "visualizadoEm", 99999999999999)
         && leadMap(data, changed, "camposExtras")
         && leadMap(data, changed, "camposExtrasMeta")
         && leadBool(data, changed, "arquivado")
         && leadBool(data, changed, "lixeira")
+        && leadOwnUid(data, changed, "visualizadoPorUid")
+        && leadText(data, changed, "visualizadoPorNome", 120)
         && (!changed.hasAny(["tenantId"]) || !("tenantId" in data) || data.tenantId == data.criadoPor)
         && (!changed.hasAny(["lojaId"]) || !("lojaId" in data) || data.lojaId == data.criadoPor);
     }
