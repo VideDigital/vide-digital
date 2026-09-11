@@ -27,6 +27,183 @@ import {
 const PROJECT_ID = "demo-vide-hub";
 let testEnv;
 
+describe("ASTRA CRM-010/012: lead integrity and tenant SLA", () => {
+  it("rejects malformed commercial fields on CREATE and UPDATE, but retains untouched legacy", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    for (const [index, patch] of [{ probabilidade: 101 }, { valorOportunidade: {} }, { camposExtras: [] }, { nome: [] }, { arquivado: "true" }, { inventedField: true }, { tenantId: "ownerB" }].entries()) {
+      await assertFails(setDoc(doc(db, "leads", `astra-invalid-${index}`), { criadoPor: "ownerA", ...patch }));
+    }
+    await testEnv.withSecurityRulesDisabled(async context => setDoc(doc(context.firestore(), "leads", "astra-legacy"), { criadoPor: "ownerA", probabilidade: "old", unknownLegacy: true }));
+    await assertSucceeds(updateDoc(doc(db, "leads", "astra-legacy"), { anotacao: "Still editable", valorOportunidade: 0.5 }));
+    await assertFails(updateDoc(doc(db, "leads", "astra-legacy"), { probabilidade: 101 }));
+    await assertSucceeds(deleteDoc(doc(db, "leads", "astra-legacy")));
+  });
+  it("retains existing dashboard activity, template and follow-up writers", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const ref = doc(db, "leads", "astra-dashboard");
+    await assertSucceeds(setDoc(ref, { criadoPor: "ownerA", nome: "Test" }));
+    await assertSucceeds(updateDoc(ref, { historicoAtividades: [{ tipo: "nota", texto: "Test" }], historicoAtualizadoEm: serverTimestamp() }));
+    await assertSucceeds(updateDoc(ref, { ultimoTemplateId: "t1", ultimoTemplateTitulo: "Follow-up", fluxoTemplateExecutadoEm: serverTimestamp(), motivoFollowup: "Retornar" }));
+    await assertSucceeds(updateDoc(ref, { anotacao: "nota", anotacaoAtualizadaEm: Date.now(), telefone: "11912345678", contatoAtualizadoEm: Date.now(), proximoContatoEm: null, followupAtualizadoEm: Date.now(), followupConcluidoEm: Date.now(), statusLead: "novo", statusAtualizadoEm: Date.now() }));
+  });
+  it("accepts the complete current order-to-lead writer payload", async () => {
+    const source = fs.readFileSync("orders-engine-v1.js", "utf8");
+    const start = source.indexOf("const leadPatch = {");
+    const end = source.indexOf('if (leadStatus === "convertido")', start);
+    const patch = new Function("legacyId", "merged", "num", "history", "leadStatus", source.slice(start, end) + "; return leadPatch;")("order", { status: "confirmado", payment: "pendente", total: 99, subtotal: 99, items: [] }, value => Number(value) || 0, [], "em_contato");
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const ref = doc(db, "leads", "astra-order");
+    await assertSucceeds(setDoc(ref, { criadoPor: "ownerA", pedidoSnapshot: { total: 99 } }));
+    await assertSucceeds(setDoc(ref, patch, { merge: true }));
+  });
+  it("SLA configuration: owner/editor read-write, reader read-only, other tenant denied", async () => {
+    await testEnv.withSecurityRulesDisabled(async context => {
+      await setDoc(doc(context.firestore(), "funcionarios", "astra-editor"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
+      await setDoc(doc(context.firestore(), "funcionarios", "astra-reader"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: [] } });
+      await setDoc(doc(context.firestore(), "funcionarios", "astra-inactive"), { donoUID: "ownerA", status: "inativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
+    });
+    const ref = uid => doc(testEnv.authenticatedContext(uid).firestore(), "lead_settings", "ownerA");
+    await assertSucceeds(setDoc(ref("ownerA"), { slaMinutes: 120 }));
+    await assertSucceeds(getDoc(ref("astra-reader")));
+    await assertSucceeds(updateDoc(ref("astra-editor"), { slaMinutes: 60 }));
+    await assertFails(updateDoc(ref("astra-reader"), { slaMinutes: 30 }));
+    await assertFails(getDoc(ref("ownerB")));
+    await assertFails(setDoc(ref("ownerB"), { slaMinutes: 30 }));
+    await assertFails(getDoc(ref("astra-inactive")));
+    await assertFails(updateDoc(ref("astra-inactive"), { slaMinutes: 30 }));
+    await assertFails(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "lead_settings", "ownerA")));
+    await assertFails(deleteDoc(ref("astra-reader")));
+    await assertFails(setDoc(ref("ownerA"), { slaMinutes: 4 }));
+    await assertFails(setDoc(ref("ownerA"), { slaMinutes: 1441 }));
+    await assertFails(setDoc(ref("ownerA"), { slaMinutes: 30, spoof: true }));
+    await assertSucceeds(deleteDoc(ref("ownerA")));
+  });
+});
+
+describe("PR76-REV-001: lead viewed metadata (visualizadoEm/visualizadoPorUid/visualizadoPorNome) stays writable", () => {
+  beforeEach(async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "leads", "viewed-a"), { criadoPor: "ownerA", nome: "Lead A" });
+      await setDoc(doc(db, "leads", "viewed-a2"), { criadoPor: "ownerA", nome: "Lead A2" });
+      await setDoc(doc(db, "leads", "viewed-b"), { criadoPor: "ownerB", nome: "Lead B" });
+      await setDoc(doc(db, "leads", "viewed-legacy"), { criadoPor: "ownerA", nome: "Legacy", probabilidade: "old" });
+      await setDoc(doc(db, "funcionarios", "pr76-editor"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
+      await setDoc(doc(db, "funcionarios", "pr76-reader"), { donoUID: "ownerA", status: "ativo", permissoes: { ver: ["leads"], editar: [] } });
+      await setDoc(doc(db, "funcionarios", "pr76-inactive"), { donoUID: "ownerA", status: "inativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
+    });
+  });
+
+  it("1) owner marca lead como visualizado", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "Dono da Loja"
+    }));
+  });
+
+  it("2) employee com permissão de editar leads: PASS", async () => {
+    const db = testEnv.authenticatedContext("pr76-editor").firestore();
+    await assertSucceeds(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "pr76-editor", visualizadoPorNome: "Funcionário Editor"
+    }));
+  });
+
+  it("3) employee somente leitura: DENY", async () => {
+    const db = testEnv.authenticatedContext("pr76-reader").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "pr76-reader", visualizadoPorNome: "Funcionário Leitor"
+    }));
+  });
+
+  it("4) employee inativo: DENY", async () => {
+    const db = testEnv.authenticatedContext("pr76-inactive").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "pr76-inactive", visualizadoPorNome: "Ex-funcionário"
+    }));
+  });
+
+  it("5) tenant A não atualiza lead do tenant B: DENY", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-b"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "Dono da Loja"
+    }));
+  });
+
+  it("6) spoof de visualizadoPorUid com UID de outra pessoa: DENY", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "pr76-editor", visualizadoPorNome: "Falsificado"
+    }));
+  });
+
+  it("7) visualizadoPorNome inválido (tipo errado ou tamanho excessivo): DENY", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: 12345
+    }));
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a2"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "x".repeat(121)
+    }));
+  });
+
+  it("8) campo desconhecido junto do payload de visualização: DENY", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "Dono da Loja", campoInventado: true
+    }));
+  });
+
+  it("9) payload real emitido por markLeadViewed(): PASS", async () => {
+    // Espelha exatamente o setDoc(..., {merge:true}) de markLeadViewed() em lead-engine-v5.js.
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(setDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: Date.now(),
+      visualizadoPorUid: "ownerA",
+      visualizadoPorNome: "Equipe"
+    }, { merge: true }));
+  });
+
+  it("10) payload equivalente ao de markAllRead() para um único lead: PASS", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const viewedAt = Date.now();
+    await assertSucceeds(setDoc(doc(db, "leads", "viewed-a"), {
+      visualizadoEm: viewedAt, visualizadoPorUid: "ownerA", visualizadoPorNome: "Equipe"
+    }, { merge: true }));
+  });
+
+  it("11) múltiplos leads no cenário equivalente a markAllRead(): PASS", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    const viewedAt = Date.now();
+    const patch = { visualizadoEm: viewedAt, visualizadoPorUid: "ownerA", visualizadoPorNome: "Equipe" };
+    await assertSucceeds(setDoc(doc(db, "leads", "viewed-a"), patch, { merge: true }));
+    await assertSucceeds(setDoc(doc(db, "leads", "viewed-a2"), patch, { merge: true }));
+  });
+
+  it("12) documento legado com campo malformado não relacionado + só metadata de visualização alterada: PASS", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "leads", "viewed-legacy"), {
+      visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "Dono da Loja"
+    }));
+  });
+
+  it("13) alteração de criadoPor junto com metadata de visualização: DENY", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertFails(updateDoc(doc(db, "leads", "viewed-a"), {
+      criadoPor: "ownerB", visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "Dono da Loja"
+    }));
+  });
+
+  it("14) CREATE autenticado com metadata de visualização obedece o mesmo request.auth.uid, sem spoof", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(setDoc(doc(db, "leads", "viewed-create-ok"), {
+      criadoPor: "ownerA", nome: "Novo", visualizadoEm: Date.now(), visualizadoPorUid: "ownerA", visualizadoPorNome: "Dono da Loja"
+    }));
+    await assertFails(setDoc(doc(db, "leads", "viewed-create-spoof"), {
+      criadoPor: "ownerA", nome: "Novo", visualizadoEm: Date.now(), visualizadoPorUid: "pr76-editor", visualizadoPorNome: "Falsificado"
+    }));
+  });
+});
+
 before(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,

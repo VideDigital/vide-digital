@@ -711,23 +711,81 @@ function teardownModalLifecycle() {
         state.unsubscribeLeads();
     }
     state.unsubscribeLeads = null;
+    state.slaGeneration = (state.slaGeneration || 0) + 1;
+    state.slaLoaded = false;
+    state.unsubscribeSLA?.();
+    state.unsubscribeSLA = null;
     state.lifecycleController?.abort();
     state.lifecycleController = null;
     state.previouslyFocusedElement = null;
     if (state.searchTimer) clearTimeout(state.searchTimer);
 }
 
-function loadSLA() {
-    const saved = Number(localStorage.getItem(`${STORAGE_PREFIX}sla_${state.ownerUid}`));
-    state.slaMinutes = Number.isFinite(saved) && saved >= 5 ? Math.min(1440, saved) : 30;
+async function loadSLA() {
+    const ownerUid = state.ownerUid;
+    const generation = state.slaGeneration = (state.slaGeneration || 0) + 1;
+    const current = () => state.ownerUid === ownerUid && state.slaGeneration === generation;
+    let receivedSnapshot = false;
+    const apply = (snapshot) => {
+        if (!current()) return;
+        if (snapshot.metadata?.hasPendingWrites) return;
+        const saved = snapshot.exists() ? snapshot.data().slaMinutes : 30;
+        state.slaMinutes = Number.isInteger(saved) && saved >= 5 && saved <= 1440 ? saved : 30;
+        state.slaLoaded = snapshot.metadata?.fromCache !== true;
+        if (state.initialized) {
+            state.allLeads = state.allLeads.map(normalizeLead);
+            refreshLeadCollections();
+            render();
+        }
+        const input = document.getElementById("aura-leads-v5-sla");
+        if (input) { input.value = String(state.slaMinutes); input.disabled = !state.canEdit; }
+    };
+    state.slaLoaded = false;
+    try {
+        const ref = doc(db, "lead_settings", ownerUid);
+        state.unsubscribeSLA?.();
+        state.unsubscribeSLA = onSnapshot(ref, { includeMetadataChanges: true }, snapshot => {
+            receivedSnapshot = true;
+            apply(snapshot);
+        }, (error) => {
+            if (!current()) return;
+            state.slaLoaded = false;
+            state.unsubscribeSLA = null;
+            state.slaGeneration++;
+            console.warn("[Aura Leads] SLA não sincronizado:", error);
+        });
+        const initial = await getDoc(ref);
+        if (!receivedSnapshot) apply(initial);
+    } catch (error) {
+        if (!current()) return;
+        console.warn("[Aura Leads] Não foi possível carregar o SLA:", error);
+        toast("SLA da equipe indisponível. Prioridade automática por SLA está pausada.", "error");
+    }
 }
 
-function saveSLA(value) {
-    state.slaMinutes = Math.max(5, Math.min(1440, Number(value) || 30));
-    localStorage.setItem(`${STORAGE_PREFIX}sla_${state.ownerUid}`, String(state.slaMinutes));
-    state.leads = state.leads.map(normalizeLead);
-    deriveGroups();
-    render();
+async function saveSLA(value) {
+    if (!state.canEdit || state.slaSaving) return;
+    const ownerUid = state.ownerUid;
+    const next = Math.max(5, Math.min(1440, Math.round(Number(value) || 30)));
+    state.slaSaving = true;
+    const control = document.getElementById("aura-leads-v5-sla");
+    if (control) control.disabled = true;
+    try {
+        await setDoc(doc(db, "lead_settings", ownerUid), { slaMinutes: next });
+        if (state.ownerUid !== ownerUid) return;
+        state.slaMinutes = next;
+        state.slaLoaded = true;
+        state.allLeads = state.allLeads.map(normalizeLead);
+        refreshLeadCollections();
+        render();
+    } catch (error) {
+        console.warn("[Aura Leads] SLA não salvo:", error);
+        toast("Não foi possível salvar o SLA da equipe.", "error");
+    } finally {
+        state.slaSaving = false;
+        const input = document.getElementById("aura-leads-v5-sla");
+        if (input) { input.value = String(state.slaMinutes); input.disabled = !state.canEdit; }
+    }
 }
 
 function loadAutomationPreferences() {
@@ -1085,6 +1143,7 @@ function injectModal() {
 
     const sla = workspace.querySelector("#aura-leads-v5-sla");
     sla.value = String(state.slaMinutes);
+    sla.disabled = !state.canEdit;
     sla.addEventListener("change", () => saveSLA(sla.value), { signal });
 
     const content = workspace.querySelector("#aura-leads-v5-content");
@@ -1141,6 +1200,7 @@ function updateActiveTabUI() {
 
 function openModal(options = {}) {
     injectModal();
+    if (!state.unsubscribeSLA && state.canView) loadSLA();
 
     const requestedTab = typeof options === "string"
         ? options
@@ -2835,7 +2895,7 @@ async function runAutomations(options = {}) {
                 reasons.push("lead quente");
             }
 
-            if (state.automation.overduePriority &&
+            if (state.slaLoaded !== false && state.automation.overduePriority &&
                 lead._overdue &&
                 !["convertido", "perdido"].includes(lead._status) &&
                 lead.prioridadeLead !== "alta") {
@@ -3309,9 +3369,9 @@ async function initialize(user) {
     ensureAssetVersion();
     disableLegacyMobileController();
     loadLastSeen();
-    loadSLA();
     loadAutomationPreferences();
     await loadAccessContext(user);
+    if (state.canView) await loadSLA();
     if (state.canView) await loadTeam();
     injectModal();
     updateAccessBadge();
