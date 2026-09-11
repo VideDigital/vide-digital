@@ -377,10 +377,8 @@ async function main() {
         await page.waitForSelector(`[data-open-lead="${leadCriado.id}"]`, { state: "visible", timeout: 20000 });
         await page.click(`[data-open-lead="${leadCriado.id}"]`);
         const detailText = await page.locator(".aura-leads-v6-extra-fields").textContent();
-        // readableExtraFieldLabel("empresa_qa") -> "Empresa qa" (só a
-        // primeira letra maiúscula; não há metadado de label do formulário
-        // salvo junto do lead, só a chave).
-        assert.match(detailText, /Empresa qa/i);
+        assert.equal(leadData.camposExtrasMeta?.empresa_qa?.label, "Empresa QA", "label must come from the published form");
+        assert.match(detailText, /Empresa QA/);
         assert.match(detailText, /EMPRESA-PR60-QA/);
         assert.equal(await page.locator("[data-pr60-smoke-xss]").count(), 0, "payload XSS nunca pode virar elemento HTML real");
         assert.match(detailText, /<img data-pr60-smoke-xss/, "payload XSS precisa aparecer como texto escapado no detalhe");

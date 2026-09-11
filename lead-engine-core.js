@@ -120,7 +120,7 @@ function readableExtraFieldLabel(key) {
 
 // CRM-LEAD-004: contrato de persistência continua sendo um mapa simples.
 // Esta normalização existe apenas no consumer e nunca muta o documento.
-export function normalizeExtraFields(value) {
+export function normalizeExtraFields(value, metadata) {
     if (!value || typeof value !== "object" || Array.isArray(value)) return [];
 
     return Object.entries(value)
@@ -130,14 +130,17 @@ export function normalizeExtraFields(value) {
             if (!key || !scalar) return null;
             const normalizedValue = String(rawValue).trim().slice(0, 500);
             if (!normalizedValue) return null;
-            return { key, label: readableExtraFieldLabel(key), value: normalizedValue };
+            const snapshot = metadata && Object.prototype.hasOwnProperty.call(metadata, key) ? metadata[key] : null;
+            const label = typeof snapshot?.label === "string" && snapshot.label.trim()
+                ? snapshot.label.trim().slice(0, 160) : readableExtraFieldLabel(key);
+            return { key, label, value: normalizedValue };
         })
         .filter(Boolean)
         .sort((a, b) => a.key.localeCompare(b.key, "pt-BR", { sensitivity: "base" }));
 }
 
-export function extraFieldsSearchText(value) {
-    return normalizeExtraFields(value)
+export function extraFieldsSearchText(value, metadata) {
+    return normalizeExtraFields(value, metadata)
         .flatMap((field) => [field.key, field.label, field.value])
         .join(" ");
 }
