@@ -10,6 +10,26 @@ import {
 
 const tenant = { ownerUid: "ownerA", storeSlug: "loja-a", store: { nomeLoja: "Loja A" } };
 
+describe("CRM-LEAD-009 — validate provided contacts at the public boundary", () => {
+  for (const contact of [
+    { email: "x" }, { email: "a@b" }, { email: "a b@example.com" },
+    { whatsapp: "1" }, { telefone: "letters" }, { phone: "123456789" },
+    { whatsapp: "1234567890123456" }, { email: ["a@example.com"] },
+    { whatsapp: { number: "11999998888" } }
+  ]) {
+    it(`rejects malformed contact even with a name: ${JSON.stringify(contact)}`, () => {
+      assert.throws(() => leadPayload({ nome: "Maria", ...contact }, tenant),
+        (error) => error.code === "invalid-argument");
+    });
+  }
+  it("preserves name-only, optional blanks, formatted and international phones", () => {
+    assert.equal(leadPayload({ nome: "Maria", email: "", whatsapp: "" }, tenant).nome, "Maria");
+    assert.equal(leadPayload({ telefone: "+55 (11) 99999-8888" }, tenant).whatsapp, "5511999998888");
+    assert.equal(leadPayload({ phone: "+44 20 7946 0958" }, tenant).whatsapp, "442079460958");
+    assert.equal(leadPayload({ email: " ANA@EXAMPLE.COM " }, tenant).email, "ana@example.com");
+  });
+});
+
 describe("leadPayload — tenant sempre resolvido pelo servidor, nunca pelo payload do visitante", () => {
   it("visitante válido com nome gera um lead completo, atribuído ao tenant resolvido", () => {
     const payload = leadPayload({ nome: "Maria", origem: "instagram", produtoId: "prod1" }, tenant);
