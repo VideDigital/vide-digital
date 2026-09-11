@@ -235,7 +235,7 @@ async function renderizarBlocosNoContainer(container, colecaoBlocos, ordemBlocos
         for (const blocoId of ordemBlocos) {
             const blocoSnap = await getDoc(doc(db, colecaoBlocos, blocoId));
             if (blocoSnap.exists() && blocoSnap.data().visivel !== false) {
-                blocosCarregados.push(blocoSnap.data());
+                blocosCarregados.push({ ...blocoSnap.data(), id: blocoSnap.id });
             }
         }
         if (paginas && paginas.length > 0) {
@@ -293,6 +293,18 @@ ativarAnimacoesDeEntrada(container);
     window.enviarFormularioLP = async function(event) {
         event.preventDefault();
         const form = event.target;
+        if (form.__videLeadSubmitting) return false;
+        const showError = (message) => {
+            let host = form.querySelector("[data-vide-fallback-status]");
+            if (!host) {
+                host = document.createElement("p");
+                host.setAttribute("data-vide-fallback-status", "");
+                host.setAttribute("role", "status");
+                host.className = "text-center text-red-400 text-sm py-4";
+                form.appendChild(host);
+            }
+            host.textContent = message;
+        };
         const dados = {};
         form.querySelectorAll("input").forEach(inp => { dados[inp.placeholder] = inp.value.trim(); });
         const dadosNomeados = Object.fromEntries(Array.from(new FormData(form).entries())
@@ -303,9 +315,13 @@ ativarAnimacoesDeEntrada(container);
         const email = dadosNomeados.email || dados.email || "";
         if (!nome && !whatsapp && !email) return false;
         if (!window.lpPublicPageIdAtual) {
-            form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Esta página ainda não está vinculada a uma loja publicada.</p>';
+            showError("Esta página ainda não está vinculada a uma loja publicada.");
             return false;
         }
+        const submitButtons = Array.from(form.querySelectorAll('button[type="submit"], button:not([type]), input[type="submit"]'));
+        const previousDisabled = submitButtons.map((button) => button.disabled);
+        form.__videLeadSubmitting = true;
+        submitButtons.forEach((button) => { button.disabled = true; });
         try {
             const createPublicLeadCallable = obterCreatePublicLeadCallable();
             const leadRequest = {
@@ -318,6 +334,7 @@ ativarAnimacoesDeEntrada(container);
                 produtoInteresse: document.title || "Landing Page",
                 formularioId: "captura_lp_legado",
                 formularioNome: "Captura pública (LP legado)",
+                blocoOrigem: form.dataset?.blockId || "",
                 urlPagina: window.location.href,
                 referrer: document.referrer || "",
                 cliques: 0,
@@ -333,7 +350,10 @@ ativarAnimacoesDeEntrada(container);
             // reaproveita o mesmo token, então uma falha ambígua (rede
             // caiu depois do servidor já ter commitado) não duplica o lead.
             console.error(err);
-            form.innerHTML = '<p class="text-center text-red-400 text-sm py-4">Erro ao enviar, tenta de novo.</p>';
+            showError("Erro ao enviar, tenta de novo.");
+        } finally {
+            form.__videLeadSubmitting = false;
+            submitButtons.forEach((button, index) => { button.disabled = previousDisabled[index]; });
         }
         return false;
     };
@@ -459,7 +479,7 @@ const lp = snap.docs[0].data();
             conteudoHtml = `
                 <div class="max-w-md mx-auto px-6 ${textAlignClasse}">
                     <h2 class="text-2xl font-bold mb-6">${escapeHTML(bloco.props.titulo)}</h2>
-                    <form class="space-y-3 text-left" onsubmit="return enviarFormularioLP(event)">
+                    <form class="space-y-3 text-left" data-block-id="${escapeAttribute(bloco.id || "")}" onsubmit="return enviarFormularioLP(event)">
                         ${renderizarCamposFormulario(bloco.props.campos)}
 
 

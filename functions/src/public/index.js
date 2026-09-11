@@ -38,27 +38,26 @@ function assertReasonablePayloadSize(data) {
   }
 }
 
-async function assertOwnerActive(ownerUid) {
-  const ownerSnap = await getFirestore().doc(`usuarios/${ownerUid}`).get();
+async function assertOwnerActive(ownerUid, read = (path) => getFirestore().doc(path).get()) {
+  const ownerSnap = await read(`usuarios/${ownerUid}`);
   if (!ownerSnap.exists || ownerSnap.data()?.status !== "aprovado") {
     throw new HttpsError("failed-precondition", "Loja indisponível.");
   }
 }
 
-async function resolvePublicTenant(data) {
-  const db = getFirestore();
+async function resolvePublicTenant(data, read = (path) => getFirestore().doc(path).get()) {
   const storeSlug = normalizeString(data?.storeSlug || data?.lojaSlug, 160).toLowerCase();
   const publicPageId = normalizeString(data?.publicPageId || data?.pageId, 220);
 
   if (storeSlug) {
-    const snap = await db.doc(`vitrines_publicas/${storeSlug}`).get();
+    const snap = await read(`vitrines_publicas/${storeSlug}`);
     if (!snap.exists) throw new HttpsError("not-found", "Loja pública não encontrada.");
     const store = { id: snap.id, ...snap.data() };
     if (!store.donoUID && !store.emailDono) {
       throw new HttpsError("failed-precondition", "Loja sem tenant público válido.");
     }
     const ownerUid = store.donoUID || store.emailDono;
-    await assertOwnerActive(ownerUid);
+    await assertOwnerActive(ownerUid, read);
     return {
       ownerUid,
       storeSlug,
@@ -68,11 +67,11 @@ async function resolvePublicTenant(data) {
   }
 
   if (publicPageId) {
-    const snap = await db.doc(`landing_pages_publicas/${publicPageId}`).get();
+    const snap = await read(`landing_pages_publicas/${publicPageId}`);
     if (!snap.exists) throw new HttpsError("not-found", "Landing Page pública não encontrada.");
     const page = { id: snap.id, ...snap.data() };
     if (!page.donoUID) throw new HttpsError("failed-precondition", "Landing Page sem tenant.");
-    await assertOwnerActive(page.donoUID);
+    await assertOwnerActive(page.donoUID, read);
     return {
       ownerUid: page.donoUID,
       publicPageId,
@@ -144,6 +143,46 @@ function sanitizeOrderSnapshot(bruto, data) {
 }
 
 const MAX_CAMPOS_EXTRAS = 20;
+const RESERVED_EXTRA_KEYS = new Set(["__proto__", "prototype", "constructor", "website", "nome", "name", "email", "whatsapp", "telefone", "phone"]);
+
+// Snapshot of the published schema read in the creation transaction. The
+// visitor's metadata is never authoritative. This is not a revision history
+// of a form that might have been open before the owner republished it.
+async function snapshotLeadFieldMetadata(data, tenant, read) {
+  if (tenant.sourceType !== "landing-page") return {};
+  const extras = sanitizeCamposExtras(data?.camposExtras);
+  if (!Object.keys(extras).length) return {};
+  const order = Array.isArray(tenant.page?.ordemBlocos) ? tenant.page.ordemBlocos : [];
+  const ids = [...new Set(order.filter((id) => typeof id === "string" && id && !id.includes("/")))];
+  const hint = normalizeString(data?.blocoOrigem || data?.blockId, 180);
+  if (hint && !ids.includes(hint)) return {};
+  // Legacy clients without a block hint get metadata only from an
+  // unambiguous form. Bound the fallback reads without widening public access.
+  const candidates = hint ? [hint] : ids.length <= 225 ? ids : [];
+  const forms = [];
+  for (const id of candidates) {
+    const snap = await read(`landing_pages_blocos_publicas/${id}`);
+    if (!snap.exists) continue;
+    const block = snap.data();
+    if (block?.donoUID !== tenant.ownerUid) {
+      throw new HttpsError("failed-precondition", "Formulário público inconsistente.");
+    }
+    if (block.tipo !== "formulario_captura" || !Array.isArray(block.props?.campos)) continue;
+    const fields = {};
+    const duplicates = new Set();
+    for (const field of block.props.campos) {
+      if (!field || typeof field !== "object" || Array.isArray(field)) continue;
+      const key = field.name;
+      if (typeof key !== "string" || !/^[a-z0-9_]{1,60}$/.test(key) || RESERVED_EXTRA_KEYS.has(key) || !Object.hasOwn(extras, key)) continue;
+      if (Object.hasOwn(fields, key)) { duplicates.add(key); continue; }
+      if (typeof field.label !== "string" || !field.label.trim()) continue;
+      fields[key] = { label: field.label.trim().slice(0, 160) };
+    }
+    for (const key of duplicates) delete fields[key];
+    if (Object.keys(fields).length) forms.push(fields);
+  }
+  return forms.length === 1 ? forms[0] : {};
+}
 
 // camposExtras vem de qualquer campo customizado que o dono da LP tenha
 // adicionado ao formulário (AuraFormsV5) — nomes e valores nunca são
@@ -157,7 +196,7 @@ function sanitizeCamposExtras(value) {
     if (count >= MAX_CAMPOS_EXTRAS) break;
     const nomeCampo = normalizeString(key, 60);
     const valorCampo = publicText(raw, 500);
-    if (!nomeCampo || !valorCampo) continue;
+    if (!nomeCampo || !valorCampo || ["__proto__", "prototype", "constructor"].includes(nomeCampo)) continue;
     output[nomeCampo] = valorCampo;
     count += 1;
   }
@@ -166,8 +205,17 @@ function sanitizeCamposExtras(value) {
 
 function leadPayload(data, tenant) {
   const nome = publicText(data?.nome || data?.name, 120);
-  const whatsapp = normalizePhone(data?.whatsapp || data?.telefone || data?.phone);
+  const rawPhone = data?.whatsapp || data?.telefone || data?.phone;
+  const rawEmail = data?.email;
+  const provided = (value) => value != null && String(value).trim() !== "";
+  const whatsapp = normalizePhone(rawPhone);
   const email = normalizeEmail(data?.email);
+  if (provided(rawEmail) && (typeof rawEmail !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))) {
+    throw new HttpsError("invalid-argument", "Informe um e-mail válido.");
+  }
+  if (provided(rawPhone) && (typeof rawPhone !== "string" || !/^\d{10,15}$/.test(whatsapp))) {
+    throw new HttpsError("invalid-argument", "Informe um telefone válido com DDD.");
+  }
   if (!nome && !whatsapp && !email) {
     throw new HttpsError("invalid-argument", "Informe ao menos um dado de contato.");
   }
@@ -304,30 +352,32 @@ function dedupeCreatedAtMillis(data) {
 // não tem nenhuma regra de acesso liberada em firestore.rules (cai no
 // catch-all "allow read, write: if false" do fim do arquivo) — só o Admin
 // SDK, usado aqui, consegue ler/escrever nele.
-async function createLeadIdempotent(payload, tenant, rawDedupeKey) {
-  const db = getFirestore();
-  const dedupeHash = computeLeadDedupeHash(tenant, rawDedupeKey);
-
-  if (!dedupeHash) {
-    const ref = await db.collection("leads").add(payload);
-    return ref.id;
-  }
-
-  const dedupeRef = db.collection("lead_dedupes").doc(dedupeHash);
+async function createLeadIdempotent(data, db = getFirestore()) {
   const leadRef = db.collection("leads").doc();
   const now = Date.now();
 
   return db.runTransaction(async (tx) => {
-    const dedupeSnap = await tx.get(dedupeRef);
-    if (dedupeSnap.exists) {
-      const data = dedupeSnap.data() || {};
-      if (data.leadId && now - dedupeCreatedAtMillis(data) < LEAD_DEDUPE_WINDOW_MS) {
-        return data.leadId;
+    const read = (path) => tx.get(db.doc(path));
+    const tenant = await resolvePublicTenant(data, read);
+    if (tenant.sourceType === "landing-page" && tenant.page.publicado !== true) {
+      throw new HttpsError("failed-precondition", "Landing Page não publicada.");
+    }
+    const payload = leadPayload(data, tenant);
+    const dedupeHash = computeLeadDedupeHash(tenant, data?.dedupeKey);
+    const dedupeRef = dedupeHash ? db.collection("lead_dedupes").doc(dedupeHash) : null;
+    if (dedupeRef) {
+      const dedupeSnap = await tx.get(dedupeRef);
+      if (dedupeSnap.exists) {
+        const previous = dedupeSnap.data() || {};
+        if (previous.leadId && now - dedupeCreatedAtMillis(previous) < LEAD_DEDUPE_WINDOW_MS) {
+          return previous.leadId;
+        }
       }
     }
-
+    const metadata = await snapshotLeadFieldMetadata(data, tenant, read);
+    if (Object.keys(metadata).length) payload.camposExtrasMeta = metadata;
     tx.set(leadRef, payload);
-    tx.set(dedupeRef, {
+    if (dedupeRef) tx.set(dedupeRef, {
       leadId: leadRef.id,
       tenantId: tenant.ownerUid,
       criadoEm: Timestamp.fromMillis(now),
@@ -368,13 +418,11 @@ async function createLeadIdempotent(payload, tenant, rawDedupeKey) {
 const createPublicLead = onCall({ ...publicOptions, enforceAppCheck: false }, async (request) => {
   await assertPublicRateLimit(request, "createPublicLead", RATE_LIMITS.createPublicLead);
   assertReasonablePayloadSize(request.data);
-  const tenant = await resolvePublicTenant(request.data || {});
-  const payload = leadPayload(request.data || {}, tenant);
   // CRM-LEAD-008: idempotente dentro da janela de dedupe — mesma
   // retentativa legítima (rede falhou depois de já ter criado no
   // servidor, cliente tenta de novo) não duplica o lead. Ver
   // createLeadIdempotent acima.
-  const leadId = await createLeadIdempotent(payload, tenant, request.data?.dedupeKey);
+  const leadId = await createLeadIdempotent(request.data || {});
   // Sem writeAudit() aqui: auditLeadsWrite (trigger em leads/{id}) já
   // audita a criação, com actorType "unknown"/"unauthenticated" derivado
   // do Auth Context real da escrita (esta Function não passa por auth de
@@ -551,6 +599,8 @@ module.exports = {
   // Funções puras exportadas só para teste unitário direto (sem emulador)
   // de tests/functions/public-lead.test.mjs e tests/functions/public-review.test.mjs.
   leadPayload,
+  snapshotLeadFieldMetadata,
+  createLeadIdempotent,
   sanitizeOrderSnapshot,
   sanitizeCamposExtras,
   reviewPayload,
