@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 import "./lead-settings.test.mjs";
 import { readFileSync } from "node:fs";
 import { describe, it } from "node:test";
+import { viewedWriterController } from "./lead-viewed-writer-harness.mjs";
 import {
     numericValue,
     stageProbability,
@@ -24,6 +25,49 @@ import {
     extraFieldKeysForExport,
     csvCell
 } from "../lead-engine-core.js";
+
+describe("PR76 viewed-name contract: actual browser writers", () => {
+    const cases = [
+        ["short", { actorName: "Ana" }, "Ana"],
+        ["exactly 120", { actorName: "a".repeat(120) }, "a".repeat(120)],
+        ["over 120", { actorName: "a".repeat(119) + "BC" }, "a".repeat(119) + "B"],
+        ["displayName fallback", { displayName: "d".repeat(133) }, "d".repeat(120)],
+        ["email fallback", { email: "a".repeat(64) + "@" + "b".repeat(63) + ".test" }, "a".repeat(64) + "@" + "b".repeat(55)],
+        ["empty values fallback", {}, "Equipe"],
+        ["Unicode preserved", { actorName: "Á🙂e\u0301" }, "Á🙂e\u0301"],
+        ["Unicode uses existing JS slice semantics", { actorName: "á".repeat(119) + "🙂" }, "á".repeat(119) + "\ud83d"]
+    ];
+    for (const writer of ["markLeadViewed", "markAllRead"]) {
+        for (const [label, input, expected] of cases) {
+            it(`${writer}: ${label}`, async () => {
+                const leads = ["a", "b"].map(id => ({ id, criadoPor: "ownerA", _unread: true }));
+                const writes = [];
+                const record = (ref, data, options) => writes.push({ ref, data, options });
+                const api = viewedWriterController({
+                    user: { uid: "ownerA", displayName: input.displayName || "", email: input.email || "" },
+                    actorName: input.actorName || "", leads, db: {},
+                    doc: (_db, collection, id) => `${collection}/${id}`,
+                    setDoc: async (...args) => record(...args),
+                    writeBatch: () => ({ set: record, commit: async () => {} })
+                });
+                const before = Date.now();
+                await api[writer](leads[0]);
+                const after = Date.now();
+                assert.equal(writes.length, writer === "markAllRead" ? 2 : 1);
+                for (const { ref, data, options } of writes) {
+                    assert.ok(ref.startsWith("leads/"));
+                    assert.deepEqual(options, { merge: true });
+                    assert.deepEqual(Object.keys(data).sort(), ["visualizadoEm", "visualizadoPorNome", "visualizadoPorUid"]);
+                    assert.equal(data.visualizadoPorNome, expected);
+                    assert.equal(data.visualizadoPorUid, "ownerA");
+                    assert.equal(typeof data.visualizadoEm, "number");
+                    assert.ok(data.visualizadoEm >= before && data.visualizadoEm <= after);
+                }
+                if (writes.length > 1) assert.deepEqual(writes[0].data, writes[1].data);
+            });
+        }
+    }
+});
 
 describe("CRM-LEAD-001 — numericValue não reinterpreta ponto decimal como milhar", () => {
     it("99.90 -> 99.9 (input type=number, formato US)", () => {

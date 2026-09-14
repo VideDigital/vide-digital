@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
+import { viewedWriterController } from "../lead-viewed-writer-harness.mjs";
 import { after, before, beforeEach, describe, it } from "node:test";
 import {
   assertFails,
@@ -21,7 +22,8 @@ import {
   serverTimestamp,
   setDoc,
   updateDoc,
-  where
+  where,
+  writeBatch
 } from "firebase/firestore";
 
 const PROJECT_ID = "demo-vide-hub";
@@ -93,6 +95,26 @@ describe("PR76-REV-001: lead viewed metadata (visualizadoEm/visualizadoPorUid/vi
       await setDoc(doc(db, "funcionarios", "pr76-inactive"), { donoUID: "ownerA", status: "inativo", permissoes: { ver: ["leads"], editar: ["leads"] } });
     });
   });
+
+  for (const writer of ["markLeadViewed", "markAllRead"]) {
+    it(`PR76-004: ${writer} actual normalized writer persists through unchanged Rules`, async () => {
+      const db = testEnv.authenticatedContext("ownerA").firestore();
+      for (const name of ["a".repeat(133), "Á🙂e\u0301".repeat(30)]) {
+        const leads = ["viewed-a", "viewed-a2"].map(id => ({ id, criadoPor: "ownerA", _unread: true }));
+        const api = viewedWriterController({ user: { uid: "ownerA", displayName: name }, leads, db, doc, setDoc, writeBatch });
+        const before = Date.now();
+        await api[writer](leads[0]);
+        for (const lead of writer === "markAllRead" ? leads : leads.slice(0, 1)) {
+          // Read back: writers catch errors internally, so resolving alone is not success.
+          const saved = (await getDoc(doc(db, "leads", lead.id))).data();
+          assert.equal(saved.visualizadoPorNome, name.slice(0, 120));
+          assert.equal(saved.visualizadoPorUid, "ownerA");
+          assert.equal(typeof saved.visualizadoEm, "number");
+          assert.ok(saved.visualizadoEm >= before && saved.visualizadoEm <= Date.now());
+        }
+      }
+    });
+  }
 
   it("1) owner marca lead como visualizado", async () => {
     const db = testEnv.authenticatedContext("ownerA").firestore();

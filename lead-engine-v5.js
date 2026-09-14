@@ -2106,7 +2106,7 @@ async function markLeadViewed(lead) {
         await setDoc(doc(db, "leads", lead.id), {
             visualizadoEm: viewedAt,
             visualizadoPorUid: state.user?.uid || "",
-            visualizadoPorNome: actorName()
+            visualizadoPorNome: actorName().slice(0, 120)
         }, { merge: true });
     } catch (error) {
         console.info("[Aura Leads V6] Visualização mantida apenas neste dispositivo.");
@@ -2128,12 +2128,13 @@ async function markAllRead() {
 
     if (state.canEdit) {
         try {
+            const viewedByName = actorName().slice(0, 120);
             await commitLeadPatches(unread.map((lead) => ({
                 id: lead.id,
                 data: {
                     visualizadoEm: viewedAt,
                     visualizadoPorUid: state.user?.uid || "",
-                    visualizadoPorNome: actorName()
+                    visualizadoPorNome: viewedByName
                 }
             })));
         } catch (error) {
