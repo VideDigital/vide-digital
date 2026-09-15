@@ -124,6 +124,119 @@ export function coletarErrosConsole(page) {
     return erros;
 }
 
+// DIAGNÓSTICO — EXECUTION-CONTEXT-ROOT-CAUSE-DIAG (missão diagnóstica
+// isolada, branch diag/playwright-execution-context-navigation). Observa
+// SOMENTE via APIs nativas do Playwright/DOM: nunca aguarda evento extra,
+// nunca bloqueia/intercepta navegação, nunca chama preventDefault ou
+// stopPropagation, nunca adiciona await ao fluxo real do teste. Define
+// window.__diagLog ANTES de qualquer script da aplicação (via
+// addInitScript, reexecutado em todo documento/reload) — código de
+// produto pode chamar opcionalmente `window.__diagLog?.(...)`; quando esta
+// função não é usada (todo outro teste, e produção), window.__diagLog
+// nunca existe e a chamada opcional é um no-op garantido, sem qualquer
+// mudança de comportamento. Nunca loga token/senha/cookie/segredo — só
+// nomes de evento, URLs públicas e flags booleanas de estado.
+export function instrumentarNavegacao(page, label) {
+    const t0 = Date.now();
+    let seq = 0;
+    const eventos = [];
+    function registrar(origem, evento, detalhe = {}) {
+        seq += 1;
+        const linha = { seq, elapsedMs: Date.now() - t0, origem, evento, ...detalhe };
+        eventos.push(linha);
+        console.log(`[DIAG-NAV][${label}] ${JSON.stringify(linha)}`);
+    }
+
+    registrar("harness", "INSTRUMENTATION_ATTACHED", { url: page.url() });
+
+    page.on("framenavigated", frame => {
+        registrar("playwright", "framenavigated", { isMainFrame: frame === page.mainFrame(), url: frame.url() });
+    });
+    page.on("frameattached", frame => {
+        registrar("playwright", "frameattached", { isMainFrame: frame === page.mainFrame(), url: frame.url() });
+    });
+    page.on("framedetached", frame => {
+        registrar("playwright", "framedetached", { isMainFrame: frame === page.mainFrame(), url: frame.url() });
+    });
+    page.on("close", () => registrar("playwright", "page.close", {}));
+    page.on("crash", () => registrar("playwright", "page.crash", {}));
+    page.on("pageerror", e => registrar("playwright", "pageerror", { mensagem: String(e).slice(0, 500) }));
+    page.on("console", msg => {
+        const texto = msg.text();
+        // Só repassa mensagens emitidas por este instrumento (prefixo
+        // reservado, escrito dentro do browser via window.__diagLog) ou
+        // erros reais de console — nunca ecoa todo log genérico da página,
+        // pra não inflar o volume nem duplicar o que coletarErrosConsole()
+        // já captura.
+        if (texto.startsWith("[DIAG-PRODUTO]") || msg.type() === "error") {
+            registrar("console", msg.type(), { texto: texto.slice(0, 800) });
+        }
+    });
+    page.on("request", req => {
+        if (req.isNavigationRequest()) {
+            registrar("playwright", "request.navigation", { url: req.url(), method: req.method(), frame: req.frame() === page.mainFrame() ? "main" : "sub" });
+        }
+    });
+    page.on("response", res => {
+        if (res.request().isNavigationRequest()) {
+            registrar("playwright", "response.navigation", { url: res.url(), status: res.status() });
+        }
+    });
+
+    // Eventos de ciclo de vida do documento/navegador, registrados de
+    // DENTRO do browser, ANTES de qualquer script da aplicação, em todo
+    // documento (inclusive depois de reload). Somente observa — nunca
+    // altera propagação nem cancela comportamento padrão.
+    page.addInitScript(() => {
+        window.__diagT0 = window.__diagT0 || Date.now();
+        window.__diagSeq = window.__diagSeq || 0;
+        window.__diagLog = function(evento, detalhe) {
+            window.__diagSeq += 1;
+            try {
+                console.log("[DIAG-PRODUTO]" + JSON.stringify({
+                    seq: window.__diagSeq,
+                    elapsedMs: Date.now() - window.__diagT0,
+                    url: window.location.href,
+                    evento,
+                    detalhe: detalhe || null
+                }));
+            } catch (e) { /* nunca deixa o log quebrar o fluxo real */ }
+        };
+        ["pageshow", "pagehide", "beforeunload", "unload", "DOMContentLoaded", "load", "visibilitychange"].forEach((nome) => {
+            window.addEventListener(nome, (ev) => {
+                window.__diagLog("browser:" + nome, {
+                    persisted: ev && ev.persisted === true ? true : undefined,
+                    visibilityState: document.visibilityState
+                });
+            }, { capture: true });
+        });
+        window.addEventListener("videhub:context-ready", (ev) => {
+            window.__diagLog("videhub:context-ready", {
+                initialized: ev?.detail?.initialized,
+                active: ev?.detail?.active,
+                status: ev?.detail?.status
+            });
+        });
+        document.addEventListener("click", (ev) => {
+            const alvo = ev.target && ev.target.closest ? ev.target.closest("a,button,[data-target],form") : null;
+            if (!alvo) return;
+            window.__diagLog("dom:click-capture", {
+                tag: alvo.tagName,
+                id: alvo.id || undefined,
+                href: alvo.tagName === "A" ? alvo.getAttribute("href") : undefined
+            });
+        }, { capture: true });
+        document.addEventListener("submit", (ev) => {
+            const alvo = ev.target;
+            window.__diagLog("dom:submit-capture", {
+                action: alvo && alvo.getAttribute ? alvo.getAttribute("action") || undefined : undefined
+            });
+        }, { capture: true });
+    });
+
+    return { eventos, registrar };
+}
+
 // Login real: espera por seletor, preenche, clica, espera por URL E por
 // um elemento que só existe depois do dashboard carregar de fato — nunca
 // usa waitForTimeout como mecanismo principal de espera.

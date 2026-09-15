@@ -4230,6 +4230,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         // LANDING PAGES (7.6 - Fase B: tela de gestao)
         // =============================================
        async function carregarLandingPages() {
+            window.__diagLog?.("CARREGAR_LPS_START");
             const grid =
                 document.getElementById("lps-grid");
 
@@ -4946,6 +4947,7 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
         }
 
         function fecharShellEditorLP(motivo = "manual") {
+            window.__diagLog?.("FECHAR_SHELL_START", { motivo });
             const modal = obterShellEditorLP();
             if (!modal) return false;
 
@@ -4972,7 +4974,9 @@ document.getElementById("perf-admin-cor-texto").addEventListener("input", (e) =>
                 setTimeout(() => opener.focus(), 0);
             }
 
+            window.__diagLog?.("FECHAR_SHELL_BEFORE_CARREGAR_UNAWAITED");
             carregarLandingPages();
+            window.__diagLog?.("FECHAR_SHELL_END");
             return true;
         }
 
@@ -5708,9 +5712,12 @@ document.getElementById("lped-preview-canvas").addEventListener("mousedown", fun
             }
         });
         window.editarLP = async function(id) {
+            window.__diagLog?.("EDITAR_LP_START", { id });
             const openerEditorLP = document.activeElement;
             if (!scriptsEditorJaCarregados) showToast("Abrindo editor...", "info");
+            window.__diagLog?.("EDITAR_LP_BEFORE_GETDOC");
             const snap = await getDoc(doc(db, "landing_pages", id));
+            window.__diagLog?.("EDITAR_LP_AFTER_GETDOC", { exists: snap.exists() });
             if (!snap.exists()) return;
             const lp = snap.data();
             lpEditorId = id;
@@ -5740,6 +5747,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
             historicoEditor = [clonarBlocosEditor()];
             indiceHistorico = 0;
             atualizarBotoesHistoricoEditor();
+            window.__diagLog?.("EDITAR_LP_BEFORE_ABRIR_SHELL");
             abrirShellEditorLP({ opener: openerEditorLP });
             carregarProdutosParaEditor();
             if (typeof window.carregarEditorLandingPages === "function") {
@@ -5747,6 +5755,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
                     .then(() => { scriptsEditorJaCarregados = true; })
                     .catch((err) => console.error("[Editor LP] falha ao carregar recursos avançados:", err));
             }
+            window.__diagLog?.("EDITAR_LP_END");
         };
         document.getElementById("lped-blocos-lista").addEventListener("input", renderizarPreviewEditor);
         document.getElementById("lped-blocos-lista").addEventListener("change", renderizarPreviewEditor);
@@ -5766,6 +5775,7 @@ for (const blocoId of (lp.ordemBlocos || [])) {
             }
         }
         window.fecharEditorLP = function(evento) {
+            window.__diagLog?.("FECHAR_EDITOR_LP_CALLED");
             evento?.preventDefault?.();
             return fecharShellEditorLP("manual");
         };
@@ -6800,6 +6810,7 @@ window.abrirPreviewEditorLP = async function() {
         // Retorna sempre { ok, motivo? } — publicarEditorLP() só avança
         // lpEditorPublicado/badge quando resultado.ok === true.
         window.alternarPublicacaoLP = async function(id, publicarAgora) {
+            window.__diagLog?.("ALTERNAR_PUBLICACAO_START", { id, publicarAgora });
             if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
 
             try {
@@ -6886,9 +6897,12 @@ window.abrirPreviewEditorLP = async function() {
                     await batch.commit();
                     showToast("Landing Page despublicada.");
                 }
+                window.__diagLog?.("ALTERNAR_PUBLICACAO_BEFORE_CARREGAR_UNAWAITED");
                 carregarLandingPages();
+                window.__diagLog?.("ALTERNAR_PUBLICACAO_END", { ok: true });
                 return { ok: true };
             } catch(err) {
+                window.__diagLog?.("ALTERNAR_PUBLICACAO_END", { ok: false, erro: err?.message });
                 console.error(err);
                 showToast("Erro: " + err.message, "error");
                 return { ok: false, motivo: "erro", erro: err?.message };
@@ -7107,21 +7121,26 @@ await setDoc(doc(db, "landing_pages", novoId), {
 
         // CARGA DO USUÁRIO E PERSISTÊNCIA DOS CAMPOS ORIGINAIS
         onAuthStateChanged(auth, async (user) => {
+            window.__diagLog?.("AUTH_CALLBACK_START", { hasUser: !!user });
             if (user) {
                 const paramsURL = new URLSearchParams(window.location.search);
                 const masterUIDAlvo = paramsURL.get("masterUID");
+                window.__diagLog?.("CONTEXT_INITIALIZE_START");
                 const resultadoContexto = await VideHubContext.initialize({
                     authUser: user,
                     db,
                     masterUID: masterUIDAlvo
                 });
+                window.__diagLog?.("CONTEXT_INITIALIZE_END", { allowed: resultadoContexto.allowed, active: VideHubContext.isActive() });
 
                 if (!resultadoContexto.allowed || !VideHubContext.isActive()) {
+                    window.__diagLog?.("REDIRECT_DENIED_CONTEXT_BEFORE_NAVIGATE");
                     showToast(resultadoContexto.message || "Acesso nao autorizado.", "error");
                     await signOut(auth);
                     window.location.href = "login.html";
                     return;
                 }
+                window.__diagLog?.("CONTEXT_ALLOWED_CONTINUE");
 
                 const contextoVide = VideHubContext.getSnapshot();
                 usuarioEmail = contextoVide.authEmail;
@@ -7135,6 +7154,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
                 }
 
                 // CARREGAR PLANO E APLICAR RESTRIÇÕES
+                window.__diagLog?.("PLAN_LOAD_START");
                 const userSnap2 = await getDoc(doc(db, "usuarios", usuarioUID));
                 const dadosPlano = userSnap2.exists() ? userSnap2.data() : {};
 
@@ -7286,6 +7306,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
                     atualizarElementosComPermissao();
                 }
 
+                window.__diagLog?.("DASHBOARD_STABLE_MILESTONE", { planoCarregado: window._planoCarregado === true });
                 const userSnap = userSnap2;
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
@@ -7443,7 +7464,9 @@ listaBanners = [];
                 if (temFeature("templates")) carregarTemplates();
                 if (temFeature("campanhas")) carregarCampanha();
                 carregarNotificacoes();
+                window.__diagLog?.("AUTH_CALLBACK_END", { branch: "user" });
             } else {
+                window.__diagLog?.("REDIRECT_NO_USER_BEFORE_NAVIGATE");
                 window.location.href = "login.html";
             }
         });

@@ -26,6 +26,7 @@ import {
     captureDiagnostics,
     coletarErrosConsole,
     ehErroDeRedeExterno,
+    instrumentarNavegacao,
     launchBrowser,
     loginReal,
     startStaticServer
@@ -104,6 +105,9 @@ async function main() {
     const db = adminDb();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const erros = coletarErrosConsole(page);
+    // DIAGNÓSTICO — EXECUTION-CONTEXT-ROOT-CAUSE-DIAG: só observa, nunca
+    // altera timing/controle de fluxo. Ver _helpers.mjs#instrumentarNavegacao.
+    instrumentarNavegacao(page, "studio-codigo-iframe-sandbox");
     let falhou = false;
 
     try {
