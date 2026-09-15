@@ -23,6 +23,7 @@ import {
     captureDiagnostics,
     coletarErrosConsole,
     ehErroDeRedeExterno,
+    instrumentarNavegacao,
     launchBrowser,
     loginReal,
     startStaticServer
@@ -85,6 +86,11 @@ async function main() {
     const db = adminDb();
     const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
     const erros = coletarErrosConsole(page);
+    // DIAGNÓSTICO — EXECUTION-CONTEXT-DRAFT-INTEGRITY-DIAG: só observa, nunca
+    // altera timing/controle de fluxo. Ver _helpers.mjs#instrumentarNavegacao.
+    // registrar() é síncrono (sem I/O, sem Promise) — usado abaixo pros
+    // marcadores do LADO DO TESTE, sem nenhum round-trip extra ao browser.
+    const { registrar } = instrumentarNavegacao(page, "studio-custom-fields-draft-integrity");
     let falhou = false;
 
     try {
@@ -102,12 +108,29 @@ async function main() {
         // Fecha o Studio SEM clicar em "Salvar formulário" — o campo
         // provisório existe só no rascunho da aba, nunca em
         // window.lpEditorBlocos.
+        // DIAGNÓSTICO — EXECUTION-CONTEXT-DRAFT-INTEGRITY-DIAG: marcadores
+        // do lado do teste (registrar() é síncrono, sem await extra, sem
+        // round-trip ao browser) — só observam, nunca alteram timing/
+        // controle de fluxo real do teste.
+        registrar("harness", "DRAFT_BEFORE_ULTIMATE_CLOSE", {});
         await page.evaluate(() => window.AuraStudioUltimate?.close?.());
+        registrar("harness", "DRAFT_AFTER_ULTIMATE_CLOSE", {});
 
         // Usa o save GLOBAL real da Landing Page (o mesmo botão/fluxo que
         // um usuário usaria pra salvar qualquer outra mudança no editor
         // básico) — não o "Salvar formulário" do Studio.
-        const resultadoSalvarLp = await page.evaluate(() => window.salvarEditorLP());
+        let resultadoSalvarLp;
+        registrar("harness", "DRAFT_BEFORE_SALVAR_EVALUATE", {});
+        try {
+            resultadoSalvarLp = await page.evaluate(() => window.salvarEditorLP());
+            registrar("harness", "DRAFT_SALVAR_EVALUATE_RESOLVED", { ok: resultadoSalvarLp?.ok, motivo: resultadoSalvarLp?.motivo });
+        } catch (erroEvaluate) {
+            // Só registra o erro original pro diagnóstico — nunca
+            // transforma em PASS. O erro é relançado sem alteração e
+            // segue pro catch existente de main(), que já marca falhou=true.
+            registrar("harness", "DRAFT_SALVAR_EVALUATE_REJECTED", { erro: String(erroEvaluate).slice(0, 800) });
+            throw erroEvaluate;
+        }
         assert.equal(resultadoSalvarLp?.ok, true, "salvarEditorLP() precisa confirmar sucesso mesmo com um campo personalizado ainda não confirmado aberto no Studio");
 
         // ===== A prova em si: nada quebrado pode ter sido persistido =====

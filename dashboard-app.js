@@ -6582,7 +6582,9 @@ blocosSelecionadosLivre.clear();
         // nunca marcar o estado local como publicado quando o Firestore, de
         // fato, recusou a operação.
         window.salvarEditorLP = async function() {
+            window.__diagLog?.("SALVAR_LP_START", null);
             if (!exigirEdicaoModulo("landing-pages")) return { ok: false, motivo: "sem-permissao" };
+            window.__diagLog?.("SALVAR_LP_PERMISSION_OK", null);
 
             const titulo = document.getElementById("lped-titulo").value.trim();
             const slug = document.getElementById("lped-slug").value.trim().toLowerCase().replace(/[^a-z0-9-_]/g, "");
@@ -6590,6 +6592,7 @@ blocosSelecionadosLivre.clear();
                 showToast("Preencha titulo e endereco.", "error");
                 return { ok: false, motivo: "campos-invalidos" };
             }
+            window.__diagLog?.("SALVAR_LP_VALIDATION_OK", null);
             const slugAnterior = lpEditorSlugOriginal;
             const slugMudou = slug !== slugAnterior;
             try {
@@ -6606,6 +6609,7 @@ blocosSelecionadosLivre.clear();
                 const removidos = lpEditorRemovidos.slice();
                 const ordemAtual = lpEditorBlocos.map(b => b.id);
 
+                window.__diagLog?.("SALVAR_LP_BEFORE_LP_WRITE", { publicado: lpEditorPublicado });
                 if (lpEditorPublicado) {
                     // LP já publicada: privado, público, blocos removidos e a
                     // troca de slug (se houver) precisam comitar como UMA
@@ -6658,7 +6662,9 @@ blocosSelecionadosLivre.clear();
                         titulo, publicado: true, donoUID: usuarioUID, modoLayout: lpEditorModoLayout, paginas: lpEditorPaginas, ordemBlocos: ordemAtual
                     });
 
+                    window.__diagLog?.("SALVAR_LP_BEFORE_BLOCK_BATCH", null);
                     await batch.commit();
+                    window.__diagLog?.("SALVAR_LP_AFTER_BLOCK_BATCH", null);
 
                     // Só avança o estado local depois do commit confirmado —
                     // antes, lpEditorSlugOriginal era atualizado logo após o
@@ -6670,6 +6676,7 @@ blocosSelecionadosLivre.clear();
                     // LP ainda não publicada: nada público em jogo, sem risco
                     // de estado parcial visível pro público — mantém o
                     // salvamento privado direto, sem writeBatch.
+                    window.__diagLog?.("SALVAR_LP_BEFORE_BLOCOS_WRITE", null);
                     for (const blocoId of removidos) {
                         await deleteDoc(doc(db, "landing_pages_blocos", blocoId));
                     }
@@ -6685,9 +6692,12 @@ blocosSelecionadosLivre.clear();
                         atualizadoEm: Date.now()
                     }, { merge: true });
                     lpEditorSlugOriginal = slug;
+                    window.__diagLog?.("SALVAR_LP_AFTER_BLOCOS_WRITE", null);
                 }
 
+                window.__diagLog?.("SALVAR_LP_BEFORE_FINAL_UI", null);
                 showToast("Landing Page salva.");
+                window.__diagLog?.("SALVAR_LP_END", { ok: true });
                 return { ok: true };
             } catch(err) {
                 console.error(err);
