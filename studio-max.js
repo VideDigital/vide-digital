@@ -101,10 +101,14 @@
   }
 
   function storageKey(type) {
-    return `auraStudioMax:${type}:${pageIdentity()}`;
+    const context = window.VideHubContext?.getSnapshot?.();
+    if (!context?.initialized || !context.active || typeof context.storeUid !== "string" || !context.storeUid) return null;
+    // Legacy keys have no provable owner: never read or migrate them.
+    return `auraStudioMax:tenant:${encodeURIComponent(context.storeUid)}:${type}:${pageIdentity()}`;
   }
 
   function readJSON(key, fallback) {
+    if (!key) return fallback;
     try {
       const parsed = JSON.parse(localStorage.getItem(key) || "null");
       return parsed ?? fallback;
@@ -114,6 +118,7 @@
   }
 
   function writeJSON(key, value) {
+    if (!key) return false;
     try {
       localStorage.setItem(key, JSON.stringify(value));
       return true;
@@ -520,6 +525,7 @@
   }
 
   function createVersion(name, kind) {
+    if (!storageKey("versions")) return null;
     const versions = getVersions();
     const version = snapshot(name, kind);
     if (versions[0]?.hash === version.hash && kind === "automatic") return versions[0];
@@ -568,9 +574,11 @@
   }
 
   function restoreVersion(id) {
+    const key = storageKey("versions");
     const version = getVersions().find((item) => item.id === id);
     if (!version) return;
     confirmAction(`Restaurar “${version.name}”? Uma cópia do estado atual será criada antes da restauração.`, () => {
+      if (!key || key !== storageKey("versions")) return;
       createVersion("Antes de restaurar versão", "automatic");
       restoreSnapshot(version, `Versão restaurada · ${version.name}`);
       toast("Versão restaurada.");
@@ -608,14 +616,17 @@
 
   function saveDraft() {
     if (!state.modalOpen) return;
+    const key = storageKey("draft");
+    if (!key) return;
     const blocks = getBlocks();
     const hash = hashBlocks(blocks);
-    if (hash === state.lastHash) return;
-    state.lastHash = hash;
-    writeJSON(storageKey("draft"), {
+    if (key === state.lastDraftKey && hash === state.lastHash) return;
+    if (!writeJSON(key, {
       ...snapshot("Rascunho automático", "draft"),
       savedAt: Date.now()
-    });
+    })) return;
+    state.lastDraftKey = key;
+    state.lastHash = hash;
     updateHubMeta();
   }
 
@@ -641,12 +652,16 @@
   }
 
   function discardDraft() {
-    localStorage.removeItem(storageKey("draft"));
+    const key = storageKey("draft");
+    if (!key) return;
+    localStorage.removeItem(key);
     document.getElementById("aura-max-recovery")?.classList.add("hidden");
   }
 
   function clearDraftAfterSave() {
-    localStorage.removeItem(storageKey("draft"));
+    const key = storageKey("draft");
+    if (!key) return;
+    localStorage.removeItem(key);
     state.lastSavedHash = hashBlocks(getBlocks());
     state.lastHash = state.lastSavedHash;
     document.getElementById("aura-max-recovery")?.classList.add("hidden");
@@ -656,9 +671,12 @@
     if (window.salvarEditorLP && !window.salvarEditorLP.__auraMaxWrapped) {
       const original = window.salvarEditorLP;
       const wrapped = async function (...args) {
+        const key = storageKey("draft");
         const result = await original.apply(this, args);
-        clearDraftAfterSave();
-        createVersion("Página salva", "automatic");
+        if (result?.ok === true && key && key === storageKey("draft")) {
+          clearDraftAfterSave();
+          createVersion("Página salva", "automatic");
+        }
         return result;
       };
       wrapped.__auraMaxWrapped = true;
@@ -667,9 +685,12 @@
     if (window.publicarEditorLP && !window.publicarEditorLP.__auraMaxWrapped) {
       const original = window.publicarEditorLP;
       const wrapped = async function (...args) {
+        const key = storageKey("draft");
         const result = await original.apply(this, args);
-        clearDraftAfterSave();
-        createVersion("Página publicada", "automatic");
+        if (result?.ok === true && key && key === storageKey("draft")) {
+          clearDraftAfterSave();
+          createVersion("Página publicada", "automatic");
+        }
         return result;
       };
       wrapped.__auraMaxWrapped = true;

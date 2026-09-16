@@ -1162,7 +1162,8 @@
         updateSaveStatus("saving");
         try {
           const result = await original.apply(this, args);
-          markSaved();
+          if (result?.ok === true) markSaved();
+          else updateSaveStatus("error");
           return result;
         } catch (error) {
           updateSaveStatus("error");
@@ -1179,7 +1180,8 @@
         updateSaveStatus("saving");
         try {
           const result = await original.apply(this, args);
-          markSaved();
+          if (result?.ok === true) markSaved();
+          else updateSaveStatus("error");
           return result;
         } catch (error) {
           updateSaveStatus("error");

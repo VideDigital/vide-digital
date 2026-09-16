@@ -17,9 +17,24 @@
   const getModal = () => document.getElementById("lp-editor-modal");
 
   function pageKey() {
+    const context = window.VideHubContext?.getSnapshot?.();
+    if (!context?.initialized || !context.active || typeof context.storeUid !== "string" || !context.storeUid) return null;
     const slug = document.getElementById("lped-slug")?.value?.trim() || "sem-slug";
     const title = document.getElementById("lped-titulo")?.value?.trim() || "landing-page";
-    return `aura_v4_history_${slug}_${title}`.replace(/[^a-z0-9_-]/gi, "_").slice(0, 150);
+    return `aura_v4_history:tenant:${encodeURIComponent(context.storeUid)}:${JSON.stringify([slug, title])}`;
+  }
+
+  // Prevent cached versions/undo from a previous tenant becoming current data.
+  function ensureScope() {
+    const key = pageKey();
+    if (state.storageScope !== key) {
+      state.storageScope = key;
+      state.undo = [];
+      state.redo = [];
+      state.versions = [];
+      state.lastHash = "";
+    }
+    return key;
   }
 
   function hash(value) {
@@ -50,9 +65,11 @@
   }
 
   function persistRecovery() {
+    const key = ensureScope();
+    if (!key) return;
     try {
-      localStorage.setItem(`${pageKey()}_recovery`, JSON.stringify(snapshot("Recuperação automática", "recovery")));
-      localStorage.setItem(`${pageKey()}_versions`, JSON.stringify(state.versions.slice(0, state.maxVersions)));
+      localStorage.setItem(`${key}_recovery`, JSON.stringify(snapshot("Recuperação automática", "recovery")));
+      localStorage.setItem(`${key}_versions`, JSON.stringify(state.versions.slice(0, state.maxVersions)));
     } catch (error) {
       console.warn("[Aura History V4] Não foi possível salvar recuperação local", error);
     }
@@ -82,6 +99,7 @@
   }
 
   function checkpoint(label, options) {
+    if (!ensureScope()) return null;
     const opts = options || {};
     const current = snapshot(label || "Checkpoint", opts.kind || "action");
     const currentHash = hash(current.blocks);
@@ -103,6 +121,7 @@
   }
 
   function undo() {
+    if (!ensureScope()) return false;
     if (state.undo.length < 2) {
       window.showToast?.("Não há outra ação V4 para desfazer.", "error");
       return false;
@@ -116,6 +135,7 @@
   }
 
   function redo() {
+    if (!ensureScope()) return false;
     const target = state.redo.pop();
     if (!target) {
       window.showToast?.("Não há ação V4 para refazer.", "error");
@@ -134,6 +154,7 @@
   }
 
   function restoreVersion(id) {
+    if (!ensureScope()) return false;
     const version = state.versions.find((item) => item.id === id);
     if (!version) return false;
     checkpoint("Antes de restaurar versão", { force: true, version: true, kind: "automatic" });
@@ -143,8 +164,10 @@
   }
 
   function loadStored() {
+    const key = ensureScope();
+    if (!key) return;
     try {
-      const versions = JSON.parse(localStorage.getItem(`${pageKey()}_versions`) || "[]");
+      const versions = JSON.parse(localStorage.getItem(`${key}_versions`) || "[]");
       state.versions = Array.isArray(versions) ? versions.slice(0, state.maxVersions) : [];
     } catch (_) {
       state.versions = [];
@@ -152,8 +175,10 @@
   }
 
   function recoveryAvailable() {
+    const key = ensureScope();
+    if (!key) return null;
     try {
-      const data = JSON.parse(localStorage.getItem(`${pageKey()}_recovery`) || "null");
+      const data = JSON.parse(localStorage.getItem(`${key}_recovery`) || "null");
       if (!data || !Array.isArray(data.blocks)) return null;
       const savedHash = hash(data.blocks);
       const currentHash = hash(getBlocks());
@@ -173,13 +198,15 @@
   }
 
   function discardRecovery() {
-    localStorage.removeItem(`${pageKey()}_recovery`);
+    const key = ensureScope();
+    if (key) localStorage.removeItem(`${key}_recovery`);
   }
 
   function scheduleRecovery() {
+    const key = ensureScope();
     clearTimeout(state.timer);
     state.timer = setTimeout(() => {
-      persistRecovery();
+      if (key && key === pageKey()) persistRecovery();
     }, 900);
   }
 
