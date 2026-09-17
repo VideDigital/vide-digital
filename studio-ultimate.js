@@ -805,19 +805,33 @@
     toast(`Design aplicado em ${entries.length} bloco(s).`);
   }
 
+  function clipboardKey(type) {
+    const context = window.VideHubContext?.getSnapshot?.();
+    if (!context?.initialized || !context.active || typeof context.storeUid !== "string" || !context.storeUid) {
+      toast("Não foi possível determinar a loja atual. Reabra o Studio e tente novamente.", "error");
+      return null;
+    }
+    // Legacy global clipboards have no provable owner: never read or migrate them.
+    return `auraUltimate:tenant:${encodeURIComponent(context.storeUid)}:${type}Clipboard`;
+  }
+
   function copyStyle() {
+    const key = clipboardKey("style");
+    if (!key) return;
     const selected = window.AuraStudioInspector?.getSelected?.();
     if (!selected?.block) {
       toast("Selecione um bloco para copiar o estilo.", "error");
       return;
     }
-    localStorage.setItem("auraUltimateStyleClipboard", JSON.stringify(selected.block.design || {}));
+    localStorage.setItem(key, JSON.stringify(selected.block.design || {}));
     toast("Estilo copiado.");
   }
 
   function pasteStyle() {
+    const key = clipboardKey("style");
+    if (!key) return;
     let style;
-    try { style = JSON.parse(localStorage.getItem("auraUltimateStyleClipboard") || "null"); } catch (_) { style = null; }
+    try { style = JSON.parse(localStorage.getItem(key) || "null"); } catch (_) { style = null; }
     if (!style) {
       toast("Nenhum estilo foi copiado.", "error");
       return;
@@ -1360,18 +1374,22 @@
   }
 
   function copySelectedBlocks() {
+    const key = clipboardKey("block");
+    if (!key) return;
     const entries = selectedEntries();
     if (!entries.length) {
       toast("Selecione um ou mais blocos.", "error");
       return;
     }
-    localStorage.setItem("auraUltimateBlockClipboard", JSON.stringify(entries.map(({ block }) => clone(block))));
+    localStorage.setItem(key, JSON.stringify(entries.map(({ block }) => clone(block))));
     toast(`${entries.length} bloco(s) copiado(s).`);
   }
 
   function pasteBlocks() {
+    const key = clipboardKey("block");
+    if (!key) return;
     let blocks;
-    try { blocks = JSON.parse(localStorage.getItem("auraUltimateBlockClipboard") || "null"); } catch (_) { blocks = null; }
+    try { blocks = JSON.parse(localStorage.getItem(key) || "null"); } catch (_) { blocks = null; }
     if (!Array.isArray(blocks) || !blocks.length) {
       toast("Nenhum bloco copiado.", "error");
       return;
