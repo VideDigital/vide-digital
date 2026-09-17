@@ -1,5 +1,6 @@
 import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
 import { escapeHTML, escapeAttribute, escapeTextareaContent, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
+import { substituirBannersLoja } from "./banner-replacement-core.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
@@ -7643,15 +7644,16 @@ document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
                 slugAtualSalvo = payloadPerfil.urlLoja;
 
                 try {
-                    const snapBannersAntigos = await getDocs(query(collection(db, "banners_loja"), where("donoUID", "==", usuarioUID)));
-                    await Promise.all(snapBannersAntigos.docs.map(d => deleteDoc(doc(db, "banners_loja", d.id))));
-                    await Promise.all(listaBanners.map((imagemB64, index) =>
-                        setDoc(doc(db, "banners_loja", `banner_${usuarioUID}_${index}`), {
-                            donoUID: usuarioUID,
-                            imagemB64,
-                            ordem: index
-                        })
-                    ));
+                    // Substituição atômica (ver banner-replacement-core.js): delete
+                    // dos antigos + set dos novos no MESMO writeBatch, um único
+                    // commit(). Se falhar, nada foi enviado ao servidor — o
+                    // conjunto antigo nunca é apagado sem o novo estar completo.
+                    await substituirBannersLoja({
+                        db,
+                        sdk: { collection, query, where, getDocs, doc, writeBatch },
+                        donoUID: usuarioUID,
+                        listaBanners
+                    });
                 } catch (errBanners) {
 
 console.error("Erro ao salvar banners:", errBanners);
