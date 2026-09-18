@@ -80,6 +80,10 @@ export async function launchBrowser() {
 // de navegação/reload/detach/crash observável — ou não.
 const MAX_EVENTOS_OBSERVADOS = 400;
 const paginasObservadas = new WeakMap();
+// UI-QG-PLAYWRIGHT-CONTEXT-RACE-DIAG-004 — uma sessão CDP de browser
+// (Target domain) é compartilhada entre todas as pages do mesmo browser;
+// evita abrir mais de uma por processo.
+const browsersObservados = new WeakMap();
 
 function registrarEvento(page, origem, evento, detalhe = {}) {
     const estado = paginasObservadas.get(page);
@@ -96,6 +100,104 @@ function registrarEvento(page, origem, evento, detalhe = {}) {
     return linha;
 }
 
+// Reduz o stack do Node a uma única linha útil: o primeiro frame de
+// dentro de tests/emulator/ui que não seja este próprio helper — nunca
+// serializa a função avaliada nem argumentos (podem conter dados
+// sensíveis), só "quem chamou page.evaluate".
+function capturarCallSite() {
+    const stack = new Error().stack || "";
+    const linhas = stack.split("\n").slice(1);
+    const relevante = linhas.find((l) => l.includes("tests/emulator/ui") && !l.includes("_helpers.mjs"));
+    return (relevante || linhas[2] || "").trim().slice(0, 300);
+}
+
+function safeUrl(page) {
+    try { return page.url(); } catch (e) { return null; }
+}
+
+// Probe CDP read-only, direto num executionContextId específico — nunca
+// passa por page.evaluate() (evitaria recursão e misturaria o sinal com
+// o próprio mecanismo sob investigação). Expressão trivial, sem tocar
+// DOM/estado/produto. Best-effort: qualquer falha vira { ok:false }, nunca
+// lança.
+async function executarProbeCdp(estado, contextId) {
+    if (!estado.cdpInstance || contextId == null) {
+        return { ok: false, contextId: contextId ?? null, motivo: "sem sessão CDP ou contextId desconhecido" };
+    }
+    try {
+        const resultado = await estado.cdpInstance.send("Runtime.evaluate", {
+            expression: "({href: location.href, readyState: document.readyState})",
+            contextId,
+            returnByValue: true,
+            timeout: 2000
+        });
+        const ok = !resultado?.exceptionDetails;
+        return {
+            ok,
+            contextId,
+            valor: ok ? resultado?.result?.value : undefined,
+            excecao: resultado?.exceptionDetails ? String(resultado.exceptionDetails.text || "erro") : undefined
+        };
+    } catch (err) {
+        return { ok: false, contextId, erro: String(err?.message || err) };
+    }
+}
+
+// Observabilidade best-effort do domínio Target (nível browser, não
+// page) — checa a existência de browser.newBrowserCDPSession() antes de
+// usar, nunca assume evento não confirmado pela própria API. Uma única
+// sessão por browser (WeakMap), reaproveitada entre pages.
+async function garantirObservabilidadeTarget(page, estado) {
+    try {
+        const browser = page.context().browser();
+        if (!browser) {
+            estado.targetDisponivel = false;
+            estado.targetErro = "browser() indisponível (contexto persistente?)";
+            return;
+        }
+        if (browsersObservados.has(browser)) {
+            estado.targetDisponivel = true;
+            estado.targetSessaoCompartilhada = true;
+            return;
+        }
+        if (typeof browser.newBrowserCDPSession !== "function") {
+            estado.targetDisponivel = false;
+            estado.targetErro = "browser.newBrowserCDPSession indisponível nesta versão do Playwright";
+            return;
+        }
+        const targetCdp = await browser.newBrowserCDPSession();
+        browsersObservados.set(browser, targetCdp);
+        estado.targetDisponivel = true;
+
+        await targetCdp.send("Target.setDiscoverTargets", { discover: true }).catch((err) => {
+            estado.targetErro = String(err?.message || err);
+        });
+
+        const emitirTarget = (evento, detalhe) => {
+            registrarEvento(page, "cdp-target", evento, detalhe);
+            console.log(`[VIDE-QG-CDP] Target.${evento} ${JSON.stringify(detalhe)}`);
+        };
+        targetCdp.on("Target.targetCreated", (p) => emitirTarget("targetCreated", {
+            targetId: p?.targetInfo?.targetId, type: p?.targetInfo?.type, url: p?.targetInfo?.url, attached: p?.targetInfo?.attached
+        }));
+        targetCdp.on("Target.targetDestroyed", (p) => emitirTarget("targetDestroyed", { targetId: p?.targetId }));
+        targetCdp.on("Target.targetInfoChanged", (p) => emitirTarget("targetInfoChanged", {
+            targetId: p?.targetInfo?.targetId, type: p?.targetInfo?.type, url: p?.targetInfo?.url, attached: p?.targetInfo?.attached
+        }));
+        targetCdp.on("Target.attachedToTarget", (p) => emitirTarget("attachedToTarget", {
+            targetId: p?.targetInfo?.targetId, sessionId: p?.sessionId, openerId: p?.targetInfo?.openerId
+        }));
+        targetCdp.on("Target.detachedFromTarget", (p) => emitirTarget("detachedFromTarget", { sessionId: p?.sessionId, targetId: p?.targetId }));
+        // targetCrashed é um evento real do domínio Target, mas pode não
+        // ser emitido por esta versão do Chromium — nunca falha o teste.
+        targetCdp.on("Target.targetCrashed", (p) => emitirTarget("targetCrashed", { targetId: p?.targetId }));
+    } catch (err) {
+        estado.targetDisponivel = false;
+        estado.targetErro = String(err?.message || err);
+        registrarEvento(page, "cdp-target", "target.indisponivel", { erro: estado.targetErro });
+    }
+}
+
 // Instala listeners Playwright + CDP + lifecycle de browser numa page.
 // Idempotente por page (WeakMap) — chamar mais de uma vez na mesma page
 // é seguro e não duplica listeners. Pensada pra ser chamada de dentro de
@@ -104,7 +206,21 @@ function registrarEvento(page, origem, evento, detalhe = {}) {
 export async function garantirObservabilidadePagina(page) {
     if (paginasObservadas.has(page)) return paginasObservadas.get(page);
 
-    const estado = { inicio: Date.now(), eventos: [], cdpDisponivel: false, cdpDominios: [], cdpErro: null };
+    const estado = {
+        inicio: Date.now(), eventos: [], cdpDisponivel: false, cdpDominios: [], cdpErro: null,
+        // UI-QG-PLAYWRIGHT-CONTEXT-RACE-DIAG-004 — estado de context-generation.
+        cdpInstance: null,
+        mainFrameId: null,
+        contextGeneration: 0,
+        currentDefaultContextId: null,
+        currentDefaultContextGeneration: null,
+        currentDefaultContextCreatedAt: null,
+        destroyedContexts: [],
+        lastMainFrameStoppedLoadingAt: null,
+        evaluateSeq: 0,
+        targetDisponivel: false,
+        targetErro: null
+    };
     paginasObservadas.set(page, estado);
 
     page.on("framenavigated", frame => {
@@ -147,28 +263,51 @@ export async function garantirObservabilidadePagina(page) {
     try {
         const cdp = await page.context().newCDPSession(page);
         estado.cdpDisponivel = true;
+        estado.cdpInstance = cdp;
 
         await cdp.send("Page.enable").then(() => estado.cdpDominios.push("Page")).catch(() => {});
         await cdp.send("Runtime.enable").then(() => estado.cdpDominios.push("Runtime")).catch(() => {});
+        // Semente inicial de mainFrameId — sem isso, o primeiro
+        // Runtime.executionContextCreated (antes de qualquer
+        // Page.frameNavigated observado) não teria como saber se é do
+        // main frame.
+        await cdp.send("Page.getFrameTree").then((tree) => {
+            estado.mainFrameId = tree?.frameTree?.frame?.id || estado.mainFrameId;
+        }).catch(() => {});
 
         cdp.on("Runtime.executionContextsCleared", () => {
-            registrarEvento(page, "cdp", "Runtime.executionContextsCleared", {});
-            console.log("[VIDE-QG-CDP] Runtime.executionContextsCleared");
+            estado.contextGeneration += 1;
+            estado.currentDefaultContextId = null;
+            registrarEvento(page, "cdp", "Runtime.executionContextsCleared", { generation: estado.contextGeneration });
+            console.log(`[VIDE-QG-CDP] Runtime.executionContextsCleared generation=${estado.contextGeneration}`);
         });
         cdp.on("Runtime.executionContextDestroyed", (params) => {
-            registrarEvento(page, "cdp", "Runtime.executionContextDestroyed", { executionContextId: params?.executionContextId });
-            console.log(`[VIDE-QG-CDP] Runtime.executionContextDestroyed id=${params?.executionContextId}`);
+            const id = params?.executionContextId;
+            estado.destroyedContexts.push({ id, generation: estado.contextGeneration, ts: Date.now() });
+            if (estado.destroyedContexts.length > 50) estado.destroyedContexts.shift();
+            if (estado.currentDefaultContextId === id) estado.currentDefaultContextId = null;
+            registrarEvento(page, "cdp", "Runtime.executionContextDestroyed", { executionContextId: id, generation: estado.contextGeneration });
+            console.log(`[VIDE-QG-CDP] Runtime.executionContextDestroyed id=${id} generation=${estado.contextGeneration}`);
         });
         cdp.on("Runtime.executionContextCreated", (params) => {
+            const id = params?.context?.id;
+            const isDefault = params?.context?.auxData?.isDefault === true;
+            const frameId = params?.context?.auxData?.frameId;
+            const isMainFrame = frameId != null && (estado.mainFrameId == null || frameId === estado.mainFrameId);
             registrarEvento(page, "cdp", "Runtime.executionContextCreated", {
-                executionContextId: params?.context?.id,
-                isDefault: params?.context?.auxData?.isDefault,
-                frameId: params?.context?.auxData?.frameId
+                executionContextId: id, isDefault, frameId, generation: estado.contextGeneration
             });
+            if (isDefault && isMainFrame) {
+                estado.currentDefaultContextId = id;
+                estado.currentDefaultContextGeneration = estado.contextGeneration;
+                estado.currentDefaultContextCreatedAt = Date.now();
+                console.log(`[VIDE-QG-CDP] Runtime.executionContextCreated DEFAULT id=${id} generation=${estado.contextGeneration}`);
+            }
         });
         cdp.on("Page.frameNavigated", (params) => {
             const url = params?.frame?.url;
             const isMain = !params?.frame?.parentId;
+            if (isMain) estado.mainFrameId = params?.frame?.id;
             registrarEvento(page, "cdp", "Page.frameNavigated", { isMainFrame: isMain, url, frameId: params?.frame?.id });
             if (isMain) console.log(`[VIDE-QG-CDP] Page.frameNavigated main-frame url=${url}`);
         });
@@ -181,6 +320,9 @@ export async function garantirObservabilidadePagina(page) {
         });
         cdp.on("Page.frameStoppedLoading", (params) => {
             registrarEvento(page, "cdp", "Page.frameStoppedLoading", { frameId: params?.frameId });
+            if (params?.frameId && params.frameId === estado.mainFrameId) {
+                estado.lastMainFrameStoppedLoadingAt = Date.now();
+            }
         });
         cdp.on("Page.lifecycleEvent", (params) => {
             registrarEvento(page, "cdp", "Page.lifecycleEvent", { name: params?.name, frameId: params?.frameId });
@@ -198,6 +340,10 @@ export async function garantirObservabilidadePagina(page) {
         }).catch((err) => {
             registrarEvento(page, "cdp", "Inspector.enable.indisponivel", { erro: String(err?.message || err) });
         });
+
+        // Target domain — nível browser, paralelo/best-effort, nunca
+        // bloqueia nem derruba a instrumentação de Page/Runtime acima.
+        await garantirObservabilidadeTarget(page, estado);
     } catch (err) {
         estado.cdpDisponivel = false;
         estado.cdpErro = String(err?.message || err);
@@ -239,6 +385,76 @@ export async function garantirObservabilidadePagina(page) {
             }
         } catch (e) { /* payload malformado nunca derruba o teste */ }
     });
+
+    // UI-QG-PLAYWRIGHT-CONTEXT-RACE-DIAG-004 — wrapper diagnóstico de
+    // page.evaluate(). Preserva args/retorno/exceção exatos, NUNCA faz
+    // retry, NUNCA transforma falha em sucesso, NUNCA repete a operação
+    // de produto (o post-probe roda via CDP direto, não via novo
+    // page.evaluate()). Um FAIL entra e sai FAIL, bit-a-bit.
+    const evaluateOriginal = page.evaluate.bind(page);
+    page.evaluate = async function evaluateInstrumentado(...args) {
+        const seq = ++estado.evaluateSeq;
+        const inicioTs = Date.now();
+        const generationInicio = estado.contextGeneration;
+        const contextIdInicio = estado.currentDefaultContextId;
+        const msDesdeFrameStoppedLoading = estado.lastMainFrameStoppedLoadingAt != null
+            ? inicioTs - estado.lastMainFrameStoppedLoadingAt
+            : null;
+        const callSite = capturarCallSite();
+
+        registrarEvento(page, "evaluate", "evaluate.start", {
+            seq, generation: generationInicio, defaultContextId: contextIdInicio,
+            msDesdeFrameStoppedLoading, url: safeUrl(page), callSite
+        });
+        console.log(`[VIDE-QG-NAV] evaluate.start seq=${seq} generation=${generationInicio} contextId=${contextIdInicio} msDesdeFrameStoppedLoading=${msDesdeFrameStoppedLoading}`);
+
+        // Pre-probe: só dentro da janela de 3000ms após um
+        // Page.frameStoppedLoading do main frame — read-only, expressão
+        // trivial, roda direto via CDP no contextId atual, nunca via
+        // page.evaluate() (evitaria recursão e misturaria o sinal).
+        let preProbe = null;
+        if (contextIdInicio != null && msDesdeFrameStoppedLoading != null
+            && msDesdeFrameStoppedLoading >= 0 && msDesdeFrameStoppedLoading <= 3000) {
+            preProbe = await executarProbeCdp(estado, contextIdInicio);
+            registrarEvento(page, "evaluate", "evaluate.cdpPreProbe", { seq, ...preProbe });
+            console.log(`[VIDE-QG-NAV] evaluate.cdpPreProbe seq=${seq} ok=${preProbe.ok} contextId=${preProbe.contextId}`);
+        }
+
+        try {
+            const resultado = await evaluateOriginal(...args);
+            registrarEvento(page, "evaluate", "evaluate.success", { seq });
+            return resultado;
+        } catch (error) {
+            const erroTs = Date.now();
+            const generationErro = estado.contextGeneration;
+            const contextIdErro = estado.currentDefaultContextId;
+            const mensagem = String(error?.message || error);
+            const contextsClearedDuranteCall = generationErro !== generationInicio;
+            const contextDestroyedDuranteCall = estado.destroyedContexts.some((d) => d.ts >= inicioTs && d.ts <= erroTs);
+
+            // Post-probe: só quando o próprio erro é o sinal-alvo — nunca
+            // repete a chamada de produto original, só cross-checa via
+            // CDP se o contexto default ATUAL (pós-falha) responde.
+            let postProbe = null;
+            if (/Execution context was destroyed/i.test(mensagem)) {
+                postProbe = await executarProbeCdp(estado, estado.currentDefaultContextId);
+            }
+
+            registrarEvento(page, "evaluate", "evaluate.error", {
+                seq, mensagem,
+                generationInicio, generationErro,
+                defaultContextIdInicio: contextIdInicio, defaultContextIdErro: contextIdErro,
+                contextsClearedDuranteCall, contextDestroyedDuranteCall,
+                msDesdeFrameStoppedLoading,
+                preProbe, postProbe
+            });
+            console.log(`[VIDE-QG-NAV] evaluate.error seq=${seq} mensagem=${JSON.stringify(mensagem)} generationInicio=${generationInicio} generationErro=${generationErro} contextIdInicio=${contextIdInicio} contextIdErro=${contextIdErro} contextsClearedDuranteCall=${contextsClearedDuranteCall} contextDestroyedDuranteCall=${contextDestroyedDuranteCall} preProbe=${JSON.stringify(preProbe)} postProbe=${JSON.stringify(postProbe)}`);
+
+            // Repropaga o MESMO erro, sem alterar — o teste precisa
+            // continuar FAIL exatamente como falharia sem instrumentação.
+            throw error;
+        }
+    };
 
     return estado;
 }
