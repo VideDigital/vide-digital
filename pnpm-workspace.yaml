@@ -8,3 +8,5 @@ allowBuilds:
   '@firebase/util': true
   protobufjs: true
   re2: false
+patchedDependencies:
+  playwright-core@1.56.1: patches/playwright-core@1.56.1.patch

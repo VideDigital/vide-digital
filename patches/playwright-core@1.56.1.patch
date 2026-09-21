@@ -1,0 +1,24 @@
+diff --git a/lib/server/chromium/crExecutionContext.js b/lib/server/chromium/crExecutionContext.js
+index 9a00bda5ab0536dc838561f2842155331ccc201e..faee8ab6ede8db2afafa99ca218b5073956c5325 100644
+--- a/lib/server/chromium/crExecutionContext.js
++++ b/lib/server/chromium/crExecutionContext.js
+@@ -106,8 +106,17 @@ function rewriteError(error) {
+     return { result: { type: "undefined" } };
+   if (error instanceof TypeError && error.message.startsWith("Converting circular structure to JSON"))
+     (0, import_stackTrace.rewriteErrorMessage)(error, error.message + " Are you passing a nested JSHandle?");
+-  if (!js.isJavaScriptErrorInEvaluate(error) && !(0, import_protocolError.isSessionClosedError)(error))
+-    throw new Error("Execution context was destroyed, most likely because of a navigation.");
++  if (!js.isJavaScriptErrorInEvaluate(error) && !(0, import_protocolError.isSessionClosedError)(error)) {
++    // Diagnostic only: retain the failure and reveal the protocol message, never command arguments or logs.
++    const originalMessage = String(error?.message || error)
++      .replace(/\bBearer\s+[^\s"']+/gi, "Bearer [REDACTED]")
++      .replace(/\b(authorization|cookie|password|senha|(?:access|refresh|id)[_-]?token|token)\b["']?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;]+)/gi, "$1=[REDACTED]")
++      .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g, "[REDACTED_JWT]")
++      .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[REDACTED_EMAIL]");
++    const errorName = /^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(error?.name || "") ? error.name : "unavailable";
++    const errorCode = typeof error?.code === "number" ? error.code : "unavailable";
++    throw new Error("Execution context was destroyed, most likely because of a navigation." + " [VIDE-QG original protocol error: " + originalMessage + "] [name=" + errorName + "; code=" + errorCode + "]");
++  }
+   throw error;
+ }
+ function potentiallyUnserializableValue(remoteObject) {
