@@ -558,8 +558,24 @@ function computeOrderQuoteDedupeHash(tenant, rawDedupeKey) {
   return crypto.createHash("sha256").update(parts).digest("hex");
 }
 
-const ORDER_QUOTE_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+// Janela de retry (mesmo token de tentativa reaproveitado) E de validade da
+// quote em si — deliberadamente a mesma constante: uma quote só faz sentido
+// como "o preço que eu calculei agora" por um tempo curto. Passada essa
+// janela, um retry com o MESMO token cria uma quote NOVA (não reaproveita
+// preço potencialmente desatualizado).
+const ORDER_QUOTE_TTL_MS = 10 * 60 * 1000;
 
+// IMPORTANTE — uma quote NUNCA reserva estoque nem trava preço de verdade:
+// é só um cálculo server-side, num instante específico, de quanto um
+// conjunto de itens custaria SE fossem comprados agora. Ela pode ficar
+// desatualizada entre a criação e qualquer tentativa futura de pagamento
+// (outro cliente pode esgotar o estoque, o dono pode mudar o preço ou
+// arquivar o produto nesse meio-tempo). `expiresAt` documenta até quando
+// essa quote é considerada válida pra ler — mesmo dentro da janela, o fluxo
+// futuro de criação/pagamento DEVE revalidar preço, status e estoque de
+// novo antes de efetivar qualquer transação. Nenhum gateway é integrado
+// aqui; isso é só a fundação.
+//
 // pedidos_publicos_quotes/{id} e pedido_quote_dedupes/{hash} não têm nenhuma
 // regra de acesso liberada em firestore.rules — caem no catch-all
 // "allow read, write: if false" do fim do arquivo, igual a lead_dedupes.
@@ -581,7 +597,7 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
       const dedupeSnap = await tx.get(dedupeRef);
       if (dedupeSnap.exists) {
         const previous = dedupeSnap.data() || {};
-        if (previous.quoteId && now - dedupeCreatedAtMillis(previous) < ORDER_QUOTE_DEDUPE_WINDOW_MS) {
+        if (previous.quoteId && now - dedupeCreatedAtMillis(previous) < ORDER_QUOTE_TTL_MS) {
           const previousQuoteSnap = await tx.get(db.doc(`pedidos_publicos_quotes/${previous.quoteId}`));
           if (previousQuoteSnap.exists) {
             return { quoteId: previous.quoteId, ...previousQuoteSnap.data() };
@@ -590,7 +606,7 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
       }
     }
 
-    const { itens, subtotal, total } = await resolvePublicOrderServerSide({
+    const { itens, subtotal, total, subtotalCentavos, totalCentavos } = await resolvePublicOrderServerSide({
       tenant,
       itensSolicitados: data?.itens,
       read
@@ -604,10 +620,14 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
       itens,
       subtotal,
       total,
+      subtotalCentavos,
+      totalCentavos,
       moeda: "BRL",
       status: "quote",
+      naoReservaEstoque: true,
       criadoEm: FieldValue.serverTimestamp(),
-      criadoEmMillis: now
+      criadoEmMillis: now,
+      expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_TTL_MS)
     };
     tx.set(quoteRef, quotePayload);
     if (dedupeRef) {
@@ -615,7 +635,7 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
         quoteId: quoteRef.id,
         tenantId: tenant.ownerUid,
         criadoEmMillis: now,
-        expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_DEDUPE_WINDOW_MS * 2)
+        expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_TTL_MS * 2)
       });
     }
     return { quoteId: quoteRef.id, ...quotePayload };

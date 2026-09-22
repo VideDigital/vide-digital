@@ -586,6 +586,45 @@ describe("SECURITY-PRODUCTS-PRIVATE-STATUS-001: produtos não-ativos são privad
   });
 });
 
+// SECURITY-CHECKOUT-SERVER-AUTHORITY-001 — pedidos_publicos_quotes e
+// pedido_quote_dedupes não têm nenhuma regra própria em firestore.rules,
+// caem no catch-all "allow read, write: if false" do fim do arquivo (mesmo
+// padrão de lead_dedupes). Testado explicitamente aqui em vez de confiar só
+// na existência do catch-all — qualquer regra futura adicionada por engano
+// pra essas coleções quebraria este teste.
+describe("pedidos_publicos_quotes / pedido_quote_dedupes: só Admin SDK, nunca o cliente", () => {
+  it("cliente/visitante nunca lê, cria, edita ou apaga uma quote pública, autenticado ou não", async () => {
+    const quoteFixture = {
+      tenantId: "ownerA", itens: [], subtotal: 0, total: 0, moeda: "BRL", status: "quote",
+      criadoEmMillis: Date.now()
+    };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedidos_publicos_quotes", "quoteFixture"), quoteFixture);
+    });
+
+    for (const ctx of [anon(), authed("ownerA"), authed("employeeRead")]) {
+      await assertFails(getDoc(doc(ctx, "pedidos_publicos_quotes", "quoteFixture")));
+      await assertFails(setDoc(doc(ctx, "pedidos_publicos_quotes", "quoteNova"), quoteFixture));
+      await assertFails(updateDoc(doc(ctx, "pedidos_publicos_quotes", "quoteFixture"), { status: "hackeado" }));
+      await assertFails(deleteDoc(doc(ctx, "pedidos_publicos_quotes", "quoteFixture")));
+    }
+  });
+
+  it("cliente/visitante nunca lê, cria, edita ou apaga um dedupe de quote, autenticado ou não", async () => {
+    const dedupeFixture = { quoteId: "quoteFixture", tenantId: "ownerA", criadoEmMillis: Date.now() };
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "pedido_quote_dedupes", "hashFixture"), dedupeFixture);
+    });
+
+    for (const ctx of [anon(), authed("ownerA"), authed("employeeRead")]) {
+      await assertFails(getDoc(doc(ctx, "pedido_quote_dedupes", "hashFixture")));
+      await assertFails(setDoc(doc(ctx, "pedido_quote_dedupes", "hashNovo"), dedupeFixture));
+      await assertFails(updateDoc(doc(ctx, "pedido_quote_dedupes", "hashFixture"), { quoteId: "outro" }));
+      await assertFails(deleteDoc(doc(ctx, "pedido_quote_dedupes", "hashFixture")));
+    }
+  });
+});
+
 describe("configuracoes_ia: permissões e isolamento multi-tenant", () => {
   it("proprietário lê, cria e atualiza a configuração da própria loja", async () => {
     await assertSucceeds(getDoc(doc(authed("ownerA"), "configuracoes_ia", "ownerA")));
