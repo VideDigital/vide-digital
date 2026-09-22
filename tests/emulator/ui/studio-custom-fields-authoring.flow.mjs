@@ -91,7 +91,7 @@ async function limparEstado(db, leadIds = []) {
 }
 
 async function abrirEditor(page) {
-    await page.evaluate((lpId) => window.editarLP(lpId), LP_ID);
+    await page.evaluate(async (lpId) => { return await window.editarLP(lpId); }, LP_ID);
     await page.waitForFunction(() => typeof window.AuraStudioUltimate?.open === "function", undefined, { timeout: 20000 });
     await page.evaluate(() => window.AuraStudioUltimate.open("forms"));
     await page.waitForSelector("#aura-ultimate-form-editor", { state: "visible", timeout: 15000 });
@@ -219,7 +219,7 @@ async function main() {
         // salvarEditorLP() do shell do editor (mesmo contrato usado por
         // landing-page-publication.flow.mjs). Precisa disso ANTES do
         // reload pra realmente provar persistência, não só estado local.
-        const resultadoSalvarLp = await page.evaluate(() => window.salvarEditorLP());
+        const resultadoSalvarLp = await page.evaluate(async () => { return await window.salvarEditorLP(); });
         assert.equal(resultadoSalvarLp?.ok, true, "salvarEditorLP() precisa confirmar sucesso antes do teste de reload");
 
         await fecharEditor(page);
@@ -247,7 +247,7 @@ async function main() {
         assert.ok(personalizadosAposToggle.some((c) => c.name === "empresa_qa"), "empresa_qa precisa sobreviver ao editor básico");
 
         // ===== 3) Publicar de verdade e testar o formulário público =====
-        await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
+        await page.evaluate(async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); }, LP_ID);
         const publicaSnap = await db.collection("landing_pages_publicas").doc(DOC_ID_PUBLICO).get();
         assert.equal(publicaSnap.exists, true, "LP deveria publicar com sucesso");
         const blocoPublicoSnap = await db.collection("landing_pages_blocos_publicas").doc(BLOCO_ID).get();

@@ -75,7 +75,7 @@ async function main() {
         await seedLpComFormulario(db);
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
 
-        await page.evaluate((lpId) => window.editarLP(lpId), LP_ID);
+        await page.evaluate(async (lpId) => { return await window.editarLP(lpId); }, LP_ID);
         await page.waitForFunction(() => typeof window.AuraStudioUltimate?.open === "function", undefined, { timeout: 20000 });
         await page.evaluate(() => window.AuraStudioUltimate.open("forms"));
         await page.waitForSelector("#aura-ultimate-form-editor", { state: "visible", timeout: 15000 });
@@ -94,7 +94,7 @@ async function main() {
         // Persiste de verdade — mesma técnica do E2E principal: "Salvar
         // formulário" do Studio só atualiza a memória, quem persiste no
         // Firestore é o salvarEditorLP() do shell do editor.
-        const resultadoSalvarLp = await page.evaluate(() => window.salvarEditorLP());
+        const resultadoSalvarLp = await page.evaluate(async () => { return await window.salvarEditorLP(); });
         assert.equal(resultadoSalvarLp?.ok, true, "salvarEditorLP() precisa confirmar sucesso");
 
         const blocoSalvo = await db.collection("landing_pages_blocos").doc(BLOCO_ID).get();

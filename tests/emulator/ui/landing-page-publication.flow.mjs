@@ -211,7 +211,7 @@ async function main() {
 
         // ===== Despublicar: não pode deixar órfão nenhum =====
         await page.evaluate(
-            (lpId) => window.alternarPublicacaoLP(lpId, false),
+            async (lpId) => { return await window.alternarPublicacaoLP(lpId, false); },
             LP_ID
         );
 
@@ -239,7 +239,7 @@ async function main() {
         let falhouComoEsperado = false;
         try {
             await page.evaluate(
-                (lpId) => window.alternarPublicacaoLP(lpId, true),
+                async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); },
                 LP_ID
             );
         } catch (erroPagina) {
@@ -557,7 +557,7 @@ async function main() {
                 // landing_pages_blocos — simula referência quebrada.
 
                 const resultadoEvaluate = await page.evaluate(
-                    (lpId) => window.alternarPublicacaoLP(lpId, true),
+                    async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); },
                     lpId
                 );
                 console.log("landing-page-publication.flow: cenário 5 (bloco ausente):", JSON.stringify(resultadoEvaluate));
