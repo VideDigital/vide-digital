@@ -1253,7 +1253,16 @@ service cloud.firestore {
     }
 
     match /produtos/{id} {
-      allow read: if resource.data.statusProduto != "rascunho"
+      // SECURITY-PRODUCTS-PRIVATE-STATUS-001 (B0): a regra anterior liberava
+      // leitura pública com "!= rascunho" — isso também liberava
+      // statusProduto == "arquivado" e qualquer status ausente/desconhecido,
+      // já que nenhum desses bate literalmente com "rascunho". O estado
+      // público canônico é só "ativo" (mesmo contrato que a query real da
+      // loja pública já usa, ver loja.html); rascunho, arquivado e qualquer
+      // valor ausente/desconhecido são privados por padrão (fail closed).
+      // Dono/funcionário autorizado do próprio tenant continua enxergando
+      // todos os estados via canViewTenant, sem mudança de contrato.
+      allow read: if resource.data.statusProduto == "ativo"
         || canViewTenant(resource.data.criadoPor, "produtos");
       allow create: if canEditTenant(request.resource.data.criadoPor, "produtos");
       allow update: if criadoPorUnchanged() && canEditTenant(resource.data.criadoPor, "produtos");

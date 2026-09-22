@@ -585,8 +585,17 @@ const lp = snap.docs[0].data();
             const ids = bloco.props.produtosIds || [];
             const produtos = [];
             for (const pid of ids) {
-                const pSnap = await getDoc(doc(db, "produtos", pid));
-                if (pSnap.exists()) produtos.push(pSnap.data());
+                // SECURITY-PRODUCTS-PRIVATE-STATUS-001: um produto referenciado
+                // aqui pode ter virado rascunho/arquivado depois que o bloco foi
+                // montado — a leitura pública agora exige statusProduto=="ativo"
+                // (firestore.rules), então isso lança permission-denied em vez
+                // de simplesmente não existir. Pular esse item silenciosamente é
+                // o comportamento correto (mesmo efeito de "não exibir produto
+                // indisponível"), nunca derrubar o carrossel inteiro.
+                try {
+                    const pSnap = await getDoc(doc(db, "produtos", pid));
+                    if (pSnap.exists()) produtos.push(pSnap.data());
+                } catch (erroProduto) { /* produto não público — não exibido */ }
             }
             const idUnico = "carrossel_" + Math.random().toString(36).slice(2);
             const slides = produtos.map(p => `
