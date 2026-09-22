@@ -256,6 +256,13 @@ beforeEach(async () => {
       status: "inativo",
       permissoes: { ver: ["produtos"], editar: ["produtos"] }
     });
+    // SECURITY-PRODUCTS-PRIVATE-STATUS-001 — funcionário do tenant B, usado
+    // só para provar que ele tampouco enxerga estados privados do tenant A.
+    await setDoc(doc(db, "funcionarios", "employeeReadB"), {
+      donoUID: "ownerB",
+      status: "ativo",
+      permissoes: { ver: ["produtos"], editar: [] }
+    });
     await setDoc(doc(db, "funcionarios", "employeeIaRead"), {
       donoUID: "ownerA",
       status: "ativo",
@@ -274,6 +281,12 @@ beforeEach(async () => {
     await setDoc(doc(db, "produtos", "prodA"), { criadoPor: "ownerA", statusProduto: "ativo", nome: "Produto A" });
     await setDoc(doc(db, "produtos", "prodPrivate"), { criadoPor: "ownerA", statusProduto: "rascunho", nome: "Produto Privado" });
     await setDoc(doc(db, "produtos", "prodB"), { criadoPor: "ownerB", statusProduto: "ativo", nome: "Produto B" });
+    // SECURITY-PRODUCTS-PRIVATE-STATUS-001 (B0): fixtures pro estado público
+    // canônico ser exatamente "ativo" — arquivado, sem status e status
+    // desconhecido/inválido precisam ser tão privados quanto rascunho.
+    await setDoc(doc(db, "produtos", "prodArchived"), { criadoPor: "ownerA", statusProduto: "arquivado", nome: "Produto Arquivado" });
+    await setDoc(doc(db, "produtos", "prodNoStatus"), { criadoPor: "ownerA", nome: "Produto Sem Status" });
+    await setDoc(doc(db, "produtos", "prodUnknownStatus"), { criadoPor: "ownerA", statusProduto: "pausado_legado", nome: "Produto Status Desconhecido" });
     await setDoc(doc(db, "avaliacoes", "revPublished"), {
       produtoId: "prodA",
       criadoPor: "ownerA",
@@ -494,6 +507,82 @@ describe("tenant isolation", () => {
 
   it("employee inativo bloqueado", async () => {
     await assertFails(getDoc(doc(authed("employeeInactive"), "produtos", "prodPrivate")));
+  });
+});
+
+// SECURITY-PRODUCTS-PRIVATE-STATUS-001 (B0): a regra pública antiga liberava
+// leitura com "statusProduto != 'rascunho'" — isso também liberava
+// "arquivado" e qualquer status ausente/desconhecido, sem exigir nenhuma
+// relação com o tenant. Um atacante não precisa passar pelo frontend (que
+// sempre filtrou só "ativo") pra explorar isso: um get() direto por ID, ou
+// uma query sem filtro de tenant, bastava. O estado público canônico agora é
+// só "ativo" — qualquer outro valor (incluindo ausência do campo) é privado
+// por padrão (fail closed). Dono/funcionário autorizado do próprio tenant
+// continua vendo todos os estados via canViewTenant, sem mudança de
+// contrato.
+describe("SECURITY-PRODUCTS-PRIVATE-STATUS-001: produtos não-ativos são privados por padrão (B0)", () => {
+  it("anônimo: produto ativo é público", async () => {
+    await assertSucceeds(getDoc(doc(anon(), "produtos", "prodA")));
+  });
+
+  it("anônimo: produto rascunho é privado", async () => {
+    await assertFails(getDoc(doc(anon(), "produtos", "prodPrivate")));
+  });
+
+  it("anônimo: produto arquivado é privado (a falha original — antes bastava '!= rascunho')", async () => {
+    await assertFails(getDoc(doc(anon(), "produtos", "prodArchived")));
+  });
+
+  it("anônimo: produto sem statusProduto é privado por padrão", async () => {
+    await assertFails(getDoc(doc(anon(), "produtos", "prodNoStatus")));
+  });
+
+  it("anônimo: produto com status desconhecido/legado é privado por padrão", async () => {
+    await assertFails(getDoc(doc(anon(), "produtos", "prodUnknownStatus")));
+  });
+
+  it("ownerA: continua lendo todos os estados do próprio tenant (ativo/rascunho/arquivado)", async () => {
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "produtos", "prodA")));
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "produtos", "prodPrivate")));
+    await assertSucceeds(getDoc(doc(authed("ownerA"), "produtos", "prodArchived")));
+  });
+
+  it("employeeRead (tenant A, ver:produtos): lê arquivado/sem-status do próprio tenant", async () => {
+    await assertSucceeds(getDoc(doc(authed("employeeRead"), "produtos", "prodArchived")));
+    await assertSucceeds(getDoc(doc(authed("employeeRead"), "produtos", "prodNoStatus")));
+  });
+
+  it("ownerB: produto arquivado/sem-status/rascunho de A continuam negados (cross-tenant)", async () => {
+    await assertFails(getDoc(doc(authed("ownerB"), "produtos", "prodArchived")));
+    await assertFails(getDoc(doc(authed("ownerB"), "produtos", "prodNoStatus")));
+    await assertFails(getDoc(doc(authed("ownerB"), "produtos", "prodUnknownStatus")));
+  });
+
+  it("employeeReadB (tenant B): produto privado de A também é negado", async () => {
+    await assertFails(getDoc(doc(authed("employeeReadB"), "produtos", "prodArchived")));
+  });
+
+  it("query pública real da loja (criadoPor==ownerA + statusProduto==ativo) continua funcionando", async () => {
+    const q = query(
+      collection(anon(), "produtos"),
+      where("criadoPor", "==", "ownerA"),
+      where("statusProduto", "==", "ativo")
+    );
+    const snap = await assertSucceeds(getDocs(q));
+    assert.deepEqual(snap.docs.map(d => d.id).sort(), ["prodA"]);
+  });
+
+  it("query anônima filtrando statusProduto==arquivado é negada por inteiro (não retorna nada parcial)", async () => {
+    const q = query(
+      collection(anon(), "produtos"),
+      where("criadoPor", "==", "ownerA"),
+      where("statusProduto", "==", "arquivado")
+    );
+    await assertFails(getDocs(q));
+  });
+
+  it("tentativa de leitura direta de produto arquivado por ID (sem passar por nenhuma query) falha", async () => {
+    await assertFails(getDoc(doc(anon(), "produtos", "prodArchived")));
   });
 });
 
