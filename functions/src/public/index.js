@@ -6,13 +6,15 @@ const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestor
 const { publicText, normalizeEmail, normalizePhone, normalizeString } = require("../shared/validators");
 const { assertPublicRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
+const { resolvePublicOrderServerSide } = require("./checkout-core");
 
 const RATE_LIMITS = Object.freeze({
   createPublicLead: 5,
   incrementPublicMetric: 60,
   createPublicChat: 5,
   sendPublicChatMessage: 20,
-  createPublicReview: 5
+  createPublicReview: 5,
+  createPublicOrderQuote: 10
 });
 
 const publicOptions = {
@@ -542,6 +544,96 @@ const createPublicReview = onCall({ ...publicOptions, enforceAppCheck: false }, 
   return { ok: true, avaliacaoId: ref.id };
 });
 
+// SECURITY-CHECKOUT-SERVER-AUTHORITY-001 — fonte de verdade server-side
+// para um pedido público, sem integrar gateway de pagamento ainda. Mesmo
+// padrão de idempotência do createPublicLead/createLeadIdempotent: o
+// identificador de retry é um token opaco gerado pelo cliente por
+// TENTATIVA de envio (nunca por conteúdo), escopado ao tenant resolvido
+// pelo servidor — nunca ao que o payload afirma. Sem token, cada chamada
+// cria uma nova quote (sem fallback por conteúdo).
+function computeOrderQuoteDedupeHash(tenant, rawDedupeKey) {
+  const token = publicText(rawDedupeKey || "", 200);
+  if (!token) return null;
+  const parts = [tenant.ownerUid, "order-quote", token].join("|");
+  return crypto.createHash("sha256").update(parts).digest("hex");
+}
+
+const ORDER_QUOTE_DEDUPE_WINDOW_MS = 10 * 60 * 1000;
+
+// pedidos_publicos_quotes/{id} e pedido_quote_dedupes/{hash} não têm nenhuma
+// regra de acesso liberada em firestore.rules — caem no catch-all
+// "allow read, write: if false" do fim do arquivo, igual a lead_dedupes.
+// Só o Admin SDK (usado aqui) consegue ler/escrever. Isso é intencional:
+// esta Function é a base para um checkout futuro com cobrança real, não um
+// substituto do fluxo de handoff por WhatsApp já existente (que continua
+// usando sanitizeOrderItem/sanitizeOrderSnapshot acima, inalterado).
+async function createOrderQuoteIdempotent(data, db = getFirestore()) {
+  const quoteRef = db.collection("pedidos_publicos_quotes").doc();
+  const now = Date.now();
+
+  return db.runTransaction(async (tx) => {
+    const read = (path) => tx.get(db.doc(path));
+    const tenant = await resolvePublicTenant(data, read);
+
+    const dedupeHash = computeOrderQuoteDedupeHash(tenant, data?.dedupeKey);
+    const dedupeRef = dedupeHash ? db.collection("pedido_quote_dedupes").doc(dedupeHash) : null;
+    if (dedupeRef) {
+      const dedupeSnap = await tx.get(dedupeRef);
+      if (dedupeSnap.exists) {
+        const previous = dedupeSnap.data() || {};
+        if (previous.quoteId && now - dedupeCreatedAtMillis(previous) < ORDER_QUOTE_DEDUPE_WINDOW_MS) {
+          const previousQuoteSnap = await tx.get(db.doc(`pedidos_publicos_quotes/${previous.quoteId}`));
+          if (previousQuoteSnap.exists) {
+            return { quoteId: previous.quoteId, ...previousQuoteSnap.data() };
+          }
+        }
+      }
+    }
+
+    const { itens, subtotal, total } = await resolvePublicOrderServerSide({
+      tenant,
+      itensSolicitados: data?.itens,
+      read
+    });
+
+    const quotePayload = {
+      tenantId: tenant.ownerUid,
+      sourceType: tenant.sourceType,
+      storeSlug: tenant.storeSlug || null,
+      publicPageId: tenant.publicPageId || null,
+      itens,
+      subtotal,
+      total,
+      moeda: "BRL",
+      status: "quote",
+      criadoEm: FieldValue.serverTimestamp(),
+      criadoEmMillis: now
+    };
+    tx.set(quoteRef, quotePayload);
+    if (dedupeRef) {
+      tx.set(dedupeRef, {
+        quoteId: quoteRef.id,
+        tenantId: tenant.ownerUid,
+        criadoEmMillis: now,
+        expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_DEDUPE_WINDOW_MS * 2)
+      });
+    }
+    return { quoteId: quoteRef.id, ...quotePayload };
+  });
+}
+
+// enforceAppCheck: false — mesma decisão e mesmo motivo de createPublicLead
+// (nenhuma página pública chama initializeAppCheck() hoje). Mitigação real
+// de abuso é o rate limit por IP abaixo. Esta Function não persiste dados
+// de contato nem move dinheiro — só resolve e trava um preço server-side
+// para um conjunto de itens, como fundação para um checkout futuro.
+const createPublicOrderQuote = onCall({ ...publicOptions, enforceAppCheck: false }, async (request) => {
+  await assertPublicRateLimit(request, "createPublicOrderQuote", RATE_LIMITS.createPublicOrderQuote);
+  assertReasonablePayloadSize(request.data);
+  const quote = await createOrderQuoteIdempotent(request.data || {});
+  return { ok: true, ...quote };
+});
+
 const createPublicChat = onCall(publicOptions, async (request) => {
   await assertPublicRateLimit(request, "createPublicChat", RATE_LIMITS.createPublicChat);
   const tenant = await resolvePublicTenant(request.data || {});
@@ -586,6 +678,7 @@ const sendPublicChatMessage = onCall(publicOptions, async (request) => {
 module.exports = {
   createPublicChat,
   createPublicLead,
+  createPublicOrderQuote,
   createPublicReview,
   incrementPublicMetric,
   sendPublicChatMessage,
@@ -605,5 +698,7 @@ module.exports = {
   sanitizeCamposExtras,
   reviewPayload,
   assertReasonablePayloadSize,
-  computeLeadDedupeHash
+  computeLeadDedupeHash,
+  computeOrderQuoteDedupeHash,
+  createOrderQuoteIdempotent
 };
