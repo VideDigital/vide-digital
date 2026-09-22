@@ -111,7 +111,7 @@ async function main() {
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
 
         // ===== 1) Editor autenticado (dashboard-app.js) =====
-        await page.evaluate((lpId) => window.editarLP(lpId), LP_ID);
+        await page.evaluate(async (lpId) => { return await window.editarLP(lpId); }, LP_ID);
         await page.waitForSelector("#lped-preview-canvas", { state: "attached", timeout: 15000 });
 
         const iframeAttrs = await page.locator("#lped-preview-canvas iframe").first().evaluate((el) => ({
@@ -150,7 +150,7 @@ async function main() {
         // ===== 2) Renderer público (index.html) =====
         // Publica de verdade pra exercitar o caminho real de index.html —
         // mesmo padrão dos outros E2E desta base.
-        const resultadoPublicar = await page.evaluate((lpId) => window.alternarPublicacaoLP(lpId, true), LP_ID);
+        const resultadoPublicar = await page.evaluate(async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); }, LP_ID);
         assert.equal(resultadoPublicar?.ok, true, "LP com bloco codigo_iframe precisa publicar normalmente");
 
         const blocoPublicoSnap = await db.collection("landing_pages_blocos_publicas").doc(BLOCO_ID).get();
