@@ -5,7 +5,9 @@ import {
     produtoCorrespondeBusca,
     calcularResumoCatalogoDeCards,
     valorBuscaCatalogoEhAutofillIndevido,
-    buscaCatalogoSemResultados
+    buscaCatalogoSemResultados,
+    deveRestaurarAbaSalva,
+    criarControladorDeCargaSequencial
 } from "../catalogo-produtos-core.js";
 
 describe("normalizarTextoCatalogo", () => {
@@ -137,5 +139,91 @@ describe("buscaCatalogoSemResultados", () => {
 
     it("falso quando não há termo de busca (campo vazio)", () => {
         assert.equal(buscaCatalogoSemResultados({ totalCardsRenderizados: 2, totalCardsVisiveis: 0, termoBusca: "" }), false);
+    });
+});
+
+// VIDE-HUB-RECOVERY-011 (reconstrução): a restauração tardia da aba salva
+// (dentro de onAuthStateChanged, depois de perfil/banners carregarem) não
+// pode reverter uma navegação explícita que já tenha acontecido nesse
+// meio-tempo — só "view-dashboard" (o único estado ativo estático do HTML
+// antes de qualquer navegação) é seguro para restaurar por cima.
+describe("deveRestaurarAbaSalva", () => {
+    it("permite restaurar quando a aba ativa ainda é a padrão (nada navegou ainda)", () => {
+        assert.equal(deveRestaurarAbaSalva("view-dashboard"), true);
+    });
+
+    it("permite restaurar quando não há nenhuma aba ativa detectável (fallback seguro do comportamento original)", () => {
+        assert.equal(deveRestaurarAbaSalva(undefined), true);
+        assert.equal(deveRestaurarAbaSalva(null), true);
+        assert.equal(deveRestaurarAbaSalva(""), true);
+    });
+
+    it("bloqueia a restauração quando já houve navegação explícita para Produtos antes da restauração rodar", () => {
+        assert.equal(deveRestaurarAbaSalva("view-produtos"), false);
+    });
+
+    it("bloqueia a restauração para qualquer outra aba que não seja a padrão", () => {
+        assert.equal(deveRestaurarAbaSalva("view-catalogo"), false);
+        assert.equal(deveRestaurarAbaSalva("view-pedidos"), false);
+    });
+});
+
+// VIDE-HUB-RECOVERY-011 (reconstrução): reproduz a race real relatada —
+// carregarProdutos disparado de novo (navegação rápida Produtos <-> Catálogo)
+// antes da consulta anterior terminar, com a resposta MAIS ANTIGA chegando
+// DEPOIS da mais nova (fora de ordem). Sem o token de sequência, a resposta
+// antiga sobrescreveria a mais recente já renderizada.
+describe("criarControladorDeCargaSequencial", () => {
+    it("a única carga em andamento é sempre a mais recente", () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const carga = controlador.iniciarNovaCarga();
+        assert.equal(controlador.ehCargaMaisRecente(carga), true);
+    });
+
+    it("uma carga antiga deixa de ser a mais recente assim que uma nova começa — mesmo que a antiga ainda não tenha resolvido", () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const cargaAntiga = controlador.iniciarNovaCarga(); // navegação 1 (ex.: abre Produtos)
+        const cargaNova = controlador.iniciarNovaCarga();   // navegação 2 (ex.: troca rápido pra Catálogo)
+        assert.equal(controlador.ehCargaMaisRecente(cargaNova), true, "a carga mais nova precisa continuar válida");
+        assert.equal(controlador.ehCargaMaisRecente(cargaAntiga), false, "a carga antiga precisa ser considerada obsoleta");
+    });
+
+    it("reproduz a resolução fora de ordem: a resposta antiga chega DEPOIS da nova e deve ser descartada", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultadosAplicados = [];
+
+        function simularCarga(nome, atrasoMs) {
+            const minhaCarga = controlador.iniciarNovaCarga();
+            return new Promise(resolve => {
+                setTimeout(() => {
+                    if (controlador.ehCargaMaisRecente(minhaCarga)) {
+                        resultadosAplicados.push(nome);
+                    }
+                    resolve();
+                }, atrasoMs);
+            });
+        }
+
+        // "antiga" começa primeiro mas demora mais (ex.: query mais pesada,
+        // Emulator sob carga); "nova" começa depois e resolve primeiro —
+        // exatamente o cenário relatado pelo Astra.
+        const antiga = simularCarga("antiga", 40);
+        const nova = simularCarga("nova", 5);
+        await Promise.all([antiga, nova]);
+
+        assert.deepEqual(
+            resultadosAplicados,
+            ["nova"],
+            "só a carga mais recente pode aplicar seu resultado ao DOM, mesmo resolvendo fora de ordem"
+        );
+    });
+
+    it("sem nenhuma navegação concorrente, uma única carga sempre aplica seu resultado", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultadosAplicados = [];
+        const minhaCarga = controlador.iniciarNovaCarga();
+        await new Promise(resolve => setTimeout(resolve, 5));
+        if (controlador.ehCargaMaisRecente(minhaCarga)) resultadosAplicados.push("unica");
+        assert.deepEqual(resultadosAplicados, ["unica"]);
     });
 });

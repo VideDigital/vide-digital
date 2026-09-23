@@ -420,6 +420,56 @@ async function main() {
         assert.equal(colunasProdutosMobile, 1, "Produtos deve usar uma coluna no mobile");
         await page.setViewportSize({ width: 1440, height: 900 });
 
+        // E) VIDE-HUB-RECOVERY-011 — a restauração tardia da aba salva (que só
+        // acontece dentro de onAuthStateChanged, depois do perfil/banners
+        // carregarem) não pode reverter uma navegação explícita que já
+        // aconteceu nesse meio-tempo. Simula uma aba salva antiga apontando
+        // pra Catálogo e confirma que uma navegação explícita pra Produtos,
+        // feita assim que o contexto inicializa, sobrevive até o fim de todo
+        // o carregamento assíncrono do onAuthStateChanged.
+        await page.evaluate(() => localStorage.setItem("abaAtivaDashboard", "view-catalogo"));
+        await page.reload({ waitUntil: "domcontentloaded" });
+        await page.waitForFunction(() => window.__videHubContextInitialized?.() === true, null, { timeout: 20000 });
+        const ativouProdutosAposReload = await page.evaluate(() => window.ativarAba?.("view-produtos"));
+        assert.equal(ativouProdutosAposReload, true, "a navegação explícita pra Produtos precisa ser aceita mesmo com uma aba salva diferente");
+        // carregarProdutos() só roda (de novo, depois do reload) DEPOIS do
+        // bloco de restauração da aba salva no código-fonte — esperar os
+        // cards reais reaparecerem garante que já passamos pelo ponto onde a
+        // restauração tardia rodaria, sem depender de um tempo fixo.
+        await page.waitForFunction(() => {
+            const container = document.getElementById("produtos-container");
+            return !!container && container.querySelectorAll(".aura-commerce-card").length > 0;
+        }, { timeout: 20000 });
+        const abaAtivaFinal = await page.evaluate(() => document.querySelector(".view-section.active")?.id);
+        assert.equal(
+            abaAtivaFinal,
+            "view-produtos",
+            "a restauração tardia da aba salva (view-catalogo) não pode reverter a navegação explícita pra Produtos"
+        );
+
+        // F) VIDE-HUB-RECOVERY-011 — navegação rápida Produtos <-> Catálogo
+        // (sem esperar a consulta anterior terminar) não pode deixar
+        // respostas antigas sobrescreverem o resultado mais recente, nem
+        // deixar o container preso no esqueleto de carregamento.
+        for (let i = 0; i < 6; i += 1) {
+            await page.evaluate((indice) => {
+                window.ativarAba?.(indice % 2 === 0 ? "view-catalogo" : "view-produtos");
+            }, i);
+        }
+        await page.waitForFunction(() => {
+            const container = document.getElementById("produtos-container");
+            if (!container) return false;
+            const cards = container.querySelectorAll(".aura-commerce-card");
+            const aindaCarregando = container.querySelector(".aura-skel-card");
+            return cards.length === 2 && !aindaCarregando;
+        }, { timeout: 15000 });
+        const idsAposNavegacaoRapida = await page.$$eval(
+            "#produtos-container .aura-commerce-card",
+            cards => cards.map(card => card.dataset.produtoId).sort()
+        );
+        assert.equal(idsAposNavegacaoRapida.length, 2, "navegação rápida não pode deixar cards duplicados, ausentes ou de uma resposta antiga");
+        await page.waitForSelector("#produtos-container .btn-gerenciar", { state: "visible", timeout: 10000 });
+
         const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
         assert.deepEqual(
             errosRelevantes,
