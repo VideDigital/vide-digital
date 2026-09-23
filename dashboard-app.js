@@ -18,7 +18,8 @@ import {
 } from "./pedidos-estruturados.js";
 import {
     normalizarTextoCatalogo, produtoCorrespondeBusca, calcularResumoCatalogoDeCards,
-    valorBuscaCatalogoEhAutofillIndevido, buscaCatalogoSemResultados
+    valorBuscaCatalogoEhAutofillIndevido, buscaCatalogoSemResultados,
+    deveRestaurarAbaSalva, criarControladorDeCargaSequencial
 } from "./catalogo-produtos-core.js";
 
 function podeVerModuloNoContexto(moduleKey) {
@@ -7400,8 +7401,17 @@ listaBanners = [];
                 }
 
                 // Restaura a aba salva SOMENTE agora, depois que os cadeados já foram aplicados
+                // — mas só se nada tiver navegado explicitamente pra outra aba nesse meio-tempo
+                // (VIDE-HUB-RECOVERY-011: a leitura de localStorage aconteceu no boot; uma
+                // navegação explícita entre esse momento e agora é sempre mais recente e não
+                // pode ser revertida por uma restauração tardia).
                 let abaRestauradaAposAuth = false;
-                if (window._abaSalva && document.getElementById(window._abaSalva)) {
+                const abaAtivaAntesDaRestauracao = document.querySelector(".view-section.active")?.id;
+                if (
+                    window._abaSalva &&
+                    document.getElementById(window._abaSalva) &&
+                    deveRestaurarAbaSalva(abaAtivaAntesDaRestauracao)
+                ) {
                     const featureNecessaria = bloqueios[window._abaSalva];
                     if (!featureNecessaria || temFeature(featureNecessaria)) {
                         ativarAba(window._abaSalva);
@@ -11738,7 +11748,15 @@ window.moderarAvaliacao = async function(id, status) {
     }
 };
 
+        // VIDE-HUB-RECOVERY-011: navegação rápida Produtos <-> Catálogo (ou
+        // qualquer outro disparo repetido de carregarProdutos) pode deixar
+        // mais de uma consulta em voo ao mesmo tempo. Sem controle de ordem,
+        // uma consulta mais antiga que demore mais pode resolver DEPOIS de
+        // uma mais nova e sobrescrever o resultado já correto na tela.
+        const controladorCargaProdutos = criarControladorDeCargaSequencial();
+
         async function carregarProdutos() {
+            const minhaCargaDeProdutos = controladorCargaProdutos.iniciarNovaCarga();
             // O container é substituído (esqueleto → dados reais) durante o
             // carregamento; isso pode reduzir a altura da página e fazer o
             // navegador "puxar" o scroll pro topo. Preservamos a posição.
@@ -11772,6 +11790,14 @@ window.moderarAvaliacao = async function(id, status) {
                 );
 
                 const querySnapshot = await getDocs(q);
+
+                // Uma navegação/filtro mais recente já disparou outra carga
+                // enquanto esta consulta estava em voo — esta resposta ficou
+                // obsoleta; descartá-la evita que ela sobrescreva o resultado
+                // já mais atual (cards, contadores e botões corretos).
+                if (!controladorCargaProdutos.ehCargaMaisRecente(minhaCargaDeProdutos)) {
+                    return;
+                }
 
                 produtosContainer.innerHTML = "";
 
@@ -12300,6 +12326,16 @@ produtosContainer.appendChild(card);
 
             } catch (err) {
                 console.error(err);
+
+                // VIDE-HUB-PR88-ADVERSARIAL-REVIEW-012: um erro de uma carga
+                // já obsoleta (ex.: a antiga, mais lenta, falhando DEPOIS de
+                // uma carga mais nova já ter renderizado com sucesso) não
+                // pode apagar o resultado já correto na tela — mesma regra
+                // de precedência do caminho de sucesso acima, aplicada
+                // também ao caminho de erro.
+                if (!controladorCargaProdutos.ehCargaMaisRecente(minhaCargaDeProdutos)) {
+                    return;
+                }
 
                 produtosContainer.innerHTML = `
                     <div class="aura-products-error col-span-full">

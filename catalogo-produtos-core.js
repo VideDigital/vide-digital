@@ -62,3 +62,33 @@ export function buscaCatalogoSemResultados({ totalCardsRenderizados, totalCardsV
         String(termoBusca || "").trim()
     );
 }
+
+// A aba salva (localStorage) só é restaurada bem depois do login, quando o
+// perfil/banners já carregaram dentro do mesmo onAuthStateChanged. Se algo
+// já navegou explicitamente pra outra aba nesse meio-tempo (um clique real,
+// ou um teste chamando ativarAba diretamente), essa navegação é sempre mais
+// recente que a leitura de localStorage feita no boot — restaurar por cima
+// dela reverteria uma ação explícita do usuário. "view-dashboard" é o único
+// estado ativo estático do HTML antes de qualquer navegação (dashboard.html),
+// então só é seguro restaurar a aba salva enquanto ele ainda for o ativo.
+export function deveRestaurarAbaSalva(idAbaAtivaNoMomento) {
+    return !idAbaAtivaNoMomento || idAbaAtivaNoMomento === "view-dashboard";
+}
+
+// Controla a ordem de resoluções concorrentes de um mesmo carregamento
+// assíncrono (ex.: carregarProdutos disparado de novo por uma navegação
+// rápida Produtos <-> Catálogo antes da consulta anterior terminar). Sem
+// isso, uma resposta antiga que demorou mais pode chegar DEPOIS de uma mais
+// nova e sobrescrever o resultado já correto na tela.
+export function criarControladorDeCargaSequencial() {
+    let sequenciaAtual = 0;
+    return {
+        iniciarNovaCarga() {
+            sequenciaAtual += 1;
+            return sequenciaAtual;
+        },
+        ehCargaMaisRecente(minhaSequencia) {
+            return minhaSequencia === sequenciaAtual;
+        }
+    };
+}
