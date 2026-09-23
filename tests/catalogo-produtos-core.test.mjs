@@ -227,3 +227,94 @@ describe("criarControladorDeCargaSequencial", () => {
         assert.deepEqual(resultadosAplicados, ["unica"]);
     });
 });
+
+// VIDE-HUB-PR88-ADVERSARIAL-REVIEW-012: revisão adversarial encontrou que o
+// bloco `catch` de carregarProdutos() (dashboard-app.js) sobrescrevia
+// produtosContainer.innerHTML com uma mensagem de erro SEM checar
+// ehCargaMaisRecente() — uma carga antiga que falhasse DEPOIS de uma carga
+// mais nova já ter renderizado com sucesso apagava os cards corretos. A
+// correção aplica a MESMA checagem de precedência também no caminho de erro.
+// Os testes abaixo modelam o try/catch real (sucesso só é aplicado depois de
+// getDocs resolver; erro só é aplicado dentro do catch), incluindo
+// resultados mistos sucesso/erro, exatamente como no código de produção.
+describe("criarControladorDeCargaSequencial — precedência entre sucesso e erro (catch protegido)", () => {
+    // Simula uma chamada de carregarProdutos(): resolve como "sucesso" ou
+    // "erro" depois de atrasoMs, e só registra o resultado se, no momento em
+    // que resolve, esta ainda for a carga mais recente — mesma regra usada
+    // tanto no try quanto no catch reais.
+    function simularCarregarProdutos(controlador, { nome, atrasoMs, deveFalhar, resultados }) {
+        const minhaCarga = controlador.iniciarNovaCarga();
+        return new Promise(resolve => {
+            setTimeout(() => {
+                if (controlador.ehCargaMaisRecente(minhaCarga)) {
+                    resultados.push({ nome, tipo: deveFalhar ? "erro" : "sucesso" });
+                }
+                resolve();
+            }, atrasoMs);
+        });
+    }
+
+    it("1) a carga antiga termina (com sucesso) depois de B: só o resultado de B permanece", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultados = [];
+        await Promise.all([
+            simularCarregarProdutos(controlador, { nome: "antiga", atrasoMs: 40, deveFalhar: false, resultados }),
+            simularCarregarProdutos(controlador, { nome: "B", atrasoMs: 5, deveFalhar: false, resultados })
+        ]);
+        assert.deepEqual(resultados, [{ nome: "B", tipo: "sucesso" }]);
+    });
+
+    it("2) a carga antiga FALHA depois de B concluir com sucesso: a falha antiga não apaga os cards de B", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultados = [];
+        await Promise.all([
+            simularCarregarProdutos(controlador, { nome: "antiga", atrasoMs: 40, deveFalhar: true, resultados }),
+            simularCarregarProdutos(controlador, { nome: "B", atrasoMs: 5, deveFalhar: false, resultados })
+        ]);
+        assert.deepEqual(
+            resultados,
+            [{ nome: "B", tipo: "sucesso" }],
+            "a falha da carga antiga (obsoleta) não pode ser aplicada por cima do sucesso já renderizado de B"
+        );
+    });
+
+    it("3) B, a carga mais recente, falha: o erro real de B continua sendo exibido", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultados = [];
+        await Promise.all([
+            simularCarregarProdutos(controlador, { nome: "antiga", atrasoMs: 5, deveFalhar: false, resultados }),
+            simularCarregarProdutos(controlador, { nome: "B", atrasoMs: 40, deveFalhar: true, resultados })
+        ]);
+        assert.deepEqual(
+            resultados,
+            [{ nome: "B", tipo: "erro" }],
+            "o erro da carga mais recente é legítimo e precisa substituir um sucesso mais antigo"
+        );
+    });
+
+    it("4) uma única carga falha (sem concorrência): o erro continua visível ao usuário", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultados = [];
+        await simularCarregarProdutos(controlador, { nome: "unica", atrasoMs: 5, deveFalhar: true, resultados });
+        assert.deepEqual(resultados, [{ nome: "unica", tipo: "erro" }]);
+    });
+
+    it("5) navegação rápida Produtos/Catálogo (várias cargas, sucesso/erro misturados, ordem aleatória): nenhuma resposta obsoleta modifica o resultado final", async () => {
+        const controlador = criarControladorDeCargaSequencial();
+        const resultados = [];
+        // 5 navegações em sequência rápida — a última (nome "final") é
+        // sempre a que precisa vencer, seja qual for o resultado dela.
+        await Promise.all([
+            simularCarregarProdutos(controlador, { nome: "nav-1", atrasoMs: 30, deveFalhar: false, resultados }),
+            simularCarregarProdutos(controlador, { nome: "nav-2", atrasoMs: 25, deveFalhar: true, resultados }),
+            simularCarregarProdutos(controlador, { nome: "nav-3", atrasoMs: 35, deveFalhar: false, resultados }),
+            simularCarregarProdutos(controlador, { nome: "nav-4", atrasoMs: 20, deveFalhar: true, resultados }),
+            simularCarregarProdutos(controlador, { nome: "final", atrasoMs: 10, deveFalhar: false, resultados })
+        ]);
+        assert.deepEqual(
+            resultados,
+            [{ nome: "final", tipo: "sucesso" }],
+            "só a última navegação disparada pode publicar seu resultado, independente de quando cada uma resolve"
+        );
+    });
+});

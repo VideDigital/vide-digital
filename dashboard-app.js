@@ -12327,6 +12327,16 @@ produtosContainer.appendChild(card);
             } catch (err) {
                 console.error(err);
 
+                // VIDE-HUB-PR88-ADVERSARIAL-REVIEW-012: um erro de uma carga
+                // já obsoleta (ex.: a antiga, mais lenta, falhando DEPOIS de
+                // uma carga mais nova já ter renderizado com sucesso) não
+                // pode apagar o resultado já correto na tela — mesma regra
+                // de precedência do caminho de sucesso acima, aplicada
+                // também ao caminho de erro.
+                if (!controladorCargaProdutos.ehCargaMaisRecente(minhaCargaDeProdutos)) {
+                    return;
+                }
+
                 produtosContainer.innerHTML = `
                     <div class="aura-products-error col-span-full">
 
