@@ -30,6 +30,85 @@ function adminDb() {
     return getFirestore();
 }
 
+// VIDE-HUB-SIDEBAR-PRODUTOS-REGISTRO-022 — cobre o caminho humano real
+// (clique na sidebar + busca da sidebar), não só ativarAba() direto.
+// sidebar-navigation.js mantém um registry próprio (configuracaoGrupos +
+// catalogoModulos) que precisa listar view-produtos/view-catalogo, senão
+// montarGrupos() descarta os botões do DOM e aplicarBusca() nunca os
+// encontra — foi exatamente isso que fez um operador real buscar "produ"
+// e cair em "Nenhum módulo encontrado", mesmo com o módulo implementado,
+// testado (via ativarAba direto) e com a permissão correta.
+async function flowFuncionarioComPermissaoProdutos(browser, baseUrl) {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    try {
+        // employee.read@local.test tem "produtos" em permissoes.ver (sem
+        // editar) — cobre "funcionário autorizado descobre o módulo",
+        // distinto do dono (que sempre tem bypass total de permissão).
+        await loginReal(page, baseUrl, { email: "employee.read@local.test", senha: "Local123!read" });
+
+        // VIDE-HUB-PR89-QG-RED-023 — loginReal() só espera o VideHubContext
+        // inicializar; a classe "hidden" dos botões da sidebar só é
+        // recalculada depois, num passo assíncrono separado (carga de
+        // plano/features em dashboard-app.js) que só termina quando
+        // window._planoCarregado vira true. Sem esperar por isso aqui, a
+        // asserção de visibilidade corre risco real de rodar antes da UI
+        // aplicar a permissão (o dono não sofre isso porque só chega na
+        // Seção G bem mais tarde no fluxo, depois de bastante trabalho
+        // assíncrono já ter decorrido).
+        await page.waitForFunction(() => window._planoCarregado === true, { timeout: 15000 });
+
+        const botaoProdutos = page.locator('#sidebar-navigation-groups .nav-item[data-target="view-produtos"]');
+        assert.equal(await botaoProdutos.count(), 1, "Funcionário com permissão: o botão de Produtos precisa estar dentro de um grupo da sidebar");
+        assert.equal(await botaoProdutos.isVisible(), true, "Funcionário com permissão deve ver o item Produtos na sidebar");
+
+        await botaoProdutos.click();
+        await page.waitForFunction(() => document.querySelector(".view-section.active")?.id === "view-produtos", { timeout: 10000 });
+
+        const campoBuscaSidebar = page.locator("#busca-sidebar-modulos");
+        await campoBuscaSidebar.click();
+        await campoBuscaSidebar.pressSequentially("produ", { delay: 10 });
+        await page.waitForFunction(() => {
+            const botao = document.querySelector('#sidebar-navigation-groups .nav-item[data-target="view-produtos"]');
+            return !!botao && !botao.classList.contains("aura-sidebar-search-hidden");
+        }, { timeout: 5000 });
+        assert.equal(await botaoProdutos.isVisible(), true, 'Funcionário com permissão: buscar "produ" deve manter Produtos visível');
+        assert.equal(await page.locator("#sidebar-navigation-empty").isVisible(), false, 'Funcionário com permissão: buscar "produ" não pode acionar "Nenhum módulo encontrado"');
+    } finally {
+        await context.close();
+    }
+}
+
+async function flowFuncionarioSemPermissaoProdutos(browser, baseUrl) {
+    const context = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const page = await context.newPage();
+    try {
+        // employee.no.whatsapp@local.test só tem ver: ["dashboard",
+        // "atendimento"] — não tem "produtos". Adicionar o registry da
+        // sidebar não pode, por si só, abrir acesso: canView continua
+        // sendo a única autoridade.
+        await loginReal(page, baseUrl, { email: "employee.no.whatsapp@local.test", senha: "Local123!nowhatsapp" });
+
+        // Mesmo motivo da flow acima: espera determinística pelo fim do
+        // recálculo de permissões antes da asserção negativa, pra não obter
+        // um falso PASS "invisível" apenas porque a UI ainda não terminou
+        // de carregar (nesse instante o botão também começa hidden).
+        await page.waitForFunction(() => window._planoCarregado === true, { timeout: 15000 });
+
+        const botaoProdutos = page.locator('.nav-item[data-target="view-produtos"]');
+        assert.equal(await botaoProdutos.isVisible(), false, "Funcionário sem permissão de produtos não pode ver o item na sidebar");
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos") ?? false), false, "Ativação programática de Produtos deve continuar bloqueada");
+
+        const campoBuscaSidebar = page.locator("#busca-sidebar-modulos");
+        await campoBuscaSidebar.click();
+        await campoBuscaSidebar.pressSequentially("produ", { delay: 10 });
+        await page.waitForFunction(() => document.getElementById("sidebar-navigation-empty")?.classList.contains("hidden") === false, { timeout: 5000 });
+        assert.equal(await page.locator("#sidebar-navigation-empty").isVisible(), true, 'Funcionário sem permissão: buscar "produ" deve mostrar "Nenhum módulo encontrado" (nenhum módulo visível casa)');
+    } finally {
+        await context.close();
+    }
+}
+
 async function main() {
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
@@ -470,6 +549,63 @@ async function main() {
         assert.equal(idsAposNavegacaoRapida.length, 2, "navegação rápida não pode deixar cards duplicados, ausentes ou de uma resposta antiga");
         await page.waitForSelector("#produtos-container .btn-gerenciar", { state: "visible", timeout: 10000 });
 
+        // G) VIDE-HUB-SIDEBAR-PRODUTOS-REGISTRO-022 — caminho humano real:
+        // clique no botão da sidebar (não ativarAba direto) e busca real da
+        // sidebar (#busca-sidebar-modulos), que é o que um operador de
+        // verdade usa pra descobrir o módulo. Produtos/Catálogo precisam
+        // estar dentro de um grupo (sidebar-navigation.js montarGrupos())
+        // e aparecer na busca — o bug real era exatamente os dois serem
+        // descartados por não estarem em configuracaoGrupos/catalogoModulos.
+        //
+        // VIDE-HUB-PR89-QG-RED-023 — o dono chega aqui só depois de todo o
+        // trabalho assíncrono das seções anteriores, então window.
+        // _planoCarregado quase sempre já é true neste ponto; a espera
+        // abaixo torna isso determinístico (não dependente do tempo gasto
+        // pelas seções A-F) em vez de só "sortudo" por chegar tarde.
+        await page.waitForFunction(() => window._planoCarregado === true, { timeout: 15000 });
+
+        const botaoSidebarProdutos = page.locator('#sidebar-navigation-groups .nav-item[data-target="view-produtos"]');
+        const botaoSidebarCatalogo = page.locator('#sidebar-navigation-groups .nav-item[data-target="view-catalogo"]');
+
+        assert.equal(await botaoSidebarProdutos.count(), 1, "O botão de Produtos precisa estar dentro de um grupo da sidebar (não pode ser descartado por montarGrupos)");
+        assert.equal(await botaoSidebarCatalogo.count(), 1, "O botão de Catálogo precisa estar dentro de um grupo da sidebar (não pode ser descartado por montarGrupos)");
+        assert.equal(await botaoSidebarProdutos.isVisible(), true, "Dono deve ver o item Produtos na sidebar");
+        assert.equal(await botaoSidebarCatalogo.isVisible(), true, "Dono deve ver o item Catálogo na sidebar");
+
+        await botaoSidebarProdutos.click();
+        await page.waitForFunction(() => document.querySelector(".view-section.active")?.id === "view-produtos", { timeout: 10000 });
+
+        await botaoSidebarCatalogo.click();
+        await page.waitForFunction(() => document.querySelector(".view-section.active")?.id === "view-catalogo", { timeout: 10000 });
+
+        const campoBuscaSidebar = page.locator("#busca-sidebar-modulos");
+        await campoBuscaSidebar.click();
+        await campoBuscaSidebar.pressSequentially("produ", { delay: 10 });
+        await page.waitForFunction(() => {
+            const botao = document.querySelector('#sidebar-navigation-groups .nav-item[data-target="view-produtos"]');
+            return !!botao && !botao.classList.contains("aura-sidebar-search-hidden");
+        }, { timeout: 5000 });
+        assert.equal(await botaoSidebarProdutos.isVisible(), true, 'Buscar "produ" na sidebar deve manter Produtos visível');
+        assert.equal(await page.locator("#sidebar-navigation-empty").isVisible(), false, 'Buscar "produ" não pode acionar o estado "Nenhum módulo encontrado"');
+
+        await page.keyboard.press("Escape");
+        await page.waitForFunction(() => document.getElementById("busca-sidebar-modulos")?.textContent === "", { timeout: 5000 });
+
+        await campoBuscaSidebar.click();
+        await campoBuscaSidebar.pressSequentially("catalog", { delay: 10 });
+        await page.waitForFunction(() => {
+            const botao = document.querySelector('#sidebar-navigation-groups .nav-item[data-target="view-catalogo"]');
+            return !!botao && !botao.classList.contains("aura-sidebar-search-hidden");
+        }, { timeout: 5000 });
+        assert.equal(await botaoSidebarCatalogo.isVisible(), true, 'Buscar "catalog" na sidebar deve mostrar Catálogo');
+        assert.equal(await page.locator("#sidebar-navigation-empty").isVisible(), false, 'Buscar "catalog" não pode acionar o estado "Nenhum módulo encontrado"');
+
+        await page.keyboard.press("Escape");
+        await page.waitForFunction(() => document.getElementById("busca-sidebar-modulos")?.textContent === "", { timeout: 5000 });
+
+        await flowFuncionarioComPermissaoProdutos(browser, baseUrl);
+        await flowFuncionarioSemPermissaoProdutos(browser, baseUrl);
+
         const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
         assert.deepEqual(
             errosRelevantes,
@@ -480,7 +616,8 @@ async function main() {
         console.log(
             "produtos.flow: OK — carga real, autofill de e-mail neutralizado, " +
             "busca real preservada, mensagens de estado vazio corretas, " +
-            "views Produtos/Catálogo separadas, listener único e recarga segura."
+            "views Produtos/Catálogo separadas, listener único, recarga segura " +
+            "e descoberta real pela sidebar (clique + busca) para dono e funcionários."
         );
     } catch (error) {
         falhou = true;
