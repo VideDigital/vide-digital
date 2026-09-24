@@ -47,6 +47,17 @@ async function flowFuncionarioComPermissaoProdutos(browser, baseUrl) {
         // distinto do dono (que sempre tem bypass total de permissão).
         await loginReal(page, baseUrl, { email: "employee.read@local.test", senha: "Local123!read" });
 
+        // VIDE-HUB-PR89-QG-RED-023 — loginReal() só espera o VideHubContext
+        // inicializar; a classe "hidden" dos botões da sidebar só é
+        // recalculada depois, num passo assíncrono separado (carga de
+        // plano/features em dashboard-app.js) que só termina quando
+        // window._planoCarregado vira true. Sem esperar por isso aqui, a
+        // asserção de visibilidade corre risco real de rodar antes da UI
+        // aplicar a permissão (o dono não sofre isso porque só chega na
+        // Seção G bem mais tarde no fluxo, depois de bastante trabalho
+        // assíncrono já ter decorrido).
+        await page.waitForFunction(() => window._planoCarregado === true, { timeout: 15000 });
+
         const botaoProdutos = page.locator('#sidebar-navigation-groups .nav-item[data-target="view-produtos"]');
         assert.equal(await botaoProdutos.count(), 1, "Funcionário com permissão: o botão de Produtos precisa estar dentro de um grupo da sidebar");
         assert.equal(await botaoProdutos.isVisible(), true, "Funcionário com permissão deve ver o item Produtos na sidebar");
@@ -77,6 +88,12 @@ async function flowFuncionarioSemPermissaoProdutos(browser, baseUrl) {
         // sidebar não pode, por si só, abrir acesso: canView continua
         // sendo a única autoridade.
         await loginReal(page, baseUrl, { email: "employee.no.whatsapp@local.test", senha: "Local123!nowhatsapp" });
+
+        // Mesmo motivo da flow acima: espera determinística pelo fim do
+        // recálculo de permissões antes da asserção negativa, pra não obter
+        // um falso PASS "invisível" apenas porque a UI ainda não terminou
+        // de carregar (nesse instante o botão também começa hidden).
+        await page.waitForFunction(() => window._planoCarregado === true, { timeout: 15000 });
 
         const botaoProdutos = page.locator('.nav-item[data-target="view-produtos"]');
         assert.equal(await botaoProdutos.isVisible(), false, "Funcionário sem permissão de produtos não pode ver o item na sidebar");
@@ -539,6 +556,14 @@ async function main() {
         // estar dentro de um grupo (sidebar-navigation.js montarGrupos())
         // e aparecer na busca — o bug real era exatamente os dois serem
         // descartados por não estarem em configuracaoGrupos/catalogoModulos.
+        //
+        // VIDE-HUB-PR89-QG-RED-023 — o dono chega aqui só depois de todo o
+        // trabalho assíncrono das seções anteriores, então window.
+        // _planoCarregado quase sempre já é true neste ponto; a espera
+        // abaixo torna isso determinístico (não dependente do tempo gasto
+        // pelas seções A-F) em vez de só "sortudo" por chegar tarde.
+        await page.waitForFunction(() => window._planoCarregado === true, { timeout: 15000 });
+
         const botaoSidebarProdutos = page.locator('#sidebar-navigation-groups .nav-item[data-target="view-produtos"]');
         const botaoSidebarCatalogo = page.locator('#sidebar-navigation-groups .nav-item[data-target="view-catalogo"]');
 
