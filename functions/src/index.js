@@ -31,6 +31,10 @@ exports.incrementPublicMetric = publicFns.incrementPublicMetric;
 exports.createPublicChat = publicFns.createPublicChat;
 exports.sendPublicChatMessage = publicFns.sendPublicChatMessage;
 exports.createPublicReview = publicFns.createPublicReview;
+// SECURITY-CHECKOUT-SERVER-AUTHORITY-001 — fundação server-side pra
+// pedido/checkout (sem gateway de pagamento ainda). Ver
+// functions/src/public/checkout-core.js.
+exports.createPublicOrderQuote = publicFns.createPublicOrderQuote;
 
 // auditWrite (callable público) foi removido nesta missão — aceitava
 // ownerUid do payload do cliente, sem consumidor de produção. writeAudit
