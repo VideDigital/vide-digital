@@ -29,6 +29,8 @@
                     "view-atendimento",
                     "view-crm360",
                     "view-pedidos",
+                    "view-produtos",
+                    "view-catalogo",
                     "view-leads",
                     "view-avaliacoes"
                 ]
@@ -74,6 +76,8 @@
             "view-atendimento": { nome: "Central de Atendimento", descricao: "Conversas e equipe em um só lugar" },
             "view-crm360": { nome: "CRM 360 do Cliente", descricao: "Histórico completo de cada cliente" },
             "view-pedidos": { nome: "Pedidos", descricao: "Vendas, pagamentos e entregas" },
+            "view-produtos": { nome: "Produtos", descricao: "Cadastro, estoque e itens da loja" },
+            "view-catalogo": { nome: "Catálogo", descricao: "Indicadores e busca somente leitura" },
             "view-leads": { nome: "Leads", descricao: "Inbox, pipeline e agenda comercial" },
             "view-avaliacoes": { nome: "Avaliações", descricao: "Reputação e feedback dos clientes" },
             "view-automacao-leads": { nome: "Automação de Leads", descricao: "Regras, follow-ups e organização" },
