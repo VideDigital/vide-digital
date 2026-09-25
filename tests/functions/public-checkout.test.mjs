@@ -150,6 +150,67 @@ describe("resolveOrderItemServerSide — preço/nome/subtotal nunca confiam no v
     assert.equal(item.quantidade, 500);
   });
 
+  it("estoque não rastreado (null) nunca bloqueia", async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: null } });
+    const item = await resolveOrderItemServerSide("p1", 500, tenant, read);
+    assert.equal(item.quantidade, 500);
+  });
+
+  it("estoque não rastreado (ausente/undefined) nunca bloqueia", async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo" } });
+    const item = await resolveOrderItemServerSide("p1", 500, tenant, read);
+    assert.equal(item.quantidade, 500);
+  });
+
+  it("estoque numérico exatamente igual à quantidade: PASS", async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: 5 } });
+    const item = await resolveOrderItemServerSide("p1", 5, tenant, read);
+    assert.equal(item.quantidade, 5);
+  });
+
+  it("estoque numérico abaixo da quantidade: failed-precondition", async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: 5 } });
+    await assert.rejects(resolveOrderItemServerSide("p1", 6, tenant, read), (e) => e.code === "failed-precondition");
+  });
+
+  it('estoque como string numérica ("5") continua compatível (legado): PASS', async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: "5" } });
+    const item = await resolveOrderItemServerSide("p1", 5, tenant, read);
+    assert.equal(item.quantidade, 5);
+  });
+
+  describe("estoque corrompido: fail-closed, NUNCA tratado como não rastreado", () => {
+    for (const estoqueCorrompido of ["abc", NaN, Infinity, -Infinity]) {
+      it(`estoque=${String(estoqueCorrompido)}: failed-precondition`, async () => {
+        const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: estoqueCorrompido } });
+        await assert.rejects(resolveOrderItemServerSide("p1", 1, tenant, read), (e) => e.code === "failed-precondition");
+      });
+    }
+  });
+
+  it("estoque zero bloqueia qualquer quantidade positiva: failed-precondition", async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: 0 } });
+    await assert.rejects(resolveOrderItemServerSide("p1", 1, tenant, read), (e) => e.code === "failed-precondition");
+  });
+
+  it("estoque negativo bloqueia qualquer quantidade positiva: failed-precondition", async () => {
+    const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: -1 } });
+    await assert.rejects(resolveOrderItemServerSide("p1", 1, tenant, read), (e) => e.code === "failed-precondition");
+  });
+
+  describe("estoque decimal (1.5): comportamento atual documentado, NÃO alterado nesta missão (fora de escopo)", () => {
+    it("quantidade 1 (<=1.5): PASS", async () => {
+      const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: 1.5 } });
+      const item = await resolveOrderItemServerSide("p1", 1, tenant, read);
+      assert.equal(item.quantidade, 1);
+    });
+
+    it("quantidade 2 (>1.5): failed-precondition", async () => {
+      const read = fakeRead({ p1: { criadoPor: "ownerA", preco: 10, statusProduto: "ativo", estoque: 1.5 } });
+      await assert.rejects(resolveOrderItemServerSide("p1", 2, tenant, read), (e) => e.code === "failed-precondition");
+    });
+  });
+
   it("preço real inválido no documento (não numérico/negativo): failed-precondition", async () => {
     const read = fakeRead({ p1: { criadoPor: "ownerA", preco: "abc", statusProduto: "ativo" } });
     await assert.rejects(resolveOrderItemServerSide("p1", 1, tenant, read), (e) => e.code === "failed-precondition");

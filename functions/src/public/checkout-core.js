@@ -41,12 +41,18 @@ function parseStrictQuantity(value) {
   return value;
 }
 
-// estoque no documento de produto pode ser "" (não rastreado) ou um número.
-// Mesma convenção já usada pelo dashboard (ver filtro de estoque baixo em
-// catalogo-produtos-core.js) — nunca falha por "não configurado".
-function estoqueControlado(produto) {
+// estoque no documento de produto pode ser "" (não rastreado), ausente
+// (null/undefined — mesmo contrato de não rastreado), ou um valor numérico
+// (rastreado). Mesma convenção já usada pelo dashboard (ver filtro de
+// estoque baixo em catalogo-produtos-core.js) — nunca falha por "não
+// configurado". Qualquer OUTRO valor ("abc", NaN, Infinity, -Infinity — dado
+// corrompido, nunca enviável pelo visitante, só possível por escrita direta
+// ao Firestore fora do formulário do dashboard) NÃO é "não rastreado": é
+// tratado como corrompido em resolveOrderItemServerSide, fail-closed, nunca
+// silenciosamente deixado passar sem limite algum.
+function estoqueNaoRastreado(produto) {
   const estoque = produto?.estoque;
-  return estoque !== "" && estoque !== undefined && estoque !== null && Number.isFinite(Number(estoque));
+  return estoque === "" || estoque === undefined || estoque === null;
 }
 
 // Preço real do produto convertido pra centavos — representação inteira,
@@ -94,11 +100,17 @@ async function resolveOrderItemServerSide(produtoId, quantidade, tenant, read) {
     throw new HttpsError("failed-precondition", `Produto ${produtoId} está com preço inválido.`);
   }
 
-  if (estoqueControlado(produto) && quantidade > Number(produto.estoque)) {
-    throw new HttpsError(
-      "failed-precondition",
-      `Estoque insuficiente para ${publicText(produto.nome || produtoId, 160)}.`
-    );
+  if (!estoqueNaoRastreado(produto)) {
+    const estoqueNumerico = Number(produto.estoque);
+    if (!Number.isFinite(estoqueNumerico)) {
+      throw new HttpsError("failed-precondition", `Produto ${produtoId} não está disponível.`);
+    }
+    if (quantidade > estoqueNumerico) {
+      throw new HttpsError(
+        "failed-precondition",
+        `Estoque insuficiente para ${publicText(produto.nome || produtoId, 160)}.`
+      );
+    }
   }
 
   const precoUnitarioCentavos = precoParaCentavos(precoUnitario);
