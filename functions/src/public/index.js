@@ -583,9 +583,23 @@ const ORDER_QUOTE_TTL_MS = 10 * 60 * 1000;
 // esta Function é a base para um checkout futuro com cobrança real, não um
 // substituto do fluxo de handoff por WhatsApp já existente (que continua
 // usando sanitizeOrderItem/sanitizeOrderSnapshot acima, inalterado).
-async function createOrderQuoteIdempotent(data, db = getFirestore()) {
+//
+// SECURITY-CHECKOUT-COUPON-PARITY-036 — uma quote com preço promocional
+// nunca vale além do fim do cupom: expiresAt = min(agora + 10min, fim da
+// validade do cupom em America/Sao_Paulo). A dedupe respeita o expiresAt
+// REAL da quote: um retry com o mesmo token nunca devolve uma quote já
+// expirada (mesmo dentro dos 10min desde a criação) — recalcula uma nova,
+// na mesma transação, e repõe o ponteiro da dedupe. Uma quote ainda válida
+// continua sendo devolvida como snapshot, sem reler preço/cupom do produto.
+function orderQuoteAindaValida(quote, now) {
+  const expiresAtMillis = quote?.expiresAt?.toMillis?.();
+  return Number.isFinite(expiresAtMillis) && now < expiresAtMillis;
+}
+
+// `now` só é parâmetro pra teste determinístico no Emulator — a callable
+// pública nunca o repassa, então o instante é sempre do servidor.
+async function createOrderQuoteIdempotent(data, db = getFirestore(), now = Date.now()) {
   const quoteRef = db.collection("pedidos_publicos_quotes").doc();
-  const now = Date.now();
 
   return db.runTransaction(async (tx) => {
     const read = (path) => tx.get(db.doc(path));
@@ -599,18 +613,23 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
         const previous = dedupeSnap.data() || {};
         if (previous.quoteId && now - dedupeCreatedAtMillis(previous) < ORDER_QUOTE_TTL_MS) {
           const previousQuoteSnap = await tx.get(db.doc(`pedidos_publicos_quotes/${previous.quoteId}`));
-          if (previousQuoteSnap.exists) {
+          if (previousQuoteSnap.exists && orderQuoteAindaValida(previousQuoteSnap.data(), now)) {
             return { quoteId: previous.quoteId, ...previousQuoteSnap.data() };
           }
         }
       }
     }
 
-    const { itens, subtotal, total, subtotalCentavos, totalCentavos } = await resolvePublicOrderServerSide({
-      tenant,
-      itensSolicitados: data?.itens,
-      read
-    });
+    const { itens, subtotal, total, subtotalCentavos, totalCentavos, precoValidoAteMillis } =
+      await resolvePublicOrderServerSide({
+        tenant,
+        itensSolicitados: data?.itens,
+        read,
+        agora: now
+      });
+    const expiresAtMillis = precoValidoAteMillis === null
+      ? now + ORDER_QUOTE_TTL_MS
+      : Math.min(now + ORDER_QUOTE_TTL_MS, precoValidoAteMillis);
 
     const quotePayload = {
       tenantId: tenant.ownerUid,
@@ -627,7 +646,7 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
       naoReservaEstoque: true,
       criadoEm: FieldValue.serverTimestamp(),
       criadoEmMillis: now,
-      expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_TTL_MS)
+      expiresAt: Timestamp.fromMillis(expiresAtMillis)
     };
     tx.set(quoteRef, quotePayload);
     if (dedupeRef) {

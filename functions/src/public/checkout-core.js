@@ -67,17 +67,156 @@ function precoParaCentavos(precoDecimal) {
   return Math.round(precoDecimal * 100);
 }
 
+// SECURITY-CHECKOUT-COUPON-PARITY-036
+//
+// Cupom automático por produto (configurado no dashboard: cupomAtivo,
+// cupomDesconto em %, cupomValidade opcional; cupomCodigo é só o nome
+// exibido e NUNCA participa do cálculo). Contrato decidido pelo
+// proprietário, não copiado cegamente da regra atual do navegador em
+// loja.html (que usa o fuso do visitante e float sem arredondamento):
+//
+// - Ativação: SOMENTE cupomAtivo === true. "true", 1, etc. não ativam.
+//   Cupom não ativo → preço base, mesmo com campos antigos malformados.
+// - Com cupom ativo, cupomDesconto precisa ser number inteiro 1..90 (mesma
+//   faixa do formulário do dashboard; string numérica não é aceita) e
+//   cupomValidade precisa ser "" (sem validade) ou "YYYY-MM-DD" de uma data
+//   real do calendário. Qualquer outra coisa: failed-precondition genérico —
+//   nunca um preço imprevisível.
+// - Validade: o cupom vale durante TODO o dia informado, inclusive, no fuso
+//   IANA America/Sao_Paulo (nunca um offset fixo -03:00 hardcoded). Deixa de
+//   valer no primeiro instante do dia seguinte nesse fuso.
+// - Arredondamento: preço base → centavos; aplica o percentual; arredonda o
+//   preço UNITÁRIO promocional para o centavo (meio para cima) com
+//   aritmética inteira; só então multiplica pela quantidade. O preço
+//   unitário em centavos é a autoridade.
+// - Quote originada de landing page NÃO aplica cupom (a LP exibe o preço
+//   base e o recurso é "desconto automático na loja"). A origem vem do
+//   tenant resolvido pelo servidor (resolvePublicTenant), nunca do payload.
+const CUPOM_TIMEZONE = "America/Sao_Paulo";
+const CUPOM_DESCONTO_MIN = 1;
+const CUPOM_DESCONTO_MAX = 90;
+const DATA_CUPOM_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
+const HORA_MS = 60 * 60 * 1000;
+const formatadorDataCupom = new Intl.DateTimeFormat("en-US", {
+  timeZone: CUPOM_TIMEZONE,
+  year: "numeric",
+  month: "numeric",
+  day: "numeric"
+});
+
+function produtoIndisponivel() {
+  return new HttpsError("failed-precondition", "Produto indisponível no momento.");
+}
+
+function chaveData(ano, mes, dia) {
+  return ano * 10000 + mes * 100 + dia;
+}
+
+// "YYYY-MM-DD" estrito e existente no calendário (rejeita 2026-02-30,
+// 2026-9-30, datetime ISO, Timestamp, number...). Retorna a chave numérica
+// AAAAMMDD ou null.
+function parseDataCupom(valor) {
+  if (typeof valor !== "string") return null;
+  const match = DATA_CUPOM_REGEX.exec(valor);
+  if (!match) return null;
+  const ano = Number(match[1]);
+  const mes = Number(match[2]);
+  const dia = Number(match[3]);
+  const data = new Date(0);
+  data.setUTCFullYear(ano, mes - 1, dia);
+  if (data.getUTCFullYear() !== ano || data.getUTCMonth() !== mes - 1 || data.getUTCDate() !== dia) {
+    return null;
+  }
+  return chaveData(ano, mes, dia);
+}
+
+// Data civil (chave AAAAMMDD) de um instante no fuso do cupom.
+function dataLocalCupom(instanteMillis) {
+  const partes = {};
+  for (const { type, value } of formatadorDataCupom.formatToParts(instanteMillis)) {
+    partes[type] = Number(value);
+  }
+  return chaveData(partes.year, partes.month, partes.day);
+}
+
+// Primeiro instante (ms) em que a data civil no fuso do cupom passa a ser
+// posterior a `chaveValidade` — ou seja, o fim exclusivo do último dia de
+// validade. Busca binária pelo próprio banco de fusos (Intl/IANA), sem
+// assumir offset nem ausência de horário de verão. Qualquer fuso real fica
+// entre -12h e +14h, então o intervalo inicial sempre contém a virada.
+function fimValidadeCupomMillis(chaveValidade) {
+  const ano = Math.floor(chaveValidade / 10000);
+  const mes = Math.floor(chaveValidade / 100) % 100;
+  const dia = chaveValidade % 100;
+  const meiaNoiteUtcDiaSeguinte = new Date(0);
+  meiaNoiteUtcDiaSeguinte.setUTCFullYear(ano, mes - 1, dia + 1);
+  let antes = meiaNoiteUtcDiaSeguinte.getTime() - 15 * HORA_MS;
+  let depois = meiaNoiteUtcDiaSeguinte.getTime() + 13 * HORA_MS;
+  while (depois - antes > 1) {
+    const meio = Math.floor((antes + depois) / 2);
+    if (dataLocalCupom(meio) > chaveValidade) depois = meio;
+    else antes = meio;
+  }
+  return depois;
+}
+
+// Preço efetivo de UMA unidade, só a partir do documento real do produto e
+// de um instante controlado pelo servidor. Nada aqui vem do visitante.
+// `aplicarCupom` é derivado da origem resolvida no servidor (loja vs LP).
+// Retorna centavos inteiros e, se o preço promocional tiver prazo,
+// `precoValidoAteMillis` (fim exclusivo da validade do cupom).
+function calcularPrecoEfetivoCentavos(produto, agora, { aplicarCupom = true } = {}) {
+  if (!Number.isFinite(agora)) {
+    throw new TypeError("agora precisa ser um instante em milissegundos.");
+  }
+  const precoBase = Number(produto?.preco);
+  if (!Number.isFinite(precoBase) || precoBase < 0) throw produtoIndisponivel();
+  const precoBaseCentavos = precoParaCentavos(precoBase);
+
+  const precoBaseSemCupom = {
+    precoBaseCentavos,
+    descontoCentavos: 0,
+    precoUnitarioCentavos: precoBaseCentavos,
+    precoValidoAteMillis: null
+  };
+  if (!aplicarCupom || produto.cupomAtivo !== true) return precoBaseSemCupom;
+
+  const desconto = produto.cupomDesconto;
+  if (typeof desconto !== "number" || !Number.isInteger(desconto) ||
+      desconto < CUPOM_DESCONTO_MIN || desconto > CUPOM_DESCONTO_MAX) {
+    throw produtoIndisponivel();
+  }
+
+  let precoValidoAteMillis = null;
+  if (produto.cupomValidade !== "") {
+    const chaveValidade = parseDataCupom(produto.cupomValidade);
+    if (chaveValidade === null) throw produtoIndisponivel();
+    if (dataLocalCupom(agora) > chaveValidade) return precoBaseSemCupom;
+    precoValidoAteMillis = fimValidadeCupomMillis(chaveValidade);
+  }
+
+  // round-half-up inteiro: floor((base × (100 − %) + 50) / 100).
+  const precoUnitarioCentavos = Math.floor((precoBaseCentavos * (100 - desconto) + 50) / 100);
+  return {
+    precoBaseCentavos,
+    descontoCentavos: precoBaseCentavos - precoUnitarioCentavos,
+    precoUnitarioCentavos,
+    precoValidoAteMillis
+  };
+}
+
 // Resolve UM produtoId (já agregado — ver agregarItensPorProduto) a partir
 // só do ID + quantidade total solicitada — carrega o produto real, confirma
 // que pertence ao MESMO tenant já resolvido pelo servidor (nunca o que o
 // payload afirma), confirma que está no único estado publicamente
 // disponível (ativo — fail closed pra qualquer outro valor), confirma
 // estoque quando rastreado contra a quantidade JÁ AGREGADA, e recalcula
-// preço/subtotal (decimal e em centavos) a partir do documento real.
-// Mensagem genérica de "não encontrado" tanto pra produto inexistente
+// preço/subtotal (decimal e em centavos) a partir do documento real — com o
+// cupom automático do próprio produto quando a origem é a loja (ver
+// calcularPrecoEfetivoCentavos). Mensagem genérica de "não encontrado" tanto pra produto inexistente
 // quanto pra produto de outro tenant — nunca confirma pro chamador que um
 // ID pertence a outra loja.
-async function resolveOrderItemServerSide(produtoId, quantidade, tenant, read) {
+async function resolveOrderItemServerSide(produtoId, quantidade, tenant, read, agora = Date.now()) {
   const snap = await read(`produtos/${produtoId}`);
   if (!snap.exists) {
     throw new HttpsError("not-found", `Produto ${produtoId} não encontrado.`);
@@ -113,7 +252,8 @@ async function resolveOrderItemServerSide(produtoId, quantidade, tenant, read) {
     }
   }
 
-  const precoUnitarioCentavos = precoParaCentavos(precoUnitario);
+  const { precoBaseCentavos, descontoCentavos, precoUnitarioCentavos, precoValidoAteMillis } =
+    calcularPrecoEfetivoCentavos(produto, agora, { aplicarCupom: tenant.sourceType === "store" });
   const subtotalCentavos = precoUnitarioCentavos * quantidade;
 
   return {
@@ -125,9 +265,13 @@ async function resolveOrderItemServerSide(produtoId, quantidade, tenant, read) {
     precoUnitario: precoUnitarioCentavos / 100,
     subtotal: subtotalCentavos / 100,
     // Campos autoritativos pra qualquer integração futura de pagamento —
-    // inteiros, sem ponto flutuante.
+    // inteiros, sem ponto flutuante. precoUnitarioCentavos já é o preço
+    // efetivo (com cupom, quando aplicável); descontoCentavos é por unidade.
+    precoBaseCentavos,
+    descontoCentavos,
     precoUnitarioCentavos,
-    subtotalCentavos
+    subtotalCentavos,
+    precoValidoAteMillis
   };
 }
 
@@ -172,7 +316,9 @@ function agregarItensPorProduto(itensSolicitados) {
 // sem nenhum outro campo confiável. read: (path) => Promise<DocSnapshot>,
 // injetável para permitir tanto tx.get() (dentro de transação) quanto
 // leitura direta (fora dela) e teste unitário com mock, sem Emulator.
-async function resolvePublicOrderServerSide({ tenant, itensSolicitados, read }) {
+// agora: instante server-side (ms) usado pra validade do cupom — injetável
+// pra teste determinístico; nunca vem do payload.
+async function resolvePublicOrderServerSide({ tenant, itensSolicitados, read, agora = Date.now() }) {
   if (!tenant?.ownerUid) {
     throw new HttpsError("failed-precondition", "Tenant não resolvido.");
   }
@@ -186,8 +332,16 @@ async function resolvePublicOrderServerSide({ tenant, itensSolicitados, read }) 
   const itensAgregados = agregarItensPorProduto(itensSolicitados);
 
   const itens = [];
+  // Menor prazo entre os preços promocionais do pedido (null = nenhum preço
+  // do pedido tem prazo). A quote nunca pode valer além disso.
+  let precoValidoAteMillis = null;
   for (const { produtoId, quantidade } of itensAgregados) {
-    itens.push(await resolveOrderItemServerSide(produtoId, quantidade, tenant, read));
+    const { precoValidoAteMillis: validoAte, ...item } =
+      await resolveOrderItemServerSide(produtoId, quantidade, tenant, read, agora);
+    if (validoAte !== null && (precoValidoAteMillis === null || validoAte < precoValidoAteMillis)) {
+      precoValidoAteMillis = validoAte;
+    }
+    itens.push(item);
   }
 
   const subtotalCentavos = itens.reduce((total, item) => total + item.subtotalCentavos, 0);
@@ -197,7 +351,8 @@ async function resolvePublicOrderServerSide({ tenant, itensSolicitados, read }) 
     subtotal: subtotalCentavos / 100,
     total: subtotalCentavos / 100,
     subtotalCentavos,
-    totalCentavos: subtotalCentavos
+    totalCentavos: subtotalCentavos,
+    precoValidoAteMillis
   };
 }
 
@@ -206,6 +361,10 @@ module.exports = {
   MAX_QUANTITY_PER_ITEM,
   parseStrictQuantity,
   precoParaCentavos,
+  CUPOM_TIMEZONE,
+  CUPOM_DESCONTO_MIN,
+  CUPOM_DESCONTO_MAX,
+  calcularPrecoEfetivoCentavos,
   agregarItensPorProduto,
   resolveOrderItemServerSide,
   resolvePublicOrderServerSide
