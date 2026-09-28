@@ -13,7 +13,7 @@ import {
   MAX_ITEMS_PER_ORDER,
   MAX_QUANTITY_PER_ITEM
 } from "../../functions/src/public/checkout-core.js";
-import { computeOrderQuoteDedupeHash } from "../../functions/src/public/index.js";
+import { computeOrderQuoteDedupeHash, orderQuoteSourceScope, orderQuoteContextMatches } from "../../functions/src/public/index.js";
 
 const tenant = { ownerUid: "ownerA" };
 
@@ -284,15 +284,18 @@ describe("resolvePublicOrderServerSide — pedido completo, com agregação de d
 });
 
 describe("computeOrderQuoteDedupeHash — base da idempotência/retry", () => {
+  // 038: o hash exige o contexto público resolvido (sourceType + id canônico).
+  const lojaA = { ownerUid: "ownerA", sourceType: "store", storeSlug: "loja-a" };
+
   it("mesmo tenant + mesmo token sempre gera o mesmo hash (retry seguro)", () => {
-    const h1 = computeOrderQuoteDedupeHash(tenant, "tentativa-123");
-    const h2 = computeOrderQuoteDedupeHash(tenant, "tentativa-123");
+    const h1 = computeOrderQuoteDedupeHash(lojaA, "tentativa-123");
+    const h2 = computeOrderQuoteDedupeHash(lojaA, "tentativa-123");
     assert.equal(h1, h2);
   });
 
   it("tenants diferentes nunca compartilham hash, mesmo com o mesmo token", () => {
-    const h1 = computeOrderQuoteDedupeHash({ ownerUid: "ownerA" }, "tentativa-123");
-    const h2 = computeOrderQuoteDedupeHash({ ownerUid: "ownerB" }, "tentativa-123");
+    const h1 = computeOrderQuoteDedupeHash({ ownerUid: "ownerA", sourceType: "store", storeSlug: "loja" }, "tentativa-123");
+    const h2 = computeOrderQuoteDedupeHash({ ownerUid: "ownerB", sourceType: "store", storeSlug: "loja" }, "tentativa-123");
     assert.notEqual(h1, h2);
   });
 
@@ -618,5 +621,88 @@ describe("cupom no pedido server-side (resolveOrderItemServerSide / resolvePubli
     assert.equal(resultado.itens[0].descontoCentavos, 0);
     assert.equal(resultado.itens[1].precoUnitarioCentavos, 1692);
     assert.equal(resultado.totalCentavos, 6692);
+  });
+});
+
+// VIDE-HUB-CHECKOUT-DEDUPE-SOURCE-ISOLATION-038 — dedupe escopada à origem
+// pública confiável (Loja × LP × LP2), nunca só ao tenant.
+describe("dedupe da quote isolada por origem pública", () => {
+  const loja = { ownerUid: "ownerA", sourceType: "store", storeSlug: "loja-a" };
+  const lp1 = { ownerUid: "ownerA", sourceType: "landing-page", publicPageId: "ownerA__lp1" };
+  const lp2 = { ownerUid: "ownerA", sourceType: "landing-page", publicPageId: "ownerA__lp2" };
+  const hash = (t) => computeOrderQuoteDedupeHash(t, "token-x");
+
+  it("mesmo contexto + mesmo token → mesmo hash (Loja→Loja, LP→LP)", () => {
+    assert.equal(hash(loja), hash({ ...loja }));
+    assert.equal(hash(lp1), hash({ ...lp1 }));
+  });
+
+  it("Loja × LP do mesmo tenant e token → hashes diferentes (nos dois sentidos)", () => {
+    assert.notEqual(hash(loja), hash(lp1));
+    assert.notEqual(hash(lp1), hash(loja));
+  });
+
+  it("LP1 × LP2 do mesmo tenant e token → hashes diferentes", () => {
+    assert.notEqual(hash(lp1), hash(lp2));
+  });
+
+  it("tenant A × tenant B na mesma origem/id e token → hashes diferentes", () => {
+    assert.notEqual(hash(loja), hash({ ...loja, ownerUid: "ownerB" }));
+  });
+
+  it("campos de outra origem no tenant não entram no escopo (só o id canônico da origem resolvida)", () => {
+    assert.equal(hash({ ...loja, publicPageId: "qualquer" }), hash(loja));
+    assert.equal(hash({ ...lp1, storeSlug: "qualquer" }), hash(lp1));
+  });
+
+  it("separação inequívoca: '|' em ids/token não produz colisão", () => {
+    const a = computeOrderQuoteDedupeHash({ ownerUid: "o", sourceType: "store", storeSlug: "a|order-quote|b" }, "c");
+    const b = computeOrderQuoteDedupeHash({ ownerUid: "o", sourceType: "store", storeSlug: "a" }, "b|order-quote|c");
+    assert.notEqual(a, b);
+  });
+
+  describe("contexto interno inválido → fail-closed (nunca uma dedupe genérica)", () => {
+    for (const [nome, t] of [
+      ["store sem storeSlug", { ownerUid: "ownerA", sourceType: "store" }],
+      ["store só com publicPageId", { ownerUid: "ownerA", sourceType: "store", publicPageId: "p" }],
+      ["landing-page sem publicPageId", { ownerUid: "ownerA", sourceType: "landing-page" }],
+      ["landing-page só com storeSlug", { ownerUid: "ownerA", sourceType: "landing-page", storeSlug: "s" }],
+      ["sourceType ausente", { ownerUid: "ownerA", storeSlug: "s" }],
+      ["sourceType desconhecido", { ownerUid: "ownerA", sourceType: "STORE", storeSlug: "s" }],
+      ["sem ownerUid", { sourceType: "store", storeSlug: "s" }]
+    ]) {
+      it(nome, () => {
+        assert.throws(() => computeOrderQuoteDedupeHash(t, "token-x"), (e) => e.code === "internal");
+      });
+    }
+
+    it("orderQuoteSourceScope devolve só o id canônico da origem", () => {
+      assert.deepEqual(orderQuoteSourceScope(loja), { sourceType: "store", sourceId: "loja-a" });
+      assert.deepEqual(orderQuoteSourceScope(lp1), { sourceType: "landing-page", sourceId: "ownerA__lp1" });
+    });
+  });
+
+  describe("orderQuoteContextMatches — defesa no replay", () => {
+    const quoteLoja = { tenantId: "ownerA", sourceType: "store", storeSlug: "loja-a", publicPageId: null };
+    const quoteLp1 = { tenantId: "ownerA", sourceType: "landing-page", storeSlug: null, publicPageId: "ownerA__lp1" };
+
+    it("mesmo contexto → reutilizável", () => {
+      assert.equal(orderQuoteContextMatches(quoteLoja, loja), true);
+      assert.equal(orderQuoteContextMatches(quoteLp1, lp1), true);
+    });
+
+    it("origem, id ou tenant diferente → nunca reutilizável", () => {
+      assert.equal(orderQuoteContextMatches(quoteLoja, lp1), false);
+      assert.equal(orderQuoteContextMatches(quoteLp1, loja), false);
+      assert.equal(orderQuoteContextMatches(quoteLp1, lp2), false);
+      assert.equal(orderQuoteContextMatches(quoteLoja, { ...loja, storeSlug: "loja-b" }), false);
+      assert.equal(orderQuoteContextMatches(quoteLoja, { ...loja, ownerUid: "ownerB" }), false);
+    });
+
+    it("quote legada/inconsistente sem campos de contexto → nunca reutilizável", () => {
+      assert.equal(orderQuoteContextMatches({ tenantId: "ownerA" }, loja), false);
+      assert.equal(orderQuoteContextMatches({}, lp1), false);
+      assert.equal(orderQuoteContextMatches(null, loja), false);
+    });
   });
 });
