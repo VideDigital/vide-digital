@@ -18,7 +18,8 @@ import {
     ehErroDeRedeExterno,
     launchBrowser,
     loginReal,
-    startStaticServer
+    startStaticServer,
+    executarOperacaoPaginaAsync
 } from "./_helpers.mjs";
 
 const PROJECT_ID = "demo-vide-hub";
@@ -162,7 +163,7 @@ async function main() {
         );
 
         // ===== Publicar: precisa ser atômico e usar o contrato corrigido =====
-        const resultadoEvaluate = await page.evaluate(
+        const resultadoEvaluate = await executarOperacaoPaginaAsync(page,
             async (lpId) => {
                 try {
                     await window.alternarPublicacaoLP(lpId, true);
@@ -210,7 +211,7 @@ async function main() {
         console.log("landing-page-publication.flow: publicação em modo Livre OK — todos os blocos, geometria e design preservados.");
 
         // ===== Despublicar: não pode deixar órfão nenhum =====
-        await page.evaluate(
+        await executarOperacaoPaginaAsync(page,
             async (lpId) => { return await window.alternarPublicacaoLP(lpId, false); },
             LP_ID
         );
@@ -238,7 +239,7 @@ async function main() {
 
         let falhouComoEsperado = false;
         try {
-            await page.evaluate(
+            await executarOperacaoPaginaAsync(page,
                 async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); },
                 LP_ID
             );
@@ -292,7 +293,7 @@ async function main() {
                     await db.collection("landing_pages_blocos").doc(id).set(dados);
                 }
 
-                const resultado = await page.evaluate(async (lpId) => {
+                const resultado = await executarOperacaoPaginaAsync(page, async (lpId) => {
                     await window.editarLP(lpId);
                     const publicadoAntes = window.__videLpEditorPublicado?.();
                     const resultadoPublicar = await window.publicarEditorLP();
@@ -345,7 +346,7 @@ async function main() {
             try {
                 await seedLpPublicada(db, { lpId, slug: slugA, blocos: blocosS2, titulo: "LP QA S2" });
 
-                const resultado = await page.evaluate(async ({ lpId, novoSlug }) => {
+                const resultado = await executarOperacaoPaginaAsync(page, async ({ lpId, novoSlug }) => {
                     await window.editarLP(lpId);
                     document.getElementById("lped-slug").value = novoSlug;
                     const resultadoSalvar = await window.salvarEditorLP();
@@ -415,7 +416,7 @@ async function main() {
                 // o writeBatch inteiro (privado+público) precisa ser rejeitado.
                 await db.collection("landing_pages_blocos").doc(blocosS3[2].id).update({ x: "invalido" });
 
-                const resultado = await page.evaluate(async ({ lpId, novoSlug }) => {
+                const resultado = await executarOperacaoPaginaAsync(page, async ({ lpId, novoSlug }) => {
                     await window.editarLP(lpId);
                     document.getElementById("lped-slug").value = novoSlug;
                     const resultadoSalvar = await window.salvarEditorLP();
@@ -466,7 +467,7 @@ async function main() {
                 // ---- 4a: remoção do bloco c1 + falha (c3 corrompido) ----
                 await db.collection("landing_pages_blocos").doc(c3.id).update({ x: "invalido" });
 
-                const resultadoFalha = await page.evaluate(async ({ lpId, indiceRemover }) => {
+                const resultadoFalha = await executarOperacaoPaginaAsync(page, async ({ lpId, indiceRemover }) => {
                     await window.editarLP(lpId);
                     window.removerBlocoEditor(indiceRemover);
                     const resultadoSalvar = await window.salvarEditorLP();
@@ -501,7 +502,7 @@ async function main() {
                 // ---- 4b: mesma remoção, agora com sucesso (corrupção desfeita) ----
                 await db.collection("landing_pages_blocos").doc(c3.id).update({ x: c3.x });
 
-                const resultadoSucesso = await page.evaluate(async ({ lpId, indiceRemover }) => {
+                const resultadoSucesso = await executarOperacaoPaginaAsync(page, async ({ lpId, indiceRemover }) => {
                     await window.editarLP(lpId);
                     window.removerBlocoEditor(indiceRemover);
                     const resultadoSalvar = await window.salvarEditorLP();
@@ -556,7 +557,7 @@ async function main() {
                 // idInexistente deliberadamente nunca tem documento em
                 // landing_pages_blocos — simula referência quebrada.
 
-                const resultadoEvaluate = await page.evaluate(
+                const resultadoEvaluate = await executarOperacaoPaginaAsync(page,
                     async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); },
                     lpId
                 );

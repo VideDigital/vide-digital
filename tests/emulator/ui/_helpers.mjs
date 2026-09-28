@@ -160,3 +160,115 @@ export const VIEWPORTS = Object.freeze({
     "celular-390": { width: 390, height: 844 },
     "celular-360": { width: 360, height: 640 }
 });
+
+// VIDE-HUB-PLAYWRIGHT-PROMISE-RETENTION-044
+//
+// Operações async de aplicação (editarLP, salvarEditorLP,
+// alternarPublicacaoLP, publicarEditorLP — todas com Firestore) NÃO podem
+// ser aguardadas por um único page.evaluate longo. Evidência de CI (runs
+// 35596714113 e 35380692824, instrumentadas com CDP): a falha
+// "Execution context was destroyed, most likely because of a navigation"
+// era na verdade `Runtime.callFunctionOn: Promise was collected`, com o
+// MESMO contextId antes/depois, nenhum executionContextsCleared/Destroyed
+// e a página em readyState=complete — não houve navegação. É o que o
+// Chromium devolve quando a Promise que o CDP está aguardando (awaitPromise)
+// é coletada pelo GC antes de assentar. A mitigação anterior (49d1b24,
+// `async () => await ...` dentro do evaluate) não mudou nada, porque o CDP
+// continuava aguardando uma Promise remota.
+//
+// Modelo aqui: o primeiro evaluate só INICIA a operação e retorna na hora
+// uma chave (nenhuma Promise é entregue ao CDP); a Promise real fica
+// fortemente referenciada num registry em window até ser lida; o Node lê o
+// estado com evaluates síncronos curtos. Garantias:
+// - a operação roda UMA vez — nunca há retry (salvar/publicar têm escrita);
+// - rejeição real da página falha o teste, com nome/mensagem/stack;
+// - operação que não assenta falha como timeout explícito da operação;
+// - registry perdido (a página realmente navegou/recarregou) falha;
+// - nenhum erro é filtrado nem convertido em sucesso.
+// `operacao` segue o mesmo contrato de page.evaluate: função autocontida,
+// executada NA página, com um único argumento serializável em JSON.
+const REGISTRY_OPERACOES = "__videHubPlaywrightAsyncOps";
+const TIMEOUT_OPERACAO_PADRAO_MS = 30000; // mesmo teto já usado por loginReal/goto
+const INTERVALO_LEITURA_MS = 50;
+let proximaOperacaoId = 0;
+
+// Executada NA página via string (nunca awaitada pelo CDP): cria a entrada,
+// dispara a operação e retorna a chave sincronamente.
+function iniciarOperacaoNaPagina(nomeRegistry, chave, operacao, arg) {
+    const registry = window[nomeRegistry] || (window[nomeRegistry] = Object.create(null));
+    if (registry[chave]) throw new Error(`Operação ${chave} já registrada.`);
+    const entrada = { status: "pending", promise: null, result: undefined, error: undefined };
+    registry[chave] = entrada;
+    // Promise.resolve().then(): até um throw síncrono da operação vira
+    // rejeição rastreada, nunca um throw perdido.
+    entrada.promise = Promise.resolve().then(() => operacao(arg));
+    entrada.promise.then(
+        (result) => {
+            entrada.status = "fulfilled";
+            entrada.result = result;
+        },
+        (error) => {
+            entrada.status = "rejected";
+            entrada.error = {
+                name: String(error?.name || "Error"),
+                message: String(error?.message ?? error),
+                stack: error?.stack ? String(error.stack) : null
+            };
+        }
+    );
+    return chave;
+}
+
+export async function iniciarOperacaoPagina(page, operacao, arg) {
+    if (typeof operacao !== "function") throw new TypeError("operacao precisa ser uma função executável na página.");
+    const argLiteral = arg === undefined ? "undefined" : JSON.stringify(arg);
+    if (argLiteral === undefined) throw new TypeError("argumento da operação precisa ser serializável em JSON.");
+    const chave = `op-${process.pid}-${++proximaOperacaoId}`;
+    const expressao = `(${iniciarOperacaoNaPagina.toString()})(${JSON.stringify(REGISTRY_OPERACOES)}, ${JSON.stringify(chave)}, (${operacao.toString()}), ${argLiteral})`;
+    const chaveIniciada = await page.evaluate(expressao);
+    if (chaveIniciada !== chave) throw new Error(`Operação ${chave} não foi iniciada na página.`);
+    return chave;
+}
+
+export async function aguardarOperacaoPagina(page, chave, { rotulo = chave, timeoutMs = TIMEOUT_OPERACAO_PADRAO_MS } = {}) {
+    const inicio = Date.now();
+    for (;;) {
+        // Leitura SÍNCRONA: devolve o estado e, se já assentou, remove a
+        // entrada (cleanup) — nenhuma Promise é entregue ao CDP.
+        const leitura = await page.evaluate(({ nomeRegistry, chave }) => {
+            const registry = window[nomeRegistry];
+            const entrada = registry?.[chave];
+            if (!entrada) return { status: "missing" };
+            if (entrada.status === "pending") return { status: "pending" };
+            delete registry[chave];
+            return { status: entrada.status, result: entrada.result, error: entrada.error };
+        }, { nomeRegistry: REGISTRY_OPERACOES, chave });
+
+        if (leitura.status === "fulfilled") return leitura.result;
+        if (leitura.status === "rejected") {
+            const erro = new Error(
+                `Operação de página "${rotulo}" rejeitou: ${leitura.error?.name}: ${leitura.error?.message}` +
+                (leitura.error?.stack ? `\n--- stack da página ---\n${leitura.error.stack}` : "")
+            );
+            erro.erroPagina = leitura.error;
+            throw erro;
+        }
+        if (leitura.status === "missing") {
+            throw new Error(`Operação de página "${rotulo}" (${chave}) sumiu do registry — a página navegou ou recarregou antes de a operação assentar.`);
+        }
+        if (Date.now() - inicio >= timeoutMs) {
+            // Sem retry: a operação pode ter escrito. Remove a entrada (o
+            // teste vai falhar de qualquer forma) pra não crescer o registry.
+            await page.evaluate(({ nomeRegistry, chave }) => {
+                if (window[nomeRegistry]) delete window[nomeRegistry][chave];
+            }, { nomeRegistry: REGISTRY_OPERACOES, chave });
+            throw new Error(`Operação de página "${rotulo}" (${chave}) não assentou em ${timeoutMs}ms (status=pending).`);
+        }
+        await new Promise((resolve) => setTimeout(resolve, INTERVALO_LEITURA_MS));
+    }
+}
+
+export async function executarOperacaoPaginaAsync(page, operacao, arg, opcoes = {}) {
+    const chave = await iniciarOperacaoPagina(page, operacao, arg);
+    return aguardarOperacaoPagina(page, chave, opcoes);
+}

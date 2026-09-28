@@ -25,7 +25,8 @@ import {
     ehErroDeRedeExterno,
     launchBrowser,
     loginReal,
-    startStaticServer
+    startStaticServer,
+    executarOperacaoPaginaAsync
 } from "./_helpers.mjs";
 
 const PROJECT_ID = "demo-vide-hub";
@@ -58,7 +59,7 @@ async function limparEstado(db) {
 }
 
 async function abrirEditorEFormularios(page) {
-    await page.evaluate(async (lpId) => { return await window.editarLP(lpId); }, LP_ID);
+    await executarOperacaoPaginaAsync(page, async (lpId) => { return await window.editarLP(lpId); }, LP_ID, { rotulo: "editarLP" });
     await page.waitForFunction(() => typeof window.AuraStudioUltimate?.open === "function", undefined, { timeout: 20000 });
     await page.evaluate(() => window.AuraStudioUltimate.open("forms"));
     await page.waitForSelector("#aura-ultimate-form-editor", { state: "visible", timeout: 15000 });
@@ -107,7 +108,7 @@ async function main() {
         // Usa o save GLOBAL real da Landing Page (o mesmo botão/fluxo que
         // um usuário usaria pra salvar qualquer outra mudança no editor
         // básico) — não o "Salvar formulário" do Studio.
-        const resultadoSalvarLp = await page.evaluate(async () => { return await window.salvarEditorLP(); });
+        const resultadoSalvarLp = await executarOperacaoPaginaAsync(page, async () => { return await window.salvarEditorLP(); }, undefined, { rotulo: "salvarEditorLP" });
         assert.equal(resultadoSalvarLp?.ok, true, "salvarEditorLP() precisa confirmar sucesso mesmo com um campo personalizado ainda não confirmado aberto no Studio");
 
         // ===== A prova em si: nada quebrado pode ter sido persistido =====
@@ -141,7 +142,7 @@ async function main() {
         const nomeGerado = await page.locator("[data-custom-field-row] code").first().textContent();
         assert.ok(nomeGerado && nomeGerado !== "gerado ao salvar", "o name precisa ter sido gerado e exibido depois do Salvar formulário");
 
-        const resultadoSalvarLp2 = await page.evaluate(async () => { return await window.salvarEditorLP(); });
+        const resultadoSalvarLp2 = await executarOperacaoPaginaAsync(page, async () => { return await window.salvarEditorLP(); }, undefined, { rotulo: "salvarEditorLP" });
         assert.equal(resultadoSalvarLp2?.ok, true, "salvarEditorLP() precisa confirmar sucesso pro campo válido");
 
         const blocoSalvo2 = await db.collection("landing_pages_blocos").doc(BLOCO_ID).get();
@@ -166,7 +167,10 @@ async function main() {
         await linhaExistente.locator("[data-custom-field-label]").fill("Campo Válido REV002 (editado)");
         await page.click("#aura-ultimate-form-save");
         await page.waitForFunction(() => !document.querySelector(".aura-ultimate-custom-field-error"), undefined, { timeout: 5000 });
-        await page.evaluate(async () => { return await window.salvarEditorLP(); });
+        // 044: o retorno deste segundo save agora também é verificado (antes
+        // era ignorado) — um save que falhasse não passa mais despercebido.
+        const resultadoSalvarLp3 = await executarOperacaoPaginaAsync(page, async () => { return await window.salvarEditorLP(); }, undefined, { rotulo: "salvarEditorLP" });
+        assert.equal(resultadoSalvarLp3?.ok, true, "salvarEditorLP() precisa confirmar sucesso no segundo ciclo de edição/salvamento");
         const nomeAposSegundoCiclo = await page.locator("[data-custom-field-row] code").first().textContent();
         assert.equal(nomeAposSegundoCiclo, nomeGerado, "o name precisa continuar idêntico depois de um segundo ciclo real de edição/salvamento");
 
