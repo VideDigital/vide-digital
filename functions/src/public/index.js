@@ -551,11 +551,41 @@ const createPublicReview = onCall({ ...publicOptions, enforceAppCheck: false }, 
 // TENTATIVA de envio (nunca por conteúdo), escopado ao tenant resolvido
 // pelo servidor — nunca ao que o payload afirma. Sem token, cada chamada
 // cria uma nova quote (sem fallback por conteúdo).
+//
+// VIDE-HUB-CHECKOUT-DEDUPE-SOURCE-ISOLATION-038 — o escopo é o CONTEXTO
+// público confiável, não só o tenant: Loja, LP1 e LP2 do mesmo dono têm
+// preços potencialmente diferentes (cupom só na Loja — D3), então nunca
+// compartilham quote. sourceType e o identificador canônico
+// (storeSlug/publicPageId) vêm SOMENTE de resolvePublicTenant. Contexto
+// incompleto falha fechado em vez de cair numa dedupe genérica.
+function orderQuoteSourceScope(tenant) {
+  if (tenant?.sourceType === "store" && tenant.storeSlug) {
+    return { sourceType: "store", sourceId: tenant.storeSlug };
+  }
+  if (tenant?.sourceType === "landing-page" && tenant.publicPageId) {
+    return { sourceType: "landing-page", sourceId: tenant.publicPageId };
+  }
+  throw new HttpsError("internal", "Não foi possível processar o pedido.");
+}
+
 function computeOrderQuoteDedupeHash(tenant, rawDedupeKey) {
   const token = publicText(rawDedupeKey || "", 200);
   if (!token) return null;
-  const parts = [tenant.ownerUid, "order-quote", token].join("|");
+  if (!tenant?.ownerUid) throw new HttpsError("internal", "Não foi possível processar o pedido.");
+  const { sourceType, sourceId } = orderQuoteSourceScope(tenant);
+  // JSON de array: separação inequívoca mesmo se algum id contiver "|".
+  const parts = JSON.stringify([tenant.ownerUid, sourceType, sourceId, "order-quote", token]);
   return crypto.createHash("sha256").update(parts).digest("hex");
+}
+
+// Defesa em profundidade no replay: mesmo com o hash correto, uma quote só é
+// devolvida se pertencer ao MESMO contexto resolvido agora (protege contra
+// ponteiro de dedupe inconsistente ou bug futuro no hash).
+function orderQuoteContextMatches(quote, tenant) {
+  if (quote?.tenantId !== tenant.ownerUid || quote?.sourceType !== tenant.sourceType) return false;
+  return tenant.sourceType === "store"
+    ? quote.storeSlug === tenant.storeSlug
+    : quote.publicPageId === tenant.publicPageId;
 }
 
 // Janela de retry (mesmo token de tentativa reaproveitado) E de validade da
@@ -583,9 +613,23 @@ const ORDER_QUOTE_TTL_MS = 10 * 60 * 1000;
 // esta Function é a base para um checkout futuro com cobrança real, não um
 // substituto do fluxo de handoff por WhatsApp já existente (que continua
 // usando sanitizeOrderItem/sanitizeOrderSnapshot acima, inalterado).
-async function createOrderQuoteIdempotent(data, db = getFirestore()) {
+//
+// SECURITY-CHECKOUT-COUPON-PARITY-036 — uma quote com preço promocional
+// nunca vale além do fim do cupom: expiresAt = min(agora + 10min, fim da
+// validade do cupom em America/Sao_Paulo). A dedupe respeita o expiresAt
+// REAL da quote: um retry com o mesmo token nunca devolve uma quote já
+// expirada (mesmo dentro dos 10min desde a criação) — recalcula uma nova,
+// na mesma transação, e repõe o ponteiro da dedupe. Uma quote ainda válida
+// continua sendo devolvida como snapshot, sem reler preço/cupom do produto.
+function orderQuoteAindaValida(quote, now) {
+  const expiresAtMillis = quote?.expiresAt?.toMillis?.();
+  return Number.isFinite(expiresAtMillis) && now < expiresAtMillis;
+}
+
+// `now` só é parâmetro pra teste determinístico no Emulator — a callable
+// pública nunca o repassa, então o instante é sempre do servidor.
+async function createOrderQuoteIdempotent(data, db = getFirestore(), now = Date.now()) {
   const quoteRef = db.collection("pedidos_publicos_quotes").doc();
-  const now = Date.now();
 
   return db.runTransaction(async (tx) => {
     const read = (path) => tx.get(db.doc(path));
@@ -599,18 +643,25 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
         const previous = dedupeSnap.data() || {};
         if (previous.quoteId && now - dedupeCreatedAtMillis(previous) < ORDER_QUOTE_TTL_MS) {
           const previousQuoteSnap = await tx.get(db.doc(`pedidos_publicos_quotes/${previous.quoteId}`));
-          if (previousQuoteSnap.exists) {
-            return { quoteId: previous.quoteId, ...previousQuoteSnap.data() };
+          const previousQuote = previousQuoteSnap.exists ? previousQuoteSnap.data() : null;
+          if (previousQuote && orderQuoteContextMatches(previousQuote, tenant) &&
+              orderQuoteAindaValida(previousQuote, now)) {
+            return { quoteId: previous.quoteId, ...previousQuote };
           }
         }
       }
     }
 
-    const { itens, subtotal, total, subtotalCentavos, totalCentavos } = await resolvePublicOrderServerSide({
-      tenant,
-      itensSolicitados: data?.itens,
-      read
-    });
+    const { itens, subtotal, total, subtotalCentavos, totalCentavos, precoValidoAteMillis } =
+      await resolvePublicOrderServerSide({
+        tenant,
+        itensSolicitados: data?.itens,
+        read,
+        agora: now
+      });
+    const expiresAtMillis = precoValidoAteMillis === null
+      ? now + ORDER_QUOTE_TTL_MS
+      : Math.min(now + ORDER_QUOTE_TTL_MS, precoValidoAteMillis);
 
     const quotePayload = {
       tenantId: tenant.ownerUid,
@@ -627,13 +678,18 @@ async function createOrderQuoteIdempotent(data, db = getFirestore()) {
       naoReservaEstoque: true,
       criadoEm: FieldValue.serverTimestamp(),
       criadoEmMillis: now,
-      expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_TTL_MS)
+      expiresAt: Timestamp.fromMillis(expiresAtMillis)
     };
     tx.set(quoteRef, quotePayload);
     if (dedupeRef) {
+      const { sourceType, sourceId } = orderQuoteSourceScope(tenant);
       tx.set(dedupeRef, {
         quoteId: quoteRef.id,
         tenantId: tenant.ownerUid,
+        // Só auditoria técnica (identificadores públicos, sem PII). Nenhuma
+        // decisão usa estes campos — a autoridade é o tenant resolvido.
+        sourceType,
+        sourceId,
         criadoEmMillis: now,
         expiresAt: Timestamp.fromMillis(now + ORDER_QUOTE_TTL_MS * 2)
       });
@@ -720,5 +776,7 @@ module.exports = {
   assertReasonablePayloadSize,
   computeLeadDedupeHash,
   computeOrderQuoteDedupeHash,
+  orderQuoteSourceScope,
+  orderQuoteContextMatches,
   createOrderQuoteIdempotent
 };
