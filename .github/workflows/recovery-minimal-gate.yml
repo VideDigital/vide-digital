@@ -1,0 +1,321 @@
+# VIDE-HUB-RECOVERY-AUTOMATION-PREP-049A — gate mínimo de recovery.
+#
+# Canal auditável e fail-closed para fechar o gate de recovery do beta
+# controlado sem depender de Cloud Shell. SOMENTE workflow_dispatch.
+#
+# stage=preflight        somente leitura (describe/list/du), confirmação READ_ONLY.
+# stage=enable-and-drill mesmo preflight + ÚNICAS escritas de infra permitidas:
+#                        `gcloud firestore databases update --delete-protection
+#                        --enable-pitr` (idempotente, nunca --no-*), seguido do
+#                        drill seletivo scripts/recovery-drill-049.mjs no tenant
+#                        QA (documento técnico recovery_drills/RECOVERY-DRILL-049-*),
+#                        confirmação ENABLE_RECOVERY_049.
+#
+# Gates antes de autenticar (qualquer divergência falha fechado):
+#   branch == main; github.sha == expected_sha == HEAD atual de main;
+#   project_id/database_id/qa_slug/confirmação exatos (scripts/recovery-gate-cli.mjs);
+#   Quality Gate push/main do expected_sha completed/success com os 4 jobs
+#   (scripts/pages-qg-gate.mjs — o mesmo gate do Pages).
+# Autenticação: o mesmo padrão dos workflows Firebase (WIF, fallback chave).
+# Nenhum IAM, backup schedule, Storage, Rules, índices, Functions ou deploy.
+# Executar exige AUTORIZAÇÃO DE PRODUÇÃO SEPARADA.
+
+name: Recovery Minimal Gate — Controlado
+
+on:
+  workflow_dispatch:
+    inputs:
+      stage:
+        description: "preflight (somente leitura) ou enable-and-drill (PITR + delete protection + drill QA)"
+        required: true
+        type: choice
+        options:
+          - preflight
+          - enable-and-drill
+      project_id:
+        description: "Projeto (exatamente vide-digital-saas)"
+        required: true
+        type: string
+      database_id:
+        description: "Banco (exatamente (default))"
+        required: true
+        type: string
+      expected_sha:
+        description: "SHA completo (40 chars) da main autorizada"
+        required: true
+        type: string
+      confirm_production:
+        description: "stage=preflight: READ_ONLY · stage=enable-and-drill: ENABLE_RECOVERY_049"
+        required: true
+        type: string
+      qa_slug:
+        description: "Tenant QA (exatamente vide-hub-qa-testes)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+concurrency:
+  group: vide-hub-recovery-production
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  recovery:
+    name: Recovery gate (${{ inputs.stage }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    env:
+      STAGE: ${{ inputs.stage }}
+      PROJECT_ID: ${{ inputs.project_id }}
+      DATABASE_ID: ${{ inputs.database_id }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      CONFIRMACAO: ${{ inputs.confirm_production }}
+      QA_SLUG: ${{ inputs.qa_slug }}
+      BUCKET: gs://vide-digital-saas.firebasestorage.app
+
+    steps:
+      - name: Bloquear execução fora da main
+        shell: bash
+        run: |
+          echo "WORK_DIR=${RUNNER_TEMP}/recovery-gate" >> "$GITHUB_ENV"
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::O gate de recovery só roda a partir da branch main."
+            exit 1
+          fi
+
+      # Sem checkout ainda: prova que o SHA autorizado é exatamente o disparo
+      # e o HEAD atual de main. process.env evita injeção via input.
+      - name: Validar identidade do SHA autorizado (antes de qualquer checkout)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const expectedSha = process.env.EXPECTED_SHA;
+            if (!/^[0-9a-f]{40}$/.test(expectedSha || "")) {
+              core.setFailed("expected_sha malformado: esperado exatamente 40 caracteres hex minúsculos.");
+              return;
+            }
+            if (context.sha !== expectedSha) {
+              core.setFailed(`github.sha (${context.sha}) difere do expected_sha autorizado (${expectedSha}).`);
+              return;
+            }
+            const { data: branch } = await github.rest.repos.getBranch({ owner: context.repo.owner, repo: context.repo.repo, branch: "main" });
+            if (branch.commit.sha !== expectedSha) {
+              core.setFailed(`main avançou: HEAD atual ${branch.commit.sha} difere do expected_sha ${expectedSha}.`);
+              return;
+            }
+            core.info(`SHA ${expectedSha} confirmado como HEAD atual de main.`);
+
+      - name: Checkout explícito do SHA autorizado
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+
+      - name: Confirmar SHA do checkout
+        shell: bash
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]; then
+            echo "::error::Checkout diverge do expected_sha."
+            exit 1
+          fi
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validar entradas (projeto, banco, tenant QA, confirmação por stage)
+        run: node scripts/recovery-gate-cli.mjs inputs
+
+      - name: Exigir Quality Gate completo (4/4) e verde no SHA exato
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/pages-qg-gate.mjs
+
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # ===== PREFLIGHT (somente leitura) — roda nos dois stages =====
+      - name: Preflight somente leitura
+        id: preflight
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$WORK_DIR"
+          gcloud version | head -1
+          gcloud firestore databases describe --database="$DATABASE_ID" --project="$PROJECT_ID" --format=json > "$WORK_DIR/antes.json"
+          node scripts/recovery-gate-cli.mjs describe-check "$WORK_DIR/antes.json"
+          LOCATION="$(node -p 'JSON.parse(require("fs").readFileSync(process.argv[1],"utf8")).locationId' "$WORK_DIR/antes.json")"
+          echo "--- backup schedules"
+          gcloud firestore backups schedules list --database="$DATABASE_ID" --project="$PROJECT_ID" --format="table(name.basename(),retention,dailyRecurrence,weeklyRecurrence)" | tee "$WORK_DIR/schedules.txt"
+          echo "--- backups (${LOCATION})"
+          gcloud firestore backups list --location="$LOCATION" --project="$PROJECT_ID" --format="table(name.basename(),state,snapshotTime,expireTime)"
+          echo "--- bucket (metadados, sem objetos)"
+          gcloud storage buckets describe "$BUCKET" --project="$PROJECT_ID" --format="yaml(location,versioning,soft_delete_policy,retention_policy,lifecycle_config)"
+          gcloud storage du -s "$BUCKET" | tee "$WORK_DIR/bucket-du.txt"
+          BILLING="$(gcloud billing projects describe "$PROJECT_ID" --format='value(billingEnabled)' 2>/dev/null || echo "NAO_COMPROVADO")"
+          echo "billing=${BILLING}" | tee -a "$GITHUB_OUTPUT"
+          if [ -s "$WORK_DIR/schedules.txt" ]; then echo "schedules=existente" >> "$GITHUB_OUTPUT"; else echo "schedules=NONE" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Artefato do preflight
+        if: inputs.stage == 'preflight'
+        env:
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: node scripts/recovery-gate-cli.mjs preflight-artifact "$WORK_DIR/antes.json" "$WORK_DIR/recovery-gate-049.json"
+
+      # ===== ENABLE-AND-DRILL (escritas autorizadas separadamente) =====
+      - name: Exigir billing comprovado antes de habilitar PITR
+        if: inputs.stage == 'enable-and-drill'
+        shell: bash
+        env:
+          BILLING: ${{ steps.preflight.outputs.billing }}
+        run: |
+          if [ "$BILLING" != "True" ]; then
+            echo "::error::Billing não comprovado (valor: ${BILLING}). PITR exige billing — nada foi alterado."
+            exit 1
+          fi
+
+      - name: Confirmar sintaxe GA instalada (sem trocar para beta)
+        if: inputs.stage == 'enable-and-drill'
+        shell: bash
+        run: |
+          set -euo pipefail
+          AJUDA="$(gcloud firestore databases update --help)"
+          grep -q -- "--enable-pitr" <<<"$AJUDA" || { echo "::error::gcloud GA sem --enable-pitr"; exit 1; }
+          grep -q -- "--delete-protection" <<<"$AJUDA" || { echo "::error::gcloud GA sem --delete-protection"; exit 1; }
+
+      - name: Planejar escrita (idempotente)
+        if: inputs.stage == 'enable-and-drill'
+        id: plan
+        run: node scripts/recovery-gate-cli.mjs plan "$WORK_DIR/antes.json"
+
+      - name: Revalidar que main ainda é o SHA autorizado (antes da escrita)
+        if: inputs.stage == 'enable-and-drill'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const { data: branch } = await github.rest.repos.getBranch({ owner: context.repo.owner, repo: context.repo.repo, branch: "main" });
+            if (branch.commit.sha !== process.env.EXPECTED_SHA) {
+              core.setFailed(`main avançou para ${branch.commit.sha} — escrita abortada.`);
+            }
+
+      - name: Habilitar delete protection e PITR (somente flags pendentes)
+        if: inputs.stage == 'enable-and-drill' && steps.plan.outputs.needs_update == 'true'
+        shell: bash
+        env:
+          FLAGS: ${{ steps.plan.outputs.flags }}
+        run: |
+          set -euo pipefail
+          declare -a ARGS=()
+          for FLAG in $FLAGS; do
+            case "$FLAG" in
+              --delete-protection|--enable-pitr) ARGS+=("$FLAG") ;;
+              *) echo "::error::Flag fora da allowlist: $FLAG"; exit 1 ;;
+            esac
+          done
+          gcloud firestore databases update --database="$DATABASE_ID" --project="$PROJECT_ID" "${ARGS[@]}" --quiet
+
+      - name: Verificar estado final e drift de configuração
+        if: inputs.stage == 'enable-and-drill'
+        shell: bash
+        run: |
+          set -euo pipefail
+          gcloud firestore databases describe --database="$DATABASE_ID" --project="$PROJECT_ID" --format=json > "$WORK_DIR/depois.json"
+          node scripts/recovery-gate-cli.mjs post "$WORK_DIR/antes.json" "$WORK_DIR/depois.json"
+
+      - name: Instalar dependências sem alterar o lockfile
+        if: inputs.stage == 'enable-and-drill'
+        run: pnpm install --frozen-lockfile
+
+      - name: Drill seletivo de recovery (tenant QA)
+        if: inputs.stage == 'enable-and-drill'
+        env:
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          BEFORE_JSON="$WORK_DIR/antes.json" AFTER_JSON="$WORK_DIR/depois.json" \
+          ARTIFACT_PATH="$WORK_DIR/recovery-gate-049.json" \
+          node scripts/recovery-drill-049.mjs
+
+      - name: Resumo do gate
+        if: always()
+        shell: bash
+        env:
+          PITR_ANTES: ${{ steps.preflight.outputs.pitr }}
+          DP_ANTES: ${{ steps.preflight.outputs.delete_protection }}
+          SCHEDULES: ${{ steps.preflight.outputs.schedules }}
+        run: |
+          ARQ="$WORK_DIR/recovery-gate-049.json"
+          campo() { [ -f "$ARQ" ] && node -p "const a=JSON.parse(require('fs').readFileSync('$ARQ','utf8')); String(a['$1'])" || echo "n/a"; }
+          PITR_DEPOIS="$(campo pitrAfter)"; DP_DEPOIS="$(campo deleteProtectionAfter)"
+          {
+            echo "## RECOVERY GATE (${STAGE})"
+            echo ""
+            echo "| Item | Valor |"
+            echo "|---|---|"
+            echo "| PITR antes / depois | ${PITR_ANTES:-n/a} / ${PITR_DEPOIS} |"
+            echo "| DELETE PROTECTION antes / depois | ${DP_ANTES:-n/a} / ${DP_DEPOIS} |"
+            echo "| DRILL (leitura histórica / write-back) | $(campo historicalReadPassed) / $(campo writeBackPassed) |"
+            echo "| CLEANUP | $(campo cleanupPassed) |"
+            echo "| RTO observado (ms) | $(campo observedRtoMs) |"
+            echo "| BACKUP SCHEDULE | ${SCHEDULES:-n/a} |"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Publicar artefato sem segredo (recovery-gate-049)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: recovery-gate-049
+          path: ${{ runner.temp }}/recovery-gate/recovery-gate-049.json
+          if-no-files-found: ignore
+          retention-days: 90
