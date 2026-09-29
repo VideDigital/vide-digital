@@ -7,7 +7,9 @@
 //   inputs                     valida PROJECT_ID/EXPECTED_SHA/CONFIRMACAO
 //   rest-urls                  imprime "fonte<TAB>url" dos GETs REST permitidos
 //   build <rawDir> <saida.json> classifica cada fonte (<fonte>.code/.err/.json)
-//                              e grava o artefato allowlisted
+//                              e grava o artefato allowlisted; falha (exit 1,
+//                              sem artefato) em JSON inválido de fonte OK ou
+//                              invariante de sanitização violado
 //   summary <artefato.json>    Step Summary + output result=PASS|PARTIAL
 //
 // O texto de erro (.err) só é usado para classificar a falha — nunca é
@@ -18,7 +20,7 @@ import { pathToFileURL } from "node:url";
 import {
     validarEntradas,
     construirFontesRest,
-    classificarFonte,
+    detalharFonte,
     construirInventario,
     resumoMarkdown,
     resultado,
@@ -38,22 +40,25 @@ function falhar(mensagens) {
     process.exit(1);
 }
 
+// Fonte que respondeu OK (exit 0 / HTTP 200) mas com JSON inválido é
+// invariante quebrado, não "fonte indisponível": lança e o build falha.
 export async function lerFontes(dir) {
     const nomes = (await readdir(dir)).filter((n) => n.endsWith(".code")).map((n) => n.slice(0, -".code".length));
     const fontes = {};
     for (const nome of nomes.sort()) {
         const codigo = (await lerOu(path.join(dir, `${nome}.code`))).trim();
         const bruto = await lerOu(path.join(dir, `${nome}.json`));
-        let status = classificarFonte({ codigo, texto: `${await lerOu(path.join(dir, `${nome}.err`))}\n${codigo === "0" ? "" : bruto}` });
+        const erro = await lerOu(path.join(dir, `${nome}.err`));
+        const detalhe = detalharFonte({ codigo, texto: `${erro}\n${codigo === "0" ? "" : bruto}` });
         let dados = null;
-        if (status === STATUS.OK) {
+        if (detalhe.status === STATUS.OK) {
             try {
                 dados = bruto.trim() ? JSON.parse(bruto) : [];
             } catch {
-                status = STATUS.ERROR;
+                throw new Error(`Fonte ${nome}: resposta OK com JSON inválido (invariante violado).`);
             }
         }
-        fontes[nome] = { status, dados };
+        fontes[nome] = { ...detalhe, dados };
     }
     return fontes;
 }
@@ -75,7 +80,7 @@ async function main() {
     } else if (comando === "build") {
         const inventario = construirInventario({ fontes: await lerFontes(arg1), workflowSha: process.env.WORKFLOW_SHA });
         await writeFile(arg2, JSON.stringify(inventario, null, 2));
-        for (const [fonte, status] of Object.entries(inventario.metricCapabilities.sources)) console.log(`${fonte}: ${status}`);
+        for (const [fonte, st] of Object.entries(inventario.metricCapabilities.sources)) console.log(`${fonte}: ${st.status}`);
     } else if (comando === "summary") {
         const inventario = JSON.parse(await readFile(arg1, "utf8"));
         const md = resumoMarkdown(inventario);
@@ -88,5 +93,5 @@ async function main() {
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] || "").href) {
-    await main();
+    main().catch((erro) => falhar([String(erro?.message || erro)]));
 }

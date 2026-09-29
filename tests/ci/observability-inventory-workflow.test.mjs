@@ -101,7 +101,7 @@ describe("somente leitura", () => {
             /^coletar logMetrics gcloud logging metrics list /,
             /^coletar logSinks gcloud logging sinks list /,
             /^coletar errorLogs24h gcloud logging read /,
-            /^TOKEN="\$\(gcloud auth print-access-token 2>\/dev\/null\)"$/
+            /^if TOKEN="\$\(gcloud auth print-access-token 2>\/dev\/null\)"; then$/
         ];
         assert.ok(gcloudLinhas.length >= 8, `esperado ao menos 8 comandos gcloud, achou ${gcloudLinhas.length}`);
         for (const linha of gcloudLinhas) {
@@ -123,7 +123,7 @@ describe("somente leitura", () => {
     });
 
     it("curl só faz GET: sem método explícito, corpo ou upload", () => {
-        const curls = executavel.split("\n").filter((l) => /\bcurl\b/.test(l));
+        const curls = executavel.split("\n").filter((l) => /\bcurl -/.test(l));
         assert.equal(curls.length, 1, "exatamente uma chamada curl (loop de GETs)");
         assert.doesNotMatch(curls[0], /\s-X\b|--request|\s-d\b|--data|\s-F\b|--form|\s-T\b|--upload-file|--json|\bPOST\b|\bPUT\b|\bPATCH\b|\bDELETE\b|-I\b/);
         assert.match(curls[0], /-H @"\$HDR"/, "token via arquivo de header, nunca na linha de comando");
@@ -155,6 +155,57 @@ describe("somente leitura", () => {
         assert.match(linha, /--freshness=1d --limit=1000/);
         assert.match(linha, /--format="json\(resource\.type,resource\.labels\.service_name,resource\.labels\.function_name,severity\)"/);
         assert.doesNotMatch(linha, /Payload|httpRequest|labels\)|--format=json /);
+    });
+});
+
+describe("controle de fluxo da coleta (VIDE-HUB-OBSERVABILITY-INVENTORY-FIX-057)", () => {
+    it("nenhum set +e e nenhum || true (falhas nunca mascaradas em bloco)", () => {
+        assert.doesNotMatch(executavel, /set \+e|set \+o errexit|\|\|\s*true|\|\|\s*:/);
+    });
+
+    it("cada fonte gcloud roda como condição de if e grava o próprio exit code", () => {
+        const corpo = passo("Coletar via gcloud").corpo;
+        assert.match(corpo, /if "\$@" > "\$RAW\/\$fonte\.json" 2> "\$RAW\/\$fonte\.err"; then\s*\n\s*rc=0\s*\n\s*else\s*\n\s*rc=\$\?\s*\n\s*fi\s*\n\s*echo "\$rc" > "\$RAW\/\$fonte\.code"/);
+        const fontes = [...corpo.matchAll(/^\s*coletar (\w+) gcloud /gm)].map((m) => m[1]);
+        assert.deepEqual(fontes, ["services", "functions", "runServices", "logMetrics", "logSinks", "errorLogs24h"]);
+    });
+
+    it("token: exit code capturado explicitamente; sem token, fontes REST marcadas REST_AUTH_UNAVAILABLE", () => {
+        const corpo = passo("Coletar via API REST").corpo;
+        assert.match(corpo, /if TOKEN="\$\(gcloud auth print-access-token 2>\/dev\/null\)"; then\s*\n\s*TOKEN_RC=0\s*\n\s*else\s*\n\s*TOKEN_RC=\$\?/);
+        assert.match(corpo, /if \[ "\$TOKEN_RC" -ne 0 \] \|\| \[ -z "\$TOKEN" \]; then[\s\S]*echo "auth:unavailable" > "\$RAW\/\$FONTE\.code"[\s\S]*exit 0\s*\n\s*fi/);
+        assert.ok(corpo.indexOf("rest-urls") < corpo.indexOf("print-access-token"), "URLs (estrutural) antes do token");
+    });
+
+    it("cada GET grava http:<status> ou curl:<exit>, sem abortar as demais fontes", () => {
+        const corpo = passo("Coletar via API REST").corpo;
+        assert.match(corpo, /if CODE="\$\(curl [^\n]*\)"; then\s*\n\s*echo "http:\$\{CODE\}" > "\$RAW\/\$FONTE\.code"\s*\n\s*else\s*\n\s*echo "curl:\$\?" > "\$RAW\/\$FONTE\.code"/);
+    });
+
+    it("REST e build rodam após falha de fonte, mas só com gates e autenticação bem-sucedidos (nunca always() puro)", () => {
+        const rest = passo("Coletar via API REST").corpo;
+        for (const cond of [
+            "steps.sha.outcome == 'success'",
+            "steps.checkout-sha.outcome == 'success'",
+            "steps.inputs.outcome == 'success'",
+            "steps.qg.outcome == 'success'",
+            "(steps.auth-wif.outcome == 'success' || steps.auth-key.outcome == 'success')",
+            "steps.setup-gcloud.outcome == 'success'"
+        ]) assert.ok(rest.includes(cond), cond);
+        assert.match(passo("Montar inventário sanitizado").corpo, /if: >-\s*\n\s*always\(\)\s*\n\s*&& steps\.setup-gcloud\.outcome == 'success'/);
+        for (const p of passos) {
+            const cond = /\n\s{8}if: (.+)/.exec(p.corpo)?.[1]?.trim();
+            if (cond === "always()") assert.ok(/Resumo do inventário|Publicar artefato/.test(p.nome), `always() puro só em resumo/artefato: ${p.nome}`);
+        }
+        for (const [id, nome] of [["sha", "Validar identidade do SHA"], ["checkout-sha", "Confirmar SHA do checkout"], ["inputs", "Validar entradas"], ["qg", "Exigir Quality Gate"], ["auth-wif", "Workload Identity"], ["auth-key", "chave da conta"], ["setup-gcloud", "Configurar gcloud"]]) {
+            assert.match(passo(nome).corpo, new RegExp(`\\n\\s{8}id: ${id}\\n`), id);
+        }
+    });
+
+    it("saídas cruas (stderr incluso) apagadas depois do build; build falho não gera artefato", () => {
+        const build = passo("Montar inventário sanitizado").corpo;
+        assert.match(build, /observability-inventory-cli\.mjs build "\$WORK_DIR\/raw" "\$WORK_DIR\/observability-inventory\.json"\s*\n\s*rm -rf "\$WORK_DIR\/raw" "\$WORK_DIR\/rest-urls\.tsv"/);
+        assert.match(passo("Resumo do inventário").corpo, /Inventory result: FAIL/);
     });
 });
 

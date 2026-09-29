@@ -63,16 +63,35 @@ apagado no fim do passo. Prompts do gcloud desligados
 `CLOUDSDK_CORE_SHOULD_PROMPT_TO_ENABLE_API=false`): **API desabilitada nunca é
 habilitada** — vira `API NOT AVAILABLE`.
 
-## 5. Status por fonte
+## 5. Status por fonte e controle de fluxo
 
-`OK` · `API NOT AVAILABLE` · `PERMISSION DENIED` · `NOT FOUND` · `ERROR` ·
-`NOT COLLECTED`. Falha de uma fonte não interrompe as outras. O texto de erro
-é usado só para classificar — nunca é impresso nem publicado.
+| Status | Significado |
+|---|---|
+| `OK` | fonte lida |
+| `PERMISSION_DENIED` | a conta não tem o papel de leitura (403 / `PERMISSION_DENIED`) |
+| `API_NOT_AVAILABLE` | API desabilitada (`SERVICE_DISABLED`) — **nunca habilitada** |
+| `NOT_FOUND` | recurso inexistente (em `metricDescriptor*` é resposta válida) |
+| `COMMAND_ERROR` | outro exit ≠ 0 / HTTP ≠ 200 / falha de rede do curl |
+| `REST_AUTH_UNAVAILABLE` | sem access token: os GETs REST não foram feitos |
+| `NOT_COLLECTED` | a fonte não chegou a rodar |
 
-`PERMISSION DENIED` significa que a conta de serviço usada não tem o papel de
-leitura correspondente (ex.: `roles/monitoring.viewer`,
-`roles/logging.viewer`, `roles/errorreporting.viewer`). **Conceder papel é
-mudança de IAM e exige autorização separada** — este canal não altera IAM.
+No artefato cada fonte vira `{ status, exitCode, httpStatus }` — **nunca** o
+texto do erro. O stderr / corpo de erro fica só em `$WORK_DIR/raw`, alimenta
+padrões fixos de classificação e é apagado depois do build.
+
+O runner executa `bash --noprofile --norc -e -o pipefail`. Cada fonte roda
+como condição de `if` (errexit suspenso só para aquele comando) e grava o
+próprio exit code, então uma fonte indisponível não derruba as demais. Não há
+`set +e` nem `|| true`: qualquer outra falha do passo continua abortando.
+Motivo: no run 36617755341 o `gcloud logging metrics list` saiu ≠ 0 e o
+errexit abortou a coleta inteira (coberto por
+`tests/ci/observability-inventory-errexit.test.mjs`, que executa os blocos
+`run:` reais sob esse shell).
+
+`PERMISSION_DENIED` indica papel de leitura faltando (ex.:
+`roles/monitoring.viewer`, `roles/logging.viewer`,
+`roles/errorreporting.viewer`). **Conceder papel é mudança de IAM e exige
+autorização separada** — este canal não altera IAM.
 
 ## 6. Artefato `observability-inventory`
 
@@ -98,13 +117,18 @@ Proteções (allowlist de campos, testadas com fixtures "sujas"):
 - alertas: nunca `documentation`; Error Reporting: só contagens, nunca mensagem;
 - os arquivos crus ficam só no runner e **não** são publicados.
 
-## 7. Step Summary
+## 7. Resultado e Step Summary
 
-`OBSERVABILITY INVENTORY` com Functions live, core beta live N/7, alert
-policies, channels, uptime, user log metrics, dashboards, erros 24h e
-`Result`: **PASS** (todas as fontes coletadas) ou **PARTIAL** (alguma
-indisponível — ver `sources`). Sem inventário (gate/autenticação falhou):
-`FAIL`, nada coletado.
+| Resultado | Quando | Job | Artefato |
+|---|---|---|---|
+| **PASS** | todas as fontes `OK` (descriptor `NOT_FOUND` conta como resposta) | SUCCESS | sim |
+| **PARTIAL** | alguma fonte `PERMISSION_DENIED` / `API_NOT_AVAILABLE` / `REST_AUTH_UNAVAILABLE` / `COMMAND_ERROR` / `NOT_COLLECTED`, todas registradas | SUCCESS | sim |
+| **FAIL** | gate (main/SHA/QG/entradas), autenticação, core/CLI quebrado, JSON inválido numa fonte `OK`, invariante de sanitização violado | FAILURE | não |
+
+PARTIAL conclui o job com SUCCESS porque é diagnóstico válido, não defeito do
+workflow — mas **não autoriza configurar observabilidade**. O Step Summary
+lista cada fonte com status e valor (nenhuma some) e termina com
+`Inventory result: PASS | PARTIAL`; em FAIL registra que nada foi gerado.
 
 ## 8. Escopo das Functions
 
