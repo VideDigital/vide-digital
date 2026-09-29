@@ -20,7 +20,8 @@ import {
     ehErroDeRedeExterno,
     launchBrowser,
     loginReal,
-    startStaticServer
+    startStaticServer,
+    executarOperacaoPaginaAsync
 } from "./_helpers.mjs";
 
 const PROJECT_ID = "demo-vide-hub";
@@ -132,7 +133,7 @@ async function main() {
 
         // ===== 1/2/3/4) Employee/owner autorizado salva payload malicioso
         // via UI real do editor; preview autenticado nunca executa =====
-        await page.evaluate(async (lpId) => { return await window.editarLP(lpId); }, LP_ID);
+        await executarOperacaoPaginaAsync(page, async (lpId) => { return await window.editarLP(lpId); }, LP_ID, { rotulo: "editarLP" });
         await page.waitForSelector("#lped-preview-canvas", { state: "attached", timeout: 15000 });
 
         // Localiza o bloco texto_midia na lista lateral e edita o título
@@ -207,13 +208,13 @@ async function main() {
         // qualquer outro fluxo real do editor, precisa de salvarEditorLP()
         // pra persistir em landing_pages_blocos antes de publicar (editarLP
         // já preenche #lped-titulo/#lped-slug pra uma LP existente).
-        const resultadoSalvar = await page.evaluate(async () => { return await window.salvarEditorLP(); });
+        const resultadoSalvar = await executarOperacaoPaginaAsync(page, async () => { return await window.salvarEditorLP(); }, undefined, { rotulo: "salvarEditorLP" });
         assert.equal(resultadoSalvar?.ok, true, `salvarEditorLP precisa confirmar sucesso: ${JSON.stringify(resultadoSalvar)}`);
         const blocoPrivadoAposSave = (await db.collection("landing_pages_blocos").doc(BLOCO_TEXTO_ID).get()).data();
         assert.equal(blocoPrivadoAposSave?.props?.titulo, XSS_TEXT_PAYLOAD, "o payload precisa ter sido persistido em landing_pages_blocos pelo salvarEditorLP real");
 
         // ===== 5) Publicar =====
-        const resultadoPublicar = await page.evaluate(async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); }, LP_ID);
+        const resultadoPublicar = await executarOperacaoPaginaAsync(page, async (lpId) => { return await window.alternarPublicacaoLP(lpId, true); }, LP_ID, { rotulo: "alternarPublicacaoLP" });
         assert.equal(resultadoPublicar?.ok, true, "LP com payload malicioso precisa publicar normalmente (a defesa é no render, não na escrita)");
 
         // Confirma que a escrita pública preservou o dado bruto (sem

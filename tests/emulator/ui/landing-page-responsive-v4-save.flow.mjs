@@ -16,7 +16,8 @@ import {
     ehErroDeRedeExterno,
     launchBrowser,
     loginReal,
-    startStaticServer
+    startStaticServer,
+    executarOperacaoPaginaAsync
 } from "./_helpers.mjs";
 
 const PROJECT_ID = "demo-vide-hub";
@@ -114,7 +115,7 @@ async function main() {
         // AuraResponsiveV4, o Inspector e o Desktop Shell) terminar de
         // carregar — editarLP() dispara carregarEditorLandingPages() em
         // segundo plano, sem esperar por ele. =====
-        await page.evaluate(async (lpId) => { return await window.editarLP(lpId); }, LP_ID);
+        await executarOperacaoPaginaAsync(page, async (lpId) => { return await window.editarLP(lpId); }, LP_ID, { rotulo: "editarLP" });
         await page.waitForFunction(
             () => typeof window.AuraResponsiveV4?.saveDevice === "function"
                 && typeof window.AuraStudioInspector?.select === "function"
@@ -157,7 +158,7 @@ async function main() {
             { timeout: 5000 }
         );
 
-        const resultadoSalvar = await page.evaluate(async () => { return await window.salvarEditorLP(); });
+        const resultadoSalvar = await executarOperacaoPaginaAsync(page, async () => { return await window.salvarEditorLP(); }, undefined, { rotulo: "salvarEditorLP" });
         console.log("landing-page-responsive-v4-save.flow: resultado salvarEditorLP:", JSON.stringify(resultadoSalvar));
         assert.equal(
             resultadoSalvar?.ok,
@@ -193,7 +194,7 @@ async function main() {
             { timeout: 20000 }
         );
 
-        const reabertura = await page.evaluate(async (lpId) => {
+        const reabertura = await executarOperacaoPaginaAsync(page, async (lpId) => {
             await window.editarLP(lpId);
             const bloco = window.lpEditorBlocos?.[0];
             return {
