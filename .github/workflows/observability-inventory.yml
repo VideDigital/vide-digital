@@ -1,0 +1,249 @@
+# VIDE-HUB-OBSERVABILITY-INVENTORY-PREP-053 — inventário de observabilidade.
+#
+# Canal manual, auditável e SOMENTE LEITURA que descobre o estado real de
+# observabilidade do projeto: Functions e serviços Cloud Run live, alert
+# policies, notification channels, uptime checks, log-based metrics,
+# dashboards, log sinks, contagem agregada de erros 24h, Error Reporting e
+# capacidades de métrica. SOMENTE workflow_dispatch.
+#
+# Nada é criado, alterado ou apagado: só `gcloud ... list`, `gcloud logging
+# read` (campos de recurso, sem payload) e GET na API REST de Monitoring /
+# Error Reporting (lista fechada em scripts/observability-inventory-core.mjs).
+# API desabilitada vira "API NOT AVAILABLE" no artefato — nunca é habilitada
+# (prompts do gcloud desligados).
+#
+# Gates antes de autenticar (qualquer divergência falha fechado):
+#   branch == main; github.sha == expected_sha == HEAD atual de main;
+#   project_id e confirmação exatos (scripts/observability-inventory-cli.mjs);
+#   Quality Gate push/main do expected_sha completed/success com os 4 jobs
+#   (scripts/pages-qg-gate.mjs — o mesmo gate do Pages).
+# Autenticação: o mesmo padrão dos workflows Firebase (WIF, fallback chave).
+# Artefato `observability-inventory`: JSON por allowlist, e-mails mascarados,
+# sem URL de webhook, payload de log, corpo de requisição, token ou Secret.
+
+name: Observability Inventory — Read Only
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: "Projeto (exatamente vide-digital-saas)"
+        required: true
+        type: string
+        default: vide-digital-saas
+      expected_sha:
+        description: "SHA completo (40 chars) do HEAD atual de main"
+        required: true
+        type: string
+      confirm_read_only:
+        description: "Digite exatamente OBSERVE_ONLY"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+  actions: read
+
+concurrency:
+  group: vide-hub-observability-inventory
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+
+jobs:
+  inventory:
+    name: Observability inventory (read only)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    env:
+      PROJECT_ID: ${{ inputs.project_id }}
+      EXPECTED_SHA: ${{ inputs.expected_sha }}
+      CONFIRMACAO: ${{ inputs.confirm_read_only }}
+      CLOUDSDK_CORE_DISABLE_PROMPTS: "1"
+      CLOUDSDK_CORE_SHOULD_PROMPT_TO_ENABLE_API: "false"
+
+    steps:
+      - name: Bloquear execução fora da main
+        shell: bash
+        run: |
+          echo "WORK_DIR=${RUNNER_TEMP}/observability-inventory" >> "$GITHUB_ENV"
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::O inventário só roda a partir da branch main."
+            exit 1
+          fi
+
+      # Sem checkout ainda: prova que o SHA informado é exatamente o disparo
+      # e o HEAD atual de main. process.env evita injeção via input.
+      - name: Validar identidade do SHA (antes de qualquer checkout)
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const expectedSha = process.env.EXPECTED_SHA;
+            if (!/^[0-9a-f]{40}$/.test(expectedSha || "")) {
+              core.setFailed("expected_sha malformado: esperado exatamente 40 caracteres hex minúsculos.");
+              return;
+            }
+            if (context.sha !== expectedSha) {
+              core.setFailed(`github.sha (${context.sha}) difere do expected_sha (${expectedSha}).`);
+              return;
+            }
+            const { data: branch } = await github.rest.repos.getBranch({ owner: context.repo.owner, repo: context.repo.repo, branch: "main" });
+            if (branch.commit.sha !== expectedSha) {
+              core.setFailed(`main avançou: HEAD atual ${branch.commit.sha} difere do expected_sha ${expectedSha}.`);
+              return;
+            }
+            core.info(`SHA ${expectedSha} confirmado como HEAD atual de main.`);
+
+      - name: Checkout explícito do SHA validado
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.expected_sha }}
+          persist-credentials: false
+
+      - name: Confirmar SHA do checkout
+        shell: bash
+        run: |
+          if [ "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]; then
+            echo "::error::Checkout diverge do expected_sha."
+            exit 1
+          fi
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validar entradas (projeto e confirmação OBSERVE_ONLY)
+        run: node scripts/observability-inventory-cli.mjs inputs
+
+      - name: Exigir Quality Gate completo (4/4) e verde no SHA exato
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/pages-qg-gate.mjs
+
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Configurar gcloud
+        uses: google-github-actions/setup-gcloud@v2
+
+      # Cada fonte grava <fonte>.json (saída), <fonte>.code (exit code) e
+      # <fonte>.err (stderr) em $WORK_DIR/raw — nunca impressos nem
+      # publicados; só o artefato allowlisted sai do runner. Falha de uma
+      # fonte não interrompe as demais (vira status no artefato).
+      - name: Coletar via gcloud (somente list/read)
+        shell: bash
+        run: |
+          set -uo pipefail
+          RAW="$WORK_DIR/raw"; mkdir -p "$RAW"
+          coletar() {
+            local fonte="$1"; shift
+            "$@" > "$RAW/$fonte.json" 2> "$RAW/$fonte.err"
+            echo "$?" > "$RAW/$fonte.code"
+            echo "$fonte: exit $(cat "$RAW/$fonte.code")"
+          }
+          gcloud version | head -1
+          coletar services gcloud services list --enabled --project="$PROJECT_ID" --format="json(config.name)"
+          coletar functions gcloud functions list --project="$PROJECT_ID" --format=json
+          coletar runServices gcloud run services list --platform=managed --project="$PROJECT_ID" --format=json
+          coletar logMetrics gcloud logging metrics list --project="$PROJECT_ID" --format=json
+          coletar logSinks gcloud logging sinks list --project="$PROJECT_ID" --format=json
+          coletar errorLogs24h gcloud logging read 'severity>=ERROR AND (resource.type="cloud_run_revision" OR resource.type="cloud_function")' --project="$PROJECT_ID" --freshness=1d --limit=1000 --format="json(resource.type,resource.labels.service_name,resource.labels.function_name,severity)"
+
+      # GET somente (curl sem método/corpo). O token fica num arquivo de
+      # header 0600 no RUNNER_TEMP (nunca na linha de comando), mascarado
+      # no log e apagado ao final do passo.
+      - name: Coletar via API REST (somente GET)
+        shell: bash
+        run: |
+          set -uo pipefail
+          RAW="$WORK_DIR/raw"; mkdir -p "$RAW"
+          HDR="$WORK_DIR/auth-header"
+          trap 'rm -f "$HDR"' EXIT
+          TOKEN="$(gcloud auth print-access-token 2>/dev/null)"
+          if [ -z "$TOKEN" ]; then
+            echo "::warning::Sem access token — fontes REST ficam NOT COLLECTED."
+            exit 0
+          fi
+          echo "::add-mask::$TOKEN"
+          ( umask 077; printf 'Authorization: Bearer %s\n' "$TOKEN" > "$HDR" )
+          unset TOKEN
+          node scripts/observability-inventory-cli.mjs rest-urls > "$WORK_DIR/rest-urls.tsv"
+          while IFS=$'\t' read -r FONTE URL; do
+            case "$URL" in
+              https://monitoring.googleapis.com/*|https://clouderrorreporting.googleapis.com/*) ;;
+              *) echo "::error::URL fora da allowlist para $FONTE"; exit 1 ;;
+            esac
+            CODE="$(curl -sS --max-time 60 -H @"$HDR" -o "$RAW/$FONTE.json" -w '%{http_code}' "$URL" 2> "$RAW/$FONTE.err" || true)"
+            echo "http:${CODE:-000}" > "$RAW/$FONTE.code"
+            echo "$FONTE: http ${CODE:-000}"
+          done < "$WORK_DIR/rest-urls.tsv"
+
+      - name: Montar inventário sanitizado
+        if: always()
+        env:
+          WORKFLOW_SHA: ${{ github.sha }}
+        run: |
+          if [ -d "$WORK_DIR/raw" ]; then
+            node scripts/observability-inventory-cli.mjs build "$WORK_DIR/raw" "$WORK_DIR/observability-inventory.json"
+          fi
+
+      - name: Resumo do inventário
+        id: summary
+        if: always()
+        shell: bash
+        run: |
+          ARQ="$WORK_DIR/observability-inventory.json"
+          if [ -f "$ARQ" ]; then
+            node scripts/observability-inventory-cli.mjs summary "$ARQ"
+          else
+            { echo "## OBSERVABILITY INVENTORY"; echo ""; echo "Result: FAIL (gates/autenticação não concluídos — nada coletado)"; } >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Publicar artefato sanitizado (observability-inventory)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: observability-inventory
+          path: ${{ runner.temp }}/observability-inventory/observability-inventory.json
+          if-no-files-found: ignore
+          retention-days: 90
