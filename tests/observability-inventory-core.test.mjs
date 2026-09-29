@@ -14,7 +14,8 @@ import {
     validarEntradas, construirFontesRest, classificarFonte, mascararEmail, sanitizarTexto, escopoFunction,
     normalizarFunctions, normalizarCloudRun, normalizarAlertPolicies, normalizarNotificationChannels,
     normalizarUptimeChecks, normalizarLogMetrics, normalizarDashboards, normalizarLogSinks, agregarErros,
-    agregarRequisicoes, construirInventario, resultado, resumoMarkdown, filtrarArtefato
+    agregarRequisicoes, construirInventario, resultado, resumoMarkdown, filtrarArtefato,
+    detalharFonte, verificarArtefatoSeguro, CODIGO_SEM_TOKEN
 } from "../scripts/observability-inventory-core.mjs";
 import { lerFontes } from "../scripts/observability-inventory-cli.mjs";
 
@@ -115,7 +116,7 @@ describe("fontes REST: somente GET de list/get em Monitoring e Error Reporting",
 });
 
 describe("classificação de falha", () => {
-    it("OK, API NOT AVAILABLE, PERMISSION DENIED, NOT FOUND, ERROR e NOT COLLECTED", () => {
+    it("OK, API_NOT_AVAILABLE, PERMISSION_DENIED, NOT_FOUND, COMMAND_ERROR, REST_AUTH_UNAVAILABLE e NOT_COLLECTED", () => {
         assert.equal(classificarFonte({ codigo: "0" }), STATUS.OK);
         assert.equal(classificarFonte({ codigo: "http:200" }), STATUS.OK);
         assert.equal(classificarFonte({ codigo: "" }), STATUS.NOT_COLLECTED);
@@ -124,8 +125,19 @@ describe("classificação de falha", () => {
         assert.equal(classificarFonte({ codigo: "http:403", texto: '{"error":{"status":"PERMISSION_DENIED"}}' }), STATUS.PERMISSION_DENIED);
         assert.equal(classificarFonte({ codigo: "1", texto: "PERMISSION_DENIED: Permission denied for sa@x.iam.gserviceaccount.com" }), STATUS.PERMISSION_DENIED);
         assert.equal(classificarFonte({ codigo: "http:404" }), STATUS.NOT_FOUND);
-        assert.equal(classificarFonte({ codigo: "http:500" }), STATUS.ERROR);
-        assert.equal(classificarFonte({ codigo: "http:000" }), STATUS.ERROR);
+        assert.equal(classificarFonte({ codigo: "http:500" }), STATUS.COMMAND_ERROR);
+        assert.equal(classificarFonte({ codigo: "curl:28" }), STATUS.COMMAND_ERROR);
+        assert.equal(classificarFonte({ codigo: "2", texto: "ERROR: (gcloud) unrecognized arguments" }), STATUS.COMMAND_ERROR);
+        assert.equal(classificarFonte({ codigo: CODIGO_SEM_TOKEN }), STATUS.REST_AUTH_UNAVAILABLE);
+    });
+
+    it("detalhe numérico sem nenhum texto do erro", () => {
+        const texto = `PERMISSION_DENIED: Permission denied for ${EMAIL}`;
+        assert.deepEqual(detalharFonte({ codigo: "1", texto }), { status: STATUS.PERMISSION_DENIED, exitCode: 1, httpStatus: null });
+        assert.deepEqual(detalharFonte({ codigo: "http:403", texto: '{"error":{"details":[{"reason":"SERVICE_DISABLED"}]}}' }), { status: STATUS.API_NOT_AVAILABLE, exitCode: null, httpStatus: 403 });
+        assert.deepEqual(detalharFonte({ codigo: "curl:6" }), { status: STATUS.COMMAND_ERROR, exitCode: 6, httpStatus: null });
+        assert.deepEqual(detalharFonte({ codigo: CODIGO_SEM_TOKEN }), { status: STATUS.REST_AUTH_UNAVAILABLE, exitCode: null, httpStatus: null });
+        assert.doesNotMatch(JSON.stringify(detalharFonte({ codigo: "1", texto })), /daniel|Permission denied/);
     });
 });
 
@@ -245,6 +257,19 @@ describe("artefato", () => {
         assert.equal(resultado(construirInventario({ fontes: {} })), "PARTIAL");
     });
 
+    it("invariante de sanitização: vazamento lança e bloqueia o artefato (fail-closed)", () => {
+        const base = construirInventario({ fontes: fontesSujas(), workflowSha: SHA });
+        assert.doesNotThrow(() => verificarArtefatoSeguro(base));
+        const comEmail = { ...base, functions: [{ name: "x", owner: EMAIL }] };
+        assert.throws(() => verificarArtefatoSeguro(comEmail), /e-mail sem máscara/);
+        const comUrl = { ...base, dashboards: [{ displayName: WEBHOOK }] };
+        assert.throws(() => verificarArtefatoSeguro(comUrl), /URL fora da allowlist/);
+        const comToken = { ...base, logSinks: [{ name: "Bearer abc" }] };
+        assert.throws(() => verificarArtefatoSeguro(comToken), /credencial\/token/);
+        const comChave = { ...base, extra: 1 };
+        assert.throws(() => verificarArtefatoSeguro(comChave), /chaves fora da allowlist/);
+    });
+
     it("filtrarArtefato descarta chaves extras", () => {
         assert.deepEqual(Object.keys(filtrarArtefato({ projectId: "x", segredo: "y", raw: {} })), [...CHAVES_ARTEFATO]);
     });
@@ -256,20 +281,26 @@ describe("artefato", () => {
         const inv = construirInventario({ fontes: f, workflowSha: "nao-sha" });
         assert.deepEqual(inv.alertPolicies, []);
         assert.equal(inv.workflowSha, null);
-        assert.equal(inv.metricCapabilities.sources.alertPolicies, STATUS.API_NOT_AVAILABLE);
+        assert.deepEqual(inv.metricCapabilities.sources.alertPolicies, { status: STATUS.API_NOT_AVAILABLE, exitCode: null, httpStatus: null });
         assert.equal(inv.metricCapabilities.coreBeta.missing, null, "sem lista de Functions não conclui ausência");
         assert.equal(inv.metricCapabilities.coreBeta.separateRegistration.createPublicOrderQuote, STATUS.PERMISSION_DENIED);
         assert.equal(resultado(inv), "PARTIAL");
         const md = resumoMarkdown(inv);
-        assert.match(md, /\| Alert policies \| API NOT AVAILABLE \|/);
-        assert.match(md, /\| Functions live \| PERMISSION DENIED \|/);
-        assert.match(md, /\| Result \| PARTIAL \|/);
+        assert.match(md, /\| Alert policies \| API_NOT_AVAILABLE \| — \|/);
+        assert.match(md, /\| Functions live \| PERMISSION_DENIED \| — \|/);
+        assert.match(md, /\| \*\*Inventory result\*\* \| \*\*PARTIAL\*\* \|/);
     });
 
     it("Step Summary com todas as linhas exigidas", () => {
         const md = resumoMarkdown(construirInventario({ fontes: fontesSujas(), workflowSha: SHA }));
         assert.match(md, /^## OBSERVABILITY INVENTORY$/m);
-        for (const linha of [/\| Functions live \| 9 \|/, /\| Core beta functions live \| 7\/7 \|/, /\| Alert policies \| 1 \|/, /\| Notification channels \| 3 \|/, /\| Uptime checks \| 1 \|/, /\| User log metrics \| 1 \|/, /\| Dashboards \| 1 \|/, /\| Errors 24h \(logs\) \| 3 \|/, /\| Result \| PASS \|/]) {
+        for (const linha of [
+            /\| Functions live \| OK \| 9 \|/, /\| Core beta functions live \| OK \| 7\/7 \|/, /\| Cloud Run services \| OK \| 1 \|/,
+            /\| Alert policies \| OK \| 1 \|/, /\| Notification channels \| OK \| 3 \|/, /\| Uptime checks \| OK \| 1 \|/,
+            /\| Log metrics \| OK \| 1 \|/, /\| Dashboards \| OK \| 1 \|/, /\| Log sinks \| OK \| 1 \|/,
+            /\| Errors 24h \(logs\) \| OK \| 3 \|/, /\| Error Reporting 24h \| OK \| 4 \|/, /\| Metric descriptors \| 7\/7 respondidos \|/,
+            /\| \*\*Inventory result\*\* \| \*\*PASS\*\* \|/
+        ]) {
             assert.match(md, linha);
         }
     });
@@ -289,16 +320,28 @@ describe("CLI: leitura das saídas cruas", () => {
             writeFileSync(path.join(dir, "logSinks.err"), `PERMISSION_DENIED for ${EMAIL}`);
             writeFileSync(path.join(dir, "alertPolicies.code"), "http:403\n");
             writeFileSync(path.join(dir, "alertPolicies.json"), '{"error":{"message":"Cloud Monitoring API has not been used in project","details":[{"reason":"SERVICE_DISABLED"}]}}');
-            writeFileSync(path.join(dir, "dashboards.code"), "http:200\n");
-            writeFileSync(path.join(dir, "dashboards.json"), "{não é json");
+            writeFileSync(path.join(dir, "dashboards.code"), "curl:28\n");
+            writeFileSync(path.join(dir, "uptimeChecks.code"), `${CODIGO_SEM_TOKEN}\n`);
             const fontes = await lerFontes(dir);
             assert.equal(fontes.functions.status, STATUS.OK);
-            assert.deepEqual(fontes.logMetrics, { status: STATUS.OK, dados: [] });
-            assert.deepEqual(fontes.logSinks, { status: STATUS.PERMISSION_DENIED, dados: null });
-            assert.deepEqual(fontes.alertPolicies, { status: STATUS.API_NOT_AVAILABLE, dados: null });
-            assert.deepEqual(fontes.dashboards, { status: STATUS.ERROR, dados: null });
+            assert.deepEqual(fontes.logMetrics, { status: STATUS.OK, exitCode: 0, httpStatus: null, dados: [] });
+            assert.deepEqual(fontes.logSinks, { status: STATUS.PERMISSION_DENIED, exitCode: 1, httpStatus: null, dados: null });
+            assert.deepEqual(fontes.alertPolicies, { status: STATUS.API_NOT_AVAILABLE, exitCode: null, httpStatus: 403, dados: null });
+            assert.deepEqual(fontes.dashboards, { status: STATUS.COMMAND_ERROR, exitCode: 28, httpStatus: null, dados: null });
+            assert.equal(fontes.uptimeChecks.status, STATUS.REST_AUTH_UNAVAILABLE);
             const json = JSON.stringify(construirInventario({ fontes }));
-            assert.doesNotMatch(json, /daniel|has not been used|SERVICE_DISABLED/);
+            assert.doesNotMatch(json, /daniel|has not been used|SERVICE_DISABLED|Permission/);
+        } finally {
+            rmSync(dir, { recursive: true, force: true });
+        }
+    });
+
+    it("fonte OK com JSON inválido é erro estrutural (lança; nada vira status silencioso)", async () => {
+        const dir = mkdtempSync(path.join(tmpdir(), "obs-057-"));
+        try {
+            writeFileSync(path.join(dir, "dashboards.code"), "http:200\n");
+            writeFileSync(path.join(dir, "dashboards.json"), "{não é json");
+            await assert.rejects(lerFontes(dir), /dashboards: resposta OK com JSON inválido/);
         } finally {
             rmSync(dir, { recursive: true, force: true });
         }

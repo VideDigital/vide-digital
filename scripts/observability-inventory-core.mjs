@@ -85,14 +85,20 @@ export const APIS_RELEVANTES = Object.freeze([
     "firestore.googleapis.com"
 ]);
 
+// Estado explícito de cada fonte. Nenhuma falha vira sucesso silencioso:
+// tudo que não é OK aparece no artefato e no Step Summary.
 export const STATUS = Object.freeze({
     OK: "OK",
-    API_NOT_AVAILABLE: "API NOT AVAILABLE",
-    PERMISSION_DENIED: "PERMISSION DENIED",
-    NOT_FOUND: "NOT FOUND",
-    ERROR: "ERROR",
-    NOT_COLLECTED: "NOT COLLECTED"
+    API_NOT_AVAILABLE: "API_NOT_AVAILABLE",
+    PERMISSION_DENIED: "PERMISSION_DENIED",
+    NOT_FOUND: "NOT_FOUND",
+    COMMAND_ERROR: "COMMAND_ERROR",
+    REST_AUTH_UNAVAILABLE: "REST_AUTH_UNAVAILABLE",
+    NOT_COLLECTED: "NOT_COLLECTED"
 });
+
+// Marcador gravado pelo workflow em <fonte>.code quando não há access token.
+export const CODIGO_SEM_TOKEN = "auth:unavailable";
 
 const HOST_MONITORING = "https://monitoring.googleapis.com";
 const HOST_ERROR_REPORTING = "https://clouderrorreporting.googleapis.com";
@@ -148,16 +154,36 @@ export function construirFontesRest({ projectId = PROJECT_ID, agora = new Date()
 }
 
 // ===== Classificação de falha (nunca devolve o texto do erro) =====
+//
+// <fonte>.code gravado pelo workflow:
+//   "<n>"               exit code do gcloud
+//   "http:<status>"     resposta HTTP do GET (curl terminou com 0)
+//   "curl:<n>"          curl falhou antes de ter resposta (rede/timeout)
+//   "auth:unavailable"  sem access token: GET não executado
+// O texto (stderr/corpo de erro) só alimenta padrões fixos abaixo.
 
 export function classificarFonte({ codigo, texto = "" } = {}) {
     const c = String(codigo ?? "").trim();
     if (c === "0" || c === "http:200") return STATUS.OK;
     if (c === "") return STATUS.NOT_COLLECTED;
+    if (c === CODIGO_SEM_TOKEN) return STATUS.REST_AUTH_UNAVAILABLE;
     const t = String(texto);
     if (/SERVICE_DISABLED|has not been used in project|is disabled|API_NOT_ENABLED|API has not been enabled|not enabled on project/i.test(t)) return STATUS.API_NOT_AVAILABLE;
     if (c === "http:403" || /PERMISSION_DENIED|does not have permission|permission denied|forbidden/i.test(t)) return STATUS.PERMISSION_DENIED;
     if (c === "http:404" || /NOT_FOUND/.test(t)) return STATUS.NOT_FOUND;
-    return STATUS.ERROR;
+    return STATUS.COMMAND_ERROR;
+}
+
+// Status + códigos numéricos (sem texto) para o artefato.
+export function detalharFonte({ codigo, texto = "" } = {}) {
+    const c = String(codigo ?? "").trim();
+    const exit = /^(?:curl:)?(\d+)$/.exec(c);
+    const http = /^http:(\d{3})$/.exec(c);
+    return {
+        status: classificarFonte({ codigo: c, texto }),
+        exitCode: exit ? Number(exit[1]) : null,
+        httpStatus: http ? Number(http[1]) : null
+    };
 }
 
 // ===== Sanitização =====
@@ -426,7 +452,13 @@ export function construirInventario({ fontes = {}, workflowSha = null, agora = n
 
     const secao = (nome, normalizar) => (statusDe(fontes, nome) === STATUS.OK ? normalizar(dadosDe(fontes, nome)) : []);
 
-    const fonteStatus = Object.fromEntries(Object.keys(fontes).sort().map((k) => [k, statusDe(fontes, k)]));
+    const fonteStatus = Object.fromEntries(
+        Object.keys(fontes).sort().map((k) => [k, {
+            status: statusDe(fontes, k),
+            exitCode: Number.isInteger(fontes[k]?.exitCode) ? fontes[k].exitCode : null,
+            httpStatus: Number.isInteger(fontes[k]?.httpStatus) ? fontes[k].httpStatus : null
+        }])
+    );
 
     const inventario = {
         projectId: PROJECT_ID,
@@ -457,7 +489,25 @@ export function construirInventario({ fontes = {}, workflowSha = null, agora = n
         frontendCandidate: { ...FRONTEND_CANDIDATE },
         timestamp: new Date(agora).toISOString()
     };
-    return filtrarArtefato(inventario);
+    return verificarArtefatoSeguro(filtrarArtefato(inventario));
+}
+
+// Invariante de segurança (fail-closed): se algo escapou da sanitização, o
+// build falha e NENHUM artefato é gravado.
+const RE_EMAIL_ABERTO = /[A-Za-z0-9._%+-]+@[A-Za-z0-9-]+\.[A-Za-z0-9.-]+/;
+const RE_URL_QUALQUER = /\b(?:https?|wss?):\/\/[^\s"'<>]+/gi;
+const RE_TOKEN = /\bya29\.|Bearer\s|-----BEGIN|"private_key"|AIza[0-9A-Za-z_-]{20,}/;
+
+export function verificarArtefatoSeguro(inventario) {
+    const json = JSON.stringify(inventario);
+    const permitidas = new Set([FRONTEND_CANDIDATE.url, FRONTEND_CANDIDATE.alternativa]);
+    const problemas = [];
+    if (RE_EMAIL_ABERTO.test(json)) problemas.push("e-mail sem máscara");
+    for (const u of json.match(RE_URL_QUALQUER) || []) if (!permitidas.has(u)) problemas.push("URL fora da allowlist");
+    if (RE_TOKEN.test(json)) problemas.push("credencial/token");
+    if (JSON.stringify(Object.keys(inventario)) !== JSON.stringify(CHAVES_ARTEFATO)) problemas.push("chaves fora da allowlist");
+    if (problemas.length) throw new Error(`Invariante de sanitização violada: ${[...new Set(problemas)].join(", ")}. Artefato NÃO gerado.`);
+    return inventario;
 }
 
 export function resumoCoreBeta(functions, status = STATUS.OK) {
@@ -485,40 +535,46 @@ export function fontesEsperadas() {
     return [...FONTES_GCLOUD, ...construirFontesRest().map((f) => f.fonte)];
 }
 
+// PASS/PARTIAL descrevem o INVENTÁRIO; FAIL é o job falhar (gate, auth,
+// core quebrado, sanitização) e aí não existe artefato.
 export function resultado(inventario) {
     const st = inventario?.metricCapabilities?.sources || {};
-    const ok = (nome) => st[nome] === STATUS.OK || (nome.startsWith("metricDescriptor") && st[nome] === STATUS.NOT_FOUND);
+    const ok = (nome) => st[nome]?.status === STATUS.OK || (nome.startsWith("metricDescriptor") && st[nome]?.status === STATUS.NOT_FOUND);
     return fontesEsperadas().every(ok) ? "PASS" : "PARTIAL";
 }
 
-function contagem(inventario, chave, fonte) {
-    const st = inventario?.metricCapabilities?.sources?.[fonte] ?? STATUS.NOT_COLLECTED;
-    return st === STATUS.OK ? String(lista(inventario?.[chave]).length) : st;
+function statusFonte(inventario, fonte) {
+    return inventario?.metricCapabilities?.sources?.[fonte]?.status ?? STATUS.NOT_COLLECTED;
 }
 
 export function resumoMarkdown(inventario) {
-    const st = inventario?.metricCapabilities?.sources || {};
-    const functionsLive = st.functions === STATUS.OK ? String(lista(inventario.functions).filter((f) => f.state === "ACTIVE").length) : st.functions ?? STATUS.NOT_COLLECTED;
+    const st = (f) => statusFonte(inventario, f);
+    const n = (chave) => String(lista(inventario?.[chave]).length);
+    const linha = (item, fonte, valor) => `| ${item} | ${st(fonte)} | ${st(fonte) === STATUS.OK ? valor : "—"} |`;
     const core = inventario?.metricCapabilities?.coreBeta;
-    const coreLive = st.functions === STATUS.OK ? `${lista(core?.live).length}/${CORE_BETA_FUNCTIONS.length}` : st.functions ?? STATUS.NOT_COLLECTED;
     const erros = inventario?.errorCounts24h;
-    const errosTxt = erros?.status === STATUS.OK ? `${erros.total}${erros.truncated ? "+ (truncado)" : ""}` : erros?.status ?? STATUS.NOT_COLLECTED;
+    const metricas = Object.keys(inventario?.metricCapabilities?.sources || {}).filter((k) => k.startsWith("metricDescriptor") || k === "requestCount24h");
+    const metricasOk = metricas.filter((k) => [STATUS.OK, STATUS.NOT_FOUND].includes(st(k))).length;
     const linhas = [
         "## OBSERVABILITY INVENTORY",
         "",
-        "| Item | Valor |",
-        "|---|---|",
-        `| Functions live | ${functionsLive} |`,
-        `| Core beta functions live | ${coreLive} |`,
-        `| Alert policies | ${contagem(inventario, "alertPolicies", "alertPolicies")} |`,
-        `| Notification channels | ${contagem(inventario, "notificationChannels", "notificationChannels")} |`,
-        `| Uptime checks | ${contagem(inventario, "uptimeChecks", "uptimeChecks")} |`,
-        `| User log metrics | ${contagem(inventario, "logMetrics", "logMetrics")} |`,
-        `| Dashboards | ${contagem(inventario, "dashboards", "dashboards")} |`,
-        `| Errors 24h (logs) | ${errosTxt} |`,
-        `| Result | ${resultado(inventario)} |`,
-        "",
-        "Fontes: " + Object.entries(st).map(([k, v]) => `${k}=${v}`).join(", ")
+        "| Fonte | Status | Valor |",
+        "|---|---|---|",
+        linha("Functions live", "functions", String(lista(inventario?.functions).filter((f) => f.state === "ACTIVE").length)),
+        linha("Core beta functions live", "functions", `${lista(core?.live).length}/${CORE_BETA_FUNCTIONS.length}`),
+        linha("Cloud Run services", "runServices", n("cloudRunServices")),
+        linha("APIs habilitadas", "services", "consultadas"),
+        linha("Alert policies", "alertPolicies", n("alertPolicies")),
+        linha("Notification channels", "notificationChannels", n("notificationChannels")),
+        linha("Uptime checks", "uptimeChecks", n("uptimeChecks")),
+        linha("Log metrics", "logMetrics", n("logMetrics")),
+        linha("Dashboards", "dashboards", n("dashboards")),
+        linha("Log sinks", "logSinks", n("logSinks")),
+        linha("Errors 24h (logs)", "errorLogs24h", `${erros?.total}${erros?.truncated ? "+ (truncado)" : ""}`),
+        linha("Error Reporting 24h", "errorGroups24h", String(erros?.errorReporting?.occurrences)),
+        linha("Requests 24h (Cloud Run)", "requestCount24h", "consultadas"),
+        `| Metric descriptors | ${metricasOk}/${metricas.length} respondidos | — |`,
+        `| **Inventory result** | **${resultado(inventario)}** | — |`
     ];
     return linhas.join("\n") + "\n";
 }

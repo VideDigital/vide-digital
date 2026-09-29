@@ -20,6 +20,13 @@
 # Autenticação: o mesmo padrão dos workflows Firebase (WIF, fallback chave).
 # Artefato `observability-inventory`: JSON por allowlist, e-mails mascarados,
 # sem URL de webhook, payload de log, corpo de requisição, token ou Secret.
+#
+# Resultado: PASS (todas as fontes OK) ou PARTIAL (alguma fonte
+# PERMISSION_DENIED / API_NOT_AVAILABLE / REST_AUTH_UNAVAILABLE /
+# COMMAND_ERROR, cada uma registrada) concluem o job com SUCCESS e publicam o
+# artefato — PARTIAL é diagnóstico válido, não defeito. FAIL = o job falha:
+# gate, autenticação, core/CLI quebrado, JSON inválido de fonte OK ou
+# invariante de sanitização violado; nesses casos não há artefato.
 
 name: Observability Inventory — Read Only
 
@@ -78,6 +85,7 @@ jobs:
       # Sem checkout ainda: prova que o SHA informado é exatamente o disparo
       # e o HEAD atual de main. process.env evita injeção via input.
       - name: Validar identidade do SHA (antes de qualquer checkout)
+        id: sha
         uses: actions/github-script@v7
         with:
           script: |
@@ -104,6 +112,7 @@ jobs:
           persist-credentials: false
 
       - name: Confirmar SHA do checkout
+        id: checkout-sha
         shell: bash
         run: |
           if [ "$(git rev-parse HEAD)" != "$EXPECTED_SHA" ]; then
@@ -117,9 +126,11 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
 
       - name: Validar entradas (projeto e confirmação OBSERVE_ONLY)
+        id: inputs
         run: node scripts/observability-inventory-cli.mjs inputs
 
       - name: Exigir Quality Gate completo (4/4) e verde no SHA exato
+        id: qg
         env:
           GITHUB_TOKEN: ${{ github.token }}
         run: node scripts/pages-qg-gate.mjs
@@ -145,6 +156,7 @@ jobs:
           fi
 
       - name: Autenticar via Workload Identity Federation
+        id: auth-wif
         if: steps.auth-method.outputs.method == 'wif'
         uses: google-github-actions/auth@v3
         with:
@@ -155,6 +167,7 @@ jobs:
           export_environment_variables: true
 
       - name: Autenticar com a chave da conta de serviço
+        id: auth-key
         if: steps.auth-method.outputs.method == 'sa-key'
         uses: google-github-actions/auth@v3
         with:
@@ -164,22 +177,35 @@ jobs:
           export_environment_variables: true
 
       - name: Configurar gcloud
+        id: setup-gcloud
         uses: google-github-actions/setup-gcloud@v2
 
-      # Cada fonte grava <fonte>.json (saída), <fonte>.code (exit code) e
-      # <fonte>.err (stderr) em $WORK_DIR/raw — nunca impressos nem
-      # publicados; só o artefato allowlisted sai do runner. Falha de uma
-      # fonte não interrompe as demais (vira status no artefato).
+      # CONTROLE DE FLUXO (VIDE-HUB-OBSERVABILITY-INVENTORY-FIX-057): o runner
+      # executa `bash --noprofile --norc -e -o pipefail`. Cada fonte roda como
+      # condição de `if` — o único ponto onde o errexit é suspenso, de forma
+      # deliberada e só para aquele comando — e o exit code vai para
+      # <fonte>.code. Uma fonte indisponível (IAM, API desabilitada) não
+      # derruba as demais; qualquer outra falha (mkdir, node, allowlist de
+      # URL) continua abortando o passo (FAIL). Sem `set +e`, sem `|| true`.
+      #
+      # <fonte>.json/.err ficam só em $WORK_DIR/raw: nunca impressos, nunca
+      # publicados, apagados depois do build.
       - name: Coletar via gcloud (somente list/read)
+        id: gcloud-collect
         shell: bash
         run: |
           set -uo pipefail
           RAW="$WORK_DIR/raw"; mkdir -p "$RAW"
           coletar() {
             local fonte="$1"; shift
-            "$@" > "$RAW/$fonte.json" 2> "$RAW/$fonte.err"
-            echo "$?" > "$RAW/$fonte.code"
-            echo "$fonte: exit $(cat "$RAW/$fonte.code")"
+            local rc
+            if "$@" > "$RAW/$fonte.json" 2> "$RAW/$fonte.err"; then
+              rc=0
+            else
+              rc=$?
+            fi
+            echo "$rc" > "$RAW/$fonte.code"
+            echo "$fonte: exit $rc"
           }
           gcloud version | head -1
           coletar services gcloud services list --enabled --project="$PROJECT_ID" --format="json(config.name)"
@@ -189,43 +215,73 @@ jobs:
           coletar logSinks gcloud logging sinks list --project="$PROJECT_ID" --format=json
           coletar errorLogs24h gcloud logging read 'severity>=ERROR AND (resource.type="cloud_run_revision" OR resource.type="cloud_function")' --project="$PROJECT_ID" --freshness=1d --limit=1000 --format="json(resource.type,resource.labels.service_name,resource.labels.function_name,severity)"
 
-      # GET somente (curl sem método/corpo). O token fica num arquivo de
-      # header 0600 no RUNNER_TEMP (nunca na linha de comando), mascarado
-      # no log e apagado ao final do passo.
+      # GET somente (curl sem método/corpo). Roda mesmo se o passo gcloud
+      # falhar, mas SÓ se todos os gates e a autenticação passaram
+      # (setup-gcloud só executa depois deles). Sem token: cada fonte REST
+      # vira REST_AUTH_UNAVAILABLE, explícito. O token fica num arquivo de
+      # header 0600 no RUNNER_TEMP (nunca na linha de comando), mascarado no
+      # log e apagado ao final do passo.
       - name: Coletar via API REST (somente GET)
+        id: rest-collect
+        if: >-
+          always()
+          && steps.sha.outcome == 'success'
+          && steps.checkout-sha.outcome == 'success'
+          && steps.inputs.outcome == 'success'
+          && steps.qg.outcome == 'success'
+          && (steps.auth-wif.outcome == 'success' || steps.auth-key.outcome == 'success')
+          && steps.setup-gcloud.outcome == 'success'
         shell: bash
         run: |
           set -uo pipefail
           RAW="$WORK_DIR/raw"; mkdir -p "$RAW"
           HDR="$WORK_DIR/auth-header"
           trap 'rm -f "$HDR"' EXIT
-          TOKEN="$(gcloud auth print-access-token 2>/dev/null)"
-          if [ -z "$TOKEN" ]; then
-            echo "::warning::Sem access token — fontes REST ficam NOT COLLECTED."
+          node scripts/observability-inventory-cli.mjs rest-urls > "$WORK_DIR/rest-urls.tsv"
+          TOKEN=""
+          TOKEN_RC=0
+          if TOKEN="$(gcloud auth print-access-token 2>/dev/null)"; then
+            TOKEN_RC=0
+          else
+            TOKEN_RC=$?
+          fi
+          if [ "$TOKEN_RC" -ne 0 ] || [ -z "$TOKEN" ]; then
+            echo "::warning::Access token indisponível (exit ${TOKEN_RC}) — fontes REST: REST_AUTH_UNAVAILABLE."
+            while IFS=$'\t' read -r FONTE URL; do
+              echo "auth:unavailable" > "$RAW/$FONTE.code"
+              echo "$FONTE: REST_AUTH_UNAVAILABLE"
+            done < "$WORK_DIR/rest-urls.tsv"
             exit 0
           fi
           echo "::add-mask::$TOKEN"
           ( umask 077; printf 'Authorization: Bearer %s\n' "$TOKEN" > "$HDR" )
           unset TOKEN
-          node scripts/observability-inventory-cli.mjs rest-urls > "$WORK_DIR/rest-urls.tsv"
           while IFS=$'\t' read -r FONTE URL; do
             case "$URL" in
               https://monitoring.googleapis.com/*|https://clouderrorreporting.googleapis.com/*) ;;
               *) echo "::error::URL fora da allowlist para $FONTE"; exit 1 ;;
             esac
-            CODE="$(curl -sS --max-time 60 -H @"$HDR" -o "$RAW/$FONTE.json" -w '%{http_code}' "$URL" 2> "$RAW/$FONTE.err" || true)"
-            echo "http:${CODE:-000}" > "$RAW/$FONTE.code"
-            echo "$FONTE: http ${CODE:-000}"
+            CODE=""
+            if CODE="$(curl -sS --max-time 60 -H @"$HDR" -o "$RAW/$FONTE.json" -w '%{http_code}' "$URL" 2> "$RAW/$FONTE.err")"; then
+              echo "http:${CODE}" > "$RAW/$FONTE.code"
+            else
+              echo "curl:$?" > "$RAW/$FONTE.code"
+            fi
+            echo "$FONTE: $(cat "$RAW/$FONTE.code")"
           done < "$WORK_DIR/rest-urls.tsv"
 
+      # Falha aqui é estrutural (core quebrado, JSON inválido de fonte OK,
+      # sanitização violada): o job falha e nenhum artefato é gravado.
       - name: Montar inventário sanitizado
-        if: always()
+        id: build
+        if: >-
+          always()
+          && steps.setup-gcloud.outcome == 'success'
         env:
           WORKFLOW_SHA: ${{ github.sha }}
         run: |
-          if [ -d "$WORK_DIR/raw" ]; then
-            node scripts/observability-inventory-cli.mjs build "$WORK_DIR/raw" "$WORK_DIR/observability-inventory.json"
-          fi
+          node scripts/observability-inventory-cli.mjs build "$WORK_DIR/raw" "$WORK_DIR/observability-inventory.json"
+          rm -rf "$WORK_DIR/raw" "$WORK_DIR/rest-urls.tsv"
 
       - name: Resumo do inventário
         id: summary
@@ -236,7 +292,7 @@ jobs:
           if [ -f "$ARQ" ]; then
             node scripts/observability-inventory-cli.mjs summary "$ARQ"
           else
-            { echo "## OBSERVABILITY INVENTORY"; echo ""; echo "Result: FAIL (gates/autenticação não concluídos — nada coletado)"; } >> "$GITHUB_STEP_SUMMARY"
+            { echo "## OBSERVABILITY INVENTORY"; echo ""; echo "**Inventory result: FAIL** — gate, autenticação ou build estrutural falhou; nenhum artefato gerado."; } >> "$GITHUB_STEP_SUMMARY"
           fi
 
       - name: Publicar artefato sanitizado (observability-inventory)
