@@ -1,6 +1,7 @@
 "use strict";
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { logger } = require("firebase-functions");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { requireBackendAdmin } = require("../shared/context");
@@ -51,8 +52,19 @@ const createAdminMember = onCall({ region: "southamerica-east1" }, async (reques
     await writeAudit({ authUid: auth.uid, ownerUid: createdUser.uid, module: "admin", action: "createAdminMember", targetId: createdUser.uid });
     return { ok: true, uid: createdUser.uid, email };
   } catch (error) {
-    if (createdUser?.uid) await adminAuth.deleteUser(createdUser.uid).catch(() => {});
+    // Rollback best-effort: se falhar, pode sobrar um usuário órfão já com
+    // a claim videAdmin — só o uid técnico vai pro log; o erro original
+    // continua sendo o devolvido.
+    if (createdUser?.uid) {
+      const orphanUid = createdUser.uid;
+      await adminAuth.deleteUser(orphanUid).catch((rollbackError) => {
+        logger.error("[Admin] Rollback falhou ao remover usuário Auth órfão:", rollbackError, { orphanUid });
+      });
+    }
     if (error instanceof HttpsError) throw error;
+    // Mesmo motivo de createEmployee: sem este log a causa some (nunca com
+    // e-mail, senha ou permissões).
+    logger.error("[Admin] Falha inesperada ao criar membro admin:", error);
     throw new HttpsError("internal", "Não foi possível criar membro admin.");
   }
 });

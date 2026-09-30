@@ -1,6 +1,7 @@
 "use strict";
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
+const { logger } = require("firebase-functions");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
 const { resolveCallerContext } = require("../shared/context");
@@ -116,10 +117,19 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
 
     return { ok: true, uid: createdUser.uid, email, nome, cargo, status: "ativo", permissoes };
   } catch (error) {
+    // Rollback best-effort: se falhar, fica um usuário Auth órfão — só o
+    // uid técnico vai pro log, e o erro original continua sendo o devolvido.
     if (createdUser?.uid) {
-      await auth.deleteUser(createdUser.uid).catch(() => {});
+      const orphanUid = createdUser.uid;
+      await auth.deleteUser(orphanUid).catch((rollbackError) => {
+        logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError, { orphanUid });
+      });
     }
     if (error instanceof HttpsError) throw error;
+    // O SDK só registra erro não-HttpsError; convertido em "internal" aqui,
+    // a causa sumiria da observabilidade sem este log (nunca com dados do
+    // request: e-mail, senha, nome ou permissões).
+    logger.error("[Funcionários] Falha inesperada ao criar funcionário:", error);
     throw new HttpsError("internal", "Não foi possível criar o funcionário.");
   }
 });
