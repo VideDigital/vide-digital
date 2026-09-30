@@ -109,6 +109,23 @@ async function flowFuncionarioSemPermissaoProdutos(browser, baseUrl) {
     }
 }
 
+// VIDE-HUB-PRODUTOS-FLOW-BOOT-RACE-061 — carregarProdutos() põe o esqueleto
+// de forma síncrona assim que é chamado e só troca pelos cards reais (e
+// restaura o scrollTop do <main> que existia NO INÍCIO da carga) quando a
+// resposta mais recente chega; respostas antigas são descartadas sem tocar no
+// DOM. Logo, depois de uma chamada que dispara carga, "sem esqueleto e com N
+// cards" só é verdade quando a carga mais recente terminou de renderizar.
+// Condição real do produto, sem tempo fixo; se a carga nunca concluir, estoura
+// e o fluxo falha.
+async function aguardarCargaProdutosConcluida(page, totalCards) {
+    await page.waitForFunction((esperado) => {
+        const container = document.getElementById("produtos-container");
+        return !!container
+            && !container.querySelector(".aura-skel-card")
+            && container.querySelectorAll(".aura-commerce-card").length === esperado;
+    }, totalCards, { timeout: 15000 });
+}
+
 async function main() {
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
@@ -159,7 +176,29 @@ async function main() {
 
         // A) Produtos e Catálogo são views distintas, com a mesma permissão e
         // o mesmo workspace/dados. Começamos na gestão operacional.
-        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true);
+        assert.equal(await page.evaluate(() => window.ativarAba?.("view-produtos")), true, "ativarAba(view-produtos) deve ser aceito para o dono");
+
+        // VIDE-HUB-PRODUTOS-FLOW-BOOT-RACE-061 — loginReal() só garante o
+        // VideHubContext; o boot do dashboard (onAuthStateChanged) continua e,
+        // no fim, chama carregarProdutos() de novo (dashboard-app.js, logo após
+        // restaurar a aba salva), que troca os cards por esqueleto até a nova
+        // resposta chegar. As esperas abaixo podiam ser satisfeitas pela carga
+        // do ativarAba() e a checagem sem espera de .btn-gerenciar caía na
+        // janela de esqueleto dessa 2ª carga (QG run 36596226351, attempt 1:
+        // "false !== true" em produtos.flow.mjs:193, reproduzido localmente).
+        //
+        // Sincronização com o contrato real, sem tempo fixo:
+        // 1) slugAtualSalvo recebe o slug do perfil no MESMO trecho síncrono do
+        //    boot (sem await) que termina chamando carregarProdutos(), cuja
+        //    parte síncrona já põe o esqueleto — quando o hook de teste
+        //    existente devolve o slug do tenant, a carga do boot já começou;
+        // 2) depois disso nenhuma carga automática fica pendente (as demais
+        //    chamadas são ações do usuário), então aguardarCargaProdutosConcluida
+        //    só libera com o resultado da carga mais recente. Se o boot ou os
+        //    produtos quebrarem, estas esperas estouram e o fluxo falha.
+        await page.waitForFunction(() => window.__videSlugAtualSalvo?.() === "loja-pro-local", null, { timeout: 20000 });
+        await aguardarCargaProdutosConcluida(page, 2);
+
         await page.waitForSelector(
             "#produtos-container .aura-commerce-card",
             { state: "visible", timeout: 20000 }
@@ -189,8 +228,8 @@ async function main() {
             `Cabeçalho deveria mostrar 2 Ativo(s), veio: "${contadorInicial}"`
         );
 
-        assert.equal(await page.locator("#view-produtos .aura-product-toolbar").isVisible(), true);
-        assert.equal(await page.locator("#view-produtos .btn-gerenciar").first().isVisible(), true);
+        assert.equal(await page.locator("#view-produtos .aura-product-toolbar").isVisible(), true, "Toolbar operacional de Produtos deve estar visível");
+        assert.equal(await page.locator("#view-produtos .btn-gerenciar").first().isVisible(), true, "Botão Gerenciar dos cards de Produtos deve estar visível");
 
         const idsNaGestao = await page.$$eval("#produtos-container .aura-commerce-card", cards => cards.map(card => card.dataset.produtoId).sort());
         assert.equal(await page.evaluate(() => window.ativarAba?.("view-catalogo")), true);
@@ -317,6 +356,13 @@ async function main() {
         await page.waitForSelector("#view-produtos .aura-product-toolbar", { state: "visible", timeout: 10000 });
         assert.equal(await page.inputValue("#catalogo-busca"), "");
         assert.equal(await page.locator("#catalogo-selection-toggle").isVisible(), true);
+
+        // VIDE-HUB-PRODUTOS-FLOW-BOOT-RACE-061 — o ativarAba() acima dispara
+        // carregarProdutos(); a medição de scroll da seção C não pode começar
+        // antes dessa carga terminar, senão a própria carga restaura o scrollTop
+        // do início dela (0) depois que o teste rolou, e a asserção culpava o
+        // filtro (reproduzido: "antes: 141, depois: 0" sem nenhum clique).
+        await aguardarCargaProdutosConcluida(page, 2);
 
         // C) Filtros: nunca navegam, nunca mudam URL/hash, nunca jogam a
         // página pro topo — e o resultado é imediato (sem nova leitura ao
