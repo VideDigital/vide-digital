@@ -129,8 +129,15 @@ async function chamarGemini(payload, apiKey) {
     }
 
     if (!resposta.ok) {
-        const corpoErro = await resposta.text().catch(() => "");
-        logger.error("[IA de Negócio] Erro do Gemini:", { status: resposta.status, corpoErro });
+        // Error com marcador estável + status: stack própria pro Error
+        // Reporting (o 429 abaixo não é 5xx e não entra no alerta da
+        // policy de Functions). Nunca o corpo da resposta, o prompt, a
+        // URL (tem a API key na query) ou dados do usuário.
+        logger.error(
+            "[IA de Negócio] Erro do Gemini:",
+            new Error(`GEMINI_HTTP_ERROR: provedor respondeu HTTP ${resposta.status}`),
+            { geminiStatus: resposta.status }
+        );
         // 429 do próprio Gemini (créditos/faturamento esgotados no projeto da
         // API key, ver ai.studio/projects) é um estado operacional real, não
         // uma falha transitória — merece mensagem própria em vez do genérico
@@ -199,6 +206,14 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
         const texto = extrairTextoRespostaGemini(respostaBruta);
 
         if (!texto) {
+            // Sem este log o "internal" abaixo chegaria ao cliente sem
+            // nenhuma causa registrada — nunca com a resposta do provedor,
+            // a pergunta ou o histórico.
+            logger.error(
+                "[IA de Negócio] Gemini sem texto utilizável:",
+                new Error("GEMINI_EMPTY_RESPONSE: resposta sem texto utilizável"),
+                { caminho: "privado" }
+            );
             throw new HttpsError("internal", "A IA não devolveu uma resposta válida. Tente novamente.");
         }
 
@@ -274,6 +289,12 @@ const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, s
         const texto = extrairTextoRespostaGemini(respostaBruta);
 
         if (!texto) {
+            // Mesmo motivo do caminho privado (askBusinessAI).
+            logger.error(
+                "[IA de Negócio pública] Gemini sem texto utilizável:",
+                new Error("GEMINI_EMPTY_RESPONSE: resposta sem texto utilizável"),
+                { caminho: "publico" }
+            );
             throw new HttpsError("internal", "A assistente não devolveu uma resposta válida. Tente novamente.");
         }
 
