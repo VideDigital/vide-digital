@@ -1,11 +1,11 @@
-# Canal de deploy ISOLADO e manual para as 4 Cloud Functions alteradas
+# Canal de deploy ISOLADO e manual para 3 das Cloud Functions alteradas
 # pela missão VIDE-HUB-SERVER-ERROR-INSTRUMENTATION-067 (PR #98):
-# createEmployee, createAdminMember, askBusinessAI e askPublicBusinessAI.
+# createEmployee, askBusinessAI e askPublicBusinessAI.
 # Não substitui nem modifica os outros canais (firebase-deploy.yml,
 # firebase-deploy-functions.yml, firebase-deploy-beta.yml,
 # firebase-deploy-whatsapp.yml, firebase-deploy-audit.yml) — nenhum deles
-# publica exatamente estas 4 (o Beta publicaria mais 5 Functions não
-# alteradas; o de IA não inclui createEmployee/createAdminMember).
+# publica exatamente estas 3 (o Beta publicaria mais 6 Functions não
+# alteradas; o de IA não inclui createEmployee).
 #
 # Escopo FIXO: a lista vem da env SERVER_ERROR_067_FUNCTIONS abaixo —
 # nunca de input, nunca gerada a partir dos exports, nunca "--only
@@ -17,12 +17,12 @@
 # (validado no job de testes E de novo no job de deploy) e
 # confirm_production exatamente DEPLOY_SERVER_ERROR_067.
 #
-# ATENÇÃO — createAdminMember: nenhum workflow deste repositório jamais a
-# publicou e docs/FIREBASE_SPARK_ARCHITECTURE.md a lista como substituída
-# por uma etapa externa (scripts/set-admin-claim.mjs). Se ela não existir
-# em produção, rodar este canal CRIA um endpoint administrativo novo
-# (protegido por requireBackendAdmin), não apenas atualiza um existente.
-# Confirmar o estado vivo antes de autorizar a execução.
+# createAdminMember (também alterada pela 067) fica FORA deste canal por
+# decisão deliberada: CODE IN MAIN / DEPLOY DEFERRED. O estado dela em
+# produção não pôde ser comprovado, nenhum workflow versionado jamais a
+# publicou, nenhuma UI atual a consome e docs/FIREBASE_SPARK_ARCHITECTURE.md
+# a lista como substituída por scripts/set-admin-claim.mjs — publicá-la
+# aqui poderia criar uma superfície administrativa nova em produção.
 #
 # Pré-flight com "deploy --dry-run --non-interactive" (mesma versão fixa
 # 13.35.1 e mesmo padrão já executado com sucesso pelo canal do Beta):
@@ -48,7 +48,7 @@ on:
         required: true
         type: string
       confirm_production:
-        description: Digite DEPLOY_SERVER_ERROR_067 para confirmar a publicação das 4 Functions
+        description: Digite DEPLOY_SERVER_ERROR_067 para confirmar a publicação das 3 Functions
         required: true
         type: string
 
@@ -63,8 +63,8 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  # Lista explícita e fixa — exatamente as 4 Functions da missão 067.
-  SERVER_ERROR_067_FUNCTIONS: "functions:createEmployee,functions:createAdminMember,functions:askBusinessAI,functions:askPublicBusinessAI"
+  # Lista explícita e fixa — exatamente 3 Functions (sem createAdminMember).
+  SERVER_ERROR_067_FUNCTIONS: "functions:createEmployee,functions:askBusinessAI,functions:askPublicBusinessAI"
 
 jobs:
   validate-and-test:
@@ -117,14 +117,14 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ESPERADA="functions:createEmployee,functions:createAdminMember,functions:askBusinessAI,functions:askPublicBusinessAI"
+          ESPERADA="functions:createEmployee,functions:askBusinessAI,functions:askPublicBusinessAI"
           if [[ "${SERVER_ERROR_067_FUNCTIONS}" != "${ESPERADA}" ]]; then
             echo "::error::A lista de Functions diverge da lista fixa da missão 067."
             exit 1
           fi
           IFS=',' read -r -a ENTRADAS <<< "${SERVER_ERROR_067_FUNCTIONS}"
-          if [[ "${#ENTRADAS[@]}" -ne 4 ]]; then
-            echo "::error::A lista precisa ter exatamente 4 Functions (tem ${#ENTRADAS[@]})."
+          if [[ "${#ENTRADAS[@]}" -ne 3 ]]; then
+            echo "::error::A lista precisa ter exatamente 3 Functions (tem ${#ENTRADAS[@]})."
             exit 1
           fi
           for ENTRADA in "${ENTRADAS[@]}"; do
@@ -200,7 +200,7 @@ jobs:
         run: pnpm run test:frontend:emulator
 
   deploy:
-    name: Publicar as 4 Functions da missão 067
+    name: Publicar as 3 Functions da missão 067
     needs: validate-and-test
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -243,12 +243,12 @@ jobs:
       - name: Instalar dependências das Functions
         run: pnpm install --frozen-lockfile --dir functions
 
-      - name: Confirmar que as 4 Functions existem no export atual
+      - name: Confirmar que as 3 Functions existem no export atual
         shell: bash
         run: |
           set -euo pipefail
           MISSING=0
-          for FN in createEmployee createAdminMember askBusinessAI askPublicBusinessAI; do
+          for FN in createEmployee askBusinessAI askPublicBusinessAI; do
             if ! grep -qE "exports\.${FN}[[:space:]]*=" functions/src/index.js; then
               echo "::error::Export ausente em functions/src/index.js: ${FN}"
               MISSING=1
@@ -257,7 +257,7 @@ jobs:
           if [[ "${MISSING}" -eq 1 ]]; then
             exit 1
           fi
-          echo "As 4 Functions da missão 067 estão exportadas em functions/src/index.js."
+          echo "As 3 Functions do canal 067 estão exportadas em functions/src/index.js."
 
       # Mesmo detector de autenticação dos canais existentes — nunca usa
       # "firebase login" nem token de CLI; sem nenhum método configurado,
@@ -316,7 +316,7 @@ jobs:
             --non-interactive \
             --dry-run
 
-      - name: Publicar as 4 Functions da missão 067
+      - name: Publicar as 3 Functions da missão 067
         shell: bash
         env:
           PROJECT_ID: ${{ inputs.project_id }}

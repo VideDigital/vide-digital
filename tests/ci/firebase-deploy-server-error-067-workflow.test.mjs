@@ -20,7 +20,8 @@ const WORKFLOW = ".github/workflows/firebase-deploy-server-error-067.yml";
 const YAML = readFileSync(path.join(RAIZ, WORKFLOW), "utf8");
 const SEM_COMENTARIOS = YAML.split("\n").filter((l) => !l.trim().startsWith("#")).join("\n");
 
-const FUNCTIONS_067 = ["createEmployee", "createAdminMember", "askBusinessAI", "askPublicBusinessAI"];
+// createAdminMember: CODE IN MAIN / DEPLOY DEFERRED — nunca pode entrar neste canal.
+const FUNCTIONS_067 = ["createEmployee", "askBusinessAI", "askPublicBusinessAI"];
 const LISTA_ESPERADA = FUNCTIONS_067.map((n) => `functions:${n}`).join(",");
 const SHA_OK = "ec696901111dff92514da0bfd00ef58290f4d8e2";
 
@@ -99,12 +100,17 @@ describe("068 — canal de deploy da missão 067: garantias estáticas", () => {
         assert.doesNotMatch(SEM_COMENTARIOS, /--only\s+"?\$\{\{\s*inputs\./);
     });
 
-    it("a lista fixa contém exatamente as 4 Functions da missão 067", () => {
+    it("a lista fixa contém exatamente as 3 Functions autorizadas", () => {
         const entradas = listaDoWorkflow().split(",");
-        assert.equal(entradas.length, 4);
+        assert.equal(entradas.length, 3);
         assert.deepEqual(entradas.map((e) => e.replace(/^functions:/, "")).sort(), [...FUNCTIONS_067].sort());
         for (const e of entradas) assert.match(e, /^functions:[A-Za-z][A-Za-z0-9]*$/, `entrada inválida: ${e}`);
         assert.equal(listaDoWorkflow(), LISTA_ESPERADA);
+    });
+
+    it("createAdminMember não aparece na lista nem em nenhuma linha executável", () => {
+        assert.ok(!listaDoWorkflow().includes("createAdminMember"));
+        assert.doesNotMatch(SEM_COMENTARIOS, /createAdminMember/);
     });
 
     it("nenhuma Function whatsapp* na lista nem em qualquer comando", () => {
@@ -137,10 +143,10 @@ describe("068 — canal de deploy da missão 067: garantias estáticas", () => {
 
     it("dry-run não-interativo vem antes do deploy real", () => {
         const dry = blocoRun("Pré-flight seguro: dry-run");
-        const real = blocoRun("Publicar as 4 Functions da missão 067");
+        const real = blocoRun("Publicar as 3 Functions da missão 067");
         assert.match(dry, /--dry-run/);
         assert.doesNotMatch(real, /--dry-run/);
-        assert.ok(YAML.indexOf("Pré-flight seguro: dry-run") < YAML.indexOf("- name: Publicar as 4 Functions da missão 067"));
+        assert.ok(YAML.indexOf("Pré-flight seguro: dry-run") < YAML.indexOf("- name: Publicar as 3 Functions da missão 067"));
     });
 
     it("SHA validado no job de testes E no job de deploy", () => {
@@ -202,9 +208,12 @@ describe("068 — blocos de validação reais sob o shell do runner", () => {
     for (const [rotulo, lista] of [
         ["whatsapp adicionada", `${LISTA_ESPERADA},functions:whatsappWebhook`],
         ["Function extra", `${LISTA_ESPERADA},functions:updateEmployee`],
-        ["Function faltando", LISTA_ESPERADA.split(",").slice(0, 3).join(",")],
+        ["Function faltando", LISTA_ESPERADA.split(",").slice(0, 2).join(",")],
         ["deploy genérico", "functions"],
-        ["troca por whatsapp", LISTA_ESPERADA.replace("createAdminMember", "whatsappSendText")]
+        ["troca por whatsapp", LISTA_ESPERADA.replace("askPublicBusinessAI", "whatsappSendText")],
+        ["createAdminMember adicionada", `${LISTA_ESPERADA},functions:createAdminMember`],
+        ["createAdminMember no lugar de outra", LISTA_ESPERADA.replace("createEmployee", "createAdminMember")],
+        ["quarta Function qualquer", `${LISTA_ESPERADA},functions:syncAdminClaims`]
     ]) {
         it(`validação de lista rejeita: ${rotulo}`, () => {
             const r = executar(validarLista, { SERVER_ERROR_067_FUNCTIONS: lista });
@@ -231,10 +240,12 @@ describe("068 — comando final enviado ao Firebase CLI (pnpm simulado)", () => 
     const esperado = ["dlx", "firebase-tools@13.35.1", "deploy", "--only", LISTA_ESPERADA, "--project", "vide-digital-saas", "--non-interactive"];
 
     it("deploy real equivale exatamente ao comando autorizado", () => {
-        const r = executar(blocoRun("Publicar as 4 Functions da missão 067"), env);
+        const r = executar(blocoRun("Publicar as 3 Functions da missão 067"), env);
         assert.equal(r.status, 0, r.saida);
         assert.deepEqual(r.argv, esperado);
         assert.ok(!r.argv.join(" ").toLowerCase().includes("whatsapp"));
+        assert.ok(!r.argv.join(" ").includes("createAdminMember"));
+        assert.equal(r.argv[4].split(",").length, 3);
     });
 
     it("dry-run usa o mesmo escopo + --dry-run", () => {
