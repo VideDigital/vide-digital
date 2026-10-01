@@ -1663,6 +1663,11 @@
             salvarChatAtual,
             sanitizarNomeVisitanteChat
         } from "./public-chat-auth-v1.js";
+        import { installFrontendErrorTelemetry, reportFrontendError } from "./frontend-error-telemetry.js";
+
+        // Reporter central de erros do frontend (FE-OBS-006): instalação única,
+        // envio sanitizado, sem conteúdo da loja/cliente.
+        installFrontendErrorTelemetry();
 
         const urlParams = new URLSearchParams(window.location.search);
         const lojaSlug = urlParams.get("loja");
@@ -4014,6 +4019,13 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                 }
             } catch (err) {
                 console.error("Erro ao carregar vitrine:", err);
+                // FE-OBS-002: a falha não pode deixar o esqueleto girando para
+                // sempre nem passar despercebida pela operação.
+                const vitrineFalha = document.getElementById("vitrine-container");
+                if (vitrineFalha) {
+                    vitrineFalha.innerHTML = '<div class="col-span-full text-center p-12 rounded-2xl" role="alert" data-vitrine-estado="erro" style="border:1px dashed var(--border);"><p class="text-sm" style="color: var(--ink-3);">Não foi possível carregar a loja agora. Recarregue a página em instantes.</p></div>';
+                }
+                reportFrontendError(err, { category: "store-load" });
             }
         }
 

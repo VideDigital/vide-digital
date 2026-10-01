@@ -12,6 +12,7 @@ import { criarGrowthTrackingController } from "./growth-tracking-v1.js";
 import { criarAuditCenterController } from "./audit-center-v1.js";
 import { criarWhatsappOficialController } from "./whatsapp-oficial-v1.js?v=embedded-signup-1";
 import { VideFunctions } from "./core/vide-functions.js";
+import { installFrontendErrorTelemetry, reportFrontendError, runWithFrontendErrorBoundary } from "./frontend-error-telemetry.js";
 import {
     validarItensPedido, calcularValorItens, resumoTextoItens,
     adicionarItemPedido, removerItemPedido, atualizarQuantidadeItem
@@ -21,6 +22,11 @@ import {
     valorBuscaCatalogoEhAutofillIndevido, buscaCatalogoSemResultados,
     deveRestaurarAbaSalva, criarControladorDeCargaSequencial
 } from "./catalogo-produtos-core.js";
+
+// Reporter central de erros do frontend (FE-OBS-006): instalação única de
+// window error/unhandledrejection com envio sanitizado para
+// reportFrontendError. O diagnóstico local de error-boundary.js continua.
+installFrontendErrorTelemetry();
 
 function podeVerModuloNoContexto(moduleKey) {
     const modulo = normalizeModuleKey(moduleKey);
@@ -7107,8 +7113,35 @@ await setDoc(doc(db, "landing_pages", novoId), {
             resetarTimerInatividade();
         }
 
+        // FE-OBS-001: falha inesperada no bootstrap do painel deixava o painel
+        // parcial, sem mensagem, e virava rejeição não tratada. Agora mostra
+        // um aviso persistente e reporta a categoria "bootstrap" (erros
+        // esperados de auth/permissão são descartados pelo reporter).
+        function mostrarFalhaBootstrapPainel() {
+            try {
+                if (typeof showToast === "function") {
+                    showToast("Não foi possível carregar o painel. Recarregue a página.", "error");
+                }
+                if (document.getElementById("vide-bootstrap-erro")) return;
+                const aviso = document.createElement("div");
+                aviso.id = "vide-bootstrap-erro";
+                aviso.setAttribute("role", "alert");
+                aviso.style.cssText = "position:fixed;top:0;left:0;right:0;z-index:2147483000;background:#b91c1c;color:#fff;font:600 14px/1.4 system-ui,sans-serif;padding:10px 16px;text-align:center;";
+                aviso.textContent = "Não foi possível carregar o painel. Verifique sua conexão e recarregue a página. ";
+                const recarregar = document.createElement("button");
+                recarregar.type = "button";
+                recarregar.textContent = "Recarregar";
+                recarregar.style.cssText = "margin-left:8px;background:#fff;color:#b91c1c;border:0;border-radius:6px;padding:4px 10px;font-weight:700;cursor:pointer;";
+                recarregar.addEventListener("click", () => window.location.reload());
+                aviso.appendChild(recarregar);
+                document.body.appendChild(aviso);
+            } catch (_erroAviso) {
+                // o aviso nunca pode derrubar a fronteira do bootstrap
+            }
+        }
+
         // CARGA DO USUÁRIO E PERSISTÊNCIA DOS CAMPOS ORIGINAIS
-        onAuthStateChanged(auth, async (user) => {
+        onAuthStateChanged(auth, (user) => runWithFrontendErrorBoundary(async () => {
             if (user) {
                 const paramsURL = new URLSearchParams(window.location.search);
                 const masterUIDAlvo = paramsURL.get("masterUID");
@@ -7457,7 +7490,7 @@ listaBanners = [];
             } else {
                 window.location.href = "login.html";
             }
-        });
+        }, { category: "bootstrap", onFailure: mostrarFalhaBootstrapPainel }));
 
 // RESTAURAR CORES PADRÃO DO PROJETO (SOMENTE VISUAL, PRECISA SALVAR DEPOIS)
         document.getElementById("btn-resetar-cores").addEventListener("click", () => {
@@ -15929,6 +15962,12 @@ async function() {
                 `).join("");
             } catch(err) {
                 console.error(err);
+                // FE-OBS-003: falha nunca fica igual a "Nenhum pedido ainda."
+                const tbodyFalha = document.getElementById("pedidos-table-body");
+                if (tbodyFalha) {
+                    tbodyFalha.innerHTML = `<tr data-pedidos-estado="erro"><td colspan="7" role="alert" class="text-center p-12 text-red-400">Não foi possível carregar os pedidos. Recarregue a página ou tente novamente em instantes.</td></tr>`;
+                }
+                reportFrontendError(err, { category: "orders-legacy" });
             }
         }
 
