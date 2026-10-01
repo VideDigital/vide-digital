@@ -44,7 +44,9 @@ Module._load = loadOriginal;
 
 const {
     handleReportFrontendError, normalizeFrontendErrorPayload, telemetryRateLimitIdentifier,
-    RATE_LIMIT_MAX, RATE_LIMIT_SCOPE, MAX_PAYLOAD_BYTES, LIMITS, ALLOWED_FIELDS
+    RATE_LIMIT_MAX, RATE_LIMIT_SCOPE, MAX_PAYLOAD_BYTES, LIMITS, ALLOWED_FIELDS,
+    ANON_RATE_LIMIT_IDENTIFIER, ANON_RATE_LIMIT_MAX, LOCAL_LIMITS,
+    createLocalWindowLimiter, createTelemetryValves
 } = telemetry;
 
 const SENTINELAS = {
@@ -79,13 +81,16 @@ beforeEach(() => {
     documentos.clear();
 });
 
-function requisicao(data, { uid = null, ip = SENTINELAS.ip } = {}) {
+function requisicao(data, { uid = null, ip = SENTINELAS.ip, xff = ip, provedor = "password" } = {}) {
     return {
         data,
-        auth: uid ? { uid, token: { email: SENTINELAS.email } } : undefined,
-        rawRequest: { headers: { "x-forwarded-for": ip }, ip }
+        auth: uid ? { uid, token: { email: SENTINELAS.email, firebase: { sign_in_provider: provedor } } } : undefined,
+        rawRequest: { headers: { "x-forwarded-for": xff }, ip, socket: { remoteAddress: ip } }
     };
 }
+// Válvulas locais novas a cada chamada de teste (o estado em memória nunca
+// vaza entre testes); os testes da própria válvula criam a sua.
+const valvulasFolgadas = () => createTelemetryValves({ requestsPerWindow: 100000, acceptedPerWindow: 100000 });
 function payloadValido(extra = {}) {
     return {
         type: "error",
@@ -111,7 +116,7 @@ function assertSemSentinelas(texto = serializarLogs()) {
     }
 }
 async function reportar(data, opcoes) {
-    return handleReportFrontendError(requisicao(data, opcoes), { logger: loggerFalso, assertRateLimit: rateLimitEspiao });
+    return handleReportFrontendError(requisicao(data, opcoes), { logger: loggerFalso, assertRateLimit: rateLimitEspiao, valves: valvulasFolgadas() });
 }
 const ehInvalidArgument = (e) => e instanceof HttpsError && e.code === "invalid-argument";
 
@@ -274,35 +279,31 @@ describe("071 reportFrontendError — auth, multi-tenant e rate limit", () => {
         assert.ok(!texto.includes("ATACANTE") && !texto.includes("OUTRO_TENANT"));
     });
 
-    it("público: identificador é hash do IP obtido no servidor; IP bruto nunca no identificador nem no log", async () => {
+    it("público: identificador é o bucket anônimo compartilhado com teto próprio; IP nunca no identificador nem no log", async () => {
         await reportar(payloadValido());
-        const [{ identifier }] = chamadasRateLimit;
-        assert.match(identifier, /^anon_[0-9a-f]{40}$/);
-        assert.notEqual(identifier, telemetryRateLimitIdentifier(requisicao({}, { ip: "198.51.100.9" })), "IPs diferentes, cotas diferentes");
+        const [{ identifier, max }] = chamadasRateLimit;
+        assert.equal(identifier, ANON_RATE_LIMIT_IDENTIFIER);
+        assert.equal(max, ANON_RATE_LIMIT_MAX);
         assertSemSentinelas(serializarLogs() + JSON.stringify(chamadasRateLimit));
     });
 
-    it("rate limit real: a chamada além do teto falha com resource-exhausted e não loga; nada bruto no documento", async () => {
-        const deps = { logger: loggerFalso, assertRateLimit };
+    it("rate limit real autenticado: a chamada além do teto por usuário falha com resource-exhausted e não loga", async () => {
+        const deps = { logger: loggerFalso, assertRateLimit, valves: valvulasFolgadas() };
         for (let i = 0; i < RATE_LIMIT_MAX; i++) {
-            await handleReportFrontendError(requisicao(payloadValido()), deps);
+            await handleReportFrontendError(requisicao(payloadValido(), { uid: SENTINELAS.uid }), deps);
         }
         await assert.rejects(
-            () => handleReportFrontendError(requisicao(payloadValido()), deps),
+            () => handleReportFrontendError(requisicao(payloadValido(), { uid: SENTINELAS.uid }), deps),
             (e) => e instanceof HttpsError && e.code === "resource-exhausted"
         );
         assert.equal(chamadasLog.length, RATE_LIMIT_MAX, "nenhum log da chamada bloqueada");
-        // Outro IP tem cota própria.
-        await handleReportFrontendError(requisicao(payloadValido(), { ip: "198.51.100.9" }), deps);
+        // Outro usuário autenticado tem cota própria.
+        await handleReportFrontendError(requisicao(payloadValido(), { uid: "OUTRO_UID_QA" }), deps);
         assert.equal(chamadasLog.length, RATE_LIMIT_MAX + 1);
-        const persistido = JSON.stringify([...documentos.entries()]);
-        assert.ok(!persistido.includes(SENTINELAS.ip), "IP bruto nunca persistido");
-        assert.ok(!persistido.includes("198.51.100.9"));
-        assert.ok([...documentos.keys()].every((k) => /^_rate_limits\/reportFrontendError_anon_[0-9a-f]{40}$/.test(k)));
     });
 
     it("rate limit autenticado não persiste o uid", async () => {
-        await handleReportFrontendError(requisicao(payloadValido(), { uid: SENTINELAS.uid }), { logger: loggerFalso, assertRateLimit });
+        await handleReportFrontendError(requisicao(payloadValido(), { uid: SENTINELAS.uid }), { logger: loggerFalso, assertRateLimit, valves: valvulasFolgadas() });
         const persistido = JSON.stringify([...documentos.entries()]);
         assert.ok(!persistido.includes(SENTINELAS.uid));
         assert.ok([...documentos.keys()].every((k) => /^_rate_limits\/reportFrontendError_auth_[0-9a-f]{40}$/.test(k)));
@@ -311,7 +312,7 @@ describe("071 reportFrontendError — auth, multi-tenant e rate limit", () => {
     it("bloqueio do rate limit (espião) impede o log", async () => {
         const bloqueia = async () => { throw new HttpsError("resource-exhausted", "x"); };
         await assert.rejects(
-            () => handleReportFrontendError(requisicao(payloadValido()), { logger: loggerFalso, assertRateLimit: bloqueia }),
+            () => handleReportFrontendError(requisicao(payloadValido()), { logger: loggerFalso, assertRateLimit: bloqueia, valves: valvulasFolgadas() }),
             (e) => e.code === "resource-exhausted"
         );
         assert.equal(chamadasLog.length, 0);
@@ -326,5 +327,120 @@ describe("071 reportFrontendError — Function publicada", () => {
         assert.ok(endpoint.callableTrigger, "onCall");
         assert.deepEqual(endpoint.region, ["southamerica-east1"]);
         assert.equal(endpoint.maxInstances, 5);
+    });
+});
+
+describe("071 FE-TEL-071-A — identidade anônima não depende de IP; válvulas locais", () => {
+    const deps = (extra = {}) => ({ logger: loggerFalso, assertRateLimit, valves: valvulasFolgadas(), ...extra });
+
+    it("anônimo: primeiro, último ou toda a cadeia de XFF, rawRequest.ip e socket não mudam a identidade", () => {
+        const variantes = [
+            requisicao({}, { xff: "203.0.113.1" }),
+            requisicao({}, { xff: "203.0.113.2, 198.51.100.20" }),
+            requisicao({}, { xff: "198.51.100.20, 203.0.113.3" }),
+            requisicao({}, { xff: "10.0.0.1, 10.0.0.2, 10.0.0.3", ip: "192.0.2.55" }),
+            requisicao({}, { xff: undefined, ip: "192.0.2.77" }),
+            { data: {} }
+        ];
+        const ids = new Set(variantes.map((r) => telemetryRateLimitIdentifier(r)));
+        assert.deepEqual([...ids], [ANON_RATE_LIMIT_IDENTIFIER]);
+        assert.doesNotMatch(ANON_RATE_LIMIT_IDENTIFIER, /\d+\.\d+\.\d+\.\d+/);
+    });
+
+    it("Anonymous Auth (uid descartável) conta no bucket anônimo compartilhado", () => {
+        assert.equal(telemetryRateLimitIdentifier(requisicao({}, { uid: "ANON_UID_1", provedor: "anonymous" })), ANON_RATE_LIMIT_IDENTIFIER);
+        assert.equal(telemetryRateLimitIdentifier(requisicao({}, { uid: "ANON_UID_2", provedor: "anonymous" })), ANON_RATE_LIMIT_IDENTIFIER);
+    });
+
+    it("25 chamadas anônimas inesperadas com XFF rotativo usam um único documento de rate limit, sem IP", async () => {
+        for (let i = 0; i < 25; i++) {
+            await handleReportFrontendError(requisicao(payloadValido({ message: `rotativo ${i}` }), { xff: `203.0.113.${i + 1}, 198.51.100.20`, ip: `192.0.2.${i + 1}` }), deps());
+        }
+        assert.equal(chamadasLog.length, 25, "um log por evento aceito");
+        assert.deepEqual([...documentos.keys()], [`_rate_limits/reportFrontendError_${ANON_RATE_LIMIT_IDENTIFIER}`]);
+        assert.equal(documentos.get(`_rate_limits/reportFrontendError_${ANON_RATE_LIMIT_IDENTIFIER}`).count, 25);
+        const persistido = JSON.stringify([...documentos.entries()]) + serializarLogs();
+        assert.doesNotMatch(persistido, /203\.0\.113|198\.51\.100|192\.0\.2/, "nenhum IP em ID, campo ou log");
+    });
+
+    it("teto anônimo global: além de ANON_RATE_LIMIT_MAX, XFF rotativo não abre cota nova", async () => {
+        const d = deps();
+        for (let i = 0; i < ANON_RATE_LIMIT_MAX; i++) {
+            await handleReportFrontendError(requisicao(payloadValido({ message: `m ${i}` }), { xff: `203.0.113.${(i % 250) + 1}` }), d);
+        }
+        await assert.rejects(
+            () => handleReportFrontendError(requisicao(payloadValido(), { xff: "198.51.100.99" }), d),
+            (e) => e instanceof HttpsError && e.code === "resource-exhausted"
+        );
+        assert.equal(chamadasLog.length, ANON_RATE_LIMIT_MAX);
+        assert.equal(documentos.size, 1, "número de documentos anônimos constante");
+    });
+
+    it("autenticados diferentes continuam isolados (2 docs auth_<hash>); uid/tenant do payload não influenciam", async () => {
+        const d = deps();
+        await handleReportFrontendError(requisicao(payloadValido({ uid: "FORJADO", tenantId: "TENANT_FORJADO" }), { uid: "UID_A_QA" }), d);
+        await handleReportFrontendError(requisicao(payloadValido({ uid: "UID_A_QA", ownerUid: "OWNER_FORJADO" }), { uid: "UID_B_QA" }), d);
+        await handleReportFrontendError(requisicao(payloadValido({ uid: "UID_B_QA" })), d);
+        const chaves = [...documentos.keys()].sort();
+        assert.equal(chaves.length, 3);
+        assert.equal(chaves.filter((k) => /reportFrontendError_auth_[0-9a-f]{40}$/.test(k)).length, 2);
+        assert.ok(chaves.includes(`_rate_limits/reportFrontendError_${ANON_RATE_LIMIT_IDENTIFIER}`), "payload com uid sem auth continua anônimo");
+        const texto = JSON.stringify([...documentos.entries()]) + serializarLogs();
+        for (const v of ["UID_A_QA", "UID_B_QA", "FORJADO", "TENANT_FORJADO", "OWNER_FORJADO"]) assert.ok(!texto.includes(v), v);
+    });
+
+    it("expected continua sem log e sem Firestore — mesmo com as válvulas esgotadas", async () => {
+        const valves = createTelemetryValves({ requestsPerWindow: 100000, acceptedPerWindow: 0 });
+        const r = await handleReportFrontendError(requisicao(payloadValido({ code: "permission-denied" })), deps({ valves }));
+        assert.deepEqual(r, { ok: true, ignored: "expected" });
+        assert.equal(chamadasLog.length, 0);
+        assert.equal(documentos.size, 0);
+    });
+
+    it("válvula de requisições por instância: excedida, retorna cedo sem validar, sem Firestore e sem log", async () => {
+        const valves = createTelemetryValves({ requestsPerWindow: 2, acceptedPerWindow: 100000 });
+        await handleReportFrontendError(requisicao(payloadValido()), deps({ valves }));
+        await handleReportFrontendError(requisicao(payloadValido({ code: "unavailable" })), deps({ valves }));
+        const r = await handleReportFrontendError(requisicao({ lixo: true }), deps({ valves }));
+        assert.deepEqual(r, { ok: true, ignored: "local-limit" }, "nem chega a validar o payload inválido");
+        assert.equal(chamadasLog.length, 1);
+        assert.equal(documentos.get(`_rate_limits/reportFrontendError_${ANON_RATE_LIMIT_IDENTIFIER}`).count, 1);
+    });
+
+    it("válvula de eventos aceitos por instância: excedida, não toca o Firestore nem loga; erro esperado nunca vira incidente", async () => {
+        const valves = createTelemetryValves({ requestsPerWindow: 100000, acceptedPerWindow: 3 });
+        const status = [];
+        for (let i = 0; i < 5; i++) {
+            status.push(await handleReportFrontendError(requisicao(payloadValido({ message: `v ${i}` }), { uid: `U${i}` }), deps({ valves })));
+        }
+        assert.deepEqual(status.map((s) => s.ignored || "ok"), ["ok", "ok", "ok", "local-limit", "local-limit"]);
+        assert.equal(chamadasLog.length, 3);
+        assert.equal(documentos.size, 3, "nenhuma transação depois da válvula");
+        const esperado = await handleReportFrontendError(requisicao(payloadValido({ code: "deadline-exceeded" })), deps({ valves }));
+        assert.deepEqual(esperado, { ok: true, ignored: "expected" });
+        assert.equal(chamadasLog.length, 3);
+    });
+
+    it("falha da transação de rate limit (ex.: contenção no bucket compartilhado) vira unavailable sem log", async () => {
+        const contencao = async () => { throw Object.assign(new Error("10 ABORTED: Too much contention"), { code: 10 }); };
+        await assert.rejects(
+            () => handleReportFrontendError(requisicao(payloadValido()), deps({ assertRateLimit: contencao })),
+            (e) => e instanceof HttpsError && e.code === "unavailable"
+        );
+        assert.equal(chamadasLog.length, 0);
+    });
+
+    it("limitador local: janela fixa por instância, sem timer; reinicia após a janela e do zero num restart (nova instância)", () => {
+        let agora = 0;
+        const limitador = createLocalWindowLimiter({ max: 2, windowMs: 60000, now: () => agora });
+        assert.deepEqual([limitador.tryConsume(), limitador.tryConsume(), limitador.tryConsume()], [true, true, false]);
+        agora = 59999;
+        assert.equal(limitador.tryConsume(), false, "mesma janela");
+        agora = 60000;
+        assert.equal(limitador.tryConsume(), true, "janela nova");
+        const reiniciado = createLocalWindowLimiter({ max: 2, windowMs: 60000, now: () => agora });
+        assert.equal(reiniciado.tryConsume(), true, "cold start/restart começa do zero: não é quota global");
+        assert.ok(LOCAL_LIMITS.requestsPerWindow > LOCAL_LIMITS.acceptedPerWindow);
+        assert.equal(LOCAL_LIMITS.windowMs, 60000);
     });
 });

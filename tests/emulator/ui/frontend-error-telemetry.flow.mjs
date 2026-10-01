@@ -139,9 +139,9 @@ async function main() {
 
         // ---------- Function real no Functions Emulator (sem interceptação) ----------
         const endpoint = `http://127.0.0.1:5001/${PROJECT_ID}/southamerica-east1/reportFrontendError`;
-        const chamar = (data) => fetch(endpoint, {
+        const chamar = (data, cabecalhos = {}) => fetch(endpoint, {
             method: "POST",
-            headers: { "content-type": "application/json" },
+            headers: { "content-type": "application/json", ...cabecalhos },
             body: JSON.stringify({ data })
         });
         const valida = await chamar({ ...enviados2[0], uid: "UID_FORJADO_QA", tenantId: "TENANT_FORJADO_QA" });
@@ -150,13 +150,20 @@ async function main() {
         const invalida = await chamar({ type: "inventado", category: "global" });
         assert.equal(invalida.status, 400);
         assert.equal((await invalida.json()).error?.status, "INVALID_ARGUMENT");
+        // FE-TEL-071-A: X-Forwarded-For forjado/rotativo não cria bucket novo.
+        for (const xff of ["203.0.113.1", "203.0.113.2, 198.51.100.20", "198.51.100.20, 203.0.113.3"]) {
+            const r = await chamar({ ...enviados2[0], message: `QA XFF ${xff}` }, { "x-forwarded-for": xff });
+            assert.equal(r.status, 200);
+        }
         const limites = await db.collection("_rate_limits").get();
         const daTelemetria = limites.docs.filter((d) => d.id.startsWith("reportFrontendError_"));
-        assert.ok(daTelemetria.length >= 1, "rate limit real registrado no Firestore Emulator");
+        assert.deepEqual(daTelemetria.filter((d) => d.id.includes("_anon")).map((d) => d.id), ["reportFrontendError_anon_shared"], "um único bucket anônimo");
         for (const documento of daTelemetria) {
-            assert.match(documento.id, /^reportFrontendError_anon_[0-9a-f]{40}$/);
-            const bruto = JSON.stringify(documento.data());
-            assert.ok(!documento.id.includes("127.0.0.1") && !bruto.includes("127.0.0.1"), "IP bruto nunca persistido");
+            assert.match(documento.id, /^reportFrontendError_(anon_shared|auth_[0-9a-f]{40})$/, "identidade sem IP e sem uid bruto");
+        }
+        for (const documento of daTelemetria) {
+            const bruto = documento.id + JSON.stringify(documento.data());
+            assert.doesNotMatch(bruto, /127\.0\.0\.1|203\.0\.113|198\.51\.100/, "IP bruto nunca persistido");
         }
 
         console.log("frontend-error-telemetry.flow: OK");

@@ -16,15 +16,39 @@
 const crypto = require("node:crypto");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
-const { assertRateLimit, callerIp } = require("../shared/rateLimit");
+const { assertRateLimit } = require("../shared/rateLimit");
 
 const FRONTEND_ERROR_MARKER = "FRONTEND_ERROR";
 const RATE_LIMIT_SCOPE = "reportFrontendError";
-// Por usuário autenticado ou por IP pseudonimizado, na janela de 60 s do
-// assertRateLimit. O cliente já limita a ~10 eventos por página; este teto
-// só segura abuso direto do endpoint.
+// Teto por usuário autenticado (identidade de request.auth.uid,
+// pseudonimizada), na janela de 60 s do assertRateLimit. O cliente já limita
+// a ~10 eventos por página; este teto só segura abuso direto do endpoint.
 const RATE_LIMIT_MAX = 20;
+// FE-TEL-071-A: chamadas anônimas NÃO são distinguidas por IP. X-Forwarded-For
+// (primeiro ou último valor), rawRequest.ip e o socket podem ser forjados ou
+// não são confiáveis neste caminho, e cada valor novo criaria um bucket (e um
+// documento) novo. Todas as chamadas anônimas — inclusive Anonymous Auth, cujo
+// uid é descartável — dividem um único bucket técnico, sem PII. Telemetria é
+// best-effort: com o teto atingido, perder eventos anônimos é preferível a uma
+// identidade forjável ou invasiva. 60/min é folgado para erro real de páginas
+// públicas (o cliente envia no máximo ~10 por página) e mantém o documento
+// compartilhado abaixo de ~1 escrita/s.
+const ANON_RATE_LIMIT_IDENTIFIER = "anon_shared";
+const ANON_RATE_LIMIT_MAX = 60;
 const MAX_PAYLOAD_BYTES = 8192;
+
+// Válvula local por instância (defesa em profundidade, NÃO fronteira de
+// segurança): contador síncrono em memória, por processo, sem timer; reinicia
+// em restart/cold start e não coordena instâncias. maxInstances (5) limita o
+// alcance — no pior caso 5 × o teto local —, mas não transforma isso em quota
+// global. requestsPerWindow corta cedo spam extremo (inclusive de payload
+// inválido ou "esperado") antes de validar/sanitizar; acceptedPerWindow
+// limita eventos inesperados que chegariam ao Firestore e ao log.
+const LOCAL_LIMITS = Object.freeze({
+  windowMs: 60000,
+  requestsPerWindow: 600,
+  acceptedPerWindow: 30
+});
 
 const LIMITS = Object.freeze({
   name: 80,
@@ -177,6 +201,37 @@ function normalizeFrontendErrorPayload(data) {
   };
 }
 
+function createLocalWindowLimiter({ max, windowMs, now = () => Date.now() }) {
+  let inicioJanela = -Infinity;
+  let usados = 0;
+  return Object.freeze({
+    tryConsume() {
+      const agora = now();
+      if (agora - inicioJanela >= windowMs) {
+        inicioJanela = agora;
+        usados = 0;
+      }
+      if (usados >= max) return false;
+      usados += 1;
+      return true;
+    }
+  });
+}
+
+function createTelemetryValves({
+  requestsPerWindow = LOCAL_LIMITS.requestsPerWindow,
+  acceptedPerWindow = LOCAL_LIMITS.acceptedPerWindow,
+  windowMs = LOCAL_LIMITS.windowMs,
+  now
+} = {}) {
+  return Object.freeze({
+    requests: createLocalWindowLimiter({ max: requestsPerWindow, windowMs, now }),
+    accepted: createLocalWindowLimiter({ max: acceptedPerWindow, windowMs, now })
+  });
+}
+
+const valvulasDaInstancia = createTelemetryValves();
+
 function isExpectedFrontendError(normalized) {
   const code = String(normalized.code || "").replace(/^[a-z]+\//, "");
   if (EXPECTED_CODES.has(code)) return true;
@@ -184,15 +239,16 @@ function isExpectedFrontendError(normalized) {
   return EXPECTED_MESSAGE_PATTERNS.some((pattern) => pattern.test(normalized.message));
 }
 
-// Identificador do rate limit sem nenhum dado bruto: uid e IP passam por
-// SHA-256 em memória; só o hash vai para o documento de _rate_limits. O IP
-// nunca é persistido nem logado. (Hash de IP é pseudonimização, não
-// anonimização — por isso nunca aparece em log.)
+// Identidade do rate limit. Autenticado (provedor não anônimo): SHA-256 do
+// request.auth.uid em memória — o uid nunca é persistido nem logado. Qualquer
+// outro caso: o bucket anônimo compartilhado. Nunca usa IP, cabeçalho,
+// fingerprint, tenant, cookie nem nada do payload.
 function telemetryRateLimitIdentifier(request) {
   const authUid = String(request?.auth?.uid || "").trim();
-  const material = authUid ? `auth:${authUid}` : `ip:${callerIp(request)}`;
-  const hash = crypto.createHash("sha256").update(`${RATE_LIMIT_SCOPE}|${material}`).digest("hex").slice(0, 40);
-  return `${authUid ? "auth" : "anon"}_${hash}`;
+  const provedor = request?.auth?.token?.firebase?.sign_in_provider;
+  if (!authUid || provedor === "anonymous") return ANON_RATE_LIMIT_IDENTIFIER;
+  const hash = crypto.createHash("sha256").update(`${RATE_LIMIT_SCOPE}|auth:${authUid}`).digest("hex").slice(0, 40);
+  return `auth_${hash}`;
 }
 
 // Error sanitizado com marcador estável. O stack é o do navegador (só linhas
@@ -220,17 +276,38 @@ function buildFrontendError(normalized) {
 async function handleReportFrontendError(request, deps = {}) {
   const log = deps.logger || logger;
   const rateLimit = deps.assertRateLimit || assertRateLimit;
+  const valves = deps.valves || valvulasDaInstancia;
+
+  // Antes de qualquer trabalho: spam extremo para aqui (sem validar, sem
+  // Firestore, sem log). A invocação em si já aconteceu e não é evitável aqui.
+  if (!valves.requests.tryConsume()) {
+    return { ok: true, ignored: "local-limit" };
+  }
 
   const normalized = normalizeFrontendErrorPayload(request?.data);
+  // Erro esperado: sem log e sem Firestore (nem transação de rate limit).
   if (isExpectedFrontendError(normalized)) {
     return { ok: true, ignored: "expected" };
   }
 
-  await rateLimit({
-    scope: RATE_LIMIT_SCOPE,
-    identifier: telemetryRateLimitIdentifier(request),
-    max: RATE_LIMIT_MAX
-  });
+  if (!valves.accepted.tryConsume()) {
+    return { ok: true, ignored: "local-limit" };
+  }
+
+  const identifier = telemetryRateLimitIdentifier(request);
+  try {
+    await rateLimit({
+      scope: RATE_LIMIT_SCOPE,
+      identifier,
+      max: identifier === ANON_RATE_LIMIT_IDENTIFIER ? ANON_RATE_LIMIT_MAX : RATE_LIMIT_MAX
+    });
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    // Falha da própria transação (ex.: contenção no bucket compartilhado sob
+    // abuso): descarta o evento sem log — senão o SDK registraria "Unhandled
+    // error" por requisição e o abuso viraria inundação de log.
+    throw new HttpsError("unavailable", "Telemetria indisponível no momento.");
+  }
 
   // Um erro recebido = exatamente um logger.error. Sem throw depois (o SDK
   // registraria de novo como "Unhandled error").
@@ -260,6 +337,9 @@ const reportFrontendError = onCall(
 
 module.exports = {
   ALLOWED_FIELDS,
+  ANON_RATE_LIMIT_IDENTIFIER,
+  ANON_RATE_LIMIT_MAX,
+  LOCAL_LIMITS,
   CATEGORIES,
   EXPECTED_CODES,
   FRONTEND_ERROR_MARKER,
@@ -268,6 +348,8 @@ module.exports = {
   RATE_LIMIT_MAX,
   RATE_LIMIT_SCOPE,
   buildFrontendError,
+  createLocalWindowLimiter,
+  createTelemetryValves,
   handleReportFrontendError,
   isExpectedFrontendError,
   normalizeFrontendErrorPayload,
