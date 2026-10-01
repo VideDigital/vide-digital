@@ -1,0 +1,328 @@
+# Canal de deploy ISOLADO e manual para 3 das Cloud Functions alteradas
+# pela missão VIDE-HUB-SERVER-ERROR-INSTRUMENTATION-067 (PR #98):
+# createEmployee, askBusinessAI e askPublicBusinessAI.
+# Não substitui nem modifica os outros canais (firebase-deploy.yml,
+# firebase-deploy-functions.yml, firebase-deploy-beta.yml,
+# firebase-deploy-whatsapp.yml, firebase-deploy-audit.yml) — nenhum deles
+# publica exatamente estas 3 (o Beta publicaria mais 6 Functions não
+# alteradas; o de IA não inclui createEmployee).
+#
+# Escopo FIXO: a lista vem da env SERVER_ERROR_067_FUNCTIONS abaixo —
+# nunca de input, nunca gerada a partir dos exports, nunca "--only
+# functions" genérico, nunca nenhuma Function whatsapp*. Um passo de
+# validação reconfere a lista em tempo de execução antes da autenticação.
+#
+# Travas: só workflow_dispatch, só a partir da main, project_id
+# exatamente vide-digital-saas, expected_sha precisa bater com o checkout
+# (validado no job de testes E de novo no job de deploy) e
+# confirm_production exatamente DEPLOY_SERVER_ERROR_067.
+#
+# createAdminMember (também alterada pela 067) fica FORA deste canal por
+# decisão deliberada: CODE IN MAIN / DEPLOY DEFERRED. O estado dela em
+# produção não pôde ser comprovado, nenhum workflow versionado jamais a
+# publicou, nenhuma UI atual a consome e docs/FIREBASE_SPARK_ARCHITECTURE.md
+# a lista como substituída por scripts/set-admin-claim.mjs — publicá-la
+# aqui poderia criar uma superfície administrativa nova em produção.
+#
+# Pré-flight com "deploy --dry-run --non-interactive" (mesma versão fixa
+# 13.35.1 e mesmo padrão já executado com sucesso pelo canal do Beta):
+# valida e builda sem publicar; --non-interactive falha em vez de travar
+# num prompt (ex.: secret ausente). Ressalva do próprio Firebase CLI: o
+# --dry-run pode habilitar APIs no projeto alvo. Não lê valor de secret,
+# não cria secret, não altera IAM.
+#
+# Pré-requisito externo: o secret GEMINI_API_KEY (usado por askBusinessAI
+# e askPublicBusinessAI) precisa existir no Secret Manager do projeto —
+# sem ele o dry-run falha antes de qualquer publicação.
+name: Deploy Functions — Server Error Instrumentation 067
+
+on:
+  workflow_dispatch:
+    inputs:
+      project_id:
+        description: ID real do projeto Firebase de produção (aceita só vide-digital-saas)
+        required: true
+        type: string
+      expected_sha:
+        description: SHA exato (40 caracteres) da main aprovada pelo Quality Gate
+        required: true
+        type: string
+      confirm_production:
+        description: Digite DEPLOY_SERVER_ERROR_067 para confirmar a publicação das 3 Functions
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+# Mesmo grupo do canal de IA (firebase-deploy-functions.yml): os dois
+# publicam askBusinessAI/askPublicBusinessAI e nunca devem rodar juntos.
+concurrency:
+  group: firebase-production-functions-deploy
+  cancel-in-progress: false
+
+env:
+  # Lista explícita e fixa — exatamente 3 Functions (sem createAdminMember).
+  SERVER_ERROR_067_FUNCTIONS: "functions:createEmployee,functions:askBusinessAI,functions:askPublicBusinessAI"
+
+jobs:
+  validate-and-test:
+    name: Validar solicitação e executar testes
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+
+    steps:
+      - name: Validar branch, project_id, expected_sha e confirmação
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+          CONFIRM_PRODUCTION: ${{ inputs.confirm_production }}
+        run: |
+          set -euo pipefail
+
+          if [[ "${GITHUB_EVENT_NAME}" != "workflow_dispatch" ]]; then
+            echo "Erro: este workflow aceita somente execução manual."
+            exit 1
+          fi
+
+          if [[ "${GITHUB_REF}" != "refs/heads/main" ]]; then
+            echo "Erro: execute este workflow somente a partir da branch main."
+            exit 1
+          fi
+
+          NORMALIZED_PROJECT_ID="$(printf '%s' "${PROJECT_ID}" | tr '[:upper:]' '[:lower:]')"
+          if [[ "${NORMALIZED_PROJECT_ID}" == *demo* ]]; then
+            echo "Erro: projetos com 'demo' no ID não podem receber deploy de produção."
+            exit 1
+          fi
+
+          if [[ "${PROJECT_ID}" != "vide-digital-saas" ]]; then
+            echo "Erro: este canal publica exclusivamente no projeto vide-digital-saas."
+            exit 1
+          fi
+
+          if [[ ! "${EXPECTED_SHA}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo "Erro: expected_sha precisa ser um SHA completo de 40 caracteres hexadecimais."
+            exit 1
+          fi
+
+          if [[ "${CONFIRM_PRODUCTION}" != "DEPLOY_SERVER_ERROR_067" ]]; then
+            echo "Erro: confirm_production precisa ser exatamente DEPLOY_SERVER_ERROR_067."
+            exit 1
+          fi
+
+      - name: Validar a lista fixa de Functions
+        shell: bash
+        run: |
+          set -euo pipefail
+          ESPERADA="functions:createEmployee,functions:askBusinessAI,functions:askPublicBusinessAI"
+          if [[ "${SERVER_ERROR_067_FUNCTIONS}" != "${ESPERADA}" ]]; then
+            echo "::error::A lista de Functions diverge da lista fixa da missão 067."
+            exit 1
+          fi
+          IFS=',' read -r -a ENTRADAS <<< "${SERVER_ERROR_067_FUNCTIONS}"
+          if [[ "${#ENTRADAS[@]}" -ne 3 ]]; then
+            echo "::error::A lista precisa ter exatamente 3 Functions (tem ${#ENTRADAS[@]})."
+            exit 1
+          fi
+          for ENTRADA in "${ENTRADAS[@]}"; do
+            if [[ ! "${ENTRADA}" =~ ^functions:[A-Za-z][A-Za-z0-9]*$ ]]; then
+              echo "::error::Entrada inválida na lista: ${ENTRADA}"
+              exit 1
+            fi
+            NOME_MINUSCULO="$(printf '%s' "${ENTRADA#functions:}" | tr '[:upper:]' '[:lower:]')"
+            if [[ "${NOME_MINUSCULO}" == whatsapp* ]]; then
+              echo "::error::Nenhuma Function whatsapp* pode ser publicada por este canal."
+              exit 1
+            fi
+          done
+          echo "Lista fixa confirmada: ${SERVER_ERROR_067_FUNCTIONS}"
+
+      - name: Checkout da main
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Confirmar que o checkout é exatamente o SHA aprovado
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
+            echo "::error::ERRO: SHA da main diverge do release autorizado."
+            echo "Esperado (expected_sha): ${EXPECTED_SHA}"
+            echo "Encontrado no checkout : ${ACTUAL_SHA}"
+            exit 1
+          fi
+          echo "SHA confirmado: ${ACTUAL_SHA}"
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Configurar Java 21 para o Firestore Emulator
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Verificar sintaxe do projeto
+        run: pnpm run check
+
+      - name: Testar Functions (inclui a instrumentação da missão 067)
+        run: pnpm run test:functions
+
+      - name: Testes unitários (inclui IA de Negócio dono e público)
+        run: pnpm run test:unit
+
+      - name: Testar as garantias de segurança dos canais de deploy
+        run: pnpm run test:ci-workflows
+
+      - name: Testar regras no Emulator Suite
+        run: pnpm run test:rules
+
+      - name: Smoke test do frontend no Emulator Suite
+        run: pnpm run test:frontend:emulator
+
+  deploy:
+    name: Publicar as 3 Functions da missão 067
+    needs: validate-and-test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout da main validada
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Confirmar novamente o SHA aprovado
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.expected_sha }}
+        run: |
+          set -euo pipefail
+          ACTUAL_SHA="$(git rev-parse HEAD)"
+          if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
+            echo "::error::ERRO: SHA da main diverge do release autorizado."
+            echo "Esperado (expected_sha): ${EXPECTED_SHA}"
+            echo "Encontrado no checkout : ${ACTUAL_SHA}"
+            exit 1
+          fi
+
+      - name: Configurar pnpm (versão fixa do packageManager)
+        uses: pnpm/action-setup@v6
+        with:
+          version: "11.9.0"
+
+      - name: Configurar Node.js 22
+        uses: actions/setup-node@v6
+        with:
+          node-version: "22"
+          cache: pnpm
+          cache-dependency-path: pnpm-lock.yaml
+
+      - name: Instalar dependências sem alterar o lockfile
+        run: pnpm install --frozen-lockfile
+
+      - name: Instalar dependências das Functions
+        run: pnpm install --frozen-lockfile --dir functions
+
+      - name: Confirmar que as 3 Functions existem no export atual
+        shell: bash
+        run: |
+          set -euo pipefail
+          MISSING=0
+          for FN in createEmployee askBusinessAI askPublicBusinessAI; do
+            if ! grep -qE "exports\.${FN}[[:space:]]*=" functions/src/index.js; then
+              echo "::error::Export ausente em functions/src/index.js: ${FN}"
+              MISSING=1
+            fi
+          done
+          if [[ "${MISSING}" -eq 1 ]]; then
+            exit 1
+          fi
+          echo "As 3 Functions do canal 067 estão exportadas em functions/src/index.js."
+
+      # Mesmo detector de autenticação dos canais existentes — nunca usa
+      # "firebase login" nem token de CLI; sem nenhum método configurado,
+      # falha aqui sem imprimir valor de segredo.
+      - name: Detectar método de autenticação disponível
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "${HAS_WIF_PROVIDER}" == "true" && "${HAS_WIF_SA}" == "true" ]]; then
+            echo "method=wif" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: Workload Identity Federation."
+          elif [[ "${HAS_SA_KEY}" == "true" ]]; then
+            echo "method=sa-key" >> "${GITHUB_OUTPUT}"
+            echo "Método detectado: chave de conta de serviço (FIREBASE_SERVICE_ACCOUNT)."
+          else
+            echo "::error::Nenhum método de autenticação configurado."
+            echo "Configure UM dos métodos abaixo em Settings → Secrets and variables → Actions:"
+            echo "  1. GCP_WORKLOAD_IDENTITY_PROVIDER + GCP_SERVICE_ACCOUNT (Workload Identity Federation), ou"
+            echo "  2. FIREBASE_SERVICE_ACCOUNT (conteúdo JSON completo da chave da conta de serviço)."
+            exit 1
+          fi
+
+      - name: Autenticar via Workload Identity Federation
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Autenticar com a chave da conta de serviço
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: ${{ inputs.project_id }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: "Pré-flight seguro: dry-run não-interativo"
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${SERVER_ERROR_067_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive \
+            --dry-run
+
+      - name: Publicar as 3 Functions da missão 067
+        shell: bash
+        env:
+          PROJECT_ID: ${{ inputs.project_id }}
+        run: |
+          set -euo pipefail
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${SERVER_ERROR_067_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive

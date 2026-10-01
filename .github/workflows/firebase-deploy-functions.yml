@@ -3,8 +3,9 @@
 # Functions; ver docs/FIREBASE_SPARK_ARCHITECTURE.md). Publica SÓ
 # askBusinessAI e askPublicBusinessAI (--only
 # functions:askBusinessAI,functions:askPublicBusinessAI), nunca "todas as
-# functions" — as demais (createEmployee, updateEmployee, etc.)
-# continuam código não usado em produção, sem mudar esse estado aqui.
+# functions" — as demais têm canais próprios (ex.: createEmployee e as
+# outras Functions do Beta em firebase-deploy-beta.yml) e nunca são
+# publicadas por este workflow.
 #
 # Pré-requisito externo, fora deste repositório: o secret GEMINI_API_KEY
 # já precisa existir no Secret Manager do projeto (Google Cloud Console
