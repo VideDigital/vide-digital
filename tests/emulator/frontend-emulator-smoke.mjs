@@ -188,26 +188,17 @@ assert.equal(reviewFailedForMissingProduct, true, "createPublicReview deveria re
 
 console.log("createPublicReview validado (produto real + produto inexistente recusado).");
 
-// createPublicLead permite 5 chamadas/minuto por IP; a chamada de smoke
-// inicial (1) + o par concorrente do teste de dedupe (2) + o par de
-// tokens diferentes do teste de mesmo contato (2) já consumiram as 5
-// chamadas permitidas (cada chamada conta pro rate limit independente do
-// resultado do dedupe). A 6ª chamada no total deve ser recusada com
-// resource-exhausted.
-// Nota: rateLimit.js usa janela fixa por minuto do relógio real, então este
-// teste tem uma chance pequena (só no exato cruzamento de minuto) de falhar
-// por flake — se falhar isoladamente sem nenhuma outra mudança, rode de novo
-// antes de investigar como regressão real.
-let rateLimited = false;
-try {
-  await createPublicLead({ storeSlug: "loja-pro-local", nome: "Lead Smoke Excedente", email: "lead.excedente@local.test" });
-} catch (error) {
-  rateLimited = true;
-  assert.equal(error.code, "functions/resource-exhausted", `esperava resource-exhausted, recebeu ${error.code}`);
-}
-assert.equal(rateLimited, true, "createPublicLead deveria recusar a 6ª chamada no mesmo minuto");
+// MISSÃO 075: createPublicLead não limita mais 5/min por visitante (IP/auth,
+// forjáveis); o teto agora é por tenant resolvido no servidor (60/min). A
+// chamada inicial (1) + o par concorrente do dedupe (2) + o par de tokens
+// diferentes (2) somam 5 — a 6ª chamada do mesmo visitante, que antes era
+// recusada, agora precisa passar. O teto por tenant, o isolamento entre
+// tenants e a independência de XFF/Anonymous Auth são provados em
+// tests/emulator/public-lead-rate-limit.smoke.mjs.
+const sextaChamada = await createPublicLead({ storeSlug: "loja-pro-local", nome: "Lead Smoke Sexta Chamada", email: "lead.sexta@local.test" });
+assert.equal(sextaChamada.data.ok, true, "a 6ª chamada do mesmo visitante não pode mais ser bloqueada pelo antigo 5/min por identidade");
 
-console.log("Rate limit de createPublicLead validado (5/min por IP).");
+console.log("createPublicLead: 6ª chamada do mesmo visitante aceita (teto agora por tenant).");
 
 console.log("Frontend emulator smoke concluído.");
 await signOut(auth);

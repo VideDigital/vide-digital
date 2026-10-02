@@ -342,7 +342,7 @@ async function testarNegativos() {
     // tenant. A LP A (PUBLIC_PAGE_ID/STORE_UID) já foi provada correta
     // pelos caminhos primário e de fallback acima — só falta a segunda
     // ponta (LP C nunca vaza pra A), reaproveitando o orçamento de
-    // chamadas de createPublicLead (5/min por IP) em vez de duplicar.
+    // chamadas de createPublicLead em vez de duplicar.
     const ownerCUid = "owner-cross-tenant-qa-leads";
     await db.collection("usuarios").doc(ownerCUid).set({
         status: "aprovado",
