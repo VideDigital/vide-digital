@@ -1,0 +1,188 @@
+# Canal manual exclusivo da missão 075. Preparado pela missão 076.
+# O dry-run é uma etapa futura autorizada junto ao deploy, não read-only:
+# o Firebase CLI pode habilitar APIs mesmo com --dry-run.
+name: Deploy Function — Public Lead 075
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmacao:
+        description: Digite PUBLICAR para confirmar
+        required: true
+        type: string
+      sha:
+        description: SHA completo da main aprovado e autorizado
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: firebase-production-functions-deploy
+  cancel-in-progress: false
+
+env:
+  PROJECT_ID: vide-digital-saas
+  PUBLIC_LEAD_FUNCTIONS: functions:createPublicLead
+
+jobs:
+  deploy:
+    name: Validar e publicar somente createPublicLead
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      actions: read
+      id-token: write
+    steps:
+      - name: Validar identidade antes do checkout
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+          CONFIRMACAO: ${{ inputs.confirmacao }}
+        with:
+          script: |
+            const sha = process.env.EXPECTED_SHA;
+            if (context.eventName !== 'workflow_dispatch' || context.ref !== 'refs/heads/main') throw new Error('Somente despacho manual da main');
+            if (process.env.CONFIRMACAO !== 'PUBLICAR') throw new Error('Confirmação inválida');
+            if (!/^[0-9a-f]{40}$/.test(sha || '') || context.sha !== sha) throw new Error('SHA inválido ou diferente do despacho');
+            if (process.env.PROJECT_ID !== 'vide-digital-saas' || process.env.PUBLIC_LEAD_FUNCTIONS !== 'functions:createPublicLead') throw new Error('Projeto ou escopo inválido');
+            const {data} = await github.rest.repos.getBranch({...context.repo, branch:'main'});
+            if (data.commit.sha !== sha) throw new Error('Main avançou; autorização expirou');
+
+      - name: Checkout do SHA autorizado
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.sha }}
+          persist-credentials: false
+
+      - name: Confirmar checkout e export
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$PROJECT_ID" = "vide-digital-saas"
+          test "$PUBLIC_LEAD_FUNCTIONS" = "functions:createPublicLead"
+          grep -qE '^exports\.createPublicLead[[:space:]]*=' functions/src/index.js
+
+      - name: Exigir Quality Gate oficial da main no SHA exato
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        with:
+          script: |
+            const {pathToFileURL} = require('node:url');
+            const gate = await import(pathToFileURL(`${process.env.GITHUB_WORKSPACE}/scripts/pages-qg-gate-core.mjs`).href);
+            const runs = await github.paginate(github.rest.actions.listWorkflowRuns, {
+              ...context.repo, workflow_id:'quality-gate.yml', branch:'main', event:'push',
+              head_sha:process.env.EXPECTED_SHA, per_page:100
+            });
+            const selected = gate.selecionarRunAprovado(runs, {expectedSha:process.env.EXPECTED_SHA});
+            if (!selected.ok) throw new Error(selected.motivo);
+            const jobs = await github.paginate(github.rest.actions.listJobsForWorkflowRun, {
+              ...context.repo, run_id:selected.run.id, filter:'latest', per_page:100
+            });
+            const checked = gate.validarJobsObrigatorios(jobs);
+            if (!checked.ok) throw new Error(checked.motivo);
+            core.info(`QG aprovado: run ${selected.run.id}, attempt ${selected.run.run_attempt}, SHA ${selected.run.head_sha}, 4/4`);
+
+      - name: Configurar pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          version: '11.9.0'
+      - name: Configurar Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+      - name: Instalar dependências fixadas
+        run: pnpm install --frozen-lockfile
+      - name: Verificar canal localmente
+        run: node --test tests/ci/firebase-deploy-public-lead-075-workflow.test.mjs
+
+      - name: Detectar autenticação existente
+        id: auth-method
+        shell: bash
+        env:
+          HAS_WIF_PROVIDER: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER != '' }}
+          HAS_WIF_SA: ${{ secrets.GCP_SERVICE_ACCOUNT != '' }}
+          HAS_SA_KEY: ${{ secrets.FIREBASE_SERVICE_ACCOUNT != '' }}
+        run: |
+          set -euo pipefail
+          if [[ "$HAS_WIF_PROVIDER" == "true" && "$HAS_WIF_SA" == "true" ]]; then
+            echo "method=wif" >> "$GITHUB_OUTPUT"
+          elif [[ "$HAS_SA_KEY" == "true" ]]; then
+            echo "method=sa-key" >> "$GITHUB_OUTPUT"
+          else
+            echo "Nenhum método de autenticação configurado; HARD STOP."
+            exit 1
+          fi
+
+      - name: Revalidar main antes de autenticar
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        with:
+          script: |
+            const {data} = await github.rest.repos.getBranch({...context.repo, branch:'main'});
+            if (data.commit.sha !== process.env.EXPECTED_SHA) throw new Error('Main avançou antes da autenticação');
+
+      - name: Autenticar via WIF
+        if: steps.auth-method.outputs.method == 'wif'
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+          project_id: vide-digital-saas
+          create_credentials_file: true
+          export_environment_variables: true
+      - name: Autenticar via fallback existente
+        if: steps.auth-method.outputs.method == 'sa-key'
+        uses: google-github-actions/auth@v3
+        with:
+          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          project_id: vide-digital-saas
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Dry-run exclusivo e não interativo
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$PROJECT_ID" = "vide-digital-saas"
+          test "$PUBLIC_LEAD_FUNCTIONS" = "functions:createPublicLead"
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${PUBLIC_LEAD_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive \
+            --dry-run
+
+      - name: Revalidar main depois do dry-run imediatamente antes do deploy
+        uses: actions/github-script@v7
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        with:
+          script: |
+            const {data} = await github.rest.repos.getBranch({...context.repo, branch:'main'});
+            if (data.commit.sha !== process.env.EXPECTED_SHA) throw new Error('Main avançou; deploy bloqueado');
+
+      - name: Publicar exclusivamente createPublicLead
+        shell: bash
+        env:
+          EXPECTED_SHA: ${{ inputs.sha }}
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
+          test "$PROJECT_ID" = "vide-digital-saas"
+          test "$PUBLIC_LEAD_FUNCTIONS" = "functions:createPublicLead"
+          pnpm dlx firebase-tools@13.35.1 deploy \
+            --only "${PUBLIC_LEAD_FUNCTIONS}" \
+            --project "${PROJECT_ID}" \
+            --non-interactive
