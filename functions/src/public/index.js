@@ -4,12 +4,13 @@ const crypto = require("node:crypto");
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore, FieldValue, Timestamp } = require("firebase-admin/firestore");
 const { publicText, normalizeEmail, normalizePhone, normalizeString } = require("../shared/validators");
-const { assertPublicRateLimit } = require("../shared/rateLimit");
+const { assertPublicRateLimit, assertRateLimit } = require("../shared/rateLimit");
 const { writeAudit } = require("../audit");
 const { resolvePublicOrderServerSide } = require("./checkout-core");
 
+// createPublicLead não usa mais esta tabela (nem identidade por IP): ver
+// CREATE_PUBLIC_LEAD_PER_TENANT_PER_MIN abaixo.
 const RATE_LIMITS = Object.freeze({
-  createPublicLead: 5,
   incrementPublicMetric: 60,
   createPublicChat: 5,
   sendPublicChatMessage: 20,
@@ -354,16 +355,28 @@ function dedupeCreatedAtMillis(data) {
 // não tem nenhuma regra de acesso liberada em firestore.rules (cai no
 // catch-all "allow read, write: if false" do fim do arquivo) — só o Admin
 // SDK, usado aqui, consegue ler/escrever nele.
-async function createLeadIdempotent(data, db = getFirestore()) {
+function assertLeadSourcePublished(tenant) {
+  if (tenant.sourceType === "landing-page" && tenant.page.publicado !== true) {
+    throw new HttpsError("failed-precondition", "Landing Page não publicada.");
+  }
+}
+
+// options.expectedOwnerUid: tenant já resolvido (e usado no rate limit) por
+// handleCreatePublicLead fora da transação. A transação resolve de novo com
+// leituras transacionais — é ela que decide o dono gravado no lead — e
+// falha fechado se o resultado divergir, em vez de gravar um lead sob um
+// tenant diferente do que pagou a cota.
+async function createLeadIdempotent(data, db = getFirestore(), options = {}) {
   const leadRef = db.collection("leads").doc();
   const now = Date.now();
 
   return db.runTransaction(async (tx) => {
     const read = (path) => tx.get(db.doc(path));
     const tenant = await resolvePublicTenant(data, read);
-    if (tenant.sourceType === "landing-page" && tenant.page.publicado !== true) {
-      throw new HttpsError("failed-precondition", "Landing Page não publicada.");
+    if (options.expectedOwnerUid !== undefined && tenant.ownerUid !== options.expectedOwnerUid) {
+      throw new HttpsError("failed-precondition", "Loja indisponível.");
     }
+    assertLeadSourcePublished(tenant);
     const payload = leadPayload(data, tenant);
     const dedupeHash = computeLeadDedupeHash(tenant, data?.dedupeKey);
     const dedupeRef = dedupeHash ? db.collection("lead_dedupes").doc(dedupeHash) : null;
@@ -410,27 +423,133 @@ async function createLeadIdempotent(data, db = getFirestore()) {
   });
 }
 
-// enforceAppCheck: false — publicOptions liga isso em produção, mas
-// loja.html (nem nenhuma outra página pública) chama initializeAppCheck().
-// Herdar o padrão faria toda chamada real cair com "unauthenticated" antes
-// de rodar — mesmo bug já documentado e corrigido em askPublicBusinessAI
-// (functions/src/ai/index.js). A mitigação de abuso real aqui é o rate
-// limit por IP (assertPublicRateLimit abaixo), igual às outras Functions
-// públicas.
-const createPublicLead = onCall({ ...publicOptions, enforceAppCheck: false }, async (request) => {
-  await assertPublicRateLimit(request, "createPublicLead", RATE_LIMITS.createPublicLead);
-  assertReasonablePayloadSize(request.data);
+// ---------- Rate limit de createPublicLead (MISSÃO 075) ----------
+// Antes: 5/min por identidade do chamador (callerIdentifier → primeiro valor
+// do X-Forwarded-For, ou auth_<uid> inclusive de Anonymous Auth). Na
+// auditoria 074 os dois se mostraram forjáveis/descartáveis: variar o XFF
+// ou criar um uid anônimo novo por chamada abria um bucket novo a cada vez.
+//
+// Agora a identidade distribuída é só o TENANT, resolvido no servidor a
+// partir de vitrines_publicas/landing_pages_publicas (nunca de
+// ownerUid/tenantId/storeUid do payload, nunca de IP/XFF/auth): todos os
+// visitantes de um tenant dividem um bucket, e tenants diferentes nunca se
+// afetam.
+//
+// Teto por tenant: escolha conservadora anti-abuso, não uma estimativa de
+// uso. Não há métrica histórica de taxa de captura da produção (sem acesso
+// de leitura); 3.600 leads/hora por loja fica muito acima de uma campanha
+// real de pequeno negócio (cada visitante gera poucos leads e retries da
+// mesma tentativa são deduplicados). O valor NÃO deriva de um limite fixo de
+// escritas por segundo do Firestore: o máximo de updates num único documento
+// depende de workload, contenção e índices. Como todo o tenant divide o
+// mesmo documento de bucket, rajadas concorrentes podem sofrer contenção
+// (latência maior, transações abortadas → "unavailable") antes de chegar a
+// 60 sucessos na janela. Ajustar com métricas reais/load testing. O antigo
+// 5/min era por visitante; reutilizá-lo por tenant deixaria 5 visitantes
+// reais fecharem a captura da loja inteira por 60 s.
+//
+// Trade-off aceito e documentado: um atacante consegue esgotar a cota do
+// tenant-alvo (os leads legítimos desse tenant recebem resource-exhausted
+// até a janela virar), mas o bucket dele não afeta outros tenants nem cria
+// buckets novos (a válvula local abaixo, essa sim, é compartilhada).
+// Rate limit aplicativo não substitui proteção de borda (App Check, Cloud
+// Armor) — ver docs/KNOWN_LIMITATIONS.md.
+const CREATE_PUBLIC_LEAD_PER_TENANT_PER_MIN = 60;
+const CREATE_PUBLIC_LEAD_RATE_LIMIT_SCOPE = "createPublicLead";
+
+// Válvula local por instância, ANTES de qualquer leitura no Firestore:
+// defesa em profundidade contra flood indiscriminado (inclusive de slugs
+// inexistentes, que não chegam a ter bucket). NÃO é rate limit distribuído,
+// quota global, isolamento por tenant nem fronteira de segurança: é por
+// processo, zera em cold start e se multiplica pelo número de instâncias. É
+// compartilhada por todas as chamadas atendidas pela instância, então um
+// flood pode consumi-la temporariamente e rejeitar leads legítimos de OUTROS
+// tenants roteados à mesma instância. Proteção de borda continua pendente.
+const CREATE_PUBLIC_LEAD_LOCAL_REQUESTS_PER_MIN = 600;
+
+// Janela fixa sem timer: só compara timestamps a cada chamada.
+function createLocalWindowLimiter({ max, windowMs = 60 * 1000, now = Date.now }) {
+  let inicioJanela = -Infinity;
+  let usados = 0;
+  return {
+    tryConsume() {
+      const agora = now();
+      if (agora - inicioJanela >= windowMs) {
+        inicioJanela = agora;
+        usados = 0;
+      }
+      if (usados >= max) return false;
+      usados += 1;
+      return true;
+    }
+  };
+}
+
+const leadLocalValve = createLocalWindowLimiter({ max: CREATE_PUBLIC_LEAD_LOCAL_REQUESTS_PER_MIN });
+
+// O ownerUid nunca vai bruto para o id do documento em _rate_limits.
+function leadTenantRateLimitIdentifier(ownerUid) {
+  const owner = String(ownerUid || "").trim();
+  if (!owner) throw new HttpsError("internal", "Não foi possível registrar agora.");
+  const hash = crypto
+    .createHash("sha256")
+    .update(`${CREATE_PUBLIC_LEAD_RATE_LIMIT_SCOPE}|tenant:${owner}`)
+    .digest("hex")
+    .slice(0, 40);
+  return `tenant_${hash}`;
+}
+
+async function handleCreatePublicLead(request, deps = {}) {
+  const db = deps.db || getFirestore();
+  const valve = deps.valve || leadLocalValve;
+  const rateLimit = deps.assertRateLimit || assertRateLimit;
+
+  if (!valve.tryConsume()) {
+    throw new HttpsError("resource-exhausted", "Muitas requisições. Tente novamente em instantes.");
+  }
+  assertReasonablePayloadSize(request?.data);
+  const data = request?.data || {};
+
+  // Tenant inexistente, dono inativo, LP não publicada ou payload inválido
+  // falham aqui, antes do rate limit: não consomem a cota do tenant nem
+  // criam documento em _rate_limits.
+  const tenant = await resolvePublicTenant(data, (path) => db.doc(path).get());
+  assertLeadSourcePublished(tenant);
+  leadPayload(data, tenant);
+
+  try {
+    await rateLimit({
+      scope: CREATE_PUBLIC_LEAD_RATE_LIMIT_SCOPE,
+      identifier: leadTenantRateLimitIdentifier(tenant.ownerUid),
+      max: CREATE_PUBLIC_LEAD_PER_TENANT_PER_MIN
+    });
+  } catch (error) {
+    if (error instanceof HttpsError) throw error;
+    // Falha da transação do bucket (ex.: contenção sob flood no documento
+    // compartilhado do tenant): erro tratado, sem "Unhandled error" por
+    // requisição.
+    throw new HttpsError("unavailable", "Não foi possível registrar agora. Tente novamente em instantes.");
+  }
+
   // CRM-LEAD-008: idempotente dentro da janela de dedupe — mesma
   // retentativa legítima (rede falhou depois de já ter criado no
   // servidor, cliente tenta de novo) não duplica o lead. Ver
   // createLeadIdempotent acima.
-  const leadId = await createLeadIdempotent(request.data || {});
+  const leadId = await createLeadIdempotent(data, db, { expectedOwnerUid: tenant.ownerUid });
   // Sem writeAudit() aqui: auditLeadsWrite (trigger em leads/{id}) já
   // audita a criação, com actorType "unknown"/"unauthenticated" derivado
   // do Auth Context real da escrita (esta Function não passa por auth de
   // usuário — visitante público sempre foi anônimo aqui).
   return { ok: true, leadId };
-});
+}
+
+// enforceAppCheck: false — publicOptions liga isso em produção, mas
+// loja.html (nem nenhuma outra página pública) chama initializeAppCheck().
+// Herdar o padrão faria toda chamada real cair com "unauthenticated" antes
+// de rodar — mesmo bug já documentado e corrigido em askPublicBusinessAI
+// (functions/src/ai/index.js). A mitigação de abuso aqui é a válvula local
+// e o rate limit por tenant de handleCreatePublicLead.
+const createPublicLead = onCall({ ...publicOptions, enforceAppCheck: false }, (request) => handleCreatePublicLead(request));
 
 const METRIC_EVENTS = new Set(["store_session", "store_time", "product_view", "product_click", "lp_view"]);
 
@@ -770,6 +889,11 @@ module.exports = {
   leadPayload,
   snapshotLeadFieldMetadata,
   createLeadIdempotent,
+  handleCreatePublicLead,
+  leadTenantRateLimitIdentifier,
+  createLocalWindowLimiter,
+  CREATE_PUBLIC_LEAD_PER_TENANT_PER_MIN,
+  CREATE_PUBLIC_LEAD_LOCAL_REQUESTS_PER_MIN,
   sanitizeOrderSnapshot,
   sanitizeCamposExtras,
   reviewPayload,
