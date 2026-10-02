@@ -435,20 +435,23 @@ async function createLeadIdempotent(data, db = getFirestore(), options = {}) {
 // visitantes de um tenant dividem um bucket, e tenants diferentes nunca se
 // afetam.
 //
-// Teto por tenant: não há métrica histórica de taxa de captura acessível
-// (sem acesso de leitura à produção). 60/min é uma proteção anti-abuso
-// conservadora, não uma estimativa de uso: 3.600 leads/hora por loja fica
-// muito acima de uma campanha real de pequeno negócio (cada visitante gera
-// poucos leads e retries da mesma tentativa são deduplicados), e mantém o
-// documento compartilhado do bucket em ~1 escrita/s, o ritmo sustentado
-// recomendado pelo Firestore para um único documento (acima disso as
-// transações começam a disputar o mesmo doc). O antigo 5/min era por
-// visitante; reutilizá-lo por tenant deixaria 5 visitantes reais fecharem a
-// captura da loja inteira por 60 s.
+// Teto por tenant: escolha conservadora anti-abuso, não uma estimativa de
+// uso. Não há métrica histórica de taxa de captura da produção (sem acesso
+// de leitura); 3.600 leads/hora por loja fica muito acima de uma campanha
+// real de pequeno negócio (cada visitante gera poucos leads e retries da
+// mesma tentativa são deduplicados). O valor NÃO deriva de um limite fixo de
+// escritas por segundo do Firestore: o máximo de updates num único documento
+// depende de workload, contenção e índices. Como todo o tenant divide o
+// mesmo documento de bucket, rajadas concorrentes podem sofrer contenção
+// (latência maior, transações abortadas → "unavailable") antes de chegar a
+// 60 sucessos na janela. Ajustar com métricas reais/load testing. O antigo
+// 5/min era por visitante; reutilizá-lo por tenant deixaria 5 visitantes
+// reais fecharem a captura da loja inteira por 60 s.
 //
 // Trade-off aceito e documentado: um atacante consegue esgotar a cota do
 // tenant-alvo (os leads legítimos desse tenant recebem resource-exhausted
-// até a janela virar), mas não afeta outros tenants nem cria buckets novos.
+// até a janela virar), mas o bucket dele não afeta outros tenants nem cria
+// buckets novos (a válvula local abaixo, essa sim, é compartilhada).
 // Rate limit aplicativo não substitui proteção de borda (App Check, Cloud
 // Armor) — ver docs/KNOWN_LIMITATIONS.md.
 const CREATE_PUBLIC_LEAD_PER_TENANT_PER_MIN = 60;
@@ -456,9 +459,12 @@ const CREATE_PUBLIC_LEAD_RATE_LIMIT_SCOPE = "createPublicLead";
 
 // Válvula local por instância, ANTES de qualquer leitura no Firestore:
 // defesa em profundidade contra flood indiscriminado (inclusive de slugs
-// inexistentes, que não chegam a ter bucket). NÃO é rate limit distribuído
-// nem fronteira de segurança: é por processo, zera em cold start e se
-// multiplica pelo número de instâncias.
+// inexistentes, que não chegam a ter bucket). NÃO é rate limit distribuído,
+// quota global, isolamento por tenant nem fronteira de segurança: é por
+// processo, zera em cold start e se multiplica pelo número de instâncias. É
+// compartilhada por todas as chamadas atendidas pela instância, então um
+// flood pode consumi-la temporariamente e rejeitar leads legítimos de OUTROS
+// tenants roteados à mesma instância. Proteção de borda continua pendente.
 const CREATE_PUBLIC_LEAD_LOCAL_REQUESTS_PER_MIN = 600;
 
 // Janela fixa sem timer: só compara timestamps a cada chamada.
