@@ -21,6 +21,7 @@ import {
     compararPedidoComDraft,
     resumirAlteracoesPedido
 } from "../pedidos-estruturados.js";
+import { MENSAGENS_LISTA_PEDIDOS, estadoListaPedidos, htmlEstadoListaPedidos } from "../pedidos-estruturados.js";
 
 function itemFixture(overrides = {}) {
     return { produtoId: "prod1", nomeSnapshot: "Camiseta P", precoSnapshot: 50, quantidade: 2, ...overrides };
@@ -425,5 +426,38 @@ describe("compararPedidoComDraft / resumirAlteracoesPedido", () => {
         const resumo = resumirAlteracoesPedido(compararPedidoComDraft(order, draft));
         assert.doesNotMatch(resumo, /Sigilosa/);
         assert.equal(resumo, "recebimento");
+    });
+});
+
+describe("FE-OBS-003 (071) — lista de Pedidos: erro de carga nunca vira lista vazia", () => {
+    it("sucesso sem pedidos → estado vazio com a mensagem de lista vazia", () => {
+        assert.equal(estadoListaPedidos({ total: 0, falhaCarregamento: false }), "vazio");
+        const html = htmlEstadoListaPedidos("vazio");
+        assert.match(html, /data-orders-state="vazio"/);
+        assert.ok(html.includes(MENSAGENS_LISTA_PEDIDOS.vazio.titulo));
+        assert.ok(!html.includes(MENSAGENS_LISTA_PEDIDOS.erro.titulo));
+        assert.doesNotMatch(html, /role="alert"/);
+    });
+
+    it("falha de carga sem pedidos → estado de erro, nunca a mensagem de lista vazia", () => {
+        assert.equal(estadoListaPedidos({ total: 0, falhaCarregamento: true }), "erro");
+        const html = htmlEstadoListaPedidos("erro");
+        assert.match(html, /data-orders-state="erro"/);
+        assert.match(html, /role="alert"/);
+        assert.ok(html.includes(MENSAGENS_LISTA_PEDIDOS.erro.titulo));
+        assert.ok(!html.includes(MENSAGENS_LISTA_PEDIDOS.vazio.titulo), "erro nunca exibe 'Nenhum pedido encontrado'");
+        assert.ok(!html.includes(MENSAGENS_LISTA_PEDIDOS.vazio.texto));
+    });
+
+    it("com pedidos → lista (a falha parcial é sinalizada pelo aviso de erro no topo, não por lista vazia)", () => {
+        assert.equal(estadoListaPedidos({ total: 3, falhaCarregamento: false }), "lista");
+        assert.equal(estadoListaPedidos({ total: 3, falhaCarregamento: true }), "lista");
+        assert.equal(htmlEstadoListaPedidos("lista"), "");
+    });
+
+    it("as duas mensagens são semanticamente distintas", () => {
+        assert.notEqual(MENSAGENS_LISTA_PEDIDOS.vazio.titulo, MENSAGENS_LISTA_PEDIDOS.erro.titulo);
+        assert.match(MENSAGENS_LISTA_PEDIDOS.vazio.titulo, /Nenhum pedido encontrado/);
+        assert.match(MENSAGENS_LISTA_PEDIDOS.erro.titulo, /Não foi possível carregar os pedidos/);
     });
 });

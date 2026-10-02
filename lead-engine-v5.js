@@ -3439,6 +3439,8 @@ function loadOrdersEngineV1() {
 
     import("./orders-engine-v1.js?v=100").catch((error) => {
         console.error("[Aura Pedidos] Não foi possível carregar o módulo:", error);
+        // FE-OBS-003: sem o módulo, Pedidos não carrega — vira incidente.
+        window.VideFrontendTelemetry?.report(error, { category: "orders-module" });
     });
 }
 

@@ -347,3 +347,35 @@ export function resumirAlteracoesPedido(diff) {
         .map(grupo => ROTULOS_GRUPO_DIFF_PEDIDO[grupo])
         .join(", ");
 }
+
+// FE-OBS-003 (VIDE-HUB-FRONTEND-ERROR-TELEMETRY-071): falha ao carregar
+// pedidos nunca pode aparecer como lista vazia. "erro" tem precedência sobre
+// "vazio"; com falha parcial e pedidos de outra fonte, a lista aparece com o
+// aviso de erro (estado "lista" + falhaCarregamento verdadeiro).
+export const MENSAGENS_LISTA_PEDIDOS = Object.freeze({
+    vazio: Object.freeze({
+        titulo: "Nenhum pedido encontrado",
+        texto: "Os pedidos concluídos pela loja aparecerão aqui automaticamente."
+    }),
+    erro: Object.freeze({
+        titulo: "Não foi possível carregar os pedidos",
+        texto: "Os pedidos existentes não puderam ser carregados agora. Recarregue a página ou tente novamente em instantes."
+    })
+});
+
+export function estadoListaPedidos({ total, falhaCarregamento }) {
+    if (Number(total) > 0) return "lista";
+    return falhaCarregamento ? "erro" : "vazio";
+}
+
+// HTML dos estados sem tabela. "erro" usa role="alert" e nunca contém o
+// texto de lista vazia; "lista" não tem bloco próprio (tabela normal).
+export function htmlEstadoListaPedidos(estado, { icone = "" } = {}) {
+    if (estado === "erro") {
+        return `<section class="aura-orders-v1-empty aura-orders-v1-error" role="alert" data-orders-state="erro">${icone}<h3>${MENSAGENS_LISTA_PEDIDOS.erro.titulo}</h3><p>${MENSAGENS_LISTA_PEDIDOS.erro.texto}</p></section>`;
+    }
+    if (estado === "vazio") {
+        return `<section class="aura-orders-v1-empty" data-orders-state="vazio">${icone}<h3>${MENSAGENS_LISTA_PEDIDOS.vazio.titulo}</h3><p>${MENSAGENS_LISTA_PEDIDOS.vazio.texto}</p></section>`;
+    }
+    return "";
+}

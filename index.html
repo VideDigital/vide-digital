@@ -43,6 +43,11 @@
 
     // Import absoluto (nao relativo) -- evita quebrar quando a URL "fake" tem varios niveis (ex: /teste/lp1)
     const firebaseInit = await import(base + "firebase-init.js");
+    // Reporter central de erros do frontend (FE-OBS-006). Carrega em paralelo
+    // (não atrasa a LP) e isolado: se falhar, a Landing Page segue normal.
+    const telemetriaPronta = import(base + "frontend-error-telemetry.js")
+        .then((modulo) => { modulo.installFrontendErrorTelemetry(); return modulo; })
+        .catch(() => null);
     const { doc, getDoc, getDocs, setDoc, collection, query, where, increment } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js");
     const { onAuthStateChanged } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js");
     const { connectFunctionsEmulator, getFunctions, httpsCallable } = await import("https://www.gstatic.com/firebasejs/12.14.0/firebase-functions.js");
@@ -389,6 +394,9 @@ await renderizarBlocosNoContainer(container, "landing_pages_blocos_publicas", me
         } catch (erro) {
             console.error("Erro ao carregar landing page:", erro);
             document.getElementById("lp-container").innerHTML = '<p class="text-red-400 text-xs px-6 text-center">Erro: ' + erro.message + '</p>';
+            // FE-OBS-002: falha inesperada da LP pública vira incidente
+            // (nunca com conteúdo da página).
+            telemetriaPronta.then((telemetria) => telemetria?.reportFrontendError(erro, { category: "lp-init" }));
         }
     }
     async function renderizarLandingPagePreview(paginaSlug) {

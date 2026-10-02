@@ -13,6 +13,7 @@ const audit = require("./audit");
 const notifications = require("./notifications");
 const leads = require("./leads");
 const ai = require("./ai");
+const telemetry = require("./telemetry");
 const whatsapp = require("./whatsapp");
 
 exports.createEmployee = employee.createEmployee;
@@ -63,6 +64,10 @@ exports.sendAdminChatMessage = leads.sendAdminChatMessage;
 
 exports.askBusinessAI = ai.askBusinessAI;
 exports.askPublicBusinessAI = ai.askPublicBusinessAI;
+
+// Telemetria de erros do frontend (VIDE-HUB-FRONTEND-ERROR-TELEMETRY-071):
+// payload técnico allowlisted, sanitizado de novo aqui, um log por erro.
+exports.reportFrontendError = telemetry.reportFrontendError;
 
 // WhatsApp Oficial V1 — Fase A (código; conexão real depende de
 // configuração externa da Meta, secrets e deploy dedicado). Ver

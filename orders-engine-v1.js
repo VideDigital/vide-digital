@@ -23,7 +23,9 @@ import {
     calcularTotaisDraft,
     compararPedidoComDraft,
     criarDraftPedido,
+    estadoListaPedidos,
     gerarProdutosTextoSemSobrescreverManual,
+    htmlEstadoListaPedidos,
     normalizarDraftPedido,
     removerItemPedido,
     resumirAlteracoesPedido,
@@ -69,6 +71,8 @@ const state = {
     loadingLegacy: true,
     leadsReady: false,
     legacyReady: false,
+    // FE-OBS-003: falha do listener de pedidos nunca vira "lista vazia".
+    legacyError: false,
     unsubscribeLegacy: null,
     searchTimer: null,
     initialized: false,
@@ -454,9 +458,9 @@ function ensureView() {
 function syncBadge() {
     const badge = document.getElementById("aura-orders-v1-sync");
     if (!badge) return;
-    const ready = state.leadsReady && state.legacyReady;
+    const ready = state.leadsReady && state.legacyReady && !state.legacyError;
     badge.classList.toggle("is-ready", ready);
-    badge.innerHTML = `<i></i> ${ready ? "Sincronizado" : "Sincronizando"}`;
+    badge.innerHTML = `<i></i> ${state.legacyError ? "Falha ao sincronizar" : ready ? "Sincronizado" : "Sincronizando"}`;
 }
 
 // Camada modular (orders-executive-v1.js) precisa de contadores agregados
@@ -521,7 +525,8 @@ function renderFilters() {
 }
 
 function renderTable(orders) {
-    if (!orders.length) return `<section class="aura-orders-v1-empty">${icons.box}<h3>Nenhum pedido encontrado</h3><p>Os pedidos concluídos pela loja aparecerão aqui automaticamente.</p></section>`;
+    const estadoLista = estadoListaPedidos({ total: orders.length, falhaCarregamento: state.legacyError });
+    if (estadoLista !== "lista") return htmlEstadoListaPedidos(estadoLista, { icone: icons.box });
     return `<section class="aura-orders-v1-table-wrap"><table><thead><tr><th>Pedido</th><th>Cliente</th><th>Produtos</th><th>Total</th><th>Status</th><th>Pagamento</th><th>Recebimento</th><th>Data</th><th></th></tr></thead><tbody>${orders.map((order) => `<tr data-open-order="${esc(order.id)}"><td><strong>${esc(order.number)}</strong><small>${esc(order.origin)}</small></td><td><strong>${esc(order.customer)}</strong><small>${esc(order.whatsapp || order.email || "Sem contato")}</small></td><td><strong>${esc(order.items[0]?.nomeSnapshot || order.productsText || "Pedido")}</strong><small>${order.items.length} item(ns)</small></td><td><strong>${money(order.total)}</strong><small>Subtotal ${money(order.subtotal)}</small></td><td><span class="aura-orders-v1-status" data-status="${order.status}">${stageLabel(order.status)}</span></td><td><span class="aura-orders-v1-payment" data-payment="${order.payment}">${PAYMENT_LABELS[order.payment]}</span></td><td><strong>${esc(order.delivery === "entrega" ? "Entrega" : order.delivery === "retirada" ? "Retirada" : "Não informado")}</strong><small>${esc(order.address || order.cep || "")}</small></td><td><strong>${dateTime(order.created)}</strong><small>${esc(order.campaign)}</small></td><td><button type="button" aria-label="Abrir pedido">›</button></td></tr>`).join("")}</tbody></table></section>`;
 }
 
@@ -740,13 +745,23 @@ function render() {
         else state.selectedId = "";
         if (order) return;
     }
-    if (state.activeTab === "kanban") content.innerHTML = renderKanban();
-    else if (state.activeTab === "payments") content.innerHTML = renderPayments();
-    else if (state.activeTab === "deliveries") content.innerHTML = renderDeliveries();
-    else if (state.activeTab === "products") content.innerHTML = renderProducts();
-    else if (state.activeTab === "reports") content.innerHTML = renderReports();
-    else if (state.activeTab === "all") content.innerHTML = `${renderMetrics()}${renderFilters()}${renderTable(filteredOrders())}`;
-    else content.innerHTML = renderOverview();
+    // Com falha de carga, as abas sem tabela (ou com pedidos parciais de
+    // outra fonte) ganham o aviso de erro no topo — nunca parecem completas.
+    const abaSemTabela = ["kanban", "payments", "deliveries", "products", "reports"].includes(state.activeTab);
+    const avisoFalha = state.legacyError && (abaSemTabela || state.orders.length > 0)
+        ? htmlEstadoListaPedidos("erro", { icone: icons.box })
+        : "";
+    content.innerHTML = avisoFalha + renderAbaAtiva();
+}
+
+function renderAbaAtiva() {
+    if (state.activeTab === "kanban") return renderKanban();
+    if (state.activeTab === "payments") return renderPayments();
+    if (state.activeTab === "deliveries") return renderDeliveries();
+    if (state.activeTab === "products") return renderProducts();
+    if (state.activeTab === "reports") return renderReports();
+    if (state.activeTab === "all") return `${renderMetrics()}${renderFilters()}${renderTable(filteredOrders())}`;
+    return renderOverview();
 }
 
 function eventEntry(title, detail) {
@@ -1401,13 +1416,19 @@ function startLegacyListener(force = false) {
     if (state.unsubscribeLegacy && !force) return;
     state.unsubscribeLegacy?.();
     state.legacyReady = false;
+    state.legacyError = false;
     state.unsubscribeLegacy = onSnapshot(query(collection(db, "pedidos"), where("criadoPor", "==", state.ownerUid)), (snapshot) => {
         state.legacyRecords = snapshot.docs.map((item) => ({ id: item.id, ...item.data() }));
         state.legacyReady = true;
+        state.legacyError = false;
         rebuildOrders();
     }, (error) => {
         state.legacyReady = true;
+        state.legacyError = true;
         console.warn("[Aura Pedidos] Pedidos legados indisponíveis:", error?.message || error);
+        // Reporter central (instalado pelo painel); erros esperados como
+        // permission-denied/unavailable são descartados por ele.
+        window.VideFrontendTelemetry?.report(error, { category: "orders-listener" });
         rebuildOrders();
     });
 }
