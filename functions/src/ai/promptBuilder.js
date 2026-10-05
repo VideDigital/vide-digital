@@ -28,7 +28,10 @@ const LIMITES_IA_NEGOCIO = Object.freeze({
     // Provisório — o teto real por plano ainda não foi decidido pelo
     // negócio (ver docs/IA_NEGOCIO.md, seção "Plano e teto"). Existe pra
     // nunca deixar o uso destravado enquanto esse número não é definido.
-    usoMensalPadrao: 200
+    usoMensalPadrao: 200,
+    // 077: default conservador temporário, sem decisão histórica de divisão.
+    // Reserva 100 para o dono sem aumentar o orçamento global. Calibrar por métricas.
+    usoMensalPublico: 100
 });
 
 const CONTROLE_E_INVISIVEIS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F\u200B-\u200F\u202A-\u202E\uFEFF]/g;
@@ -86,7 +89,7 @@ function resumirProdutos(produtos) {
 // controle de estoque), nunca o número.
 function resumirProdutosPublicos(produtos) {
     return (Array.isArray(produtos) ? produtos : [])
-        .filter((produto) => produto.statusProduto !== "rascunho")
+        .filter((produto) => produto?.statusProduto === "ativo")
         .slice(0, LIMITES_IA_NEGOCIO.maxProdutosContexto)
         .map((produto) => {
             const estoque = Number(produto.estoque);

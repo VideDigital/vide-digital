@@ -51,26 +51,34 @@ const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models
 
 const PLANOS_COM_IA_REAL = new Set(["pro", "proplus", "agencia", "enterprise", "premium"]);
 
-function currentPeriodKey() {
-    const now = new Date();
+function currentPeriodKey(now = new Date()) {
     return `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, "0")}`;
 }
 
-async function assertMonthlyQuota(ownerUid) {
-    const db = getFirestore();
-    const periodo = currentPeriodKey();
+async function assertMonthlyQuota(ownerUid, channel = "private", db = getFirestore(), now = new Date()) {
+    if (!["private", "public"].includes(channel)) throw new HttpsError("invalid-argument", "Canal inválido.");
+    const periodo = currentPeriodKey(now);
     const ref = db.doc(`ia_negocio_uso/${ownerUid}_${periodo}`);
 
     const resultado = await db.runTransaction(async (tx) => {
         const snap = await tx.get(ref);
-        const atual = snap.exists ? Number(snap.data().count || 0) : 0;
-        if (atual >= LIMITES_IA_NEGOCIO.usoMensalPadrao) {
+        const data = snap.exists ? snap.data() : {};
+        const atual = data.count ?? 0;
+        // Legado: uso sem atribuição pode ter sido público. Nunca zerar o total.
+        const publicCount = data.publicCount ?? atual;
+        if (!Number.isSafeInteger(atual) || atual < 0 ||
+            !Number.isSafeInteger(publicCount) || publicCount < 0 || publicCount > atual) {
+            throw new HttpsError("failed-precondition", "Contador de uso inválido. Contate o suporte.");
+        }
+        if (atual >= LIMITES_IA_NEGOCIO.usoMensalPadrao ||
+            (channel === "public" && publicCount >= LIMITES_IA_NEGOCIO.usoMensalPublico)) {
             return { excedeu: true, atual };
         }
         tx.set(ref, {
             ownerUid,
             periodo,
-            count: FieldValue.increment(1),
+            count: atual + 1,
+            publicCount: publicCount + (channel === "public" ? 1 : 0),
             ultimaPerguntaEm: FieldValue.serverTimestamp()
         }, { merge: true });
         return { excedeu: false, atual: atual + 1 };
@@ -79,11 +87,33 @@ async function assertMonthlyQuota(ownerUid) {
     if (resultado.excedeu) {
         throw new HttpsError(
             "resource-exhausted",
-            `Limite mensal de ${LIMITES_IA_NEGOCIO.usoMensalPadrao} mensagens da IA de Negócio atingido. Volta no próximo mês.`
+            channel === "public"
+                ? "Limite mensal da assistente pública atingido. Volta no próximo mês."
+                : `Limite mensal de ${LIMITES_IA_NEGOCIO.usoMensalPadrao} mensagens da IA de Negócio atingido. Volta no próximo mês.`
         );
     }
 
     return { periodo, restante: LIMITES_IA_NEGOCIO.usoMensalPadrao - resultado.atual };
+}
+
+// Validação local antes de qualquer reserva mensal. Mantém o histórico de
+// respostas de até 4000 caracteres mais a elipse de truncagem; o builder o trunca para o prompt como antes.
+function validarEntrada(data, channel) {
+    if (!data || typeof data !== "object" || Array.isArray(data) ||
+        typeof data.pergunta !== "string" || data.pergunta.length > LIMITES_IA_NEGOCIO.maxCaracteresPergunta) {
+        throw new HttpsError("invalid-argument", "Pergunta inválida ou muito longa.");
+    }
+    const pergunta = sanitizarPergunta(data.pergunta);
+    if (!pergunta) throw new HttpsError("invalid-argument", "Digite uma pergunta.");
+    const historico = data.historico === undefined ? [] : data.historico;
+    const autores = new Set([channel === "public" ? "visitante" : "dono", "ia"]);
+    if (!Array.isArray(historico) || historico.length > LIMITES_IA_NEGOCIO.maxHistoricoMensagens ||
+        historico.some(item => !item || typeof item !== "object" || Array.isArray(item) ||
+            !autores.has(item.autor) || typeof item.texto !== "string" ||
+            !sanitizarPergunta(item.texto) || item.texto.length > LIMITES_IA_NEGOCIO.maxCaracteresResposta + 1)) {
+        throw new HttpsError("invalid-argument", "Histórico inválido.");
+    }
+    return { pergunta, historico: historico.map(({autor, texto}) => ({autor, texto})) };
 }
 
 async function carregarDadosLoja(ownerUid) {
@@ -106,10 +136,10 @@ async function carregarDadosLoja(ownerUid) {
 // Versão pro visitante público: só produtos, nunca pedidos/leads — a
 // query em si já não busca essas coleções (defesa em profundidade, além
 // do contexto que também as filtra).
-async function carregarProdutosPublicos(ownerUid) {
-    const db = getFirestore();
+async function carregarProdutosPublicos(ownerUid, db = getFirestore()) {
     const produtosSnap = await db.collection("produtos")
         .where("criadoPor", "==", ownerUid)
+        .where("statusProduto", "==", "ativo")
         .limit(LIMITES_IA_NEGOCIO.maxProdutosContexto)
         .get();
     return { produtos: produtosSnap.docs.map((d) => d.data()) };
@@ -180,12 +210,7 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
         }
     }
 
-    const pergunta = sanitizarPergunta(request.data?.pergunta);
-    if (!pergunta) {
-        throw new HttpsError("invalid-argument", "Digite uma pergunta.");
-    }
-
-    const historico = Array.isArray(request.data?.historico) ? request.data.historico.slice(-LIMITES_IA_NEGOCIO.maxHistoricoMensagens) : [];
+    const { pergunta, historico } = validarEntrada(request.data, "private");
 
     // onCall do Firebase esconde a mensagem real de qualquer exceção não
     // tratada (vira "internal"/"INTERNAL" genérico pro cliente, por
@@ -247,7 +272,8 @@ const RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI = 8;
 // - Divide o MESMO teto mensal de ia_negocio_uso/{ownerUid}_{periodo} com
 //   o uso do dono no dashboard: um único orçamento de custo por loja,
 //   não importa quem pergunta — evita que tráfego público estoure o
-//   custo sem limite.
+//   custo sem limite. O público também respeita o subteto de 100;
+//   a reserva privada não pode ser consumida por visitantes.
 //
 // enforceAppCheck: false — publicOptions liga isso em produção, mas
 // nenhuma página do projeto (loja.html incluída) chama
@@ -269,14 +295,10 @@ const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, s
         throw new HttpsError("failed-precondition", "A assistente não está disponível para esta loja no momento.");
     }
 
-    const pergunta = sanitizarPergunta(request.data?.pergunta);
-    if (!pergunta) {
-        throw new HttpsError("invalid-argument", "Digite uma pergunta.");
-    }
-    const historico = Array.isArray(request.data?.historico) ? request.data.historico.slice(-LIMITES_IA_NEGOCIO.maxHistoricoMensagens) : [];
+    const { pergunta, historico } = validarEntrada(request.data, "public");
 
     try {
-        await assertMonthlyQuota(ownerUid);
+        await assertMonthlyQuota(ownerUid, "public");
 
         const { produtos } = await carregarProdutosPublicos(ownerUid);
         const contextoNegocio = montarContextoNegocioPublico({ loja: owner, produtos });
@@ -306,4 +328,4 @@ const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, s
     }
 });
 
-module.exports = { askBusinessAI, askPublicBusinessAI };
+module.exports = { askBusinessAI, askPublicBusinessAI, assertMonthlyQuota, currentPeriodKey, carregarProdutosPublicos, validarEntrada };
