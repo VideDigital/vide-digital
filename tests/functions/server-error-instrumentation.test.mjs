@@ -323,10 +323,10 @@ function instalarFetch(resposta) {
 }
 const requestIaPrivada = () => ({
     auth: { uid: "auth-dono-qa", token: {} },
-    data: { pergunta: SENTINELAS.pergunta, historico: [{ role: "user", texto: SENTINELAS.historico }] }
+    data: { pergunta: SENTINELAS.pergunta, historico: [{ autor: "dono", texto: SENTINELAS.historico }] }
 });
 const requestIaPublica = () => ({
-    data: { storeSlug: SENTINELAS.storeSlug, pergunta: SENTINELAS.pergunta, historico: [{ role: "user", texto: SENTINELAS.historico }] }
+    data: { storeSlug: SENTINELAS.storeSlug, pergunta: SENTINELAS.pergunta, historico: [{ autor: "visitante", texto: SENTINELAS.historico }] }
 });
 const CORPO_ERRO = { error: { message: SENTINELAS.corpoProvedor } };
 
