@@ -41,13 +41,8 @@ const {
 } = require("./promptBuilder");
 
 const GEMINI_API_KEY = defineSecret("GEMINI_API_KEY");
-// "gemini-2.5-flash" (nome fixo) parou de funcionar pra chaves novas —
-// o Google retorna 404 com "This model ... is no longer available to
-// new users". Usa o alias "-latest", que o próprio Google mantém
-// apontado pro modelo Flash recomendado do momento — evita esse tipo de
-// quebra silenciosa de novo no futuro. Ver docs/IA_NEGOCIO.md.
-const GEMINI_MODEL = "gemini-flash-latest";
-const GEMINI_ENDPOINT = `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`;
+const { createProvider, FUNCTION_TIMEOUT_SECONDS } = require("./provider");
+const { chamarGemini, runWithDeadline } = createProvider({ fetch: (...args) => fetch(...args), logger, HttpsError });
 
 const PLANOS_COM_IA_REAL = new Set(["pro", "proplus", "agencia", "enterprise", "premium"]);
 
@@ -145,55 +140,7 @@ async function carregarProdutosPublicos(ownerUid, db = getFirestore()) {
     return { produtos: produtosSnap.docs.map((d) => d.data()) };
 }
 
-async function chamarGemini(payload, apiKey) {
-    let resposta;
-    try {
-        resposta = await fetch(`${GEMINI_ENDPOINT}?key=${encodeURIComponent(apiKey)}`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload)
-        });
-    } catch (error) {
-        logger.error("[IA de Negócio] Falha de rede ao chamar o Gemini:", error);
-        throw new HttpsError("unavailable", "Não foi possível falar com a IA agora. Tente novamente em instantes.");
-    }
-
-    if (!resposta.ok) {
-        // Error com marcador estável + status: stack própria pro Error
-        // Reporting (o 429 abaixo não é 5xx e não entra no alerta da
-        // policy de Functions). Nunca o corpo da resposta, o prompt, a
-        // URL (tem a API key na query) ou dados do usuário.
-        logger.error(
-            "[IA de Negócio] Erro do Gemini:",
-            new Error(`GEMINI_HTTP_ERROR: provedor respondeu HTTP ${resposta.status}`),
-            { geminiStatus: resposta.status }
-        );
-        // 429 do próprio Gemini (créditos/faturamento esgotados no projeto da
-        // API key, ver ai.studio/projects) é um estado operacional real, não
-        // uma falha transitória — merece mensagem própria em vez do genérico
-        // "tente novamente".
-        if (resposta.status === 429) {
-            throw new HttpsError(
-                "resource-exhausted",
-                "O provedor de IA está sem créditos disponíveis no momento. Avise o administrador da plataforma."
-            );
-        }
-        if (resposta.status === 404) {
-            // Nome de modelo inválido pra essa chave/projeto — não deveria
-            // acontecer com o alias "-latest", mas se o Google descontinuar
-            // até o alias, é bom saber na hora em vez de "tente novamente".
-            throw new HttpsError(
-                "unavailable",
-                `A IA não conseguiu responder agora (modelo "${GEMINI_MODEL}" não encontrado pelo provedor). Avise o administrador da plataforma.`
-            );
-        }
-        throw new HttpsError("unavailable", `A IA não conseguiu responder agora (status ${resposta.status} do provedor). Tente novamente em instantes.`);
-    }
-
-    return resposta.json();
-}
-
-const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_API_KEY] }, async (request) => {
+const askBusinessAI = onCall({ region: "southamerica-east1", timeoutSeconds: FUNCTION_TIMEOUT_SECONDS, secrets: [GEMINI_API_KEY] }, async (request) => runWithDeadline(async (signal) => {
     const context = await resolveCallerContext(request);
     requireEdit(context, "central-ia");
 
@@ -217,6 +164,7 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
     // segurança) — o stack completo já vai pro Cloud Logging via
     // logger.error, então o dono só recebe um aviso amigável, nunca detalhe
     // interno.
+    if (signal.aborted) throw new HttpsError("unavailable", "Tempo de processamento esgotado.");
     try {
         const { periodo, restante } = await assertMonthlyQuota(context.ownerUid);
 
@@ -227,7 +175,7 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
         const suspeitaInjecao = detectarTentativaInjecao(pergunta);
 
         const payload = montarMensagensGemini({ systemPrompt, contextoTexto, historico, pergunta });
-        const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value());
+        const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value(), "privado", signal);
         const texto = extrairTextoRespostaGemini(respostaBruta);
 
         if (!texto) {
@@ -253,7 +201,7 @@ const askBusinessAI = onCall({ region: "southamerica-east1", secrets: [GEMINI_AP
         logger.error("[IA de Negócio] Erro inesperado:", error);
         throw new HttpsError("internal", "Ocorreu um erro inesperado ao falar com a IA. Tente novamente em instantes.");
     }
-});
+}, "privado"));
 
 // Igual ao limite de sendPublicChatMessage (functions/src/public/index.js) —
 // uma pergunta por IA custa mais caro que uma mensagem de chat comum, por
@@ -282,7 +230,7 @@ const RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI = 8;
 // testando ao vivo. A mitigação de abuso real aqui é o rate limit por
 // IP (assertPublicRateLimit acima), igual às outras Functions públicas
 // deste arquivo — nenhuma delas exige App Check por engano assim.
-const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, secrets: [GEMINI_API_KEY] }, async (request) => {
+const askPublicBusinessAI = onCall({ ...publicOptions, timeoutSeconds: FUNCTION_TIMEOUT_SECONDS, enforceAppCheck: false, secrets: [GEMINI_API_KEY] }, async (request) => runWithDeadline(async (signal) => {
     await assertPublicRateLimit(request, "askPublicBusinessAI", RATE_LIMIT_ASK_PUBLIC_BUSINESS_AI);
 
     const tenant = await resolvePublicTenant(request.data || {});
@@ -297,6 +245,7 @@ const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, s
 
     const { pergunta, historico } = validarEntrada(request.data, "public");
 
+    if (signal.aborted) throw new HttpsError("unavailable", "Tempo de processamento esgotado.");
     try {
         await assertMonthlyQuota(ownerUid, "public");
 
@@ -307,7 +256,7 @@ const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, s
         const suspeitaInjecao = detectarTentativaInjecao(pergunta);
 
         const payload = montarMensagensGemini({ systemPrompt, contextoTexto, historico, pergunta });
-        const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value());
+        const respostaBruta = await chamarGemini(payload, GEMINI_API_KEY.value(), "publico", signal);
         const texto = extrairTextoRespostaGemini(respostaBruta);
 
         if (!texto) {
@@ -326,6 +275,6 @@ const askPublicBusinessAI = onCall({ ...publicOptions, enforceAppCheck: false, s
         logger.error("[IA de Negócio pública] Erro inesperado:", error);
         throw new HttpsError("internal", "Ocorreu um erro inesperado ao falar com a assistente. Tente novamente em instantes.");
     }
-});
+}, "publico"));
 
 module.exports = { askBusinessAI, askPublicBusinessAI, assertMonthlyQuota, currentPeriodKey, carregarProdutosPublicos, validarEntrada };

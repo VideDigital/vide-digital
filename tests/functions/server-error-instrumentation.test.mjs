@@ -343,8 +343,13 @@ function assertLogGemini(esperadoStatus) {
     assert.ok(erro instanceof Error, "argumento é um Error");
     assert.match(erro.message, new RegExp(`^GEMINI_HTTP_ERROR: provedor respondeu HTTP ${esperadoStatus}$`));
     assert.match(erro.stack, /GEMINI_HTTP_ERROR[\s\S]*\n\s+at /, "stack presente");
-    assert.deepEqual(campos, { geminiStatus: esperadoStatus });
-    assert.equal(totalLogs(), 1);
+    assert.equal(campos.geminiStatus, esperadoStatus);
+    assert.equal(campos.model, "gemini-3.8-flash");
+    assert.equal(campos.attempt, esperadoStatus === 500 ? 2 : 1);
+    assert.ok(["privado","publico"].includes(campos.caminho));
+    assert.equal(campos.kind, "http");
+    assert.ok(campos.durationMs >= 0);
+    assert.equal(totalLogs(), esperadoStatus === 500 ? 2 : 1);
 }
 
 for (const [rotulo, fn, req] of casosIa) {
@@ -362,7 +367,7 @@ for (const [rotulo, fn, req] of casosIa) {
         it("HTTP 404: continua unavailable/503 com a mesma mensagem, log com stack, sem PII", async () => {
             instalarFetch({ status: 404, body: CORPO_ERRO });
             await assert.rejects(() => fn().run(req()), (e) => assertHttpsError(e, "unavailable", 503,
-                "A IA não conseguiu responder agora (modelo \"gemini-flash-latest\" não encontrado pelo provedor). Avise o administrador da plataforma."));
+                "A IA não conseguiu responder agora (modelo \"gemini-3.8-flash\" não encontrado pelo provedor). Avise o administrador da plataforma."));
             assertLogGemini(404);
             assertSemSentinelas();
         });
@@ -381,9 +386,11 @@ for (const [rotulo, fn, req] of casosIa) {
             await assert.rejects(() => fn().run(req()), (e) => assertHttpsError(e, "unavailable", 503));
             const erros = chamadas("error");
             assert.equal(erros.length, 1);
-            assert.match(erros[0][0], /Falha de rede ao chamar o Gemini/);
-            assert.equal(erros[0][1], erroRede);
-            assert.equal(totalLogs(), 1);
+            assert.match(erros[0][0], /Erro do Gemini/);
+            assert.notEqual(erros[0][1], erroRede, "não vazar erro de transporte original");
+            assert.equal(erros[0][1].message, "GEMINI_NETWORK_ERROR");
+            assert.equal(erros[0][2].attempt, 2);
+            assert.equal(totalLogs(), 2);
             assertSemSentinelas();
         });
     });

@@ -90,7 +90,7 @@ for(const mode of [429,404,500,"network","timeout"]) test("provider "+mode+" ret
  const ai=loadAi(db,typeof mode==="number"?{status:mode}:{failure:Object.assign(new Error("synthetic"),{name:mode==="timeout"?"AbortError":"Error"})});
  await assert.rejects(ai.askPublicBusinessAI(request()),e=>e.code===(mode===429?"resource-exhausted":"unavailable"));
  await assert.rejects(ai.askPublicBusinessAI(request()),quotaError);
- assert.equal(db.docs.get(quotaPath()).count,100);assert.equal(ai.calls.length,1);
+ assert.equal(db.docs.get(quotaPath()).count,100);assert.equal(ai.calls.length,[500,"network","timeout"].includes(mode)?2:1);
  const healthy=loadAi(db);await healthy.askBusinessAI(request());assert.equal(db.docs.get(quotaPath()).count,101);
 });
 test("catalog query, builder and final provider text only include active products of resolved tenant",async()=>{
