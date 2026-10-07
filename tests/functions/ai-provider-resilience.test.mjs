@@ -7,9 +7,9 @@ const {HttpsError}=require('firebase-functions/v2/https');
 const provider=require('./provider');
 
 // Explicit virtual clock, including a watchdog for mutations that remove deadlines.
-function clock() {
+function clock(schedulingOverhead=0) {
  let time=0,id=0;const timers=new Map();
- return {now:()=>time,schedule:(fn,ms)=>{timers.set(++id,{fn,at:time+ms});return id;},cancel:id=>timers.delete(id),
+ return {now:()=>time,schedule:(fn,ms)=>{timers.set(++id,{fn,at:time+ms});time+=schedulingOverhead;return id;},cancel:id=>timers.delete(id),
  async finish(p) {let done=false,result,error;p.then(v=>{done=true;result=v;},e=>{done=true;error=e;});
   for(let n=0;n<100&&!done;n++){for(let i=0;i<30;i++)await Promise.resolve();if(done)break;
    const next=[...timers].sort((a,b)=>a[1].at-b[1].at)[0];if(!next)throw Error('Operation stuck without deadline');
@@ -17,7 +17,7 @@ function clock() {
   assert.ok(done,'bounded operation must settle');if(error)throw error;return result;},pending:()=>timers.size};
 }
 const ok=()=>({ok:true,status:200,json:async()=>({candidates:[{content:{parts:[{text:'ok'}]}}]})});
-function setup(sequence){const timer=clock(),calls=[],logs=[];const api=provider.createProvider({...timer,random:()=>0.5,HttpsError,
+function setup(sequence,schedulingOverhead=0){const timer=clock(schedulingOverhead),calls=[],logs=[];const api=provider.createProvider({...timer,random:()=>0.5,HttpsError,
  logger:Object.fromEntries(['error','warn'].map(level=>[level,(...args)=>logs.push({level,args})])),
  fetch:async(url,options)=>{calls.push({url,options});const step=sequence[Math.min(calls.length-1,sequence.length-1)];
  if(step==='hang')return new Promise(()=>{});
@@ -48,6 +48,13 @@ for(const status of [400,401,403,404,429])test('no retry for '+status,async()=>{
  const s=setup([status,200]);await assert.rejects(s.run(),e=>e.code===(status===429?'resource-exhausted':'unavailable'));
  assert.equal(s.calls.length,1);assert.equal(s.logs.filter(l=>l.level==='error').length,1);
 });
+test('retry wait tolerates scheduling overhead and preserves the final error log',async()=>{
+ const s=setup(['network','network'],2);
+ await assert.rejects(s.run(),e=>e.code==='unavailable');
+ assert.equal(s.calls.length,2);assert.equal(s.logs.filter(l=>l.level==='error').length,1);
+ assert.equal(s.timer.pending(),0);
+});
+
 test('overall deadline bounds pre-provider waits and prevents late provider calls',async()=>{
  const s=setup([200]);let release;const gate=new Promise(resolve=>release=resolve);
  await assert.rejects(s.timer.finish(s.api.runWithDeadline(async signal=>{await gate;return s.api.chamarGemini({},'key','privado',signal);},'privado')),e=>e.code==='unavailable');

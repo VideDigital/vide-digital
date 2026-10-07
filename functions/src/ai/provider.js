@@ -35,6 +35,17 @@ function createProvider({ fetch, logger, HttpsError, random = Math.random,
             throw unavailable();
         }
     }
+    function waitForRetry(milliseconds, signal) {
+        return new Promise((resolve, reject) => {
+            if (signal?.aborted) return reject(unavailable());
+            const onAbort = () => { cancel(timer); reject(unavailable()); };
+            const timer = schedule(() => {
+                signal?.removeEventListener("abort", onAbort);
+                resolve();
+            }, milliseconds);
+            signal?.addEventListener("abort", onAbort, { once: true });
+        });
+    }
     async function chamarGemini(payload, apiKey, caminho, signal) {
         for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
             if (signal?.aborted) throw unavailable();
@@ -67,7 +78,7 @@ function createProvider({ fetch, logger, HttpsError, random = Math.random,
             if (transient && attempt < MAX_ATTEMPTS) {
                 logger.warn("[IA de Negócio] Tentativa transitória do Gemini", fields);
                 const delay = 250 * 2 ** (attempt - 1) + Math.floor(random() * 250);
-                await bounded(() => new Promise(resolve => schedule(resolve, delay)), delay + 1, signal).catch(() => { throw unavailable(); });
+                await waitForRetry(delay, signal);
                 continue;
             }
             const marker = failure.kind === "http" ? `GEMINI_HTTP_ERROR: provedor respondeu HTTP ${failure.status}` : `GEMINI_${failure.kind.toUpperCase()}_ERROR`;
