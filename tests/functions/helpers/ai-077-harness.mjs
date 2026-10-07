@@ -41,27 +41,29 @@ export function seed(owner = "owner-a", slug = "loja-a") {
 }
 // Executes the real handler source; only infrastructure and external transport are substituted.
 // Public tenant resolution is the real implementation with injected reads, never payload owner.
-export function loadAi(db, {status=200, failure, ownerUid="owner-a"} = {}) {
+export function loadAi(db, {status=200, failure, transport, providerOptions={}, ownerUid="owner-a"} = {}) {
     const calls = [];
+    const logs = [];
     const module = {exports:{}};
     const deps = {
         "firebase-functions/v2/https": {HttpsError,onCall:(options,handler)=>Object.assign(handler,{options})},
         "firebase-functions/params": {defineSecret:()=>({value:()=>"synthetic-test-key"})},
         "firebase-admin/firestore": {getFirestore:()=>db,FieldValue},
-        "firebase-functions": {logger:{error(){}}},
+        "firebase-functions": {logger:Object.fromEntries(["error","warn","info"].map(level=>[level,(...args)=>logs.push({level,args})]))},
         "../shared/context": {resolveCallerContext:async()=>({ownerUid,owner:{plano:"pro"}}),requireEdit(){}},
         "../shared/rateLimit": {assertPublicRateLimit:async()=>{}},
         "../public": {publicOptions:publicApi.publicOptions,resolvePublicTenant:data=>publicApi.resolvePublicTenant(data,path=>db.doc(path).get())},
-        "./promptBuilder":builder
+        "./promptBuilder":builder,
+        "./provider":{...require("./provider"),createProvider: options=>require("./provider").createProvider({...options,...providerOptions})}
     };
     const globals={
         module,require:id=>{if(!(id in deps))throw new Error("Unexpected dependency: "+id);return deps[id];},
-        fetch:async(url,options)=>{calls.push(JSON.parse(options.body));if(failure)throw failure;
+        fetch:async(url,options)=>{calls.push(JSON.parse(options.body));if(transport)return transport(url,options,calls.length);if(failure)throw failure;
             return {ok:status===200,status,json:async()=>({candidates:[{content:{parts:[{text:"Resposta sintética"}]}}]})};},
         Date,Set,encodeURIComponent
     };
     vm.compileFunction(fs.readFileSync(new URL("../../../functions/src/ai/index.js",import.meta.url),"utf8"),Object.keys(globals))(...Object.values(globals));
-    return {...module.exports,calls};
+    return {...module.exports,calls,logs};
 }
 export const request = (data={}) => ({data:{pergunta:"Produtos?",storeSlug:"loja-a",...data}});
 export const quotaPath = (owner="owner-a", date=new Date()) =>
