@@ -272,8 +272,8 @@ function montarMensagensGemini({ systemPrompt, contextoTexto, historico, pergunt
         },
         contents,
         generationConfig: {
-            maxOutputTokens: 1024,
-            temperature: 0.4
+            maxOutputTokens: 2048,
+            thinkingConfig: { thinkingLevel: "low" }
         }
     };
 }
