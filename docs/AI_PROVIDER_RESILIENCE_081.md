@@ -1,5 +1,7 @@
 # Sprint 081 — resiliência limitada do Gemini
 
+> Registro histórico da 081. Payload, orçamento e segunda tentativa foram revistos na [Sprint 086](AI_LATENCY_FALLBACK_086.md). A 085 comprovou dois timeouts locais, sem HTTP 503 do Gemini observado; isso é distinto da evidência 080 abaixo.
+
 Base: 64aef85b1ffc1d5080a0812ba25c8cd53de12fa6. Branch: fix/ai-provider-resilience-081.
 Escopo: askBusinessAI e askPublicBusinessAI; código/testes, sem merge ou deploy.
 

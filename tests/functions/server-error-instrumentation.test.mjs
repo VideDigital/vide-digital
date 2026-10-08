@@ -344,7 +344,8 @@ function assertLogGemini(esperadoStatus) {
     assert.match(erro.message, new RegExp(`^GEMINI_HTTP_ERROR: provedor respondeu HTTP ${esperadoStatus}$`));
     assert.match(erro.stack, /GEMINI_HTTP_ERROR[\s\S]*\n\s+at /, "stack presente");
     assert.equal(campos.geminiStatus, esperadoStatus);
-    assert.equal(campos.model, "gemini-3.8-flash");
+    assert.equal(campos.model, esperadoStatus === 500 ? "gemini-3.5-flash-lite" : "gemini-3.8-flash");
+    assert.equal(campos.stage, esperadoStatus === 500 ? "fallback" : "primary");
     assert.equal(campos.attempt, esperadoStatus === 500 ? 2 : 1);
     assert.ok(["privado","publico"].includes(campos.caminho));
     assert.equal(campos.kind, "http");
@@ -412,15 +413,18 @@ for (const [rotulo, fn, req, caminho] of casosIa) {
             assert.match(erro.message, /^GEMINI_EMPTY_RESPONSE/);
             assert.match(erro.stack, /GEMINI_EMPTY_RESPONSE[\s\S]*\n\s+at /);
             assert.deepEqual(campos, { caminho });
-            assert.equal(totalLogs(), 1);
+            assert.equal(totalLogs(), 2, "HTTP200 metadata + único erro funcional, sem conteúdo");
             assertSemSentinelas();
         });
 
-        it("sucesso inalterado: devolve o texto e não loga nada", async () => {
+        it("sucesso devolve texto e apenas metadados sanitizados da tentativa", async () => {
             instalarFetch({ status: 200, body: { candidates: [{ content: { parts: [{ text: "Resposta ok" }] } }] } });
             const resultado = await fn().run(req());
             assert.equal(resultado.resposta, "Resposta ok");
-            assert.equal(totalLogs(), 0);
+            assert.equal(totalLogs(), 1);
+            assert.equal(chamadas("error").length, 0);
+            assert.deepEqual(chamadas("info")[0][1], {model:"gemini-3.8-flash",attempt:1,stage:"primary",caminho,kind:"success",geminiStatus:200,durationMs:chamadas("info")[0][1].durationMs});
+            assertSemSentinelas();
         });
     });
 }
