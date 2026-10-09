@@ -10,6 +10,7 @@
 // original. Confirma via Admin SDK que mensagens/eventos do chat V2 têm
 // autoria real (nunca autorUid vazio), diferente do contrato legado V1.
 import assert from "node:assert/strict";
+import { checkPublicLeadPopup } from "./public-lead-popup.flow.mjs";
 import { getApps, initializeApp } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 import {
@@ -510,6 +511,7 @@ async function main() {
     const errosOwner = coletarErrosConsole(paginaOwner);
 
     try {
+        await checkPublicLeadPopup(browser);
         await ativarIaPublicaNoEmulator();
 
         // ===== Visitante A: inicia o chat, nasce V2 =====
