@@ -471,6 +471,33 @@
     display: none !important;
 }
 
+#view-dashboard .dashboard-launch-is-collapsed .dashboard-launch-groups {
+    display: none;
+}
+
+#dashboard-launch-center .dashboard-launch-groups { display: grid; gap: 16px; margin-top: 16px; }
+#dashboard-launch-center .dashboard-launch-group { border: 1px solid var(--aura-border); border-radius: 14px; padding: 14px; min-width: 0; }
+#dashboard-launch-center .dashboard-launch-group:first-child { border-color: var(--aura-primary); }
+#dashboard-launch-center h4 { font-size: 16px; color: var(--aura-text-primary); margin: 0 0 8px; }
+#dashboard-launch-center .dashboard-launch-group p { font-size: 13px; color: var(--aura-text-secondary); }
+#dashboard-launch-center progress { width: 100%; height: 8px; accent-color: var(--aura-primary); }
+#dashboard-launch-center .dashboard-launch-task { grid-template-columns: minmax(0,1fr) auto; }
+#dashboard-launch-center .dashboard-launch-task:disabled { cursor: default; }
+#dashboard-launch-center .dashboard-launch-task-copy strong { font-size: 14px; }
+#dashboard-launch-center .dashboard-launch-task small { font-size: 13px; line-height: 1.5; }
+#dashboard-launch-center .dashboard-launch-task-action { font-size: 12px; }
+#dashboard-launch-center .dashboard-launch-heading p,
+#dashboard-launch-center .dashboard-launch-summary span,
+#dashboard-launch-center .dashboard-launch-footer span { font-size: 13px; line-height: 1.5; }
+#dashboard-launch-center summary { cursor: pointer; padding: 14px; color: var(--aura-text-primary); border: 1px solid var(--aura-border); border-radius: 14px; }
+#dashboard-launch-center :is(button,summary):focus-visible { outline: 2px solid var(--aura-text-primary); outline-offset: 3px; }
+@media (max-width: 640px) {
+    #dashboard-launch-center .dashboard-launch-tasks { grid-template-columns: 1fr; }
+    #dashboard-launch-center .dashboard-launch-task { grid-template-columns: 1fr; }
+    #dashboard-launch-center .dashboard-launch-task-action { text-align: left; }
+    #dashboard-launch-center .dashboard-launch-group { padding: 10px; }
+}
+
 #view-dashboard
 .dashboard-executive-onboarding.dashboard-launch-is-collapsed
 .dashboard-launch-toggle svg {

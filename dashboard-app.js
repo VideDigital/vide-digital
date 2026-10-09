@@ -1,7 +1,9 @@
+import { criarEstadoImplantacao, chavePreferenciaImplantacao } from './onboarding-state-core.js';
 import { auth, db, firebaseConfig, shouldUseVideEmulators } from "./firebase-init.js";
 import { escapeHTML, escapeAttribute, escapeTextareaContent, escapeCSSString, safeCSSColor, safeLinkURL, safeImageURL, safeIframeURL } from "./lp-render-safety-core.js";
 import { substituirBannersLoja } from "./banner-replacement-core.js";
 import { VideHubContext, VidePlanService, normalizeModuleKey } from "./core/vide-context.js";
+window.__videChaveImplantacao = () => chavePreferenciaImplantacao(VideHubContext.getSnapshot());
 import { criarCentralIAController } from "./central-ia.js";
 import { criarBaseConhecimentoController } from "./base-conhecimento-ia.js";
 import { criarAtendimentoController } from "./atendimento.js";
@@ -59,6 +61,8 @@ window.addEventListener("pageshow", function(event) {
         let usuarioEmail = "";
         let usuarioUID = "";
         let slugAtualSalvo = "";
+        let perfilImplantacaoSalvo = null;
+        let produtosImplantacaoSalvos = null;
         // Getter read-only só para testes/observabilidade — o boot do
         // dashboard escreve o preview do endereço público (#url-loja-preview)
         // em dois momentos assíncronos independentes (leitura rápida do
@@ -1214,6 +1218,10 @@ window.ocultarPrimeirosPassos = function() {
 window.renderizarPrimeirosPassos = async function() {
     const container = document.getElementById("primeiros-passos-container");
     if (!container || !usuarioUID) return;
+    if (document.getElementById("dashboard-launch-center")) {
+        container.classList.add("hidden");
+        return;
+    }
     // Se o dono já dispensou, não mostra mais.
     try {
         if (localStorage.getItem("primeirosPassosOcultos_" + usuarioUID) === "1") {
@@ -7161,6 +7169,8 @@ await setDoc(doc(db, "landing_pages", novoId), {
                 const contextoVide = VideHubContext.getSnapshot();
                 usuarioEmail = contextoVide.authEmail;
                 usuarioUID = contextoVide.effectiveUid || user.uid;
+                perfilImplantacaoSalvo = null;
+                produtosImplantacaoSalvos = null;
                 const emModoMaster = contextoVide.isMasterMode;
 
                 // Mostra o atalho "Painel Master" para administradores, sem trocar a conta autenticada.
@@ -7170,6 +7180,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
                 }
 
                 // CARREGAR PLANO E APLICAR RESTRIÇÕES
+                const uidPerfilImplantacao = usuarioUID;
                 const userSnap2 = await getDoc(doc(db, "usuarios", usuarioUID));
                 const dadosPlano = userSnap2.exists() ? userSnap2.data() : {};
 
@@ -7324,6 +7335,7 @@ await setDoc(doc(db, "landing_pages", novoId), {
                 const userSnap = userSnap2;
                 if (userSnap.exists()) {
                     const dados = userSnap.data();
+                    perfilImplantacaoSalvo = { uid: uidPerfilImplantacao, dados: { ...dados } };
 
                     document.getElementById("perf-nome-loja").value = dados.nomeLoja || "";
                     document.getElementById("perf-slug").value = dados.urlLoja || "";
@@ -7432,6 +7444,9 @@ listaBanners = [];
                         }
                     }
                 }
+
+                if (!userSnap.exists()) perfilImplantacaoSalvo = { uid: uidPerfilImplantacao, dados: {} };
+                renderizarCentralImplantacao();
 
                 // Restaura a aba salva SOMENTE agora, depois que os cadeados já foram aplicados
                 // — mas só se nada tiver navegado explicitamente pra outra aba nesse meio-tempo
@@ -7628,6 +7643,7 @@ document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
             if (!exigirEdicaoModulo("configuracoes")) return;
 
             const payloadPerfil = montarPayloadCompleto();
+            const uidSalvamentoImplantacao = usuarioUID;
             if (!payloadPerfil.urlLoja) return showToast("Slug inválido.", "error");
 
             // Verifica se o slug já está em uso por OUTRA conta antes de salvar
@@ -7684,6 +7700,8 @@ document.getElementById("btn-salvar-perfil").addEventListener("click", () => {
                     await deleteDoc(doc(db, "vitrines_publicas", slugAnteriorSalvo));
                 }
 
+                perfilImplantacaoSalvo = { uid: uidSalvamentoImplantacao, dados: { ...payloadPerfil } };
+                renderizarCentralImplantacao();
                 slugAtualSalvo = payloadPerfil.urlLoja;
 
                 try {
@@ -11789,6 +11807,7 @@ window.moderarAvaliacao = async function(id, status) {
         const controladorCargaProdutos = criarControladorDeCargaSequencial();
 
         async function carregarProdutos() {
+            const uidProdutosImplantacao = usuarioUID;
             const minhaCargaDeProdutos = controladorCargaProdutos.iniciarNovaCarga();
             // O container é substituído (esqueleto → dados reais) durante o
             // carregamento; isso pode reduzir a altura da página e fazer o
@@ -11834,6 +11853,7 @@ window.moderarAvaliacao = async function(id, status) {
 
                 produtosContainer.innerHTML = "";
 
+                produtosImplantacaoSalvos = { uid: uidProdutosImplantacao, total: 0 };
                 totalProdutosAtual = 0;
                 totalRascunhosAtual = 0;
 
@@ -11843,6 +11863,7 @@ window.moderarAvaliacao = async function(id, status) {
                     const data = docSnap.data();
 
                     data.id = docSnap.id;
+                    if (data.statusProduto === "ativo") produtosImplantacaoSalvos.total++;
 
                     const ehRascunho =
                         data.statusProduto === "rascunho";
@@ -14207,412 +14228,46 @@ function renderizarCentralImplantacao() {
 
     }
 
-    const obterValor = id =>
-        String(
-            document.getElementById(id)?.value ||
-            ""
-        ).trim();
-
-    const estaAtivo = id =>
-        Boolean(
-            document.getElementById(id)?.checked
-        );
-
-    const temWhatsApp = valor =>
-        String(valor || "")
-            .replace(/\D/g, "")
-            .length >= 10;
-
-    const nomeLoja =
-        obterValor("perf-nome-loja");
-
-    const slug =
-        obterValor("perf-slug") ||
-        slugAtualSalvo ||
-        "";
-
-    const titulo =
-        obterValor("perf-titulo");
-
-    const subtitulo =
-        obterValor("perf-subtitulo");
-
-    const whatsappCentral =
-        obterValor(
-            "perf-social-whatsapp-central"
-        );
-
-    const whatsappChat =
-        obterValor(
-            "perf-social-whatsapp-chat"
-        );
-
-    const instagram =
-        obterValor(
-            "perf-social-instagram"
-        );
-
-    const tiktok =
-        obterValor(
-            "perf-social-tiktok"
-        );
-
-    const youtube =
-        obterValor(
-            "perf-social-youtube"
-        );
-
-    const corPrincipal =
-        obterValor(
-            "perf-cor-destaque"
-        );
-
-    const fonte =
-        obterValor(
-            "perf-fonte-vitrine"
-        );
-
-    const tarefas = [
-
-        {
-            titulo: "Identidade da loja",
-            descricao:
-                "Defina o nome público da sua empresa.",
-            concluida:
-                nomeLoja.length >= 2,
-            acao: "identidade",
-            botao: "Configurar identidade"
-        },
-
-        {
-            titulo: "Endereço da vitrine",
-            descricao:
-                "Escolha o endereço exclusivo da loja.",
-            concluida:
-                slug.length >= 2,
-            acao: "identidade",
-            botao: "Definir endereço"
-        },
-
-        {
-            titulo: "Apresentação principal",
-            descricao:
-                "Adicione título e descrição na vitrine.",
-            concluida:
-                titulo.length >= 2 &&
-                subtitulo.length >= 2,
-            acao: "identidade",
-            botao: "Editar apresentação"
-        },
-
-        {
-            titulo: "WhatsApp comercial",
-            descricao:
-                "Cadastre um telefone válido para atendimento.",
-            concluida:
-                temWhatsApp(whatsappCentral) ||
-                temWhatsApp(whatsappChat),
-            acao: "redes-sociais",
-            botao: "Configurar WhatsApp"
-        },
-
-        {
-            titulo: "Primeiro produto",
-            descricao:
-                "Cadastre pelo menos uma oferta ativa.",
-            concluida:
-                Number(totalProdutosAtual || 0) > 0,
-            acao: "novo-produto",
-            botao: "Cadastrar produto"
-        },
-
-        {
-            titulo: "Canal de conversão",
-            descricao:
-                "Ative o carrinho ou o chat da loja.",
-            concluida:
-                estaAtivo("perf-carrinho-ativo") ||
-                estaAtivo("perf-chat-ativo"),
-            acao:
-                estaAtivo("perf-carrinho-ativo")
-                    ? "chat-config"
-                    : "carrinho-config",
-            botao: "Configurar conversão"
-        },
-
-        {
-            titulo: "Presença digital",
-            descricao:
-                "Conecte ao menos uma rede social.",
-            concluida:
-                Boolean(
-                    instagram ||
-                    tiktok ||
-                    youtube
-                ),
-            acao: "redes-sociais",
-            botao: "Adicionar rede social"
-        },
-
-        {
-            titulo: "Identidade visual",
-            descricao:
-                "Defina cores e tipografia da vitrine.",
-            concluida:
-                Boolean(
-                    corPrincipal &&
-                    fonte
-                ),
-            acao: "aparencia-cores",
-            botao: "Personalizar visual"
-        }
-
-    ];
-
-    const concluidas =
-        tarefas.filter(
-            tarefa => tarefa.concluida
-        ).length;
-
-    const total =
-        tarefas.length;
-
-    const percentual =
-        Math.round(
-            concluidas /
-            total *
-            100
-        );
-
-    const primeiraPendente =
-        tarefas.find(
-            tarefa => !tarefa.concluida
-        );
-
-    const mensagemStatus =
-
-        percentual === 100
-            ? "Sua loja está pronta para operar"
-            : percentual >= 75
-                ? "Sua loja está quase pronta"
-                : percentual >= 40
-                    ? "Continue configurando sua operação"
-                    : "Complete os primeiros passos";
-
-    const tarefasHTML =
-        tarefas.map(
-            (tarefa, indice) => `
-
-                <button
-                    type="button"
-                    class="dashboard-launch-task ${
-                        tarefa.concluida
-                            ? "is-complete"
-                            : ""
-                    }"
-                    data-launch-action="${
-                        tarefa.acao
-                    }"
-                >
-
-                    <span class="dashboard-launch-task-status">
-
-                        ${
-                            tarefa.concluida
-                                ? `
-                                    <svg
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                    >
-                                        <path d="m7 12 3 3 7-7"></path>
-                                    </svg>
-                                `
-                                : String(
-                                    indice + 1
-                                ).padStart(2, "0")
-                        }
-
-                    </span>
-
-                    <span class="dashboard-launch-task-copy">
-
-                        <strong>
-                            ${tarefa.titulo}
-                        </strong>
-
-                        <small>
-                            ${tarefa.descricao}
-                        </small>
-
-                    </span>
-
-                    <span class="dashboard-launch-task-action">
-
-                        ${
-                            tarefa.concluida
-                                ? "Concluído"
-                                : tarefa.botao
-                        }
-
-                    </span>
-
-                </button>
-            `
-        ).join("");
-
+    const contexto = VideHubContext.getSnapshot();
+    const perfil = contexto.active && contexto.storeUid === usuarioUID && perfilImplantacaoSalvo?.uid === usuarioUID
+        ? perfilImplantacaoSalvo.dados : null;
+    const produtos = contexto.active && contexto.storeUid === usuarioUID && produtosImplantacaoSalvos?.uid === usuarioUID
+        ? produtosImplantacaoSalvos.total : null;
+    const estado = criarEstadoImplantacao({ perfil, produtos,
+        podeConfigurar: podeEditarModulo("configuracoes"), podeCriarProduto: podeEditarModulo("produtos") });
+    const slug = perfil?.urlLoja || "";
+    const assinatura = JSON.stringify({ estado, slug, contexto: [contexto.authUid, contexto.storeUid] });
+    // Eventos de campos não salvos não reconstruem os controles nem perdem foco.
+    if (painel.dataset.launchSignature === assinatura) return;
+    painel.dataset.launchSignature = assinatura;
+    const opcionalAberto = painel.querySelector("details")?.open || false;
+    const renderTarefa = tarefa => `
+        <button type="button" class="dashboard-launch-task ${tarefa.concluida ? "is-complete" : ""}"
+            data-launch-action="${tarefa.acao}" data-launch-field="${tarefa.campo}" ${tarefa.permitida ? "" : "disabled"}>
+            <span class="dashboard-launch-task-copy"><strong>${tarefa.titulo}</strong><small>${tarefa.descricao}</small></span>
+            <span class="dashboard-launch-task-action">${!tarefa.conhecida ? "A confirmar" : tarefa.concluida ? "Concluído" : tarefa.permitida ? "Configurar" : "Sem permissão de edição"}</span>
+        </button>`;
+    const grupoHTML = (grupo, indice) => `<section class="dashboard-launch-group" aria-labelledby="launch-group-${indice}">
+        <h4 id="launch-group-${indice}">${grupo.titulo}</h4>
+        <p>${grupo.concluidas} de ${grupo.total} configurações salvas</p>
+        <progress max="${grupo.total}" value="${grupo.concluidas}" aria-label="${grupo.titulo}"></progress>
+        <div class="dashboard-launch-tasks">${grupo.itens.map(renderTarefa).join("")}</div></section>`;
     painel.innerHTML = `
-
-        <div class="dashboard-launch-header">
-
-            <div class="dashboard-launch-heading">
-
-                <span class="dashboard-launch-heading-icon">
-
-                    <svg
-                        viewBox="0 0 24 24"
-                        fill="none"
-                        stroke="currentColor"
-                    >
-                        <path d="M12 3 4 7v10l8 4 8-4V7l-8-4Z"></path>
-                        <path d="m4 7 8 4 8-4"></path>
-                        <path d="M12 11v10"></path>
-                    </svg>
-
-                </span>
-
-                <div>
-
-                    <small>
-                        Preparação da operação
-                    </small>
-
-                    <h3>
-                        Central de implantação
-                    </h3>
-
-                    <p>
-                        Acompanhe o que falta para sua loja ficar completamente configurada.
-                    </p>
-
-                </div>
-
-            </div>
-
-            <div
-                class="dashboard-launch-score"
-                style="--launch-progress:${percentual * 3.6}deg"
-            >
-
-                <div>
-
-                    <strong>
-                        ${percentual}%
-                    </strong>
-
-                    <span>
-                        concluído
-                    </span>
-
-                </div>
-
-            </div>
-
+        <div class="dashboard-launch-header"><div class="dashboard-launch-heading"><div>
+            <small>Configurações recomendadas</small><h3>Prepare seu negócio</h3>
+            <p>Comece pelas configurações principais. Você pode personalizar o restante depois.</p>
+        </div></div><div class="dashboard-launch-score" style="--launch-progress:${estado.percentual * 3.6}deg">
+            <div><strong>${estado.percentual}%</strong><span>do total</span></div></div></div>
+        <div class="dashboard-launch-summary"><div><strong>${perfil === null ? "Aguardando confirmação das configurações" : "Progresso baseado em dados salvos"}</strong>
+            <span>${estado.concluidas} de 8 configurações salvas. Este guia não bloqueia sua navegação.</span></div></div>
+        <div class="dashboard-launch-groups">
+            ${grupoHTML(estado.grupos[0], 0)}${grupoHTML(estado.grupos[1], 1)}
+            <details ${opcionalAberto ? "open" : ""}><summary>Personalize depois · ${estado.grupos[2].concluidas} de 3</summary>${grupoHTML(estado.grupos[2], 2)}</details>
         </div>
-
-        <div class="dashboard-launch-summary">
-
-            <div>
-
-                <small>
-                    Status da implantação
-                </small>
-
-                <strong>
-                    ${mensagemStatus}
-                </strong>
-
-                <span>
-                    ${concluidas} de ${total} etapas concluídas
-                </span>
-
-            </div>
-
-            <div class="dashboard-launch-progress">
-
-                <span
-                    style="width:${percentual}%"
-                ></span>
-
-            </div>
-
-        </div>
-
-        <div class="dashboard-launch-tasks">
-
-            ${tarefasHTML}
-
-        </div>
-
-        <div class="dashboard-launch-footer">
-
-            <div>
-
-                <strong>
-                    ${
-                        percentual === 100
-                            ? "Configuração concluída"
-                            : "Próxima etapa recomendada"
-                    }
-                </strong>
-
-                <span>
-
-                    ${
-                        percentual === 100
-                            ? "Revise sua vitrine pública antes de divulgar."
-                            : primeiraPendente
-                                ?.titulo ||
-                              "Continue configurando sua loja."
-                    }
-
-                </span>
-
-            </div>
-
-            <div class="dashboard-launch-buttons">
-
-                <button
-                    type="button"
-                    class="dashboard-launch-secondary"
-                    data-launch-action="abrir-loja"
-                    ${slug ? "" : "disabled"}
-                >
-                    Abrir loja
-                </button>
-
-                <button
-                    type="button"
-                    class="dashboard-launch-primary"
-                    data-launch-action="${
-                        primeiraPendente
-                            ?.acao ||
-                        "abrir-loja"
-                    }"
-                >
-
-                    ${
-                        percentual === 100
-                            ? "Visualizar vitrine"
-                            : "Continuar configuração"
-                    }
-
-                </button>
-
-            </div>
-
-        </div>
-    `;
+        <div class="dashboard-launch-footer"><div><strong>${estado.proxima ? "Próximo passo recomendado" : "Revise suas configurações"}</strong>
+            <span>${estado.proxima?.titulo || "Você pode acessar as etapas disponíveis a qualquer momento."}</span></div>
+            <div class="dashboard-launch-buttons"><button type="button" class="dashboard-launch-secondary" data-launch-action="abrir-loja" ${slug && podeVerModuloNoContexto("configuracoes") ? "" : "disabled"}>Abrir loja</button>
+            ${estado.proxima ? `<button type="button" class="dashboard-launch-primary" data-launch-action="${estado.proxima.acao}" data-launch-field="${estado.proxima.campo}">Configurar agora</button>` : ""}</div></div>`;
 
     painel.onclick = evento => {
 
@@ -14628,12 +14283,13 @@ function renderizarCentralImplantacao() {
         const acao =
             botao.dataset.launchAction;
 
+        if (acao !== "abrir-loja" && !podeEditarModulo(acao === "novo-produto" ? "produtos" : "configuracoes")) return;
+        if (acao === "abrir-loja" && !podeVerModuloNoContexto("configuracoes")) return;
+
         const abrirConfiguracao =
             blocoId => {
 
-                window.ativarAba?.(
-                    "view-perfil"
-                );
+                if (window.ativarAba?.("view-perfil") === false) return;
 
                 setTimeout(() => {
 
@@ -14645,6 +14301,7 @@ function renderizarCentralImplantacao() {
                     if (botaoStudio) {
 
                         botaoStudio.click();
+                        setTimeout(() => document.getElementById(botao.dataset.launchField)?.focus(), 0);
                         return;
 
                     }
@@ -14658,6 +14315,7 @@ function renderizarCentralImplantacao() {
                         behavior: "smooth",
                         block: "start"
                     });
+                    document.getElementById(botao.dataset.launchField)?.focus();
 
                 }, 220);
 
