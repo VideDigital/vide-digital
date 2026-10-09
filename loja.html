@@ -232,6 +232,10 @@
         }
         #popup-captura input::placeholder, #chat-client-input::placeholder { color: var(--ink-4); }
         #popup-captura input:focus, #chat-client-input:focus { border-color: var(--accent) !important; outline: none; }
+        #popup-captura .popup-campo-erro { color: var(--ink); background: var(--surface-soft); border-left: 3px solid var(--ink); padding: 8px 10px; text-align: left; font-size: 14px; line-height: 1.5; }
+        #popup-captura [hidden] { display: none !important; }
+        #popup-captura input:focus-visible, #popup-captura button:focus-visible, #popup-captura h2:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+        #popup-captura #popup-enviar:disabled { cursor: wait; opacity: 0.7; }
         #chat-send-btn { background: var(--ink) !important; color: var(--bg) !important; }
         #btn-finalizar-carrinho { background: var(--ink) !important; color: var(--bg) !important; border-radius: 999px !important; }
         #btn-finalizar-carrinho:hover { filter: brightness(1.1); }
@@ -1480,17 +1484,23 @@
 <div class="absolute top-0 left-0 h-[3px] w-full" style="background: var(--accent);"></div>
             <button type="button" onclick="fecharPopup()" class="absolute top-2 right-2 icon-btn h-11 w-11 transition-colors" style="color: var(--ink-3);" aria-label="Fechar"><i data-lucide="x" style="width:18px;height:18px"></i></button>
             <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--accent);"><i data-lucide="gift" style="width:24px;height:24px"></i></div>
-            <h2 id="popup-captura-titulo" class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">Um presente para você.</h2>
-            <p class="text-sm" style="color: var(--ink-2);">Deixe seu WhatsApp e receba um cupom exclusivo de desconto agora mesmo.</p>
+            <h2 id="popup-captura-titulo" class="text-3xl font-display" style="font-family:'Instrument Serif',serif; color: var(--ink);">Vamos conversar?</h2>
+            <p class="text-sm" style="color: var(--ink-2);">Deixe seu contato para saber mais sobre os produtos e as ofertas da loja.</p>
+            <form id="popup-captura-form" novalidate>
             <div class="space-y-3 pt-2">
                 <label for="popup-nome" class="sr-only-accessible">Seu nome completo</label>
-                <input type="text" id="popup-nome" autocomplete="name" placeholder="Seu nome completo" class="w-full p-3.5 text-sm outline-none transition-all">
+                <input type="text" id="popup-nome" autocomplete="name" placeholder="Seu nome completo" aria-describedby="popup-nome-erro" aria-invalid="false" class="w-full p-3.5 text-sm outline-none transition-all">
+                <p id="popup-nome-erro" class="popup-campo-erro" hidden></p>
                 <label for="popup-whatsapp" class="sr-only-accessible">Seu WhatsApp com DDD</label>
-                <input type="text" id="popup-whatsapp" inputmode="numeric" autocomplete="tel" placeholder="Seu WhatsApp (com DDD)" class="w-full p-3.5 text-sm outline-none transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
+                <input type="text" id="popup-whatsapp" inputmode="numeric" autocomplete="tel" placeholder="Seu WhatsApp (com DDD)" aria-describedby="popup-whatsapp-erro" aria-invalid="false" class="w-full p-3.5 text-sm outline-none transition-all" maxlength="11" oninput="this.value=this.value.replace(/\D/g,'')">
+                <p id="popup-whatsapp-erro" class="popup-campo-erro" hidden></p>
             </div>
-            <button onclick="enviarLeadPopup()" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all hover:brightness-110" style="background-color: var(--client-brand, var(--ink)); color: var(--client-texto-botao, var(--bg));">
-                Quero meu desconto agora
+            <p id="popup-envio-status" role="status" aria-live="polite" aria-atomic="true" class="text-sm mt-3" style="color: var(--ink);"></p>
+            <p id="popup-envio-erro" role="alert" aria-atomic="true" class="popup-campo-erro" hidden></p>
+            <button id="popup-enviar" type="submit" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all hover:brightness-110" style="background-color: var(--client-brand, var(--ink)); color: var(--client-texto-botao, var(--bg));">
+                Enviar meu contato
             </button>
+            </form>
             <p class="text-[10px]" style="color: var(--ink-4);">Sem spam. Seus dados são protegidos e não serão compartilhados.</p>
         </div>
     </div>
@@ -5010,16 +5020,56 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
             sessionStorage.setItem("popupFechado", "1");
         };
 
+        // Estado exclusivamente visual: a identidade lógica continua no tracker compartilhado.
+        let popupEnviando = false;
+        let popupConfirmado = false;
+        function validarCampoPopup(id) {
+            const campo = document.getElementById(id);
+            const valor = campo.value.trim();
+            const mensagem = id === "popup-nome"
+                ? (valor ? "" : "Informe seu nome.")
+                : (!valor ? "Informe seu WhatsApp com DDD." : valor.length < 10 ? "Confira o número e informe o DDD." : "");
+            const erro = document.getElementById(id + "-erro");
+            campo.setAttribute("aria-invalid", mensagem ? "true" : "false");
+            erro.textContent = mensagem;
+            erro.hidden = !mensagem;
+            return !mensagem;
+        }
+        ["popup-nome", "popup-whatsapp"].forEach(function(id) {
+            document.getElementById(id).addEventListener("input", function() {
+                if (this.getAttribute("aria-invalid") === "true") validarCampoPopup(id);
+            });
+        });
+        document.getElementById("popup-captura-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+            window.enviarLeadPopup();
+        });
         window.enviarLeadPopup = async function() {
-            const nome = document.getElementById("popup-nome").value.trim();
-            const whatsapp = document.getElementById("popup-whatsapp").value.trim();
-            if (!nome || !whatsapp || whatsapp.length < 10) {
-                document.getElementById("popup-nome").style.borderColor = "#ef4444";
-                document.getElementById("popup-whatsapp").style.borderColor = "#ef4444";
+            if (popupEnviando || popupConfirmado) return;
+            const nomeValido = validarCampoPopup("popup-nome");
+            const whatsappValido = validarCampoPopup("popup-whatsapp");
+            if (!nomeValido || !whatsappValido) {
+                document.getElementById(!nomeValido ? "popup-nome" : "popup-whatsapp").focus();
                 return;
             }
+            const nomeCampo = document.getElementById("popup-nome");
+            const whatsappCampo = document.getElementById("popup-whatsapp");
+            const nome = nomeCampo.value.trim();
+            const whatsapp = whatsappCampo.value.trim();
+            const botao = document.getElementById("popup-enviar");
+            const form = document.getElementById("popup-captura-form");
+            const status = document.getElementById("popup-envio-status");
+            const erro = document.getElementById("popup-envio-erro");
+            popupEnviando = true;
+            botao.disabled = true;
+            botao.textContent = "Enviando...";
+            nomeCampo.readOnly = whatsappCampo.readOnly = true;
+            form.setAttribute("aria-busy", "true");
+            erro.hidden = true;
+            erro.textContent = "";
+            status.textContent = "Enviando seu contato...";
             try {
-                await capturarLeadPublico({
+                const resultado = await capturarLeadPublico({
                     nome,
                     whatsapp,
                     origem: utmSourceCapturada,
@@ -5031,18 +5081,34 @@ if (Array.isArray(dados.layoutLojaPublica) && dados.layoutLojaPublica.length > 0
                     cliques: 0,
                     tempoRetencao: Math.round((Date.now() - tempoInicioSessao) / 1000)
                 });
-                document.getElementById("popup-captura").innerHTML = `
+                if (typeof resultado?.id !== "string" || !resultado.id.trim()) {
+                    throw new Error("Captura sem confirmação válida.");
+                }
+                popupConfirmado = true;
+                const popup = document.getElementById("popup-captura");
+                // Somente markup fixo. Nenhum dado do visitante é interpolado como HTML.
+                popup.innerHTML = `
                     <div class="relative w-full max-w-md rounded-3xl p-10 text-center space-y-5 mx-auto" style="background: var(--surface); border:1px solid var(--border); box-shadow: var(--shadow-xl);">
                         <div class="mx-auto h-14 w-14 rounded-full flex items-center justify-center" style="background: var(--surface-soft); color: var(--success);"><i data-lucide="check" style="width:24px;height:24px"></i></div>
-                        <h2 class="text-3xl" style="font-family:'Instrument Serif',serif; color: var(--ink);">Cupom enviado.</h2>
-                        <p class="text-sm" style="color: var(--ink-2);">Obrigado, <strong style="color: var(--ink);">${nome}</strong>. Em breve você receberá seu desconto exclusivo no WhatsApp.</p>
-                        <button onclick="fecharPopup()" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all mt-2" style="background: var(--ink); color: var(--bg);">Continuar comprando</button>
+                        <h2 id="popup-captura-titulo" tabindex="-1" class="text-3xl" style="font-family:'Instrument Serif',serif; color: var(--ink);">Contato recebido!</h2>
+                        <p id="popup-sucesso" role="status" aria-live="polite" style="color: var(--ink-2);"></p>
+                        <button type="button" onclick="fecharPopup()" class="w-full font-semibold text-xs uppercase tracking-[0.2em] py-4 rounded-full transition-all mt-2" style="background: var(--ink); color: var(--bg);">Continuar navegando</button>
                     </div>
                 `;
+                document.getElementById("popup-sucesso").textContent = "Obrigado, " + nome + ". Recebemos seus dados. A loja poderá entrar em contato pelo WhatsApp.";
+                if (popup.getAttribute("aria-hidden") === "false") document.getElementById("popup-captura-titulo").focus();
                 if (window.lucide) lucide.createIcons();
                 sessionStorage.setItem("popupFechado", "1");
             } catch(err) {
-                console.error(err);
+                status.textContent = "";
+                erro.textContent = "Não conseguimos confirmar o envio. Verifique sua conexão e tente novamente.";
+                erro.hidden = false;
+            } finally {
+                popupEnviando = false;
+                form.setAttribute("aria-busy", "false");
+                nomeCampo.readOnly = whatsappCampo.readOnly = false;
+                botao.disabled = false;
+                botao.textContent = "Enviar meu contato";
             }
         };
         window.toggleChatWindow = function(forcarAberto) {
