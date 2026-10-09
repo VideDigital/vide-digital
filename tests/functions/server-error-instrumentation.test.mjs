@@ -323,10 +323,10 @@ function instalarFetch(resposta) {
 }
 const requestIaPrivada = () => ({
     auth: { uid: "auth-dono-qa", token: {} },
-    data: { pergunta: SENTINELAS.pergunta, historico: [{ role: "user", texto: SENTINELAS.historico }] }
+    data: { pergunta: SENTINELAS.pergunta, historico: [{ autor: "dono", texto: SENTINELAS.historico }] }
 });
 const requestIaPublica = () => ({
-    data: { storeSlug: SENTINELAS.storeSlug, pergunta: SENTINELAS.pergunta, historico: [{ role: "user", texto: SENTINELAS.historico }] }
+    data: { storeSlug: SENTINELAS.storeSlug, pergunta: SENTINELAS.pergunta, historico: [{ autor: "visitante", texto: SENTINELAS.historico }] }
 });
 const CORPO_ERRO = { error: { message: SENTINELAS.corpoProvedor } };
 
@@ -343,8 +343,14 @@ function assertLogGemini(esperadoStatus) {
     assert.ok(erro instanceof Error, "argumento é um Error");
     assert.match(erro.message, new RegExp(`^GEMINI_HTTP_ERROR: provedor respondeu HTTP ${esperadoStatus}$`));
     assert.match(erro.stack, /GEMINI_HTTP_ERROR[\s\S]*\n\s+at /, "stack presente");
-    assert.deepEqual(campos, { geminiStatus: esperadoStatus });
-    assert.equal(totalLogs(), 1);
+    assert.equal(campos.geminiStatus, esperadoStatus);
+    assert.equal(campos.model, esperadoStatus === 500 ? "gemini-3.5-flash-lite" : "gemini-3.8-flash");
+    assert.equal(campos.stage, esperadoStatus === 500 ? "fallback" : "primary");
+    assert.equal(campos.attempt, esperadoStatus === 500 ? 2 : 1);
+    assert.ok(["privado","publico"].includes(campos.caminho));
+    assert.equal(campos.kind, "http");
+    assert.ok(campos.durationMs >= 0);
+    assert.equal(totalLogs(), esperadoStatus === 500 ? 2 : 1);
 }
 
 for (const [rotulo, fn, req] of casosIa) {
@@ -362,7 +368,7 @@ for (const [rotulo, fn, req] of casosIa) {
         it("HTTP 404: continua unavailable/503 com a mesma mensagem, log com stack, sem PII", async () => {
             instalarFetch({ status: 404, body: CORPO_ERRO });
             await assert.rejects(() => fn().run(req()), (e) => assertHttpsError(e, "unavailable", 503,
-                "A IA não conseguiu responder agora (modelo \"gemini-flash-latest\" não encontrado pelo provedor). Avise o administrador da plataforma."));
+                "A IA não conseguiu responder agora (modelo \"gemini-3.8-flash\" não encontrado pelo provedor). Avise o administrador da plataforma."));
             assertLogGemini(404);
             assertSemSentinelas();
         });
@@ -381,9 +387,11 @@ for (const [rotulo, fn, req] of casosIa) {
             await assert.rejects(() => fn().run(req()), (e) => assertHttpsError(e, "unavailable", 503));
             const erros = chamadas("error");
             assert.equal(erros.length, 1);
-            assert.match(erros[0][0], /Falha de rede ao chamar o Gemini/);
-            assert.equal(erros[0][1], erroRede);
-            assert.equal(totalLogs(), 1);
+            assert.match(erros[0][0], /Erro do Gemini/);
+            assert.notEqual(erros[0][1], erroRede, "não vazar erro de transporte original");
+            assert.equal(erros[0][1].message, "GEMINI_NETWORK_ERROR");
+            assert.equal(erros[0][2].attempt, 2);
+            assert.equal(totalLogs(), 2);
             assertSemSentinelas();
         });
     });
@@ -405,15 +413,18 @@ for (const [rotulo, fn, req, caminho] of casosIa) {
             assert.match(erro.message, /^GEMINI_EMPTY_RESPONSE/);
             assert.match(erro.stack, /GEMINI_EMPTY_RESPONSE[\s\S]*\n\s+at /);
             assert.deepEqual(campos, { caminho });
-            assert.equal(totalLogs(), 1);
+            assert.equal(totalLogs(), 2, "HTTP200 metadata + único erro funcional, sem conteúdo");
             assertSemSentinelas();
         });
 
-        it("sucesso inalterado: devolve o texto e não loga nada", async () => {
+        it("sucesso devolve texto e apenas metadados sanitizados da tentativa", async () => {
             instalarFetch({ status: 200, body: { candidates: [{ content: { parts: [{ text: "Resposta ok" }] } }] } });
             const resultado = await fn().run(req());
             assert.equal(resultado.resposta, "Resposta ok");
-            assert.equal(totalLogs(), 0);
+            assert.equal(totalLogs(), 1);
+            assert.equal(chamadas("error").length, 0);
+            assert.deepEqual(chamadas("info")[0][1], {model:"gemini-3.8-flash",attempt:1,stage:"primary",caminho,kind:"success",geminiStatus:200,durationMs:chamadas("info")[0][1].durationMs});
+            assertSemSentinelas();
         });
     });
 }
