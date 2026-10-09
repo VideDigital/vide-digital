@@ -37,13 +37,16 @@ export async function checkOnboarding(browser) {
             await page.evaluate(()=>{document.querySelector('#view-perfil').innerHTML='<input id="perf-nome-loja" value="Rascunho não salvo">';window.beforeButton=document.querySelector('.dashboard-launch-primary');renderizarCentralImplantacao()});
             assert.equal(await page.evaluate(()=>beforeButton===document.querySelector('.dashboard-launch-primary')),true);
             assert.equal(await page.locator('.dashboard-launch-score strong').innerText(),'0%');
-            await page.locator('.dashboard-launch-primary').click();await page.waitForTimeout(260);
+            await page.locator('.dashboard-launch-primary').click();
+            await page.waitForFunction(() => document.activeElement?.id === 'perf-nome-loja');
             assert.equal(await page.evaluate(()=>document.activeElement.id),'perf-nome-loja');
             // Todos os destinos de configuração abrem a área e focam seu campo.
             await page.evaluate(()=>{document.querySelector('#view-perfil').innerHTML=['perf-nome-loja','perf-slug','perf-social-whatsapp-central','perf-carrinho-ativo','perf-titulo','perf-social-instagram','perf-cor-destaque'].map(id=>'<input id="'+id+'">').join('');['identidade','redes-sociais','carrinho-config','aparencia-cores'].forEach(id=>{let b=document.createElement('button');b.dataset.settingsStep=id;b.onclick=()=>window.lastArea=id;document.body.append(b)})});
             await page.locator('summary').click();
             for(const field of ['perf-nome-loja','perf-slug','perf-social-whatsapp-central','perf-carrinho-ativo','perf-titulo','perf-social-instagram','perf-cor-destaque']){
-                await page.locator('.dashboard-launch-task[data-launch-field="'+field+'"]').click();await page.waitForTimeout(270);
+                await page.locator('.dashboard-launch-task[data-launch-field="'+field+'"]').click();
+                // A ação foca após timers encadeados; aguarda o efeito, não 270 ms de relógio.
+                await page.waitForFunction(expected => document.activeElement?.id === expected, field);
                 assert.equal(await page.evaluate(()=>document.activeElement.id),field);
             }
             await page.locator('[data-launch-action="novo-produto"]').click();await page.waitForTimeout(220);assert.equal(await page.evaluate(()=>clicks),1);

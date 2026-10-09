@@ -557,14 +557,14 @@ async function main() {
         await page.waitForFunction(() => window.__videHubContextInitialized?.() === true, null, { timeout: 20000 });
         const ativouProdutosAposReload = await page.evaluate(() => window.ativarAba?.("view-produtos"));
         assert.equal(ativouProdutosAposReload, true, "a navegação explícita pra Produtos precisa ser aceita mesmo com uma aba salva diferente");
-        // carregarProdutos() só roda (de novo, depois do reload) DEPOIS do
-        // bloco de restauração da aba salva no código-fonte — esperar os
-        // cards reais reaparecerem garante que já passamos pelo ponto onde a
-        // restauração tardia rodaria, sem depender de um tempo fixo.
-        await page.waitForFunction(() => {
-            const container = document.getElementById("produtos-container");
-            return !!container && container.querySelectorAll(".aura-commerce-card").length > 0;
-        }, { timeout: 20000 });
+        // Os cards podem vir da carga de ativarAba() enquanto o boot ainda
+        // aguarda perfil/banners. Nesse caso o boot pode iniciar outra carga
+        // ENTRE a espera da seção F e a leitura de IDs, trocando por esqueleto.
+        // Usa o mesmo contrato da seção A: slug salvo confirma que o trecho
+        // síncrono que inicia a carga do boot rodou; depois exige os dois
+        // cards e ausência de esqueleto da carga mais recente. Sem sleep/retry.
+        await page.waitForFunction(() => window.__videSlugAtualSalvo?.() === "loja-pro-local", null, { timeout: 20000 });
+        await aguardarCargaProdutosConcluida(page, 2);
         const abaAtivaFinal = await page.evaluate(() => document.querySelector(".view-section.active")?.id);
         assert.equal(
             abaAtivaFinal,
@@ -593,6 +593,7 @@ async function main() {
             cards => cards.map(card => card.dataset.produtoId).sort()
         );
         assert.equal(idsAposNavegacaoRapida.length, 2, "navegação rápida não pode deixar cards duplicados, ausentes ou de uma resposta antiga");
+        assert.deepEqual(idsAposNavegacaoRapida, ["prod-local-1", "prod-local-2"], "A última carga deve preservar os IDs das duas fixtures ativas");
         await page.waitForSelector("#produtos-container .btn-gerenciar", { state: "visible", timeout: 10000 });
 
         // G) VIDE-HUB-SIDEBAR-PRODUTOS-REGISTRO-022 — caminho humano real:
