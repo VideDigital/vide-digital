@@ -126,6 +126,60 @@ async function aguardarCargaProdutosConcluida(page, totalCards) {
     }, totalCards, { timeout: 15000 });
 }
 
+// Sprint 102B: documentos legados visíveis ao dono não são necessariamente públicos.
+// Usa a carga real e o renderer do onboarding; restaura todas as fixtures alteradas.
+async function flowContratoPublicacaoOnboarding(page, db) {
+    assert.ok(process.env.FIRESTORE_EMULATOR_HOST, "Fixtures de status exigem Firestore Emulator");
+    const refs = ["prod-local-1", "prod-local-2", "prod-local-draft"].map(id => db.doc("produtos/" + id));
+    const snapshots = await Promise.all(refs.map(ref => ref.get()));
+    assert.ok(snapshots.every(s => s.exists && s.data().criadoPor === "owner-pro"));
+    const outroTenant = db.doc("produtos/prod-onboarding-102b-outro-tenant");
+    assert.equal((await outroTenant.get()).exists, false, "não sobrescrever fixture alheia");
+    const tarefa = page.locator('.dashboard-launch-task[data-launch-action="novo-produto"]');
+    const conferirTarefa = async (concluida, caso) => {
+        assert.equal(await tarefa.evaluate(e => e.classList.contains("is-complete")), concluida, caso);
+        assert.equal(await tarefa.locator('.dashboard-launch-task-action').innerText(), concluida ? "Concluído" : "Configurar", caso);
+    };
+    try {
+        await outroTenant.set({ criadoPor: "owner-basic", nome: "102B outro tenant", preco: 10, tipo: "fisico", statusProduto: "ativo" });
+        await refs[1].set({ ...snapshots[1].data(), statusProduto: "rascunho" });
+        const casos = [
+            ["ativo", "ativo", true], ["rascunho", "rascunho", false],
+            ["ausente", undefined, false], ["arquivado", "arquivado", false],
+            ["null", null, false], ["desconhecido", "pausado_legado", false],
+            ["vazio", "", false], ["ativo após atualização", "ativo", true]
+        ];
+        for (const [nome, status, publicada] of casos) {
+            const dados = { ...snapshots[0].data() };
+            delete dados.statusProduto;
+            if (status !== undefined) dados.statusProduto = status;
+            await refs[0].set(dados);
+            assert.equal(await page.evaluate(() => window.ativarAba("view-produtos")), true);
+            const cardsOperacionais = status === "rascunho" ? 0 : 1;
+            await aguardarCargaProdutosConcluida(page, cardsOperacionais);
+            await conferirTarefa(publicada, nome);
+            assert.equal(await page.locator('[data-produto-id="prod-onboarding-102b-outro-tenant"]').count(), 0, "outro tenant não entra na carga");
+            if (nome === "ausente" || nome === "ativo após atualização") {
+                await page.reload({ waitUntil: "domcontentloaded" });
+                await page.waitForFunction(() => window.__videSlugAtualSalvo?.() === "loja-pro-local", null, { timeout: 20000 });
+                await aguardarCargaProdutosConcluida(page, cardsOperacionais);
+                await conferirTarefa(publicada, nome + " após reload");
+            }
+            console.log(`onboarding/status ${nome}: catálogo operacional=${cardsOperacionais}, publicada=${publicada}`);
+        }
+        // Sem qualquer documento do próprio tenant, o ativo de B não completa a etapa.
+        await Promise.all(refs.map(ref => ref.delete()));
+        assert.equal(await page.evaluate(() => window.ativarAba("view-produtos")), true);
+        await aguardarCargaProdutosConcluida(page, 0);
+        await conferirTarefa(false, "nenhum produto do tenant");
+    } finally {
+        await Promise.all(snapshots.map(s => s.ref.set(s.data())));
+        await outroTenant.delete();
+    }
+    assert.deepEqual((await Promise.all(refs.map(ref => ref.get()))).map(s => s.data()), snapshots.map(s => s.data()), "restaurar fixtures exatas");
+    assert.equal((await outroTenant.get()).exists, false, "remover somente fixture temporária");
+}
+
 async function main() {
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
@@ -557,14 +611,14 @@ async function main() {
         await page.waitForFunction(() => window.__videHubContextInitialized?.() === true, null, { timeout: 20000 });
         const ativouProdutosAposReload = await page.evaluate(() => window.ativarAba?.("view-produtos"));
         assert.equal(ativouProdutosAposReload, true, "a navegação explícita pra Produtos precisa ser aceita mesmo com uma aba salva diferente");
-        // carregarProdutos() só roda (de novo, depois do reload) DEPOIS do
-        // bloco de restauração da aba salva no código-fonte — esperar os
-        // cards reais reaparecerem garante que já passamos pelo ponto onde a
-        // restauração tardia rodaria, sem depender de um tempo fixo.
-        await page.waitForFunction(() => {
-            const container = document.getElementById("produtos-container");
-            return !!container && container.querySelectorAll(".aura-commerce-card").length > 0;
-        }, { timeout: 20000 });
+        // Os cards podem vir da carga de ativarAba() enquanto o boot ainda
+        // aguarda perfil/banners. Nesse caso o boot pode iniciar outra carga
+        // ENTRE a espera da seção F e a leitura de IDs, trocando por esqueleto.
+        // Usa o mesmo contrato da seção A: slug salvo confirma que o trecho
+        // síncrono que inicia a carga do boot rodou; depois exige os dois
+        // cards e ausência de esqueleto da carga mais recente. Sem sleep/retry.
+        await page.waitForFunction(() => window.__videSlugAtualSalvo?.() === "loja-pro-local", null, { timeout: 20000 });
+        await aguardarCargaProdutosConcluida(page, 2);
         const abaAtivaFinal = await page.evaluate(() => document.querySelector(".view-section.active")?.id);
         assert.equal(
             abaAtivaFinal,
@@ -593,6 +647,7 @@ async function main() {
             cards => cards.map(card => card.dataset.produtoId).sort()
         );
         assert.equal(idsAposNavegacaoRapida.length, 2, "navegação rápida não pode deixar cards duplicados, ausentes ou de uma resposta antiga");
+        assert.deepEqual(idsAposNavegacaoRapida, ["prod-local-1", "prod-local-2"], "A última carga deve preservar os IDs das duas fixtures ativas");
         await page.waitForSelector("#produtos-container .btn-gerenciar", { state: "visible", timeout: 10000 });
 
         // G) VIDE-HUB-SIDEBAR-PRODUTOS-REGISTRO-022 — caminho humano real:
@@ -651,6 +706,7 @@ async function main() {
 
         await flowFuncionarioComPermissaoProdutos(browser, baseUrl);
         await flowFuncionarioSemPermissaoProdutos(browser, baseUrl);
+        await flowContratoPublicacaoOnboarding(page, db);
 
         const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
         assert.deepEqual(

@@ -25,15 +25,10 @@
     var quadroAgendado =
         0;
 
-    var contextoLoja =
-        new URLSearchParams(
-            window.location.search
-        ).get("masterUID") ||
-        "own";
-
-    var CHAVE_IMPLANTACAO =
-        "videDashboardImplantacaoRecolhida_" +
-        contextoLoja;
+    var preferenciasImplantacao = new Map();
+    function chaveImplantacao() {
+        return window.__videChaveImplantacao?.() || null;
+    }
 
     function numeroDoElemento(elemento) {
         var valor =
@@ -68,10 +63,25 @@
 
     function lerEstadoImplantacao() {
         try {
-            var valor =
-                localStorage.getItem(
-                    CHAVE_IMPLANTACAO
-                );
+            var chave = chaveImplantacao();
+            if (!chave) return null;
+            if (preferenciasImplantacao.has(chave)) return preferenciasImplantacao.get(chave);
+            var valor = localStorage.getItem(chave);
+
+            // A preferência antiga era visual e não identificava o ator.
+            // Migração única: vincula ao primeiro contexto ativo; não é
+            // reaplicada para outra conta/loja no mesmo navegador.
+            if (valor === null) {
+                var legado = "videDashboardImplantacaoRecolhida_" +
+                    (new URLSearchParams(window.location.search).get("masterUID") || "own");
+                var vinculo = localStorage.getItem(legado + "_migradoPara");
+                var valorLegado = localStorage.getItem(legado);
+                if (valorLegado !== null && (!vinculo || vinculo === chave)) {
+                    localStorage.setItem(legado + "_migradoPara", chave);
+                    localStorage.setItem(chave, valorLegado);
+                    valor = valorLegado;
+                }
+            }
 
             if (valor === null) {
                 return null;
@@ -87,10 +97,10 @@
         recolhido
     ) {
         try {
-            localStorage.setItem(
-                CHAVE_IMPLANTACAO,
-                String(recolhido)
-            );
+            var chave = chaveImplantacao();
+            if (!chave) return;
+            preferenciasImplantacao.set(chave, recolhido);
+            localStorage.setItem(chave, String(recolhido));
         } catch (erro) {
             /* O botão continua funcionando
                mesmo sem localStorage. */
@@ -242,10 +252,12 @@
         var estadoSalvo =
             lerEstadoImplantacao();
 
-        var recolhido =
-            estadoSalvo === null
-                ? percentual >= 100
-                : estadoSalvo;
+        var chave = chaveImplantacao();
+        var mesmoContexto = painel.dataset.launchPreferenceContext === chave;
+        var recolhido = estadoSalvo === null
+            ? (mesmoContexto ? painel.classList.contains("dashboard-launch-is-collapsed") : percentual >= 100)
+            : estadoSalvo;
+        painel.dataset.launchPreferenceContext = chave || "";
 
         aplicarEstadoImplantacao(
             painel,
