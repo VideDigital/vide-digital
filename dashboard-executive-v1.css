@@ -490,7 +490,25 @@
 #dashboard-launch-center .dashboard-launch-summary span,
 #dashboard-launch-center .dashboard-launch-footer span { font-size: 13px; line-height: 1.5; }
 #dashboard-launch-center summary { cursor: pointer; padding: 14px; color: var(--aura-text-primary); border: 1px solid var(--aura-border); border-radius: 14px; }
-#dashboard-launch-center :is(button,summary):focus-visible { outline: 2px solid var(--aura-text-primary); outline-offset: 3px; }
+#dashboard-launch-center :is(button,summary):focus-visible {
+    /* Duas cores contrastantes, independentes da paleta; anel interno não é
+       cortado pelo overflow do painel e não altera a geometria do controle. */
+    outline: 3px solid #f8fafc;
+    outline-offset: -3px;
+    box-shadow: inset 0 0 0 6px #0f172a;
+    /* transition: all dos controles não deve atrasar a indicação de foco. */
+    transition-property: background-color, border-color, color, transform;
+}
+
+/* Na Visão Geral a barra participa do fluxo, sem cobrir tarefas ao rolar.
+   As demais abas conservam o posicionamento e os gates atuais do editor. */
+#view-dashboard > #barra-editor-layout {
+    position: static;
+    max-width: 100%;
+    margin-bottom: 16px;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+}
 @media (max-width: 640px) {
     #dashboard-launch-center .dashboard-launch-tasks { grid-template-columns: 1fr; }
     #dashboard-launch-center .dashboard-launch-task { grid-template-columns: 1fr; }

@@ -2006,6 +2006,15 @@ function atualizarVisibilidadeBarraEditorLayout(targetId) {
 
     if (!barra) return;
 
+    // Só a Visão Geral aloja a barra antes do conteúdo: nenhuma tarefa/CTA
+    // precisa disputar a mesma área fixa durante o scroll. Ao sair dela,
+    // devolve a barra ao body para preservar as outras abas do editor.
+    if (abaAtual === "view-dashboard" && secao && barra.parentElement !== secao) {
+        secao.prepend(barra);
+    } else if (abaAtual !== "view-dashboard" && barra.parentElement?.id === "view-dashboard") {
+        document.body.appendChild(barra);
+    }
+
     barra.classList.toggle("hidden", !podeExibir);
     barra.classList.toggle("flex", podeExibir);
 
