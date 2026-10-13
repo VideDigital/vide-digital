@@ -1,4 +1,5 @@
 import { checkOnboarding } from './onboarding.flow.mjs';
+import { checkOnboardingIntegration } from './onboarding-integration.flow.mjs';
 // Fase 5/6 do Quality Gate: valida os 3 perfis (owner/editor/reader) e a
 // navegação pelas views principais. Login real (Auth Emulator), e o gate
 // de permissão testado é o REAL do app: ativarAba(targetId) só marca a
@@ -285,6 +286,7 @@ async function main() {
 
     try {
         await checkOnboarding(browser);
+        await checkOnboardingIntegration(browser, baseUrl);
         for (const perfil of PERFIS) {
             const falhas = await testarPerfil(
                 browser,

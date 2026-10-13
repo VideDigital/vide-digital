@@ -5,6 +5,11 @@
 // 3) dados seedados não carregados;
 // 4) falha funcional dentro da conversa ou dos templates.
 import assert from "node:assert/strict";
+import { resolve } from 'node:path';
+import { collectHttpDiagnostics } from './http-diagnostics.mjs';
+import { validateHttpDiagnostics } from './http-diagnostics.validation.mjs';
+import { initializeApp, deleteApp } from 'firebase-admin/app';
+import { getFirestore } from 'firebase-admin/firestore';
 import {
     captureDiagnostics,
     coletarErrosConsole,
@@ -153,18 +158,23 @@ async function main() {
     });
 
     const erros = coletarErrosConsole(page);
+    const http = collectHttpDiagnostics(page, { baseUrl });
 
     try {
+        await validateHttpDiagnostics(browser);
+        http.mark('login');
         await loginReal(page, baseUrl, {
             email: "owner.pro@local.test",
             senha: "Local123!pro"
         });
 
+        http.mark('atendimento-open');
         await ativarAtendimento(page);
         await esperarConversaSeedada(page);
         await page.waitForLoadState("networkidle").catch(() => {});
 
         // Selecionar a conversa seedada e carregar mensagens/eventos.
+        http.mark('conversation-selection');
         await page.click(
             "#atend-lista-conversas [data-atend-conversa-id]"
         );
@@ -175,6 +185,7 @@ async function main() {
         );
 
         // Responder a conversa e confirmar a mensagem enviada.
+        http.mark('conversation-reply');
         const textoResposta = `Resposta automatizada QA ${Date.now()}`;
 
         await page.fill("#atend-resposta-input", textoResposta);
@@ -189,6 +200,7 @@ async function main() {
         }, textoResposta, { timeout: 20000 });
 
         // Alterar status e confirmar o valor refletido.
+        http.mark('conversation-status');
         await page.selectOption(
             "#atend-status-select",
             "resolvida"
@@ -211,6 +223,7 @@ async function main() {
         }, { timeout: 15000 });
 
         // Abrir seletor e usar template seedado.
+        http.mark('template-apply');
         await page.click("#atend-btn-templates");
 
         await page.waitForSelector(
@@ -253,6 +266,7 @@ async function main() {
         );
 
         // Gestão de templates: o seletor fecha após inserir um template,
+        http.mark('template-management');
         // portanto precisa ser aberto novamente.
         await page.click("#atend-btn-templates");
 
@@ -269,6 +283,7 @@ async function main() {
         );
 
         // Criar novo template.
+        http.mark('template-form');
         await page.click("#atend-gestao-btn-novo");
 
         await page.waitForSelector(
@@ -284,9 +299,8 @@ async function main() {
             "Mensagem de teste automatizado, olá {{nome_cliente}}."
         );
 
-        await page.click(
-            "#atend-tpl-form button[type=submit]"
-        );
+        http.mark('template-submit');
+        await page.click("#atend-tpl-form button[type=submit]");
 
         await page.waitForFunction(titulo => {
             const lista = document.getElementById(
@@ -303,6 +317,17 @@ async function main() {
             );
         });
 
+        http.mark('list-updated');
+        // Confirmação independente, somente leitura na fixture do Emulator.
+        assert.match(process.env.FIRESTORE_EMULATOR_HOST || '', /^(127\.0\.0\.1|localhost):8080$/);
+        const diagnosticApp = initializeApp({projectId:'demo-vide-hub'}, 'templates-http-diagnostic');
+        try {
+            const persisted = await getFirestore(diagnosticApp).collection('templates')
+                .where('criadoPor','==','owner-pro').where('titulo','==',tituloNovo).get();
+            assert.equal(persisted.size,1,'template persistido uma vez no tenant da fixture');
+            http.mark('persistence-confirmed');
+        } finally { await deleteApp(diagnosticApp); }
+        http.mark('final-assertion');
         const errosRelevantes = erros.filter(
             erro => !ehErroDeRedeExterno(erro)
         );
@@ -320,21 +345,27 @@ async function main() {
         );
     } catch (error) {
         falhou = true;
+        http.mark('test-failure');
 
         await captureDiagnostics(
             page,
             "atendimento-templates-flow",
-            erros.filter(erro => !ehErroDeRedeExterno(erro))
+            erros.filter(erro => !ehErroDeRedeExterno(erro)).map(() => 'Erro inesperado; mensagem omitida. Consulte diagnóstico HTTP sanitizado.')
         );
 
         console.error(
             "atendimento-templates.flow: FALHOU —",
-            error.message
+            'Falha inesperada; consulte o artefato HTTP sanitizado e screenshot/HTML.'
         );
     } finally {
-        await page.close();
-        await browser.close();
-        await close();
+        // Congela a coleta no fim do teste, antes da escrita e do teardown.
+        http.dispose();
+        try {
+            const artifact = await http.save(resolve(import.meta.dirname,'../../../test-results/ui-diagnostics'));
+            console.log(`[http-diagnostics] ${artifact}`);
+        } finally {
+            await page.close();await browser.close();await close();
+        }
     }
 
     if (falhou) process.exit(1);
