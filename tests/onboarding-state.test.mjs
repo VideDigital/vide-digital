@@ -3,6 +3,16 @@ import assert from 'node:assert/strict';
 import { criarEstadoImplantacao, chavePreferenciaImplantacao } from '../onboarding-state-core.js';
 
 const permissoes = { podeConfigurar: true, podeCriarProduto: true };
+test('primeiro produto distingue ausência confirmada, carga desconhecida e oferta publicada', () => {
+    const tarefa = produtos => criarEstadoImplantacao({ produtos, ...permissoes }).tarefas.find(t => t.acao === 'novo-produto');
+    assert.equal(tarefa(null).conhecida, false);
+    assert.equal(tarefa(null).concluida, false);
+    assert.equal(tarefa(0).conhecida, true);
+    assert.equal(tarefa(0).concluida, false);
+    assert.equal(tarefa(1).conhecida, true);
+    assert.equal(tarefa(1).concluida, true);
+    assert.equal(tarefa(0).concluida, false, 'nova leitura sem ofertas deve retirar a conclusão');
+});
 test('novo proprietário: oito tarefas, três grupos e primeira ação contextual', () => {
     const s = criarEstadoImplantacao({ perfil: {}, produtos: 0, ...permissoes });
     assert.equal(s.concluidas, 0);

@@ -126,6 +126,60 @@ async function aguardarCargaProdutosConcluida(page, totalCards) {
     }, totalCards, { timeout: 15000 });
 }
 
+// Sprint 102B: documentos legados visíveis ao dono não são necessariamente públicos.
+// Usa a carga real e o renderer do onboarding; restaura todas as fixtures alteradas.
+async function flowContratoPublicacaoOnboarding(page, db) {
+    assert.ok(process.env.FIRESTORE_EMULATOR_HOST, "Fixtures de status exigem Firestore Emulator");
+    const refs = ["prod-local-1", "prod-local-2", "prod-local-draft"].map(id => db.doc("produtos/" + id));
+    const snapshots = await Promise.all(refs.map(ref => ref.get()));
+    assert.ok(snapshots.every(s => s.exists && s.data().criadoPor === "owner-pro"));
+    const outroTenant = db.doc("produtos/prod-onboarding-102b-outro-tenant");
+    assert.equal((await outroTenant.get()).exists, false, "não sobrescrever fixture alheia");
+    const tarefa = page.locator('.dashboard-launch-task[data-launch-action="novo-produto"]');
+    const conferirTarefa = async (concluida, caso) => {
+        assert.equal(await tarefa.evaluate(e => e.classList.contains("is-complete")), concluida, caso);
+        assert.equal(await tarefa.locator('.dashboard-launch-task-action').innerText(), concluida ? "Concluído" : "Configurar", caso);
+    };
+    try {
+        await outroTenant.set({ criadoPor: "owner-basic", nome: "102B outro tenant", preco: 10, tipo: "fisico", statusProduto: "ativo" });
+        await refs[1].set({ ...snapshots[1].data(), statusProduto: "rascunho" });
+        const casos = [
+            ["ativo", "ativo", true], ["rascunho", "rascunho", false],
+            ["ausente", undefined, false], ["arquivado", "arquivado", false],
+            ["null", null, false], ["desconhecido", "pausado_legado", false],
+            ["vazio", "", false], ["ativo após atualização", "ativo", true]
+        ];
+        for (const [nome, status, publicada] of casos) {
+            const dados = { ...snapshots[0].data() };
+            delete dados.statusProduto;
+            if (status !== undefined) dados.statusProduto = status;
+            await refs[0].set(dados);
+            assert.equal(await page.evaluate(() => window.ativarAba("view-produtos")), true);
+            const cardsOperacionais = status === "rascunho" ? 0 : 1;
+            await aguardarCargaProdutosConcluida(page, cardsOperacionais);
+            await conferirTarefa(publicada, nome);
+            assert.equal(await page.locator('[data-produto-id="prod-onboarding-102b-outro-tenant"]').count(), 0, "outro tenant não entra na carga");
+            if (nome === "ausente" || nome === "ativo após atualização") {
+                await page.reload({ waitUntil: "domcontentloaded" });
+                await page.waitForFunction(() => window.__videSlugAtualSalvo?.() === "loja-pro-local", null, { timeout: 20000 });
+                await aguardarCargaProdutosConcluida(page, cardsOperacionais);
+                await conferirTarefa(publicada, nome + " após reload");
+            }
+            console.log(`onboarding/status ${nome}: catálogo operacional=${cardsOperacionais}, publicada=${publicada}`);
+        }
+        // Sem qualquer documento do próprio tenant, o ativo de B não completa a etapa.
+        await Promise.all(refs.map(ref => ref.delete()));
+        assert.equal(await page.evaluate(() => window.ativarAba("view-produtos")), true);
+        await aguardarCargaProdutosConcluida(page, 0);
+        await conferirTarefa(false, "nenhum produto do tenant");
+    } finally {
+        await Promise.all(snapshots.map(s => s.ref.set(s.data())));
+        await outroTenant.delete();
+    }
+    assert.deepEqual((await Promise.all(refs.map(ref => ref.get()))).map(s => s.data()), snapshots.map(s => s.data()), "restaurar fixtures exatas");
+    assert.equal((await outroTenant.get()).exists, false, "remover somente fixture temporária");
+}
+
 async function main() {
     const { baseUrl, close } = await startStaticServer();
     const browser = await launchBrowser();
@@ -652,6 +706,7 @@ async function main() {
 
         await flowFuncionarioComPermissaoProdutos(browser, baseUrl);
         await flowFuncionarioSemPermissaoProdutos(browser, baseUrl);
+        await flowContratoPublicacaoOnboarding(page, db);
 
         const errosRelevantes = erros.filter(erro => !ehErroDeRedeExterno(erro));
         assert.deepEqual(

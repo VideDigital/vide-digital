@@ -61,10 +61,14 @@ export async function checkOnboarding(browser) {
             await page.evaluate(()=>{document.querySelector('#dashboard-launch-center').remove();renderizarCentralImplantacao()});await page.waitForSelector('.dashboard-launch-toggle');
             assert.equal(await page.locator('.dashboard-launch-toggle').getAttribute('aria-expanded'),'false');
             // Outro tenant não recebe os dados salvos do anterior nem sua preferência.
+            await page.evaluate(()=>{produtosImplantacaoSalvos.total=1;renderizarCentralImplantacao()});
+            assert.equal(await page.locator('.dashboard-launch-task[data-launch-action="novo-produto"]').getAttribute('class').then(c=>c.includes('is-complete')),true);
             await page.evaluate(()=>{ctx.storeUid='loja2';renderizarCentralImplantacao()});await page.waitForSelector('.dashboard-launch-toggle');
             assert.equal(await page.locator('.dashboard-launch-score strong').innerText(),'0%');
             assert.equal(await page.locator('.dashboard-launch-toggle').getAttribute('aria-expanded'),'true');
             assert.equal(await page.locator('.dashboard-launch-task-action').first().innerText(),'A confirmar');
+            assert.equal(await page.locator('.dashboard-launch-task[data-launch-action="novo-produto"] .dashboard-launch-task-action').innerText(),'A confirmar');
+            assert.equal(await page.locator('.dashboard-launch-task[data-launch-action="novo-produto"]').getAttribute('class').then(c=>c.includes('is-complete')),false);
             await page.evaluate(()=>{ctx.storeUid='loja1';edits=[];renderizarCentralImplantacao()});
             assert.equal(await page.locator('.dashboard-launch-task:not(:disabled)').count(),0);
             assert.equal(await page.locator('.dashboard-launch-primary').count(),0);

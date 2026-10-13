@@ -11863,6 +11863,9 @@ window.moderarAvaliacao = async function(id, status) {
                     const data = docSnap.data();
 
                     data.id = docSnap.id;
+                    // Oferta publicada segue loja.html, Rules e checkout: só "ativo".
+                    // O catálogo operacional também mostra registros privados legados;
+                    // aparecer ali ("!= rascunho") não comprova publicação na vitrine.
                     if (data.statusProduto === "ativo") produtosImplantacaoSalvos.total++;
 
                     const ehRascunho =
