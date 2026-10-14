@@ -3887,3 +3887,47 @@ describe("SPRINT-106-READ-EXCEPTIONS — diretório da equipe, auditoria e notif
     await assertSucceeds(getDoc(doc(staff, "usuarios", "ownerA")));
   });
 });
+
+
+describe("SPRINT-106-DIRECT-RECIPIENT — UID de funcionário não contorna suspensão", () => {
+  it("funcionário ativo recebe aviso individual; suspensão nega GET e marcação como lida", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "notificacoes", "s106-recipient-array"), {
+        destinatarios: ["employeeEdit"], titulo: "Aviso individual QA"
+      });
+      await setDoc(doc(db, "notificacoes", "s106-recipient-uid"), {
+        uid: "employeeEdit", titulo: "Aviso legado QA"
+      });
+    });
+    const employee = testEnv.authenticatedContext("employeeEdit").firestore();
+    for (const id of ["s106-recipient-array", "s106-recipient-uid"]) {
+      await assertSucceeds(getDoc(doc(employee, "notificacoes", id)));
+    }
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status: "inativo" });
+    });
+    for (const id of ["s106-recipient-array", "s106-recipient-uid"]) {
+      await assertFails(getDoc(doc(employee, "notificacoes", id)));
+      await assertFails(updateDoc(doc(employee, "notificacoes", id), {
+        lidoPor: arrayUnion("employeeEdit")
+      }));
+    }
+    // Mensagens administrativas diretamente endereçadas ao dono continuam
+    // acessíveis para informar a suspensão, sem expor dados da equipe.
+    await assertSucceeds(getDoc(doc(testEnv.authenticatedContext("ownerA").firestore(), "notificacoes", "notifOwnerA")));
+  });
+
+  it("funcionário em authSyncPendente não lê avisos por UID individual", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "notificacoes", "s106-sync-direct"), {
+        destinatarios: ["employeeEdit"], titulo: "Aviso individual QA"
+      });
+      await updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+        authSyncPendente: true, authSyncId: "s106-notif-pendente"
+      });
+    });
+    await assertFails(getDoc(doc(testEnv.authenticatedContext("employeeEdit").firestore(), "notificacoes", "s106-sync-direct")));
+  });
+});
