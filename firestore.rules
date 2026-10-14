@@ -128,8 +128,19 @@ service cloud.firestore {
       return isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey) || isBackendAdmin();
     }
 
+    // Bloqueia qualquer escrita de dono/funcionário quando a loja ainda
+    // está pendente, inativa ou bloqueada. O cadastro inicial do dono
+    // continua separado em validOwnerCreate() (status = "pendente").
+    // Admin backend conserva a capacidade de aprovação/recuperação.
+    function ownerApprovedForWrite(ownerUid) {
+      return exists(/databases/$(database)/documents/usuarios/$(ownerUid))
+        && get(/databases/$(database)/documents/usuarios/$(ownerUid)).data.status == "aprovado";
+    }
+
     function canEditTenant(ownerUid, moduleKey) {
-      return isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey) || isBackendAdmin();
+      return isBackendAdmin()
+        || (ownerApprovedForWrite(ownerUid)
+          && (isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey)));
     }
 
     function validOwnerCreateKeys() {
@@ -1234,14 +1245,18 @@ service cloud.firestore {
       // consegue contar documentos existentes com segurança, então
       // permitir escrita direta aqui sempre reabriria o bypass do limite.
       allow create: if false;
+      // Mudanças de status e permissões são operações críticas e passam
+      // exclusivamente por Functions (Admin SDK), que verificam
+      // owner/tenant e limites do plano. Owner só pode atualizar campos
+      // legados não privilegiados, com loja aprovada.
       allow update: if isBackendAdmin() || (
         isOwner(resource.data.donoUID)
+        && ownerApprovedForWrite(resource.data.donoUID)
         && request.auth.uid != employeeUid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "nome", "cargo", "permissoes", "status",
-          "senhaTemporaria", "atualizadoEm", "atualizadoPorAuthUid"
+          "nome", "cargo", "senhaTemporaria",
+          "atualizadoEm", "atualizadoPorAuthUid"
         ])
-        && request.resource.data.status in ["ativo", "inativo"]
         && employeeHasPermissionShape(request.resource.data)
         && request.resource.data.nome is string
         && request.resource.data.nome.size() >= 1
