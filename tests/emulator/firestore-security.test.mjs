@@ -3706,3 +3706,64 @@ describe("WhatsApp Oficial V1: canal \"whatsapp\" aceito nos chats (compatibilid
     await assertFails(getDoc(doc(authed("ownerB"), "chats", "chatWpp2")));
   });
 });
+
+describe("Sprint 106 — status de aprovação e mutations críticas de equipe", () => {
+  it("cadastro inicial pendente continua permitido e sem escalar privilégios", async () => {
+    const db = testEnv.authenticatedContext("s106-new-owner").firestore();
+    await assertSucceeds(setDoc(doc(db, "usuarios", "s106-new-owner"), {
+      identificador: "s106-loja",
+      email: "s106@example.test",
+      nomeLoja: "S106",
+      urlLoja: "s106",
+      status: "pendente",
+      criadoEm: Date.now()
+    }));
+    await assertFails(updateDoc(doc(db, "usuarios", "s106-new-owner"), { nomeLoja: "Tentativa indevida" }));
+    await assertFails(setDoc(doc(db, "produtos", "s106-pending-product"), {
+      criadoPor: "s106-new-owner", statusProduto: "ativo"
+    }));
+  });
+
+  it("owner aprovado mantém perfil e writes normais, sem poder dar status de funcionário diretamente", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "usuarios", "ownerA"), { nomeLoja: "Loja A atualizada" }));
+    await assertSucceeds(updateDoc(doc(db, "produtos", "prodA"), { nome: "Produto atualizado" }));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), { status: "inativo" }));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+      permissoes: { ver: ["funcionarios", "configuracoes"], editar: ["funcionarios", "configuracoes"] }
+    }));
+  });
+
+  it("owner pode manter edição legada de nome/cargo, sem tocar no limite ou nas permissões", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "funcionarios", "employeeEdit"), { nome: "Nome legítimo", cargo: "Operação" }));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), { nome: "X", status: "inativo" }));
+  });
+
+  for (const status of ["pendente", "inativo", "rejeitado"]) {
+    it(`loja ${status}: owner e employee não editam perfis ou módulos`, async () => {
+      await testEnv.withSecurityRulesDisabled(async context => {
+        await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status });
+      });
+      const owner = testEnv.authenticatedContext("ownerA").firestore();
+      const employee = testEnv.authenticatedContext("employeeEdit").firestore();
+      await assertFails(updateDoc(doc(owner, "usuarios", "ownerA"), { nomeLoja: "Bypass" }));
+      await assertFails(updateDoc(doc(owner, "produtos", "prodA"), { nome: "Bypass" }));
+      await assertFails(updateDoc(doc(owner, "funcionarios", "employeeEdit"), { cargo: "Bypass" }));
+      await assertFails(updateDoc(doc(employee, "produtos", "prodA"), { nome: "Bypass funcionário" }));
+    });
+  }
+
+  it("employee reader/cross-tenant continuam sem poder alterar perfil ou staff de outra loja", async () => {
+    const reader = testEnv.authenticatedContext("employeeRead").firestore();
+    const other = testEnv.authenticatedContext("ownerB").firestore();
+    await assertFails(updateDoc(doc(reader, "usuarios", "ownerA"), { nomeLoja: "Bypass" }));
+    await assertFails(updateDoc(doc(other, "funcionarios", "employeeEdit"), { cargo: "Bypass" }));
+  });
+
+  it("admin backend autorizado conserva recuperação/ativação", async () => {
+    const admin = testEnv.authenticatedContext("s106-backend-admin", { videAdmin: true }).firestore();
+    await assertSucceeds(updateDoc(doc(admin, "funcionarios", "employeeEdit"), { status: "inativo" }));
+    await assertSucceeds(updateDoc(doc(admin, "usuarios", "ownerA"), { status: "inativo" }));
+  });
+});
