@@ -22,6 +22,36 @@ describe("function validators", () => {
     assert.deepEqual(result, { ver: ["whatsapp"], editar: ["whatsapp"] });
   });
 
+  it("preserves every permission offered in the employee permissions UI", () => {
+    const uiPermissionKeys = [
+      "produtos", "pedidos", "leads", "atendimento", "templates", "crm",
+      "campanhas", "metricas", "configuracoes", "central-ia", "ia-copilot",
+      "landing-pages", "funcionarios", "whatsapp"
+    ];
+    const result = validators.sanitizePermissions({ editar: uiPermissionKeys });
+    assert.deepEqual(result.editar.slice().sort(), uiPermissionKeys.slice().sort());
+    assert.deepEqual(result.ver.slice().sort(), uiPermissionKeys.slice().sort());
+  });
+
+  it("retains dedicated CRM, attendance, copiloto and knowledge permissions on save", () => {
+    const result = validators.sanitizePermissions({
+      ver: ["atendimento", "crm", "base-conhecimento-ia", "ia-copilot"],
+      editar: ["crm", "ia-copilot"]
+    });
+    assert.deepEqual(result.ver.slice().sort(), ["atendimento", "crm", "base-conhecimento-ia", "ia-copilot"].sort());
+    assert.deepEqual(result.editar.slice().sort(), ["crm", "ia-copilot"].sort());
+  });
+
+  it("normalizes established server-side module aliases without merging independent grants", () => {
+    const result = validators.sanitizePermissions({
+      ver: ["conversas", "clientes", "copiloto", "knowledge-base", "inexistente"],
+      editar: ["crm_360", "ia_copilot"]
+    });
+    assert.deepEqual(result.ver.slice().sort(), ["atendimento", "crm", "ia-copilot", "base-conhecimento-ia"].sort());
+    assert.deepEqual(result.editar.slice().sort(), ["crm", "ia-copilot"].sort());
+    assert.ok(!result.editar.includes("atendimento"), "copiloto não autoriza editar atendimento");
+  });
+
   it("keeps public text bounded", () => {
     assert.equal(validators.publicText("  Olá   mundo  ", 20), "Olá mundo");
     assert.equal(validators.publicText("x".repeat(50), 10), "xxxxxxxxxx");
