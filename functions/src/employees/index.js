@@ -85,7 +85,7 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
   const auth = getAuth();
   const db = getFirestore();
   let createdUser = null;
-  let capacityCommitted = false;
+  let capacity = null;
   try {
     try {
       await auth.getUserByEmail(email);
@@ -95,64 +95,52 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
       if (error.code !== "auth/user-not-found") throw error;
     }
 
-    // The Auth identity cannot sign in until capacity has been reserved.
+    // Account is disabled until Firestore capacity AND Auth synchronization
+    // finish. The Rules deny access while authSyncPendente is true.
     createdUser = await auth.createUser({
-      email,
-      password,
-      displayName: nome,
-      disabled: true
+      email, password, displayName: nome, disabled: true
     });
-
-    await mutateEmployeeCapacity({
-      db,
-      ownerUid: context.ownerUid,
-      employeeUid: createdUser.uid,
-      operation: "create",
-      actorUid: context.authUid,
-      payload: {
-        nome,
-        email,
-        cargo,
-        senhaTemporaria: true,
-        permissoes,
-        criadoEm: FieldValue.serverTimestamp(),
-        criadoPorAuthUid: context.authUid
-      }
+    capacity = await mutateEmployeeCapacity({
+      db, ownerUid: context.ownerUid, employeeUid: createdUser.uid,
+      operation: "create", actorUid: context.authUid,
+      payload: { nome, email, cargo, senhaTemporaria: true, permissoes,
+        criadoEm: FieldValue.serverTimestamp(), criadoPorAuthUid: context.authUid }
     });
-    capacityCommitted = true;
     await auth.updateUser(createdUser.uid, { disabled: false });
-
-    // auditFuncionariosWrite observes the real Firestore creation.
+    await mutateEmployeeCapacity({
+      db, ownerUid: context.ownerUid, employeeUid: createdUser.uid,
+      operation: "complete-auth-sync", actorUid: context.authUid,
+      syncId: capacity.syncId
+    });
     return { ok: true, uid: createdUser.uid, email, nome, cargo, status: "ativo", permissoes };
   } catch (error) {
-    // Auth and Firestore cannot share one atomic transaction. Compensate
-    // when account enabling fails after a successful Firestore reservation.
-    let rollbackComplete = !capacityCommitted;
-    if (createdUser && capacityCommitted) {
+    // Never delete the Firestore guard first: Auth could still be enabled
+    // by a partially completed request. Delete the Auth account FIRST;
+    // if it fails, leave the employee pending and denied by the Rules.
+    let authDeleted = false;
+    if (createdUser?.uid) {
       try {
-        await mutateEmployeeCapacity({
-          db,
-          ownerUid: context.ownerUid,
-          employeeUid: createdUser.uid,
-          operation: "rollback-create",
-          actorUid: context.authUid
-        });
-        rollbackComplete = true;
+        await auth.deleteUser(createdUser.uid);
+        authDeleted = true;
       } catch (rollbackError) {
-        logger.error("[Funcionários] Não foi possível liberar a vaga de criação incompleta.", rollbackError, { uid: createdUser.uid });
+        logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError,
+          { orphanUid: createdUser.uid });
       }
     }
-    if (createdUser?.uid && rollbackComplete) {
-      await auth.deleteUser(createdUser.uid).catch((rollbackError) => {
-        logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError, { orphanUid: createdUser.uid });
-      });
+    if (authDeleted && capacity?.syncId) {
+      try {
+        await mutateEmployeeCapacity({
+          db, ownerUid: context.ownerUid, employeeUid: createdUser.uid,
+          operation: "rollback-create", actorUid: context.authUid,
+          syncId: capacity.syncId
+        });
+      } catch (rollbackError) {
+        logger.error("[Funcionários] Falha ao limpar reserva de vaga após rollback Auth.",
+          rollbackError, { uid: createdUser.uid });
+      }
     }
-    // If rollback failed, the Auth account remains disabled (fail closed)
-    // and the incident must be reconciled before retrying.
     if (error instanceof HttpsError) throw error;
-    // O SDK só registra erro não-HttpsError; convertido em "internal" aqui,
-    // a causa sumiria da observabilidade sem este log (nunca com dados do
-    // request: e-mail, senha, nome ou permissões).
+    // Never log name, email, password or requested permissions.
     logger.error("[Funcionários] Falha inesperada ao criar funcionário:", error);
     throw new HttpsError("internal", "Não foi possível criar o funcionário.");
   }
@@ -204,6 +192,9 @@ async function setEmployeeEnabled(request, enabled) {
   const auth = getAuth();
   // Auth first on enable would leave a login-capable account before quota
   // approval. Firestore first keeps Rules in control until Auth is enabled.
+  // Transaction marks authSyncPendente=true before ANY Auth request.
+  // A concurrent enable/disable fails closed rather than reordering Auth
+  // updates past the Firestore status transition.
   const mutation = await mutateEmployeeCapacity({
     db, ownerUid: context.ownerUid, employeeUid,
     operation: enabled ? "enable" : "disable", actorUid: context.authUid
@@ -211,21 +202,17 @@ async function setEmployeeEnabled(request, enabled) {
   try {
     await auth.updateUser(employeeUid, { disabled: !enabled });
     await auth.revokeRefreshTokens(employeeUid);
+    await mutateEmployeeCapacity({
+      db, ownerUid: context.ownerUid, employeeUid,
+      operation: "complete-auth-sync", actorUid: context.authUid,
+      syncId: mutation.syncId
+    });
   } catch (error) {
-    // On failed enable, free only the slot newly reserved by this call.
-    // If another concurrent call enabled the same account, the employee
-    // remains active but Auth state needs a separate reconciliation.
-    if (enabled && mutation.changed) {
-      try {
-        await mutateEmployeeCapacity({
-          db, ownerUid: context.ownerUid, employeeUid,
-          operation: "disable", actorUid: context.authUid
-        });
-      } catch (rollbackError) {
-        logger.error("[Funcionários] Falha ao compensar reativação no Firestore.", rollbackError, { employeeUid });
-      }
-    }
-    logger.error("[Funcionários] Falha ao sincronizar status do Firebase Auth.", error, { employeeUid });
+    // Do not undo another successful operation: leave pending flag set
+    // and block this account in Rules until an audited reconciliation.
+    // A retry must never overlap a request whose Auth response is unknown.
+    logger.error("[Funcionários] Falha ao sincronizar status do Firebase Auth.", error,
+      { employeeUid, syncId: mutation.syncId });
     throw new HttpsError("internal", "Não foi possível sincronizar o acesso do funcionário.");
   }
   return { ok: true, status: enabled ? "ativo" : "inativo" };
