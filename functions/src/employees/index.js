@@ -4,6 +4,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
+const { mutateEmployeeCapacity } = require("./capacity");
 const { resolveCallerContext } = require("../shared/context");
 const {
   employeeLimitForPlan,
@@ -79,11 +80,12 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     throw new HttpsError("invalid-argument", "Senha inicial deve ter ao menos 8 caracteres.");
   }
 
-  await assertEmployeeLimit(context.ownerUid, context.owner || {});
-
+  // A quota is enforced INSIDE the Firestore transaction (also on reactivation).
+  // The earlier preflight count alone was racy under concurrent requests.
   const auth = getAuth();
   const db = getFirestore();
   let createdUser = null;
+  let capacityCommitted = false;
   try {
     try {
       await auth.getUserByEmail(email);
@@ -93,38 +95,60 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
       if (error.code !== "auth/user-not-found") throw error;
     }
 
+    // The Auth identity cannot sign in until capacity has been reserved.
     createdUser = await auth.createUser({
       email,
       password,
       displayName: nome,
-      disabled: false
+      disabled: true
     });
 
-    await db.doc(`funcionarios/${createdUser.uid}`).set({
-      donoUID: context.ownerUid,
-      nome,
-      email,
-      cargo,
-      status: "ativo",
-      senhaTemporaria: true,
-      permissoes,
-      criadoEm: FieldValue.serverTimestamp(),
-      criadoPorAuthUid: context.authUid
+    await mutateEmployeeCapacity({
+      db,
+      ownerUid: context.ownerUid,
+      employeeUid: createdUser.uid,
+      operation: "create",
+      actorUid: context.authUid,
+      payload: {
+        nome,
+        email,
+        cargo,
+        senhaTemporaria: true,
+        permissoes,
+        criadoEm: FieldValue.serverTimestamp(),
+        criadoPorAuthUid: context.authUid
+      }
     });
+    capacityCommitted = true;
+    await auth.updateUser(createdUser.uid, { disabled: false });
 
-    // Sem writeAudit() aqui: auditFuncionariosWrite (trigger em
-    // funcionarios/{uid}) já cobre create/update/status desta coleção.
-
+    // auditFuncionariosWrite observes the real Firestore creation.
     return { ok: true, uid: createdUser.uid, email, nome, cargo, status: "ativo", permissoes };
   } catch (error) {
-    // Rollback best-effort: se falhar, fica um usuário Auth órfão — só o
-    // uid técnico vai pro log, e o erro original continua sendo o devolvido.
-    if (createdUser?.uid) {
-      const orphanUid = createdUser.uid;
-      await auth.deleteUser(orphanUid).catch((rollbackError) => {
-        logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError, { orphanUid });
+    // Auth and Firestore cannot share one atomic transaction. Compensate
+    // when account enabling fails after a successful Firestore reservation.
+    let rollbackComplete = !capacityCommitted;
+    if (createdUser && capacityCommitted) {
+      try {
+        await mutateEmployeeCapacity({
+          db,
+          ownerUid: context.ownerUid,
+          employeeUid: createdUser.uid,
+          operation: "rollback-create",
+          actorUid: context.authUid
+        });
+        rollbackComplete = true;
+      } catch (rollbackError) {
+        logger.error("[Funcionários] Não foi possível liberar a vaga de criação incompleta.", rollbackError, { uid: createdUser.uid });
+      }
+    }
+    if (createdUser?.uid && rollbackComplete) {
+      await auth.deleteUser(createdUser.uid).catch((rollbackError) => {
+        logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError, { orphanUid: createdUser.uid });
       });
     }
+    // If rollback failed, the Auth account remains disabled (fail closed)
+    // and the incident must be reconciled before retrying.
     if (error instanceof HttpsError) throw error;
     // O SDK só registra erro não-HttpsError; convertido em "internal" aqui,
     // a causa sumiria da observabilidade sem este log (nunca com dados do
@@ -175,21 +199,36 @@ async function setEmployeeEnabled(request, enabled) {
   if (employeeUid === context.authUid) {
     throw new HttpsError("permission-denied", "Você não pode alterar o próprio status.");
   }
-  const current = await loadEmployee(employeeUid);
-  if (current.donoUID !== context.ownerUid) {
-    throw new HttpsError("permission-denied", "Funcionário pertence a outro tenant.");
+
+  const db = getFirestore();
+  const auth = getAuth();
+  // Auth first on enable would leave a login-capable account before quota
+  // approval. Firestore first keeps Rules in control until Auth is enabled.
+  const mutation = await mutateEmployeeCapacity({
+    db, ownerUid: context.ownerUid, employeeUid,
+    operation: enabled ? "enable" : "disable", actorUid: context.authUid
+  });
+  try {
+    await auth.updateUser(employeeUid, { disabled: !enabled });
+    await auth.revokeRefreshTokens(employeeUid);
+  } catch (error) {
+    // On failed enable, free only the slot newly reserved by this call.
+    // If another concurrent call enabled the same account, the employee
+    // remains active but Auth state needs a separate reconciliation.
+    if (enabled && mutation.changed) {
+      try {
+        await mutateEmployeeCapacity({
+          db, ownerUid: context.ownerUid, employeeUid,
+          operation: "disable", actorUid: context.authUid
+        });
+      } catch (rollbackError) {
+        logger.error("[Funcionários] Falha ao compensar reativação no Firestore.", rollbackError, { employeeUid });
+      }
+    }
+    logger.error("[Funcionários] Falha ao sincronizar status do Firebase Auth.", error, { employeeUid });
+    throw new HttpsError("internal", "Não foi possível sincronizar o acesso do funcionário.");
   }
-  const status = enabled ? "ativo" : "inativo";
-  await getFirestore().doc(`funcionarios/${employeeUid}`).set({
-    status,
-    atualizadoEm: FieldValue.serverTimestamp(),
-    atualizadoPorAuthUid: context.authUid
-  }, { merge: true });
-  await getAuth().updateUser(employeeUid, { disabled: !enabled });
-  await getAuth().revokeRefreshTokens(employeeUid);
-  // Sem writeAudit() aqui: auditFuncionariosWrite já classifica a
-  // mudança de status (funcionario.desativado/funcionario.reativado).
-  return { ok: true, status };
+  return { ok: true, status: enabled ? "ativo" : "inativo" };
 }
 
 const disableEmployee = onCall({ region: "southamerica-east1" }, (request) => setEmployeeEnabled(request, false));
