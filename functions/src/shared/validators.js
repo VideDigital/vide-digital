@@ -5,6 +5,10 @@ const MODULES = new Set([
   "produtos",
   "pedidos",
   "leads",
+  "atendimento",
+  "crm",
+  "ia-copilot",
+  "base-conhecimento-ia",
   "templates",
   "campanhas",
   "metricas",
@@ -19,7 +23,24 @@ const MODULE_ALIASES = new Map([
   ["central_ia", "central-ia"],
   ["gerenciar_ia", "central-ia"],
   ["ia", "central-ia"],
-  ["inteligencia-artificial", "central-ia"]
+  ["inteligencia-artificial", "central-ia"],
+  ["ia_copilot", "ia-copilot"],
+  ["copiloto", "ia-copilot"],
+  ["copiloto-ia", "ia-copilot"],
+  ["copiloto_ia", "ia-copilot"],
+  ["conversas", "atendimento"],
+  ["atendimento_chat", "atendimento"],
+  ["templates_atendimento", "atendimento"],
+  ["clientes", "crm"],
+  ["crm-360", "crm"],
+  ["crm_360", "crm"],
+  ["observacoes_clientes", "crm"],
+  ["tags_clientes", "crm"],
+  ["base_conhecimento_ia", "base-conhecimento-ia"],
+  ["conhecimento-ia", "base-conhecimento-ia"],
+  ["conhecimento_ia", "base-conhecimento-ia"],
+  ["knowledge-base", "base-conhecimento-ia"],
+  ["base-ia", "base-conhecimento-ia"]
 ]);
 
 const PLAN_LIMITS = {
