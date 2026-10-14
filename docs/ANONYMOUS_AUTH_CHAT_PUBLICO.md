@@ -82,9 +82,12 @@ Campos novos em `chats/{chatId}` quando o chat nasce por este caminho:
 nunca `""` (o contrato V1 legado gravava sempre vazio, porque não havia
 identidade nenhuma pra gravar).
 
-Chats sem `visitorUid`/`versaoAcesso == 2` (documentos antigos, ou qualquer
-tentativa de gravar só um dos dois) contam como **legado** — ver
-`chatLegadoSemVisitor()` abaixo.
+**Regra de classificação atual (Sprint 104):** só chats sem ambos os campos
+`visitorUid` **e** `versaoAcesso` contam como **V1 legado**. Um documento
+com um desses campos isolado, valores incompletos ou combinação V2 inválida
+não recebe acesso público legado: falha fechado para leitura de mensagens,
+UPDATE e criação pública de mensagens/eventos. Essa medida não altera chats
+V1 legítimos, que não possuem nenhum dos dois campos.
 
 ## Firestore Rules
 
@@ -94,7 +97,7 @@ Funções em `firestore.rules` (criadas na Fase A, ajustadas na Fase B):
 |---|---|
 | `isAnonymousAuth()` | `request.auth != null` e `token.firebase.sign_in_provider == "anonymous"` |
 | `chatTemAcessoV2(chatData)` | o documento tem `visitorUid` (string não vazia) e `versaoAcesso == 2` |
-| `chatLegadoSemVisitor(chatData)` | o inverso — qualquer doc sem o par completo conta como V1 |
+| `chatLegadoSemVisitor(chatData)` | verdadeiro somente se **ambos os campos estiverem ausentes**; dados parciais/inválidos não são tratados como V1 |
 | `visitantePodeAcessarChat(chatData)` | anônimo + `chatTemAcessoV2` + `visitorUid == request.auth.uid` |
 | `chatPublicoV2CreateValido()` | create de `chats/{id}` pelo visitante anônimo (whitelist fechada, `visitorUid == request.auth.uid`, `versaoAcesso == 2`) — **Fase B: único caminho público de criação** |
 | `chatPublicoV2UpdateValido()` | update público (mensagem do cliente) só por quem tem a identidade |
