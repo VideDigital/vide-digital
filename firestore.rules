@@ -58,6 +58,10 @@ service cloud.firestore {
     function isActiveEmployeeForData(ownerUid, empData) {
       return employeeHasPermissionShape(empData)
         && empData.status == "ativo"
+        // A Function pode ter reservado vaga no Firestore enquanto Auth
+        // ainda sincroniza. Negar leitura e escrita até confirmar o Auth.
+        // Documento legado SEM flag mantém acesso anterior.
+        && (!empData.keys().hasAny(["authSyncPendente"]) || empData.authSyncPendente != true)
         && empData.donoUID == ownerUid;
     }
 
