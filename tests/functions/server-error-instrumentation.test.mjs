@@ -57,6 +57,7 @@ function novoEstado() {
         setCustomUserClaims: async () => {},
         deleteUser: async () => {},
         deleteCalls: [],
+        employeeRecord: null,
         docSet: async () => {},
         docGet: async () => ({ exists: true, data: () => ({ nomeLoja: SENTINELAS.lojaNome, plano: "pro", iaNegocioPublicaAtiva: true }) })
     };
@@ -88,25 +89,36 @@ const fakeFirestore = {
         const pendingWrites = [];
         const tx = {
             get: async (ref) => {
-                if (!ref?.path) return { size: 0, docs: [] }; // active query
+                if (!ref?.path) return { size: estado.employeeRecord?.status === "ativo" ? 1 : 0, docs: [] };
                 if (ref.path.startsWith("usuarios/")) {
                     return { exists: true, data: () => ({ status: "aprovado", plano: "pro" }) };
                 }
+                if (ref.path.startsWith("funcionarios/") && estado.employeeRecord) {
+                    return { exists: true, data: () => estado.employeeRecord };
+                }
                 return { exists: false, data: () => ({}) };
             },
-            create: (ref, data) => pendingWrites.push([ref.path, data]),
-            set: (ref, data) => pendingWrites.push([ref.path, data]),
-            update: (ref, data) => pendingWrites.push([ref.path, data]),
-            delete: (ref) => pendingWrites.push([ref.path, null])
+            create: (ref, data) => pendingWrites.push([ref.path, data, "create"]),
+            set: (ref, data) => pendingWrites.push([ref.path, data, "set"]),
+            update: (ref, data) => pendingWrites.push([ref.path, data, "update"]),
+            delete: (ref) => pendingWrites.push([ref.path, null, "delete"])
         };
         const outcome = await fn(tx);
-        for (const [p, data] of pendingWrites) await estado.docSet(p, data);
+        for (const [p, data, kind] of pendingWrites) {
+            await estado.docSet(p, data);
+            if (p.startsWith("funcionarios/")) {
+                estado.employeeRecord = kind === "delete" ? null
+                    : kind === "create" ? { ...data }
+                    : { ...(estado.employeeRecord || {}), ...data };
+            }
+        }
         return outcome;
     }
 };
 const FieldValue = {
     serverTimestamp: () => "ts",
     increment: (n) => n,
+    delete: () => "FIELD_DELETE",
     arrayUnion: (...v) => v,
     arrayRemove: (...v) => v
 };
