@@ -3852,3 +3852,38 @@ describe("SPRINT-106-AUTH-GUARD — funcionário com sincronização pendente n�
     }));
   });
 });
+
+describe("SPRINT-106-READ-EXCEPTIONS — diretório da equipe, auditoria e notificações", () => {
+  it("loja inativa não expõe diretório de equipe, auditoria nem notificações privadas ao funcionário", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "s106-staff-manager"), {
+        donoUID: "ownerA", status: "ativo",
+        permissoes: { ver: ["funcionarios"], editar: [] }
+      });
+      await setDoc(doc(db, "auditoria", "s106-tenant-event"), {
+        ownerUid: "ownerA", action: "teste-qa"
+      });
+      await setDoc(doc(db, "notificacoes", "s106-staff-notification"), {
+        destinatarios: ["ownerA"], tipo: "aviso", mensagem: "Aviso QA"
+      });
+    });
+    const owner = testEnv.authenticatedContext("ownerA").firestore();
+    const staff = testEnv.authenticatedContext("s106-staff-manager").firestore();
+    await assertSucceeds(getDoc(doc(owner, "auditoria", "s106-tenant-event")));
+    await assertSucceeds(getDoc(doc(owner, "funcionarios", "employeeEdit")));
+    await assertSucceeds(getDoc(doc(staff, "funcionarios", "employeeEdit")));
+    await assertSucceeds(getDoc(doc(staff, "notificacoes", "s106-staff-notification")));
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status: "inativo" });
+    });
+    await assertFails(getDoc(doc(owner, "auditoria", "s106-tenant-event")));
+    await assertFails(getDoc(doc(owner, "funcionarios", "employeeEdit")));
+    await assertFails(getDoc(doc(staff, "funcionarios", "employeeEdit")));
+    await assertFails(getDoc(doc(staff, "notificacoes", "s106-staff-notification")));
+    // Autodiagnóstico da identidade continua disponível.
+    await assertSucceeds(getDoc(doc(staff, "funcionarios", "s106-staff-manager")));
+    await assertSucceeds(getDoc(doc(staff, "usuarios", "ownerA")));
+  });
+});
