@@ -624,11 +624,11 @@ service cloud.firestore {
         && chatData.visitorUid != ""
         && chatData.versaoAcesso == 2;
     }
-    // Documento sem o par visitorUid/versaoAcesso == 2 completo conta como
-    // legado — inclui chats criados antes desta etapa E qualquer tentativa
-    // de escrever só um dos dois campos (nunca um estado "meio V2").
+    // Apenas chats sem NENHUM dos dois campos de identidade são V1 legado.
+    // Dados parciais ou inválidos ("meio V2") falham fechado: não podem
+    // usar o caminho público V1 de leitura, atualização, mensagem ou evento.
     function chatLegadoSemVisitor(chatData) {
-      return !chatTemAcessoV2(chatData);
+      return !chatData.keys().hasAny(["visitorUid", "versaoAcesso"]);
     }
     function visitantePodeAcessarChat(chatData) {
       return isAnonymousAuth()
