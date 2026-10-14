@@ -70,8 +70,11 @@ async function resolveCallerContext(request) {
   }
 
   const employee = { id: employeeSnap.id, ...employeeSnap.data() };
-  if (employee.status !== "ativo" || !employee.donoUID) {
-    throw new HttpsError("permission-denied", "Funcionário inativo ou sem loja vinculada.");
+  // Admin SDK ignora Firestore Rules: o mesmo lock da Rule deve valer
+  // também para todas as Callables que usam este contexto compartilhado.
+  // O legado sem authSyncPendente continua permitido.
+  if (employee.status !== "ativo" || !employee.donoUID || employee.authSyncPendente === true) {
+    throw new HttpsError("permission-denied", "Funcionário inativo, com acesso pendente ou sem loja vinculada.");
   }
 
   const owner = await loadOwner(employee.donoUID);
