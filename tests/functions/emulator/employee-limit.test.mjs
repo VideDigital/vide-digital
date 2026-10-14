@@ -91,3 +91,92 @@ describe("assertEmployeeLimit — contagem real contra o Firestore (não mais by
     );
   });
 });
+
+// Sprint 106: quota checks must be atomic (both create AND reactivate).
+// All fixtures are scoped to demo-vide-hub Firestore Emulator.
+const { mutateEmployeeCapacity } = (await import("../../../functions/src/employees/capacity.js")).default;
+const capOwner = "s106-capacity-owner";
+
+async function capFixture(plan = "pro", status = "aprovado") {
+  await limparFuncionarios(capOwner);
+  await db.doc(`employee_capacity_guards/${capOwner}`).delete();
+  await db.doc(`usuarios/${capOwner}`).set({ plano: plan, status });
+}
+function mutate(employeeUid, operation, extra = {}) {
+  return mutateEmployeeCapacity({
+    db, ownerUid: capOwner, employeeUid, operation,
+    actorUid: capOwner, ...extra
+  });
+}
+function newPayload(email) {
+  return { nome: "QA Sprint 106", email, criadoPorAuthUid: capOwner };
+}
+
+describe("Sprint 106 — vagas atômicas por tenant", () => {
+  beforeEach(async () => capFixture());
+
+  it("duas criações concorrentes não excedem plano pro (limite 1)", async () => {
+    const results = await Promise.allSettled([
+      mutate("s106-create-a", "create", { payload: newPayload("a@qa.invalid") }),
+      mutate("s106-create-b", "create", { payload: newPayload("b@qa.invalid") })
+    ]);
+    assert.equal(results.filter(x => x.status === "fulfilled").length, 1);
+    assert.equal(results.filter(x => x.status === "rejected").length, 1);
+    assert.match(String(results.find(x => x.status === "rejected").reason), /Limite de funcionários/);
+    const active = await db.collection("funcionarios").where("donoUID", "==", capOwner).where("status", "==", "ativo").get();
+    assert.equal(active.size, 1);
+  });
+
+  it("reativação nega quando a vaga já está ocupada", async () => {
+    await mutate("s106-active", "create", { payload: newPayload("active@qa.invalid") });
+    await db.doc("funcionarios/s106-inactive").set({ donoUID: capOwner, status: "inativo" });
+    await assert.rejects(() => mutate("s106-inactive", "enable"), /Limite de funcionários/);
+    assert.equal((await db.doc("funcionarios/s106-inactive").get()).data().status, "inativo");
+  });
+
+  it("reativações concorrentes disputam a mesma última vaga", async () => {
+    await db.doc("funcionarios/s106-inactive-a").set({ donoUID: capOwner, status: "inativo" });
+    await db.doc("funcionarios/s106-inactive-b").set({ donoUID: capOwner, status: "inativo" });
+    const results = await Promise.allSettled([
+      mutate("s106-inactive-a", "enable"),
+      mutate("s106-inactive-b", "enable")
+    ]);
+    assert.equal(results.filter(x => x.status === "fulfilled").length, 1);
+    assert.equal(results.filter(x => x.status === "rejected").length, 1);
+    assert.match(String(results.find(x => x.status === "rejected").reason), /Limite de funcionários/);
+  });
+
+  it("desativar libera vaga; reativação repetida é idempotente", async () => {
+    await mutate("s106-first", "create", { payload: newPayload("first@qa.invalid") });
+    await mutate("s106-first", "disable");
+    await mutate("s106-second", "create", { payload: newPayload("second@qa.invalid") });
+    await assert.rejects(() => mutate("s106-first", "enable"), /Limite de funcionários/);
+    const repeated = await mutate("s106-second", "enable");
+    assert.equal(repeated.changed, false);
+  });
+
+  it("status de loja não aprovado bloqueia create e enable", async () => {
+    await capFixture("pro", "pendente");
+    await db.doc("funcionarios/s106-pending").set({ donoUID: capOwner, status: "inativo" });
+    await assert.rejects(
+      () => mutate("s106-unapproved", "create", { payload: newPayload("pending@qa.invalid") }),
+      /Loja não aprovada/
+    );
+    await assert.rejects(() => mutate("s106-pending", "enable"), /Loja não aprovada/);
+  });
+
+  it("não altera funcionário de outro tenant e preserva o outro tenant", async () => {
+    await db.doc("funcionarios/s106-other").set({ donoUID: "s106-tenant-other", status: "inativo" });
+    await assert.rejects(() => mutate("s106-other", "enable"), /outro tenant/);
+    assert.equal((await db.doc("funcionarios/s106-other").get()).data().status, "inativo");
+    await db.doc("funcionarios/s106-other").delete();
+  });
+
+  it("rollback da criação libera a vaga sem afetar outra conta", async () => {
+    await mutate("s106-to-rollback", "create", { payload: newPayload("rollback@qa.invalid") });
+    await mutate("s106-to-rollback", "rollback-create");
+    assert.equal((await db.doc("funcionarios/s106-to-rollback").get()).exists, false);
+    await mutate("s106-reuse", "create", { payload: newPayload("reuse@qa.invalid") });
+    assert.equal((await db.doc("funcionarios/s106-reuse").get()).data().status, "ativo");
+  });
+});
