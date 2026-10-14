@@ -285,7 +285,11 @@ service cloud.firestore {
       let emp = employeeExists() ? employeeDoc().data : null;
       return isBackendAdmin()
         || (dados.keys().hasAny(["destinatarios"]) && dados.destinatarios == "todos")
-        || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios)
+        || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios
+            // Um destinatário individual também pode ser funcionário. Não
+            // permitir bypass do bloqueio de tenant/status pela lista de UIDs.
+            && (emp == null || (isActiveEmployeeForData(emp.donoUID, emp)
+              && ownerApprovedForAccess(emp.donoUID))))
         // funcionário: destinatarios guarda o uid do DONO da loja (admin.html
         // manda notificação pro tenant, não pra conta individual do
         // funcionário) — o app consulta com effectiveUid (donoUID) tanto pra
@@ -300,7 +304,9 @@ service cloud.firestore {
             && isActiveEmployeeForData(emp.donoUID, emp)
             && ownerApprovedForAccess(emp.donoUID)
             && emp.donoUID in dados.destinatarios)
-        || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
+        || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid
+            && (emp == null || (isActiveEmployeeForData(emp.donoUID, emp)
+              && ownerApprovedForAccess(emp.donoUID))));
     }
 
     // Cada destinatário pode marcar a própria notificação como lida/não lida
