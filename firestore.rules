@@ -124,22 +124,29 @@ service cloud.firestore {
         && employeeHasModulePermission(empData.permissoes.editar, moduleKey);
     }
 
+    // A suspensão do tenant revoga imediatamente o acesso PRIVADO do
+    // proprietário e da equipe, inclusive com ID tokens ainda válidos.
+    // Leituras de sessão em usuarios/{uid} e funcionarios/{uid} mantêm
+    // regras próprias para mostrar o status/bloqueio sem acesso aos módulos.
+    // Recursos explicitamente públicos preservam seus caminhos públicos.
     function canViewTenant(ownerUid, moduleKey) {
-      return isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey) || isBackendAdmin();
+      return isBackendAdmin()
+        || (ownerApprovedForAccess(ownerUid)
+          && (isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey)));
     }
 
     // Bloqueia qualquer escrita de dono/funcionário quando a loja ainda
     // está pendente, inativa ou bloqueada. O cadastro inicial do dono
     // continua separado em validOwnerCreate() (status = "pendente").
     // Admin backend conserva a capacidade de aprovação/recuperação.
-    function ownerApprovedForWrite(ownerUid) {
+    function ownerApprovedForAccess(ownerUid) {
       return exists(/databases/$(database)/documents/usuarios/$(ownerUid))
         && get(/databases/$(database)/documents/usuarios/$(ownerUid)).data.status == "aprovado";
     }
 
     function canEditTenant(ownerUid, moduleKey) {
       return isBackendAdmin()
-        || (ownerApprovedForWrite(ownerUid)
+        || (ownerApprovedForAccess(ownerUid)
           && (isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey)));
     }
 
@@ -1251,7 +1258,7 @@ service cloud.firestore {
       // legados não privilegiados, com loja aprovada.
       allow update: if isBackendAdmin() || (
         isOwner(resource.data.donoUID)
-        && ownerApprovedForWrite(resource.data.donoUID)
+        && ownerApprovedForAccess(resource.data.donoUID)
         && request.auth.uid != employeeUid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
           "nome", "cargo", "senhaTemporaria",
