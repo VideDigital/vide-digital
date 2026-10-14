@@ -86,6 +86,7 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
   const db = getFirestore();
   let createdUser = null;
   let capacity = null;
+  let authEnableAttempted = false;
   try {
     try {
       await auth.getUserByEmail(email);
@@ -106,6 +107,9 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
       payload: { nome, email, cargo, senhaTemporaria: true, permissoes,
         criadoEm: FieldValue.serverTimestamp(), criadoPorAuthUid: context.authUid }
     });
+    // A resposta da chamada externa pode se perder após o Auth aplicar a
+    // mudança. A partir daqui, excluir o usuário num catch é inseguro.
+    authEnableAttempted = true;
     await auth.updateUser(createdUser.uid, { disabled: false });
     await mutateEmployeeCapacity({
       db, ownerUid: context.ownerUid, employeeUid: createdUser.uid,
@@ -114,11 +118,12 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     });
     return { ok: true, uid: createdUser.uid, email, nome, cargo, status: "ativo", permissoes };
   } catch (error) {
-    // Never delete the Firestore guard first: Auth could still be enabled
-    // by a partially completed request. Delete the Auth account FIRST;
-    // if it fails, leave the employee pending and denied by the Rules.
+    // Só é seguro apagar Auth quando NENHUMA tentativa de habilitação foi
+    // enviada. Se updateUser/complete-auth-sync tiver resultado ambíguo,
+    // pode haver um commit já concluído; não apagar uma conta válida.
+    // Manter a pendência e exigir reconciliação auditada (fail closed).
     let authDeleted = false;
-    if (createdUser?.uid) {
+    if (createdUser?.uid && !authEnableAttempted) {
       try {
         await auth.deleteUser(createdUser.uid);
         authDeleted = true;
@@ -126,6 +131,10 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
         logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError,
           { orphanUid: createdUser.uid });
       }
+    }
+    if (createdUser?.uid && authEnableAttempted) {
+      logger.error("[Funcionários] Criação Auth/Firestore com resultado incerto; reconciliação necessária.",
+        { uid: createdUser.uid, syncId: capacity?.syncId || null });
     }
     if (authDeleted && capacity?.syncId) {
       try {
