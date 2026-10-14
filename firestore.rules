@@ -698,11 +698,13 @@ service cloud.firestore {
     // "ia-copilot" — um funcionário com só "atendimento" não passa aqui.
     // O dono sempre passa (bypass de isOwner dentro de canEditTenant).
     function podeUsarIaCopilot(chatData) {
-      return podeResponderChat(chatData)
-        && (
-          (chatData.keys().hasAny(["donoUID"]) && canEditTenant(chatData.donoUID, "ia-copilot"))
-          || (chatData.keys().hasAny(["emailDono"]) && canEditTenant(chatData.emailDono, "ia-copilot"))
-        );
+      // eventoAtendimentoStaffValido() já exige podeResponderChat() para
+      // QUALQUER evento. Não duplicar essa cadeia de permissões na
+      // verificação adicional de IA: isso estourava 1000 expressões nas
+      // Rules. Verifica apenas o grant dedicado, usando o dono canônico
+      // (donoUID quando existir; fallback emailDono de chats legados).
+      return chatData.keys().hasAny(["donoUID", "emailDono"])
+        && canEditTenant(donoUidDoChat(chatData), "ia-copilot");
     }
     // CRM 360: aberto de dentro da Central de Atendimento, então quem já
     // pode ver/editar atendimento também pode ver/editar o CRM — mais a
