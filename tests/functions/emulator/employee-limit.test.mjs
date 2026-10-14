@@ -102,11 +102,19 @@ async function capFixture(plan = "pro", status = "aprovado") {
   await db.doc(`employee_capacity_guards/${capOwner}`).delete();
   await db.doc(`usuarios/${capOwner}`).set({ plano: plan, status });
 }
-function mutate(employeeUid, operation, extra = {}) {
-  return mutateEmployeeCapacity({
+async function mutate(employeeUid, operation, extra = {}) {
+  const result = await mutateEmployeeCapacity({
     db, ownerUid: capOwner, employeeUid, operation,
     actorUid: capOwner, ...extra
   });
+  if (["create", "enable", "disable"].includes(operation)) {
+    // Emulador: representa a conclusão bem-sucedida do passo Auth.
+    await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid, operation: "complete-auth-sync",
+      actorUid: capOwner, syncId: result.syncId
+    });
+  }
+  return result;
 }
 function newPayload(email) {
   return { nome: "QA Sprint 106", email, criadoPorAuthUid: capOwner };
@@ -173,10 +181,84 @@ describe("Sprint 106 — vagas atômicas por tenant", () => {
   });
 
   it("rollback da criação libera a vaga sem afetar outra conta", async () => {
-    await mutate("s106-to-rollback", "create", { payload: newPayload("rollback@qa.invalid") });
-    await mutate("s106-to-rollback", "rollback-create");
+    // Simula a falha do Auth enquanto a reserva da criação ainda está pendente.
+    const reserved = await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-to-rollback",
+      operation: "create", actorUid: capOwner,
+      payload: newPayload("rollback@qa.invalid")
+    });
+    await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-to-rollback",
+      operation: "rollback-create", actorUid: capOwner, syncId: reserved.syncId
+    });
     assert.equal((await db.doc("funcionarios/s106-to-rollback").get()).exists, false);
     await mutate("s106-reuse", "create", { payload: newPayload("reuse@qa.invalid") });
     assert.equal((await db.doc("funcionarios/s106-reuse").get()).data().status, "ativo");
+  });
+});
+
+describe("Sprint 106 — serialização Auth/Firestore com reserva ativa no Emulator", () => {
+  beforeEach(async () => capFixture());
+
+  it("não admite DISABLE enquanto ENABLE do mesmo UID ainda sincroniza Auth", async () => {
+    await db.doc("funcionarios/s106-auth-race").set({
+      donoUID: capOwner, status: "inativo", permissoes: { ver: ["produtos"], editar: [] }
+    });
+    const first = await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "enable", actorUid: capOwner
+    });
+    assert.equal(first.status, "ativo");
+    const pending = (await db.doc("funcionarios/s106-auth-race").get()).data();
+    assert.equal(pending.authSyncPendente, true);
+    await assert.rejects(() => mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "disable", actorUid: capOwner
+    }), /Sincronização de acesso em andamento/);
+    await assert.rejects(() => mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "complete-auth-sync", actorUid: capOwner, syncId: "id-antigo-invalido"
+    }), /Sincronização de funcionário diferente/);
+    await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "complete-auth-sync", actorUid: capOwner, syncId: first.syncId
+    });
+    await mutate("s106-auth-race", "disable");
+    assert.equal((await db.doc("funcionarios/s106-auth-race").get()).data().status, "inativo");
+  });
+
+  it("segundo ENABLE é bloqueado enquanto o primeiro ainda executa Auth", async () => {
+    await db.doc("funcionarios/s106-auth-race").set({ donoUID: capOwner, status: "inativo" });
+    const a = await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "enable", actorUid: capOwner
+    });
+    await assert.rejects(() => mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "enable", actorUid: capOwner
+    }), /Sincronização de acesso em andamento/);
+    await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-race",
+      operation: "complete-auth-sync", actorUid: capOwner, syncId: a.syncId
+    });
+  });
+
+  it("falha Auth deixa o funcionário com flag pendente, sem liberar vaga nem permitir interleaving", async () => {
+    await db.doc("funcionarios/s106-auth-pending").set({ donoUID: capOwner, status: "inativo" });
+    const a = await mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-pending",
+      operation: "enable", actorUid: capOwner
+    });
+    await assert.rejects(() => mutateEmployeeCapacity({
+      db, ownerUid: capOwner, employeeUid: "s106-auth-pending",
+      operation: "disable", actorUid: capOwner
+    }), /Sincronização de acesso em andamento/);
+    const saved = (await db.doc("funcionarios/s106-auth-pending").get()).data();
+    assert.equal(saved.status, "ativo");
+    assert.equal(saved.authSyncPendente, true);
+    assert.equal(saved.authSyncId, a.syncId);
+    await assert.rejects(() => mutate("s106-new-employee", "create", {
+      payload: newPayload("blocked@qa.invalid")
+    }), /Limite de funcionários/);
   });
 });
