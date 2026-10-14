@@ -1819,15 +1819,22 @@ describe("funcionarios: criação só via Cloud Function createEmployee", () => 
 });
 
 describe("funcionarios: gestão direta pelo dono (update/delete)", () => {
-  it("dono atualiza permissões/status; não muda o donoUID", async () => {
+  it("dono altera nome/cargo legados, mas não burla permissão/status/tenant via SDK", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       nome: "Leitor Renomeado",
       cargo: "Suporte",
+      atualizadoEm: serverTimestamp(),
+      atualizadoPorAuthUid: "ownerA"
+    }));
+    // Os grants e status agora são alterados APENAS pelas Functions.
+    // Inverter assertSucceeds => assertFails neste teste é reforçar o
+    // contrato de segurança, não afrouxar a regressão anterior.
+    await assertFails(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       permissoes: { ver: ["produtos", "leads"], editar: [] },
       atualizadoEm: serverTimestamp(),
       atualizadoPorAuthUid: "ownerA"
     }));
-    await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
+    await assertFails(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       status: "inativo",
       atualizadoEm: serverTimestamp(),
       atualizadoPorAuthUid: "ownerA"
