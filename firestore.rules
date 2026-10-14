@@ -297,7 +297,9 @@ service cloud.firestore {
         // qualquer notificação do tenant antigo pra sempre (funcionarios
         // nunca permite delete, então o vínculo nunca desaparece sozinho).
         || (dados.keys().hasAny(["destinatarios"]) && emp != null
-            && emp.status == "ativo" && emp.donoUID in dados.destinatarios)
+            && isActiveEmployeeForData(emp.donoUID, emp)
+            && ownerApprovedForAccess(emp.donoUID)
+            && emp.donoUID in dados.destinatarios)
         || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
     }
 
@@ -1244,12 +1246,16 @@ service cloud.firestore {
     }
 
     match /funcionarios/{employeeUid} {
+      // O próprio funcionário pode ler seu vínculo para identificar
+      // conta suspensa/sincronização. Ler o restante da equipe é dado
+      // privado e exige loja aprovada, além das permissões normais.
       allow read: if signedIn()
         && (
           request.auth.uid == employeeUid
-          || isOwner(resource.data.donoUID)
-          || employeeCanView(resource.data.donoUID, "funcionarios")
           || isBackendAdmin()
+          || (ownerApprovedForAccess(resource.data.donoUID)
+            && (isOwner(resource.data.donoUID)
+              || employeeCanView(resource.data.donoUID, "funcionarios")))
         );
       // Criação só via Cloud Function createEmployee (Admin SDK, nunca
       // passa por esta regra) — é o único lugar que sabe checar o limite
@@ -1765,7 +1771,8 @@ allow update: if (
       // todo evento nasce de um Firestore trigger ou do helper interno
       // writeAudit() (Admin SDK, sem passar por Rules).
       allow read: if isBackendAdmin()
-        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+        || (signedIn() && resource.data.ownerUid == request.auth.uid
+          && ownerApprovedForAccess(resource.data.ownerUid));
       allow create, update, delete: if false;
     }
 
