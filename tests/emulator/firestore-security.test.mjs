@@ -3822,3 +3822,33 @@ describe("SPRINT-106-READ — revogação de acesso a dados privados após suspe
     });
   }
 });
+
+describe("SPRINT-106-AUTH-GUARD — funcionário com sincronização pendente não acessa dados", () => {
+  it("funcionário ativo legado SEM flag ainda lê; durante sync Auth não lê nem edita", async () => {
+    const db = testEnv.authenticatedContext("employeeEdit").firestore();
+    await assertSucceeds(getDoc(doc(db, "produtos", "prodPrivate")));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "funcionarios", "employeeEdit"), {
+        authSyncPendente: true, authSyncId: "s106-simulada"
+      });
+    });
+    await assertFails(getDoc(doc(db, "produtos", "prodPrivate")));
+    await assertFails(updateDoc(doc(db, "produtos", "prodA"), { nome: "Não permitido" }));
+    // A própria ficha pode continuar legível para mostrar pendência.
+    await assertSucceeds(getDoc(doc(db, "funcionarios", "employeeEdit")));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "funcionarios", "employeeEdit"), {
+        authSyncPendente: false
+      });
+    });
+    await assertSucceeds(getDoc(doc(db, "produtos", "prodPrivate")));
+  });
+
+  it("outro tenant não consegue ler ou completar sincronização da equipe de A", async () => {
+    const db = testEnv.authenticatedContext("ownerB").firestore();
+    await assertFails(getDoc(doc(db, "funcionarios", "employeeEdit")));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+      authSyncPendente: false, authSyncId: "spoof"
+    }));
+  });
+});
