@@ -296,6 +296,32 @@ describe("067 ERR-SRV-001 — createEmployee preserva a causa de erro inesperado
     });
 });
 
+// Sprint 106: chamadas Auth e commits Firestore nao sao transacionais juntos.
+describe("SPRINT-106-CREATE-RECOVERY — nao excluir conta apos operacao externa ambigua", () => {
+    it("falha no updateUser apos reserva mantem pendencia sem apagar Auth", async () => {
+        estado.updateUser = async () => { throw new Error("Auth timeout simulado"); };
+        await assert.rejects(() => createEmployee.run(requestFuncionario()),
+            (error) => assertHttpsError(error, "internal", 500, "Não foi possível criar o funcionário."));
+        assert.deepEqual(estado.deleteCalls, [], "Auth nao pode ser excluido apos envio de updateUser");
+        assert.equal(estado.employeeRecord?.authSyncPendente, true, "pendencia impede acesso");
+    });
+
+    it("resposta perdida apos commit de conclusao nao exclui conta ja habilitada", async () => {
+        const falhaResposta = new Error("Firestore commit aplicado, resposta perdida");
+        estado.docSet = async (path, data) => {
+            if (path.startsWith("funcionarios/") && data.authSyncPendente === false) {
+                estado.employeeRecord = { ...estado.employeeRecord, ...data };
+                throw falhaResposta;
+            }
+        };
+        await assert.rejects(() => createEmployee.run(requestFuncionario()),
+            (error) => assertHttpsError(error, "internal", 500, "Não foi possível criar o funcionário."));
+        assert.deepEqual(estado.deleteCalls, [], "nao destruir identidade apos commit ambiguo");
+        assert.equal(estado.employeeRecord?.authSyncPendente, false, "mock representa commit aplicado");
+        assert.ok(chamadas("error").some((args) => /resultado incerto/.test(args[0])));
+    });
+});
+
 // ================= ERR-SRV-001 — createAdminMember =================
 describe("067 ERR-SRV-001 — createAdminMember preserva a causa de erro inesperado", () => {
     const MENSAGEM = "Não foi possível criar membro admin.";
