@@ -144,7 +144,7 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     }
     if (createdUser?.uid && rollbackComplete) {
       await auth.deleteUser(createdUser.uid).catch((rollbackError) => {
-        logger.error("[Funcionários] Rollback Auth falhou.", rollbackError, { uid: createdUser.uid });
+        logger.error("[Funcionários] Rollback falhou ao remover usuário Auth órfão:", rollbackError, { orphanUid: createdUser.uid });
       });
     }
     // If rollback failed, the Auth account remains disabled (fail closed)
