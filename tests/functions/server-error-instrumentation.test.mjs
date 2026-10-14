@@ -52,6 +52,8 @@ function novoEstado() {
             throw erro;
         },
         createUser: async () => ({ uid: UID_CRIADO }),
+        updateUser: async () => {},
+        revokeRefreshTokens: async () => {},
         setCustomUserClaims: async () => {},
         deleteUser: async () => {},
         deleteCalls: [],
@@ -63,6 +65,8 @@ function novoEstado() {
 const fakeAuth = {
     getUserByEmail: (...a) => estado.getUserByEmail(...a),
     createUser: (...a) => estado.createUser(...a),
+    updateUser: (...a) => estado.updateUser(...a),
+    revokeRefreshTokens: (...a) => estado.revokeRefreshTokens(...a),
     setCustomUserClaims: (...a) => estado.setCustomUserClaims(...a),
     deleteUser: async (uid) => {
         estado.deleteCalls.push(uid);
@@ -71,9 +75,34 @@ const fakeAuth = {
 };
 const consulta = { where: () => consulta, limit: () => consulta, get: async () => ({ size: 0, docs: [] }) };
 const fakeFirestore = {
-    doc: (caminho) => ({ set: (dados) => estado.docSet(caminho, dados), get: () => estado.docGet(caminho) }),
+    doc: (caminho) => ({
+        path: caminho,
+        set: (dados) => estado.docSet(caminho, dados),
+        get: () => estado.docGet(caminho)
+    }),
     collection: () => consulta,
-    runTransaction: async (fn) => fn({ get: async () => ({ exists: false, data: () => ({}) }), set: () => {} })
+    // Simula o fluxo transacional atual sem alterar asserções de logging:
+    // todas as leituras vêm antes das escritas; falha do commit propaga o
+    // Error ORIGINAL ao chamador, que deve realizar rollback no Auth.
+    runTransaction: async (fn) => {
+        const pendingWrites = [];
+        const tx = {
+            get: async (ref) => {
+                if (!ref?.path) return { size: 0, docs: [] }; // active query
+                if (ref.path.startsWith("usuarios/")) {
+                    return { exists: true, data: () => ({ status: "aprovado", plano: "pro" }) };
+                }
+                return { exists: false, data: () => ({}) };
+            },
+            create: (ref, data) => pendingWrites.push([ref.path, data]),
+            set: (ref, data) => pendingWrites.push([ref.path, data]),
+            update: (ref, data) => pendingWrites.push([ref.path, data]),
+            delete: (ref) => pendingWrites.push([ref.path, null])
+        };
+        const outcome = await fn(tx);
+        for (const [p, data] of pendingWrites) await estado.docSet(p, data);
+        return outcome;
+    }
 };
 const FieldValue = {
     serverTimestamp: () => "ts",
