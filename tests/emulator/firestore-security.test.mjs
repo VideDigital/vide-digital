@@ -1819,15 +1819,22 @@ describe("funcionarios: criação só via Cloud Function createEmployee", () => 
 });
 
 describe("funcionarios: gestão direta pelo dono (update/delete)", () => {
-  it("dono atualiza permissões/status; não muda o donoUID", async () => {
+  it("dono altera nome/cargo legados, mas não burla permissão/status/tenant via SDK", async () => {
     await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       nome: "Leitor Renomeado",
       cargo: "Suporte",
+      atualizadoEm: serverTimestamp(),
+      atualizadoPorAuthUid: "ownerA"
+    }));
+    // Os grants e status agora são alterados APENAS pelas Functions.
+    // Inverter assertSucceeds => assertFails neste teste é reforçar o
+    // contrato de segurança, não afrouxar a regressão anterior.
+    await assertFails(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       permissoes: { ver: ["produtos", "leads"], editar: [] },
       atualizadoEm: serverTimestamp(),
       atualizadoPorAuthUid: "ownerA"
     }));
-    await assertSucceeds(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
+    await assertFails(updateDoc(doc(authed("ownerA"), "funcionarios", "employeeRead"), {
       status: "inativo",
       atualizadoEm: serverTimestamp(),
       atualizadoPorAuthUid: "ownerA"
@@ -3704,5 +3711,223 @@ describe("WhatsApp Oficial V1: canal \"whatsapp\" aceito nos chats (compatibilid
       });
     });
     await assertFails(getDoc(doc(authed("ownerB"), "chats", "chatWpp2")));
+  });
+});
+
+describe("Sprint 106 — status de aprovação e mutations críticas de equipe", () => {
+  it("cadastro inicial pendente continua permitido e sem escalar privilégios", async () => {
+    const db = testEnv.authenticatedContext("s106-new-owner").firestore();
+    await assertSucceeds(setDoc(doc(db, "usuarios", "s106-new-owner"), {
+      identificador: "s106-loja",
+      email: "s106@example.test",
+      nomeLoja: "S106",
+      urlLoja: "s106",
+      status: "pendente",
+      criadoEm: Date.now()
+    }));
+    await assertFails(updateDoc(doc(db, "usuarios", "s106-new-owner"), { nomeLoja: "Tentativa indevida" }));
+    await assertFails(setDoc(doc(db, "produtos", "s106-pending-product"), {
+      criadoPor: "s106-new-owner", statusProduto: "ativo"
+    }));
+  });
+
+  it("owner aprovado mantém perfil e writes normais, sem poder dar status de funcionário diretamente", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "usuarios", "ownerA"), { nomeLoja: "Loja A atualizada" }));
+    await assertSucceeds(updateDoc(doc(db, "produtos", "prodA"), { nome: "Produto atualizado" }));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), { status: "inativo" }));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+      permissoes: { ver: ["funcionarios", "configuracoes"], editar: ["funcionarios", "configuracoes"] }
+    }));
+  });
+
+  it("owner pode manter edição legada de nome/cargo, sem tocar no limite ou nas permissões", async () => {
+    const db = testEnv.authenticatedContext("ownerA").firestore();
+    await assertSucceeds(updateDoc(doc(db, "funcionarios", "employeeEdit"), { nome: "Nome legítimo", cargo: "Operação" }));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), { nome: "X", status: "inativo" }));
+  });
+
+  for (const status of ["pendente", "inativo", "rejeitado"]) {
+    it(`loja ${status}: owner e employee não editam perfis ou módulos`, async () => {
+      await testEnv.withSecurityRulesDisabled(async context => {
+        await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status });
+      });
+      const owner = testEnv.authenticatedContext("ownerA").firestore();
+      const employee = testEnv.authenticatedContext("employeeEdit").firestore();
+      await assertFails(updateDoc(doc(owner, "usuarios", "ownerA"), { nomeLoja: "Bypass" }));
+      await assertFails(updateDoc(doc(owner, "produtos", "prodA"), { nome: "Bypass" }));
+      await assertFails(updateDoc(doc(owner, "funcionarios", "employeeEdit"), { cargo: "Bypass" }));
+      await assertFails(updateDoc(doc(employee, "produtos", "prodA"), { nome: "Bypass funcionário" }));
+    });
+  }
+
+  it("employee reader/cross-tenant continuam sem poder alterar perfil ou staff de outra loja", async () => {
+    const reader = testEnv.authenticatedContext("employeeRead").firestore();
+    const other = testEnv.authenticatedContext("ownerB").firestore();
+    await assertFails(updateDoc(doc(reader, "usuarios", "ownerA"), { nomeLoja: "Bypass" }));
+    await assertFails(updateDoc(doc(other, "funcionarios", "employeeEdit"), { cargo: "Bypass" }));
+  });
+
+  it("admin backend autorizado conserva recuperação/ativação", async () => {
+    const admin = testEnv.authenticatedContext("s106-backend-admin", { videAdmin: true }).firestore();
+    await assertSucceeds(updateDoc(doc(admin, "funcionarios", "employeeEdit"), { status: "inativo" }));
+    await assertSucceeds(updateDoc(doc(admin, "usuarios", "ownerA"), { status: "inativo" }));
+  });
+});
+
+describe("SPRINT-106-READ — revogação de acesso a dados privados após suspensão do tenant", () => {
+  for (const status of ["inativo", "rejeitado", "pendente"]) {
+    it(`loja ${status}: owner e equipe não leem produto privado, leads nem chats da loja suspensa`, async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, "funcionarios", "s106-reader-leads"), {
+          donoUID: "ownerA", status: "ativo",
+          permissoes: { ver: ["leads", "atendimento"], editar: [] }
+        });
+        await setDoc(doc(db, "leads", "s106-private-lead"), {
+          criadoPor: "ownerA", nome: "Lead sintético"
+        });
+        await setDoc(doc(db, "chats", "s106-private-chat"), {
+          donoUID: "ownerA", clienteNome: "Conversa QA", canal: "interno"
+        });
+      });
+
+      // Verifica que as permissões legítimas existiam antes da suspensão.
+      const owner = testEnv.authenticatedContext("ownerA").firestore();
+      const employee = testEnv.authenticatedContext("employeeEdit").firestore();
+      const leadReader = testEnv.authenticatedContext("s106-reader-leads").firestore();
+      await assertSucceeds(getDoc(doc(owner, "produtos", "prodPrivate")));
+      await assertSucceeds(getDoc(doc(employee, "produtos", "prodPrivate")));
+      await assertSucceeds(getDoc(doc(leadReader, "leads", "s106-private-lead")));
+      await assertSucceeds(getDoc(doc(leadReader, "chats", "s106-private-chat")));
+
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status });
+      });
+
+      await assertFails(getDoc(doc(owner, "produtos", "prodPrivate")));
+      await assertFails(getDoc(doc(employee, "produtos", "prodPrivate")));
+      await assertFails(getDoc(doc(leadReader, "leads", "s106-private-lead")));
+      await assertFails(getDoc(doc(leadReader, "chats", "s106-private-chat")));
+      await assertFails(getDocs(query(collection(leadReader, "leads"), where("criadoPor", "==", "ownerA"))));
+      // Resolução mínima de estado da sessão segue possível sem acesso ao módulo.
+      const ownerProfile = await getDoc(doc(leadReader, "usuarios", "ownerA"));
+      assert.equal(ownerProfile.data()?.status, status);
+      await assertSucceeds(getDoc(doc(leadReader, "funcionarios", "s106-reader-leads")));
+
+      // Tenant B mantém acesso aos dados próprios, independentemente de A.
+      await assertSucceeds(getDoc(doc(testEnv.authenticatedContext("ownerB").firestore(), "produtos", "prodB")));
+      // Um produto público continua público (não confundido com dado privado).
+      await assertSucceeds(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "produtos", "prodA")));
+    });
+  }
+});
+
+describe("SPRINT-106-AUTH-GUARD — funcionário com sincronização pendente não acessa dados", () => {
+  it("funcionário ativo legado SEM flag ainda lê; durante sync Auth não lê nem edita", async () => {
+    const db = testEnv.authenticatedContext("employeeEdit").firestore();
+    await assertSucceeds(getDoc(doc(db, "produtos", "prodPrivate")));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "funcionarios", "employeeEdit"), {
+        authSyncPendente: true, authSyncId: "s106-simulada"
+      });
+    });
+    await assertFails(getDoc(doc(db, "produtos", "prodPrivate")));
+    await assertFails(updateDoc(doc(db, "produtos", "prodA"), { nome: "Não permitido" }));
+    // A própria ficha pode continuar legível para mostrar pendência.
+    await assertSucceeds(getDoc(doc(db, "funcionarios", "employeeEdit")));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "funcionarios", "employeeEdit"), {
+        authSyncPendente: false
+      });
+    });
+    await assertSucceeds(getDoc(doc(db, "produtos", "prodPrivate")));
+  });
+
+  it("outro tenant não consegue ler ou completar sincronização da equipe de A", async () => {
+    const db = testEnv.authenticatedContext("ownerB").firestore();
+    await assertFails(getDoc(doc(db, "funcionarios", "employeeEdit")));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+      authSyncPendente: false, authSyncId: "spoof"
+    }));
+  });
+});
+
+describe("SPRINT-106-READ-EXCEPTIONS — diretório da equipe, auditoria e notificações", () => {
+  it("loja inativa não expõe diretório de equipe, auditoria nem notificações privadas ao funcionário", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "funcionarios", "s106-staff-manager"), {
+        donoUID: "ownerA", status: "ativo",
+        permissoes: { ver: ["funcionarios"], editar: [] }
+      });
+      await setDoc(doc(db, "auditoria", "s106-tenant-event"), {
+        ownerUid: "ownerA", action: "teste-qa"
+      });
+      await setDoc(doc(db, "notificacoes", "s106-staff-notification"), {
+        destinatarios: ["ownerA"], tipo: "aviso", mensagem: "Aviso QA"
+      });
+    });
+    const owner = testEnv.authenticatedContext("ownerA").firestore();
+    const staff = testEnv.authenticatedContext("s106-staff-manager").firestore();
+    await assertSucceeds(getDoc(doc(owner, "auditoria", "s106-tenant-event")));
+    await assertSucceeds(getDoc(doc(owner, "funcionarios", "employeeEdit")));
+    await assertSucceeds(getDoc(doc(staff, "funcionarios", "employeeEdit")));
+    await assertSucceeds(getDoc(doc(staff, "notificacoes", "s106-staff-notification")));
+
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status: "inativo" });
+    });
+    await assertFails(getDoc(doc(owner, "auditoria", "s106-tenant-event")));
+    await assertFails(getDoc(doc(owner, "funcionarios", "employeeEdit")));
+    await assertFails(getDoc(doc(staff, "funcionarios", "employeeEdit")));
+    await assertFails(getDoc(doc(staff, "notificacoes", "s106-staff-notification")));
+    // Autodiagnóstico da identidade continua disponível.
+    await assertSucceeds(getDoc(doc(staff, "funcionarios", "s106-staff-manager")));
+    await assertSucceeds(getDoc(doc(staff, "usuarios", "ownerA")));
+  });
+});
+
+
+describe("SPRINT-106-DIRECT-RECIPIENT — UID de funcionário não contorna suspensão", () => {
+  it("funcionário ativo recebe aviso individual; suspensão nega GET e marcação como lida", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "notificacoes", "s106-recipient-array"), {
+        destinatarios: ["employeeEdit"], titulo: "Aviso individual QA"
+      });
+      await setDoc(doc(db, "notificacoes", "s106-recipient-uid"), {
+        uid: "employeeEdit", titulo: "Aviso legado QA"
+      });
+    });
+    const employee = testEnv.authenticatedContext("employeeEdit").firestore();
+    for (const id of ["s106-recipient-array", "s106-recipient-uid"]) {
+      await assertSucceeds(getDoc(doc(employee, "notificacoes", id)));
+    }
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status: "inativo" });
+    });
+    for (const id of ["s106-recipient-array", "s106-recipient-uid"]) {
+      await assertFails(getDoc(doc(employee, "notificacoes", id)));
+      await assertFails(updateDoc(doc(employee, "notificacoes", id), {
+        lidoPor: arrayUnion("employeeEdit")
+      }));
+    }
+    // Mensagens administrativas diretamente endereçadas ao dono continuam
+    // acessíveis para informar a suspensão, sem expor dados da equipe.
+    await assertSucceeds(getDoc(doc(testEnv.authenticatedContext("ownerA").firestore(), "notificacoes", "notifOwnerA")));
+  });
+
+  it("funcionário em authSyncPendente não lê avisos por UID individual", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      const db = context.firestore();
+      await setDoc(doc(db, "notificacoes", "s106-sync-direct"), {
+        destinatarios: ["employeeEdit"], titulo: "Aviso individual QA"
+      });
+      await updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+        authSyncPendente: true, authSyncId: "s106-notif-pendente"
+      });
+    });
+    await assertFails(getDoc(doc(testEnv.authenticatedContext("employeeEdit").firestore(), "notificacoes", "s106-sync-direct")));
   });
 });
