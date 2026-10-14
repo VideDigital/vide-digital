@@ -624,11 +624,11 @@ service cloud.firestore {
         && chatData.visitorUid != ""
         && chatData.versaoAcesso == 2;
     }
-    // Documento sem o par visitorUid/versaoAcesso == 2 completo conta como
-    // legado — inclui chats criados antes desta etapa E qualquer tentativa
-    // de escrever só um dos dois campos (nunca um estado "meio V2").
+    // Apenas chats sem NENHUM dos dois campos de identidade são V1 legado.
+    // Dados parciais ou inválidos ("meio V2") falham fechado: não podem
+    // usar o caminho público V1 de leitura, atualização, mensagem ou evento.
     function chatLegadoSemVisitor(chatData) {
-      return !chatTemAcessoV2(chatData);
+      return !chatData.keys().hasAny(["visitorUid", "versaoAcesso"]);
     }
     function visitantePodeAcessarChat(chatData) {
       return isAnonymousAuth()
@@ -1816,16 +1816,20 @@ allow update: if (
         || (hasTenantField("emailDono") && (canEditTenant(resource.data.emailDono, "atendimento") || canEditTenant(resource.data.emailDono, "leads")));
 
       match /mensagens/{msgId} {
-        // Visitante não autenticado (chat V1 legado): conhecer o id do
-        // chat (token aleatório) já é a capability de leitura. Visitante
-        // autenticado anônimo (chat V2): só lê se a identidade bater com o
-        // visitorUid do próprio chat. Equipe: só lê se realmente pertencer
+        // Visitante não autenticado: o ID conhecido só é capability de
+        // leitura para chat V1 legado; chat V2 nunca usa esse caminho.
+        // Visitante anônimo autenticado (chat V2): exige identidade
+        // correspondente ao visitorUid do chat. Equipe: só lê se realmente pertencer
         // ao tenant dono do chat (dono, admin backend ou funcionário com
         // permissão) — sem esse recorte, outro dono autenticado que
         // soubesse/adivinhasse o id conseguiria ler mensagens de um tenant
         // alheio.
         allow read: if
-          (!signedIn() && exists(/databases/$(database)/documents/chats/$(chatId)))
+          (!signedIn()
+            && exists(/databases/$(database)/documents/chats/$(chatId))
+            // SECURITY-CHAT-V2-104: o caminho público legado exige chat V1;
+            // conhecer apenas o ID não autoriza ler mensagens de um chat V2.
+            && chatLegadoSemVisitor(get(/databases/$(database)/documents/chats/$(chatId)).data))
           || (
             signedIn()
             && exists(/databases/$(database)/documents/chats/$(chatId))

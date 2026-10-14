@@ -2264,6 +2264,134 @@ describe("chats V2: atualização (mensagem do cliente) só pelo próprio visita
   });
 });
 
+// SECURITY-CHAT-V2-104: a antiga Rule permitia qualquer leitura sem
+// autenticação das mensagens de QUALQUER chat existente, inclusive V2.
+// Este bloco testa GET e LIST; o pai /chats/{id} já era protegido,
+// mas a proteção do pai não herda automaticamente para a subcoleção.
+async function semearMensagem104(chatId, chatOverrides = {}) {
+  await semearChatV2(chatId, chatOverrides);
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "chats", chatId, "mensagens", "m104"), {
+      texto: "Mensagem privada do visitante", sender: "cliente",
+      timestamp: Date.now(), autorTipo: "cliente", autorUid: "visitorA1"
+    });
+  });
+}
+
+describe("SPRINT 104 — mensagens V2: leitura autenticada e isolamento por chat", () => {
+  it("sem autenticação, conhecer chatId e msgId V2 não permite GET nem LIST; nem ler o documento pai", async () => {
+    await semearMensagem104("chat104V2NoAuth");
+    await assertFails(getDoc(doc(anon(), "chats", "chat104V2NoAuth")));
+    await assertFails(getDoc(doc(anon(), "chats", "chat104V2NoAuth", "mensagens", "m104")));
+    await assertFails(getDocs(collection(anon(), "chats", "chat104V2NoAuth", "mensagens")));
+  });
+
+  it("visitante V2 correto lê mensagens via GET e LIST, mas outro UID anônimo não", async () => {
+    await semearMensagem104("chat104V2Visitor");
+    await assertSucceeds(getDoc(doc(anonV2("visitorA1"), "chats", "chat104V2Visitor", "mensagens", "m104")));
+    await assertSucceeds(getDocs(collection(anonV2("visitorA1"), "chats", "chat104V2Visitor", "mensagens")));
+    await assertFails(getDoc(doc(anonV2("visitorB1"), "chats", "chat104V2Visitor", "mensagens", "m104")));
+    await assertFails(getDocs(collection(anonV2("visitorB1"), "chats", "chat104V2Visitor", "mensagens")));
+    // UID coincidente sem provider anonymous não é uma sessão do visitante público.
+    await assertFails(getDoc(doc(authed("visitorA1"), "chats", "chat104V2Visitor", "mensagens", "m104")));
+  });
+
+  it("equipe do próprio tenant e admin backend leem; outro tenant e funcionário inativo não", async () => {
+    await semearMensagem104("chat104V2Team");
+    await semearFuncionarioAtendimento("employee104Reader", {
+      permissoes: { ver: ["atendimento"], editar: [] }
+    });
+    await semearFuncionarioAtendimento("employee104OtherTenant", { donoUID: "ownerB" });
+    await semearFuncionarioAtendimento("employee104Inactive", { status: "inativo" });
+    for (const uid of ["ownerA", "employee104Reader"]) {
+      await assertSucceeds(getDoc(doc(authed(uid), "chats", "chat104V2Team", "mensagens", "m104")));
+      await assertSucceeds(getDocs(collection(authed(uid), "chats", "chat104V2Team", "mensagens")));
+    }
+    await assertSucceeds(getDoc(doc(authed("admin104", { videAdmin: true }), "chats", "chat104V2Team", "mensagens", "m104")));
+    for (const uid of ["ownerB", "employee104OtherTenant", "employee104Inactive"]) {
+      await assertFails(getDoc(doc(authed(uid), "chats", "chat104V2Team", "mensagens", "m104")));
+      await assertFails(getDocs(collection(authed(uid), "chats", "chat104V2Team", "mensagens")));
+    }
+  });
+
+  it("V1 pré-existente conserva leitura por ID conhecido sem login (GET e LIST)", async () => {
+    await semearChat("chat104Legacy");
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chat104Legacy", "mensagens", "m104"), {
+        texto: "Mensagem legada", sender: "cliente", timestamp: Date.now()
+      });
+    });
+    await assertSucceeds(getDoc(doc(anon(), "chats", "chat104Legacy", "mensagens", "m104")));
+    await assertSucceeds(getDocs(collection(anon(), "chats", "chat104Legacy", "mensagens")));
+  });
+
+  it("mensagem órfã sem chat pai não pode ser lida por nenhum caminho", async () => {
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await setDoc(doc(context.firestore(), "chats", "chat104Missing", "mensagens", "m104"), {
+        texto: "Órfã", sender: "cliente", timestamp: Date.now()
+      });
+    });
+    for (const db of [anon(), anonV2("visitorA1"), authed("ownerA")]) {
+      await assertFails(getDoc(doc(db, "chats", "chat104Missing", "mensagens", "m104")));
+      await assertFails(getDocs(collection(db, "chats", "chat104Missing", "mensagens")));
+    }
+  });
+
+  it("chats com campos V2 parciais ou inválidos nunca usam a capability pública V1", async () => {
+    const cenarios = [
+      { id: "chat104SemVisitorUid", campoAusente: "visitorUid" },
+      { id: "chat104SemVersao", campoAusente: "versaoAcesso" },
+      { id: "chat104VisitorVazio", overrides: { visitorUid: "" } },
+      { id: "chat104VersaoInvalida", overrides: { versaoAcesso: 1 } }
+    ];
+    for (const { id, campoAusente, overrides = {} } of cenarios) {
+      await semearMensagem104(id, overrides);
+      if (campoAusente) {
+        await testEnv.withSecurityRulesDisabled(async (context) => {
+          await updateDoc(doc(context.firestore(), "chats", id), { [campoAusente]: deleteField() });
+        });
+      }
+      // Um ID conhecido não autoriza leitura, GET ou LIST, de dados meio-V2.
+      await assertFails(getDoc(doc(anon(), "chats", id, "mensagens", "m104")));
+      await assertFails(getDocs(collection(anon(), "chats", id, "mensagens")));
+      // A função chatLegadoSemVisitor também protege UPDATE/mensagem/evento.
+      await assertFails(updateDoc(doc(anon(), "chats", id), {
+        ultimaMensagem: "Tentativa legado", statusAdmin: "pendente",
+        status: "aguardando_equipe", atualizadoEm: Date.now(), naoLidasLoja: 2
+      }));
+      await assertFails(setDoc(doc(anon(), "chats", id, "mensagens", "nova104Legado"), {
+        texto: "Mensagem V1 indevida", sender: "cliente", timestamp: Date.now()
+      }));
+      await assertFails(setDoc(doc(anon(), "chats", id, "eventos", "evt104Legado"), {
+        tenantId: "ownerA", lojaId: "ownerA", chatId: id,
+        tipo: "conversa_criada", categoria: "atendimento",
+        autorUid: "", autorTipo: "cliente", origem: "cliente",
+        criadoEm: serverTimestamp(), versaoSchema: 1
+      }));
+    }
+  });
+
+  it("CREATE exige autoria do visitante V2 ou equipe autorizada; UPDATE e DELETE seguem bloqueados", async () => {
+    await semearMensagem104("chat104V2Write");
+    // IDs diferentes: cada setDoc abaixo avalia CREATE, nunca UPDATE após a primeira inserção.
+    const destino = (db, id) => doc(db, "chats", "chat104V2Write", "mensagens", id);
+    const payload = { texto: "Autoria correta", sender: "cliente", timestamp: Date.now(), autorTipo: "cliente", autorUid: "visitorA1" };
+    await assertSucceeds(setDoc(destino(anonV2("visitorA1"), "nova104Permitida"), payload));
+    await assertFails(setDoc(destino(anonV2("visitorB1"), "nova104OutroVisitante"), { ...payload, autorUid: "visitorB1" }));
+    await assertFails(setDoc(destino(anon(), "nova104SemLogin"), { texto: "Sem login", sender: "cliente", timestamp: Date.now() }));
+    await assertFails(setDoc(destino(authed("ownerB"), "nova104OutroTenant"), {
+      texto: "Resposta indevida", sender: "admin", timestamp: Date.now(), autorTipo: "proprietario", autorUid: "ownerB"
+    }));
+    await assertSucceeds(setDoc(destino(authed("ownerA"), "staff104"), {
+      texto: "Resposta autorizada", sender: "admin", timestamp: Date.now(), autorTipo: "proprietario", autorUid: "ownerA"
+    }));
+    for (const db of [anon(), anonV2("visitorA1"), authed("ownerA"), authed("ownerB")]) {
+      await assertFails(updateDoc(doc(db, "chats", "chat104V2Write", "mensagens", "m104"), { texto: "Editado" }));
+      await assertFails(deleteDoc(doc(db, "chats", "chat104V2Write", "mensagens", "m104")));
+    }
+  });
+});
+
 describe("mensagens V2: autoria real (nunca autorUid vazio)", () => {
   it("o visitante dono do chat cria mensagem própria com autoria real", async () => {
     await semearChatV2("chatMsgV2_1", { visitorUid: "visitorA1" });
