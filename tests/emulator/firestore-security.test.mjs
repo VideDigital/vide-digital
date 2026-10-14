@@ -3774,3 +3774,81 @@ describe("Sprint 106 — status de aprovação e mutations críticas de equipe",
     await assertSucceeds(updateDoc(doc(admin, "usuarios", "ownerA"), { status: "inativo" }));
   });
 });
+
+describe("SPRINT-106-READ — revogação de acesso a dados privados após suspensão do tenant", () => {
+  for (const status of ["inativo", "rejeitado", "pendente"]) {
+    it(`loja ${status}: owner e equipe não leem produto privado, leads nem chats da loja suspensa`, async () => {
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        const db = context.firestore();
+        await setDoc(doc(db, "funcionarios", "s106-reader-leads"), {
+          donoUID: "ownerA", status: "ativo",
+          permissoes: { ver: ["leads", "atendimento"], editar: [] }
+        });
+        await setDoc(doc(db, "leads", "s106-private-lead"), {
+          criadoPor: "ownerA", nome: "Lead sintético"
+        });
+        await setDoc(doc(db, "chats", "s106-private-chat"), {
+          donoUID: "ownerA", clienteNome: "Conversa QA", canal: "interno"
+        });
+      });
+
+      // Verifica que as permissões legítimas existiam antes da suspensão.
+      const owner = testEnv.authenticatedContext("ownerA").firestore();
+      const employee = testEnv.authenticatedContext("employeeEdit").firestore();
+      const leadReader = testEnv.authenticatedContext("s106-reader-leads").firestore();
+      await assertSucceeds(getDoc(doc(owner, "produtos", "prodPrivate")));
+      await assertSucceeds(getDoc(doc(employee, "produtos", "prodPrivate")));
+      await assertSucceeds(getDoc(doc(leadReader, "leads", "s106-private-lead")));
+      await assertSucceeds(getDoc(doc(leadReader, "chats", "s106-private-chat")));
+
+      await testEnv.withSecurityRulesDisabled(async (context) => {
+        await updateDoc(doc(context.firestore(), "usuarios", "ownerA"), { status });
+      });
+
+      await assertFails(getDoc(doc(owner, "produtos", "prodPrivate")));
+      await assertFails(getDoc(doc(employee, "produtos", "prodPrivate")));
+      await assertFails(getDoc(doc(leadReader, "leads", "s106-private-lead")));
+      await assertFails(getDoc(doc(leadReader, "chats", "s106-private-chat")));
+      await assertFails(getDocs(query(collection(leadReader, "leads"), where("criadoPor", "==", "ownerA"))));
+      // Resolução mínima de estado da sessão segue possível sem acesso ao módulo.
+      const ownerProfile = await getDoc(doc(leadReader, "usuarios", "ownerA"));
+      assert.equal(ownerProfile.data()?.status, status);
+      await assertSucceeds(getDoc(doc(leadReader, "funcionarios", "s106-reader-leads")));
+
+      // Tenant B mantém acesso aos dados próprios, independentemente de A.
+      await assertSucceeds(getDoc(doc(testEnv.authenticatedContext("ownerB").firestore(), "produtos", "prodB")));
+      // Um produto público continua público (não confundido com dado privado).
+      await assertSucceeds(getDoc(doc(testEnv.unauthenticatedContext().firestore(), "produtos", "prodA")));
+    });
+  }
+});
+
+describe("SPRINT-106-AUTH-GUARD — funcionário com sincronização pendente não acessa dados", () => {
+  it("funcionário ativo legado SEM flag ainda lê; durante sync Auth não lê nem edita", async () => {
+    const db = testEnv.authenticatedContext("employeeEdit").firestore();
+    await assertSucceeds(getDoc(doc(db, "produtos", "prodPrivate")));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "funcionarios", "employeeEdit"), {
+        authSyncPendente: true, authSyncId: "s106-simulada"
+      });
+    });
+    await assertFails(getDoc(doc(db, "produtos", "prodPrivate")));
+    await assertFails(updateDoc(doc(db, "produtos", "prodA"), { nome: "Não permitido" }));
+    // A própria ficha pode continuar legível para mostrar pendência.
+    await assertSucceeds(getDoc(doc(db, "funcionarios", "employeeEdit")));
+    await testEnv.withSecurityRulesDisabled(async (context) => {
+      await updateDoc(doc(context.firestore(), "funcionarios", "employeeEdit"), {
+        authSyncPendente: false
+      });
+    });
+    await assertSucceeds(getDoc(doc(db, "produtos", "prodPrivate")));
+  });
+
+  it("outro tenant não consegue ler ou completar sincronização da equipe de A", async () => {
+    const db = testEnv.authenticatedContext("ownerB").firestore();
+    await assertFails(getDoc(doc(db, "funcionarios", "employeeEdit")));
+    await assertFails(updateDoc(doc(db, "funcionarios", "employeeEdit"), {
+      authSyncPendente: false, authSyncId: "spoof"
+    }));
+  });
+});
