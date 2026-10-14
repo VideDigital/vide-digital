@@ -265,6 +265,14 @@ before(async () => {
 
 beforeEach(async () => {
   await testEnv.clearFirestore();
+  // Sprint 106: a Rule de escrita agora exige o estado real aprovado do
+  // tenant. Essas fixtures de banners antes usavam UIDs sem usuarios/{uid}.
+  // Preparar donos legítimos, sem enfraquecer nenhuma assertion do fluxo.
+  await testEnv.withSecurityRulesDisabled(async (context) => {
+    const db = context.firestore();
+    await setDoc(doc(db, "usuarios", "ownerA"), { status: "aprovado", plano: "pro" });
+    await setDoc(doc(db, "usuarios", "ownerB"), { status: "aprovado", plano: "pro" });
+  });
 });
 
 after(async () => {

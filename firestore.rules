@@ -58,6 +58,10 @@ service cloud.firestore {
     function isActiveEmployeeForData(ownerUid, empData) {
       return employeeHasPermissionShape(empData)
         && empData.status == "ativo"
+        // A Function pode ter reservado vaga no Firestore enquanto Auth
+        // ainda sincroniza. Negar leitura e escrita até confirmar o Auth.
+        // Documento legado SEM flag mantém acesso anterior.
+        && (!empData.keys().hasAny(["authSyncPendente"]) || empData.authSyncPendente != true)
         && empData.donoUID == ownerUid;
     }
 
@@ -124,12 +128,30 @@ service cloud.firestore {
         && employeeHasModulePermission(empData.permissoes.editar, moduleKey);
     }
 
+    // A suspensão do tenant revoga imediatamente o acesso PRIVADO do
+    // proprietário e da equipe, inclusive com ID tokens ainda válidos.
+    // Leituras de sessão em usuarios/{uid} e funcionarios/{uid} mantêm
+    // regras próprias para mostrar o status/bloqueio sem acesso aos módulos.
+    // Recursos explicitamente públicos preservam seus caminhos públicos.
     function canViewTenant(ownerUid, moduleKey) {
-      return isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey) || isBackendAdmin();
+      return isBackendAdmin()
+        || (ownerApprovedForAccess(ownerUid)
+          && (isOwner(ownerUid) || employeeCanView(ownerUid, moduleKey)));
+    }
+
+    // Bloqueia qualquer escrita de dono/funcionário quando a loja ainda
+    // está pendente, inativa ou bloqueada. O cadastro inicial do dono
+    // continua separado em validOwnerCreate() (status = "pendente").
+    // Admin backend conserva a capacidade de aprovação/recuperação.
+    function ownerApprovedForAccess(ownerUid) {
+      return exists(/databases/$(database)/documents/usuarios/$(ownerUid))
+        && get(/databases/$(database)/documents/usuarios/$(ownerUid)).data.status == "aprovado";
     }
 
     function canEditTenant(ownerUid, moduleKey) {
-      return isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey) || isBackendAdmin();
+      return isBackendAdmin()
+        || (ownerApprovedForAccess(ownerUid)
+          && (isOwner(ownerUid) || employeeCanEdit(ownerUid, moduleKey)));
     }
 
     function validOwnerCreateKeys() {
@@ -263,7 +285,11 @@ service cloud.firestore {
       let emp = employeeExists() ? employeeDoc().data : null;
       return isBackendAdmin()
         || (dados.keys().hasAny(["destinatarios"]) && dados.destinatarios == "todos")
-        || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios)
+        || (dados.keys().hasAny(["destinatarios"]) && request.auth.uid in dados.destinatarios
+            // Um destinatário individual também pode ser funcionário. Não
+            // permitir bypass do bloqueio de tenant/status pela lista de UIDs.
+            && (emp == null || (isActiveEmployeeForData(emp.donoUID, emp)
+              && ownerApprovedForAccess(emp.donoUID))))
         // funcionário: destinatarios guarda o uid do DONO da loja (admin.html
         // manda notificação pro tenant, não pra conta individual do
         // funcionário) — o app consulta com effectiveUid (donoUID) tanto pra
@@ -275,8 +301,12 @@ service cloud.firestore {
         // qualquer notificação do tenant antigo pra sempre (funcionarios
         // nunca permite delete, então o vínculo nunca desaparece sozinho).
         || (dados.keys().hasAny(["destinatarios"]) && emp != null
-            && emp.status == "ativo" && emp.donoUID in dados.destinatarios)
-        || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid);
+            && isActiveEmployeeForData(emp.donoUID, emp)
+            && ownerApprovedForAccess(emp.donoUID)
+            && emp.donoUID in dados.destinatarios)
+        || (dados.keys().hasAny(["uid"]) && dados.uid == request.auth.uid
+            && (emp == null || (isActiveEmployeeForData(emp.donoUID, emp)
+              && ownerApprovedForAccess(emp.donoUID))));
     }
 
     // Cada destinatário pode marcar a própria notificação como lida/não lida
@@ -676,11 +706,13 @@ service cloud.firestore {
     // "ia-copilot" — um funcionário com só "atendimento" não passa aqui.
     // O dono sempre passa (bypass de isOwner dentro de canEditTenant).
     function podeUsarIaCopilot(chatData) {
-      return podeResponderChat(chatData)
-        && (
-          (chatData.keys().hasAny(["donoUID"]) && canEditTenant(chatData.donoUID, "ia-copilot"))
-          || (chatData.keys().hasAny(["emailDono"]) && canEditTenant(chatData.emailDono, "ia-copilot"))
-        );
+      // eventoAtendimentoStaffValido() já exige podeResponderChat() para
+      // QUALQUER evento. Não duplicar essa cadeia de permissões na
+      // verificação adicional de IA: isso estourava 1000 expressões nas
+      // Rules. Verifica apenas o grant dedicado, usando o dono canônico
+      // (donoUID quando existir; fallback emailDono de chats legados).
+      return chatData.keys().hasAny(["donoUID", "emailDono"])
+        && canEditTenant(donoUidDoChat(chatData), "ia-copilot");
     }
     // CRM 360: aberto de dentro da Central de Atendimento, então quem já
     // pode ver/editar atendimento também pode ver/editar o CRM — mais a
@@ -1220,12 +1252,16 @@ service cloud.firestore {
     }
 
     match /funcionarios/{employeeUid} {
+      // O próprio funcionário pode ler seu vínculo para identificar
+      // conta suspensa/sincronização. Ler o restante da equipe é dado
+      // privado e exige loja aprovada, além das permissões normais.
       allow read: if signedIn()
         && (
           request.auth.uid == employeeUid
-          || isOwner(resource.data.donoUID)
-          || employeeCanView(resource.data.donoUID, "funcionarios")
           || isBackendAdmin()
+          || (ownerApprovedForAccess(resource.data.donoUID)
+            && (isOwner(resource.data.donoUID)
+              || employeeCanView(resource.data.donoUID, "funcionarios")))
         );
       // Criação só via Cloud Function createEmployee (Admin SDK, nunca
       // passa por esta regra) — é o único lugar que sabe checar o limite
@@ -1234,14 +1270,18 @@ service cloud.firestore {
       // consegue contar documentos existentes com segurança, então
       // permitir escrita direta aqui sempre reabriria o bypass do limite.
       allow create: if false;
+      // Mudanças de status e permissões são operações críticas e passam
+      // exclusivamente por Functions (Admin SDK), que verificam
+      // owner/tenant e limites do plano. Owner só pode atualizar campos
+      // legados não privilegiados, com loja aprovada.
       allow update: if isBackendAdmin() || (
         isOwner(resource.data.donoUID)
+        && ownerApprovedForAccess(resource.data.donoUID)
         && request.auth.uid != employeeUid
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-          "nome", "cargo", "permissoes", "status",
-          "senhaTemporaria", "atualizadoEm", "atualizadoPorAuthUid"
+          "nome", "cargo", "senhaTemporaria",
+          "atualizadoEm", "atualizadoPorAuthUid"
         ])
-        && request.resource.data.status in ["ativo", "inativo"]
         && employeeHasPermissionShape(request.resource.data)
         && request.resource.data.nome is string
         && request.resource.data.nome.size() >= 1
@@ -1737,7 +1777,8 @@ allow update: if (
       // todo evento nasce de um Firestore trigger ou do helper interno
       // writeAudit() (Admin SDK, sem passar por Rules).
       allow read: if isBackendAdmin()
-        || (signedIn() && resource.data.ownerUid == request.auth.uid);
+        || (signedIn() && resource.data.ownerUid == request.auth.uid
+          && ownerApprovedForAccess(resource.data.ownerUid));
       allow create, update, delete: if false;
     }
 
