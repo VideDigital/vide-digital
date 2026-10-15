@@ -52,9 +52,12 @@ function novoEstado() {
             throw erro;
         },
         createUser: async () => ({ uid: UID_CRIADO }),
+        updateUser: async () => {},
+        revokeRefreshTokens: async () => {},
         setCustomUserClaims: async () => {},
         deleteUser: async () => {},
         deleteCalls: [],
+        employeeRecord: null,
         docSet: async () => {},
         docGet: async () => ({ exists: true, data: () => ({ nomeLoja: SENTINELAS.lojaNome, plano: "pro", iaNegocioPublicaAtiva: true }) })
     };
@@ -63,6 +66,8 @@ function novoEstado() {
 const fakeAuth = {
     getUserByEmail: (...a) => estado.getUserByEmail(...a),
     createUser: (...a) => estado.createUser(...a),
+    updateUser: (...a) => estado.updateUser(...a),
+    revokeRefreshTokens: (...a) => estado.revokeRefreshTokens(...a),
     setCustomUserClaims: (...a) => estado.setCustomUserClaims(...a),
     deleteUser: async (uid) => {
         estado.deleteCalls.push(uid);
@@ -71,13 +76,49 @@ const fakeAuth = {
 };
 const consulta = { where: () => consulta, limit: () => consulta, get: async () => ({ size: 0, docs: [] }) };
 const fakeFirestore = {
-    doc: (caminho) => ({ set: (dados) => estado.docSet(caminho, dados), get: () => estado.docGet(caminho) }),
+    doc: (caminho) => ({
+        path: caminho,
+        set: (dados) => estado.docSet(caminho, dados),
+        get: () => estado.docGet(caminho)
+    }),
     collection: () => consulta,
-    runTransaction: async (fn) => fn({ get: async () => ({ exists: false, data: () => ({}) }), set: () => {} })
+    // Simula o fluxo transacional atual sem alterar asserções de logging:
+    // todas as leituras vêm antes das escritas; falha do commit propaga o
+    // Error ORIGINAL ao chamador, que deve realizar rollback no Auth.
+    runTransaction: async (fn) => {
+        const pendingWrites = [];
+        const tx = {
+            get: async (ref) => {
+                if (!ref?.path) return { size: estado.employeeRecord?.status === "ativo" ? 1 : 0, docs: [] };
+                if (ref.path.startsWith("usuarios/")) {
+                    return { exists: true, data: () => ({ status: "aprovado", plano: "pro" }) };
+                }
+                if (ref.path.startsWith("funcionarios/") && estado.employeeRecord) {
+                    return { exists: true, data: () => estado.employeeRecord };
+                }
+                return { exists: false, data: () => ({}) };
+            },
+            create: (ref, data) => pendingWrites.push([ref.path, data, "create"]),
+            set: (ref, data) => pendingWrites.push([ref.path, data, "set"]),
+            update: (ref, data) => pendingWrites.push([ref.path, data, "update"]),
+            delete: (ref) => pendingWrites.push([ref.path, null, "delete"])
+        };
+        const outcome = await fn(tx);
+        for (const [p, data, kind] of pendingWrites) {
+            await estado.docSet(p, data);
+            if (p.startsWith("funcionarios/")) {
+                estado.employeeRecord = kind === "delete" ? null
+                    : kind === "create" ? { ...data }
+                    : { ...(estado.employeeRecord || {}), ...data };
+            }
+        }
+        return outcome;
+    }
 };
 const FieldValue = {
     serverTimestamp: () => "ts",
     increment: (n) => n,
+    delete: () => "FIELD_DELETE",
     arrayUnion: (...v) => v,
     arrayRemove: (...v) => v
 };
@@ -252,6 +293,32 @@ describe("067 ERR-SRV-001 — createEmployee preserva a causa de erro inesperado
         assert.equal(resultado.uid, UID_CRIADO);
         assert.equal(resultado.status, "ativo");
         assert.equal(totalLogs(), 0);
+    });
+});
+
+// Sprint 106: chamadas Auth e commits Firestore nao sao transacionais juntos.
+describe("SPRINT-106-CREATE-RECOVERY — nao excluir conta apos operacao externa ambigua", () => {
+    it("falha no updateUser apos reserva mantem pendencia sem apagar Auth", async () => {
+        estado.updateUser = async () => { throw new Error("Auth timeout simulado"); };
+        await assert.rejects(() => createEmployee.run(requestFuncionario()),
+            (error) => assertHttpsError(error, "internal", 500, "Não foi possível criar o funcionário."));
+        assert.deepEqual(estado.deleteCalls, [], "Auth nao pode ser excluido apos envio de updateUser");
+        assert.equal(estado.employeeRecord?.authSyncPendente, true, "pendencia impede acesso");
+    });
+
+    it("resposta perdida apos commit de conclusao nao exclui conta ja habilitada", async () => {
+        const falhaResposta = new Error("Firestore commit aplicado, resposta perdida");
+        estado.docSet = async (path, data) => {
+            if (path.startsWith("funcionarios/") && data.authSyncPendente === false) {
+                estado.employeeRecord = { ...estado.employeeRecord, ...data };
+                throw falhaResposta;
+            }
+        };
+        await assert.rejects(() => createEmployee.run(requestFuncionario()),
+            (error) => assertHttpsError(error, "internal", 500, "Não foi possível criar o funcionário."));
+        assert.deepEqual(estado.deleteCalls, [], "nao destruir identidade apos commit ambiguo");
+        assert.equal(estado.employeeRecord?.authSyncPendente, false, "mock representa commit aplicado");
+        assert.ok(chamadas("error").some((args) => /resultado incerto/.test(args[0])));
     });
 });
 
