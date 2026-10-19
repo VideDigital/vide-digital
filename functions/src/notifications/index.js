@@ -2,11 +2,15 @@
 
 const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { requireAuth, isBackendAdmin } = require("../shared/context");
+const { requireAuth, isBackendAdmin, resolveCallerContext } = require("../shared/context");
 const { normalizeString } = require("../shared/validators");
 
 const markNotificationRead = onCall({ region: "southamerica-east1" }, async (request) => {
   const auth = requireAuth(request);
+  // Admin SDK bypasses Rules. A recipient UID alone must not restore access
+  // to a suspended tenant or a staff account awaiting Auth synchronization.
+  // Backend admins retain their explicit administrative exception.
+  if (!isBackendAdmin(auth)) await resolveCallerContext(request);
   const id = normalizeString(request.data?.id, 180);
   if (!id) throw new HttpsError("invalid-argument", "Notificação obrigatória.");
   const ref = getFirestore().doc(`notificacoes/${id}`);
