@@ -304,11 +304,11 @@ describe('SPRINT-106-CREATE-BOUNDARIES', () => {
         assert.deepEqual(estado.deleteCalls, []);
         assert.equal(estado.employeeRecord, null);
     });
-    it('falha de reserva exclui somente identidade recém-criada e nunca habilita', async () => {
+    it('rejeição definitiva de reserva exclui somente identidade recém-criada e nunca habilita', async () => {
         let enables=0;
         estado.updateUser=async()=>{enables++;};
-        estado.docSet=async()=>{throw new Error('reserve failed');};
-        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e.code === 'internal');
+        mock.method(fakeFirestore,'runTransaction',async()=>{throw new HttpsError('failed-precondition','capacity rejected before writes');});
+        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e.code === 'failed-precondition');
         assert.deepEqual(estado.deleteCalls,[UID_CRIADO]);
         assert.equal(enables,0);
         assert.equal(estado.employeeRecord,null);
