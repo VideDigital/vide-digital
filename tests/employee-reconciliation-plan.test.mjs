@@ -1,0 +1,7 @@
+import assert from 'node:assert/strict';
+import {test} from 'node:test';
+import {planEmployeeReconciliation as plan} from '../scripts/employee-reconciliation-plan.mjs';
+const fixture=()=>({environment:'emulator',project:'demo-vide-hub',uid:'staff',ownerUid:'owner',documentUid:'staff',documentOwnerUid:'owner',authUid:'staff',updateTime:'v1',expectedUpdateTime:'v1',syncId:'s1',expectedSyncId:'s1',pending:true,inFlight:false,logsReviewed:true,adminIntentConfirmed:true,ownerApproved:true,status:'ativo',activeCount:1,limit:1,authDisabled:true});
+test('isolated successful recovery rehearsal produces a plan, not writes',()=>{const s=fixture();const p=plan(s);assert.equal(p.mode,'PLAN_ONLY');assert.equal(p.authTargetDisabled,false);assert.equal(p.deleteIdentity,false);assert.equal(s.pending,true);assert.equal(p.requiresSeparateAuthorization,true)});
+test('disable intent and production also remain plan-only',()=>{assert.equal(plan({...fixture(),status:'inativo'}).authTargetDisabled,true);assert.equal(plan({...fixture(),environment:'production',project:'vide-digital-saas'}).mode,'PLAN_ONLY')});
+for(const [key,value] of Object.entries({project:'other',documentOwnerUid:'tenantB',documentUid:'other',authUid:'other',expectedUpdateTime:'v2',expectedSyncId:'other',pending:false,inFlight:true,logsReviewed:false,adminIntentConfirmed:false,ownerApproved:false,activeCount:2,authDisabled:null}))test('fails closed for '+key,()=>assert.throws(()=>plan({...fixture(),[key]:value}),/HARD STOP/));

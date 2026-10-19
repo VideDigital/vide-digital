@@ -297,6 +297,34 @@ describe("067 ERR-SRV-001 — createEmployee preserva a causa de erro inesperado
 });
 
 // Sprint 106: chamadas Auth e commits Firestore nao sao transacionais juntos.
+describe('SPRINT-106-CREATE-BOUNDARIES', () => {
+    it('falha antes de criar Auth não tenta excluir identidade', async () => {
+        estado.createUser = async () => { throw new Error('Auth create unavailable'); };
+        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e.code === 'internal');
+        assert.deepEqual(estado.deleteCalls, []);
+        assert.equal(estado.employeeRecord, null);
+    });
+    it('falha de reserva exclui somente identidade recém-criada e nunca habilita', async () => {
+        let enables=0;
+        estado.updateUser=async()=>{enables++;};
+        estado.docSet=async()=>{throw new Error('reserve failed');};
+        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e.code === 'internal');
+        assert.deepEqual(estado.deleteCalls,[UID_CRIADO]);
+        assert.equal(enables,0);
+        assert.equal(estado.employeeRecord,null);
+    });
+    it('erro de conclusão antes do commit mantém reserva e identidade, retry não sobrescreve', async () => {
+        estado.docSet=async(p,d)=>{if(p.startsWith('funcionarios/') && d.authSyncPendente===false)throw new Error('completion failed');};
+        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e.code === 'internal');
+        const syncId=estado.employeeRecord.authSyncId;
+        assert.equal(estado.employeeRecord.authSyncPendente,true);
+        assert.deepEqual(estado.deleteCalls,[]);
+        estado.getUserByEmail=async()=>({uid:UID_CRIADO});
+        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e.code === 'already-exists');
+        assert.equal(estado.employeeRecord.authSyncId,syncId);
+        assert.deepEqual(estado.deleteCalls,[]);
+    });
+});
 describe("SPRINT-106-CREATE-RECOVERY — nao excluir conta apos operacao externa ambigua", () => {
     it("falha no updateUser apos reserva mantem pendencia sem apagar Auth", async () => {
         estado.updateUser = async () => { throw new Error("Auth timeout simulado"); };

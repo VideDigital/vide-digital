@@ -175,4 +175,32 @@ describe("SPRINT-106-AUTH-RACE — operação externa Auth serializada pela guar
     await assert.rejects(() => disableEmployee.run(req),
       (err) => err.code === "failed-precondition");
   });
+
+  it("falha na finalização não libera lock nem admite retry após Auth habilitado", async () => {
+    const originalTx = db.runTransaction;
+    let calls = 0;
+    db.runTransaction = async fn => {
+      if (++calls === 2) throw new Error('commit completion failed');
+      return originalTx(fn);
+    };
+    try {
+      await assert.rejects(() => enableEmployee.run(req), e => e.code === 'internal');
+      assert.equal(state.authDisabled, false);
+      assert.equal(state.employee.authSyncPendente, true);
+      await assert.rejects(() => enableEmployee.run(req), e => e.code === 'failed-precondition');
+    } finally { db.runTransaction = originalTx; }
+  });
+
+  it("double-click ENABLE não dispara segunda mutação externa", async () => {
+    const blocked = {entered: deferred(), release: deferred()};
+    state.blockAuthOnDisabled = false;
+    state.waitForAuth = blocked;
+    const first = enableEmployee.run(req);
+    await blocked.entered.promise;
+    try { await assert.rejects(() => enableEmployee.run(req), e => e.code === 'failed-precondition'); }
+    finally { blocked.release.resolve(); }
+    await first;
+    assert.equal(state.authDisabled, false);
+    assert.equal(state.employee.authSyncPendente, false);
+  });
 });
