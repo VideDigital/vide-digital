@@ -8,6 +8,16 @@ const { FieldValue } = require("firebase-admin/firestore");
 const { employeeLimitForPlan } = require("../shared/validators");
 
 const OPERATIONS = new Set(["create", "enable", "disable", "rollback-create", "complete-auth-sync"]);
+// Internal evidence, bound to the exact error and creation operation. A caller
+// cannot manufacture a safe rollback merely by throwing another HttpsError.
+const createRejections = new WeakMap();
+
+function isDefinitiveCreateRejection(error, { ownerUid, employeeUid, syncId } = {}) {
+  const evidence = createRejections.get(error);
+  return !!evidence && evidence.definitive === true && !!syncId
+    && evidence.ownerUid === ownerUid && evidence.employeeUid === employeeUid
+    && evidence.syncId === syncId;
+}
 
 async function mutateEmployeeCapacity({ db, ownerUid, employeeUid, operation, payload = null, actorUid = "", syncId = "" }) {
   if (!db || !ownerUid || !employeeUid || !OPERATIONS.has(operation)) {
@@ -24,13 +34,19 @@ async function mutateEmployeeCapacity({ db, ownerUid, employeeUid, operation, pa
   const activeQuery = db.collection("funcionarios")
     .where("donoUID", "==", ownerUid).where("status", "==", "ativo");
 
-  return db.runTransaction(async (tx) => {
+  // These flags span ALL SDK callback attempts, not just the last one. Even
+  // queued writes can have committed when their response was lost. Never
+  // reset the evidence on retry or infer absence from the final error class.
+  let writesAttempted = false;
+  let existingCreateDocument = false;
+  const applyMutation = async (tx) => {
     // Every read precedes every write. The tenant guard serializes capacity
     // mutations; authSyncPendente serializes the EXTERNAL Auth operation.
     const [ownerSnap, , employeeSnap, activeSnap] = await Promise.all([
       tx.get(ownerRef), tx.get(guardRef), tx.get(employeeRef), tx.get(activeQuery)
     ]);
     const current = employeeSnap.exists ? employeeSnap.data() : null;
+    if (operation === "create" && employeeSnap.exists) existingCreateDocument = true;
     if (operation === "rollback-create" || operation === "complete-auth-sync") {
       if (!current || current.donoUID !== ownerUid ||
           current.authSyncPendente !== true || current.authSyncId !== id) {
@@ -73,6 +89,7 @@ async function mutateEmployeeCapacity({ db, ownerUid, employeeUid, operation, pa
         }
       }
       if (operation === "create") {
+        writesAttempted = true;
         tx.create(employeeRef, { ...payload, donoUID: ownerUid, status: "ativo",
           authSyncPendente: true, authSyncId: id });
       } else {
@@ -93,7 +110,18 @@ async function mutateEmployeeCapacity({ db, ownerUid, employeeUid, operation, pa
     tx.set(guardRef, { revision: FieldValue.increment(1),
       atualizadoEm: FieldValue.serverTimestamp() }, { merge: true });
     return { changed: true, status: current?.status || "inativo", syncId: id };
-  });
+  };
+  try {
+    return await db.runTransaction(applyMutation);
+  } catch (error) {
+    if (operation === "create" && error && typeof error === "object") {
+      createRejections.set(error, {
+        ownerUid, employeeUid, syncId: id,
+        definitive: error instanceof HttpsError && !writesAttempted && !existingCreateDocument
+      });
+    }
+    throw error;
+  }
 }
 
-module.exports = { mutateEmployeeCapacity };
+module.exports = { isDefinitiveCreateRejection, mutateEmployeeCapacity };

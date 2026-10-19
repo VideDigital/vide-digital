@@ -4,7 +4,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { mutateEmployeeCapacity } = require("./capacity");
+const { isDefinitiveCreateRejection, mutateEmployeeCapacity } = require("./capacity");
 const { resolveCallerContext } = require("../shared/context");
 const {
   employeeLimitForPlan,
@@ -128,10 +128,12 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     // pode haver um commit já concluído; não apagar uma conta válida.
     // Manter a pendência e exigir reconciliação auditada (fail closed).
     let authDeleted = false;
-    // HttpsError business rejections in capacity occur before any write.
-    // Other transaction failures can hide a committed reservation. Never
-    // infer absence from a rejected await, or destroy its matching identity.
-    const reservationUncertain = reservationAttempted && !capacity && !(error instanceof HttpsError);
+    // Only operation-bound evidence from capacity can prove a safe rejection.
+    // A final HttpsError can follow an earlier committed SDK retry attempt.
+    const reservationUncertain = reservationAttempted && !capacity
+      && !isDefinitiveCreateRejection(error, {
+        ownerUid: context.ownerUid, employeeUid: createdUser?.uid, syncId: creationSyncId
+      });
     if (createdUser?.uid && !authEnableAttempted && !reservationUncertain) {
       try {
         await auth.deleteUser(createdUser.uid);
