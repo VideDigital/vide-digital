@@ -8,6 +8,7 @@ import {
 } from "@firebase/rules-unit-testing";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
+import { verifyStorageAuthorizationMatrix, verifyStorageMalformedStates } from "./storage-auth-matrix.mjs";
 
 const PROJECT_ID = "demo-vide-hub";
 let testEnv;
@@ -28,6 +29,7 @@ beforeEach(async () => {
   await testEnv.clearFirestore();
   await testEnv.clearStorage();
   await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "usuarios", "ownerA"), { status: "aprovado" });
     await setDoc(doc(context.firestore(), "funcionarios", "employeeProducts"), {
       donoUID: "ownerA",
       status: "ativo",
@@ -79,5 +81,13 @@ describe("storage tenant upload rules", () => {
   it("allows only PDF as digital product in this proposal", async () => {
     await assertSucceeds(uploadBytes(ref(storage("ownerA"), "stores/ownerA/digital-products/prodA/a.pdf"), blob("application/pdf")));
     await assertFails(uploadBytes(ref(storage("ownerA"), "stores/ownerA/digital-products/prodA/a.zip"), blob("application/zip")));
+  });
+
+  it("enforces the complete 557-case tenant/status/CRUD and file-policy matrix", async () => {
+    await verifyStorageAuthorizationMatrix(testEnv);
+  });
+
+  it("fails closed for malformed state and rechecks suspension with the same client", async () => {
+    await verifyStorageMalformedStates(testEnv);
   });
 });
