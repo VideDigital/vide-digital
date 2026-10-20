@@ -41,11 +41,38 @@ pnpm run test:functions
 
 O script existente de Rules já executa `storage-security.test.mjs`, que importa o novo helper. Nenhuma edição de workflow/package/timeout é necessária. Os cinco testes anteriores são preservados, acrescentando apenas owner aprovado às fixtures de sucesso.
 
-`storage-auth-matrix.mjs` executa 557 verificações com SDK real: vinte perfis, cinco caminhos, READ/LIST/CREATE/UPDATE/DELETE, limites, MIME e catch-all. São os mesmos 557 casos de autorização da auditoria, consolidados em um teste. A política esperada não muda entre RED e GREEN. Negativas exigem `storage/unauthorized`; objeto inexistente e erro de infraestrutura não contam como acesso negado.
+`storage-auth-matrix.mjs` preserva as 557 verificações originais e adiciona 100 UPDATE de metadados: 657 verificações com SDK real. Vinte perfis, cinco caminhos, READ/LIST/CREATE/sobrescrita/UPDATE/DELETE, limites, MIME e catch-all. A política esperada não muda entre RED e GREEN. Negativas exigem `storage/unauthorized`; objeto inexistente e erro de infraestrutura não contam como acesso negado.
 
-Outra matriz de 279 verificações testa owners desconhecidos/sem status, funcionário ausente, tipos inválidos de flag/tenant/permissões, tenant pendente/rejeitado e transição de suspensão com o mesmo cliente autenticado. Não há chamada Gemini, produção ou Auth administrativo real. Contextos/claims de teste são sintéticos. Arquivos forenses, logs e snapshots locais não pertencem à PR.
+Outra matriz preserva 279 verificações de owners desconhecidos/sem status, funcionário ausente, tipos inválidos de flag/tenant/permissões, tenant pendente/rejeitado e transição com o mesmo cliente. Acrescenta 55 UPDATE de metadados, totalizando 334. Não há Gemini, produção ou Auth administrativo real. Contextos/claims são sintéticos. Arquivos forenses, logs e snapshots locais não pertencem à PR.
 
 Resultado local: RED da matriz principal com Rules anteriores, 130 divergências em 557; GREEN com a correção, zero divergências em 557 e zero nas 279 verificações adicionais. Os cinco testes preexistentes permanecem verdes. Os logs de execução e o relatório completo são evidências locais, não dados embutidos na PR.
+
+### Correção das lacunas B2 da revisão adversarial
+
+Os resultados 557/279 acima são históricos. O antigo rótulo UPDATE designava sobrescrita com `uploadBytes`: firebase-tools 13.35.1 avalia esse upload como CREATE, mesmo com objeto existente (`storage/files.js`, `uploadObject`). `updateObjectMetadata` usa UPDATE. Não foi atribuída a esse experimento uma causa de produção nem afirmado que versões diferentes tenham a mesma semântica.
+
+Antes de carregar as Rules do produto, um discriminante serial carrega duas políticas temporárias na instância exclusiva do CLI Emulator: CREATE sim/UPDATE não e inversa. Sobrescrita segue CREATE e `updateMetadata` segue UPDATE; bytes/metadados observados distinguem aceitação e negativa. Ambas as políticas são exercitadas antes da matriz; nenhuma Rule temporária é publicada ou carregada em instância compartilhada. Não executar este arquivo contra um Emulator já utilizado por outra suíte. O CLI cria e encerra a instância, e o script `test:rules` executa arquivos sequencialmente.
+
+As cinco famílias atuais compartilham a mesma condição CREATE/UPDATE. A matriz mantém a sobrescrita e acrescenta UPDATE real via `updateMetadata` a todos os 31 perfis, inclusive admin/claim falsa e estados malformados. CREATE exige ausência inicial; sobrescrita e UPDATE exigem objeto existente. Negativa preserva estado completo; sobrescrita permitida altera bytes; UPDATE permitido altera metadado sintético e preserva bytes. A documentação oficial descreve a [atualização de metadados](https://firebase.google.com/docs/storage/web/file-metadata); a classificação foi comprovada no runtime instalado pelo discriminante, não inferida do nome da API.
+
+| Operação na matriz | Principal | Malformados/transição | Total |
+|---|---:|---:|---:|
+| READ | 100 | 57 | 157 |
+| LIST | 100 | 55 | 155 |
+| CREATE novo | 100 | 56 | 156 |
+| Sobrescrita de bytes, avaliador CREATE | 100 | 55 | 155 |
+| UPDATE de metadados, avaliador UPDATE | 100 | 55 | 155 |
+| DELETE | 100 | 56 | 156 |
+| CREATE tamanho/MIME/catch-all | 57 | 0 | 57 |
+| Total de decisões de autorização | 657 | 334 | 991 |
+
+As 836 anteriores permanecem; 155 novas decisões UPDATE não são apenas renomeação. Há também 775 assertions de integridade nas 155 combinações perfil/caminho (cinco por combinação), separadas das decisões: ausência antes de CREATE, estado após CREATE, integridade da sobrescrita e dois checks de UPDATE. Essas contagens não são testes adicionais de `node:test`. O discriminante tem seis decisões de autorização em hook separado (upload novo, sobrescrita e metadata em duas políticas), não incluídas nas 991.
+
+`rules-unit-testing` 4.0.1 `clearStorage` lista apenas `items` na raiz do bucket default `demo-vide-hub`, ignorando `prefixes`. O controle negativo recria exatamente os oito paths históricos em `stores/qaA` e `stores/missing`, inventaria bucket/tamanho/MIME/generation/metageneration e timestamps, chama a biblioteca instalada e comprova oito objetos restantes. A nova limpeza verifica oito ausências por getMetadata, árvore vazia e preservação de um sentinel fora dos prefixos. Repete duas vezes, inclusive passando por assertion falha e finally. A suíte completa pode ser repetida em instância nova para confirmar inicialização limpa.
+
+Nos cenários normais, cada fixture aloca bucket sintético UUID exclusivo, preservando o formato real dos paths. O helper nunca apaga a raiz do bucket: remove recursivamente apenas os prefixos alocados, após guards de projeto `demo-vide-hub`, hosts locais, bucket exato e prefixos próprios. A exceção explícita do controle histórico aceita somente bucket default e os dois prefixos fixos; exige inventário inicialmente vazio. Nenhum bucket de produção é aceito. `afterEach` limpa mesmo em falha; exclusão é seguida de listagem sem items/prefixes e consulta independente de ausência a cada objeto inventariado. Cleanup malsucedido falha o teste. O sentinel sintético é excluído individualmente somente ao terminar sua verificação.
+
+Limites: uma interrupção forçada de processo/OS não executa finally; as instâncias são efêmeras sem export e não se promete cleanup após SIGKILL. A suíte usa reset Firestore global já existente e exige instância exclusiva e execução serial; não é apropriada para conexão paralela a Emulator compartilhado. Não se prova que sobrescrita use o ramo UPDATE em produção: o teste de bytes comprova o upload observado no Emulator; o teste de metadata comprova UPDATE. Nenhuma dependência/timeout/Rule de produto foi alterada para obter verde.
 
 ## Limites e implantação futura
 

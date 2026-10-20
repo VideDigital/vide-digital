@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { doc, setDoc, updateDoc } from "firebase/firestore";
-import { deleteObject, getBytes, listAll, ref, uploadBytes } from "firebase/storage";
+import { deleteObject, getBytes, listAll, ref, updateMetadata, uploadBytes } from "firebase/storage";
+import { assertObjectAbsent, objectState } from "./storage-fixtures.mjs";
 
 const modules = ["produtos", "configuracoes", "landing-pages"];
 const categories = [
@@ -20,6 +21,8 @@ function requireEmulators() {
 function verifier() {
   const failures = [];
   let checks = 0;
+  const operations = {};
+  const originalB1Denials = { owner: 0, pendingSync: 0, linkedOwner: 0 };
   return {
     async check(label, expected, operation) {
       let allowed = false;
@@ -31,12 +34,24 @@ function verifier() {
         assert.equal(error.code, "storage/unauthorized", `${label}: unexpected ${error.code}`);
       }
       checks++;
+      const operationName = label.includes("/SIZE/") || label.includes("/MIME/") || label.startsWith("UNMATCHED/") ? "CREATE_POLICY" : label.split("/").at(-1);
+      operations[operationName] = (operations[operationName] || 0) + 1;
+      if (!expected && !allowed && ["READ", "LIST", "CREATE", "BYTES_OVERWRITE_CREATE", "DELETE"].includes(operationName)) {
+        const role = label.split("/")[1];
+        if (["suspended", "pendingOwner", "rejectedOwner", "missingOwnerDoc", "inactiveOwner"].includes(role)) originalB1Denials.owner++;
+        // Staff private READ/LIST were already denied before the B1 fix.
+        const originalWrite = ["CREATE", "BYTES_OVERWRITE_CREATE", "DELETE"].includes(operationName);
+        if (originalWrite && role === "pendingSync") originalB1Denials.pendingSync++;
+        if (originalWrite && ["suspendedTenantStaff", "missingLinkedOwner"].includes(role)) originalB1Denials.linkedOwner++;
+      }
       if (allowed !== expected) failures.push({ label, expected, allowed });
+      return allowed;
     },
     finish(name, expectedChecks) {
-      console.log(JSON.stringify({ name, checks, mismatches: failures.length }));
+      console.log(JSON.stringify({ name, checks, operations, originalB1Denials, mismatches: failures.length }));
       assert.equal(checks, expectedChecks);
       assert.deepEqual(failures, [], `${name}: unexpected authorization results`);
+      if (name === "storage-657") assert.deepEqual(originalB1Denials, { owner: 85, pendingSync: 15, linkedOwner: 30 });
     }
   };
 }
@@ -65,8 +80,21 @@ async function verifyRoles(env, roles, v) {
       const canWrite = !!role.write && (!role.modules || role.modules.includes(category.name));
       await v.check(`${label}/READ`, !category.private || !!role.privateRead, () => getBytes(ref(storage, target)));
       await v.check(`${label}/LIST`, !category.private || !!role.privateRead, () => listAll(ref(storage, prefix)));
-      await v.check(`${label}/CREATE`, canWrite, () => uploadBytes(ref(storage, `${prefix}/${role.name}-new.bin`), new Uint8Array([4]), { contentType: category.mime }));
-      await v.check(`${label}/UPDATE`, canWrite, () => uploadBytes(ref(storage, target), new Uint8Array([5]), { contentType: category.mime }));
+      const newPath = `${prefix}/${role.name}-new.bin`;
+      await assertObjectAbsent(env, newPath);
+      const created = await v.check(`${label}/CREATE`, canWrite, () => uploadBytes(ref(storage, newPath), new Uint8Array([4]), { contentType: category.mime }));
+      if (created) assert.deepEqual((await objectState(env, newPath)).bytes, [4]);
+      else await assertObjectAbsent(env, newPath);
+      const beforeOverwrite = await objectState(env, target);
+      const overwritten = await v.check(`${label}/BYTES_OVERWRITE_CREATE`, canWrite, () => uploadBytes(ref(storage, target), new Uint8Array([5]), { contentType: category.mime }));
+      const afterOverwrite = await objectState(env, target);
+      if (overwritten) assert.deepEqual(afterOverwrite.bytes, [5]);
+      else assert.deepEqual(afterOverwrite, beforeOverwrite);
+      const updated = await v.check(`${label}/UPDATE_METADATA`, canWrite, () => updateMetadata(ref(storage, target), { customMetadata: { proof: label } }));
+      const afterUpdate = await objectState(env, target);
+      assert.deepEqual(afterUpdate.bytes, afterOverwrite.bytes);
+      if (updated) assert.equal(afterUpdate.metadata.customMetadata.proof, label);
+      else assert.deepEqual(afterUpdate, afterOverwrite);
       await v.check(`${label}/DELETE`, canWrite, () => deleteObject(ref(storage, target)));
     }
   }
@@ -115,7 +143,7 @@ export async function verifyStorageAuthorizationMatrix(env) {
   for (const path of ["usuarios/ownerA/avatar.png", "products/p/file.png", "stores/ownerA/unknown/file.png", "stores/ownerA/products/nested/extra/file.png"]) {
     await v.check(`UNMATCHED/${path}`, false, () => uploadBytes(ref(storage, path), new Uint8Array([0]), { contentType: "image/png" }));
   }
-  v.finish("storage-557", 557);
+  v.finish("storage-657", 657);
 }
 
 export async function verifyStorageMalformedStates(env) {
@@ -145,5 +173,5 @@ export async function verifyStorageMalformedStates(env) {
   await v.check("transition/restored-read", true, () => getBytes(target));
   await env.withSecurityRulesDisabled((c) => updateDoc(doc(c.firestore(), "usuarios", "ownerA"), { status: "inativo" }));
   await v.check("transition/suspended-delete", false, () => deleteObject(target));
-  v.finish("storage-malformed-transition", roles.length * categories.length * 5 + 4);
+  v.finish("storage-malformed-transition", roles.length * categories.length * 6 + 4);
 }
