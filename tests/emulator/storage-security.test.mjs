@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import fs from "node:fs";
-import { after, before, beforeEach, describe, it } from "node:test";
+import { after, afterEach, before, beforeEach, describe, it } from "node:test";
 import {
   assertFails,
   assertSucceeds,
@@ -8,12 +8,19 @@ import {
 } from "@firebase/rules-unit-testing";
 import { doc, setDoc } from "firebase/firestore";
 import { ref, uploadBytes } from "firebase/storage";
+import { verifyStorageAuthorizationMatrix, verifyStorageMalformedStates } from "./storage-auth-matrix.mjs";
+import { storageFixture } from "./storage-fixtures.mjs";
+import { verifyOperationDiscriminant, verifyRecursiveCleanup } from "./storage-operation-proofs.mjs";
 
 const PROJECT_ID = "demo-vide-hub";
 let testEnv;
+let emulatorEnv;
+let fixture;
 
 before(async () => {
-  testEnv = await initializeTestEnvironment({
+  // No other suite runs on this CLI-owned instance while policies discriminate.
+  await verifyOperationDiscriminant();
+  emulatorEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,
     firestore: {
       rules: fs.readFileSync("firestore.rules", "utf8")
@@ -25,9 +32,12 @@ before(async () => {
 });
 
 beforeEach(async () => {
-  await testEnv.clearFirestore();
-  await testEnv.clearStorage();
+  await emulatorEnv.clearFirestore();
+  fixture = storageFixture(emulatorEnv);
+  testEnv = fixture.env;
+  assert.deepEqual(await fixture.inventory(), []);
   await testEnv.withSecurityRulesDisabled(async (context) => {
+    await setDoc(doc(context.firestore(), "usuarios", "ownerA"), { status: "aprovado" });
     await setDoc(doc(context.firestore(), "funcionarios", "employeeProducts"), {
       donoUID: "ownerA",
       status: "ativo",
@@ -41,8 +51,12 @@ beforeEach(async () => {
   });
 });
 
+afterEach(async () => {
+  if (fixture) await fixture.cleanup();
+});
+
 after(async () => {
-  await testEnv.cleanup();
+  if (emulatorEnv) await emulatorEnv.cleanup();
 });
 
 function storage(uid, token = {}) {
@@ -79,5 +93,17 @@ describe("storage tenant upload rules", () => {
   it("allows only PDF as digital product in this proposal", async () => {
     await assertSucceeds(uploadBytes(ref(storage("ownerA"), "stores/ownerA/digital-products/prodA/a.pdf"), blob("application/pdf")));
     await assertFails(uploadBytes(ref(storage("ownerA"), "stores/ownerA/digital-products/prodA/a.zip"), blob("application/zip")));
+  });
+
+  it("enforces 657 checks including real metadata UPDATE and byte overwrite", async () => {
+    await verifyStorageAuthorizationMatrix(testEnv);
+  });
+
+  it("fails closed for malformed state and rechecks suspension with the same client", async () => {
+    await verifyStorageMalformedStates(testEnv);
+  });
+
+  it("proves the old eight-object cleanup failure and recursive cleanup even on assertion failure", async () => {
+    await verifyRecursiveCleanup(emulatorEnv);
   });
 });
