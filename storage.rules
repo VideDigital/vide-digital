@@ -11,7 +11,19 @@ service firebase.storage {
     }
 
     function isOwner(ownerUid) {
-      return signedIn() && request.auth.uid == ownerUid;
+      return signedIn()
+        && request.auth.uid == ownerUid
+        && ownerApprovedForAccess(ownerUid);
+    }
+
+    function ownerApprovedForAccess(ownerUid) {
+      return firestore.exists(/databases/(default)/documents/usuarios/$(ownerUid))
+        && ownerApprovedData(firestore.get(/databases/(default)/documents/usuarios/$(ownerUid)).data);
+    }
+
+    function ownerApprovedData(ownerData) {
+      return ownerData.keys().hasAll(["status"])
+        && ownerData.status == "aprovado";
     }
 
     // Contrato futuro: claim emitida por Cloud Functions/Admin SDK.
@@ -32,6 +44,9 @@ service firebase.storage {
     function isActiveEmployeeForData(ownerUid, empData) {
       return empData.keys().hasAll(["status", "donoUID", "permissoes"])
         && empData.status == "ativo"
+        // Legado sem flag permanece compatível; valores malformados negam.
+        && (!empData.keys().hasAny(["authSyncPendente"]) || empData.authSyncPendente == false)
+        && empData.donoUID is string
         && empData.donoUID == ownerUid
         && empData.permissoes is map
         && empData.permissoes.keys().hasAll(["editar"])
@@ -56,7 +71,12 @@ service firebase.storage {
     }
 
     function canUpload(ownerUid, moduleKey) {
-      return isOwner(ownerUid) || employeeCanUpload(ownerUid, moduleKey) || isBackendAdmin();
+      // No máximo dois documentos distintos: owner do caminho e funcionário.
+      // O ramo owner não consulta funcionarios; admin não depende dos docs.
+      return isBackendAdmin()
+        || (signedIn()
+          && ownerApprovedForAccess(ownerUid)
+          && (request.auth.uid == ownerUid || employeeCanUpload(ownerUid, moduleKey)));
     }
 
     function validImage(maxBytes) {
@@ -100,7 +120,7 @@ service firebase.storage {
 
     match /stores/{ownerUid}/digital-products/{productId}/{fileName} {
       // Fase futura: leitura deve validar comprador/licença antes de produção.
-      allow read: if isOwner(ownerUid) || isBackendAdmin();
+      allow read: if isBackendAdmin() || isOwner(ownerUid);
       allow create, update: if canUpload(ownerUid, "produtos") && validDigitalFile();
       allow delete: if canUpload(ownerUid, "produtos");
     }
