@@ -4,7 +4,7 @@ const { onCall, HttpsError } = require("firebase-functions/v2/https");
 const { logger } = require("firebase-functions");
 const { getAuth } = require("firebase-admin/auth");
 const { getFirestore, FieldValue } = require("firebase-admin/firestore");
-const { mutateEmployeeCapacity } = require("./capacity");
+const { isDefinitiveCreateRejection, mutateEmployeeCapacity } = require("./capacity");
 const { resolveCallerContext } = require("../shared/context");
 const {
   employeeLimitForPlan,
@@ -14,6 +14,7 @@ const {
   sanitizePermissions
 } = require("../shared/validators");
 const { writeAudit } = require("../audit");
+const { randomUUID } = require("node:crypto");
 
 // Gestão de funcionários (criar, editar, ativar/desativar, resetar senha) é
 // restrita ao dono/admin — nunca a outro funcionário, mesmo com "funcionarios"
@@ -87,6 +88,9 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
   let createdUser = null;
   let capacity = null;
   let authEnableAttempted = false;
+  let reservationAttempted = false;
+  // Known before the RPC: a lost commit response must not lose operation identity.
+  const creationSyncId = randomUUID();
   try {
     try {
       await auth.getUserByEmail(email);
@@ -101,9 +105,10 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     createdUser = await auth.createUser({
       email, password, displayName: nome, disabled: true
     });
+    reservationAttempted = true;
     capacity = await mutateEmployeeCapacity({
       db, ownerUid: context.ownerUid, employeeUid: createdUser.uid,
-      operation: "create", actorUid: context.authUid,
+      operation: "create", actorUid: context.authUid, syncId: creationSyncId,
       payload: { nome, email, cargo, senhaTemporaria: true, permissoes,
         criadoEm: FieldValue.serverTimestamp(), criadoPorAuthUid: context.authUid }
     });
@@ -123,7 +128,13 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     // pode haver um commit já concluído; não apagar uma conta válida.
     // Manter a pendência e exigir reconciliação auditada (fail closed).
     let authDeleted = false;
-    if (createdUser?.uid && !authEnableAttempted) {
+    // Only operation-bound evidence from capacity can prove a safe rejection.
+    // A final HttpsError can follow an earlier committed SDK retry attempt.
+    const reservationUncertain = reservationAttempted && !capacity
+      && !isDefinitiveCreateRejection(error, {
+        ownerUid: context.ownerUid, employeeUid: createdUser?.uid, syncId: creationSyncId
+      });
+    if (createdUser?.uid && !authEnableAttempted && !reservationUncertain) {
       try {
         await auth.deleteUser(createdUser.uid);
         authDeleted = true;
@@ -135,6 +146,10 @@ const createEmployee = onCall({ region: "southamerica-east1" }, async (request) 
     if (createdUser?.uid && authEnableAttempted) {
       logger.error("[Funcionários] Criação Auth/Firestore com resultado incerto; reconciliação necessária.",
         { uid: createdUser.uid, syncId: capacity?.syncId || null });
+    }
+    if (createdUser?.uid && reservationUncertain) {
+      logger.error("[Funcionários] Reserva com resultado incerto; identidade desabilitada preservada para reconciliação.",
+        { uid: createdUser.uid, syncId: creationSyncId });
     }
     if (authDeleted && capacity?.syncId) {
       try {
