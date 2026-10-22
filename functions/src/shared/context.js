@@ -20,15 +20,15 @@ function isBackendAdmin(auth) {
       && normalizeEmail(auth?.token?.email) === SUPER_ADMIN_EMAIL);
 }
 
-async function loadOwner(ownerUid) {
-  const snap = await getFirestore().doc(`usuarios/${ownerUid}`).get();
+async function loadOwner(ownerUid, readDocument = (ref) => ref.get()) {
+  const snap = await readDocument(getFirestore().doc(`usuarios/${ownerUid}`));
   if (!snap.exists) {
     throw new HttpsError("failed-precondition", "Loja não encontrada.");
   }
   return { id: snap.id, ...snap.data() };
 }
 
-async function resolveCallerContext(request) {
+async function resolveCallerContext(request, { readDocument = (ref) => ref.get() } = {}) {
   const auth = requireAuth(request);
   const db = getFirestore();
 
@@ -45,7 +45,7 @@ async function resolveCallerContext(request) {
     };
   }
 
-  const ownerSnap = await db.doc(`usuarios/${auth.uid}`).get();
+  const ownerSnap = await readDocument(db.doc(`usuarios/${auth.uid}`));
   if (ownerSnap.exists) {
     const owner = { id: auth.uid, ...ownerSnap.data() };
     if (owner.status !== "aprovado") {
@@ -64,7 +64,7 @@ async function resolveCallerContext(request) {
     };
   }
 
-  const employeeSnap = await db.doc(`funcionarios/${auth.uid}`).get();
+  const employeeSnap = await readDocument(db.doc(`funcionarios/${auth.uid}`));
   if (!employeeSnap.exists) {
     throw new HttpsError("permission-denied", "Perfil não encontrado.");
   }
@@ -77,7 +77,7 @@ async function resolveCallerContext(request) {
     throw new HttpsError("permission-denied", "Funcionário inativo, com acesso pendente ou sem loja vinculada.");
   }
 
-  const owner = await loadOwner(employee.donoUID);
+  const owner = await loadOwner(employee.donoUID, readDocument);
   if (owner.status !== "aprovado") {
     throw new HttpsError("permission-denied", "Loja vinculada inativa.");
   }

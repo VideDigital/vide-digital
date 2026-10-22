@@ -1,0 +1,14 @@
+# Release dependency audit
+
+Base ff2c4f6. Live inventory rechecked during hardening; see local mission report for timestamps and revisions. markNotificationRead is absent from deployed functions and has no active caller in the versioned dashboard (the wrapper alone is not usage). Its Admin SDK handler now validates the full caller context before writing, preserving backend admin and valid legacy recipient/broadcast behavior. This is a latent B2 correction, not evidence of production exploitation. Do not deploy it implicitly.
+
+Consumers: employees create/update/enable/disable/reset use resolveCallerContext; reset also requires owner/admin. askBusinessAI admits delegated staff and requires the new guard. sendAdminChatMessage uses the context but is absent live. admin endpoints use requireBackendAdmin, unchanged. Notifications use requireAuth/isBackendAdmin and now resolveCallerContext. Public AI resolves tenant by slug, not session.
+
+WhatsApp connections, management, onboarding, QR, send and templates use the shared context. Deployed bundles are independent; updating employees cannot replace their helpers. Admin SDK bypasses Firestore Rules. Old endpoints can accept staff during Auth synchronization. No safe zero-change alternative has been proved. Disabling Auth or removing grants as a workaround changes customer state and cannot eliminate already-issued tokens reliably. Require a separately authorized WhatsApp mission; no WhatsApp files are changed here.
+
+NO-GO for deploy remains. Storage has a pre-existing status/pending coverage limitation outside this mission. Publishing Rules first is compatible with the inspected frontend's employee Callables, but mixed revisions and in-flight requests still require staged validation and quiescence. Do not claim global suspension enforcement from Firestore-only tests.
+
+## Notification linearization
+Caller profile, employee linkage/status/pending flag, owner approval and notification recipient are read inside the same Firestore read-write transaction as the receipt update. Authorization is valid at the commit serialization point. Concurrent revocations that serialize before that point invalidate the reads and force re-authorization; revocations serialized after it do not retroactively undo an already committed receipt. Backend admins retain their explicit exception. This makes no cross-service atomicity claim about Firebase Auth tokens.
+
+resolveCallerContext accepts an optional internal readDocument adapter; existing callers keep ordinary reads. Only the notification handler passes the transaction reader, including the employee's owner lookup. Deterministic tests exercise six revocation/deletion retries, and Emulator tests use real transactions with an injected ABORTED conflict to verify the SDK retries and reads current status. The new Emulator test is wired into test:rules. The adversarial pre-fix handler fails the same regression cases.
