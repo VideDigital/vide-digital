@@ -180,11 +180,35 @@ jobs:
         shell: bash
         env:
           EXPECTED_SHA: ${{ inputs.sha }}
+          STAGE: ${{ inputs.stage }}
+          CONFIRMACAO: ${{ inputs.confirmacao }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$PROJECT_ID" = "vide-digital-saas"
-          test "$S106_FUNCTIONS" = "functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:askBusinessAI"
+          fail_release() { printf '::error::%s\n' "$1" >&2; exit 1; }
+          [[ "${EXPECTED_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || fail_release "SHA autorizado inválido"
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_SHA" ]] || fail_release "SHA do checkout divergente"
+          [[ "${PROJECT_ID:-}" == "vide-digital-saas" ]] || fail_release "Projeto inválido"
+          [[ "${S106_FUNCTIONS:-}" == "functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:askBusinessAI" ]] || fail_release "Allowlist de Functions inválida"
+          case "${FUNCTIONS_RELEASE_READY:-}" in
+            false|true) ;;
+            *) fail_release "Trava de Functions inválida" ;;
+          esac
+          case "${STAGE:-}" in
+            rules)
+              [[ "${CONFIRMACAO:-}" == "PUBLICAR_RULES" ]] || fail_release "Confirmação inválida"
+              expected_scope='firestore:rules'
+              ;;
+            functions)
+              [[ "${CONFIRMACAO:-}" == "PUBLICAR_FUNCTIONS" ]] || fail_release "Confirmação inválida"
+              [[ "$FUNCTIONS_RELEASE_READY" == "true" ]] || fail_release "Functions bloqueadas"
+              expected_scope='functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:askBusinessAI'
+              ;;
+            *) fail_release "Etapa inválida" ;;
+          esac
+          # Este passo nunca pode executar uma operação de Rules, mesmo isoladamente.
+          [[ "$STAGE" == "functions" ]] || fail_release "Dry-run restrito a Functions"
+          [[ "${TARGET_SCOPE:-}" == "$expected_scope" ]] || fail_release "Escopo efetivo inválido"
+          readonly expected_scope TARGET_SCOPE
           pnpm dlx firebase-tools@13.35.1 deploy \
             --only "${TARGET_SCOPE}" \
             --project "${PROJECT_ID}" \
@@ -204,11 +228,33 @@ jobs:
         shell: bash
         env:
           EXPECTED_SHA: ${{ inputs.sha }}
+          STAGE: ${{ inputs.stage }}
+          CONFIRMACAO: ${{ inputs.confirmacao }}
         run: |
           set -euo pipefail
-          test "$(git rev-parse HEAD)" = "$EXPECTED_SHA"
-          test "$PROJECT_ID" = "vide-digital-saas"
-          test "$S106_FUNCTIONS" = "functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:askBusinessAI"
+          fail_release() { printf '::error::%s\n' "$1" >&2; exit 1; }
+          [[ "${EXPECTED_SHA:-}" =~ ^[0-9a-f]{40}$ ]] || fail_release "SHA autorizado inválido"
+          [[ "$(git rev-parse HEAD)" == "$EXPECTED_SHA" ]] || fail_release "SHA do checkout divergente"
+          [[ "${PROJECT_ID:-}" == "vide-digital-saas" ]] || fail_release "Projeto inválido"
+          [[ "${S106_FUNCTIONS:-}" == "functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:askBusinessAI" ]] || fail_release "Allowlist de Functions inválida"
+          case "${FUNCTIONS_RELEASE_READY:-}" in
+            false|true) ;;
+            *) fail_release "Trava de Functions inválida" ;;
+          esac
+          case "${STAGE:-}" in
+            rules)
+              [[ "${CONFIRMACAO:-}" == "PUBLICAR_RULES" ]] || fail_release "Confirmação inválida"
+              expected_scope='firestore:rules'
+              ;;
+            functions)
+              [[ "${CONFIRMACAO:-}" == "PUBLICAR_FUNCTIONS" ]] || fail_release "Confirmação inválida"
+              [[ "$FUNCTIONS_RELEASE_READY" == "true" ]] || fail_release "Functions bloqueadas"
+              expected_scope='functions:createEmployee,functions:updateEmployee,functions:enableEmployee,functions:disableEmployee,functions:askBusinessAI'
+              ;;
+            *) fail_release "Etapa inválida" ;;
+          esac
+          [[ "${TARGET_SCOPE:-}" == "$expected_scope" ]] || fail_release "Escopo efetivo inválido"
+          readonly expected_scope TARGET_SCOPE
           pnpm dlx firebase-tools@13.35.1 deploy \
             --only "${TARGET_SCOPE}" \
             --project "${PROJECT_ID}" \
