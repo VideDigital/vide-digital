@@ -235,37 +235,31 @@ describe("067 ERR-SRV-001 — createEmployee preserva a causa de erro inesperado
         assertSemSentinelas();
     });
 
-    it("falha inesperada do Firestore set com rollback OK: rollback tentado, um único log, erro original preservado", async () => {
+    it("falha inesperada da reserva preserva identidade e causa original para reconciliacao", async () => {
         const original = new Error("falha simulada do Firestore set");
         estado.docSet = async () => { throw original; };
 
         await assert.rejects(() => createEmployee.run(requestFuncionario()), (e) => assertHttpsError(e, "internal", 500, MENSAGEM));
 
-        assert.deepEqual(estado.deleteCalls, [UID_CRIADO], "rollback continua sendo tentado");
+        assert.deepEqual(estado.deleteCalls, [], "resultado da reserva desconhecido nunca autoriza exclusão");
         const erros = chamadas("error");
-        assert.equal(erros.length, 1, "rollback bem-sucedido não gera log extra");
-        assert.equal(erros[0][1], original);
-        assert.equal(totalLogs(), 1);
+        assert.equal(erros.length, 2, "evidência técnica da reserva incerta e causa original");
+        assert.match(erros[0][0], /Reserva com resultado incerto/);
+        assert.equal(erros[1][1], original);
+        assert.equal(totalLogs(), 2);
         assertSemSentinelas();
     });
 
-    it("rollback falha: falha do rollback logada à parte (só uid técnico), erro ORIGINAL continua sendo a causa", async () => {
-        const original = new Error("falha simulada do Firestore set");
-        const erroRollback = new Error("falha simulada do deleteUser");
-        estado.docSet = async () => { throw original; };
-        estado.deleteUser = async () => { throw erroRollback; };
-
-        await assert.rejects(() => createEmployee.run(requestFuncionario()), (e) => assertHttpsError(e, "internal", 500, MENSAGEM));
-
-        const erros = chamadas("error");
-        assert.equal(erros.length, 2, "um log do rollback + um log da causa principal");
-        const [logRollback, logPrincipal] = erros;
-        assert.match(logRollback[0], /^\[Funcionários\] Rollback falhou ao remover usuário Auth órfão/);
-        assert.equal(logRollback[1], erroRollback);
-        assert.match(logRollback[1].stack, /falha simulada do deleteUser/);
-        assert.deepEqual(logRollback[2], { orphanUid: UID_CRIADO }, "só o uid técnico do órfão");
-        assert.equal(logPrincipal[1], original, "rollback não substitui a causa principal");
-        assertSemSentinelas();
+    it("exclusão falha após rejeição definitiva: mantém identidade e erro de negócio", async () => {
+        const original = new HttpsError('failed-precondition', 'quota definitivamente rejeitada');
+        const rollback = new Error('delete failed');
+        mock.method(fakeFirestore, 'runTransaction', async () => { throw original; });
+        estado.deleteUser = async () => { throw rollback; };
+        await assert.rejects(() => createEmployee.run(requestFuncionario()), e => e === original);
+        assert.deepEqual(estado.deleteCalls,[UID_CRIADO]);
+        const erros=chamadas('error');assert.equal(erros.length,1);
+        assert.match(erros[0][0],/Rollback falhou/);assert.equal(erros[0][1],rollback);
+        assert.deepEqual(erros[0][2],{orphanUid:UID_CRIADO});assertSemSentinelas();
     });
 
     it("erros esperados (permission-denied, invalid-argument, already-exists): zero log, código e mensagem originais", async () => {
