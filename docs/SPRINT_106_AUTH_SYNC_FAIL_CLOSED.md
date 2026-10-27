@@ -9,7 +9,7 @@ A Firestore Rule proposta na PR #113 exige funcionário ativo **e** `authSyncPen
 - **Criar:** criar Auth desabilitado → transação de reserva de vaga + pendência → habilitar Auth → completar a pendência por `authSyncId`.
 - **Reativar/desativar:** transação muda o status e registra pendência → `updateUser` → `revokeRefreshTokens` → completa pendência.
 - **Concorrência:** a segunda chamada recebe erro de operação em andamento. Não tentar forçar sucesso nem reordenar as chamadas ao Auth.
-- **Falha na criação antes de tentar habilitar Auth:** excluir primeiro a identidade Auth; somente se a exclusão for confirmada remover a reserva no Firestore. Se a exclusão Auth falhar, manter a pendência (fail closed).
+- **Falha na criação antes de tentar habilitar Auth:** não deduzir ausência de commit pela classe do erro final. Só uma rejeição de negócio com evidência interna vinculada a UID/tenant/syncId, sem escrita tentada em qualquer callback e sem documento existente observado, permite excluir a identidade recém-criada e nunca habilitada. Se qualquer tentativa puder ter confirmado reserva, preservar Auth desabilitado, reserva, quota e pendência; não executar compensação automática. Se a exclusão comprovadamente segura falhar, preservar a identidade e o erro original.
 - **Falha depois de enviar a habilitação ao Auth:** não apagar a identidade, pois um timeout pode esconder sucesso no Auth ou commit do Firestore. Manter pendência quando aplicável, sinalizar resultado incerto e exigir reconciliação auditada. Não prometer rollback atômico.
 - **Falha na ativação/desativação ou conclusão:** manter `authSyncPendente: true` (fail closed). Logar IDs técnicos, nunca senha nem dados do cliente.
 

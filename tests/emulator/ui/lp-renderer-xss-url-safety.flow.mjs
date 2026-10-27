@@ -51,6 +51,13 @@ const IMAGEM_LEGITIMA = "https://exemplo.com/foto.jpg";
 // conteúdo de props/design, só nome de campo + geometria).
 const XSS_CSS_BG_PAYLOAD = "https://exemplo.com/x.png');position:fixed;top:0;left:0;z-index:999999;((";
 
+// These are renderer inputs, not real hosted image assets. Route only the
+// two exact fixture URLs to a valid 1x1 GIF; leave every other request and
+// the strict console assertion untouched. A real exemplo.com response is
+// not part of the XSS/CSS contract (it can be HTTP400 text, not an image).
+const FIXTURE_IMAGE_URLS = new Set([IMAGEM_LEGITIMA, XSS_CSS_BG_PAYLOAD].map(url => new URL(url).href));
+const FIXTURE_IMAGE = Buffer.from("R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7", "base64");
+
 // Mesmo payload inofensivo do teste da PR #62 — não deve regredir.
 const CODIGO_IFRAME_PAYLOAD_HTML = `<script>
 window.__iframeExecutouInternamente = true;
@@ -128,6 +135,9 @@ async function main() {
     let falhou = false;
 
     try {
+        await page.route(url => FIXTURE_IMAGE_URLS.has(url.href), route => route.fulfill({
+            status: 200, contentType: "image/gif", body: FIXTURE_IMAGE
+        }));
         await seedLp(db);
         await loginReal(page, baseUrl, { email: "owner.pro@local.test", senha: "Local123!pro" });
 
@@ -278,6 +288,9 @@ async function main() {
             document.getElementById("lp-container").innerHTML = "";
             document.getElementById("lp-container").insertAdjacentHTML("beforeend", html);
         }, htmlProduzido);
+        await page.waitForFunction(url => Array.from(document.querySelectorAll("#lp-container img"))
+            .some(img => img.src === url && img.complete && img.naturalWidth === 1 && img.naturalHeight === 1),
+        IMAGEM_LEGITIMA, { timeout: 5000 });
         const marcadoresRendererPublico = await page.evaluate(() => ({
             svg: window.__lpXssTextMarker === true,
             script: window.__lpXssScriptMarker === true,
